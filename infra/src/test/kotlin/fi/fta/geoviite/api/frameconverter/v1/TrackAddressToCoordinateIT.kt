@@ -7,8 +7,10 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -994,5 +996,72 @@ constructor(
         val properties = featureCollection.features[0].properties
 
         assertContainsErrorMessage("Pyyntö sisälsi virheellisen ratanumero-asetuksen.", properties?.get("virheet"))
+    }
+
+    @Test
+    fun `track number should be in use`() {
+        val layoutContext = mainOfficialContext
+        val trackNumberName = testDBService.getUnusedTrackNumber().value
+
+        val trackNumber =
+            layoutTrackNumberDao
+                .insert(trackNumber(TrackNumber(trackNumberName), state = LayoutState.NOT_IN_USE))
+                .id
+                .let { trackNumberId -> layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!! }
+
+        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+
+        frameConverterTestDataService.insertGeocodableTrack(
+            trackNumberId = trackNumber.id as IntId,
+            locationTrackType = LocationTrackType.CHORD,
+            segments = segments,
+        )
+
+        val request =
+            TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 275)
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        val properties = featureCollection.features[0].properties
+
+        assertContainsErrorMessage("Pyynnön ratanumeroa ei löydetty.", properties?.get("virheet"))
+    }
+
+    @Test
+    fun `location track should be in use`() {
+        val layoutContext = mainOfficialContext
+        val trackNumberName = testDBService.getUnusedTrackNumber().value
+
+        val trackNumber =
+            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+            }
+
+        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+
+        val locationTrack =
+            frameConverterTestDataService.insertGeocodableTrack(
+                trackNumberId = trackNumber.id as IntId,
+                locationTrackType = LocationTrackType.CHORD,
+                segments = segments,
+                state = LocationTrackState.NOT_IN_USE,
+            )
+
+        val request =
+            TestTrackAddressToCoordinateRequest(
+                ratanumero = trackNumberName,
+                ratakilometri = 0,
+                ratametri = 275,
+                sijaintiraide = locationTrack.locationTrack.name.toString(),
+            )
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        val properties = featureCollection.features[0].properties
+
+        assertContainsErrorMessage(
+            "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
+            properties?.get("virheet"),
+        )
     }
 }
