@@ -54,10 +54,11 @@ export const initialKmPostEditState: KmPostEditState = {
 };
 
 export const WGS_84_PROJECTION = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs';
-const SOUTHERNMOST_POINT_OF_FINLAND = 59.505;
-const NORTHMOST_POINT_OF_FINLAND = 70.092;
-const NORTHING_MARGIN = 0.1;
-const EASTING_MARGIN_BETWEEN_GKS = 0.01;
+
+const SOUTHERNMOST_POINT_OF_FINLAND_DEG = 59.505;
+const NORTHMOST_POINT_OF_FINLAND_DEG = 70.092;
+const NORTHING_MARGIN_DEG = 0.1;
+const EASTING_MARGIN_BETWEEN_GKS_DEG = 0.01;
 
 // GK-FIN coordinate systems currently only used for the live display of layout coordinates when editing km post
 // positions manually
@@ -75,7 +76,8 @@ export const isWithinEastingMargin = (point: GeometryPoint): boolean => {
     const wgs84Point = pointToWgs84(point);
     const gkIndex = GK_FIN_COORDINATE_SYSTEMS.findIndex((gk) => first(gk) === point.srid);
     return (
-        !!wgs84Point && Math.abs(wgs84Point?.x - (gkIndex + 19)) < 0.5 + EASTING_MARGIN_BETWEEN_GKS
+        !!wgs84Point &&
+        Math.abs(wgs84Point?.x - (gkIndex + 19)) < 0.5 + EASTING_MARGIN_BETWEEN_GKS_DEG
     );
 };
 
@@ -214,8 +216,8 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
         });
         if (
             pointInWgs84 &&
-            (pointInWgs84.y < SOUTHERNMOST_POINT_OF_FINLAND - NORTHING_MARGIN ||
-                pointInWgs84.y > NORTHMOST_POINT_OF_FINLAND + NORTHING_MARGIN)
+            (pointInWgs84.y < SOUTHERNMOST_POINT_OF_FINLAND_DEG - NORTHING_MARGIN_DEG ||
+                pointInWgs84.y > NORTHMOST_POINT_OF_FINLAND_DEG + NORTHING_MARGIN_DEG)
         ) {
             errors = [
                 ...errors,
