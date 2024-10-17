@@ -334,7 +334,6 @@ const kmPostEditSlice = createSlice({
                     ) &&
                     !state.committedFields.includes(propEdit.key)
                 ) {
-                    // Valid value entered for a field, mark that field as committed
                     state.committedFields = [...state.committedFields, propEdit.key];
                     if (propEdit.key === 'gkSrid' && state.kmPost.gkLocationX !== '') {
                         state.committedFields = [...state.committedFields, 'gkLocationX'];
