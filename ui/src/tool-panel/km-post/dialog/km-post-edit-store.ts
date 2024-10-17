@@ -17,7 +17,7 @@ import {
     PropEdit,
 } from 'utils/validation-utils';
 import { isNilOrBlank, parseFloatOrUndefined } from 'utils/string-utils';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first } from 'utils/array-utils';
 import { GeometryPoint, Point } from 'model/geometry';
 import { Srid } from 'common/common-model';
 import proj4 from 'proj4';
@@ -71,21 +71,11 @@ export const GK_FIN_COORDINATE_SYSTEMS: [Srid, string][] = [...Array(12)].map(
     },
 );
 
-export const findCorrectGkSrid = (point: GeometryPoint | undefined): Srid | undefined => {
-    const pointInWgs84 = pointToWgs84(point);
-    if (pointInWgs84) {
-        const gkNumber = Math.round(pointInWgs84.x) - 19;
-        return GK_FIN_COORDINATE_SYSTEMS[gkNumber]?.[0];
-    } else {
-        return undefined;
-    }
-};
-
-const isWithinEastingMargin = (point: GeometryPoint): boolean => {
+export const isWithinEastingMargin = (point: GeometryPoint): boolean => {
     const wgs84Point = pointToWgs84(point);
+    const gkIndex = GK_FIN_COORDINATE_SYSTEMS.findIndex((gk) => first(gk) === point.srid);
     return (
-        !!wgs84Point &&
-        Math.abs(wgs84Point?.x - Math.round(wgs84Point?.x)) < 0.5 + EASTING_MARGIN_BETWEEN_GKS
+        !!wgs84Point && Math.abs(wgs84Point?.x - (gkIndex + 19)) < 0.5 + EASTING_MARGIN_BETWEEN_GKS
     );
 };
 
@@ -206,7 +196,12 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
                 ...errors,
                 {
                     field: 'gkLocationX',
-                    reason: 'wrong-easting',
+                    reason: 'wrong-crs',
+                    type: FieldValidationIssueType.ERROR,
+                },
+                {
+                    field: 'gkLocationY',
+                    reason: 'wrong-crs',
                     type: FieldValidationIssueType.ERROR,
                 },
             ];
@@ -225,8 +220,13 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
             errors = [
                 ...errors,
                 {
+                    field: 'gkLocationX',
+                    reason: 'wrong-crs',
+                    type: FieldValidationIssueType.ERROR,
+                },
+                {
                     field: 'gkLocationY',
-                    reason: 'wrong-northing',
+                    reason: 'wrong-crs',
                     type: FieldValidationIssueType.ERROR,
                 },
             ];

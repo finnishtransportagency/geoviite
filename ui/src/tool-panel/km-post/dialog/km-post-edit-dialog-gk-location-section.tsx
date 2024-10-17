@@ -8,9 +8,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     actions,
-    findCorrectGkSrid,
     GK_FIN_COORDINATE_SYSTEMS,
     gkLocationSource,
+    isWithinEastingMargin,
     KmPostEditState,
     parseGk,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
@@ -160,13 +160,10 @@ export const KmPostEditDialogGkLocationSection: React.FC<
         geometryPlanSrid !== state.kmPost.gkSrid &&
         !!GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === geometryPlanSrid);
 
-    const correctGkForPoint =
-        gkLocationEnabled && geometryKmPostGkLocation
-            ? findCorrectGkSrid(geometryKmPostGkLocation)
-            : undefined;
+    const withinMargin = gkLocation ? isWithinEastingMargin(gkLocation) : false;
 
     const layoutLocationString = () => {
-        if (gkLocationEnabled && layoutLocation && correctGkForPoint === gkLocation?.srid) {
+        if (gkLocationEnabled && layoutLocation && withinMargin) {
             return formatToTM35FINString(layoutLocation);
         } else {
             return '-';
