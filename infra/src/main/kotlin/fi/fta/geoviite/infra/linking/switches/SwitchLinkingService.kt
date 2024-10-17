@@ -909,32 +909,42 @@ fun updateAlignmentSegmentsWithSwitchLinking(
             .mapIndexedNotNull { index, segment -> if (index in segmentIndexRange) segment.switchId else null }
             .distinct()
 
-    val segmentsWithNewSwitch =
-        alignment.segments
-            .map { segment -> if (overriddenSwitches.contains(segment.switchId)) segment.withoutSwitch() else segment }
-            .mapIndexed { index, segment ->
-                if (index in segmentIndexRange) {
-                    val switchLinkingJoints = matchingJoints.filter { joint -> joint.segmentIndex == index }
+    val cleanedSegments =
+        alignment.segments.map { segment ->
+            if (overriddenSwitches.contains(segment.switchId)) segment.withoutSwitch() else segment
+        }
 
-                    if (switchLinkingJoints.isEmpty()) {
-                        // Segment that is between two other segments that are linked to the switch
-                        // joints
-                        listOf(segment.copy(switchId = layoutSwitchId, startJointNumber = null, endJointNumber = null))
-                    } else {
-                        getSegmentsByLinkingJoints(
-                            switchLinkingJoints,
-                            segment,
-                            layoutSwitchId,
-                            index == segmentIndexRange.first,
-                            index == segmentIndexRange.last,
-                        )
-                    }
+    val segmentsWithNewSwitch =
+        cleanedSegments
+            .subList(segmentIndexRange.first, segmentIndexRange.last + 1)
+            .mapIndexed { indexInRange, segment ->
+                val index = indexInRange + segmentIndexRange.first
+                val switchLinkingJoints = matchingJoints.filter { joint -> joint.segmentIndex == index }
+
+                if (switchLinkingJoints.isEmpty()) {
+                    // Segment that is between two other segments that are linked to the switch
+                    // joints
+                    listOf(segment.copy(switchId = layoutSwitchId, startJointNumber = null, endJointNumber = null))
                 } else {
-                    listOf(segment)
+                    getSegmentsByLinkingJoints(
+                        switchLinkingJoints,
+                        segment,
+                        layoutSwitchId,
+                        index == segmentIndexRange.first,
+                        index == segmentIndexRange.last,
+                    )
                 }
             }
+            .let { segments -> combineAdjacentSegmentJointNumbers(segments, layoutSwitchId) }
 
-    return alignment.withSegments(combineAdjacentSegmentJointNumbers(segmentsWithNewSwitch, layoutSwitchId))
+    return alignment.withSegments(
+        listOf(
+                cleanedSegments.subList(0, segmentIndexRange.first),
+                segmentsWithNewSwitch,
+                cleanedSegments.subList(segmentIndexRange.last + 1, cleanedSegments.size),
+            )
+            .flatten()
+    )
 }
 
 private fun filterMatchingJointsBySwitchAlignment(
