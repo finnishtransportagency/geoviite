@@ -20,10 +20,10 @@ import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
-import fi.fta.geoviite.infra.tracklayout.CacheHit
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackCacheHit
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -37,9 +37,9 @@ import fi.fta.geoviite.infra.util.all
 import fi.fta.geoviite.infra.util.alsoIfNull
 import fi.fta.geoviite.infra.util.processValidated
 import fi.fta.geoviite.infra.util.produceIf
+import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
 import java.math.RoundingMode
-import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class FrameConverterServiceV1
@@ -73,9 +73,9 @@ constructor(
         val trackNumbers = trackNumberService.mapById(layoutContext)
         val spatialCache = locationTrackSpatialCache.get(layoutContext)
         val closestTracks =
-            requestsWithPoints.map { r ->
-                spatialCache.getClosest(r.second, r.first.searchRadius).find { (track, _) ->
-                    filterByRequest(track, trackNumbers, r.first)
+            requestsWithPoints.map { (request, point) ->
+                spatialCache.getClosest(point, request.searchRadius).find { (track, _) ->
+                    filterByRequest(track, trackNumbers, request)
                 }
             }
 
@@ -125,7 +125,7 @@ constructor(
     private fun calculateCoordinateToTrackAddressResponse(
         searchPoint: IPoint,
         request: ValidCoordinateToTrackAddressRequestV1,
-        closestTrack: CacheHit,
+        closestTrack: LocationTrackCacheHit,
         trackDescription: FreeText?,
         params: FrameConverterQueryParamsV1,
         geocodingContexts: Map<IntId<TrackLayoutTrackNumber>, GeocodingContext?>,
@@ -341,7 +341,7 @@ constructor(
     private fun createCoordinateToTrackAddressResponse(
         request: ValidCoordinateToTrackAddressRequestV1,
         params: FrameConverterQueryParamsV1,
-        closestTrack: CacheHit,
+        closestTrack: LocationTrackCacheHit,
         trackNumber: TrackNumber,
         geocodedAddress: AddressAndM,
         locationTrackDescription: FreeText?,

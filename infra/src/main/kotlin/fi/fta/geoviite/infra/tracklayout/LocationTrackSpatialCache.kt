@@ -68,7 +68,7 @@ data class SpatialCacheEntry(
     val segmentData: List<Pair<SpatialCacheSegment, Rectangle>>,
 )
 
-data class CacheHit(
+data class LocationTrackCacheHit(
     val track: LocationTrack,
     val alignment: LayoutAlignment,
     val closestPoint: AlignmentPoint,
@@ -76,7 +76,7 @@ data class CacheHit(
 )
 
 private val cacheHitComparator =
-    compareBy<CacheHit>(
+    compareBy<LocationTrackCacheHit>(
         { it.distance }, // Primary sort by distance
         { if (it.track.duplicateOf == null) 0 else 1 }, // Favor non-duplicates as tie-breaker
         { it.track.version?.rowId?.intValue }, // Stable ordering by row ID
@@ -91,19 +91,23 @@ data class ContextCache(
     val size: Int
         get() = items.size
 
-    fun getClosest(location: IPoint, thresholdMeters: Double = 100.0): List<CacheHit> =
+    fun getClosest(location: IPoint, thresholdMeters: Double = 100.0): List<LocationTrackCacheHit> =
         network
             .search(Geometries.point(location.x, location.y), thresholdMeters)
             .mapNotNull { entry -> createHit(entry.value(), location, thresholdMeters) }
             .sortedWith(cacheHitComparator)
             .distinctBy { it.track.id }
 
-    private fun createHit(segment: SpatialCacheSegment, location: IPoint, thresholdMeters: Double): CacheHit? {
+    private fun createHit(
+        segment: SpatialCacheSegment,
+        location: IPoint,
+        thresholdMeters: Double,
+    ): LocationTrackCacheHit? {
         val closestPointM = segment.segment.getClosestPointM(location).first
         val closestPoint = segment.segment.seekPointAtM(closestPointM).point
         val distance = lineLength(location, closestPoint)
         return if (distance < thresholdMeters) {
-            CacheHit(
+            LocationTrackCacheHit(
                 getTrack(segment.locationTrackVersion),
                 getAlignment(segment.alignmentVersion),
                 closestPoint,
