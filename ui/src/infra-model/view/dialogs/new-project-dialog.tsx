@@ -39,11 +39,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onS
         [projects],
     );
 
-    const getErrorMessage = () => {
-        if (duplicateName) {
-            return [t('im-form.duplicate-project-name')];
-        }
-    };
+    const getErrorMessage = () => (duplicateName ? [t('im-form.duplicate-project-name')] : []);
 
     const onNameChange = (name: string) => {
         setProjectName(name);

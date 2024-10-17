@@ -691,6 +691,8 @@ const MapView: React.FC<MapViewProps> = ({
     React.useEffect(() => {
         if (measurementToolActive && olMap) {
             return measurementTool.activate(olMap);
+        } else {
+            return () => undefined;
         }
     }, [olMap, measurementToolActive]);
 

@@ -8,8 +8,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     actions,
+    GK_FIN_COORDINATE_SYSTEMS,
     gkLocationSource,
+    isWithinEastingMargin,
     KmPostEditState,
+    parseGk,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { KmPostEditFields } from 'linking/linking-model';
 import { useCoordinateSystem, useCoordinateSystems } from 'track-layout/track-layout-react-utils';
@@ -19,24 +22,11 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { GeometryPoint, Point } from 'model/geometry';
 import styles from 'tool-panel/km-post/dialog/km-post-edit-dialog.scss';
 import { Srid } from 'common/common-model';
-import { parseFloatOrUndefined } from 'utils/string-utils';
-import { KmPostEditDialogRole } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
+import { KmPostEditDialogType } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import proj4 from 'proj4';
-
-// GK-FIN coordinate systems currently only used for the live display of layout coordinates when editing km post
-// positions manually
-export const GK_FIN_COORDINATE_SYSTEMS: [Srid, string][] = [...Array(12)].map(
-    (_, meridianIndex) => {
-        const meridian = 19 + meridianIndex;
-        const falseNorthing = meridian * 1e6 + 0.5e6;
-        const srid = `EPSG:${3873 + meridianIndex}`;
-        const projection = `+proj=tmerc +lat_0=0 +lon_0=${meridian} +k=1 +x_0=${falseNorthing} +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`;
-        return [srid, projection];
-    },
-);
 
 type KmPostEditDialogGkLocationSectionProps = {
     state: KmPostEditState;
@@ -48,7 +38,7 @@ type KmPostEditDialogGkLocationSectionProps = {
     hasErrors: (prop: keyof KmPostEditFields) => boolean;
     getVisibleErrorsByProp: (prop: keyof KmPostEditFields) => string[];
     geometryKmPostGkLocation?: GeometryPoint;
-    role: KmPostEditDialogRole;
+    editType: KmPostEditDialogType;
     geometryPlanSrid?: Srid;
 };
 
@@ -62,25 +52,10 @@ function gkLocationSourceI18nKey(source: GkLocationSource) {
             case 'MANUAL':
                 return 'manual';
             default:
-                exhaustiveMatchingGuard(source);
+                return exhaustiveMatchingGuard(source);
         }
     })();
     return `km-post-dialog.gk-location.source-${end}`;
-}
-
-function parseGk(
-    gkSrid: string | undefined,
-    xStr: string,
-    yStr: string,
-): GeometryPoint | undefined {
-    const gkCoordinateSystem = useCoordinateSystem(gkSrid);
-    const x = parseFloatOrUndefined(xStr);
-    const y = parseFloatOrUndefined(yStr);
-    if (gkCoordinateSystem === undefined || x === undefined || y === undefined) {
-        return undefined;
-    } else {
-        return { x, y, srid: gkCoordinateSystem.srid };
-    }
 }
 
 const findProjection = (srid: Srid): string | undefined =>
@@ -103,7 +78,7 @@ function transformGkToLayout(point: GeometryPoint): Point | undefined {
 const gkLocationSourceTranslationKey = (
     source: GkLocationSource | undefined,
     gkLocationEnabled: boolean,
-    dialogRole: KmPostEditDialogRole,
+    dialogRole: KmPostEditDialogType,
 ) => {
     if (!gkLocationEnabled || source === undefined) {
         return 'km-post-dialog.gk-location.source-none';
@@ -163,11 +138,11 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     hasErrors,
     getVisibleErrorsByProp,
     geometryKmPostGkLocation,
-    role,
+    editType,
     geometryPlanSrid,
 }) => {
     const { t } = useTranslation();
-    const isLinking = role === 'LINKING';
+    const isLinking = editType === 'LINKING';
 
     const kmPost = state.kmPost;
     const gkLocation = parseGk(kmPost.gkSrid, kmPost.gkLocationX, kmPost.gkLocationY);
@@ -185,11 +160,11 @@ export const KmPostEditDialogGkLocationSection: React.FC<
         geometryPlanSrid !== state.kmPost.gkSrid &&
         !!GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === geometryPlanSrid);
 
+    const withinMargin = gkLocation ? isWithinEastingMargin(gkLocation) : false;
+
     const layoutLocationString = () => {
-        if (gkLocationEnabled && layoutLocation) {
+        if (gkLocationEnabled && layoutLocation && withinMargin) {
             return formatToTM35FINString(layoutLocation);
-        } else if (gkLocationEnabled && gkLocation && !layoutLocation) {
-            return t('km-post-dialog.gk-location.out-of-bounds');
         } else {
             return '-';
         }
@@ -205,7 +180,7 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                         onCheckedChange={() =>
                             stateActions.setGkLocationEnabled(!gkLocationEnabled)
                         }
-                        disabled={role === 'LINKING'}
+                        disabled={editType === 'LINKING'}
                     />
                 </span>
             </Heading>
@@ -318,7 +293,7 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                     gkLocationSourceTranslationKey(
                         gkLocationSource(state),
                         gkLocationEnabled,
-                        role,
+                        editType,
                     ),
                 )}
             />

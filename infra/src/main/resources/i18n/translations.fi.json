@@ -392,7 +392,7 @@
         "mandatory-field": "Pakollinen kenttä",
         "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
         "invalid-description-length": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
-        "invalid-description-characters": "Virheellinen kuvauksen perusosa",
+        "invalid-description-characters": "Kuvauksen perusosa sisältää virheellisiä merkkejä",
         "invalid-name": "Virheellinen sijaintiraidetunnus",
         "save-in-progress": "Tallennetaan",
         "duplicate-of": "Duplikaatti raiteelle",
@@ -1227,7 +1227,8 @@
             },
             "km-post": {
                 "duplicate-km-posts": "Suunnitelmassa on useita tasakilometripisteitä seuraaville ratakilometreille: {{value}}",
-                "sta-ahead-not-negative": "Suunnitelman ensimmäisen tasakilometripisteen staAhead-arvo on suurempi kuin 0.0"
+                "sta-ahead-not-negative": "Suunnitelman ensimmäisen tasakilometripisteen staAhead-arvo on suurempi kuin 0.0",
+                "location-missing": "Tasakilometripisteellä {{value}} ei ole sijaintia"
             }
         }
     },
@@ -1562,7 +1563,8 @@
         "calculated-change": "Laskennallinen muutos",
         "calculated-change-lowercase": "laskennallinen muutos",
         "truncated": "Käyttöliittymässä näytetään {{number}} ensimmäistä muutosta",
-        "changes": "Muutokset"
+        "changes": "Muutokset",
+        "loading": "Julkaisulokia ladataan"
     },
     "publication-details-table": {
         "property": "Muuttunut kohde",
@@ -1633,7 +1635,8 @@
         "start-date": "Alkupvm.",
         "end-date": "Loppupvm.",
         "export-csv": "Lataa CSV",
-        "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää"
+        "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää",
+        "search-range-too-long": "Hakuaikaväli on liian pitkä. Lyhennä hakuaikaväliä alle {{maxDays}} päivän mittaiseksi."
     },
     "publication-card": {
         "latest": "Viimeisimmät viedyt julkaisut",
@@ -1772,6 +1775,7 @@
         "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
         "save-in-progress": "Tallennetaan",
         "km-post-regexp": "Tunnuksessa tulee olla 4 numeroa, tai 4 numeroa ja enintään 2 kirjainta (esim. 1234 tai 1234AA)",
+        "wrong-crs": "Sijainti ei ole valitun koordinaatiston alueella",
         "gk-coordinate-parse": "GK-sijainnin koordinaatin tulee olla luku",
         "gk-coordinate-saveable-as-float": "GK-sijainnin koordinaattia ei pystytä tallentamaan tällä tarkkuudella",
         "gk-coordinate-in-finland": "Syötetty sijainti ei ole Suomen GK-koordinaatistojen määrittämällä alueella",

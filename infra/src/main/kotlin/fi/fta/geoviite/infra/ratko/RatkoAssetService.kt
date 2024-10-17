@@ -256,15 +256,19 @@ constructor(
             val switchOid = ratkoClient.newAsset<RatkoSwitchAsset>(ratkoSwitch)
             checkNotNull(switchOid) { "Did not receive oid from Ratko for switch $ratkoSwitch" }
 
-            generateSwitchLocations(jointChanges, switchStructure).also { switchLocations ->
-                ratkoClient.replaceAssetLocations(switchOid, switchLocations)
-            }
+            val switchLocations = generateSwitchLocations(jointChanges, switchStructure)
+            ratkoClient.replaceAssetLocations(switchOid, switchLocations)
 
             updateSwitchGeoms(
                 switchOid = switchOid,
                 switchBaseType = switchStructure.baseType,
                 joints = layoutSwitch.joints,
             )
+
+            // Update asset locations again to make Ratko to locate the switch correctly on map.
+            // Ratko will eventually fix this problem on their side, but until then, use this
+            // workaround.
+            ratkoClient.replaceAssetLocations(switchOid, switchLocations)
         } catch (ex: RatkoPushException) {
             throw ex
         } catch (ex: Exception) {
@@ -278,6 +282,10 @@ constructor(
     ): List<RatkoAssetLocation> {
         val changedJointsOnly = jointChanges.filterNot { it.isRemoved }
 
-        return convertToRatkoAssetLocations(jointChanges = changedJointsOnly, switchType = switchStructure.baseType)
+        val assetLocations =
+            convertToRatkoAssetLocations(jointChanges = changedJointsOnly, switchType = switchStructure.baseType)
+                .sortedBy(::sortJointAToTop)
+                .mapIndexed { index, ratkoAssetLocation -> ratkoAssetLocation.copy(priority = index + 1) }
+        return assetLocations
     }
 }

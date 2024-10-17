@@ -211,24 +211,13 @@ fun <T> compareByDistanceNullsFirst(itemAndDistance1: Pair<T, Double?>, itemAndD
     }
 }
 
-private fun <T> mapCopyOnWrite(originalList: List<T>, f: (v: T) -> T): List<T> {
-    var changed = false
-    val newList =
-        originalList.map { entry ->
-            val newEntry = f(entry)
-            if (newEntry !== entry) changed = true
-            newEntry
-        }
-    return if (changed) newList else originalList
-}
-
 fun clearLinksToSwitch(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
     layoutSwitchId: IntId<TrackLayoutSwitch>,
 ): Pair<LocationTrack, LayoutAlignment> {
     val newSegments =
-        mapCopyOnWrite(alignment.segments) { segment ->
+        alignment.segments.map { segment ->
             if (segment.switchId == layoutSwitchId) segment.withoutSwitch() else segment
         }
     val newAlignment = alignment.withSegments(newSegments)

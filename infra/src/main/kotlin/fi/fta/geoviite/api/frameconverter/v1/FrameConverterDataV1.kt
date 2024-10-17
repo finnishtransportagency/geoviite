@@ -206,9 +206,11 @@ data class FeatureMatchBasicV1(
 /** Returned within properties when [FrameConverterQueryParamsV1.featureDetails] is true */
 data class FeatureMatchDetailsV1(
     @JsonProperty("ratanumero") val trackNumber: TrackNumber,
+    @JsonProperty("ratanumero_oid") val trackNumberOid: String,
     @JsonProperty("sijaintiraide") val locationTrackName: AlignmentName,
     @JsonProperty("sijaintiraide_kuvaus") val locationTrackDescription: FreeText,
     @JsonProperty("sijaintiraide_tyyppi") val translatedLocationTrackType: String,
+    @JsonProperty("sijaintiraide_oid") val locationTrackOid: String,
     @JsonProperty("ratakilometri") val kmNumber: Int,
     @JsonProperty("ratametri") val trackMeter: Int,
     @JsonProperty("ratametri_desimaalit") val trackMeterDecimals: Int,

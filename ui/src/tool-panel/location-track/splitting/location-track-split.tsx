@@ -212,6 +212,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
             return [isPartialTooltip, tooShortNonOverlappingLengthWarning]
                 .filter(filterNotEmpty)
                 .join('\n\n');
+        } else {
+            return '';
         }
     }
 

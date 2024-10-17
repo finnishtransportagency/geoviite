@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.configuration
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
-import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -13,6 +12,7 @@ import org.springframework.cache.caffeine.CaffeineCacheManager
 import org.springframework.cache.support.NoOpCacheManager
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import java.time.Duration
 
 const val CACHE_GEOMETRY_PLAN = "geometry-plan"
 const val CACHE_GEOMETRY_SWITCH = "geometry-switch"
@@ -57,7 +57,7 @@ constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boole
             manager.registerCustomCache(CACHE_FEATURE_TYPES, cache(1, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK, cache(2, staticDataCacheDuration))
 
-            manager.registerCustomCache(CACHE_GEOCODING_CONTEXTS, cache(500, layoutCacheDuration))
+            manager.registerCustomCache(CACHE_GEOCODING_CONTEXTS, cache(1000, layoutCacheDuration))
 
             manager.registerCustomCache(CACHE_GEOMETRY_PLAN, cache(100, planCacheDuration))
             manager.registerCustomCache(CACHE_GEOMETRY_SWITCH, cache(10000, planCacheDuration))

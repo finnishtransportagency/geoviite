@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Environment, getEnvironmentInfo } from 'environment/environment-info';
+import { Environment, useEnvironmentInfo } from 'environment/environment-info';
 
 type EnvRestrictedProps = {
     restrictTo: Environment;
@@ -23,7 +23,7 @@ export const EnvRestricted: React.FC<EnvRestrictedProps> = ({
     strict = false,
     defaultShow = false,
 }: EnvRestrictedProps) => {
-    const envName = getEnvironmentInfo()?.environmentName;
+    const envName = useEnvironmentInfo()?.environmentName;
 
     const show = envName
         ? strict

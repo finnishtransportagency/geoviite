@@ -39,7 +39,10 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(val number: Int, v
         extension?.let(extensionSanitizer::assertSanitized)
     }
 
-    override fun compareTo(other: KmNumber): Int = stringValue.compareTo(other.stringValue)
+    override fun compareTo(other: KmNumber): Int {
+        val kmComparison = number - other.number
+        return if (kmComparison != 0) kmComparison else compareValues(extension, other.extension)
+    }
 
     fun isPrimary(): Boolean = extension?.let { it == "A" } ?: true
 }
@@ -223,7 +226,8 @@ fun formatTrackMeter(kmNumber: KmNumber, meters: BigDecimal): String =
     "$kmNumber$TRACK_METER_SEPARATOR${getMetersFormat(meters.scale()).format(meters)}"
 
 fun compare(trackMeter1: ITrackMeter, trackMeter2: ITrackMeter): Int {
-    return compareValuesBy(trackMeter1, trackMeter2, { tm -> tm.kmNumber }, { tm -> tm.meters })
+    val kmNumberComparison = trackMeter1.kmNumber.compareTo(trackMeter2.kmNumber)
+    return if (kmNumberComparison != 0) kmNumberComparison else compareValues(trackMeter1.meters, trackMeter2.meters)
 }
 
 fun compare(trackMeter1: ITrackMeter, trackMeter2: ITrackMeter, decimals: Int): Int {

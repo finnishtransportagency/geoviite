@@ -5,22 +5,29 @@ import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.pointDistanceToLine
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
-import java.util.UUID
+import java.math.BigDecimal
+import java.util.*
 import junit.framework.TestCase.assertNotNull
+import kotlin.math.hypot
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -55,6 +62,7 @@ constructor(
     val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
     val layoutKmPostDao: LayoutKmPostDao,
+    val geocodingService: GeocodingService,
 ) : DBTestBase() {
 
     private val api = FrameConverterTestApiService(mockMvc)
@@ -651,6 +659,72 @@ constructor(
         val properties = featureCollection.features[0].properties
 
         assertContainsErrorMessage("Pyyntö sisälsi virheellisen ratanumero-asetuksen.", properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Deleted track is not found`() {
+        val track = insertGeocodableTrack(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        testDBService.update(track.locationTrack.version!!) { t -> t.copy(state = LocationTrackState.DELETED) }
+
+        val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0)
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+        val properties = featureCollection.features[0].properties
+
+        assertContainsErrorMessage(
+            "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
+            properties?.get("virheet"),
+        )
+    }
+
+    @Test
+    fun `Reverse geocoded address should match the returned coordinate`() {
+        val referenceLineSegments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        val (trackNumberId, trackNumberVersion) =
+            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(alignment(referenceLineSegments))
+        val trackNumber = trackNumberDao.fetch(trackNumberVersion)
+
+        // Track is offset from the reference line and with a slightly different angle
+        val trackStart = Point(-5.0, 1.0)
+        val trackEnd = Point(5.0, 2.0)
+        val trackSegments = listOf(segment(trackStart, trackEnd))
+        val (track, _) =
+            mainOfficialContext.insertAndFetch(locationTrackAndAlignment(trackNumberId, segments = trackSegments))
+
+        // Seek a point that is offset from both the track and the reference line - perpendicular
+        // from track point x=0 y=1.5
+        val expectedTrackPoint = Point(0.0, 1.5)
+        val searchPoint = Point(-0.1, 2.5)
+
+        // Verify that the above comments about offsets hold true
+        assertEquals(0.0, pointDistanceToLine(trackStart, trackEnd, expectedTrackPoint), 0.001)
+        assertEquals(hypot(0.1, 1.0), pointDistanceToLine(trackStart, trackEnd, searchPoint), 0.001)
+
+        val request = TestCoordinateToTrackAddressRequest(x = searchPoint.x, y = searchPoint.y)
+        val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+
+        val properties = featureCollection.features[0].properties!!
+        assertEquals(trackNumber.number.toString(), properties["ratanumero"])
+        assertEquals(track.name.toString(), properties["sijaintiraide"])
+
+        // Verify that we got the expected coordinate
+        assertEquals(expectedTrackPoint.x, ((properties["x"] as? Double)!!), 0.001)
+        assertEquals(expectedTrackPoint.y, ((properties["y"] as? Double)!!), 0.001)
+        assertEquals(
+            pointDistanceToLine(trackStart, trackEnd, searchPoint),
+            ((properties["valimatka"] as? Double)!!),
+            0.001,
+        )
+
+        // The address should match the track point, as that's the coordinate that is returned
+        val expectedAddress =
+            geocodingService.getAddress(MainLayoutContext.official, trackNumberId, expectedTrackPoint)!!.first
+        assertEquals(expectedAddress.kmNumber.number, properties["ratakilometri"])
+        assertEquals(expectedAddress.meters.toInt(), properties["ratametri"] as? Int)
+        assertEquals(
+            expectedAddress.meters.let { it.remainder(BigDecimal.ONE).movePointRight(it.scale()).toInt() },
+            properties["ratametri_desimaalit"] as? Int,
+        )
     }
 
     private fun insertGeocodableTrack(

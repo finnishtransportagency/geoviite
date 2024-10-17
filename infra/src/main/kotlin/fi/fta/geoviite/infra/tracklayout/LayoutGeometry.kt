@@ -239,7 +239,7 @@ data class LayoutAlignment(
     override val id: DomainId<LayoutAlignment> = StringId(),
     val dataType: DataType = DataType.TEMP,
 ) : IAlignment {
-    override val boundingBox: BoundingBox? = boundingBoxCombining(segments.mapNotNull { s -> s.boundingBox })
+    override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.mapNotNull { s -> s.boundingBox }) }
 
     init {
         segments.forEachIndexed { index, segment ->

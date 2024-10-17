@@ -8,7 +8,7 @@ import {
     END_OF_CENTURY,
     START_OF_2022,
 } from 'vayla-design-lib/datepicker/datepicker';
-import { parseISOOrUndefined } from 'utils/date-utils';
+import { daysBetween, parseISOOrUndefined } from 'utils/date-utils';
 import { endOfDay, startOfDay } from 'date-fns';
 import {
     getPublicationsAsTableItems,
@@ -38,6 +38,8 @@ import { debounceAsync } from 'utils/async-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SortDirection } from 'utils/table-utils';
 
+const MAX_SEARCH_DAYS = 180;
+
 type TableFetchFn = (
     from?: Date,
     to?: Date,
@@ -65,6 +67,46 @@ const publicationTableFetchFunctionByChangeMethod = (
     }
 };
 
+type PublicationLogTableHeadingProps = {
+    isLoading: boolean;
+    isTruncated: boolean;
+    publicationAmount: number;
+};
+
+const PublicationLogTableHeading: React.FC<PublicationLogTableHeadingProps> = ({
+    isLoading,
+    isTruncated,
+    publicationAmount,
+}) => {
+    const { t } = useTranslation();
+
+    return (
+        <React.Fragment>
+            {!isLoading && (
+                <span
+                    title={
+                        isTruncated
+                            ? t('publication-table.truncated', {
+                                  number: publicationAmount,
+                              })
+                            : ''
+                    }>
+                    {t('publication-table.count-header', {
+                        number: publicationAmount,
+                        truncated: isTruncated ? '+' : '',
+                    })}
+                </span>
+            )}
+            {isLoading && (
+                <React.Fragment>
+                    {t('publication-table.loading')}
+                    <Spinner inline={true} />
+                </React.Fragment>
+            )}
+        </React.Fragment>
+    );
+};
+
 const PublicationLog: React.FC = () => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -83,7 +125,7 @@ const PublicationLog: React.FC = () => {
 
     const [sortInfo, setSortInfo] =
         React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
-    const [isLoading, setIsLoading] = React.useState(true);
+    const [isLoading, setIsLoading] = React.useState(false);
     const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
 
     React.useEffect(() => {
@@ -130,13 +172,26 @@ const PublicationLog: React.FC = () => {
         );
     };
 
+    const isValidPublicationLogSearchRange = (
+        start: Date | undefined,
+        end: Date | undefined,
+    ): boolean => {
+        return (
+            start !== undefined && end !== undefined && daysBetween(start, end) < MAX_SEARCH_DAYS
+        );
+    };
+
+    const isStoredSearchRangeValid = isValidPublicationLogSearchRange(
+        storedStartDate,
+        storedEndDate,
+    );
+
     const updatePublicationsTable = (
         startDate: Date | undefined,
         endDate: Date | undefined,
         fetchFn: TableFetchFn,
     ) => {
-        const datesAreValid = startDate && endDate;
-        if (!datesAreValid) {
+        if (!isValidPublicationLogSearchRange(startDate, endDate)) {
             clearPublicationsTable();
             return;
         }
@@ -170,7 +225,7 @@ const PublicationLog: React.FC = () => {
             ? [t('publication-log.end-before-start')]
             : [];
 
-    const truncated =
+    const isTruncated =
         pagedPublications !== undefined &&
         pagedPublications.totalCount !== pagedPublications.items.length;
 
@@ -219,6 +274,14 @@ const PublicationLog: React.FC = () => {
                         <div className={styles['publication-log__export_button']}>
                             <Button
                                 icon={Icons.Download}
+                                disabled={!isStoredSearchRangeValid}
+                                title={
+                                    isStoredSearchRangeValid
+                                        ? undefined
+                                        : t('publication-log.search-range-too-long', {
+                                              maxDays: MAX_SEARCH_DAYS,
+                                          })
+                                }
                                 onClick={() =>
                                     (location.href = getPublicationsCsvUri(
                                         storedStartDate,
@@ -233,20 +296,19 @@ const PublicationLog: React.FC = () => {
                     </PrivilegeRequired>
                 </div>
                 <div className={styles['publication-log__count-header']}>
-                    <span
-                        title={
-                            truncated
-                                ? t('publication-table.truncated', {
-                                      number: pagedPublications?.items?.length || 0,
-                                  })
-                                : ''
-                        }>
-                        {t('publication-table.count-header', {
-                            number: pagedPublications?.items?.length || 0,
-                            truncated: truncated ? '+' : '',
-                        })}
-                    </span>
-                    {isLoading && <Spinner inline={true} />}
+                    {isStoredSearchRangeValid ? (
+                        <PublicationLogTableHeading
+                            isLoading={isLoading}
+                            isTruncated={isTruncated}
+                            publicationAmount={pagedPublications?.items?.length || 0}
+                        />
+                    ) : (
+                        <span className={styles['publication-log__table-header-error']}>
+                            {t('publication-log.search-range-too-long', {
+                                maxDays: MAX_SEARCH_DAYS,
+                            })}
+                        </span>
+                    )}
                 </div>
                 <PublicationTable
                     isLoading={isLoading}
