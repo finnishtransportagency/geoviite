@@ -118,15 +118,12 @@ constructor(
             .flatten()
             .map { it.track.trackNumberId }
             .distinct()
-            .associateWith { trackNumberId ->
-                checkNotNull(trackNumberService.get(layoutContext, trackNumberId)) {
-                    "expected track number $trackNumberId to be found in context $layoutContext"
-                }
-            }
+            .toList()
+            .let { trackNumberIds -> trackNumberService.getMany(layoutContext, trackNumberIds).associateBy { it.id } }
 
     private fun filterByRequest(
         track: LocationTrack,
-        trackNumbers: Map<IntId<TrackLayoutTrackNumber>, TrackLayoutTrackNumber>,
+        trackNumbers: Map<DomainId<TrackLayoutTrackNumber>, TrackLayoutTrackNumber>,
         request: ValidCoordinateToTrackAddressRequestV1,
     ): Boolean =
         all(
