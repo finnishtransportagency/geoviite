@@ -1227,7 +1227,8 @@
             },
             "km-post": {
                 "duplicate-km-posts": "Suunnitelmassa on useita tasakilometripisteitä seuraaville ratakilometreille: {{value}}",
-                "sta-ahead-not-negative": "Suunnitelman ensimmäisen tasakilometripisteen staAhead-arvo on suurempi kuin 0.0"
+                "sta-ahead-not-negative": "Suunnitelman ensimmäisen tasakilometripisteen staAhead-arvo on suurempi kuin 0.0",
+                "location-missing": "Tasakilometripisteellä {{value}} ei ole sijaintia"
             }
         }
     },
