@@ -40,9 +40,9 @@ import fi.fta.geoviite.infra.util.all
 import fi.fta.geoviite.infra.util.alsoIfNull
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.produceIf
-import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
 import java.math.RoundingMode
+import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class FrameConverterServiceV1
@@ -73,13 +73,13 @@ constructor(
         requestsWithPoints: List<Pair<ValidCoordinateToTrackAddressRequestV1, IPoint>>,
         params: FrameConverterQueryParamsV1,
     ): List<List<GeoJsonFeature>> {
-        val trackNumbers = trackNumberService.mapById(layoutContext)
         val spatialCache = locationTrackSpatialCache.get(layoutContext)
+        val nearbyTracks =
+            requestsWithPoints.map { (request, point) -> spatialCache.getClosest(point, request.searchRadius) }
+        val trackNumbers = getTrackNumbersForNearbyTracks(nearbyTracks, layoutContext)
         val closestTracks =
-            requestsWithPoints.map { (request, point) ->
-                spatialCache.getClosest(point, request.searchRadius).find { (track, _) ->
-                    filterByRequest(track, trackNumbers, request)
-                }
+            requestsWithPoints.zip(nearbyTracks) { (request), nearby ->
+                nearby.find { (track, _) -> filterByRequest(track, trackNumbers, request) }
             }
 
         val geocodingContexts =
@@ -106,6 +106,21 @@ constructor(
             }
             .toList()
     }
+
+    private fun getTrackNumbersForNearbyTracks(
+        nearbyTracks: List<List<LocationTrackCacheHit>>,
+        layoutContext: LayoutContext,
+    ) =
+        nearbyTracks
+            .asSequence()
+            .flatten()
+            .map { it.track.trackNumberId }
+            .distinct()
+            .associateWith { trackNumberId ->
+                checkNotNull(trackNumberService.get(layoutContext, trackNumberId)) {
+                    "expected track number $trackNumberId to be found in context $layoutContext"
+                }
+            }
 
     private fun filterByRequest(
         track: LocationTrack,

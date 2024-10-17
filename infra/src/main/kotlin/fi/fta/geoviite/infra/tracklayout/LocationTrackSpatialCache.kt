@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import LazyMap
 import com.github.davidmoten.rtree2.RTree
 import com.github.davidmoten.rtree2.geometry.Geometries
 import com.github.davidmoten.rtree2.geometry.Rectangle
@@ -53,7 +54,12 @@ constructor(
 
         val newItems = newTracks.map { (id, track) -> id to (currentTracks[id] ?: addEntry(track)) }
 
-        return ContextCache(locationTrackDao::fetch, alignmentDao::fetch, newNet, newItems.toMap())
+        return ContextCache(
+            LazyMap(locationTrackDao::fetch)::get,
+            LazyMap(alignmentDao::fetch)::get,
+            newNet,
+            newItems.toMap(),
+        )
     }
 }
 
