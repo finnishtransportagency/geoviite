@@ -67,13 +67,13 @@ const publicationTableFetchFunctionByChangeMethod = (
     }
 };
 
-type PublicationLogTableHeaderProps = {
+type PublicationLogTableHeadingProps = {
     isLoading: boolean;
     isTruncated: boolean;
     publicationAmount: number;
 };
 
-const PublicationLogTableHeading: React.FC<PublicationLogTableHeaderProps> = ({
+const PublicationLogTableHeading: React.FC<PublicationLogTableHeadingProps> = ({
     isLoading,
     isTruncated,
     publicationAmount,
