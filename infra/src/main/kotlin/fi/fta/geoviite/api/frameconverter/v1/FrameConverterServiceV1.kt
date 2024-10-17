@@ -92,11 +92,10 @@ constructor(
 
         return closestTracks
             .mapIndexed { index, trackHit ->
-                val (request, searchPoint) = requestsWithPoints[index]
+                val (request, _) = requestsWithPoints[index]
                 if (trackHit == null) createErrorResponse(request.identifier, FrameConverterErrorV1.FeaturesNotFound)
                 else {
                     calculateCoordinateToTrackAddressResponse(
-                        searchPoint,
                         request,
                         trackHit,
                         trackDescriptions?.get(trackHit.track.id),
@@ -114,7 +113,7 @@ constructor(
         request: ValidCoordinateToTrackAddressRequestV1,
     ): Boolean =
         all(
-            { track.state == LocationTrackState.IN_USE },
+            // Spatial cache only returns non-deleted tracks -> no need to check the state here
             { request.locationTrackName?.let { locationTrackName -> locationTrackName == track.name } ?: true },
             { request.locationTrackType?.let { locationTrackType -> locationTrackType == track.type } ?: true },
             {
@@ -126,7 +125,6 @@ constructor(
         )
 
     private fun calculateCoordinateToTrackAddressResponse(
-        searchPoint: IPoint,
         request: ValidCoordinateToTrackAddressRequestV1,
         closestTrack: LocationTrackCacheHit,
         trackDescription: FreeText?,
@@ -135,7 +133,7 @@ constructor(
     ): List<GeoJsonFeature> {
         val (trackNumber, geocodedAddress) =
             geocodingContexts[closestTrack.track.trackNumberId].let { geocodingContext ->
-                geocodingContext?.trackNumber to geocodingContext?.getAddressAndM(searchPoint)
+                geocodingContext?.trackNumber to geocodingContext?.getAddressAndM(closestTrack.closestPoint)
             }
 
         return if (trackNumber == null || geocodedAddress == null) {
