@@ -82,11 +82,14 @@ constructor(
                 nearby.find { (track, _) -> filterByRequest(track, trackNumbers, request) }
             }
 
-        val geocodingContexts =
+        val trackNumbersAndGeocodingContexts =
             closestTracks
                 .mapNotNull { it?.track?.trackNumberId }
                 .distinct()
-                .associateWith { geocodingService.getGeocodingContext(layoutContext, it) }
+                .associateWith { trackNumberId ->
+                    trackNumberService.get(layoutContext, trackNumberId) to
+                        geocodingService.getGeocodingContext(layoutContext, trackNumberId)
+                }
 
         val trackDescriptions = getTrackDescriptions(params, closestTracks.mapNotNull { it?.track })
 
@@ -100,7 +103,7 @@ constructor(
                         trackHit,
                         trackDescriptions?.get(trackHit.track.id),
                         params,
-                        geocodingContexts,
+                        trackNumbersAndGeocodingContexts,
                     )
                 }
             }
@@ -144,11 +147,11 @@ constructor(
         closestTrack: LocationTrackCacheHit,
         trackDescription: FreeText?,
         params: FrameConverterQueryParamsV1,
-        geocodingContexts: Map<IntId<TrackLayoutTrackNumber>, GeocodingContext?>,
+        trackNumberInfo: Map<IntId<TrackLayoutTrackNumber>, Pair<TrackLayoutTrackNumber?, GeocodingContext?>>,
     ): List<GeoJsonFeature> {
         val (trackNumber, geocodedAddress) =
-            geocodingContexts[closestTrack.track.trackNumberId].let { geocodingContext ->
-                geocodingContext?.trackNumber to geocodingContext?.getAddressAndM(closestTrack.closestPoint)
+            trackNumberInfo.getValue(closestTrack.track.trackNumberId).let { (trackNumber, geocodingContext) ->
+                trackNumber to geocodingContext?.getAddressAndM(closestTrack.closestPoint)
             }
 
         return if (trackNumber == null || geocodedAddress == null) {
@@ -442,7 +445,7 @@ constructor(
         request: ValidCoordinateToTrackAddressRequestV1,
         params: FrameConverterQueryParamsV1,
         closestTrack: LocationTrackCacheHit,
-        trackNumber: TrackNumber,
+        trackNumber: TrackLayoutTrackNumber,
         geocodedAddress: AddressAndM,
         locationTrackDescription: FreeText?,
     ): List<CoordinateToTrackAddressResponseV1> {
@@ -491,7 +494,7 @@ constructor(
         val conversionDetails =
             createDetailedFeatureMatchOrNull(
                 locationTrack,
-                request.trackNumber.number,
+                request.trackNumber,
                 addressPoint.address,
                 locationTrackDescription,
             )
@@ -509,7 +512,7 @@ constructor(
 
     private fun createDetailedFeatureMatchOrNull(
         locationTrack: LocationTrack,
-        trackNumber: TrackNumber,
+        trackNumber: TrackLayoutTrackNumber,
         trackMeter: TrackMeter,
         locationTrackDescription: FreeText?,
     ): FeatureMatchDetailsV1? {
@@ -518,8 +521,10 @@ constructor(
             val translatedLocationTrackType = translateLocationTrackType(locationTrack).lowercase()
 
             FeatureMatchDetailsV1(
-                trackNumber = trackNumber,
+                trackNumber = trackNumber.number,
+                trackNumberOid = trackNumber.externalId?.toString() ?: "",
                 locationTrackName = locationTrack.name,
+                locationTrackOid = locationTrack.externalId?.toString() ?: "",
                 locationTrackDescription = locationTrackDescription,
                 translatedLocationTrackType = translatedLocationTrackType,
                 kmNumber = trackMeter.kmNumber.number,
