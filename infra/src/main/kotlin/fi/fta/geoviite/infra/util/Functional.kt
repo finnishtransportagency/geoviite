@@ -8,3 +8,5 @@ inline fun <T> T?.alsoIfNull(action: () -> Unit): T? {
     if (this == null) action()
     return this
 }
+
+fun all(vararg conditions: () -> Boolean): Boolean = conditions.all { it() }
