@@ -63,16 +63,16 @@ constructor(
                 ),
             )
 
-        val testDateBeforeAnyTestPublications = Instant.parse("2022-01-01T12:34:00Z")
+        val testDateBeforeAnyTestPublications = Instant.parse("2023-01-01T12:34:00Z")
 
         val testPublicationDates =
             listOf(
-                Instant.parse("2023-01-01T12:34:00Z"),
-                Instant.parse("2023-06-01T00:00:00Z"),
-                Instant.parse("2024-01-01T00:00:00Z"),
+                Instant.parse("2023-01-02T12:34:00Z"),
+                Instant.parse("2023-02-15T00:00:00Z"),
+                Instant.parse("2023-03-01T00:00:00Z"),
             )
 
-        val testDateAfterAllTestPublications = Instant.parse("2025-01-01T00:00:00Z")
+        val testDateAfterAllTestPublications = Instant.parse("2023-04-01T00:00:00Z")
 
         publicationRequests
             .map { publicationRequest -> testPublish(publicationRequest) }

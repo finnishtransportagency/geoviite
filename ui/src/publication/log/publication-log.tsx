@@ -73,7 +73,7 @@ type PublicationLogTableHeaderProps = {
     publicationAmount: number;
 };
 
-const PublicationLogTableHeader: React.FC<PublicationLogTableHeaderProps> = ({
+const PublicationLogTableHeading: React.FC<PublicationLogTableHeaderProps> = ({
     isLoading,
     isTruncated,
     publicationAmount,
@@ -297,7 +297,7 @@ const PublicationLog: React.FC = () => {
                 </div>
                 <div className={styles['publication-log__count-header']}>
                     {isStoredSearchRangeValid ? (
-                        <PublicationLogTableHeader
+                        <PublicationLogTableHeading
                             isLoading={isLoading}
                             isTruncated={isTruncated}
                             publicationAmount={pagedPublications?.items?.length || 0}
