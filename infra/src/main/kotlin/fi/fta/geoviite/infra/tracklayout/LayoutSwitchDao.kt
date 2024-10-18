@@ -602,8 +602,11 @@ class LayoutSwitchDao(
                 join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
                 join layout.switch_joint on
                   postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), switch_joint.location)
-                  and postgis.st_distance(segment_geometry.geometry, switch_joint.location) < :dist
-                join layout.switch_in_layout_context('DRAFT', :design_id) switch on switch_joint.switch_id = switch.row_id
+                  and postgis.st_dwithin(segment_geometry.geometry, switch_joint.location, :dist)
+                join (select *
+                      from layout.switch,
+                        layout.switch_is_in_layout_context('DRAFT', :design_id, switch))
+                         switch on switch_joint.switch_id = switch.id
               where segment_version.alignment_id = :alignmentId
                 and segment_version.alignment_version = :alignmentVersion
                 and switch.state_category != 'NOT_EXISTING';
