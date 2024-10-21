@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -8,6 +9,7 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.math.Point
 import kotlin.test.assertContains
 import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -189,5 +191,31 @@ class LayoutSwitchDaoIT @Autowired constructor(private val switchDao: LayoutSwit
         assertEquals(switch1MainV2, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v3Time))
         assertEquals(switch2MainV3, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v3Time))
         assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v3Time))
+    }
+
+    @Test
+    fun `findLocationTracksLinkedToSwitches() does not return a draft whose link was removed`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val switch = mainOfficialContext.insert(switch()).id
+        val oid = Oid<LocationTrack>("1.2.3.4.5")
+        val officialTrack =
+            mainOfficialContext.insert(
+                locationTrack(trackNumber, externalId = oid),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch, startJointNumber = JointNumber(1))
+                ),
+            )
+        mainDraftContext.insert(
+            asMainDraft(mainOfficialContext.fetch(officialTrack.id)!!),
+            alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+        )
+        assertEquals(
+            listOf(LayoutSwitchDao.LocationTrackIdentifiers(officialTrack.id, officialTrack.rowVersion, oid)),
+            switchDao.findLocationTracksLinkedToSwitches(MainLayoutContext.official, listOf(switch))[switch],
+        )
+        assertEquals(
+            null,
+            switchDao.findLocationTracksLinkedToSwitches(MainLayoutContext.draft, listOf(switch))[switch],
+        )
     }
 }
