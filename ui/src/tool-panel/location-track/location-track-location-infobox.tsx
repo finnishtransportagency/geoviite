@@ -36,7 +36,7 @@ import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 import {
     getSplittingInitializationParameters,
-    SplitDuplicate,
+    SplitDuplicateTrack,
 } from 'track-layout/layout-location-track-api';
 import {
     useCoordinateSystem,
@@ -236,32 +236,34 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                         noNameErrorTerm;
 
                     const duplicates = splitInitializationParameters?.duplicates || [];
-                    const duplicatesWithNames: SplitDuplicate[] = duplicates.map((duplicate) => {
-                        return {
-                            ...duplicate,
-                            status: {
-                                ...duplicate.status,
-                                startSplitPoint: duplicate.status.startSplitPoint && {
-                                    ...duplicate.status.startSplitPoint,
-                                    name:
-                                        getSplitPointName(
-                                            duplicate.status.startSplitPoint,
-                                            getSwitchName,
-                                            endPointTerm,
-                                        ) || noNameErrorTerm,
+                    const duplicatesWithNames: SplitDuplicateTrack[] = duplicates.map(
+                        (duplicate) => {
+                            return {
+                                ...duplicate,
+                                status: {
+                                    ...duplicate.status,
+                                    startSplitPoint: duplicate.status.startSplitPoint && {
+                                        ...duplicate.status.startSplitPoint,
+                                        name:
+                                            getSplitPointName(
+                                                duplicate.status.startSplitPoint,
+                                                getSwitchName,
+                                                endPointTerm,
+                                            ) || noNameErrorTerm,
+                                    },
+                                    endSplitPoint: duplicate.status.endSplitPoint && {
+                                        ...duplicate.status.endSplitPoint,
+                                        name:
+                                            getSplitPointName(
+                                                duplicate.status.endSplitPoint,
+                                                getSwitchName,
+                                                endPointTerm,
+                                            ) || noNameErrorTerm,
+                                    },
                                 },
-                                endSplitPoint: duplicate.status.endSplitPoint && {
-                                    ...duplicate.status.endSplitPoint,
-                                    name:
-                                        getSplitPointName(
-                                            duplicate.status.endSplitPoint,
-                                            getSwitchName,
-                                            endPointTerm,
-                                        ) || noNameErrorTerm,
-                                },
-                            },
-                        };
-                    });
+                            };
+                        },
+                    );
                     const startSwitchId =
                         extraInfo.startSplitPoint.type === 'SWITCH_SPLIT_POINT'
                             ? extraInfo.startSplitPoint.switchId
@@ -386,7 +388,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                         location={startAndEndPoints?.end?.point}
                                     />
                                 ) : (
-                                    t('tool-panel.location-track.unset')
+                                    t('tool-panel.location-track.unresolvable')
                                 )}
                             </InfoboxField>
 

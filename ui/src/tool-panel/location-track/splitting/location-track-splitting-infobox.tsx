@@ -11,7 +11,7 @@ import {
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
 import {
-    AddressPoint,
+    AlignmentEndPoint,
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
@@ -81,7 +81,7 @@ type LocationTrackSplittingInfoboxProps = {
     changeTimes: ChangeTimes;
     splittingState: SplittingState;
     removeSplit: (splitPoint: SplitPoint) => void;
-    sourceEnd: AddressPoint;
+    sourceEnd: AlignmentEndPoint;
     stopSplitting: () => void;
     updateSplit: (updatedSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     returnToSplitting: () => void;

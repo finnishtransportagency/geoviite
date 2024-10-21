@@ -8,7 +8,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import {
-    AddressPoint,
+    AlignmentEndPoint,
     LayoutLocationTrack,
     LocationTrackId,
     SplitPoint,
@@ -32,11 +32,11 @@ import {
 } from './split-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { BoundingBox, Point } from 'model/geometry';
-import { SplitDuplicate } from 'track-layout/layout-location-track-api';
+import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
 
 type CommonProps = {
-    addressPoint: AddressPoint | undefined;
+    addressPoint: AlignmentEndPoint | undefined;
     editingDisabled: boolean;
     showArea: (bbox: BoundingBox) => void;
 };
@@ -58,7 +58,7 @@ type SplitProps = CommonProps & {
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
-    allDuplicateLocationTracks: SplitDuplicate[];
+    allDuplicateLocationTracks: SplitDuplicateTrack[];
     duplicateLocationTrack: LayoutLocationTrack | undefined;
     underlyingAssetExists: boolean;
     showArea: (bbox: BoundingBox) => void;

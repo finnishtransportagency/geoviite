@@ -15,9 +15,10 @@ import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.time.Instant
+import java.util.*
+import kotlin.jvm.optionals.getOrNull
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
@@ -58,20 +59,13 @@ class GeocodingService(
         }
     }
 
-    fun getLocationTrackStartAndEnd(
-        layoutContext: LayoutContext,
-        locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
-    ): AlignmentStartAndEnd? {
-        return getGeocodingContext(layoutContext, locationTrack.trackNumberId)?.getStartAndEnd(alignment)
-    }
-
-    fun getReferenceLineStartAndEnd(
-        layoutContext: LayoutContext,
-        referenceLine: ReferenceLine,
-        alignment: LayoutAlignment,
-    ): AlignmentStartAndEnd? {
-        return getGeocodingContext(layoutContext, referenceLine.trackNumberId)?.getStartAndEnd(alignment)
+    fun getLazyGeocodingContexts(layoutContext: LayoutContext): (IntId<TrackLayoutTrackNumber>) -> GeocodingContext? {
+        val contexts: MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>> = mutableMapOf()
+        return { trackNumberId ->
+            contexts
+                .computeIfAbsent(trackNumberId) { Optional.ofNullable(getGeocodingContext(layoutContext, it)) }
+                .getOrNull()
+        }
     }
 
     fun getTrackLocation(

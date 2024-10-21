@@ -15,7 +15,6 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
-import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_SRID
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
@@ -91,7 +90,7 @@ data class LocationTrackDuplicate(
     val externalId: Oid<LocationTrack>?,
     val start: AlignmentPoint?,
     val end: AlignmentPoint?,
-    val length: Double?,
+    val length: Double,
     val duplicateStatus: DuplicateStatus,
 )
 
@@ -260,8 +259,6 @@ data class DuplicateStatus(
 data class SplitDuplicateTrack(
     val id: IntId<LocationTrack>,
     val name: AlignmentName,
-    val start: AddressPoint,
-    val end: AddressPoint,
     val length: Double,
     val status: DuplicateStatus,
 )

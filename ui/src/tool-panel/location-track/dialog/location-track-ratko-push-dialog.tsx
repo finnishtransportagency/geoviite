@@ -24,8 +24,8 @@ export type LocationTrackRatkoPushDialogProps = {
 };
 
 function getKmOptions(startAndEnd: AlignmentStartAndEnd): Item<string>[] {
-    const start = Number.parseInt(startAndEnd.start?.address.kmNumber || '');
-    const end = Number.parseInt(startAndEnd.end?.address.kmNumber || '');
+    const start = Number.parseInt(startAndEnd.start?.address?.kmNumber || '');
+    const end = Number.parseInt(startAndEnd.end?.address?.kmNumber || '');
 
     if (!Number.isNaN(start) && !Number.isNaN(end)) {
         return getKmsInRange(start, end).map((km) => ({

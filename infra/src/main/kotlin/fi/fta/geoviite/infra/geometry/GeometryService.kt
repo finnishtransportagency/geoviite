@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.DeletingFailureException
-import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEndWithId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
@@ -613,7 +613,7 @@ constructor(
     fun getPlanAlignmentStartAndEnd(
         planId: IntId<GeometryPlan>,
         planAlignmentId: IntId<GeometryAlignment>,
-    ): AlignmentStartAndEnd? {
+    ): AlignmentStartAndEndWithId<GeometryAlignment>? {
         val planVersion = geometryDao.fetchPlanVersion(planId)
         val plan = geometryDao.fetchPlan(planVersion)
         val geocodingContext =
@@ -622,7 +622,9 @@ constructor(
             planLayoutCache.getPlanLayout(planVersion).first?.alignments?.find { alignment ->
                 alignment.id == planAlignmentId
             } ?: return null
-        return geocodingContext.getStartAndEnd(alignment)
+        return geocodingContext.getStartAndEnd(alignment).let { (start, end) ->
+            AlignmentStartAndEndWithId(planAlignmentId, start, end)
+        }
     }
 
     @Transactional(readOnly = true)
@@ -668,6 +670,10 @@ constructor(
             geocodingContext.getAddress(alignment.getPointAtM(startDistance) ?: return null)?.first ?: return null
         val addressOfEndDistance =
             geocodingContext.getAddress(alignment.getPointAtM(endDistance) ?: return null)?.first ?: return null
+        val (alignmentStart, alignmentEnd) =
+            geocodingContext.getStartAndEnd(alignment).let { (start, end) ->
+                (start?.toAddressPoint() ?: return null) to (end?.toAddressPoint() ?: return null)
+            }
 
         val referencePointIndices =
             geocodingContext.referencePoints.indexOfFirst { referencePoint ->
@@ -687,11 +693,6 @@ constructor(
                     { (trackMeter) -> trackMeter.kmNumber },
                     { (trackMeter, segmentIndex) -> trackMeter.meters to segmentIndex },
                 )
-
-        val (alignmentStart, alignmentEnd) =
-            geocodingContext.getStartAndEnd(alignment).let { startAndEnd ->
-                (startAndEnd.start ?: return null) to (startAndEnd.end ?: return null)
-            }
 
         return referencePointIndices
             .toList()

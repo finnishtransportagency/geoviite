@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEndWithId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
@@ -148,6 +149,18 @@ class LocationTrackService(
             val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
             val newTrack = fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack, newAlignment)
             saveDraft(branch, newTrack, newAlignment)
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getStartAndEnd(
+        context: LayoutContext,
+        ids: List<IntId<LocationTrack>>,
+    ): List<AlignmentStartAndEndWithId<LocationTrack>> {
+        val tracksAndAlignments = getManyWithAlignments(context, ids)
+        val getGeocodingContext = geocodingService.getLazyGeocodingContexts(context)
+        return tracksAndAlignments.map { (track, alignment) ->
+            AlignmentStartAndEndWithId.of(track.id as IntId, alignment, getGeocodingContext(track.trackNumberId))
         }
     }
 
@@ -671,6 +684,7 @@ class LocationTrackService(
         layoutContext: LayoutContext,
         trackId: IntId<LocationTrack>,
     ): SplittingInitializationParameters? {
+        val getGeocodingContext = geocodingService.getLazyGeocodingContexts(layoutContext)
         return getWithAlignment(layoutContext, trackId)?.let { (locationTrack, alignment) ->
             val switches =
                 getSwitchesForLocationTrack(layoutContext, trackId)
@@ -686,10 +700,7 @@ class LocationTrackService(
                         }
                     }
                     .map { (switch, location) ->
-                        val address =
-                            geocodingService
-                                .getGeocodingContext(layoutContext, locationTrack.trackNumberId)
-                                ?.getAddressAndM(location)
+                        val address = getGeocodingContext(locationTrack.trackNumberId)?.getAddressAndM(location)
                         val mAlongAlignment = alignment.getClosestPointM(location)?.first
                         SwitchOnLocationTrack(
                             switch.id as IntId,
@@ -702,24 +713,8 @@ class LocationTrackService(
                     }
 
             val duplicateTracks =
-                getLocationTrackDuplicates(layoutContext, locationTrack, alignment).mapNotNull { duplicate ->
-                    val (duplicateTrack, duplicateAlignment) = getWithAlignmentOrThrow(layoutContext, duplicate.id)
-                    val startAndEnd =
-                        geocodingService.getLocationTrackStartAndEnd(layoutContext, duplicateTrack, duplicateAlignment)
-                    startAndEnd?.let { (start, end) ->
-                        if (start != null && end != null) {
-                            SplitDuplicateTrack(
-                                duplicate.id,
-                                duplicate.name,
-                                start,
-                                end,
-                                duplicateAlignment.length,
-                                duplicate.duplicateStatus,
-                            )
-                        } else {
-                            null
-                        }
-                    }
+                getLocationTrackDuplicates(layoutContext, locationTrack, alignment).map { duplicate ->
+                    SplitDuplicateTrack(duplicate.id, duplicate.name, duplicate.length, duplicate.duplicateStatus)
                 }
 
             SplittingInitializationParameters(trackId, switches, duplicateTracks)

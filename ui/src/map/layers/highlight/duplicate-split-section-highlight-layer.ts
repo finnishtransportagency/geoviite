@@ -17,13 +17,13 @@ import {
 } from 'map/layers/utils/highlight-layer-utils';
 import { LocationTrackId, splitPointsAreSame } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
-import { SplitDuplicate } from 'track-layout/layout-location-track-api';
+import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 
 function createFeatures(
     alignments: LocationTrackAlignmentDataHolder[],
-    duplicates: SplitDuplicate[],
+    duplicates: SplitDuplicateTrack[],
     linkedDuplicates: LocationTrackId[],
 ): Feature<LineString>[] {
     return alignments
@@ -80,7 +80,7 @@ function createFeatures(
 
 type DuplicateSplitSectionData = {
     linkedDuplicates: LocationTrackId[];
-    duplicates: SplitDuplicate[];
+    duplicates: SplitDuplicateTrack[];
     alignments: LocationTrackAlignmentDataHolder[];
 };
 
