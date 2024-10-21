@@ -15,6 +15,7 @@ data class RatkoLocationTrack(
     val rowMetadata: RatkoMetadata = RatkoMetadata(),
     val duplicateOf: String?,
     val topologicalConnectivity: RatkoTopologicalConnectivityType,
+    val owner: String?,
 )
 
 enum class RatkoLocationTrackType(@get:JsonValue val value: String) {
