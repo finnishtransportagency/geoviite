@@ -26,7 +26,8 @@ services:
       dockerfile: Dockerfile
       target: geoviite-distribution-build
       args:
-        BUILD_VERSION: ${BUILD_VERSION}
+        IMAGE_BACKEND: ${IMAGE_BACKEND}
+        IMAGE_FRONTEND: ${IMAGE_FRONTEND}
 
   db-service:
     image: ${IMAGE_DB}

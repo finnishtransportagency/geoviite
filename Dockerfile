@@ -1,4 +1,5 @@
-ARG BUILD_VERSION=latest
+ARG IMAGE_BACKEND=scratch
+ARG IMAGE_FRONTEND=scratch
 
 # Backend dependencies
 FROM eclipse-temurin:17-jdk-alpine AS geoviite-backend-dependencies
@@ -44,8 +45,8 @@ COPY ui/src ./src
 RUN npm run build
 
 # Combined backend+frontend image
-FROM geoviite-backend:${BUILD_VERSION} AS geoviite-versioned-backend-build
-FROM geoviite-frontend:${BUILD_VERSION} AS geoviite-versioned-frontend-build
+FROM ${IMAGE_BACKEND} AS geoviite-versioned-backend-build
+FROM ${IMAGE_FRONTEND} AS geoviite-versioned-frontend-build
 FROM eclipse-temurin:17-jdk-alpine AS geoviite-distribution-build-combiner
 
 WORKDIR /app
