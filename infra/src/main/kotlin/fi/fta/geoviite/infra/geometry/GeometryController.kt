@@ -15,7 +15,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEndWithId
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -293,7 +293,7 @@ constructor(private val geometryService: GeometryService, private val planLayout
     fun getPlanAlignmentStartAndEnd(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
         @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
-    ): ResponseEntity<AlignmentStartAndEndWithId<GeometryAlignment>> {
+    ): ResponseEntity<AlignmentStartAndEnd<GeometryAlignment>> {
         return toResponse(geometryService.getPlanAlignmentStartAndEnd(planId, planAlignmentId))
     }
 

@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEndWithId
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -194,9 +194,9 @@ class ReferenceLineService(
     }
 
     @Transactional(readOnly = true)
-    fun getStartAndEnd(context: LayoutContext, id: IntId<ReferenceLine>): AlignmentStartAndEndWithId<ReferenceLine>? {
+    fun getStartAndEnd(context: LayoutContext, id: IntId<ReferenceLine>): AlignmentStartAndEnd<ReferenceLine>? {
         return getWithAlignment(context, id)?.let { (referenceLine, alignment) ->
-            AlignmentStartAndEndWithId.of(
+            AlignmentStartAndEnd.of(
                 referenceLine.id as IntId,
                 alignment,
                 geocodingService.getGeocodingContext(context, referenceLine.trackNumberId),

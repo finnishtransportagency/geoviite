@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEndWithId
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -93,7 +93,7 @@ class LocationTrackController(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): ResponseEntity<AlignmentStartAndEndWithId<LocationTrack>> {
+    ): ResponseEntity<AlignmentStartAndEnd<LocationTrack>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return locationTrackService.getStartAndEnd(context, listOf(id)).singleOrNull().let(::toResponse)
     }
@@ -104,7 +104,7 @@ class LocationTrackController(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
-    ): List<AlignmentStartAndEndWithId<LocationTrack>> {
+    ): List<AlignmentStartAndEnd<LocationTrack>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return locationTrackService.getStartAndEnd(context, ids)
     }

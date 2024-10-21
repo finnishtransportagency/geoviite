@@ -260,7 +260,6 @@ data class ValidationVersions(
 
 data class PublicationGroup(val id: IntId<Split>)
 
-// TODO: GVT-2629 Rename validatedAssetVersion -> rowVersion
 data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: LayoutRowVersion<T>)
 
 data class PublicationRequestIds(
