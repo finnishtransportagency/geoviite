@@ -354,10 +354,14 @@ export type AddressPoint = {
     address: TrackMeter;
 };
 
+export type AlignmentEndPoint = {
+    point: AlignmentPoint;
+    address?: TrackMeter;
+};
 export type AlignmentStartAndEnd = {
     id: AlignmentId;
-    start?: AddressPoint;
-    end?: AddressPoint;
+    start?: AlignmentEndPoint;
+    end?: AlignmentEndPoint;
 };
 
 export function getSwitchPresentationJoint(

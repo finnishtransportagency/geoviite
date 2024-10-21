@@ -703,6 +703,7 @@
             "end-switch": "Vaihde raiteen lopussa",
             "no-start-or-end-switch": "Ei vaihdetta",
             "unset": "Ei asetettu",
+            "unresolvable": "Ei laskettavissa",
             "switch-relinking-dialog": {
                 "title": "Linkitä raiteen vaihteet",
                 "confirm-relinking": "Haluatko linkittää kaikki \"{{name}}\" raiteen vaihteet ({{linkedSwitchesCount}} kpl)?",
