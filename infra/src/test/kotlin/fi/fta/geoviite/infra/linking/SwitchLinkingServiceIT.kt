@@ -43,6 +43,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -1486,6 +1487,101 @@ constructor(
                 .fetch(locationTrackDao.fetchVersion(MainLayoutContext.draft, branchingTrackContinuation)!!)
                 .topologyStartSwitch
         assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `head-to-head YV switches prefer to retain their original positions`() {
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
+
+        // left side is slightly squished on the y axis compared to the right side, to make the
+        // arrangement realistically slightly symmetric
+        val leftSwitchJoints =
+            switchStructure.joints.map { joint ->
+                TrackLayoutSwitchJoint(joint.number, Point(-joint.location.x, -joint.location.y * 0.99), null)
+            }
+        val rightSwitchJoints =
+            switchStructure.joints.map { joint ->
+                TrackLayoutSwitchJoint(joint.number, Point(joint.location.x, joint.location.y), null)
+            }
+
+        val leftSwitch =
+            mainOfficialContext.insert(switch(structureId = switchStructure.id as IntId, joints = leftSwitchJoints)).id
+        val rightSwitch =
+            mainOfficialContext.insert(switch(structureId = switchStructure.id as IntId, joints = rightSwitchJoints)).id
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val throughTrack =
+            mainOfficialContext
+                .insert(
+                    locationTrack(trackNumber),
+                    alignment(
+                        segment(Point(-35.0, 0.0), Point(0.0, 0.0))
+                            .copy(
+                                switchId = leftSwitch,
+                                startJointNumber = JointNumber(2),
+                                endJointNumber = JointNumber(1),
+                            ),
+                        segment(Point(0.0, 0.0), Point(35.0, 0.0))
+                            .copy(
+                                switchId = rightSwitch,
+                                startJointNumber = JointNumber(1),
+                                endJointNumber = JointNumber(1),
+                            ),
+                    ),
+                )
+                .id
+        val leftBranchingTrack =
+            mainOfficialContext
+                .insert(
+                    locationTrack(trackNumber),
+                    alignment(
+                        segment(Point(-35.0, 1.967 * 0.99), Point(0.0, 0.0))
+                            .copy(
+                                switchId = leftSwitch,
+                                startJointNumber = JointNumber(3),
+                                endJointNumber = JointNumber(1),
+                            )
+                    ),
+                )
+                .id
+        val rightBranchingTrack =
+            mainOfficialContext
+                .insert(
+                    locationTrack(trackNumber),
+                    alignment(
+                        segment(Point(0.0, 0.0), Point(35.0, -1.967))
+                            .copy(
+                                switchId = rightSwitch,
+                                startJointNumber = JointNumber(1),
+                                endJointNumber = JointNumber(3),
+                            )
+                    ),
+                )
+                .id
+        val leftSuggestion = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(0.0, 0.0), leftSwitch)!!
+        val rightSuggestion = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(0.0, 0.0), rightSwitch)!!
+
+        // left switch wants to remain connected to segments on left side tracks, and topologically
+        // to right side branching track; right side conversely
+        assertEquals(
+            mapOf(
+                throughTrack to (true to false),
+                leftBranchingTrack to (true to false),
+                rightBranchingTrack to (false to true),
+            ),
+            leftSuggestion.trackLinks.mapValues { (_, links) ->
+                links.segmentJoints.isNotEmpty() to (links.topologyJoint != null)
+            },
+        )
+        assertEquals(
+            mapOf(
+                throughTrack to (true to false),
+                leftBranchingTrack to (false to true),
+                rightBranchingTrack to (true to false),
+            ),
+            rightSuggestion.trackLinks.mapValues { (_, links) ->
+                links.segmentJoints.isNotEmpty() to (links.topologyJoint != null)
+            },
+        )
     }
 
     private fun setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox():
