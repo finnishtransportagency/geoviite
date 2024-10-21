@@ -15,7 +15,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
-import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEndWithId
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
@@ -33,11 +33,11 @@ import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -156,11 +156,11 @@ class LocationTrackService(
     fun getStartAndEnd(
         context: LayoutContext,
         ids: List<IntId<LocationTrack>>,
-    ): List<AlignmentStartAndEndWithId<LocationTrack>> {
+    ): List<AlignmentStartAndEnd<LocationTrack>> {
         val tracksAndAlignments = getManyWithAlignments(context, ids)
         val getGeocodingContext = geocodingService.getLazyGeocodingContexts(context)
         return tracksAndAlignments.map { (track, alignment) ->
-            AlignmentStartAndEndWithId.of(track.id as IntId, alignment, getGeocodingContext(track.trackNumberId))
+            AlignmentStartAndEnd.of(track.id as IntId, alignment, getGeocodingContext(track.trackNumberId))
         }
     }
 

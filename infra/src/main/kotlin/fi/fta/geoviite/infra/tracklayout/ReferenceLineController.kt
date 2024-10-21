@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEndWithId
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.toResponse
@@ -75,7 +75,7 @@ class ReferenceLineController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<ReferenceLine>,
-    ): ResponseEntity<AlignmentStartAndEndWithId<ReferenceLine>> {
+    ): ResponseEntity<AlignmentStartAndEnd<ReferenceLine>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return toResponse(referenceLineService.getStartAndEnd(layoutContext, id))
     }

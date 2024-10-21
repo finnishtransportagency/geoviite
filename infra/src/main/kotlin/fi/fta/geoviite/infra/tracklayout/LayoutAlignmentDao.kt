@@ -650,9 +650,8 @@ class LayoutAlignmentDao(
         }
     }
 
-    // TODO: GVT-1691 batching this is a little tricky due to difficulty in mapping generated ids:
+    // Batching this is a little tricky due to difficulty in mapping generated ids:
     //  There is no guarantee of result set order (though it's usually the insert order)
-    //  If we could calculate the hash prior to saving we could use that to identify the mapping
     private fun insertSegmentGeometries(
         geometries: List<SegmentGeometry>
     ): Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>> {
