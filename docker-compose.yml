@@ -129,7 +129,7 @@ services:
     image: ${IMAGE_BACKEND}
     command: |
       ./gradlew --no-daemon --offline integrationtest --tests *IT &&
-      ./gradlew cleanTest integrationtest-without-cache --tests "*DaoIT"
+      ./gradlew --no-daemon --offline integrationtest-without-cache --tests "*DaoIT"
     depends_on:
       backend-build:
         condition: service_completed_successfully
