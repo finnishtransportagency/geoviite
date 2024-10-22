@@ -16,6 +16,7 @@
             "invalid-location-track-name": "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
             "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
             "invalid-track-address": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+            "too-many-requests": "Kutsu sisälsi liian monta muunnospyyntöä. Yhdessä kutsussa saa olla korkeintaan {{maxCount}} muunnosta.",
             "track-number-not-found": "Pyynnön ratanumeroa ei löydetty.",
             "input-coordinate-transformation-failed": "Koordinaattimuunnos ei onnistunut. Onko koordinaatisto järkevä syötekoordinaatille?"
         }

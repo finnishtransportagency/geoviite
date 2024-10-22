@@ -1,8 +1,18 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
+import fi.fta.geoviite.infra.SpringContextUtility.Companion.getProperty
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationParams
+import fi.fta.geoviite.infra.localization.localizationParams
 
-enum class FrameConverterErrorV1(private val localizationSuffix: String) {
+enum class FrameConverterErrorV1(
+    private val localizationSuffix: String,
+    val localizationParams: LocalizationParams = localizationParams(),
+) {
+    TooManyRequests(
+        "too-many-requests",
+        localizationParams("maxCount" to (getProperty("geoviite.ext-api.max-batch-requests") ?: 0)),
+    ),
     FeaturesNotFound("features-not-found"),
     MissingXCoordinate("missing-x-coordinate"),
     MissingYCoordinate("missing-y-coordinate"),
@@ -21,8 +31,7 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     TrackNumberNotFound("track-number-not-found"),
     InputCoordinateTransformationFailed("input-coordinate-transformation-failed");
 
-    val localizationKey: LocalizationKey
-        get() = LocalizationKey("$BASE.$localizationSuffix")
+    val localizationKey: LocalizationKey by lazy { LocalizationKey("$BASE.$localizationSuffix") }
 
     companion object {
         private const val BASE: String = "ext-api.error"
