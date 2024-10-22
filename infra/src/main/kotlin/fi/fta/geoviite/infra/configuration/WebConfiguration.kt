@@ -41,7 +41,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import fi.fta.geoviite.infra.util.HttpsUrl
+import fi.fta.geoviite.infra.util.HttpsUri
 import fi.fta.geoviite.infra.util.UnsafeString
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -91,7 +91,7 @@ class WebConfig(
 
         logger.info("Registering geometry name converters")
         registry.addStringConstructorConverter(::FileName)
-        registry.addStringConstructorConverter(::HttpsUrl)
+        registry.addStringConstructorConverter(::HttpsUri)
         registry.addStringConstructorConverter(::MetaDataName)
         registry.addStringConstructorConverter(::CompanyName)
         registry.addStringConstructorConverter(::ProjectName)
