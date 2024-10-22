@@ -817,6 +817,19 @@ class GeocodingTest {
         assertNull(result.geocodingContext.getProjectionLine(TrackMeter(KmNumber(0), 100)))
     }
 
+    @Test
+    fun `referenceLineAddresses is null if the end address would have invalid meters`() {
+        val referenceLineAlignment = LayoutAlignment(listOf(segment(Point(0.0, 0.0), Point(15000.0, 0.0))))
+        val result =
+            GeocodingContext.create(
+                trackNumber = TrackNumber("001"),
+                startAddress = TrackMeter(KmNumber(10), 100),
+                referenceLineGeometry = referenceLineAlignment,
+                kmPosts = listOf(),
+            )
+        assertNull(result.geocodingContext.referenceLineAddresses)
+    }
+
     private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {
         assertEquals(
             expected.size,

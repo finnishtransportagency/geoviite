@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -120,7 +121,9 @@ class LayoutTrackNumberService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmLengthDetails>? {
         return geocodingService.getGeocodingContextCreateResult(layoutContext, trackNumberId)?.let { contextResult ->
-            extractTrackKmLengths(contextResult.geocodingContext, contextResult)
+            contextResult.geocodingContext.referenceLineAddresses?.startPoint?.let { startPoint ->
+                extractTrackKmLengths(contextResult.geocodingContext, contextResult, startPoint)
+            }
         }
     }
 
@@ -300,11 +303,11 @@ private fun getLocationByPrecision(kmPost: TrackLayoutKmLengthDetails, precision
 private fun extractTrackKmLengths(
     context: GeocodingContext,
     contextResult: GeocodingContextCreateResult,
+    startPoint: AddressPoint,
 ): List<TrackLayoutKmLengthDetails> {
     val distances = getKmPostDistances(context, contextResult.validKmPosts)
     val referenceLineLength = context.referenceLineGeometry.length
     val trackNumber = context.trackNumber
-    val startPoint = context.referenceLineAddresses.startPoint
 
     // First km post is usually on another reference line, and therefore it has to be generated here
     return listOf(

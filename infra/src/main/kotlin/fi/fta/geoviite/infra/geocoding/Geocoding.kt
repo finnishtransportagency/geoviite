@@ -390,9 +390,7 @@ data class GeocodingContext(
         return if (TrackMeter.isMetersValid(meters)) TrackMeter(addressPoint.kmNumber, meters) else null
     }
 
-    val referenceLineAddresses by lazy {
-        checkNotNull(getAddressPoints(referenceLineGeometry)) { "Can't resolve reference line addresses" }
-    }
+    val referenceLineAddresses by lazy { getAddressPoints(referenceLineGeometry) }
 
     fun getPartialAddressRange(
         sourceAlignment: LayoutAlignment,
