@@ -208,7 +208,7 @@ export type LocationTrackDuplicate = {
     start: AlignmentPoint | undefined;
     end: AlignmentPoint | undefined;
     duplicateStatus: DuplicateStatus;
-    length?: number;
+    length: number;
 };
 export type LayoutSwitchIdAndName = {
     id: LayoutSwitchId;

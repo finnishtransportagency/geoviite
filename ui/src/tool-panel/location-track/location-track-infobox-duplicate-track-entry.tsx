@@ -136,10 +136,7 @@ function validateIsPartialDuplicate(
     const isPartialDuplicate = duplicate.duplicateStatus.match === 'PARTIAL';
     const overLappingLength = duplicate.duplicateStatus.overlappingLength;
     const nonOverlappingLength =
-        (duplicate.length != undefined &&
-            overLappingLength != undefined &&
-            duplicate.length - overLappingLength) ||
-        undefined;
+        (overLappingLength != undefined && duplicate.length - overLappingLength) || undefined;
     if (
         isPartialDuplicate &&
         overLappingLength !== undefined &&
@@ -164,10 +161,7 @@ function validateHasShortNonOverlappingLength(
 ): LocationTrackDuplicateNotice | undefined {
     const overLappingLength = duplicate.duplicateStatus.overlappingLength;
     const nonOverlappingLength =
-        (duplicate.length != undefined &&
-            overLappingLength != undefined &&
-            duplicate.length - overLappingLength) ||
-        undefined;
+        (overLappingLength != undefined && duplicate.length - overLappingLength) || undefined;
     const shortNonOverlappingLength =
         nonOverlappingLength != undefined &&
         nonOverlappingLength <
