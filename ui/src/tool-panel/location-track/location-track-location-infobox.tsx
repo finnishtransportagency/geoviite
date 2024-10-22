@@ -146,6 +146,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             duplicate.duplicateStatus.duplicateOfId !== undefined &&
             duplicate.duplicateStatus.duplicateOfId !== locationTrack.id,
     );
+    const startAndEndAddressDefined =
+        startAndEndPoints?.start?.address && startAndEndPoints?.end?.address;
 
     const getSplittingDisabledReasonsTranslated = () => {
         const reasons: string[] = [];
@@ -181,6 +183,11 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                 t(
                     'tool-panel.location-track.splitting.validation.duplicates-on-different-location-track',
                 ),
+            );
+        }
+        if (!startAndEndAddressDefined) {
+            reasons.push(
+                t('tool-panel.location-track.splitting.validation.unresolved-start-or-end-address'),
             );
         }
 
@@ -352,6 +359,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         duplicatesOnOtherLocationTracks ||
         extraInfo?.partOfUnfinishedSplit ||
         startingSplitting ||
+        !startAndEndAddressDefined ||
         layoutContext.branch !== 'MAIN';
 
     return (
@@ -376,7 +384,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                         location={startAndEndPoints?.start?.point}
                                     />
                                 ) : (
-                                    t('tool-panel.location-track.unset')
+                                    t('tool-panel.location-track.unresolvable')
                                 )}
                             </InfoboxField>
                             <InfoboxField

@@ -741,6 +741,7 @@
                     "duplicates-on-different-track-number": "Raiteen jakamista ei voi suorittaa, koska osa tämän raiteen duplikaattiraiteista sijaitsee eri ratanumerolla.",
                     "duplicates-on-different-location-track": "Raiteen jakamista ei voi suorittaa, koska osa tämän raiteen duplikaattiraiteista on merkitty eri raiteen duplikaateiksi.",
                     "unused-non-overlapping-duplicates-exist": "Raiteen jakamista ei voi suorittaa, koska duplikaattiraiteilla {{duplicateNames}} ei ole päällekkäistä geometriaa pilkottavan raiteen kanssa.",
+                    "unresolved-start-or-end-address": "Raiteen jakamista ei voi suorittaa, koska sen alku- ja loppuosoitteet eivät ole määriteltyjä. Tarkasta pituusmittauslinjan oikeellisuus.",
                     "track-draft-exists": "Muokattua sijaintiraidetta ei voi jakaa. Julkaise tai kumoa muutokset.",
                     "conflicts-with-split": "Tunnus on jo käytössä toisella katkaisukohdalla",
                     "conflicts-with-track": "Tunnus on jo käytössä toisella raiteella",
