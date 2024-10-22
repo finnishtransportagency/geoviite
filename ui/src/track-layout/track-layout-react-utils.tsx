@@ -215,6 +215,7 @@ export function useLocationTrackStartAndEnd(
         changeTimes.layoutLocationTrack,
         changeTimes.layoutTrackNumber,
         changeTimes.layoutReferenceLine,
+        changeTimes.layoutKmPost,
     );
     return useLoaderWithStatus(
         () => (id ? getLocationTrackStartAndEnd(id, layoutContext, changeTime) : undefined),
