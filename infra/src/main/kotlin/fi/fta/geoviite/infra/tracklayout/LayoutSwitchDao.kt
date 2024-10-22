@@ -465,24 +465,28 @@ class LayoutSwitchDao(
 
         val sql =
             """
-            select switch_id, location_track.official_id, row_id, row_version, external_id
-              from (
-                select topology_start_switch_id as switch_id, official_id
-                  from layout.location_track
-                  where topology_start_switch_id = any (array [:switch_ids])
-                union
-                select topology_end_switch_id as switch_id, official_id
-                  from layout.location_track
-                  where topology_end_switch_id = any (array [:switch_ids])
-                union
-                select switch_id, location_track.official_id
-                  from layout.location_track
-                    join layout.segment_version using (alignment_id, alignment_version)
-                  where switch_id = any (array [:switch_ids])
-              ) location_track
-                cross join lateral layout.location_track_in_layout_context(:publication_state::layout.publication_state,
-                                                                           :design_id, location_track.official_id);
-        """
+                select switch_id,
+                  (location_track).official_id,
+                  (location_track).id as row_id,
+                  (location_track).version as row_version,
+                  (location_track).external_id
+                  from (
+                    select topology_start_switch_id as switch_id, location_track
+                      from layout.location_track
+                      where topology_start_switch_id = any (array [:switch_ids])
+                    union
+                    select topology_end_switch_id as switch_id, location_track
+                      from layout.location_track
+                      where topology_end_switch_id = any (array [:switch_ids])
+                    union
+                    select switch_id, location_track
+                      from layout.location_track
+                        join layout.segment_version using (alignment_id, alignment_version)
+                      where switch_id = any (array [:switch_ids])
+                  ) location_track
+                    cross join lateral layout.location_track_is_in_layout_context(:publication_state::layout.publication_state,
+                                                                                  :design_id, location_track);
+            """
                 .trimIndent()
         val params =
             mapOf(
