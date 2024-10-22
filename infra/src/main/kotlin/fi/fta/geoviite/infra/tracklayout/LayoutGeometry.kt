@@ -99,9 +99,6 @@ interface IAlignment : Loggable {
     val end: AlignmentPoint?
         get() = segments.lastOrNull()?.alignmentEnd
 
-    val startAndEnd: Pair<AlignmentPoint, AlignmentPoint>?
-        get() = segments.takeIf { s -> s.isNotEmpty() }?.let { s -> s.first().alignmentStart to s.last().alignmentEnd }
-
     private fun getSegmentPoints(downward: Boolean): Sequence<Pair<SegmentPoint, ISegment>> =
         (if (downward) segments.asReversed() else segments).asSequence().flatMapIndexed { index, segment ->
             (if (downward && index == 0 || !downward && index == segments.lastIndex) segment.segmentPoints
