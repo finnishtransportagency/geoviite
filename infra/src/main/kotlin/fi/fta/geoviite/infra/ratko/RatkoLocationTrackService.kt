@@ -136,6 +136,7 @@ constructor(
 
             val duplicateOfOidLocationTrack =
                 layoutLocationTrack.duplicateOf?.let { duplicateId -> getExternalId(branch, duplicateId, moment) }
+            val owner = locationTrackService.getLocationTrackOwner(layoutLocationTrack.ownerId)
 
             val ratkoLocationTrack =
                 convertToRatkoLocationTrack(
@@ -148,6 +149,7 @@ constructor(
                             .getFullDescription(branch.official, locationTrack, LocalizationLanguage.FI)
                             .toString()
                     },
+                    owner = owner,
                 )
             val locationTrackOid = ratkoClient.newLocationTrack(ratkoLocationTrack)
             checkNotNull(locationTrackOid) { "Did not receive oid from Ratko for location track $ratkoLocationTrack" }
@@ -343,8 +345,7 @@ constructor(
                     .sortedBy { p -> p.address }
 
             // Update location track end points before deleting anything, otherwise old end points
-            // will
-            // stay in use
+            // will stay in use
             updateLocationTrackProperties(
                 branch = branch,
                 layoutLocationTrack = layoutLocationTrack,
@@ -395,6 +396,7 @@ constructor(
         val trackNumberOid = getTrackNumberOid(branch, layoutLocationTrack.trackNumberId, moment)
         val duplicateOfOidLocationTrack =
             layoutLocationTrack.duplicateOf?.let { duplicateId -> getExternalId(branch, duplicateId, moment) }
+        val owner = locationTrackService.getLocationTrackOwner(layoutLocationTrack.ownerId)
 
         val ratkoLocationTrack =
             convertToRatkoLocationTrack(
@@ -407,6 +409,7 @@ constructor(
                         .getFullDescription(branch.official, locationTrack, LocalizationLanguage.FI)
                         .toString()
                 },
+                owner = owner,
             )
 
         ratkoClient.updateLocationTrackProperties(ratkoLocationTrack)
