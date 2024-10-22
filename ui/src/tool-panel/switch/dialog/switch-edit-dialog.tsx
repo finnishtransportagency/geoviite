@@ -477,7 +477,37 @@ export const SwitchEditDialog = ({
                     </p>
                 </Dialog>
             )}
-            {showDeleteOfficialConfirmDialog && (
+            {showDeleteOfficialConfirmDialog && existingSwitch?.editState === 'CREATED' && (
+                <Dialog
+                    title={t('switch-dialog.confirmation-save-as-deleted-new')}
+                    variant={DialogVariant.DARK}
+                    allowClose={false}
+                    footerContent={
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                onClick={() => setShowDeleteOfficialConfirmDialog(false)}
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={isSaving}>
+                                {t('button.cancel')}
+                            </Button>
+                            {isSaving ? (
+                                <Spinner />
+                            ) : (
+                                <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
+                                    {t('button.delete')}
+                                </Button>
+                            )}
+                        </div>
+                    }>
+                    <p>{t('switch-dialog.deleted-state-warning-new')}</p>
+                    <div>
+                        <div className={'dialog__text'}>
+                            {t('switch-dialog.confirm-switch-save-deleted-new')}
+                        </div>
+                    </div>
+                </Dialog>
+            )}
+            {showDeleteOfficialConfirmDialog && existingSwitch?.editState !== 'CREATED' && (
                 <Dialog
                     title={t('switch-dialog.confirmation-delete-title')}
                     variant={DialogVariant.DARK}
