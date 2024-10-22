@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
-import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
@@ -20,10 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
 @GeoviiteController("/track-layout/reference-lines")
-class ReferenceLineController(
-    private val referenceLineService: ReferenceLineService,
-    private val geocodingService: GeocodingService,
-) {
+class ReferenceLineController(private val referenceLineService: ReferenceLineService) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}")
