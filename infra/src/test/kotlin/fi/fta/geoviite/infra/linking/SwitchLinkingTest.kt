@@ -702,7 +702,12 @@ class SwitchLinkingTest {
         val nearbyPoint = Point(10.0, -1.0)
 
         val suggestedSwitch =
-            createFittedSwitchByPoint(nearbyPoint, switchStructure, listOf(locationTrack152, locationTrack13))
+            createFittedSwitchByPoint(
+                IntId(1234),
+                nearbyPoint,
+                switchStructure,
+                listOf(locationTrack152, locationTrack13),
+            )
 
         assertNotNull(suggestedSwitch)
     }

@@ -147,7 +147,7 @@ constructor(
             .parallelStream()
             .map { (index, request) ->
                 findBestSwitchFitForAllPointsInSamplingGrid(
-                    request.points,
+                    request,
                     switchStructures[index],
                     alignmentsNearRequests[index],
                 )
@@ -285,7 +285,7 @@ constructor(
                         .toList()
 
                 val fittedSwitch =
-                    createFittedSwitchByPoint(presentationJointLocation, switchStructure, nearbyTracksForFit)
+                    createFittedSwitchByPoint(switchId, presentationJointLocation, switchStructure, nearbyTracksForFit)
                 if (fittedSwitch == null) {
                     TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.NOT_AUTOMATICALLY_LINKABLE)
                 } else {
