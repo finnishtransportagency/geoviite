@@ -335,7 +335,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 value={
                                     <TextField
                                         value={
-                                            startAndEndPoints?.end
+                                            startAndEndPoints?.end?.address
                                                 ? formatTrackMeter(startAndEndPoints.end.address)
                                                 : '-'
                                         }

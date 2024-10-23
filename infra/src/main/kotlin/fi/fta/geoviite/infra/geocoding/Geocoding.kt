@@ -78,9 +78,17 @@ data class AlignmentAddresses(
     }
 }
 
-data class AlignmentStartAndEndWithId<T>(val id: IntId<T>, val start: AddressPoint?, val end: AddressPoint?)
+data class AlignmentStartAndEnd<T>(val id: IntId<T>, val start: AlignmentEndPoint?, val end: AlignmentEndPoint?) {
+    companion object {
+        fun <T> of(id: IntId<T>, alignment: IAlignment, geocodingContext: GeocodingContext?): AlignmentStartAndEnd<T> {
+            val start = alignment.start?.let { p -> AlignmentEndPoint(p, geocodingContext?.getAddress(p)?.first) }
+            val end = alignment.end?.let { p -> AlignmentEndPoint(p, geocodingContext?.getAddress(p)?.first) }
+            return AlignmentStartAndEnd(id, start, end)
+        }
+    }
+}
 
-data class AlignmentStartAndEnd(val start: AddressPoint?, val end: AddressPoint?)
+data class AlignmentEndPoint(val point: AlignmentPoint, val address: TrackMeter?)
 
 data class ProjectionLine(val address: TrackMeter, val projection: Line, val distance: Double)
 
@@ -403,9 +411,9 @@ data class GeocodingContext(
         }
         val startSegment = sourceAlignment.segments[segmentIndices.first]
         val endSegment = sourceAlignment.segments[segmentIndices.last]
-        val sourceStart = startSegment.segmentStart.toAlignmentPoint(0.0).let(::toAddressPoint)?.first
+        val sourceStart = startSegment.segmentStart.toAlignmentPoint(0.0).let(this::toAddressPoint)?.first
         val endSegmentStart = endSegment.startM - startSegment.startM
-        val sourceEnd = endSegment.segmentEnd.toAlignmentPoint(endSegmentStart).let(::toAddressPoint)?.first
+        val sourceEnd = endSegment.segmentEnd.toAlignmentPoint(endSegmentStart).let(this::toAddressPoint)?.first
         return if (sourceStart != null && sourceEnd != null) {
             sourceStart to sourceEnd
         } else {
@@ -459,10 +467,10 @@ data class GeocodingContext(
         }
     }
 
-    fun getStartAndEnd(alignment: IAlignment): AlignmentStartAndEnd {
-        val startAddress = alignment.start?.let(::toAddressPoint)
-        val endAddress = alignment.end?.let(::toAddressPoint)
-        return AlignmentStartAndEnd(startAddress?.first, endAddress?.first)
+    fun getStartAndEnd(alignment: IAlignment): Pair<AddressPoint?, AddressPoint?> {
+        val start = alignment.start?.let(::toAddressPoint)?.first
+        val end = alignment.end?.let(::toAddressPoint)?.first
+        return start to end
     }
 
     private fun getMidPoints(alignment: IAlignment, range: ClosedRange<TrackMeter>): List<AddressPoint> {

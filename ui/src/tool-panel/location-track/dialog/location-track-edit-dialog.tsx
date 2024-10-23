@@ -644,7 +644,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     className={
                                         styles['location-track-edit-dialog__readonly-value']
                                     }>
-                                    {startAndEndPoints?.start
+                                    {startAndEndPoints?.start?.address
                                         ? formatTrackMeter(startAndEndPoints.start.address)
                                         : '-'}
                                 </span>
@@ -657,7 +657,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     className={
                                         styles['location-track-edit-dialog__readonly-value']
                                     }>
-                                    {startAndEndPoints?.end
+                                    {startAndEndPoints?.end?.address
                                         ? formatTrackMeter(startAndEndPoints.end.address)
                                         : '-'}
                                 </span>

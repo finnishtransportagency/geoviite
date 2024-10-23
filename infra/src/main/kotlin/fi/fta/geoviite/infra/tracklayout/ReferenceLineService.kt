@@ -8,6 +8,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import org.springframework.transaction.annotation.Transactional
@@ -18,6 +20,7 @@ class ReferenceLineService(
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
+    private val geocodingService: GeocodingService,
 ) : LayoutAssetService<ReferenceLine, ReferenceLineDao>(dao) {
 
     @Transactional
@@ -188,6 +191,17 @@ class ReferenceLineService(
             })
             .let { list -> filterByBoundingBox(list, boundingBox) }
             .let(::associateWithAlignments)
+    }
+
+    @Transactional(readOnly = true)
+    fun getStartAndEnd(context: LayoutContext, id: IntId<ReferenceLine>): AlignmentStartAndEnd<ReferenceLine>? {
+        return getWithAlignment(context, id)?.let { (referenceLine, alignment) ->
+            AlignmentStartAndEnd.of(
+                referenceLine.id as IntId,
+                alignment,
+                geocodingService.getGeocodingContext(context, referenceLine.trackNumberId),
+            )
+        }
     }
 
     private fun getWithAlignmentInternalOrThrow(

@@ -21,6 +21,7 @@ import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-
 import { first } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 import Feature from 'ol/Feature';
+import { getMaxTimestamp } from 'utils/date-utils';
 
 type SplitBoundsAndName = {
     start: number;
@@ -77,6 +78,12 @@ async function getLocationTrackSplitBadgeData(
     mapTiles: MapTile[],
 ): Promise<LocationTrackSplitBadgeData> {
     if (resolution <= Limits.SHOW_LOCATION_TRACK_BADGES && splittingState) {
+        const startEndChangeTime = getMaxTimestamp(
+            changeTimes.layoutLocationTrack,
+            changeTimes.layoutTrackNumber,
+            changeTimes.layoutReferenceLine,
+            changeTimes.layoutKmPost,
+        );
         const [locationTracks, startAndEnd] = await Promise.all([
             getSelectedLocationTrackMapAlignmentByTiles(
                 changeTimes,
@@ -87,7 +94,7 @@ async function getLocationTrackSplitBadgeData(
             getLocationTrackStartAndEnd(
                 splittingState.originLocationTrack.id,
                 layoutContext,
-                changeTimes.layoutLocationTrack,
+                startEndChangeTime,
             ),
         ]);
         return { locationTracks, startAndEnd };

@@ -719,18 +719,6 @@ constructor(
         assertEquals(listOf("track 1 V123 - V456", "track 2 V456 - Puskin"), descriptions)
     }
 
-    private fun asLocationTrackDuplicate(locationTrack: LocationTrack): LocationTrackDuplicate =
-        LocationTrackDuplicate(
-            locationTrack.id as IntId,
-            locationTrack.trackNumberId,
-            locationTrack.name,
-            locationTrack.externalId,
-            start = null,
-            end = null,
-            length = null,
-            DuplicateStatus(DuplicateMatch.NONE, locationTrack.duplicateOf, null, null, null),
-        )
-
     private fun insertAndFetchDraft(switch: TrackLayoutSwitch): TrackLayoutSwitch =
         switchDao.fetch(switchService.saveDraft(LayoutBranch.main, switch).rowVersion)
 

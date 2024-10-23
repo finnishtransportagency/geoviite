@@ -293,7 +293,7 @@ constructor(private val geometryService: GeometryService, private val planLayout
     fun getPlanAlignmentStartAndEnd(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
         @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
-    ): ResponseEntity<AlignmentStartAndEnd> {
+    ): ResponseEntity<AlignmentStartAndEnd<GeometryAlignment>> {
         return toResponse(geometryService.getPlanAlignmentStartAndEnd(planId, planAlignmentId))
     }
 

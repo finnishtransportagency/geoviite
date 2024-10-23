@@ -613,16 +613,17 @@ constructor(
     fun getPlanAlignmentStartAndEnd(
         planId: IntId<GeometryPlan>,
         planAlignmentId: IntId<GeometryAlignment>,
-    ): AlignmentStartAndEnd? {
+    ): AlignmentStartAndEnd<GeometryAlignment>? {
         val planVersion = geometryDao.fetchPlanVersion(planId)
         val plan = geometryDao.fetchPlan(planVersion)
         val geocodingContext =
-            plan.trackNumber?.let { geocodingService.getGeocodingContext(plan.trackNumber, planVersion) } ?: return null
-        val alignment =
-            planLayoutCache.getPlanLayout(planVersion).first?.alignments?.find { alignment ->
-                alignment.id == planAlignmentId
-            } ?: return null
-        return geocodingContext.getStartAndEnd(alignment)
+            plan.trackNumber?.let { geocodingService.getGeocodingContext(plan.trackNumber, planVersion) }
+        return planLayoutCache
+            .getPlanLayout(planVersion)
+            .first
+            ?.alignments
+            ?.find { alignment -> alignment.id == planAlignmentId }
+            ?.let { alignment -> AlignmentStartAndEnd.of(planAlignmentId, alignment, geocodingContext) }
     }
 
     @Transactional(readOnly = true)
@@ -668,6 +669,8 @@ constructor(
             geocodingContext.getAddress(alignment.getPointAtM(startDistance) ?: return null)?.first ?: return null
         val addressOfEndDistance =
             geocodingContext.getAddress(alignment.getPointAtM(endDistance) ?: return null)?.first ?: return null
+        val (alignmentStart, alignmentEnd) = geocodingContext.getStartAndEnd(alignment)
+        if (alignmentStart == null || alignmentEnd == null) return null
 
         val referencePointIndices =
             geocodingContext.referencePoints.indexOfFirst { referencePoint ->
@@ -687,11 +690,6 @@ constructor(
                     { (trackMeter) -> trackMeter.kmNumber },
                     { (trackMeter, segmentIndex) -> trackMeter.meters to segmentIndex },
                 )
-
-        val (alignmentStart, alignmentEnd) =
-            geocodingContext.getStartAndEnd(alignment).let { startAndEnd ->
-                (startAndEnd.start ?: return null) to (startAndEnd.end ?: return null)
-            }
 
         return referencePointIndices
             .toList()
