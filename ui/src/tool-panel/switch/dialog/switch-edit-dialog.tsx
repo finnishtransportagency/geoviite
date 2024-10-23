@@ -116,12 +116,9 @@ export const SwitchEditDialog = ({
     const switchStructureChanged =
         isExistingSwitch && switchStructureId != existingSwitch?.switchStructureId;
 
+    const canSetDeleted = isExistingSwitch && existingSwitch?.editState !== 'CREATED';
     const stateCategoryOptions = layoutStateCategories
-        .filter(
-            (sc) =>
-                (isExistingSwitch && existingSwitch?.editState !== 'CREATED') ||
-                sc.value != 'NOT_EXISTING',
-        )
+        .map((s) => (s.value !== 'NOT_EXISTING' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((sc) => ({ ...sc, qaId: sc.value }));
 
     const conflictingSwitch = useLoader(async () => {

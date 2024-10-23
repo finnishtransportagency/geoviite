@@ -139,13 +139,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.changeTimes,
     );
 
+    const canSetDeleted =
+        !state.isNewLocationTrack && state.existingLocationTrack?.editState !== 'CREATED';
     const stateOptions = locationTrackStates
-        .filter(
-            (ls) =>
-                (!state.isNewLocationTrack &&
-                    state.existingLocationTrack?.editState !== 'CREATED') ||
-                ls.value != 'DELETED',
-        )
+        .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
 
     const typeOptions = locationTrackTypes.map((ls) => ({ ...ls, qaId: ls.value }));

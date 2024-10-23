@@ -121,12 +121,9 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(false);
 
+    const canSetDeleted = inEditTrackNumber !== undefined && !isNewDraft;
     const trackNumberStateOptions = layoutStates
-        .map((s) =>
-            s.value !== 'DELETED' || (inEditTrackNumber !== undefined && !isNewDraft)
-                ? s
-                : { ...s, disabled: true },
-        )
+        .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((s) => ({ ...s, qaId: s.value }));
 
     const confirmNewDraftDelete = () => {
