@@ -28,7 +28,6 @@ type DatePickerInputProps = {
     wide: boolean | undefined;
     minDate?: Date;
     maxDate?: Date;
-    iconRef: React.RefObject<SVGSVGElement>;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 
 const DATE_FORMAT = 'dd.MM.yyyy';
@@ -80,14 +79,12 @@ const DatePickerInput = React.forwardRef<HTMLInputElement, DatePickerInputProps>
 
         return (
             <TextField
-                Icon={(iconProps) => (
-                    <Icons.SetDate
-                        {...iconProps}
-                        onClick={() => localRef.current?.focus()}
-                        ref={props.iconRef}
-                    />
-                )}
+                Icon={(iconProps) => <Icons.SetDate {...iconProps} />}
                 iconPosition={TextInputIconPosition.RIGHT}
+                onClickIcon={() => {
+                    localRef.current?.focus();
+                    openDatePicker();
+                }}
                 wide={wide}
                 value={value}
                 onFocusCapture={openDatePicker}
@@ -158,12 +155,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                 setDate={(date) => onChange(date, 'TEXT')}
                 wide={wide}
                 ref={ref}
-                iconRef={iconRef}
                 {...props}
             />
             {open && (
                 <CloseableModal
-                    onClickOutside={() => setOpen(false)}
+                    onClickOutside={() => {
+                        undefined;
+                    }}
                     offsetY={ref.current?.getBoundingClientRect().height ?? 0}
                     positionRef={ref}
                     openingRef={iconRef}
@@ -176,7 +174,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                             onChange(date ?? undefined, 'PICKER');
                         }}
                         onChangeRaw={() => setOpen(false)}
-                        onClickOutside={() => setOpen(false)}
                         minDate={props.minDate}
                         maxDate={props.maxDate}
                         calendarStartDay={1}
