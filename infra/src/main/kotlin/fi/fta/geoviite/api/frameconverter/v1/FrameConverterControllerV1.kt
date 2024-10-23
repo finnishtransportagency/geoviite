@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.util.processRights
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -24,7 +25,12 @@ import org.springframework.web.bind.annotation.RequestParam
 
 @PreAuthorize(AUTH_API_FRAME_CONVERTER)
 @GeoviiteExtApiController(["/rata-vkm/v1", "/rata-vkm/dev/v1"])
-class FrameConverterControllerV1 @Autowired constructor(private val frameConverterServiceV1: FrameConverterServiceV1) {
+class FrameConverterControllerV1
+@Autowired
+constructor(
+    private val frameConverterServiceV1: FrameConverterServiceV1,
+    @Value("\${geoviite.ext-api.max-batch-requests:0}") private val maxBatchRequests: Int,
+) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping("/koordinaatit", "/koordinaatit/")
@@ -65,6 +71,7 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         @RequestParam(FEATURE_DETAILS_PARAM, required = false) featureDetails: Boolean?,
         @RequestBody requests: List<TrackAddressToCoordinateRequestV1>,
     ): GeoJsonFeatureCollection {
+        assertRequestSize(requests)
         logRequestAmount("trackAddressToCoordinateRequestBatch", requests)
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
@@ -114,6 +121,7 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         @RequestParam(FEATURE_DETAILS_PARAM, required = false) featureDetails: Boolean?,
         @RequestBody requests: List<CoordinateToTrackAddressRequestV1>,
     ): GeoJsonFeatureCollection {
+        assertRequestSize(requests)
         logRequestAmount("coordinateToTrackAddressRequestBatch", requests)
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
@@ -156,6 +164,15 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         }
         @Suppress("UNCHECKED_CAST")
         return requests as List<Request>
+    }
+
+    private fun <T : FrameConverterRequestV1> assertRequestSize(requests: List<T>) {
+        if (requests.size > maxBatchRequests) {
+            throw ExtApiExceptionV1(
+                message = "Too many requests in batch: maxCount=$maxBatchRequests",
+                error = FrameConverterErrorV1.TooManyRequests,
+            )
+        }
     }
 
     private fun <Request, ValidRequest> processRequests(

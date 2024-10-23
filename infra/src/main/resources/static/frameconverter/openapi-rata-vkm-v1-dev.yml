@@ -36,6 +36,7 @@ paths:
                   externalValue: '../static/examples/example-error-coordinate-to-track-address.json'
     post:
       summary: Erämuunnos koordinaateista rataosoitteisiin
+      description: Erämuunnos hyväksyy korkeintaan 1000 muunnospyyntöä kerrallaan.
       parameters:
         - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/geometriatiedot-param'
@@ -93,6 +94,7 @@ paths:
                   externalValue: '../static/examples/example-error-track-address-to-coordinate.json'
     post:
       summary: Erämuunnos rataosoitteista koordinaatteihin
+      description: Erämuunnos hyväksyy korkeintaan 1000 muunnospyyntöä kerrallaan.
       parameters:
         - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/geometriatiedot-param'
@@ -285,6 +287,3 @@ components:
         type: boolean
         description: "GeoJSON-tulos sisältää properties-kentässä kentät: ratanumero, sijaintiraide, sijaintiraide_kuvaus, sijaintiraide_tyyppi, ratakilometri, ratametri, ratametri_desimaalit."
         default: true
-
-
-
