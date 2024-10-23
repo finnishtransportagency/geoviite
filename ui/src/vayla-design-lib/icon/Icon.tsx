@@ -145,6 +145,7 @@ export type IconProps = {
     size?: IconSize;
     rotation?: IconRotation;
     color?: IconColor;
+    ref?: React.RefObject<SVGSVGElement>;
 } & Pick<React.HTMLProps<HTMLOrSVGElement>, 'onClick'>;
 
 export type IconComponent = React.FC<IconProps>;

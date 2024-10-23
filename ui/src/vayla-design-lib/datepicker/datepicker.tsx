@@ -28,6 +28,7 @@ type DatePickerInputProps = {
     wide: boolean | undefined;
     minDate?: Date;
     maxDate?: Date;
+    iconRef: React.RefObject<SVGSVGElement>;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 
 const DATE_FORMAT = 'dd.MM.yyyy';
@@ -82,10 +83,8 @@ const DatePickerInput = React.forwardRef<HTMLInputElement, DatePickerInputProps>
                 Icon={(iconProps) => (
                     <Icons.SetDate
                         {...iconProps}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            localRef.current?.focus();
-                        }}
+                        onClick={() => localRef.current?.focus()}
+                        ref={props.iconRef}
                     />
                 )}
                 iconPosition={TextInputIconPosition.RIGHT}
@@ -148,6 +147,7 @@ function getHeaderElement({
 export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, ...props }) => {
     const [open, setOpen] = React.useState(false);
     const ref = React.useRef<HTMLInputElement>(null);
+    const iconRef = React.useRef<SVGSVGElement>(null);
     const className = createClassName(styles['datepicker'], wide && styles['datepicker--wide']);
 
     return (
@@ -158,6 +158,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                 setDate={(date) => onChange(date, 'TEXT')}
                 wide={wide}
                 ref={ref}
+                iconRef={iconRef}
                 {...props}
             />
             {open && (
@@ -165,6 +166,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                     onClickOutside={() => setOpen(false)}
                     offsetY={ref.current?.getBoundingClientRect().height ?? 0}
                     positionRef={ref}
+                    openingRef={iconRef}
                     className={styles['datepicker__popup-container']}>
                     <ReactDatePicker
                         renderCustomHeader={getHeaderElement}
