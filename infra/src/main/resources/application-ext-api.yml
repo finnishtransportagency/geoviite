@@ -36,6 +36,7 @@ geoviite:
 
   ext-api:
     enabled: true
+    max-batch-requests: 1000
     static-url: '/rata-vkm/static/**'
     static-resources: 'classpath:/static/frameconverter/'
     url-path-prefixes:

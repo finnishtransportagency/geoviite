@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
@@ -677,6 +678,11 @@ class LocationTrackService(
 
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
         return dao.fetchLocationTrackOwners()
+    }
+
+    fun getLocationTrackOwner(id: IntId<LocationTrackOwner>): LocationTrackOwner {
+        return getLocationTrackOwners().find { owner -> owner.id == id }
+            ?: throw NoSuchEntityException(LocationTrackOwner::class, id)
     }
 
     @Transactional(readOnly = true)

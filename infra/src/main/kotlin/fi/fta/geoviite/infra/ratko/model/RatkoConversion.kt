@@ -159,6 +159,7 @@ fun convertToRatkoLocationTrack(
     nodeCollection: RatkoNodes? = null,
     duplicateOfOid: Oid<LocationTrack>?,
     descriptionGetter: (LocationTrack) -> String,
+    owner: LocationTrackOwner,
 ) =
     RatkoLocationTrack(
         id = locationTrack.externalId?.toString(),
@@ -170,6 +171,7 @@ fun convertToRatkoLocationTrack(
         nodecollection = nodeCollection,
         duplicateOf = duplicateOfOid?.toString(),
         topologicalConnectivity = mapToRatkoTopologicalConnectivityType(locationTrack.topologicalConnectivity),
+        owner = owner.name.toString(),
     )
 
 fun convertToRatkoRouteNumber(trackNumber: TrackLayoutTrackNumber, nodeCollection: RatkoNodes? = null) =
