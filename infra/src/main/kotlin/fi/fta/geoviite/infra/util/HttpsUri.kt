@@ -24,7 +24,7 @@ data class HttpsUri @JsonCreator(mode = DELEGATING) constructor(private val valu
     init {
         assertLength(HttpsUri::class, value.toString(), urlLength)
         require(httpsValidator.isValid(value.toString())) {
-            "Not a valid https url: \"${formatForException(value.toString())}\""
+            "Not a valid HTTPS URI: \"${formatForException(value.toString())}\""
         }
     }
 
