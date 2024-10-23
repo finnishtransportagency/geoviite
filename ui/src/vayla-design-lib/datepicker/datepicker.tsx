@@ -159,9 +159,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
             />
             {open && (
                 <CloseableModal
-                    onClickOutside={() => {
-                        undefined;
-                    }}
+                    onClickOutside={() => undefined}
                     offsetY={ref.current?.getBoundingClientRect().height ?? 0}
                     positionRef={ref}
                     openingRef={iconRef}
@@ -174,6 +172,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                             onChange(date ?? undefined, 'PICKER');
                         }}
                         onChangeRaw={() => setOpen(false)}
+                        onClickOutside={() => {
+                            setOpen(false);
+                        }}
                         minDate={props.minDate}
                         maxDate={props.maxDate}
                         calendarStartDay={1}
