@@ -1,18 +1,9 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
-import fi.fta.geoviite.infra.SpringContextUtility.Companion.getProperty
 import fi.fta.geoviite.infra.localization.LocalizationKey
-import fi.fta.geoviite.infra.localization.LocalizationParams
-import fi.fta.geoviite.infra.localization.localizationParams
 
-enum class FrameConverterErrorV1(
-    private val localizationSuffix: String,
-    val localizationParams: LocalizationParams = localizationParams(),
-) {
-    TooManyRequests(
-        "too-many-requests",
-        localizationParams("maxCount" to (getProperty("geoviite.ext-api.max-batch-requests") ?: 0)),
-    ),
+enum class FrameConverterErrorV1(private val localizationSuffix: String) {
+    TooManyRequests("too-many-requests"),
     FeaturesNotFound("features-not-found"),
     MissingXCoordinate("missing-x-coordinate"),
     MissingYCoordinate("missing-y-coordinate"),

@@ -39,9 +39,9 @@ import fi.fta.geoviite.infra.util.all
 import fi.fta.geoviite.infra.util.alsoIfNull
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.produceIf
-import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
 import java.math.RoundingMode
+import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class FrameConverterServiceV1
@@ -430,7 +430,7 @@ constructor(
         return listOf(
             GeoJsonFeatureErrorResponseV1(
                 identifier = identifier,
-                errorMessages = errors.map { error -> translation.t(error.localizationKey, error.localizationParams) },
+                errorMessages = errors.map { error -> translation.t(error.localizationKey) },
             )
         )
     }

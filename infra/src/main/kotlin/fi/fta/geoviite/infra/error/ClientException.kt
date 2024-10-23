@@ -215,5 +215,9 @@ class InvalidUiVersionException(cause: Throwable? = null) :
         localizedMessageKey = "error.bad-request.invalid-version",
     )
 
-class ExtApiExceptionV1(message: String, cause: Throwable? = null, error: FrameConverterErrorV1) :
-    ClientException(BAD_REQUEST, "Invalid request: $message", cause, error.localizationKey, error.localizationParams)
+class ExtApiExceptionV1(
+    message: String,
+    cause: Throwable? = null,
+    error: FrameConverterErrorV1,
+    localizationParams: LocalizationParams = LocalizationParams.empty,
+) : ClientException(BAD_REQUEST, "Invalid request: $message", cause, error.localizationKey, localizationParams)
