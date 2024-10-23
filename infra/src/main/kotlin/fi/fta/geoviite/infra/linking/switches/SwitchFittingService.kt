@@ -503,7 +503,8 @@ private fun getClosestPointAsIntersection(
         }
 }
 
-private fun <T> pairsOf(things: List<T>): List<Pair<T, T>> = things.windowed(2).map { p -> p[0] to p[1] }
+private fun <T> pairsOf(things: List<T>): List<Pair<T, T>> =
+    things.flatMapIndexed { index, t1 -> things.drop(index + 1).map { t2 -> t1 to t2 } }
 
 private fun findTrackIntersectionsForGridPoints(
     trackAlignments: List<IAlignment>,
