@@ -1494,7 +1494,7 @@ constructor(
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
 
         // left side is slightly squished on the y axis compared to the right side, to make the
-        // arrangement realistically slightly symmetric
+        // arrangement realistically slightly asymmetric
         val leftSwitchJoints =
             switchStructure.joints.map { joint ->
                 TrackLayoutSwitchJoint(joint.number, Point(-joint.location.x, -joint.location.y * 0.99), null)
