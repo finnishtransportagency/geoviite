@@ -36,7 +36,6 @@ import {
     insertSwitch,
     updateSwitch,
 } from 'track-layout/layout-switch-api';
-import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import styles from './switch-edit-dialog.scss';
 import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
@@ -118,7 +117,11 @@ export const SwitchEditDialog = ({
         isExistingSwitch && switchStructureId != existingSwitch?.switchStructureId;
 
     const stateCategoryOptions = layoutStateCategories
-        .filter((sc) => isExistingSwitch || sc.value != 'NOT_EXISTING')
+        .filter(
+            (sc) =>
+                (isExistingSwitch && existingSwitch?.editState !== 'CREATED') ||
+                sc.value != 'NOT_EXISTING',
+        )
         .map((sc) => ({ ...sc, qaId: sc.value }));
 
     const conflictingSwitch = useLoader(async () => {
@@ -213,14 +216,7 @@ export const SwitchEditDialog = ({
     }
 
     function save() {
-        if (
-            switchName &&
-            switchStateCategory &&
-            switchStructureId &&
-            switchOwnerId &&
-            !existingSwitch
-        ) {
-            setIsSaving(true);
+        if (switchName && switchStateCategory && switchStructureId && switchOwnerId) {
             const newSwitch: TrackLayoutSwitchSaveRequest = {
                 name: switchName,
                 switchStructureId: switchStructureId,
@@ -229,40 +225,40 @@ export const SwitchEditDialog = ({
                 trapPoint: trapPointToBoolean(trapPoint),
             };
 
-            insertSwitch(newSwitch, layoutContext).then(
+            if (existingSwitch) saveUpdatedSwitch(existingSwitch, newSwitch);
+            else saveNewSwitch(newSwitch);
+        }
+    }
+
+    function saveNewSwitch(newSwitch: TrackLayoutSwitchSaveRequest) {
+        setIsSaving(true);
+        insertSwitch(newSwitch, layoutContext)
+            .then(
                 (switchId) => {
                     onSave && onSave(switchId);
                     onClose();
                     Snackbar.success('switch-dialog.new-switch-added');
                 },
                 () => Snackbar.error('switch-dialog.adding-switch-failed'),
-            );
-        }
-        //save updated switch here
-        if (
-            switchName &&
-            switchStateCategory &&
-            switchStructureId &&
-            switchOwnerId &&
-            existingSwitch
-        ) {
-            setIsSaving(true);
-            const updatedSwitch: TrackLayoutSwitchSaveRequest = {
-                name: switchName,
-                switchStructureId: switchStructureId,
-                stateCategory: switchStateCategory,
-                ownerId: switchOwnerId,
-                trapPoint: trapPointToBoolean(trapPoint),
-            };
-            updateSwitch(existingSwitch.id, updatedSwitch, layoutContext).then(
+            )
+            .finally(() => setIsSaving(false));
+    }
+
+    function saveUpdatedSwitch(
+        existingSwitch: LayoutSwitch,
+        updatedSwitch: TrackLayoutSwitchSaveRequest,
+    ) {
+        setIsSaving(true);
+        updateSwitch(existingSwitch.id, updatedSwitch, layoutContext)
+            .then(
                 () => {
                     onSave && onSave(existingSwitch.id);
                     onClose();
                     Snackbar.success('switch-dialog.modified-successfully');
                 },
                 () => Snackbar.error('switch-dialog.modify-failed'),
-            );
-        }
+            )
+            .finally(() => setIsSaving(false));
     }
 
     const validationIssues = [
@@ -460,11 +456,9 @@ export const SwitchEditDialog = ({
                                 disabled={isSaving}>
                                 {t('button.cancel')}
                             </Button>
-                            {isSaving ? (
-                                <Spinner />
-                            ) : (
-                                <Button onClick={save}>{t('button.save')}</Button>
-                            )}
+                            <Button disabled={isSaving} isProcessing={isSaving} onClick={save}>
+                                {t('button.save')}
+                            </Button>
                         </div>
                     }>
                     <p>{t('switch-dialog.changed-switch-structure-warning')}</p>
@@ -477,37 +471,7 @@ export const SwitchEditDialog = ({
                     </p>
                 </Dialog>
             )}
-            {showDeleteOfficialConfirmDialog && existingSwitch?.editState === 'CREATED' && (
-                <Dialog
-                    title={t('switch-dialog.confirmation-save-as-deleted-new')}
-                    variant={DialogVariant.DARK}
-                    allowClose={false}
-                    footerContent={
-                        <div className={dialogStyles['dialog__footer-content--centered']}>
-                            <Button
-                                onClick={() => setShowDeleteOfficialConfirmDialog(false)}
-                                variant={ButtonVariant.SECONDARY}
-                                disabled={isSaving}>
-                                {t('button.cancel')}
-                            </Button>
-                            {isSaving ? (
-                                <Spinner />
-                            ) : (
-                                <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
-                                    {t('button.delete')}
-                                </Button>
-                            )}
-                        </div>
-                    }>
-                    <p>{t('switch-dialog.deleted-state-warning-new')}</p>
-                    <div>
-                        <div className={'dialog__text'}>
-                            {t('switch-dialog.confirm-switch-save-deleted-new')}
-                        </div>
-                    </div>
-                </Dialog>
-            )}
-            {showDeleteOfficialConfirmDialog && existingSwitch?.editState !== 'CREATED' && (
+            {showDeleteOfficialConfirmDialog && (
                 <Dialog
                     title={t('switch-dialog.confirmation-delete-title')}
                     variant={DialogVariant.DARK}
@@ -520,13 +484,13 @@ export const SwitchEditDialog = ({
                                 disabled={isSaving}>
                                 {t('button.cancel')}
                             </Button>
-                            {isSaving ? (
-                                <Spinner />
-                            ) : (
-                                <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
-                                    {t('button.delete')}
-                                </Button>
-                            )}
+                            <Button
+                                disabled={isSaving}
+                                isProcessing={isSaving}
+                                variant={ButtonVariant.PRIMARY_WARNING}
+                                onClick={save}>
+                                {t('button.delete')}
+                            </Button>
                         </div>
                     }>
                     <p>{t('switch-dialog.deleted-state-warning')}</p>
