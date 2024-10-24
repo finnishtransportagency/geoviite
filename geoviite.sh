@@ -67,7 +67,7 @@ down() {
            docker compose down test-db-service
             ;;
         *)
-            echo "Usage: $0 down {backend|ext-api|e2e-stack|db|db-test}"
+            echo "Usage: $0 down {all|backend|ext-api|e2e-stack|db|db-test}"
             exit 1
             ;;
     esac
@@ -100,10 +100,23 @@ test() {
             run_e2e_tests "Running end-to-end tests with custom pattern..." "*$2*"
             ;;
         *)
-            echo "Usage: $0 test {unit|integration|e2e|e2e-1|e2e-2|e2e-pattern <pattern>}"
+            echo "Usage: $0 test {unit|integration|integration-without-cache|e2e|e2e-1|e2e-2|e2e-pattern <pattern>}"
             exit 1
             ;;
     esac
+}
+
+clean() {
+      case "$1" in
+          unit)
+              echo "Cleaning all Geoviite docker stack related images..."
+              docker-compose down --rmi all
+              ;;
+          *)
+              echo "Usage: $0 clean {images}"
+              exit 1
+              ;;
+      esac
 }
 
 run_e2e_tests() {
@@ -123,7 +136,7 @@ case "$1" in
         test "$2" "$3"
         ;;
     *)
-        echo "Usage: $0 {up|down|test}"
+        echo "Usage: $0 {up|down|test|clean}"
         exit 1
         ;;
 esac

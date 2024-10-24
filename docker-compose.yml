@@ -33,7 +33,7 @@ services:
     image: ${IMAGE_DB}
     build: docker-images/geoviite-postgres
     environment:
-      POSTGRES_USER: dev-geouser
+      POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
@@ -45,19 +45,10 @@ services:
       retries: 5
 
   test-db-service:
-    image: ${IMAGE_DB}
-    build: docker-images/geoviite-postgres
-    environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+    extends:
+      service: db-service
     ports:
       - ${HOST_PORT_DB_TEST}:5432
-    healthcheck:
-      test: [ "CMD", "pg_isready" ]
-      interval: 2s
-      timeout: 2s
-      retries: 5
 
   backend:
     image: ${IMAGE_DISTRIBUTION}
@@ -80,24 +71,12 @@ services:
       retries: 10
 
   ext-api:
-    image: ${IMAGE_DISTRIBUTION}
-    depends_on:
-      distribution-build:
-        condition: service_completed_successfully
-      db-service:
-        condition: service_healthy
+    extends:
+      service: backend
     environment:
-      DB_URL: db-service/${DB_NAME}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: noauth,ext-api
     ports:
       - ${HOST_PORT_GEOVIITE_EXT_API}:8080
-    healthcheck:
-      test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
-      interval: 5s
-      timeout: 1s
-      retries: 10
 
   backend-unit-tests:
     image: ${IMAGE_BACKEND}
@@ -121,18 +100,11 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
 
   backend-integration-tests-without-cache:
-    image: ${IMAGE_BACKEND}
+    extends:
+      service:
+        backend-integration-tests
     command: |
       ./gradlew --no-daemon --offline integrationtest-without-cache --tests "*DaoIT"
-    depends_on:
-      backend-build:
-        condition: service_completed_successfully
-      test-db-service:
-        condition: service_healthy
-    environment:
-      DB_URL: test-db-service/${DB_NAME}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
 
   e2e-backend:
     image: ${IMAGE_DISTRIBUTION}
