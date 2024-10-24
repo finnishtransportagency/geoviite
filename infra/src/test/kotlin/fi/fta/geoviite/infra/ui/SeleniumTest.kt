@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra.ui
 
-import browser
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ERole
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
+import fi.fta.geoviite.infra.ui.util.browser
+import fi.fta.geoviite.infra.ui.util.openBrowser
+import fi.fta.geoviite.infra.ui.util.openRemoteBrowser
 import java.util.*
-import openBrowser
-import openRemoteChrome
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
@@ -45,7 +45,7 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
     fun startGeoviite() {
         logger.info("Navigate to Geoviite $startUrl")
         if (remoteSeleniumEnabled) {
-            openRemoteChrome(remoteSeleniumHubUrl)
+            openRemoteBrowser(remoteSeleniumHubUrl)
         } else {
             openBrowser()
         }

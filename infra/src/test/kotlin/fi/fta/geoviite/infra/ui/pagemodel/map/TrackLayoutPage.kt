@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import browser
 import clickElementAtPoint
 import exists
 import fi.fta.geoviite.infra.math.Point
@@ -9,11 +8,12 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialogWithTextField
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.util.browser
 import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.ui.util.javaScriptExecutor
 import getElementIfExists
 import getElementWhenExists
 import java.time.Instant
-import javaScriptExecutor
 import kotlin.math.roundToInt
 import org.openqa.selenium.By
 import org.openqa.selenium.interactions.Actions
