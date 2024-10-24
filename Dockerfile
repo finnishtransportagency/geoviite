@@ -2,7 +2,7 @@ ARG IMAGE_BACKEND=scratch
 ARG IMAGE_FRONTEND=scratch
 
 # Backend dependencies
-FROM eclipse-temurin:17-jdk-alpine AS geoviite-backend-dependencies
+FROM eclipse-temurin:17-jdk AS geoviite-backend-dependencies
 
 WORKDIR /infra
 
@@ -48,7 +48,7 @@ RUN npm run build
 FROM ${IMAGE_BACKEND} AS geoviite-versioned-backend-build
 FROM ${IMAGE_FRONTEND} AS geoviite-versioned-frontend-build
 
-FROM eclipse-temurin:17-jdk-alpine AS geoviite-distribution-build-combiner
+FROM eclipse-temurin:17-jdk AS geoviite-distribution-build-combiner
 
 WORKDIR /app
 
@@ -58,7 +58,7 @@ COPY --from=geoviite-versioned-frontend-build /frontend/dist ./tmp/BOOT-INF/clas
 RUN jar uf infra-SNAPSHOT.jar -C ./tmp .
 
 # Distribution image
-FROM eclipse-temurin:17-jre-alpine AS geoviite-distribution-build
+FROM eclipse-temurin:17-jre AS geoviite-distribution-build
 WORKDIR /app
 
 ENV JAVA_OPTS="-XX:+UseContainerSupport-XX:MinRAMPercentage=25.0 -XX:MaxRAMPercentage=80.0"
