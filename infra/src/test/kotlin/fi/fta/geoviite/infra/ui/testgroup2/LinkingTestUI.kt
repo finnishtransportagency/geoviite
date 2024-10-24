@@ -672,7 +672,7 @@ constructor(
         switchDao.insert(
             switch(
                 name = "unrelated switch",
-                joints = listOf(switchJoint(1, Point(DEFAULT_BASE_POINT + Point(6.0, 1.0)))),
+                joints = listOf(switchJoint(1, Point(DEFAULT_BASE_POINT + Point(10.0, 10.0)))),
                 draft = false,
             )
         )
@@ -692,7 +692,7 @@ constructor(
         // Click near deleted element point to clear tool panels
         // and then try to select deleted element to confirm it disappeared
         val switchPoint = DEFAULT_BASE_POINT + Point(1.0, 1.0)
-        trackLayoutPage.clickAtCoordinates(switchPoint + Point(x = 1.0, y = 1.0))
+        trackLayoutPage.clickAtCoordinates(switchPoint + Point(x = 100.0, y = 100.0))
         trackLayoutPage.clickAtCoordinates(switchPoint)
 
         trackLayoutPage.toolPanel.layoutSwitchGeneralInfo.waitUntilInvisible()

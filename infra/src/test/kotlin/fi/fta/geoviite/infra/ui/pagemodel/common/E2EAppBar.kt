@@ -10,9 +10,9 @@ import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.ui.util.waitForCookie
 import getElement
 import org.openqa.selenium.By
-import waitForCookie
 import waitUntilExists
 import waitUntilNotExist
 

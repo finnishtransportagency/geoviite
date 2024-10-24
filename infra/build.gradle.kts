@@ -148,6 +148,17 @@ tasks.register<Test>("integrationtest-without-cache") {
     useJUnitPlatform()
 }
 
+tasks.register<Test>("ui-test-selenium-local") { useJUnitPlatform() }
+
+tasks.register<Test>("ui-test-selenium-docker") {
+    // Unfortunately not dynamically assigned from the .env file yet :(
+    environment("URL_GEOVIITE_E2E", "http://host.docker.internal:9004/app/index.html")
+    environment("E2E_REMOTE_SELENIUM_HUB_ENABLED", "true")
+    environment("E2E_URL_REMOTE_SELENIUM_HUB", "http://host.docker.internal:4444")
+
+    useJUnitPlatform()
+}
+
 tasks.withType<AbstractArchiveTask> {
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true

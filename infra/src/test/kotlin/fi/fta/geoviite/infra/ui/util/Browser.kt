@@ -1,3 +1,6 @@
+package fi.fta.geoviite.infra.ui.util
+
+import defaultWait
 import java.io.File
 import java.net.URL
 import java.time.Duration
@@ -26,6 +29,10 @@ import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+const val E2E_TASKBAR_BUFFER_PIXELS = 80
+const val E2E_WINDOW_WIDTH = 1920
+const val E2E_WINDOW_HEIGHT = 1080 - E2E_TASKBAR_BUFFER_PIXELS
+
 private fun createChromeDriver(headless: Boolean): WebDriver {
 
     val options = ChromeOptions()
@@ -35,7 +42,7 @@ private fun createChromeDriver(headless: Boolean): WebDriver {
     options.addArguments("--disable-dev-shm-usage")
     options.addArguments("--no-sandbox")
     options.addArguments("--whitelisted-ips=")
-    options.addArguments("--window-size=2560,1640")
+    options.addArguments("--window-size=$E2E_WINDOW_WIDTH,$E2E_WINDOW_HEIGHT")
     options.addArguments("--incognito")
     options.setExperimentalOption("excludeSwitches", listOf("enable-automation"))
     options.addArguments("--remote-allow-origins=*")
@@ -58,7 +65,7 @@ private fun createChromeDriver(headless: Boolean): WebDriver {
 
 private fun createRemoteChromeDriver(seleniumHubUrl: String): RemoteWebDriver {
     val remoteDriverOptions = ChromeOptions()
-    remoteDriverOptions.addArguments("--window-size=2560,1440")
+    remoteDriverOptions.addArguments("--window-size=$E2E_WINDOW_WIDTH,$E2E_WINDOW_HEIGHT")
     remoteDriverOptions.addArguments("--incognito")
     remoteDriverOptions.setExperimentalOption("excludeSwitches", listOf("enable-automation"))
 
@@ -101,8 +108,7 @@ fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")
     //    openFirefox(headless)
-    //    openChrome(headless)
-
+    openChrome(headless)
     logger.info("Webdriver initialized")
 
     browser().manage().timeouts()

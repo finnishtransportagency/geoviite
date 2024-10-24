@@ -47,7 +47,7 @@ services:
   test-db-service:
     extends:
       service: db-service
-    ports:
+    ports: !override
       - ${HOST_PORT_DB_TEST}:5432
 
   backend:
@@ -75,7 +75,7 @@ services:
       service: backend
     environment:
       SPRING_PROFILES_ACTIVE: noauth,ext-api
-    ports:
+    ports: !override
       - ${HOST_PORT_GEOVIITE_EXT_API}:8080
 
   backend-unit-tests:
@@ -134,12 +134,12 @@ services:
       retries: 20
 
   e2e-chrome-service:
-    image: selenium/standalone-chrome:4.25.0-20241010
+    image: selenium/standalone-chromium:4.25.0-20241010
     shm_size: "2gb"
     privileged: true
     environment:
-      - SCREEN_WIDTH=3200
-      - SCREEN_HEIGHT=1600
+      - SCREEN_WIDTH=1920
+      - SCREEN_HEIGHT=1080
       - SE_ENABLE_TRACING=false
       - SE_NODE_SESSION_TIMEOUT=600
       - SE_NODE_MAX_SESSIONS=8

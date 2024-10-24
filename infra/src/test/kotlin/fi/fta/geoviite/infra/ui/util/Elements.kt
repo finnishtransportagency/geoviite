@@ -1,4 +1,5 @@
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.util.browser
 import java.time.Duration
 import java.util.regex.Pattern
 import org.openqa.selenium.By
