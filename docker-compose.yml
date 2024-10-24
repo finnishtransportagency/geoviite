@@ -47,7 +47,7 @@ services:
   test-db-service:
     extends:
       service: db-service
-    ports:
+    ports: !override
       - ${HOST_PORT_DB_TEST}:5432
 
   backend:
@@ -75,7 +75,7 @@ services:
       service: backend
     environment:
       SPRING_PROFILES_ACTIVE: noauth,ext-api
-    ports:
+    ports: !override
       - ${HOST_PORT_GEOVIITE_EXT_API}:8080
 
   backend-unit-tests:
