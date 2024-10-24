@@ -60,8 +60,7 @@ type LinkingType =
 
 function planLinkingUri(layoutContext: LayoutContext, id?: string): string {
     const base = `${LINKING_URI}/${contextInUri(layoutContext)}/plans`;
-    const idSection = id ? `/${id}` : '';
-    return `${base}/${idSection}`;
+    return id ? `${base}/${id}` : base;
 }
 
 function linkingUri(
@@ -71,8 +70,7 @@ function linkingUri(
     id?: string,
 ): string {
     const base = `${LINKING_URI}/${layoutBranch.toLowerCase()}/${dataType}`;
-    const idSection = id ? `/${id}` : '';
-    return `${base}/${idSection}/${linkingType}`;
+    return id ? `${base}/${id}/${linkingType}` : `${base}/${linkingType}`;
 }
 
 export const linkGeometryWithReferenceLine = async (

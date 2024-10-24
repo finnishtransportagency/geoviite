@@ -1,10 +1,16 @@
 geoviite:
-  e2e:
-    url: "${FRONT_END_URL:http://127.0.0.1:9001}"
-    username: foobar
-    password: s3cret
+  cookies:
+    secure: false # E2E tests don't have https support for now.
+
+  e2e-client:
+    #    geoviite-url: "${URL_GEOVIITE_E2E:http://127.0.0.1:9001}"
+    geoviite-url: "http://host.docker.internal:9004/app/index.html"
+    remote-selenium:
+      enabled: "${E2E_REMOTE_SELENIUM_HUB_ENABLED:true}" # TODO
+      hub-url: "${E2E_URL_REMOTE_SELENIUM_HUB:http://host.docker.internal:4444}"
+
   projektivelho:
     enabled: true
-    url: http://localhost:12346
-    auth_url: http://localhost:12346/oauth2/token
-    test-port: 12346
+    url: ${E2E_URL_PROJEKTIVELHO:http://localhost:12346}
+    auth_url: ${E2E_URL_PROJEKTIVELHO:http://localhost:12346}/oauth2/token}
+    test-port: ${HOST_PORT_GEOVIITE_E2E_PROJEKTIVELHO:12346}

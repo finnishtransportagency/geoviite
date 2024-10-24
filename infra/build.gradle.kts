@@ -45,7 +45,7 @@ ktfmt {
 
 configurations { all { exclude("org.springframework.boot", "spring-boot-starter-logging") } }
 
-ext["selenium.version"] = "4.23.1"
+ext["selenium.version"] = "4.25.0"
 
 dependencies {
     // Version overrides for transitive deps (due to known vulnerabilities)
@@ -101,7 +101,7 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.23.1")
+    testImplementation("org.seleniumhq.selenium:selenium-java:4.25.0")
     // Do not update to version 5.15.0 as it causes StackOverflowError.
     // See: https://github.com/mock-server/mockserver/issues/1660
     testImplementation("org.mock-server:mockserver-netty:5.15.0")

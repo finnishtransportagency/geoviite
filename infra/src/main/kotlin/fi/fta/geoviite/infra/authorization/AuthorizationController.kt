@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -20,7 +21,12 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestParam
 
 @GeoviiteController("/authorization")
-class AuthorizationController @Autowired constructor(private val signer: CookieSigner) {
+class AuthorizationController
+@Autowired
+constructor(
+    private val signer: CookieSigner,
+    @Value("\${geoviite.cookies.secure:true}") private val sendSecureCookies: Boolean,
+) {
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/own-details")
@@ -35,7 +41,7 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
             Cookie(DESIRED_ROLE_COOKIE_NAME, code.toString()).apply {
                 path = "/"
                 isHttpOnly = true
-                secure = true
+                secure = sendSecureCookies
             }
 
         response.addCookie(roleCookie)
