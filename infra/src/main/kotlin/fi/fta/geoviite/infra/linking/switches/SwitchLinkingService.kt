@@ -137,10 +137,9 @@ constructor(
             originalSwitches.map { switch -> switchLibraryService.getSwitchStructure(switch.switchStructureId) }
         val alignmentsNearRequests =
             requests.map { request ->
-                locationTrackService.listNearWithAlignments(
-                    branch.draft,
-                    request.points.bounds() + TRACK_SEARCH_AREA_SIZE,
-                )
+                locationTrackService
+                    .listNearWithAlignments(branch.draft, request.points.bounds() + TRACK_SEARCH_AREA_SIZE)
+                    .sortedBy { (it.first.id as IntId).intValue }
             }
         return requests
             .mapIndexed { i, r -> i to r }
@@ -340,9 +339,8 @@ constructor(
                 pointAssociation.keys().firstOrNull()
             }
         val geocodingContext =
-            requireNotNull(geocodingService.getGeocodingContext(branch.draft, track.trackNumberId)) {
-                "Could not get geocoding context: trackNumber=${track.trackNumberId} track=$track"
-            }
+            geocodingService.getGeocodingContext(branch.draft, track.trackNumberId)
+                ?: return switchIds.map { switchId -> failRelinkingValidationFor(branch, switchId) }
         val changedTracks =
             lookupTracksForSuggestedSwitchValidation(branch, switchSuggestions)
                 .mapIndexed { index, tracks -> index to tracks }
@@ -364,18 +362,7 @@ constructor(
 
         return switchIds.mapIndexed { index, switchId ->
             val suggestedSwitch = switchSuggestions[index]
-            if (suggestedSwitch == null)
-                SwitchRelinkingValidationResult(
-                    switchId,
-                    null,
-                    listOf(
-                        LayoutValidationIssue(
-                            LayoutValidationIssueType.ERROR,
-                            "$VALIDATION_SWITCH.track-linkage.relinking-failed",
-                            mapOf("switch" to switchService.getOrThrow(branch.draft, switchId).name),
-                        )
-                    ),
-                )
+            if (suggestedSwitch == null) failRelinkingValidationFor(branch, switchId)
             else {
                 val (validationResults, presentationJointLocation) =
                     validateForSplit(
@@ -398,6 +385,19 @@ constructor(
             }
         }
     }
+
+    private fun failRelinkingValidationFor(branch: LayoutBranch, switchId: IntId<TrackLayoutSwitch>) =
+        SwitchRelinkingValidationResult(
+            switchId,
+            null,
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.ERROR,
+                    "$VALIDATION_SWITCH.track-linkage.relinking-failed",
+                    mapOf("switch" to switchService.getOrThrow(branch.draft, switchId).name),
+                )
+            ),
+        )
 
     private fun lookupTracksForSuggestedSwitchValidation(
         branch: LayoutBranch,
