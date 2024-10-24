@@ -27,6 +27,7 @@ abstract class E2EElementListPage : E2EViewFragment(By.className("data-product-v
         logger.info("Open entire rail network tab")
 
         clickChild(byQaId("select-entire-rail-network"))
+
         return E2EDataProductEntireNetworkElementListPage()
     }
 }

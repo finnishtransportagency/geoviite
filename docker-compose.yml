@@ -72,7 +72,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: noauth,backend,static-fileserver
     ports:
-      - 127.0.0.1:${HOST_PORT_GEOVIITE}:8080
+      - ${HOST_PORT_GEOVIITE}:8080
     healthcheck:
       test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
       interval: 5s
@@ -92,27 +92,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: noauth,ext-api
     ports:
-      - 127.0.0.1:${HOST_PORT_EXT_API}:8080
-    healthcheck:
-      test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
-      interval: 5s
-      timeout: 1s
-      retries: 10
-
-  e2e-backend:
-    image: ${IMAGE_DISTRIBUTION}
-    depends_on:
-      distribution-build:
-        condition: service_completed_successfully
-      test-db-service:
-        condition: service_healthy
-    environment:
-      DB_URL: test-db-service/${DB_NAME}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      SPRING_PROFILES_ACTIVE: e2e,noauth,backend
-    ports:
-      - 127.0.0.1:${HOST_PORT_GEOVIITE_E2E}:8080
+      - ${HOST_PORT_GEOVIITE_EXT_API}:8080
     healthcheck:
       test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
       interval: 5s
@@ -129,7 +109,20 @@ services:
   backend-integration-tests:
     image: ${IMAGE_BACKEND}
     command: |
-      ./gradlew --no-daemon --offline integrationtest --tests *IT &&
+      ./gradlew --no-daemon --offline integrationtest --tests *IT
+    depends_on:
+      backend-build:
+        condition: service_completed_successfully
+      test-db-service:
+        condition: service_healthy
+    environment:
+      DB_URL: test-db-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+  backend-integration-tests-without-cache:
+    image: ${IMAGE_BACKEND}
+    command: |
       ./gradlew --no-daemon --offline integrationtest-without-cache --tests "*DaoIT"
     depends_on:
       backend-build:
@@ -140,3 +133,68 @@ services:
       DB_URL: test-db-service/${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+
+  e2e-backend:
+    image: ${IMAGE_DISTRIBUTION}
+    depends_on:
+      distribution-build:
+        condition: service_completed_successfully
+      test-db-service:
+        condition: service_healthy
+      e2e-chrome-service:
+        condition: service_started
+    environment:
+      DB_URL: test-db-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: e2e,noauth,backend,static-fileserver
+      RATKO_ENABLED: true
+      RATKO_URL: ${E2E_URL_RATKO}
+      PROJEKTIVELHO_ENABLED: true
+      PROJEKTIVELHO_URL: ${E2E_URL_PROJEKTIVELHO}
+    #      E2E_URL_FRONTEND: ${E2E_URL_FRONTEND}
+    ports:
+      - ${HOST_PORT_GEOVIITE_E2E}:8080
+    healthcheck:
+      test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
+      interval: 5s
+      timeout: 1s
+      retries: 10
+
+  e2e-chrome-service:
+    image: selenium/standalone-chrome:4.25.0-20241010
+    shm_size: "2gb"
+    privileged: true
+    environment:
+      - SCREEN_WIDTH=3200
+      - SCREEN_HEIGHT=1600
+      - SE_ENABLE_TRACING=false
+      - SE_NODE_SESSION_TIMEOUT=600
+      - SE_NODE_MAX_SESSIONS=8
+    ports:
+      - ${HOST_PORT_GEOVIITE_E2E_BROWSER_CHROME}:4444
+      - ${HOST_PORT_GEOVIITE_E2E_BROWSER_VNC}:7900
+      - ${HOST_PORT_GEOVIITE_E2E_BROWSER_VNC_SERVER}:5900
+
+  e2e-tests:
+    image: ${IMAGE_BACKEND}
+    command: |
+      ./gradlew --no-daemon --offline test --tests "*UI"
+    depends_on:
+      backend-build:
+        condition: service_completed_successfully
+      e2e-backend:
+        condition: service_healthy
+      e2e-chrome-service:
+        condition: service_started
+    environment:
+      DB_URL: test-db-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      #HOST_PORT_GEOVIITE_E2E_PROJEKTIVELHO: ${HOST_PORT_GEOVIITE_E2E_PROJEKTIVELHO}
+      E2E_URL_GEOVIITE: ${E2E_URL_GEOVIITE}
+      E2E_URL_RATKO: ${E2E_URL_RATKO}
+      E2E_URL_PROJEKTIVELHO: ${E2E_URL_PROJEKTIVELHO}
+    ports:
+      - ${HOST_PORT_GEOVIITE_E2E_RATKO}:12345
+      - ${HOST_PORT_GEOVIITE_E2E_PROJEKTIVELHO}:12346

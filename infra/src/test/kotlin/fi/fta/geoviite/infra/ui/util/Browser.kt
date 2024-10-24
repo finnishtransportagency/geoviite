@@ -1,4 +1,5 @@
 import java.io.File
+import java.net.URL
 import java.time.Duration
 import java.time.Instant
 import java.util.*
@@ -12,18 +13,21 @@ import org.openqa.selenium.TakesScreenshot
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.devtools.v127.emulation.Emulation
+import org.openqa.selenium.devtools.v129.emulation.Emulation
 import org.openqa.selenium.firefox.FirefoxDriver
 import org.openqa.selenium.firefox.FirefoxOptions
 import org.openqa.selenium.logging.LogEntries
 import org.openqa.selenium.logging.LogEntry
 import org.openqa.selenium.logging.LogType
 import org.openqa.selenium.logging.LoggingPreferences
+import org.openqa.selenium.remote.LocalFileDetector
+import org.openqa.selenium.remote.RemoteWebDriver
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 private fun createChromeDriver(headless: Boolean): WebDriver {
+
     val options = ChromeOptions()
 
     if (headless) options.addArguments("--headless")
@@ -50,6 +54,23 @@ private fun createChromeDriver(headless: Boolean): WebDriver {
     devTools.send(Emulation.setTimezoneOverride("Europe/Helsinki"))
 
     return driver
+}
+
+private fun createRemoteChromeDriver(seleniumHubUrl: String): RemoteWebDriver {
+    val remoteDriverOptions = ChromeOptions()
+    remoteDriverOptions.addArguments("--window-size=2560,1440")
+    remoteDriverOptions.addArguments("--incognito")
+    remoteDriverOptions.setExperimentalOption("excludeSwitches", listOf("enable-automation"))
+
+    val logPrefs = LoggingPreferences()
+    logPrefs.enable(LogType.BROWSER, Level.ALL)
+    logPrefs.enable(LogType.PERFORMANCE, Level.ALL)
+
+    remoteDriverOptions.setCapability("goog:loggingPrefs", logPrefs)
+
+    return RemoteWebDriver(URL(seleniumHubUrl), remoteDriverOptions).also { driver ->
+        driver.fileDetector = LocalFileDetector()
+    }
 }
 
 private fun createFirefoxDriver(headless: Boolean): WebDriver {
@@ -80,7 +101,8 @@ fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")
     //    openFirefox(headless)
-    openChrome(headless)
+    //    openChrome(headless)
+
     logger.info("Webdriver initialized")
 
     browser().manage().timeouts()
@@ -88,7 +110,15 @@ fun openBrowser() {
     logger.info("Timezone: ${TimeZone.getDefault().id}")
 }
 
+fun openRemoteBrowser(seleniumHubUrl: String) {
+    logger.info("Initializing remote webdriver")
+    openRemoteChrome(seleniumHubUrl)
+    browser().manage().timeouts()
+}
+
 fun openChrome(headless: Boolean) = setBrowser { createChromeDriver(headless) }
+
+fun openRemoteChrome(seleniumHubUrl: String) = setBrowser { createRemoteChromeDriver(seleniumHubUrl) }
 
 fun openFirefox(headless: Boolean) = setBrowser { createFirefoxDriver(headless) }
 

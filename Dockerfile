@@ -47,6 +47,7 @@ RUN npm run build
 # Combined backend+frontend image
 FROM ${IMAGE_BACKEND} AS geoviite-versioned-backend-build
 FROM ${IMAGE_FRONTEND} AS geoviite-versioned-frontend-build
+
 FROM eclipse-temurin:17-jdk-alpine AS geoviite-distribution-build-combiner
 
 WORKDIR /app
