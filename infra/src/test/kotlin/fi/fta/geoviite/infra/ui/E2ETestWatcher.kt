@@ -27,7 +27,7 @@ class E2ETestWatcher : TestWatcher {
         takeScreenShot("${context.getClassName()}.${context.getMethodName().replace(" ", "_")}")
         printBrowserLogs()
         // There's a lot of stuff in network logs: enable when needed
-        //        fi.fta.geoviite.infra.ui.util.printNetworkLogsAll()
+        // printNetworkLogsAll()
     }
 
     private fun finalize(op: () -> Unit = {}) =
