@@ -60,8 +60,6 @@ const val HTTP_HEADER_GEOVIITE_UI_VERSION = "x-geoviite-ui-version"
 const val ALGORITHM_RS256 = "RS256"
 const val ALGORITHM_ES256 = "ES256"
 
-const val API_PREFIX = "/api"
-
 val slowRequestThreshold: Duration = Duration.ofSeconds(5)
 
 @ConditionalOnWebApplication
@@ -74,6 +72,7 @@ constructor(
     @Value("\${geoviite.jwt.validation.enabled:true}") private val validationEnabled: Boolean,
     @Value("\${geoviite.jwt.validation.jwks-url:}") private val jwksUrl: String,
     @Value("\${geoviite.jwt.validation.elb-jwt-key-url:}") private val elbJwtUrl: String,
+    @Value("\${geoviite.api-root:}") private val apiRoot: String,
     private val extApi: ExtApiConfiguration,
     private val environmentInfo: EnvironmentInfo,
 ) : OncePerRequestFilter() {
@@ -178,8 +177,8 @@ constructor(
 
             val path = request.requestURI
 
-            if (path.startsWith(API_PREFIX)) {
-                val newPath = path.replace(API_PREFIX, "")
+            if (path.startsWith(apiRoot)) {
+                val newPath = path.replace(apiRoot, "")
                 request.getRequestDispatcher(newPath).forward(request, response)
                 return
             } else {
