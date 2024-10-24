@@ -138,8 +138,8 @@ services:
     shm_size: "2gb"
     privileged: true
     environment:
-      - SCREEN_WIDTH=3200
-      - SCREEN_HEIGHT=1600
+      - SCREEN_WIDTH=1920
+      - SCREEN_HEIGHT=1080
       - SE_ENABLE_TRACING=false
       - SE_NODE_SESSION_TIMEOUT=600
       - SE_NODE_MAX_SESSIONS=8
