@@ -1,5 +1,7 @@
 #!/bin/bash
 
+DOCKER_VERSION_SUPPORTED_MAJOR=27
+
 set -a
 source .env
 set +a
@@ -125,6 +127,65 @@ run_e2e_tests() {
     docker compose run --rm --build --service-ports e2e-tests \
       ./gradlew --no-daemon --offline test --tests "$2"
 }
+
+check_all_docker_versions() {
+  CLIENT_VERSION=$(docker version --format '{{.Client.Version}}')
+  ENGINE_VERSION=$(docker version --format '{{.Server.Version}}')
+
+  if ! check_docker_version "$CLIENT_VERSION"; then
+    echo "Your Docker CLIENT version is $CLIENT_VERSION"
+    echo "Docker CLIENT version should be at least $DOCKER_VERSION_SUPPORTED_MAJOR"
+    prompt_continue
+  fi
+
+  if ! check_docker_version "$ENGINE_VERSION"; then
+    echo "Your Docker ENGINE version is $ENGINE_VERSION"
+    echo "Docker ENGINE version should be at least $DOCKER_VERSION_SUPPORTED_MAJOR"
+    prompt_continue
+  fi
+}
+
+check_docker_version() {
+  local version=$1
+  local major_version=$(echo "$version" | cut -d. -f1)
+
+  if [[ "$major_version" -ge DOCKER_VERSION_SUPPORTED_MAJOR ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+check_internal_host_address_docker() {
+  if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+    # Windows
+    ping -n 1 host.docker.internal &> /dev/null
+  else
+    # macOS and Linux
+    ping -c 1 host.docker.internal &> /dev/null
+  fi
+}
+
+prompt_continue() {
+    read -p "Are you sure you want to continue? (y/n): " choice
+    if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
+      echo "Aborting..."
+      exit 1
+    fi
+    echo
+}
+
+check_docker_environment() {
+  check_all_docker_versions
+
+  if ! check_internal_host_address_docker; then
+    echo "Looks like host.docker.internal does not resolve on your machine."
+    echo "This address should resolve to 127.0.0.1 (You may need to edit /etc/hosts on unix systems)"
+    prompt_continue
+  fi
+}
+
+check_docker_environment
 
 case "$1" in
     up)
