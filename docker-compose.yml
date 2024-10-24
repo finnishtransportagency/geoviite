@@ -134,7 +134,7 @@ services:
       retries: 20
 
   e2e-chrome-service:
-    image: selenium/standalone-chrome:4.25.0-20241010
+    image: selenium/standalone-chromium:4.25.0-20241010
     shm_size: "2gb"
     privileged: true
     environment:
