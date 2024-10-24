@@ -1,7 +1,5 @@
 #!/bin/bash
 
-DOCKER_VERSION_SUPPORTED_MAJOR=27
-
 set -a
 source .env
 set +a
@@ -129,8 +127,15 @@ run_e2e_tests() {
 }
 
 check_all_docker_versions() {
+
   CLIENT_VERSION=$(docker version --format '{{.Client.Version}}')
   ENGINE_VERSION=$(docker version --format '{{.Server.Version}}')
+
+  COMPOSE_VERSION=$(docker compose version --short)
+  COMPOSE_MAJOR=$(echo "$COMPOSE_VERSION" | cut -d '.' -f 1)
+  COMPOSE_MINOR=$(echo "$COMPOSE_VERSION" | cut -d '.' -f 2)
+
+  DOCKER_VERSION_SUPPORTED_MAJOR=27
 
   if ! check_docker_version "$CLIENT_VERSION"; then
     echo "Your Docker CLIENT version is $CLIENT_VERSION"
@@ -141,6 +146,16 @@ check_all_docker_versions() {
   if ! check_docker_version "$ENGINE_VERSION"; then
     echo "Your Docker ENGINE version is $ENGINE_VERSION"
     echo "Docker ENGINE version should be at least $DOCKER_VERSION_SUPPORTED_MAJOR"
+    prompt_continue
+  fi
+
+  MIN_COMPOSE_MAJOR=2
+  MIN_COMPOSE_MINOR=29
+
+  if { [[ "$COMPOSE_MAJOR" -lt "$MIN_COMPOSE_MAJOR" ]]; } ||
+     { [[ "$COMPOSE_MAJOR" -eq "$MIN_COMPOSE_MAJOR" ]] && [[ "$COMPOSE_MINOR" -lt "$MIN_COMPOSE_MINOR" ]]; }; then
+    echo "Your Docker Compose version is $COMPOSE_VERSION"
+    echo "Docker Compose version should be at least $MIN_COMPOSE_MAJOR.$MIN_COMPOSE_MINOR"
     prompt_continue
   fi
 }
