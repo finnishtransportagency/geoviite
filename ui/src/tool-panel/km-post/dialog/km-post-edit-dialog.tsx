@@ -95,8 +95,9 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         gkLocationEnabled: !!props.geometryKmPostGkLocation,
     });
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
+    const canSetDeleted = !state.isNewKmPost && state.existingKmPost?.editState !== 'CREATED';
     const kmPostStateOptions = layoutStates
-        .filter((ls) => !state.isNewKmPost || ls.value != 'DELETED')
+        .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
 
     const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
@@ -371,10 +372,15 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
-                                onClick={() => setNonDraftDeleteConfirmationVisible(false)}>
+                                onClick={() => setNonDraftDeleteConfirmationVisible(false)}
+                                disabled={state.isSaving}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
+                            <Button
+                                disabled={state.isSaving}
+                                isProcessing={state.isSaving}
+                                variant={ButtonVariant.PRIMARY_WARNING}
+                                onClick={save}>
                                 {t('button.delete')}
                             </Button>
                         </div>

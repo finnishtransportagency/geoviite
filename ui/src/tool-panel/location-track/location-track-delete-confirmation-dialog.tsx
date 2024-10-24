@@ -20,15 +20,20 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
 > = ({ layoutContext, id, onSave, onClose }: LocationTrackDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
 
+    const [isSaving, setIsSaving] = React.useState(false);
+
     const deleteDraftLocationTrack = (id: LocationTrackId) => {
-        deleteLocationTrack(layoutContext, id).then(
-            (locationTrackId) => {
-                Snackbar.success('tool-panel.location-track.delete-dialog.delete-succeeded');
-                onSave && onSave(locationTrackId);
-                onClose();
-            },
-            () => Snackbar.error('tool-panel.location-track.delete-dialog.delete-failed'),
-        );
+        setIsSaving(true);
+        deleteLocationTrack(layoutContext, id)
+            .then(
+                (locationTrackId) => {
+                    Snackbar.success('tool-panel.location-track.delete-dialog.delete-succeeded');
+                    onSave && onSave(locationTrackId);
+                    onClose();
+                },
+                () => Snackbar.error('tool-panel.location-track.delete-dialog.delete-failed'),
+            )
+            .finally(() => setIsSaving(false));
     };
 
     return (
@@ -38,10 +43,12 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
+                    <Button disabled={isSaving} variant={ButtonVariant.SECONDARY} onClick={onClose}>
                         {t('button.cancel')}
                     </Button>
                     <Button
+                        disabled={isSaving}
+                        isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
                         onClick={() => deleteDraftLocationTrack(id)}>
                         {t('button.delete')}

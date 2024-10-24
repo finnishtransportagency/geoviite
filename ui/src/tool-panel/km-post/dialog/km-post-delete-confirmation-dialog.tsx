@@ -23,15 +23,21 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
 }: KmPostDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
 
-    const deleteKmPost = (id: LayoutKmPostId) =>
-        deleteDraftKmPost(layoutContext, id).then(
-            (kmPostId) => {
-                Snackbar.success('km-post-delete-draft-dialog.delete-succeeded');
-                onSave && onSave(kmPostId);
-                onClose();
-            },
-            () => Snackbar.error('km-post-delete-draft-dialog.delete-failed'),
-        );
+    const [isSaving, setIsSaving] = React.useState(false);
+
+    const deleteKmPost = (id: LayoutKmPostId) => {
+        setIsSaving(true);
+        deleteDraftKmPost(layoutContext, id)
+            .then(
+                (kmPostId) => {
+                    Snackbar.success('km-post-delete-draft-dialog.delete-succeeded');
+                    onSave && onSave(kmPostId);
+                    onClose();
+                },
+                () => Snackbar.error('km-post-delete-draft-dialog.delete-failed'),
+            )
+            .finally(() => setIsSaving(false));
+    };
 
     return (
         <Dialog
@@ -40,11 +46,13 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
+                    <Button variant={ButtonVariant.SECONDARY} disabled={isSaving} onClick={onClose}>
                         {t('button.cancel')}
                     </Button>
                     <Button
                         variant={ButtonVariant.PRIMARY_WARNING}
+                        disabled={isSaving}
+                        isProcessing={isSaving}
                         onClick={() => deleteKmPost(id)}>
                         {t('button.delete')}
                     </Button>

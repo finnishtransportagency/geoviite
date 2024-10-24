@@ -139,8 +139,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.changeTimes,
     );
 
+    const canSetDeleted =
+        !state.isNewLocationTrack && state.existingLocationTrack?.editState !== 'CREATED';
     const stateOptions = locationTrackStates
-        .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
+        .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
 
     const typeOptions = locationTrackTypes.map((ls) => ({ ...ls, qaId: ls.value }));
@@ -715,10 +717,15 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={() => setNonDraftDeleteConfirmationVisible(false)}
-                                variant={ButtonVariant.SECONDARY}>
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={state.isSaving}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
+                            <Button
+                                disabled={state.isSaving}
+                                isProcessing={state.isSaving}
+                                variant={ButtonVariant.PRIMARY_WARNING}
+                                onClick={save}>
                                 {t('button.delete')}
                             </Button>
                         </div>
