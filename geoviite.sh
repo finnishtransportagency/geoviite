@@ -108,9 +108,10 @@ test() {
 
 clean() {
       case "$1" in
-          unit)
-              echo "Cleaning all Geoviite docker stack related images..."
+          images)
+              echo "Cleaning all Geoviite docker stack related images and layers..."
               docker-compose down --rmi all
+              docker builder prune
               ;;
           *)
               echo "Usage: $0 clean {images}"
@@ -134,6 +135,9 @@ case "$1" in
         ;;
     test)
         test "$2" "$3"
+        ;;
+    clean)
+        clean "$2"
         ;;
     *)
         echo "Usage: $0 {up|down|test|clean}"

@@ -68,7 +68,7 @@ services:
       test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
       interval: 5s
       timeout: 1s
-      retries: 10
+      retries: 20
 
   ext-api:
     extends:
@@ -131,7 +131,7 @@ services:
       test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
       interval: 5s
       timeout: 1s
-      retries: 10
+      retries: 20
 
   e2e-chrome-service:
     image: selenium/standalone-chrome:4.25.0-20241010
