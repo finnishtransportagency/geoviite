@@ -72,6 +72,7 @@ constructor(
     @Value("\${geoviite.jwt.validation.enabled:true}") private val validationEnabled: Boolean,
     @Value("\${geoviite.jwt.validation.jwks-url:}") private val jwksUrl: String,
     @Value("\${geoviite.jwt.validation.elb-jwt-key-url:}") private val elbJwtUrl: String,
+    @Value("\${geoviite.api-root:}") private val apiRoot: String,
     private val extApi: ExtApiConfiguration,
     private val environmentInfo: EnvironmentInfo,
 ) : OncePerRequestFilter() {
@@ -174,9 +175,16 @@ constructor(
             val auth = UsernamePasswordAuthenticationToken(user, "", user.role.privileges)
             SecurityContextHolder.getContext().authentication = auth
 
-            checkUiRequestVersion(request)
+            val path = request.requestURI
 
-            chain.doFilter(request, response)
+            if (path.startsWith(apiRoot)) {
+                val newPath = path.replace(apiRoot, "")
+                request.getRequestDispatcher(newPath).forward(request, response)
+                return
+            } else {
+                checkUiRequestVersion(request)
+                chain.doFilter(request, response)
+            }
         } catch (ex: Exception) {
             val errorResponse = createErrorResponse(log, ex)
             response.contentType = errorResponse.headers.contentType?.toString() ?: MediaType.APPLICATION_JSON_VALUE

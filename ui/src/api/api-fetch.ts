@@ -383,6 +383,13 @@ async function getJsonResponse<Input>(
     data: Input | undefined,
     method: HttpMethod,
 ): Promise<Response> {
+    if (path.includes('//')) {
+        console.warn(
+            `Request path '${path}' contains consecutive slashes.` +
+                `This may cause issues in some environments and should be fixed.`,
+        );
+    }
+
     return await fetch(path, {
         method: method,
         headers: createJsonHeaders(),

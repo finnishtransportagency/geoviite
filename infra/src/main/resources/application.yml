@@ -40,6 +40,9 @@ spring:
     lock-retry-count: 900
 
 geoviite:
+  api-root: "/api"
+  cookies:
+    secure: true
 
   cloudfront:
     key-pair-id: "${CLOUDFRONT_KEY_PAIR_ID:}"

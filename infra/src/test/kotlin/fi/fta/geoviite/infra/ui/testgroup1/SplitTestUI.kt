@@ -41,7 +41,6 @@ constructor(
     @Test
     fun `Split can be created and published`() {
         testDBService.clearAllTables()
-
         val trackNumber = TrackNumber("876")
         val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
 

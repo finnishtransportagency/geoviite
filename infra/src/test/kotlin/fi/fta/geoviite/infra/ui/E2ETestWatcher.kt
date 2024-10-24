@@ -1,14 +1,14 @@
 package fi.fta.geoviite.infra.ui
 
-import DEV_DEBUG
-import closeBrowser
+import fi.fta.geoviite.infra.ui.util.DEV_DEBUG
+import fi.fta.geoviite.infra.ui.util.closeBrowser
+import fi.fta.geoviite.infra.ui.util.printBrowserLogs
+import fi.fta.geoviite.infra.ui.util.takeScreenShot
 import java.lang.reflect.Method
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.TestWatcher
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import printBrowserLogs
-import takeScreenShot
 
 class E2ETestWatcher : TestWatcher {
 
@@ -27,7 +27,7 @@ class E2ETestWatcher : TestWatcher {
         takeScreenShot("${context.getClassName()}.${context.getMethodName().replace(" ", "_")}")
         printBrowserLogs()
         // There's a lot of stuff in network logs: enable when needed
-        //        printNetworkLogsAll()
+        // printNetworkLogsAll()
     }
 
     private fun finalize(op: () -> Unit = {}) =

@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
-import fi.fta.geoviite.infra.ui.E2EProperties
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
@@ -11,17 +10,14 @@ import kotlin.test.assertNotNull
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test", "e2e")
 @EnableAutoConfiguration
-@EnableConfigurationProperties(E2EProperties::class)
 @SpringBootTest
-class InfraModelTestUI @Autowired constructor(val properties: E2EProperties) : SeleniumTest() {
+class InfraModelTestUI : SeleniumTest() {
     val TESTFILE_SIMPLE_PATH: String = "src/test/resources/inframodel/testfile_simple.xml"
     val TESTFILE_CLOTHOID_AND_PARABOLA_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola.xml"
     val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String =
