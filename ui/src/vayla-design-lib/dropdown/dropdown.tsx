@@ -410,7 +410,9 @@ export const Dropdown = function <TItemValue>({
                             variant={ButtonVariant.GHOST}
                             icon={props.onAddClickIcon ?? Icons.Append}
                             wide
-                            onClick={props.onAddClick}>
+                            onClick={() => {
+                                props.onAddClick && props.onAddClick();
+                            }}>
                             {props.onAddClickTitle ?? t('dropdown.add-new')}
                         </Button>
                     </div>
@@ -428,9 +430,8 @@ export const Dropdown = function <TItemValue>({
             <div
                 className={styles['dropdown__header']}
                 role="button"
-                onClick={(e) => {
+                onClick={() => {
                     if (!props.disabled) {
-                        e.stopPropagation();
                         focusInput();
                         openOrOverridden ? setOpen(false) : openListAndFocusSelectedItem();
                     }

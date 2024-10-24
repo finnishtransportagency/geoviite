@@ -224,6 +224,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [savingWorkspace, setSavingWorkspace] = React.useState(false);
     const menuRef = React.useRef(null);
     const designIdSelectorRef = React.useRef(null);
+    const designIdButtonRef = React.useRef(null);
 
     const [currentDesign, designLoadStatus] = useLoaderWithStatus(
         () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
@@ -471,8 +472,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                 iconPosition={ButtonIconPosition.END}
                                                 disabled={!!splittingState}
                                                 inheritTypography={true}
-                                                onClick={(e) => {
-                                                    e.stopPropagation(); // otherwise layout selection gets the click
+                                                ref={designIdButtonRef}
+                                                onClick={() => {
                                                     switchToDesign();
                                                     setDesignIdSelectorOpened(
                                                         !designIdSelectorOpened,
@@ -521,7 +522,10 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                     <div ref={designIdSelectorRef}>
                                         <CloseableModal
                                             positionRef={designIdSelectorRef}
-                                            onClickOutside={() => setDesignIdSelectorOpened(false)}
+                                            openingRef={designIdButtonRef}
+                                            onClickOutside={() => {
+                                                setDesignIdSelectorOpened(false);
+                                            }}
                                             className={styles['tool-bar__design-id-selector-popup']}
                                             offsetX={0}
                                             offsetY={0}>

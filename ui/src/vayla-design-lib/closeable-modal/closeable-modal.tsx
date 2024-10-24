@@ -6,6 +6,7 @@ export type OpenTowards = 'LEFT' | 'RIGHT';
 
 type CloseableModalProps = {
     positionRef: React.MutableRefObject<HTMLElement | null>;
+    openingRef?: React.RefObject<HTMLElement | SVGSVGElement | null>;
     onClickOutside: () => void;
     offsetX?: number;
     offsetY?: number;
@@ -31,6 +32,7 @@ type ModalSize = {
 
 export const CloseableModal: React.FC<CloseableModalProps> = ({
     positionRef,
+    openingRef,
     onClickOutside,
     children,
     className,
@@ -48,7 +50,11 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
 
     React.useEffect(() => {
         function clickHandler(event: MouseEvent) {
-            if (positionRef.current && !positionRef.current.contains(event.target as HTMLElement)) {
+            if (
+                positionRef.current &&
+                !positionRef.current.contains(event.target as HTMLElement) &&
+                (!openingRef?.current || !openingRef.current?.contains(event.target as HTMLElement))
+            ) {
                 onClickOutside();
             }
         }

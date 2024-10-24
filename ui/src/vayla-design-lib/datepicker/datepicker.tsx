@@ -79,16 +79,12 @@ const DatePickerInput = React.forwardRef<HTMLInputElement, DatePickerInputProps>
 
         return (
             <TextField
-                Icon={(iconProps) => (
-                    <Icons.SetDate
-                        {...iconProps}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            localRef.current?.focus();
-                        }}
-                    />
-                )}
+                Icon={(iconProps) => <Icons.SetDate {...iconProps} />}
                 iconPosition={TextInputIconPosition.RIGHT}
+                onClickIcon={() => {
+                    localRef.current?.focus();
+                    openDatePicker();
+                }}
                 wide={wide}
                 value={value}
                 onFocusCapture={openDatePicker}
@@ -148,6 +144,7 @@ function getHeaderElement({
 export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, ...props }) => {
     const [open, setOpen] = React.useState(false);
     const ref = React.useRef<HTMLInputElement>(null);
+    const iconRef = React.useRef<SVGSVGElement>(null);
     const className = createClassName(styles['datepicker'], wide && styles['datepicker--wide']);
 
     return (
@@ -162,9 +159,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
             />
             {open && (
                 <CloseableModal
-                    onClickOutside={() => setOpen(false)}
+                    onClickOutside={() => undefined}
                     offsetY={ref.current?.getBoundingClientRect().height ?? 0}
                     positionRef={ref}
+                    openingRef={iconRef}
                     className={styles['datepicker__popup-container']}>
                     <ReactDatePicker
                         renderCustomHeader={getHeaderElement}
@@ -174,7 +172,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                             onChange(date ?? undefined, 'PICKER');
                         }}
                         onChangeRaw={() => setOpen(false)}
-                        onClickOutside={() => setOpen(false)}
+                        onClickOutside={() => {
+                            setOpen(false);
+                        }}
                         minDate={props.minDate}
                         maxDate={props.maxDate}
                         calendarStartDay={1}
