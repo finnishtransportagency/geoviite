@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.parseLayoutContextSqlString
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.geometry.PlanName
@@ -42,6 +43,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.StoredAssetId
+import java.math.BigDecimal
 import java.sql.ResultSet
 import java.time.Instant
 import java.time.LocalDate
@@ -78,6 +80,14 @@ fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T
         null
     }
 }
+
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowId(idName: String, contextIdName: String) =
+    LayoutRowId(getIntId<T>(idName), getLayoutContext(contextIdName))
+
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowIdOrNull(idName: String, contextIdName: String) =
+    getIntIdOrNull<T>(idName)?.let { id ->
+        getLayoutContextOrNull(contextIdName)?.let { layoutContext -> LayoutRowId(id, layoutContext) }
+    }
 
 fun <T : LayoutAsset<T>> ResultSet.getLayoutRowId(idName: String, designIdName: String, draftFlagName: String) =
     LayoutRowId(getIntId<T>(idName), getLayoutContext(designIdName, draftFlagName))
@@ -172,6 +182,15 @@ fun ResultSet.getIntArray(name: String): List<Int> = verifyNotNull(name, ::getIn
 
 fun ResultSet.getIntArrayOrNull(name: String): List<Int>? = getListOrNull(name)
 
+fun ResultSet.getBigDecimalArray(name: String): List<BigDecimal> = verifyNotNull(name, ::getBigDecimalArrayOrNull)
+
+fun ResultSet.getBigDecimalArrayOrNull(name: String): List<BigDecimal>? = getListOrNull(name)
+
+fun ResultSet.getNullableBigDecimalArray(name: String): List<BigDecimal?> =
+    verifyNotNull(name, ::getNullableBigDecimalArrayOrNull)
+
+fun ResultSet.getNullableBigDecimalArrayOrNull(name: String): List<BigDecimal?>? = getNullableListOrNull(name)
+
 fun ResultSet.getDoubleArray(name: String): List<Double> = verifyNotNull(name, ::getDoubleArrayOrNull)
 
 fun ResultSet.getDoubleArrayOrNull(name: String): List<Double>? = getListOrNull(name)
@@ -191,6 +210,12 @@ fun ResultSet.getNullableDoubleArrayOrNull(name: String): List<Double?>? = getNu
 fun ResultSet.getNullableStringArray(name: String): List<String?> = verifyNotNull(name, ::getNullableStringArrayOrNull)
 
 fun ResultSet.getNullableStringArrayOrNull(name: String): List<String?>? = getNullableListOrNull(name)
+
+inline fun <reified T : Enum<T>> ResultSet.getEnumArray(name: String): List<T> =
+    verifyNotNull(name) { getEnumArrayOrNull<T>(name) }
+
+inline fun <reified T : Enum<T>> ResultSet.getEnumArrayOrNull(name: String): List<T>? =
+    getStringArrayOrNull(name)?.map { string -> enumValueOf<T>(string) }
 
 inline fun <reified T : Enum<T>> ResultSet.getNullableEnumArray(name: String): List<T?> =
     verifyNotNull(name) { getNullableEnumArrayOrNull<T>(name) }
@@ -220,6 +245,22 @@ fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowV
     val rowId = getIntIdOrNull<T>(idName)
     val version = getIntOrNull(versionName)
     return if (rowId != null && version != null) RowVersion(rowId, version) else null
+}
+
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersion(
+    idName: String,
+    contextIdName: String,
+    versionName: String,
+): LayoutRowVersion<T> = LayoutRowVersion(getLayoutRowId(idName, contextIdName), getIntNonNull(versionName))
+
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionOrNull(
+    idName: String,
+    contextIdName: String,
+    versionName: String,
+): LayoutRowVersion<T>? {
+    val rowId = getLayoutRowIdOrNull<T>(idName, contextIdName)
+    val version = getIntOrNull(versionName)
+    return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
 }
 
 fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersion(
@@ -325,6 +366,12 @@ fun ResultSet.getChangeGeometryPoint(nameX: String, nameY: String, sridName: Str
 fun <T> ResultSet.getChangeRowVersion(idName: String, versionName: String): Change<RowVersion<T>> =
     Change(getRowVersionOrNull("old_$idName", "old_$versionName"), getRowVersionOrNull(idName, versionName))
 
+fun ResultSet.getLayoutContext(contextIdName: String): LayoutContext =
+    verifyNotNull(contextIdName, ::getLayoutContextOrNull)
+
+fun ResultSet.getLayoutContextOrNull(contextIdName: String): LayoutContext? =
+    getString(contextIdName)?.let(::parseLayoutContextSqlString)
+
 fun ResultSet.getLayoutContext(designIdName: String, draftFlagName: String): LayoutContext =
     toLayoutContext(getPublicationState(draftFlagName), getIntIdOrNull(designIdName))
 
@@ -378,7 +425,9 @@ inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: Strin
 
 inline fun <reified T> verifyType(value: Any?): T =
     value.let { v ->
-        require(v is T) { "Value is of unexpected type: expected=${T::class.simpleName} value=${v}" }
+        require(v is T) {
+            "Value is of unexpected type: expected=${T::class.simpleName} actual=${v?.javaClass?.simpleName} value=${v}"
+        }
         v
     }
 

@@ -212,9 +212,9 @@ constructor(
         val locationInfoBox = toolPanel.locationTrackLocation
         locationInfoBox.startLinking()
 
-        val newEndPoint = originalAlignment.segments.last().alignmentStart
+        val newEndPoint = originalAlignment.segments.last().segmentStart
 
-        trackLayoutPage.clickAtCoordinates(originalAlignment.segments.last().alignmentEnd)
+        trackLayoutPage.clickAtCoordinates(originalAlignment.segments.last().segmentEnd)
         trackLayoutPage.clickAtCoordinates(newEndPoint)
 
         locationInfoBox.save()
@@ -246,9 +246,9 @@ constructor(
         val locationInfoBox = toolPanel.locationTrackLocation
         locationInfoBox.startLinking()
 
-        val startPoint = locationTrackAlignment.segments.first().alignmentStart
-        val newStartPoint = locationTrackAlignment.segments.first().alignmentEnd
-        val endPoint = locationTrackAlignment.segments.last().alignmentEnd
+        val startPoint = locationTrackAlignment.segments.first().segmentStart
+        val newStartPoint = locationTrackAlignment.segments.first().segmentEnd
+        val endPoint = locationTrackAlignment.segments.last().segmentEnd
 
         trackLayoutPage.clickAtCoordinates(startPoint)
         trackLayoutPage.clickAtCoordinates(newStartPoint)
@@ -534,8 +534,8 @@ constructor(
 
         trackLayoutPage.clickAtCoordinates(geometryAlignmentStart)
         trackLayoutPage.clickAtCoordinates(geometryAlignmentEnd)
-        trackLayoutPage.clickAtCoordinates(originalAlignment.segments.first().alignmentStart)
-        trackLayoutPage.clickAtCoordinates(originalAlignment.segments.first().alignmentEnd)
+        trackLayoutPage.clickAtCoordinates(originalAlignment.segments.first().segmentStart)
+        trackLayoutPage.clickAtCoordinates(originalAlignment.segments.first().segmentEnd)
         alignmentLinkinInfobox.link()
         waitAndClearToast("linking-succeeded-and-previous-unlinked")
 
@@ -595,8 +595,8 @@ constructor(
         val geometryTrackStartPoint = geometryAlignment.elements.first().start
         val geometryTrackEndPoint = geometryAlignment.elements.last().end
 
-        val referenceLineStartPoint = originalReferenceLine.second.segments.first().alignmentStart
-        val referenceLineEndPoint = originalReferenceLine.second.segments.last().alignmentEnd
+        val referenceLineStartPoint = originalReferenceLine.second.segments.first().segmentStart
+        val referenceLineEndPoint = originalReferenceLine.second.segments.last().segmentEnd
 
         trackLayoutPage.clickAtCoordinates(geometryTrackStartPoint)
         trackLayoutPage.clickAtCoordinates(geometryTrackEndPoint)
@@ -649,7 +649,7 @@ constructor(
 
         assertTrue(trackLayoutPage.selectionPanel.locationTracksList.items.none { it.name == "lt-track to delete" })
 
-        val locationTrackJ = originalLocationTrack.second.segments.first().alignmentStart
+        val locationTrackJ = originalLocationTrack.second.segments.first().segmentStart
         val pointNearLocationTrackJStart = locationTrackJ.plus(Point(x = 2.0, y = 2.0))
 
         // Click at empty point and info box should be empty

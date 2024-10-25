@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
@@ -149,7 +150,7 @@ fun toVerticalGeometryListing(
 
 fun toVerticalGeometryListing(
     track: LocationTrack,
-    layoutAlignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
     startAddress: TrackMeter?,
     endAddress: TrackMeter?,
     geocodingContext: GeocodingContext?,
@@ -157,9 +158,7 @@ fun toVerticalGeometryListing(
     getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
 ): List<VerticalGeometryListing> {
     val linkedElementIds =
-        collectLinkedElements(layoutAlignment.segments, geocodingContext, startAddress, endAddress).mapNotNull {
-            it.second
-        }
+        collectLinkedElements(geometry.segments, geocodingContext, startAddress, endAddress).mapNotNull { it.elementId }
     val headersAndAlignments =
         linkedElementIds.map(::getAlignmentId).distinct().associateWith(getPlanHeaderAndAlignment)
 
@@ -198,7 +197,7 @@ fun toVerticalGeometryListing(
             .map { it.second }
 
     fun getAlignmentStation(maybeAddress: TrackMeter?) =
-        maybeAddress?.let { address -> geocodingContext?.getTrackLocation(layoutAlignment, address)?.point?.m }
+        maybeAddress?.let { address -> geocodingContext?.getTrackLocation(geometry, address)?.point?.m }
 
     return listing
         .parallelStream()

@@ -590,6 +590,16 @@ class LayoutSwitchDao(
         }
     }
 
+    // TODO: GVT-2927: Implement with topology
+    fun findSwitchesNearAlignment(
+        branch: LayoutBranch,
+        trackVersion: LayoutRowVersion<LocationTrack>,
+        maxDistance: Double = 1.0,
+    ): List<IntId<TrackLayoutSwitch>> {
+        TODO()
+    }
+
+    @Deprecated("Replace in GVT-2927 with the above")
     fun findSwitchesNearAlignment(
         branch: LayoutBranch,
         alignmentVersion: RowVersion<LayoutAlignment>,

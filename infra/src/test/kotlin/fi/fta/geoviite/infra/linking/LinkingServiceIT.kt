@@ -100,26 +100,17 @@ constructor(
         assertNotNull(geometryLayoutPlan)
 
         val geometryLayoutAlignment = geometryLayoutPlan?.alignments?.get(0)!!
-        val geometryStartSegment = geometryLayoutAlignment.segments.first()
-        val geometryEndSegment = geometryLayoutAlignment.segments.last()
+        val geometryStartSegment = geometryLayoutAlignment.segmentsWithM.first()
+        val geometryEndSegment = geometryLayoutAlignment.segmentsWithM.last()
         assertNotEquals(geometryStartSegment, geometryEndSegment)
 
         // Geometry is about 6m and we need 1m for transition on both sides
         // Build layout so that we keep first point, replacing the next 8: 4 from first, 4 from
         // second segment
         val start = geometryStart - Point(1.0, 1.5)
-        val segment1 = segment(start, start + 1.0, start + 2.0, start + 3.0, start + 4.0, startM = 0.0)
-        val segment2 =
-            segment(
-                start + 4.0,
-                start + 5.0,
-                start + 6.0,
-                start + 7.0,
-                start + 8.0,
-                start + 9.0,
-                startM = segment1.length,
-            )
-        val segment3 = segment(start + 9.0, start + 10.0, start + 11.0, startM = segment2.length)
+        val segment1 = segment(start, start + 1.0, start + 2.0, start + 3.0, start + 4.0)
+        val segment2 = segment(start + 4.0, start + 5.0, start + 6.0, start + 7.0, start + 8.0, start + 9.0)
+        val segment3 = segment(start + 9.0, start + 10.0, start + 11.0)
 
         val (locationTrack, alignment) =
             locationTrackAndAlignment(
@@ -144,8 +135,7 @@ constructor(
         val geometryInterval =
             GeometryInterval(
                 alignmentId = geometryLayoutAlignment.id as IntId,
-                mRange =
-                    Range(geometryStartSegment.alignmentPoints.first().m, geometryEndSegment.alignmentPoints.last().m),
+                mRange = Range(geometryStartSegment.second.min, geometryEndSegment.second.max),
             )
 
         // Pick layout interval to cut after first 2 point, skipping to 5th point of second interval
@@ -154,8 +144,8 @@ constructor(
                 alignmentId = locationTrackId,
                 mRange =
                     Range(
-                        officialAlignment.segments[0].alignmentPoints.first().m,
-                        officialAlignment.segments[1].alignmentPoints[4].m,
+                        officialAlignment.segmentMs[0].min,
+                        officialAlignment.segmentsWithM[1].let { (s, m) -> m.min + s.segmentPoints[4].m },
                     ),
             )
 
@@ -165,7 +155,7 @@ constructor(
         )
         assertEquals(
             officialTrack to officialAlignment,
-            locationTrackService.getWithAlignment(MainLayoutContext.official, locationTrackId),
+            locationTrackService.getWithGeometry(MainLayoutContext.official, locationTrackId),
         )
 
         val (_, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId)
@@ -176,15 +166,15 @@ constructor(
         // second segment partially (4 last points)
         // third segment fully
         assertEquals(geometryLayoutAlignment.segments.size + 3, draftAlignment.segments.size)
-        assertEquals(6, draftAlignment.segments[0].alignmentPoints.size)
+        assertEquals(6, draftAlignment.segments[0].segmentPoints.size)
         for (i in 0..geometryLayoutAlignment.segments.lastIndex) {
             assertEquals(
-                geometryLayoutAlignment.segments[i].alignmentPoints.size,
-                draftAlignment.segments[i].alignmentPoints.size,
+                geometryLayoutAlignment.segments[i].segmentPoints.size,
+                draftAlignment.segments[i].segmentPoints.size,
             )
         }
-        assertEquals(2, draftAlignment.segments[1 + geometryLayoutAlignment.segments.size].alignmentPoints.size)
-        assertEquals(3, draftAlignment.segments[2 + geometryLayoutAlignment.segments.size].alignmentPoints.size)
+        assertEquals(2, draftAlignment.segments[1 + geometryLayoutAlignment.segments.size].segmentPoints.size)
+        assertEquals(3, draftAlignment.segments[2 + geometryLayoutAlignment.segments.size].segmentPoints.size)
     }
 
     @Test
@@ -310,11 +300,11 @@ constructor(
         val (geometryLayoutPlan, _) = planLayoutService.getLayoutPlan(geometryPlanId.id)
 
         val geometryLayoutAlignment = geometryLayoutPlan?.alignments?.get(0)!!
-        val geometryStartSegment = geometryLayoutAlignment.segments.first()
-        val geometryEndSegment = geometryLayoutAlignment.segments.last()
+        val geometryStartSegment = geometryLayoutAlignment.segmentsWithM.first()
+        val geometryEndSegment = geometryLayoutAlignment.segmentsWithM.last()
 
         val start = geometryStart - Point(1.0, 1.5)
-        val segment1 = segment(start, start + 1.0, start + 2.0, start + 3.0, start + 4.0, startM = 0.0)
+        val segment1 = segment(start, start + 1.0, start + 2.0, start + 3.0, start + 4.0)
 
         val (locationTrack, alignment) =
             locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, segment1, draft = true)
@@ -328,8 +318,7 @@ constructor(
         val geometryInterval =
             GeometryInterval(
                 alignmentId = geometryLayoutAlignment.id as IntId,
-                mRange =
-                    Range(geometryStartSegment.alignmentPoints.first().m, geometryEndSegment.alignmentPoints.last().m),
+                mRange = Range(geometryStartSegment.second.min, geometryEndSegment.second.max),
             )
 
         val layoutInterval =
@@ -337,8 +326,8 @@ constructor(
                 alignmentId = locationTrackResponse.id,
                 mRange =
                     Range(
-                        officialAlignment.segments[0].alignmentPoints.first().m,
-                        officialAlignment.segments[0].alignmentPoints[4].m,
+                        officialAlignment.segments[0].segmentPoints.first().m,
+                        officialAlignment.segments[0].segmentPoints[4].m,
                     ),
             )
 

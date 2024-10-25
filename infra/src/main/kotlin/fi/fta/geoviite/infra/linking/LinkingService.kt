@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -36,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional
 fun isAlignmentConnected(
     location: Point,
     updateType: LocationTrackPointUpdateType,
-    alignment: LayoutAlignment,
+    alignment: IAlignment,
     distanceTolerance: Double,
 ): Boolean {
     val comparePoint = if (updateType == END_POINT) alignment.firstSegmentStart else alignment.lastSegmentEnd
@@ -65,7 +66,7 @@ constructor(
         bbox: BoundingBox,
     ): List<LocationTrack> {
         return locationTrackService
-            .listNearWithAlignments(branch.draft, bbox)
+            .listNearWithGeometries(branch.draft, bbox)
             .filter { (first, _) -> first.id != locationTrackId }
             .filter { (_, second) -> isAlignmentConnected(location, locationTrackPointUpdateType, second, 2.0) }
             .map { (first, _) -> first }

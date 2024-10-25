@@ -15,14 +15,13 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.InheritanceFromPublicationInMain
 import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
@@ -39,6 +38,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
@@ -273,8 +273,8 @@ class CalculatedChangesService(
         moment: Instant,
         extIds: AllOids,
     ): List<SwitchChange> {
-        val (locationTrack, alignment) =
-            locationTrackService.getOfficialWithAlignmentAtMoment(layoutBranch, locationTrackId, moment)
+        val (locationTrack, geometry) =
+            locationTrackService.getOfficialWithGeometryAtMoment(layoutBranch, locationTrackId, moment)
                 ?: throw NoSuchEntityException(LocationTrack::class, locationTrackId)
 
         val trackNumberId = locationTrack.trackNumberId
@@ -287,8 +287,7 @@ class CalculatedChangesService(
         val switches =
             currentGeocodingContext?.let { context ->
                 getSwitchJointChanges(
-                    locationTrack = locationTrack,
-                    alignment = alignment,
+                    geometry = geometry,
                     geocodingContext = context,
                     fetchSwitch = { switchId -> switchService.getOfficialAtMoment(layoutBranch, switchId, moment) },
                     fetchStructure = switchLibraryService::getSwitchStructure,
@@ -350,7 +349,7 @@ class CalculatedChangesService(
                     locationTracks =
                         changeContext
                             .getTrackNumberTracksBefore(trackNumberId)
-                            .map(locationTrackService::getWithAlignment),
+                            .map(locationTrackService::getWithGeometry),
                 )
             } ?: listOf()
         return trackNumberChange to affectedTracks
@@ -378,12 +377,12 @@ class CalculatedChangesService(
         changeContext: ChangeContext,
         extIds: AllOids,
     ): List<SwitchChange> {
-        val (oldLocationTrack, oldAlignment) =
-            changeContext.locationTracks.beforeVersion(trackId)?.let(locationTrackService::getWithAlignment)
+        val (oldLocationTrack, oldGeometry) =
+            changeContext.locationTracks.beforeVersion(trackId)?.let(locationTrackService::getWithGeometry)
                 ?: (null to null)
 
-        val (newLocationTrack, newAlignment) =
-            changeContext.locationTracks.afterVersion(trackId).let(locationTrackService::getWithAlignment)
+        val (newLocationTrack, newGeometry) =
+            changeContext.locationTracks.afterVersion(trackId).let(locationTrackService::getWithGeometry)
 
         val newTrackNumber =
             newLocationTrack.let { track -> changeContext.trackNumbers.getAfterIfExists(track.trackNumberId) }
@@ -395,11 +394,10 @@ class CalculatedChangesService(
             newLocationTrack.trackNumberId.let { tnId -> changeContext.getGeocodingContextAfter(tnId) }
 
         val oldSwitches =
-            oldAlignment?.let { alignment ->
+            oldGeometry?.let { geometry ->
                 oldGeocodingContext?.let { geocodingContext ->
                     getSwitchJointChanges(
-                        locationTrack = oldLocationTrack,
-                        alignment = alignment,
+                        geometry = geometry,
                         geocodingContext = geocodingContext,
                         fetchSwitch = changeContext.switches::getBefore,
                         fetchStructure = switchLibraryService::getSwitchStructure,
@@ -410,8 +408,7 @@ class CalculatedChangesService(
         val newSwitches =
             newGeocodingContext?.let { context ->
                 getSwitchJointChanges(
-                    locationTrack = newLocationTrack,
-                    alignment = newAlignment,
+                    geometry = newGeometry,
                     geocodingContext = context,
                     fetchSwitch = changeContext.switches::getAfterIfExists,
                     fetchStructure = switchLibraryService::getSwitchStructure,
@@ -500,7 +497,7 @@ class CalculatedChangesService(
                 val geocodingCacheKey = changeContext.geocodingKeysAfter[locationTrack.trackNumberId]
                 val addresses =
                     geocodingCacheKey?.let { cacheKey ->
-                        geocodingService.getAddressPoints(cacheKey, locationTrack.getAlignmentVersionOrThrow())
+                        geocodingService.getAddressPoints(cacheKey, locationTrack.versionOrThrow)
                     }
 
                 LocationTrackChange(
@@ -563,65 +560,28 @@ private fun asDirectSwitchChanges(switchIds: Collection<IntId<LayoutSwitch>>) =
     switchIds.map { switchId -> SwitchChange(switchId = switchId, changedJoints = emptyList()) }
 
 private fun getSwitchJointChanges(
-    locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
     geocodingContext: GeocodingContext,
-    fetchSwitch: (switchId: IntId<LayoutSwitch>) -> LayoutSwitch?,
+    fetchSwitch: (switchId: IntId<TrackLayoutSwitch>) -> TrackLayoutSwitch?,
     fetchStructure: (structureId: IntId<SwitchStructure>) -> SwitchStructure,
-): List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>> {
+): List<Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>> {
+    // TODO: GVT-2929 previously this filtered topology links out if they were not presentation joints - check vs main
+    // TODO: GVT-2929 it never did the same to segment joints, so the solution might have been partial
+    // TODO: (comment from main) Use presentation joint to filter joints to update because
+    // TODO: (comment from main) - that is joint number that is normally used to connect tracks and switch topologically
+    // TODO: (comment from main) - and Ratko may not want other joint numbers in this case
     val switchChanges =
-        alignment.segments
-            .asSequence()
-            .mapNotNull { segment -> if (segment.switchId is IntId) segment to fetchSwitch(segment.switchId) else null }
-            .mapNotNull { (segment, switch) ->
-                if (switch == null) null
-                else
-                    (switch.id as IntId) to
-                        findMatchingJoints(segment = segment, switch = switch, geocodingContext = geocodingContext)
+        geometry.switchLinks.mapNotNull { link ->
+            val joint = fetchSwitch(link.switchId)?.getJoint(link.jointNumber)
+            val address = geocodingContext.getAddress(link.location)?.first
+            if (joint != null && address != null) {
+                link.switchId to SwitchJointDataHolder(joint, address, link.location.toPoint())
+            } else {
+                null
             }
-            .toList()
-
-    val topologySwitches =
-        topologySwitchLinks(locationTrack, alignment).mapNotNull { (topologySwitch, location) ->
-            getTopologySwitchJointDataHolder(topologySwitch, location, geocodingContext, fetchSwitch, fetchStructure)
         }
-
-    return (switchChanges + topologySwitches)
-        .groupBy({ it.first }, { it.second })
-        .mapValues { (_, value) -> value.flatten() }
-        .toList()
+    return switchChanges.groupBy({ it.first }, { it.second }).toList()
 }
-
-private fun getTopologySwitchJointDataHolder(
-    topologySwitch: TopologyLocationTrackSwitch,
-    point: IPoint,
-    geocodingContext: GeocodingContext,
-    fetchSwitch: (switchId: IntId<LayoutSwitch>) -> LayoutSwitch?,
-    fetchStructure: (structureId: IntId<SwitchStructure>) -> SwitchStructure,
-): Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>? {
-    val switch = fetchSwitch(topologySwitch.switchId) ?: return null
-    // Use presentation joint to filter joints to update because
-    // - that is joint number that is normally used to connect tracks and switch topologically
-    // - and Ratko may not want other joint numbers in this case
-    val presentationJointNumber = fetchStructure(switch.switchStructureId).presentationJointNumber
-    val address = geocodingContext.getAddress(point)?.first
-    val joint =
-        requireNotNull(switch.getJoint(topologySwitch.jointNumber)) {
-            "Topology switch contains invalid joint number: $topologySwitch"
-        }
-    return if (presentationJointNumber == joint.number && address != null) {
-        topologySwitch.switchId to listOf(SwitchJointDataHolder(address = address, point = point, joint = joint))
-    } else null
-}
-
-private fun topologySwitchLinks(track: LocationTrack, alignment: LayoutAlignment) =
-    listOfNotNull(
-        switchIdAndLocation(track.topologyStartSwitch, alignment.firstSegmentStart),
-        switchIdAndLocation(track.topologyEndSwitch, alignment.lastSegmentEnd),
-    )
-
-private fun switchIdAndLocation(topologySwitch: TopologyLocationTrackSwitch?, location: SegmentPoint?) =
-    if (topologySwitch != null && location != null) topologySwitch to location.toPoint() else null
 
 private fun mergeLocationTrackChanges(vararg changeLists: Collection<LocationTrackChange>) =
     changeLists
@@ -661,13 +621,13 @@ private fun mergeTrackNumberChanges(vararg changeLists: Collection<TrackNumberCh
             )
         }
 
-private fun alignmentContainsKilometer(
+private fun geometryContainsKilometer(
     geocodingContext: GeocodingContext,
-    alignment: LayoutAlignment,
+    geometry: DbLocationTrackGeometry,
     kilometers: Set<KmNumber>,
 ): Boolean {
-    val startAddress = alignment.start?.let(geocodingContext::getAddress)?.first
-    val endAddress = alignment.end?.let(geocodingContext::getAddress)?.first
+    val startAddress = geometry.firstSegmentStart?.let(geocodingContext::getAddress)?.first
+    val endAddress = geometry.lastSegmentEnd?.let(geocodingContext::getAddress)?.first
     return if (startAddress != null && endAddress != null) {
         kilometers.any { kilometer -> kilometer in startAddress.kmNumber..endAddress.kmNumber }
     } else false
@@ -676,29 +636,13 @@ private fun alignmentContainsKilometer(
 private fun calculateOverlappingLocationTracks(
     geocodingContext: GeocodingContext,
     kilometers: Set<KmNumber>,
-    locationTracks: Collection<Pair<LocationTrack, LayoutAlignment>>,
+    locationTracks: Collection<Pair<LocationTrack, DbLocationTrackGeometry>>,
 ) =
     locationTracks
-        .filter { (_, alignment) -> alignmentContainsKilometer(geocodingContext, alignment, kilometers) }
+        .filter { (_, alignment) -> geometryContainsKilometer(geocodingContext, alignment, kilometers) }
         .map { (locationTrack, _) -> locationTrack.id as IntId }
 
-private fun findMatchingJoints(segment: LayoutSegment, switch: LayoutSwitch, geocodingContext: GeocodingContext) =
-    switch.joints.mapNotNull { joint ->
-        val segmentPoint =
-            when (joint.number) {
-                segment.startJointNumber -> segment.alignmentStart
-                segment.endJointNumber -> segment.alignmentEnd
-                else -> null
-            }
-
-        if (segmentPoint == null) null
-        else
-            geocodingContext.getAddress(segmentPoint)?.let { (address) ->
-                SwitchJointDataHolder(address = address, point = segmentPoint, joint = joint)
-            }
-    }
-
-private data class SwitchJointDataHolder(val joint: LayoutSwitchJoint, val address: TrackMeter, val point: IPoint)
+private data class SwitchJointDataHolder(val joint: TrackLayoutSwitchJoint, val address: TrackMeter, val point: Point)
 
 private fun findSwitchJointDifferences(
     list1: List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>>,
