@@ -1,8 +1,14 @@
-ARG IMAGE_BACKEND=scratch
-ARG IMAGE_FRONTEND=scratch
+ARG IMAGE_BASE_BACKEND_BUILD=eclipse-temurin:17-jdk
+ARG IMAGE_BASE_FRONTEND_BUILD=node:20-alpine
+ARG IMAGE_BASE_BACKEND_BUILD=eclipse-temurin:17-jdk
+ARG IMAGE_BASE_DISTRIBUTION=eclipse-temurin:17-jre
+
+ARG IMAGE_BACKEND_DEPENDENCIES="geoviite-backend-dependencies"
+ARG IMAGE_BACKEND=geoviite-backend-build
+ARG IMAGE_FRONTEND=geoviite-frontend-build
 
 # Backend dependencies
-FROM eclipse-temurin:17-jdk AS geoviite-backend-dependencies
+FROM ${IMAGE_BASE_BACKEND_BUILD} AS geoviite-backend-dependencies
 
 WORKDIR /infra
 
@@ -14,16 +20,20 @@ COPY \
     ./infra/gradlew \
     ./
 
-RUN ./gradlew downloadDependencies --no-daemon
+RUN bash ./gradlew downloadDependencies --no-daemon
+
 
 # Backend build
-FROM geoviite-backend-dependencies AS geoviite-backend-build
+ARG IMAGE_BACKEND_DEPENDENCIES
+FROM ${IMAGE_BACKEND_DEPENDENCIES} AS geoviite-backend-build
+
 COPY ./infra/src/ ./src/
 
-RUN ./gradlew assemble testClasses
+RUN bash ./gradlew assemble testClasses
 
 # Frontend build
-FROM node:20-alpine AS geoviite-frontend-build
+ARG IMAGE_BASE_FRONTEND_BUILD
+FROM ${IMAGE_BASE_FRONTEND_BUILD} AS geoviite-frontend-build
 
 WORKDIR /frontend
 
@@ -45,10 +55,13 @@ COPY ui/src ./src
 RUN npm run build
 
 # Combined backend+frontend image
+ARG IMAGE_BACKEND
+ARG IMAGE_FRONTEND
+
 FROM ${IMAGE_BACKEND} AS geoviite-versioned-backend-build
 FROM ${IMAGE_FRONTEND} AS geoviite-versioned-frontend-build
 
-FROM eclipse-temurin:17-jdk AS geoviite-distribution-build-combiner
+FROM ${IMAGE_BASE_BACKEND_BUILD} AS geoviite-distribution-build-combiner
 
 WORKDIR /app
 
@@ -58,7 +71,9 @@ COPY --from=geoviite-versioned-frontend-build /frontend/dist ./tmp/BOOT-INF/clas
 RUN jar uf infra-SNAPSHOT.jar -C ./tmp .
 
 # Distribution image
-FROM eclipse-temurin:17-jre AS geoviite-distribution-build
+ARG IMAGE_BASE_DISTRIBUTION
+FROM ${IMAGE_BASE_DISTRIBUTION} AS geoviite-distribution-build
+
 WORKDIR /app
 
 ENV JAVA_OPTS="-XX:+UseContainerSupport-XX:MinRAMPercentage=25.0 -XX:MaxRAMPercentage=80.0"
