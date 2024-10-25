@@ -187,6 +187,12 @@ fun ResultSet.getNullableStringArray(name: String): List<String?> = verifyNotNul
 
 fun ResultSet.getNullableStringArrayOrNull(name: String): List<String?>? = getNullableListOrNull(name)
 
+inline fun <reified T : Enum<T>> ResultSet.getEnumArray(name: String): List<T> =
+    verifyNotNull(name) { getEnumArrayOrNull<T>(name) }
+
+inline fun <reified T : Enum<T>> ResultSet.getEnumArrayOrNull(name: String): List<T>? =
+    getStringArrayOrNull(name)?.map { string -> enumValueOf<T>(string) }
+
 inline fun <reified T : Enum<T>> ResultSet.getNullableEnumArray(name: String): List<T?> =
     verifyNotNull(name) { getNullableEnumArrayOrNull<T>(name) }
 
