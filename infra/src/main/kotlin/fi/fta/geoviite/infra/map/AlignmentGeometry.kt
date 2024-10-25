@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -103,7 +104,7 @@ fun toAlignmentHeader(trackNumber: LayoutTrackNumber, referenceLine: ReferenceLi
         boundingBox = alignment?.boundingBox,
     )
 
-fun toAlignmentHeader(locationTrack: LocationTrack, alignment: LayoutAlignment?) =
+fun toAlignmentHeader(locationTrack: LocationTrack, alignment: DbLocationTrackGeometry) =
     LocationTrackHeader(
         id = locationTrack.id.also { require(it is IntId) } as IntId,
         version = requireNotNull(locationTrack.version),
@@ -112,13 +113,13 @@ fun toAlignmentHeader(locationTrack: LocationTrack, alignment: LayoutAlignment?)
         name = locationTrack.name,
         state = locationTrack.state,
         trackType = locationTrack.type,
-        length = alignment?.length ?: 0.0,
+        length = alignment.length,
         segmentCount = locationTrack.segmentCount,
-        boundingBox = alignment?.boundingBox,
+        boundingBox = alignment.boundingBox,
     )
 
 fun getSegmentBorderMValues(alignment: IAlignment): List<Double> =
-    alignment.segments.map { s -> s.startM } + alignment.length
+    alignment.segmentMs.map { s -> s.min } + alignment.length
 
 fun <T> toAlignmentPolyLine(
     id: DomainId<T>,
@@ -135,11 +136,11 @@ fun simplify(
     bbox: BoundingBox? = null,
     includeSegmentEndPoints: Boolean,
 ): List<AlignmentPoint> {
-    val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segments
+    val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segmentsWithM
     var previousM = Double.NEGATIVE_INFINITY
     val isOverResolution = { mValue: Double -> resolution?.let { r -> (mValue - previousM).roundToInt() >= r } ?: true }
     return segments
-        .flatMapIndexed { sIndex, s ->
+        .flatMapIndexed { sIndex, (s, m) ->
             val isEndPoint = { pIndex: Int ->
                 val isTrackEndPoint =
                     (sIndex == 0 && pIndex == 0) ||
@@ -152,13 +153,13 @@ fun simplify(
                 bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
             }
             s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-                if (isPointIncluded(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
+                if (isPointIncluded(pIndex, p.m + m.min, isEndPoint, isOverResolution, bboxContains)) {
                     if (!isSegmentEndPoint(pIndex)) {
                         // segment end points should be additional points,
                         // so increase m-counter only when handling middle points
-                        previousM = s.startM + p.m
+                        previousM = m.min + p.m
                     }
-                    p.toAlignmentPoint(s.startM)
+                    p.toAlignmentPoint(m.min)
                 } else null
             }
         }

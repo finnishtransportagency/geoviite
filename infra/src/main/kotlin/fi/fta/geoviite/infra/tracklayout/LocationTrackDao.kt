@@ -40,6 +40,7 @@ const val LOCATIONTRACK_CACHE_SIZE = 10000L
 @Component
 class LocationTrackDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    val alignmentDao: LayoutAlignmentDao,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
     LayoutAssetDao<LocationTrack>(
@@ -264,6 +265,10 @@ class LocationTrackDao(
 
     @Transactional
     override fun save(item: LocationTrack): LayoutRowVersion<LocationTrack> {
+        error("Locationtrack cannot be saved without a geometry")
+    }
+
+    fun save(item: LocationTrack, geometry: LocationTrackGeometry?): LayoutRowVersion<LocationTrack> {
         val id = item.id as? IntId ?: createId()
 
         val sql =
@@ -339,8 +344,10 @@ class LocationTrackDao(
                 "layout_context_id" to item.layoutContext.toSqlString(),
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
-                "alignment_id" to item.getAlignmentVersionOrThrow().id.intValue,
-                "alignment_version" to item.getAlignmentVersionOrThrow().version,
+                "alignment_id" to null,
+                "alignment_version" to null,
+                //                "alignment_id" to item.getAlignmentVersionOrThrow().id.intValue,
+                //                "alignment_version" to item.getAlignmentVersionOrThrow().version,
                 "name" to item.name,
                 "description_base" to item.descriptionBase,
                 "description_suffix" to item.descriptionSuffix.name,
@@ -365,6 +372,24 @@ class LocationTrackDao(
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save Location Track")
         logger.daoAccess(AccessType.INSERT, LocationTrack::class, response)
+        when (geometry) {
+            null ->
+                item.contextData.layoutAssetId.let { id ->
+                    when (id) {
+                        is EditedAssetId -> {
+                            // Edited from previous asset without new geometry -> copy the original to this version
+                            alignmentDao.copyLocationTrackGeometry(id.sourceRowVersion, response)
+                        }
+                        is TemporaryAssetId -> {
+                            // Completely new item without geometry
+                        }
+                        else -> {
+                            error("Unexpected layout asset ID type when saving location track: $id")
+                        }
+                    }
+                }
+            else -> alignmentDao.saveLocationTrackGeometry(response, geometry)
+        }
         return response
     }
 
@@ -410,6 +435,7 @@ class LocationTrackDao(
     fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
         fetchVersionsNear(context, bbox).map(::fetch)
 
+    // TODO: GVT-1727 fix based on edges instead of alignments
     fun fetchVersionsNear(
         context: LayoutContext,
         bbox: BoundingBox,

@@ -219,7 +219,7 @@ class ValidationContext(
 
     fun getAddressPoints(track: LocationTrack): AlignmentAddresses? =
         getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
-            geocodingService.getAddressPoints(key, track.getAlignmentVersionOrThrow())
+            geocodingService.getAddressPoints(key, track.versionOrThrow)
         }
 
     fun trackNumberIsCancelled(id: IntId<LayoutTrackNumber>) =

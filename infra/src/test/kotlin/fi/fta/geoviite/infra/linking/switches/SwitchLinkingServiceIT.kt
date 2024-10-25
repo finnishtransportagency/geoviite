@@ -147,25 +147,19 @@ constructor(
 
     @Test
     fun `should match with first switch alignment match only`() {
-        var startLength = 0.0
         val segments =
             (1..5).map { num ->
                 val start = (num - 1).toDouble() * 10.0
                 val end = start + 10.0
-                segment(Point(start, start), Point(end, end), startM = startLength).also { s ->
-                    startLength += s.length
-                }
+                segment(Point(start, start), Point(end, end))
             }
 
-        val locationTrackId =
-            mainDraftContext
-                .insert(
-                    locationTrackAndAlignment(
-                        trackNumberId = mainDraftContext.createLayoutTrackNumber().id,
-                        segments = segments,
-                    )
-                )
-                .id
+        val (initTrack, initAlignment) =
+            locationTrackAndAlignment(
+                trackNumberId = mainDraftContext.createLayoutTrackNumber().id,
+                segments = segments,
+            )
+        val locationTrackId = mainDraftContext.insert(initTrack, initAlignment).id
 
         val insertedSwitch = mainOfficialContext.insertAndFetch(switch())
 
@@ -180,7 +174,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = segments[1].startM,
+                                m = initAlignment.segmentMs[1].min,
                             )
                         ),
                 ),
@@ -193,7 +187,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = segments[1].endM,
+                                m = initAlignment.segmentMs[1].max,
                             )
                         ),
                 ),
@@ -206,7 +200,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = segments[1].endM,
+                                m = initAlignment.segmentMs[1].max,
                             )
                         ),
                 ),
@@ -244,25 +238,19 @@ constructor(
 
     @Test
     fun `should filter out switch matches that do not match with switch structure alignment`() {
-        var startLength = 0.0
         val segments =
             (1..5).map { num ->
                 val start = (num - 1).toDouble() * 10.0
                 val end = start + 10.0
-                segment(Point(start, start), Point(end, end), startM = startLength).also { s ->
-                    startLength += s.length
-                }
+                segment(Point(start, start), Point(end, end))
             }
 
-        val locationTrackId =
-            mainDraftContext
-                .insert(
-                    locationTrackAndAlignment(
-                        trackNumberId = mainDraftContext.createLayoutTrackNumber().id,
-                        segments = segments,
-                    )
-                )
-                .id
+        val (initTrack, initAlignment) =
+            locationTrackAndAlignment(
+                trackNumberId = mainDraftContext.createLayoutTrackNumber().id,
+                segments = segments,
+            )
+        val locationTrackId = mainDraftContext.insert(initTrack, initAlignment).id
 
         val insertedSwitch = switchDao.fetch(switchDao.save(switch(draft = false)))
 
@@ -277,7 +265,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = segments[1].startM,
+                                m = initAlignment.segmentMs[1].min,
                             )
                         ),
                 ),
@@ -290,7 +278,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = segments[1].endM,
+                                m = initAlignment.segmentMs[1].max,
                             )
                         ),
                 ),
@@ -303,7 +291,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = segments[1].endM,
+                                m = initAlignment.segmentMs[1].max,
                             )
                         ),
                 ),
@@ -373,7 +361,7 @@ constructor(
         val linkedSwitch: LayoutSwitch,
     )
 
-    private fun createLocationTracksWithLinkedSwitch(seed: Int = 12345): LocationTracksWithLinkedSwitch {
+    private fun createLocationTracksWithLinkedSwitch(): LocationTracksWithLinkedSwitch {
         val (straightTrack, straightAlignment) =
             createDraftLocationTrackFromLayoutSegments(
                 listOf(
@@ -498,7 +486,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = testLocation.straightTrack.id as IntId,
                                 segmentIndex = 2,
-                                m = testLocation.straightTrackAlignment.segments[2].endM - switchOverlapAmount,
+                                m = testLocation.straightTrackAlignment.segmentMs[2].max - switchOverlapAmount,
                             ),
                             switchLinkingAtStart(secondDiversionTrack.id, secondDiversionAlignment, 0),
                         ),
@@ -700,7 +688,7 @@ constructor(
                 Triple(JointNumber(1), JointNumber(5), JointNumber(2)),
                 Triple(JointNumber(2), JointNumber(5), JointNumber(1)),
             )
-            .forEachIndexed { index, (firstJointNumber, secondJointNumber, thirdJointNumber) ->
+            .forEach { (firstJointNumber, secondJointNumber, thirdJointNumber) ->
                 val (testLocationTrack, testAlignment) =
                     createDraftLocationTrackFromLayoutSegments(
                         listOf(
@@ -750,7 +738,7 @@ constructor(
                                             suggestedSwitchJointMatch(
                                                 locationTrackId = testLocationTrack.id as IntId,
                                                 segmentIndex = 2,
-                                                m = testAlignment.segments[2].endM - overlapAmount,
+                                                m = testAlignment.segmentMs[2].max - overlapAmount,
                                             )
                                         ),
                                 ),
@@ -860,7 +848,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = testLocationTrack.id as IntId,
                                 segmentIndex = 2,
-                                m = testAlignment.segments[2].endM - moreThanAllowedOverlap,
+                                m = testAlignment.segmentMs[2].max - moreThanAllowedOverlap,
                             )
                         ),
                 ),
@@ -1654,13 +1642,13 @@ constructor(
             val rangeEndSegmentIndex = alignment.getSegmentIndexAtM(range.endInclusive)
             assertEquals(
                 range.start,
-                alignment.segments[rangeStartSegmentIndex].startM,
+                alignment.segmentMs[rangeStartSegmentIndex].min,
                 0.1,
                 "segment range starts at given m-value",
             )
             assertEquals(
                 range.endInclusive,
-                alignment.segments[rangeEndSegmentIndex].endM,
+                alignment.segmentMs[rangeEndSegmentIndex].max,
                 0.1,
                 "segment range ends at given m-value",
             )
@@ -1670,7 +1658,7 @@ constructor(
                     alignment.segments[i].switchId,
                     "switch at segment index $i (asserted m-range ${range.start}..${
                         range.endInclusive
-                    }, segment m-range ${alignment.segments[i].startM}..${alignment.segments[i].endM}",
+                    }, segment m-range ${alignment.segmentMs[i].min}..${alignment.segmentMs[i].max}",
                 )
             }
         }

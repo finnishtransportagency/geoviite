@@ -496,14 +496,13 @@ constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point -> if (point.m < 200) point + 2.0 else point },
+            { point -> if (point.m < 200) point + 2.0 else point.toPoint() },
             locationTrackService = locationTrackService,
         )
 
         val changes = getCalculatedChanges(locationTrackIds = listOf(locationTrack3.id as IntId))
 
         assertEquals(
-            changes.directChanges.locationTrackChanges,
             listOf(
                 LocationTrackChange(
                     locationTrackId = locationTrack3.id as IntId<LocationTrack>,
@@ -512,6 +511,7 @@ constructor(
                     isEndChanged = false,
                 )
             ),
+            changes.directChanges.locationTrackChanges,
         )
         assertTrue(changes.indirectChanges.switchChanges.isEmpty())
     }
@@ -527,7 +527,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             referenceLineAlignment,
-            { point -> if (point.m < 900) point - 2.0 else point },
+            { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
 
@@ -575,7 +575,7 @@ constructor(
                     // make reference line wavy
                     point + Point(0.0, cos((point.m - 1000) / (2900 - 1000) * PI) * 5)
                 } else {
-                    point
+                    point.toPoint()
                 }
             },
             referenceLineService = referenceLineService,
@@ -687,7 +687,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
 
@@ -806,7 +806,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
 
@@ -825,7 +825,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
 
@@ -917,7 +917,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             alignment,
-            { point -> if (point.m < 900) point - 2.0 else point },
+            { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
             referenceLineService,
         )
 
@@ -957,7 +957,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = referenceLineAlignment,
-            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
 
@@ -1554,11 +1554,11 @@ constructor(
         return switch
     }
 
-    private fun firstPoint(alignment: LayoutAlignment, segmentIndex: Int) =
-        alignment.segments[segmentIndex].alignmentPoints.first()
+    private fun firstPoint(alignment: LayoutAlignment, segmentIndex: Int): Point =
+        alignment.segments[segmentIndex].segmentStart.toPoint()
 
-    private fun lastPoint(alignment: LayoutAlignment, segmentIndex: Int) =
-        alignment.segments[segmentIndex].alignmentPoints.last()
+    private fun lastPoint(alignment: LayoutAlignment, segmentIndex: Int): Point =
+        alignment.segments[segmentIndex].segmentEnd.toPoint()
 
     private fun assertContainsSwitchJoint152Change(
         changes: List<SwitchChange>,

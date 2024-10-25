@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
 import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,13 +31,15 @@ constructor(
             ?: error("Cache should have been created")
     }
 
-    private fun newCache(): ContextCache = ContextCache(locationTrackDao::fetch, alignmentDao::fetch)
+    private fun newCache(): ContextCache = ContextCache(locationTrackDao::fetch, alignmentDao::get, alignmentDao::fetch)
 
     private fun refresh(cache: ContextCache, newTracks: Map<IntId<LocationTrack>, LocationTrack>): ContextCache {
+        // TODO: GVT-1727 This could possibly be optimized by edges, since their geometries don't change
+
         val (staleTracks, currentTracks) =
             cache.items
                 .asSequence()
-                .partition { (id, track) -> newTracks[id]?.alignmentVersion != track.alignmentVersion }
+                .partition { (id, track) -> newTracks[id]?.versionOrThrow != track.trackVersion }
                 .let { (stale, current) ->
                     stale.associate { it.key to it.value } to current.associate { it.key to it.value }
                 }
@@ -49,7 +52,7 @@ constructor(
 
         // Add all new items (tracks that have been added or updated)
         fun addEntry(track: LocationTrack) =
-            createEntry(track, alignmentDao.fetch(track.getAlignmentVersionOrThrow())).also { entry ->
+            createEntry(track, alignmentDao.get(track.versionOrThrow)).also { entry ->
                 newNet = entry.segmentData.fold(newNet) { net, (segment, rect) -> net.add(segment, rect) }
             }
 
@@ -57,6 +60,7 @@ constructor(
 
         return ContextCache(
             LazyMap(locationTrackDao::fetch)::get,
+            LazyMap(alignmentDao::get)::get,
             LazyMap(alignmentDao::fetch)::get,
             newNet,
             newItems.toMap(),
@@ -67,17 +71,19 @@ constructor(
 data class SpatialCacheSegment(
     val locationTrackVersion: LayoutRowVersion<LocationTrack>,
     val alignmentVersion: RowVersion<LayoutAlignment>,
-    val segment: LayoutSegment,
+    val segment: LayoutEdgeSegment,
+    val m: Range<Double>,
 )
 
 data class SpatialCacheEntry(
+    val trackVersion: LayoutRowVersion<LocationTrack>,
     val alignmentVersion: RowVersion<LayoutAlignment>,
     val segmentData: List<Pair<SpatialCacheSegment, Rectangle>>,
 )
 
 data class LocationTrackCacheHit(
     val track: LocationTrack,
-    val alignment: LayoutAlignment,
+    val geometry: LocationTrackGeometry,
     val closestPoint: AlignmentPoint,
     val distance: Double,
 )
@@ -91,6 +97,7 @@ private val cacheHitComparator =
 
 data class ContextCache(
     private val getTrack: (LayoutRowVersion<LocationTrack>) -> LocationTrack,
+    private val getGeometry: (LayoutRowVersion<LocationTrack>) -> DbLocationTrackGeometry,
     private val getAlignment: (RowVersion<LayoutAlignment>) -> LayoutAlignment,
     val network: RTree<SpatialCacheSegment, Rectangle> = RTree.star().create(),
     val items: Map<IntId<LocationTrack>, SpatialCacheEntry> = emptyMap(),
@@ -105,7 +112,18 @@ data class ContextCache(
             .sortedWith(cacheHitComparator)
             .distinctBy { it.track.id }
 
-    fun getWithinBoundingBox(boundingBox: BoundingBox): List<Pair<LocationTrack, LayoutAlignment>> =
+    fun getWithinBoundingBox(boundingBox: BoundingBox): List<Pair<LocationTrack, DbLocationTrackGeometry>> =
+        network
+            .search(Geometries.rectangle(boundingBox.x.min, boundingBox.y.min, boundingBox.x.max, boundingBox.y.max))
+            .groupBy { hit -> hit.value().locationTrackVersion }
+            .filter { (_, hits) ->
+                hits.any { hit -> hit.value().segment.segmentPoints.any { point -> boundingBox.contains(point) } }
+            }
+            .keys
+            .map { trackVersion -> getTrack(trackVersion) to getGeometry(trackVersion) }
+
+    @Deprecated("Use getWithinBoundingBox instead")
+    fun getAlignmentWithinBoundingBox(boundingBox: BoundingBox): List<Pair<LocationTrack, LayoutAlignment>> =
         network
             .search(Geometries.rectangle(boundingBox.x.min, boundingBox.y.min, boundingBox.x.max, boundingBox.y.max))
             .groupBy { hit -> hit.value().locationTrackVersion to hit.value().alignmentVersion }
@@ -120,13 +138,13 @@ data class ContextCache(
         location: IPoint,
         thresholdMeters: Double,
     ): LocationTrackCacheHit? {
-        val closestPointM = segment.segment.getClosestPointM(location).first
-        val closestPoint = segment.segment.seekPointAtM(closestPointM).point
+        val closestPointM = segment.segment.getClosestPointM(segment.m.min, location).first
+        val closestPoint = segment.segment.seekPointAtM(segment.m.min, closestPointM).point
         val distance = lineLength(location, closestPoint)
         return if (distance < thresholdMeters) {
             LocationTrackCacheHit(
                 getTrack(segment.locationTrackVersion),
-                getAlignment(segment.alignmentVersion),
+                getGeometry(segment.locationTrackVersion),
                 closestPoint,
                 distance,
             )
@@ -136,14 +154,13 @@ data class ContextCache(
     }
 }
 
-private fun createEntry(track: LocationTrack, alignment: LayoutAlignment): SpatialCacheEntry {
-    val alignmentVersion = track.getAlignmentVersionOrThrow()
+private fun createEntry(track: LocationTrack, geometry: DbLocationTrackGeometry): SpatialCacheEntry {
     val segmentData =
-        alignment.segments.map { segment ->
-            val bbox = segment.boundingBox!!
-            val entry = SpatialCacheSegment(track.version!!, alignmentVersion, segment)
+        geometry.segmentsWithM.map { (segment, m) ->
+            val bbox = segment.boundingBox
+            val entry = SpatialCacheSegment(track.versionOrThrow, track.getAlignmentVersionOrThrow(), segment, m)
             val rect = Geometries.rectangle(bbox.x.min, bbox.y.min, bbox.x.max, bbox.y.max)
             entry to rect
         }
-    return SpatialCacheEntry(alignmentVersion, segmentData)
+    return SpatialCacheEntry(track.versionOrThrow, track.getAlignmentVersionOrThrow(), segmentData)
 }

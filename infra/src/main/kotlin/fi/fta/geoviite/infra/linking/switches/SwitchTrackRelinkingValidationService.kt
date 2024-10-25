@@ -150,7 +150,7 @@ private fun validateChangeFromSwitchRelinking(
                 switchStructure,
                 track,
                 changedTracks,
-                suggestedSwitchWithOriginallyLinkedTracks.originallyLinkedTracks.keys.toList(),
+                suggestedSwitchWithOriginallyLinkedTracks.originallyLinkedTracks.toList(),
             )
         val presentationJointLocation = getSuggestedLocation(switchId, suggestedSwitch, switchStructure)
         val address =

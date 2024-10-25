@@ -26,7 +26,6 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
-import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.linking.switches.FittedSwitchJointMatch
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchJointMatchType
 import fi.fta.geoviite.infra.map.GeometryAlignmentHeader
@@ -38,6 +37,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.Point3DZ
 import fi.fta.geoviite.infra.math.Point4DZM
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublishedVersions
@@ -505,7 +505,7 @@ fun alignmentFromPoints(vararg points: Point) = alignment(segment(*points))
 
 fun alignment(vararg segments: LayoutSegment) = alignment(segments.toList())
 
-fun alignment(segments: List<LayoutSegment>) = LayoutAlignment(segments = fixSegmentStarts(segments))
+fun alignment(segments: List<LayoutSegment>) = LayoutAlignment(segments = segments)
 
 fun mapAlignment(vararg segments: PlanLayoutSegment) = mapAlignment(segments.toList())
 
@@ -533,10 +533,7 @@ fun locationTrackWithTwoSwitches(
     draft: Boolean,
 ): Pair<LocationTrack, LayoutAlignment> {
     val segmentLength = 10.0
-    val segments =
-        (1..20).map { i ->
-            segment(Point(i * segmentLength, 0.0), Point((i + 1) * segmentLength, 0.0), startM = i * segmentLength)
-        }
+    val segments = (1..20).map { i -> segment(Point(i * segmentLength, 0.0), Point((i + 1) * segmentLength, 0.0)) }
     val (locationTrack, alignment) =
         locationTrackAndAlignment(
             trackNumberId = trackNumberId,
@@ -697,7 +694,6 @@ fun attachSwitches(
 
 fun segment(
     vararg points: IPoint,
-    startM: Double = 0.0,
     source: GeometrySource = PLAN,
     sourceId: GeometryElement? = null,
     switchId: IntId<LayoutSwitch>? = null,
@@ -707,7 +703,6 @@ fun segment(
 ) =
     segment(
         toSegmentPoints(to3DMPoints(points.asList())),
-        startM = startM,
         source = source,
         sourceStart = sourceStart,
         sourceId = sourceId,
@@ -716,23 +711,14 @@ fun segment(
         endJointNumber = endJointNumber,
     )
 
-fun segment(
-    vararg points: Point3DZ,
-    start: Double = 0.0,
-    source: GeometrySource = PLAN,
-    sourceId: GeometryElement? = null,
-) = segment(toSegmentPoints(to3DMPoints(points.asList(), start)), start, source, sourceId)
+fun segment(vararg points: Point3DZ, source: GeometrySource = PLAN, sourceId: GeometryElement? = null) =
+    segment(toSegmentPoints(to3DMPoints(points.asList())), source, sourceId)
 
-fun segment(
-    vararg points: IPoint3DM,
-    start: Double = points.first().m,
-    source: GeometrySource = PLAN,
-    sourceId: GeometryElement? = null,
-) = segment(toSegmentPoints(points.asList()), start, source, sourceId)
+fun segment(vararg points: IPoint3DM, source: GeometrySource = PLAN, sourceId: GeometryElement? = null) =
+    segment(toSegmentPoints(points.asList()), source, sourceId)
 
 fun segment(
     points: List<SegmentPoint>,
-    startM: Double = 0.0,
     source: GeometrySource = PLAN,
     sourceId: GeometryElement? = null,
     sourceStart: Double? = null,
@@ -743,7 +729,6 @@ fun segment(
 ) =
     LayoutSegment(
         geometry = SegmentGeometry(segmentPoints = points, resolution = resolution),
-        startM = startM,
         sourceId = sourceId?.id as IndexedId?,
         sourceStart = sourceStart,
         switchId = switchId,
@@ -754,14 +739,12 @@ fun segment(
 
 fun mapSegment(
     vararg points: Point3DM,
-    startM: Double = points[0].m,
     sourceId: DomainId<GeometryElement>? = null,
     sourceStart: Double? = null,
     source: GeometrySource = PLAN,
 ) =
     mapSegment(
         points = toSegmentPoints(points.asList()),
-        start = startM,
         sourceId = sourceId,
         sourceStart = sourceStart,
         source = source,
@@ -769,7 +752,6 @@ fun mapSegment(
 
 fun mapSegment(
     points: List<SegmentPoint>,
-    start: Double = 0.0,
     resolution: Int = 1,
     sourceId: DomainId<GeometryElement>? = null,
     sourceStart: Double? = null,
@@ -778,7 +760,6 @@ fun mapSegment(
 ) =
     PlanLayoutSegment(
         geometry = SegmentGeometry(segmentPoints = points, resolution = resolution),
-        startM = start,
         pointCount = points.size,
         sourceId = sourceId,
         sourceStart = sourceStart,
@@ -787,14 +768,14 @@ fun mapSegment(
     )
 
 fun splitSegment(segment: LayoutSegment, numberOfParts: Int): List<LayoutSegment> {
-    val allPoints = segment.alignmentPoints
+    val allPoints = segment.segmentPoints
     val indexRange = 0..allPoints.lastIndex
     val pointsPerSegment = allPoints.count() / numberOfParts.toDouble()
     return indexRange
         .groupBy { index -> (index / pointsPerSegment).toInt() }
         .map { (_, groupIndexRange) ->
             val points = allPoints.subList(0.coerceAtLeast(groupIndexRange.first() - 1), groupIndexRange.last() + 1)
-            segment(points = points.map { Point(it) }.toTypedArray(), startM = points.first().m)
+            segment(points = points.map { Point(it) }.toTypedArray())
         }
 }
 
@@ -903,13 +884,7 @@ fun segments(from: IPoint, to: IPoint, segmentLength: Double): List<LayoutSegmen
 
 fun segments(vararg endPoints: IPoint): List<LayoutSegment> {
     assert(endPoints.count() >= 2) { "End points must contain at least two points" }
-    var startLength = 0.0
-    return endPoints.distinct().dropLast(1).mapIndexed { index, start ->
-        val end = endPoints[index + 1]
-        val segment = segment(start, end, startM = startLength)
-        startLength += lineLength(start, end)
-        segment
-    }
+    return endPoints.distinct().dropLast(1).mapIndexed { index, start -> segment(start, endPoints[index + 1]) }
 }
 
 fun switchFromDbStructure(
@@ -1041,15 +1016,6 @@ fun points(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
         )
     )
 
-fun segmentPoint(
-    minX: Double,
-    maxX: Double,
-    minY: Double,
-    maxY: Double,
-    m: Double,
-    fraction: Double = rand.nextDouble(),
-) = AlignmentPoint(valueBetween(minX, maxX, fraction), valueBetween(minY, maxY, fraction), null, m, null)
-
 fun point2d(minX: Double, maxX: Double, minY: Double, maxY: Double, fraction: Double = rand.nextDouble()) =
     Point(valueBetween(minX, maxX, fraction), valueBetween(minY, maxY, fraction))
 
@@ -1064,7 +1030,7 @@ fun offsetAlignment(alignment: LayoutAlignment, amount: Point) =
     alignment.copy(segments = alignment.segments.map { origSegment -> offsetSegment(origSegment, amount) })
 
 fun offsetSegment(segment: LayoutSegment, amount: Point): LayoutSegment {
-    val newPoints = toSegmentPoints(*(segment.alignmentPoints.map { p -> p + amount }.toTypedArray()))
+    val newPoints = toSegmentPoints(*(segment.segmentPoints.map { p -> p + amount }.toTypedArray()))
     return segment.copy(geometry = segment.geometry.withPoints(newPoints))
 }
 
@@ -1091,46 +1057,46 @@ fun switchLinkingAtStart(
     alignment: LayoutAlignment,
     segmentIndex: Int,
     jointNumber: Int = 1,
-) = switchLinkingAtStart(locationTrackId, alignment.segments, segmentIndex, jointNumber)
+) = switchLinkingAtStart(locationTrackId, alignment.segmentMs, segmentIndex, jointNumber)
 
 fun switchLinkingAtStart(
     locationTrackId: DomainId<LocationTrack>,
-    segments: List<LayoutSegment>,
+    segmentMs: List<Range<Double>>,
     segmentIndex: Int,
     jointNumber: Int = 1,
-) = switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].alignmentPoints.first().m, jointNumber)
+) = switchLinkingAt(locationTrackId, segmentIndex, segmentMs[segmentIndex].min, jointNumber)
 
 fun switchLinkingAtEnd(
     locationTrackId: DomainId<LocationTrack>,
     alignment: LayoutAlignment,
     segmentIndex: Int,
     jointNumber: Int = 1,
-) = switchLinkingAtEnd(locationTrackId, alignment.segments, segmentIndex, jointNumber)
+) = switchLinkingAtEnd(locationTrackId, alignment.segmentMs, segmentIndex, jointNumber)
 
 fun switchLinkingAtEnd(
     locationTrackId: DomainId<LocationTrack>,
-    segments: List<LayoutSegment>,
+    segmentMs: List<Range<Double>>,
     segmentIndex: Int,
     jointNumber: Int = 1,
-) = switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].alignmentPoints.last().m, jointNumber)
+) = switchLinkingAt(locationTrackId, segmentIndex, segmentMs[segmentIndex].max, jointNumber)
 
 fun switchLinkingAtHalf(
     locationTrackId: DomainId<LocationTrack>,
     alignment: LayoutAlignment,
     segmentIndex: Int,
     jointNumber: Int = 1,
-) = switchLinkingAtHalf(locationTrackId, alignment.segments, segmentIndex, jointNumber)
+) = switchLinkingAtHalf(locationTrackId, alignment.segmentMs, segmentIndex, jointNumber)
 
 fun switchLinkingAtHalf(
     locationTrackId: DomainId<LocationTrack>,
-    segments: List<LayoutSegment>,
+    segmentMs: List<Range<Double>>,
     segmentIndex: Int,
     jointNumber: Int = 1,
 ) =
     switchLinkingAt(
         locationTrackId,
         segmentIndex,
-        segments[segmentIndex].let { s -> (s.endM + s.startM) / 2 },
+        segmentMs[segmentIndex].let { m -> (m.max + m.min) / 2 },
         jointNumber,
     )
 

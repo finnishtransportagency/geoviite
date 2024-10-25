@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -21,6 +20,7 @@ import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
@@ -332,10 +332,7 @@ class SplitService(
         val sourceAddressPointRange =
             context
                 .getGeocodingContext(sourceTrack.trackNumberId)
-                ?.getPartialAddressRange(
-                    alignmentDao.fetch(sourceTrack.getAlignmentVersionOrThrow()),
-                    target.segmentIndices,
-                )
+                ?.getPartialAddressRange(alignmentDao.get(sourceTrack.versionOrThrow), target.segmentIndices)
         val sourceAddresses: List<AddressPoint>? =
             sourceAddressPointRange?.let { (start, end) ->
                 context
@@ -427,6 +424,7 @@ class SplitService(
 
         // Fetch post-re-linking track & alignment
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, request.sourceTrackId)
+        // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
         val targetResults =
             splitLocationTrack(
                 track = track,
@@ -779,7 +777,7 @@ private fun findIndex(alignment: LayoutAlignment, switchId: IntId<LayoutSwitch>,
 }
 
 private fun cutSegments(alignment: LayoutAlignment, segmentIndices: ClosedRange<Int>): List<LayoutSegment> =
-    fixSegmentStarts(alignment.segments.subList(segmentIndices.start, segmentIndices.endInclusive + 1))
+    alignment.segments.subList(segmentIndices.start, segmentIndices.endInclusive + 1)
 
 private fun verifySwitchSuggestions(
     suggestions: List<Pair<IntId<LayoutSwitch>, SuggestedSwitch?>>
@@ -797,8 +795,8 @@ private fun verifySwitchSuggestions(
 
 private fun findNewLocationTracksForUnusedDuplicates(
     geocodingContext: GeocodingContext,
-    unusedDuplicates: List<Pair<LocationTrack, LayoutAlignment>>,
-    splitTargetLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    unusedDuplicates: List<Pair<LocationTrack, IAlignment>>,
+    splitTargetLocationTracks: List<Pair<LocationTrack, IAlignment>>,
 ): List<LocationTrack> {
     val geocodedUnusedDuplicates =
         unusedDuplicates.mapNotNull { (unusedDuplicate, alignment) ->
@@ -851,7 +849,7 @@ private data class AlignmentStartAndEndMeters(val start: Double, val end: Double
 
 private fun getAlignmentStartAndEndM(
     geocodingContext: GeocodingContext,
-    alignment: LayoutAlignment,
+    alignment: IAlignment,
 ): AlignmentStartAndEndMeters? {
     val startMeters = alignment.start?.let(geocodingContext::getM)?.first
     val endMeters = alignment.end?.let(geocodingContext::getM)?.first
