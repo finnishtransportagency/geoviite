@@ -29,7 +29,7 @@ import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
 
 val defaultBlockTimeout: Duration = fi.fta.geoviite.infra.ratko.defaultResponseTimeout.plusMinutes(1L)
-val reloginOffsetSeconds: Long = 60
+val reLoginOffset: Duration = Duration.ofSeconds(60)
 
 const val SEARCH_API_V1_PATH = "/hakupalvelu/api/v1"
 const val XML_FILE_SEARCH_PATH = "$SEARCH_API_V1_PATH/taustahaku/kohdeluokat"
@@ -43,12 +43,11 @@ const val METADATA_API_V2_PATH = "/metatietopalvelu/api/v2"
 const val DICTIONARIES_PATH = "$METADATA_API_V2_PATH/metatiedot/kohdeluokka"
 const val MATERIAL_DICTIONARIES_PATH = "$DICTIONARIES_PATH/aineisto/aineisto"
 const val PROJECT_DICTIONARIES_PATH = "$DICTIONARIES_PATH/projekti/projekti"
-const val REDIRECT_PATH = "$METADATA_API_V2_PATH/ohjaa"
 
-const val PROJECT_REGISTRY_V1_PATH = "/projektirekisteri/api/v2"
-const val ASSIGNMENT_PATH = "$PROJECT_REGISTRY_V1_PATH/toimeksianto"
-const val PROJECT_PATH = "$PROJECT_REGISTRY_V1_PATH/projekti"
-const val PROJECT_GROUP_PATH = "$PROJECT_REGISTRY_V1_PATH/projektijoukko"
+const val PROJECT_REGISTRY_V2_PATH = "/projektirekisteri/api/v2"
+const val ASSIGNMENT_PATH = "$PROJECT_REGISTRY_V2_PATH/toimeksianto"
+const val PROJECT_PATH = "$PROJECT_REGISTRY_V2_PATH/projekti"
+const val PROJECT_GROUP_PATH = "$PROJECT_REGISTRY_V2_PATH/projektijoukko"
 
 @Component
 @ConditionalOnBean(PVClientConfiguration::class)
@@ -65,7 +64,7 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
             .body(BodyInserters.fromFormData("grant_type", "client_credentials"))
             .retrieve()
             .bodyToMono<PVAccessToken>()
-            .block(defaultBlockTimeout) ?: throw IllegalStateException("ProjektiVelho login failed")
+            .block(defaultBlockTimeout) ?: error { "ProjektiVelho login failed" }
     }
 
     fun postXmlFileSearch(fetchStartTime: Instant, startOid: Oid<PVDocument>?): PVApiSearchStatus {
@@ -96,7 +95,7 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
 
     fun fetchFileContent(oid: Oid<PVDocument>, version: PVId): String? {
         logger.integrationCall("fetchFileContent", "oid" to oid, "version" to version)
-        return getOptional<String>("$FILE_DATA_PATH/${oid}/dokumentti?versio=${version}").also { content ->
+        return getOptional<String>("$FILE_DATA_PATH/$oid/dokumentti?versio=$version").also { content ->
             if (content == null) logger.warn("File content was null! oid=$oid")
         }
     }
@@ -109,7 +108,7 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
         return getJsonOptional(encodingGroupUrl(group))?.let { json ->
             json.get("info").let { infoNode ->
                 infoNode.get("x-velho-nimikkeistot").let { classes ->
-                    PVDictionaryType.values()
+                    PVDictionaryType.entries
                         .filter { t -> t.group == group }
                         .associateWith { type -> fetchDictionaryType(type, classes) }
                 }
@@ -152,7 +151,9 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
                     "$message status=${ex.statusCode} result=${ex.message.let(::formatForLog)}"
             )
             Mono.empty()
-        } else Mono.error(ex)
+        } else {
+            Mono.error(ex)
+        }
     }
 
     private fun getJsonOptional(uri: String): JsonNode? = getOptional<String>(uri)?.let(jsonMapper::readTree)
@@ -202,11 +203,13 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
     private fun fetchAccessToken(currentTime: Instant) =
         accessToken
             .updateAndGet { token ->
-                if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginOffsetSeconds))) {
+                if (token == null || token.expireTime.isBefore(currentTime.plus(reLoginOffset))) {
                     login()
-                } else token
+                } else {
+                    token
+                }
             }
-            ?.accessToken ?: throw IllegalStateException("ProjektiVelho login token can't be null after login")
+            ?.accessToken ?: error { "ProjektiVelho login token can't be null after login" }
 }
 
 fun encodingTypeDictionary(type: PVDictionaryType) = "${encodingGroupPath(type.group)}/${encodingTypePath(type)}"
