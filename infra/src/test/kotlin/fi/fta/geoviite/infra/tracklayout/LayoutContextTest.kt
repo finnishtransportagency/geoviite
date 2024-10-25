@@ -34,19 +34,22 @@ class LayoutContextTest {
 
         assertEquals(
             IntId(2),
-            DesignOfficialContextData(StoredContextIdHolder(rowVersion), officialRowId, IntId(10)).id,
+            DesignOfficialContextData(StoredContextIdHolder(rowVersion), officialRowId, IntId(10), false).id,
         )
-        assertEquals(IntId(1), DesignOfficialContextData(StoredContextIdHolder(rowVersion), null, IntId(10)).id)
+        assertEquals(IntId(1), DesignOfficialContextData(StoredContextIdHolder(rowVersion), null, IntId(10), false).id)
 
         assertEquals(
             IntId(2),
-            DesignDraftContextData(StoredContextIdHolder(rowVersion), designRowId, officialRowId, IntId(10)).id,
+            DesignDraftContextData(StoredContextIdHolder(rowVersion), designRowId, officialRowId, IntId(10), false).id,
         )
         assertEquals(
             IntId(3),
-            DesignDraftContextData(StoredContextIdHolder(rowVersion), designRowId, null, IntId(10)).id,
+            DesignDraftContextData(StoredContextIdHolder(rowVersion), designRowId, null, IntId(10), false).id,
         )
-        assertEquals(IntId(1), DesignDraftContextData(StoredContextIdHolder(rowVersion), null, null, IntId(10)).id)
+        assertEquals(
+            IntId(1),
+            DesignDraftContextData(StoredContextIdHolder(rowVersion), null, null, IntId(10), false).id,
+        )
     }
 
     @Test
@@ -92,13 +95,13 @@ class LayoutContextTest {
         val contextId = StoredContextIdHolder(LayoutRowVersion(rowId, 123))
         val officialRowId = LayoutRowId<TrackLayoutTrackNumber>(2)
 
-        val context = DesignOfficialContextData(contextId, officialRowId, IntId(10))
+        val context = DesignOfficialContextData(contextId, officialRowId, IntId(10), false)
         assertEquals(EditState.UNEDITED, context.editState)
         assertTrue(context.isDesign)
         assertTrue(context.isOfficial)
         assertFalse(context.isDraft)
 
-        val newContext = DesignOfficialContextData(contextId, null, IntId(10))
+        val newContext = DesignOfficialContextData(contextId, null, IntId(10), false)
         assertEquals(EditState.UNEDITED, newContext.editState)
         assertTrue(newContext.isDesign)
         assertTrue(newContext.isOfficial)
@@ -112,19 +115,19 @@ class LayoutContextTest {
         val officialRowId = LayoutRowId<TrackLayoutTrackNumber>(2)
         val designRowId = LayoutRowId<TrackLayoutTrackNumber>(3)
 
-        val context = DesignDraftContextData(contextId, designRowId, officialRowId, IntId(10))
+        val context = DesignDraftContextData(contextId, designRowId, officialRowId, IntId(10), false)
         assertEquals(EditState.EDITED, context.editState)
         assertTrue(context.isDesign)
         assertFalse(context.isOfficial)
         assertTrue(context.isDraft)
 
-        val newContext = DesignDraftContextData(contextId, null, officialRowId, IntId(10))
+        val newContext = DesignDraftContextData(contextId, null, officialRowId, IntId(10), false)
         assertEquals(EditState.CREATED, newContext.editState)
         assertTrue(newContext.isDesign)
         assertFalse(newContext.isOfficial)
         assertTrue(newContext.isDraft)
 
-        val newContext2 = DesignDraftContextData(contextId, null, null, IntId(10))
+        val newContext2 = DesignDraftContextData(contextId, null, null, IntId(10), false)
         assertEquals(EditState.CREATED, newContext2.editState)
         assertTrue(newContext2.isDesign)
         assertFalse(newContext2.isOfficial)
@@ -195,7 +198,7 @@ class LayoutContextTest {
         val contextId = StoredContextIdHolder(LayoutRowVersion(rowId, 123))
         val designId = IntId<LayoutDesign>(123)
 
-        val official = DesignOfficialContextData(contextId, null, designId)
+        val official = DesignOfficialContextData(contextId, null, designId, false)
         val designDraft = official.asDesignDraft()
 
         assertEquals(IntId(1), designDraft.id)
@@ -213,7 +216,7 @@ class LayoutContextTest {
         val officialId = LayoutRowId<TrackLayoutTrackNumber>(2)
         val designId = IntId<LayoutDesign>(123)
 
-        val official = DesignOfficialContextData(contextId, officialId, designId)
+        val official = DesignOfficialContextData(contextId, officialId, designId, false)
         val designDraft = official.asDesignDraft()
 
         assertEquals(IntId(2), designDraft.id)
@@ -231,7 +234,7 @@ class LayoutContextTest {
         val contextId = StoredContextIdHolder(LayoutRowVersion(rowId, 123))
         val designId = IntId<LayoutDesign>(123)
 
-        val designDraft = DesignDraftContextData(contextId, null, null, designId)
+        val designDraft = DesignDraftContextData(contextId, null, null, designId, false)
         val designOfficial = designDraft.asDesignOfficial()
 
         assertEquals(IntId(1), designOfficial.id)
@@ -249,7 +252,7 @@ class LayoutContextTest {
         val officialRowId = LayoutRowId<TrackLayoutTrackNumber>(3)
         val designId = IntId<LayoutDesign>(123)
 
-        val designDraft = DesignDraftContextData(contextId, designRowId, officialRowId, designId)
+        val designDraft = DesignDraftContextData(contextId, designRowId, officialRowId, designId, false)
         val designOfficial = designDraft.asDesignOfficial()
 
         assertEquals(IntId(3), designOfficial.id)
@@ -265,7 +268,7 @@ class LayoutContextTest {
         val contextId = StoredContextIdHolder(LayoutRowVersion(rowId, 123))
         val designId = IntId<LayoutDesign>(123)
 
-        val design = DesignOfficialContextData(contextId, null, designId)
+        val design = DesignOfficialContextData(contextId, null, designId, false)
         val draft = design.asMainDraft(null)
 
         assertEquals(IntId(1), draft.id)
@@ -282,7 +285,7 @@ class LayoutContextTest {
         val officialId = LayoutRowId<TrackLayoutTrackNumber>(2)
         val designId = IntId<LayoutDesign>(123)
 
-        val design = DesignOfficialContextData(contextId, officialId, designId)
+        val design = DesignOfficialContextData(contextId, officialId, designId, false)
         val draft = design.asMainDraft(null)
 
         assertEquals(IntId(2), draft.id)
@@ -304,6 +307,7 @@ class LayoutContextTest {
                 contextIdHolder = StoredContextIdHolder(LayoutRowVersion(designOfficialId, 123)),
                 officialRowId = mainOfficialId,
                 designId = designId,
+                false,
             )
         val designDraft = designOfficial.asMainDraft(mainDraftId)
 
@@ -326,34 +330,34 @@ class LayoutContextTest {
         assertNotNull(MainOfficialContextData(storedContext).asMainDraft())
         assertNotNull(MainOfficialContextData(storedContext).asDesignDraft(IntId(1)))
         assertNotNull(MainDraftContextData(storedContext, null, null).asMainOfficial())
-        assertNotNull(DesignOfficialContextData(storedContext, null, IntId(1)).asMainDraft(null))
-        assertNotNull(DesignOfficialContextData(storedContext, null, IntId(1)).asDesignDraft())
-        assertNotNull(DesignDraftContextData(storedContext, null, null, IntId(1)).asDesignOfficial())
+        assertNotNull(DesignOfficialContextData(storedContext, null, IntId(1), false).asMainDraft(null))
+        assertNotNull(DesignOfficialContextData(storedContext, null, IntId(1), false).asDesignDraft())
+        assertNotNull(DesignDraftContextData(storedContext, null, null, IntId(1), false).asDesignOfficial())
 
         assertThrows<IllegalStateException> { MainOfficialContextData(unstoredContext).asMainDraft() }
         assertThrows<IllegalStateException> { MainOfficialContextData(unstoredContext).asDesignDraft(IntId(1)) }
         assertThrows<IllegalStateException> { MainDraftContextData(unstoredContext, null, null).asMainOfficial() }
         assertThrows<IllegalStateException> {
-            DesignOfficialContextData(unstoredContext, null, IntId(1)).asMainDraft(null)
+            DesignOfficialContextData(unstoredContext, null, IntId(1), false).asMainDraft(null)
         }
         assertThrows<IllegalStateException> {
-            DesignOfficialContextData(unstoredContext, null, IntId(1)).asDesignDraft()
+            DesignOfficialContextData(unstoredContext, null, IntId(1), false).asDesignDraft()
         }
         assertThrows<IllegalStateException> {
-            DesignDraftContextData(unstoredContext, null, null, IntId(1)).asDesignOfficial()
+            DesignDraftContextData(unstoredContext, null, null, IntId(1), false).asDesignOfficial()
         }
 
         assertThrows<IllegalStateException> { MainOfficialContextData(overwritingContext).asMainDraft() }
         assertThrows<IllegalStateException> { MainOfficialContextData(overwritingContext).asDesignDraft(IntId(1)) }
         assertThrows<IllegalStateException> { MainDraftContextData(overwritingContext, null, null).asMainOfficial() }
         assertThrows<IllegalStateException> {
-            DesignOfficialContextData(overwritingContext, null, IntId(1)).asMainDraft(null)
+            DesignOfficialContextData(overwritingContext, null, IntId(1), false).asMainDraft(null)
         }
         assertThrows<IllegalStateException> {
-            DesignOfficialContextData(overwritingContext, null, IntId(1)).asDesignDraft()
+            DesignOfficialContextData(overwritingContext, null, IntId(1), false).asDesignDraft()
         }
         assertThrows<IllegalStateException> {
-            DesignDraftContextData(overwritingContext, null, null, IntId(1)).asDesignOfficial()
+            DesignDraftContextData(overwritingContext, null, null, IntId(1), false).asDesignOfficial()
         }
     }
 }

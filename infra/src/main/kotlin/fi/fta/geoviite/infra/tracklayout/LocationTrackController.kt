@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -207,6 +208,13 @@ class LocationTrackController(
     ): IntId<LocationTrack> {
         return locationTrackService.deleteDraft(layoutBranch, id).id
     }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/{$LAYOUT_BRANCH}/{id}/cancel")
+    fun cancelLocationTrack(
+        @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): ResponseEntity<IntId<LocationTrack>> = toResponse(locationTrackService.cancel(branch, id)?.id)
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/draft/non-linked")

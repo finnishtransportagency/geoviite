@@ -353,6 +353,9 @@ class TestDBService(
 
 data class TestLayoutContext(val context: LayoutContext, val testService: TestDBService) : TestDB by testService {
 
+    inline fun <reified T : LayoutAsset<T>> fetchVersion(id: IntId<T>): LayoutRowVersion<T>? =
+        getDao(T::class).fetchVersion(context, id)
+
     inline fun <reified T : LayoutAsset<T>> fetch(id: IntId<T>): T? =
         getDao(T::class).let { dao -> dao.fetchVersion(context, id)?.let(dao::fetch) }
 
@@ -565,7 +568,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                                 require(designRowId == null) { "Can't set design row reference on main-official row" }
                             }
                         is DesignBranch ->
-                            DesignOfficialContextData(rowContextId, officialRowId, branch.designId).also {
+                            DesignOfficialContextData(rowContextId, officialRowId, branch.designId, false).also {
                                 require(designRowId == null) {
                                     "Can't set design row reference on official design itself"
                                 }
@@ -575,7 +578,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                     when (branch) {
                         is MainBranch -> MainDraftContextData(rowContextId, officialRowId, designRowId)
                         is DesignBranch ->
-                            DesignDraftContextData(rowContextId, designRowId, officialRowId, branch.designId)
+                            DesignDraftContextData(rowContextId, designRowId, officialRowId, branch.designId, false)
                     }
             }
         }

@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLIC
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_GEOMETRY
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -104,6 +105,13 @@ class LayoutTrackNumberController(
     ): IntId<TrackLayoutTrackNumber> {
         return trackNumberService.deleteDraftAndReferenceLine(branch, id)
     }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/{$LAYOUT_BRANCH}/{id}/cancel")
+    fun cancelTrackNumber(
+        @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+    ): ResponseEntity<IntId<TrackLayoutTrackNumber>> = toResponse(trackNumberService.cancel(branch, id)?.id)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/plan-geometry")

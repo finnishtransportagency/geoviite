@@ -168,6 +168,7 @@ class LayoutKmPostDao(
               design_row_id,
               design_id,
               draft,
+              cancelled,
               track_number_id,
               geometry_km_post_id,
               km_number,
@@ -209,6 +210,7 @@ class LayoutKmPostDao(
               design_row_id,
               design_id,
               draft,
+              cancelled,
               track_number_id,
               geometry_km_post_id,
               km_number,
@@ -244,6 +246,7 @@ class LayoutKmPostDao(
                     "row_id",
                     "row_version",
                     "draft",
+                    "cancelled",
                 ),
         )
     }
@@ -264,6 +267,7 @@ class LayoutKmPostDao(
               gk_location_source,
               state,
               draft,
+              cancelled,
               official_row_id,
               design_row_id,
               design_id
@@ -278,6 +282,7 @@ class LayoutKmPostDao(
               :gk_location_source::layout.gk_location_source,
               :state::layout.state,
               :draft,
+              :cancelled,
               :official_row_id,
               :design_row_id,
               :design_id
@@ -303,6 +308,7 @@ class LayoutKmPostDao(
                 "gk_location_source" to newItem.gkLocation?.source?.name,
                 "state" to newItem.state.name,
                 "draft" to newItem.contextData.isDraft,
+                "cancelled" to newItem.isCancelled,
                 "official_row_id" to newItem.contextData.officialRowId?.intValue,
                 "design_row_id" to newItem.contextData.designRowId?.intValue,
                 "design_id" to newItem.contextData.designId?.intValue,
@@ -339,6 +345,7 @@ class LayoutKmPostDao(
               gk_location_source = :gk_location_source::layout.gk_location_source,
               state = :state::layout.state,
               draft = :draft,
+              cancelled = :cancelled,
               official_row_id = :official_row_id,
               design_row_id = :design_row_id,
               design_id = :design_id
@@ -365,6 +372,7 @@ class LayoutKmPostDao(
                 "gk_location_source" to updatedItem.gkLocation?.source?.name,
                 "state" to updatedItem.state.name,
                 "draft" to updatedItem.isDraft,
+                "cancelled" to updatedItem.isCancelled,
                 "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
                 "design_row_id" to updatedItem.contextData.designRowId?.intValue,
                 "design_id" to updatedItem.contextData.designId?.intValue,
