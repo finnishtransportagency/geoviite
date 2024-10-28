@@ -114,7 +114,8 @@ export async function getKmPostForLinking(
         offset: offset,
         limit: limit,
     });
-    return kmPostForLinkingCache.get(kmPostChangeTime, params, () =>
+    const key = `${params}_${layoutContext.branch}`;
+    return kmPostForLinkingCache.get(kmPostChangeTime, key, () =>
         getNonNull(`${layoutUri('km-posts', layoutContext)}${params}`),
     );
 }
