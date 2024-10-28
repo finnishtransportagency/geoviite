@@ -190,6 +190,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                                     geometrySwitchInvalidityReason={geometrySwitchInvalidityReason}
                                     hasSuggestedSwitch={!!suggestedSwitch}
                                     linkingState={linkingState}
+                                    layoutContext={layoutContext}
                                 />
                             ) : (
                                 <Spinner />

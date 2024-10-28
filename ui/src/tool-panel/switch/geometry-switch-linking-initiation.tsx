@@ -7,12 +7,14 @@ import { Button, ButtonSize } from 'vayla-design-lib/button/button';
 import { GeometrySwitchSuggestionFailureReason, LinkingState } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
+import { LayoutContext } from 'common/common-model';
 
 type GeometrySwitchLinkingInitiationProps = {
     linkingState: LinkingState | undefined;
     hasSuggestedSwitch: boolean;
     geometrySwitchInvalidityReason: GeometrySwitchSuggestionFailureReason | undefined;
     onStartLinking: () => void;
+    layoutContext: LayoutContext;
 };
 
 export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInitiationProps> = ({
@@ -20,6 +22,7 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
     hasSuggestedSwitch,
     onStartLinking,
     geometrySwitchInvalidityReason,
+    layoutContext,
 }) => {
     const { t } = useTranslation();
     return (
@@ -37,6 +40,7 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
                     hasSuggestedSwitch && (
                         <InfoboxButtons>
                             <Button
+                                disabled={layoutContext.publicationState !== 'DRAFT'}
                                 size={ButtonSize.SMALL}
                                 qa-id="start-geometry-switch-linking"
                                 onClick={onStartLinking}>
