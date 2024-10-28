@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.geography.toJtsBox
 import fi.fta.geoviite.infra.geography.toJtsLineString
 import fi.fta.geoviite.infra.geography.toJtsPolygon
+import kotlin.math.sqrt
 
 private const val DEFAULT_BUFFER = 0.000001
 private const val SEPARATOR = "_"
@@ -52,6 +53,24 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
         return other != null && this.x.overlaps(other.x) && this.y.overlaps(other.y)
     }
 
+    /** Least distance between any pair of points in the boxes, whether inside or in the perimeter */
+    // https://gist.github.com/dGr8LookinSparky/bd64a9f5f9deecf61e2c3c1592169c00
+    fun minimumDistance(other: BoundingBox): Double {
+        var distanceSq = 0.0
+        listOf(BoundingBox::x, BoundingBox::y).forEach { dim ->
+            val (min1, max1) = dim(this)
+            val (min2, max2) = dim(other)
+            if (max2 < min1) {
+                val distance = max2 - min1
+                distanceSq += distance * distance
+            } else if (min2 > max1) {
+                val distance = min2 - max1
+                distanceSq += distance * distance
+            }
+        }
+        return sqrt(distanceSq)
+    }
+
     fun intersects(polygonPoints: List<Point>): Boolean {
         return when (polygonPoints.size) {
             0 -> false
@@ -90,7 +109,7 @@ fun boundingBoxAroundPoint(point: IPoint, delta: Double) =
 fun boundingBoxAroundPoints(point1: Point, vararg rest: Point): BoundingBox =
     boundingBoxAroundPointsOrNull(listOf(point1) + rest) ?: throw IllegalStateException("Failed to create bounding box")
 
-fun boundingBoxAroundPoints(points: List<Point>, buffer: Double = DEFAULT_BUFFER) =
+fun boundingBoxAroundPoints(points: List<IPoint>, buffer: Double = DEFAULT_BUFFER) =
     boundingBoxAroundPointsOrNull(points, buffer) ?: throw IllegalStateException("Failed to create bounding box")
 
 fun <T : IPoint> boundingBoxAroundPointsOrNull(points: List<T>, buffer: Double = DEFAULT_BUFFER) =

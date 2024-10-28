@@ -430,12 +430,6 @@ private fun mapMeasurementMethodToLocationAccuracy(mm: MeasurementMethod): Locat
         MeasurementMethod.UNVERIFIED_DESIGNED_GEOMETRY -> LocationAccuracy.MEASURED_GEODETICALLY
     }
 
-private fun lines(alignment: IAlignment): List<Line> {
-    return alignment.segments.flatMap { segment ->
-        segment.segmentPoints.dropLast(1).mapIndexed { index, point -> Line(point, segment.segmentPoints[index + 1]) }
-    }
-}
-
 const val MAX_LINE_INTERSECTION_DISTANCE = 0.5
 const val MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES = 1
 
@@ -445,10 +439,33 @@ private fun findIntersections(alignment1: IAlignment, alignment2: IAlignment): L
     // angles from start to end.
     val directionDiff = alignmentStartEndDirectionDiff(alignment1, alignment2)?.let(::radsToDegrees)
     if (directionDiff == null || directionDiff < MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES) return emptyList()
+    val lines2 = toChunkedLinesWithBoxes(alignment2)
+    return toChunkedLinesWithBoxes(alignment1)
+        .flatMap { (l1, bb1) ->
+            lines2.flatMap { (l2, bb2) ->
+                if (bb1.minimumDistance(bb2) <= MAX_LINE_INTERSECTION_DISTANCE) {
+                    findIntersectionsBetweenLineLists(l1, l2, alignment1, alignment2)
+                } else listOf()
+            }
+        }
+        .toList()
+}
 
-    val lines1 = lines(alignment1)
-    val lines2 = lines(alignment2)
-    return lines1.flatMap { line1 ->
+private fun toChunkedLinesWithBoxes(alignment: IAlignment) =
+    alignment.allSegmentPoints
+        .zipWithNext { a, b -> Line(a, b) }
+        .chunked(10)
+        .map { lineChunk ->
+            lineChunk to boundingBoxAroundPoints(listOf(lineChunk[0].start) + lineChunk.map { it.end })
+        }
+
+private fun findIntersectionsBetweenLineLists(
+    lines1: List<Line>,
+    lines2: List<Line>,
+    alignment1: IAlignment,
+    alignment2: IAlignment,
+) =
+    lines1.flatMap { line1 ->
         lines2.mapNotNull { line2 ->
             val intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
             if (intersection != null && intersection.linesIntersect()) {
@@ -459,23 +476,31 @@ private fun findIntersections(alignment1: IAlignment, alignment2: IAlignment): L
                     alignment2 = alignment2,
                 )
             } else {
-                val linePointDistanceCheckPairs =
-                    listOf(line1 to line2.start, line1 to line2.end, line2 to line1.start, line2 to line1.end)
-                val minDistanceAndPoint =
-                    linePointDistanceCheckPairs
-                        .map { (line, point) -> pointDistanceToLine(line.start, line.end, point) to point }
-                        .minBy { (distance, _) -> distance }
-                if (minDistanceAndPoint.first <= MAX_LINE_INTERSECTION_DISTANCE) {
-                    TrackIntersection(
-                        point = minDistanceAndPoint.second,
-                        distance = minDistanceAndPoint.first,
-                        alignment1 = alignment1,
-                        alignment2 = alignment2,
-                    )
-                } else null
+                tryFindingNearIntersection(line1, line2, alignment1, alignment2)
             }
         }
     }
+
+private fun tryFindingNearIntersection(
+    line1: Line,
+    line2: Line,
+    alignment1: IAlignment,
+    alignment2: IAlignment,
+): TrackIntersection? {
+    val linePointDistanceCheckPairs =
+        listOf(line1 to line2.start, line1 to line2.end, line2 to line1.start, line2 to line1.end)
+    val minDistanceAndPoint =
+        linePointDistanceCheckPairs
+            .map { (line, point) -> pointDistanceToLine(line.start, line.end, point) to point }
+            .minBy { (distance, _) -> distance }
+    return if (minDistanceAndPoint.first <= MAX_LINE_INTERSECTION_DISTANCE) {
+        TrackIntersection(
+            point = minDistanceAndPoint.second,
+            distance = minDistanceAndPoint.first,
+            alignment1 = alignment1,
+            alignment2 = alignment2,
+        )
+    } else null
 }
 
 private fun alignmentStartEndDirectionDiff(alignment1: IAlignment, alignment2: IAlignment): Double? {
@@ -759,7 +784,7 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
 ): PointAssociation<FittedSwitch> {
     val (grid, switchId) = request
     val bboxExpansion = max(switchStructure.bbox.width, switchStructure.bbox.height) * 1.125
-    val gridBbox = grid.bounds() + bboxExpansion
+    val gridBbox = grid.bounds + bboxExpansion
     val pointBboxSize = max(switchStructure.bbox.width, switchStructure.bbox.height) * 2.25
     val pointBboxes =
         grid.points.associateWith { point -> BoundingBox(0.0..pointBboxSize, 0.0..pointBboxSize).centerAt(point) }
@@ -820,9 +845,6 @@ private data class TrackIntersection(
 /** Returns a copy of the alignment filtering out points that do not locate in the given bounding box. */
 fun cropPoints(alignment: LayoutAlignment, bbox: BoundingBox): CroppedAlignment =
     cropPoints(alignment.id, alignment.segments, bbox, 0)
-
-fun cropPoints(alignment: CroppedAlignment, bbox: BoundingBox): CroppedAlignment =
-    cropPoints(alignment.id, alignment.segments, bbox, alignment.cropStartSegmentIndex)
 
 fun cropPoints(
     alignmentId: DomainId<LayoutAlignment>,

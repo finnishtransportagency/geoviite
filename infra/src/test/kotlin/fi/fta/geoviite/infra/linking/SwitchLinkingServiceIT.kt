@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.switches.SwitchTrackRelinkingValidationService
 import fi.fta.geoviite.infra.linking.switches.matchFittedSwitchToTracks
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
@@ -70,6 +71,7 @@ class SwitchLinkingServiceIT
 @Autowired
 constructor(
     private val switchLinkingService: SwitchLinkingService,
+    private val switchTrackRelinkingValidationService: SwitchTrackRelinkingValidationService,
     private val switchDao: LayoutSwitchDao,
     private val locationTrackService: LocationTrackService,
     private val geometryDao: GeometryDao,
@@ -993,7 +995,8 @@ constructor(
             locationTrack(trackNumberId, name = "bad branching track", duplicateOf = throughTrack.id, draft = true),
             alignment(shiftTrack(templateBranchingTrackSegments, null, shift1)),
         )
-        val validationResult = switchLinkingService.validateRelinkingTrack(LayoutBranch.main, throughTrack.id)
+        val validationResult =
+            switchTrackRelinkingValidationService.validateRelinkingTrack(LayoutBranch.main, throughTrack.id)
         assertEqualsRounded(
             listOf(
                 SwitchRelinkingValidationResult(
@@ -1067,7 +1070,7 @@ constructor(
         )
         val okSwitch = switchDao.insert(shiftSwitch(templateSwitch, "ok", Point(10.0, 0.0)))
 
-        val validationResult = switchLinkingService.validateRelinkingTrack(LayoutBranch.main, track152)
+        val validationResult = switchTrackRelinkingValidationService.validateRelinkingTrack(LayoutBranch.main, track152)
         val relinkingResult = switchLinkingService.relinkTrack(LayoutBranch.main, track152)
         assertEquals(
             listOf(
@@ -1142,7 +1145,8 @@ constructor(
                     segment(Point(5.0, 0.0), basePoint),
                 ),
             )
-        val validationResult = switchLinkingService.validateRelinkingTrack(LayoutBranch.main, topoTrack.id)
+        val validationResult =
+            switchTrackRelinkingValidationService.validateRelinkingTrack(LayoutBranch.main, topoTrack.id)
         assertEqualsRounded(
             listOf(
                 SwitchRelinkingValidationResult(

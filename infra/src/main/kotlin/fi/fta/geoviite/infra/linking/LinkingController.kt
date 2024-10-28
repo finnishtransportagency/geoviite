@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.switches.SamplingGridPoints
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchesAtGridPoints
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.switches.SwitchTrackRelinkingValidationService
 import fi.fta.geoviite.infra.linking.switches.matchSamplingGridToQueryPoints
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -39,7 +40,11 @@ import org.springframework.web.bind.annotation.RequestParam
 @GeoviiteController("/linking")
 class LinkingController
 @Autowired
-constructor(private val linkingService: LinkingService, private val switchLinkingService: SwitchLinkingService) {
+constructor(
+    private val linkingService: LinkingService,
+    private val switchLinkingService: SwitchLinkingService,
+    private val switchTrackRelinkingValidationService: SwitchTrackRelinkingValidationService,
+) {
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/{$LAYOUT_BRANCH}/reference-lines/geometry")
@@ -192,7 +197,7 @@ constructor(private val linkingService: LinkingService, private val switchLinkin
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): List<SwitchRelinkingValidationResult> {
-        return switchLinkingService.validateRelinkingTrack(branch, id)
+        return switchTrackRelinkingValidationService.validateRelinkingTrack(branch, id)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

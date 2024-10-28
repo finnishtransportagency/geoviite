@@ -7,6 +7,7 @@ import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.lineLength
 import java.util.concurrent.ConcurrentHashMap
@@ -103,6 +104,16 @@ data class ContextCache(
             .mapNotNull { entry -> createHit(entry.value(), location, thresholdMeters) }
             .sortedWith(cacheHitComparator)
             .distinctBy { it.track.id }
+
+    fun getWithinBoundingBox(boundingBox: BoundingBox): List<Pair<LocationTrack, LayoutAlignment>> =
+        network
+            .search(Geometries.rectangle(boundingBox.x.min, boundingBox.y.min, boundingBox.x.max, boundingBox.y.max))
+            .groupBy { hit -> hit.value().locationTrackVersion to hit.value().alignmentVersion }
+            .filter { (_, hits) ->
+                hits.any { hit -> hit.value().segment.segmentPoints.any { point -> boundingBox.contains(point) } }
+            }
+            .keys
+            .map { (locationTrack, alignment) -> getTrack(locationTrack) to getAlignment(alignment) }
 
     private fun createHit(
         segment: SpatialCacheSegment,
