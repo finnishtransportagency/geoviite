@@ -167,6 +167,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
+                                    disabled={layoutContext.publicationState !== 'DRAFT'}
                                     size={ButtonSize.SMALL}
                                     qa-id="start-geometry-km-post-linking"
                                     onClick={() =>
