@@ -408,6 +408,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
+                                    disabled={layoutContext.publicationState !== 'DRAFT'}
                                     size={ButtonSize.SMALL}
                                     onClick={startLinking}
                                     qa-id="start-alignment-linking">
