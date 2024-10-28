@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.geography.toJtsBox
 import fi.fta.geoviite.infra.geography.toJtsLineString
 import fi.fta.geoviite.infra.geography.toJtsPolygon
-import kotlin.math.sqrt
+import kotlin.math.hypot
 
 private const val DEFAULT_BUFFER = 0.000001
 private const val SEPARATOR = "_"
@@ -56,19 +56,7 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
     /** Least distance between any pair of points in the boxes, whether inside or in the perimeter */
     // https://gist.github.com/dGr8LookinSparky/bd64a9f5f9deecf61e2c3c1592169c00
     fun minimumDistance(other: BoundingBox): Double {
-        var distanceSq = 0.0
-        listOf(BoundingBox::x, BoundingBox::y).forEach { dim ->
-            val (min1, max1) = dim(this)
-            val (min2, max2) = dim(other)
-            if (max2 < min1) {
-                val distance = max2 - min1
-                distanceSq += distance * distance
-            } else if (min2 > max1) {
-                val distance = min2 - max1
-                distanceSq += distance * distance
-            }
-        }
-        return sqrt(distanceSq)
+        return hypot(minimumDistance(x, other.x), minimumDistance(y, other.y))
     }
 
     fun intersects(polygonPoints: List<Point>): Boolean {

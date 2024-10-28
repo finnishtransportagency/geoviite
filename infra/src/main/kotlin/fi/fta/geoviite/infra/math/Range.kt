@@ -32,3 +32,14 @@ fun <T : Comparable<T>> maxNonNull(o1: T?, o2: T?): T? =
 
 fun <T : Comparable<T>> minNonNull(o1: T?, o2: T?): T? =
     if (o1 == null) o2 else if (o2 == null) o1 else if (o1 < o2) o1 else o2
+
+fun minimumDistance(range1: Range<Double>, range2: Range<Double>): Double {
+    val (min1, max1) = range1
+    val (min2, max2) = range2
+
+    return if (max2 < min1) {
+        max2 - min1
+    } else if (min2 > max1) {
+        min2 - max1
+    } else 0.0
+}
