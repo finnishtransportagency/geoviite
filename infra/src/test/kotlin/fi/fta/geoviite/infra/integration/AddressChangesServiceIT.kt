@@ -756,7 +756,16 @@ constructor(
         return layoutKmPostDao.fetch(
             layoutKmPostDao
                 .update(
-                    kmPost.copy(gkLocation = GeometryPoint(moveFunc(kmPost.gkLocation!!), kmPost.gkLocation!!.srid))
+                    kmPost.copy(
+                        gkLocation =
+                            kmPost.gkLocation?.copy(
+                                location =
+                                    GeometryPoint(
+                                        moveFunc(kmPost.gkLocation!!.location),
+                                        kmPost.gkLocation!!.location.srid,
+                                    )
+                            )
+                    )
                 )
                 .rowVersion
         )

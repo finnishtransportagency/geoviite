@@ -275,7 +275,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                     onClose={() => setShowAddDialog(false)}
                     onSave={handleKmPostSave}
                     prefilledTrackNumberId={geometryKmPost.trackNumberId}
-                    geometryKmPostGkLocation={geometryKmPost.gkLocation}
+                    geometryKmPostGkLocation={geometryKmPost.gkLocation?.location}
                     editType={'LINKING'}
                     geometryPlanSrid={geometryPlan?.units?.coordinateSystemSrid}
                 />

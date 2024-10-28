@@ -1678,8 +1678,6 @@ constructor(
                         LayoutState.IN_USE,
                         trackNumberId,
                         gkLocation = null,
-                        gkLocationSource = null,
-                        gkLocationConfirmed = false,
                         sourceId = null,
                     ),
                 ),
@@ -1700,8 +1698,6 @@ constructor(
                         LayoutState.NOT_IN_USE,
                         trackNumber2Id,
                         gkLocation = null,
-                        gkLocationSource = null,
-                        gkLocationConfirmed = false,
                         sourceId = null,
                     ),
                 ),
@@ -1770,8 +1766,6 @@ constructor(
                 LayoutState.IN_USE,
                 mainOfficialContext.createLayoutTrackNumber().id,
                 gkLocation = null,
-                gkLocationSource = null,
-                gkLocationConfirmed = false,
                 sourceId = null,
             )
 

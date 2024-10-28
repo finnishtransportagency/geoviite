@@ -39,9 +39,9 @@ class PlanLayoutCacheIT @Autowired constructor(private val planlayoutCache: Plan
         val layout = planlayoutCache.transformToLayoutPlan(plan).first!!
         val kmPost = layout.kmPosts[0]
         val gkLocation = kmPost.gkLocation!!
-        assertEquals(25505351.859, gkLocation.x, 0.001)
-        assertEquals(6695054.460, gkLocation.y, 0.001)
-        assertEquals(FIN_GK25_SRID, gkLocation.srid)
+        assertEquals(25505351.859, gkLocation.location.x, 0.001)
+        assertEquals(6695054.460, gkLocation.location.y, 0.001)
+        assertEquals(FIN_GK25_SRID, gkLocation.location.srid)
     }
 
     @Test
@@ -74,8 +74,8 @@ class PlanLayoutCacheIT @Autowired constructor(private val planlayoutCache: Plan
         val layout = planlayoutCache.transformToLayoutPlan(plan).first!!
         val kmPost = layout.kmPosts[0]
         val gkLocation = kmPost.gkLocation!!
-        assertEquals(25505351.859, gkLocation.x, 0.001)
-        assertEquals(6695054.460, gkLocation.y, 0.001)
-        assertEquals(FIN_GK25_SRID, gkLocation.srid)
+        assertEquals(25505351.859, gkLocation.location.x, 0.001)
+        assertEquals(6695054.460, gkLocation.location.y, 0.001)
+        assertEquals(FIN_GK25_SRID, gkLocation.location.srid)
     }
 }

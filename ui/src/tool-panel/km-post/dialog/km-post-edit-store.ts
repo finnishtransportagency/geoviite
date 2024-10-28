@@ -21,6 +21,7 @@ import { filterNotEmpty, first } from 'utils/array-utils';
 import { GeometryPoint, Point } from 'model/geometry';
 import { Srid } from 'common/common-model';
 import proj4 from 'proj4';
+import { expectDefined } from 'utils/type-utils';
 
 export type KmPostEditState = {
     isNewKmPost: boolean;
@@ -45,7 +46,7 @@ export const initialKmPostEditState: KmPostEditState = {
         gkLocationX: '',
         gkLocationY: '',
         gkSrid: undefined,
-        gkLocationConfirmed: undefined,
+        gkLocationConfirmed: false,
     },
     isSaving: false,
     validationIssues: [],
@@ -119,7 +120,7 @@ function newLinkingKmPost(
         gkLocationX: geometryKmPostLocation ? geometryKmPostLocation.x.toString(10) : '',
         gkLocationY: geometryKmPostLocation ? geometryKmPostLocation.y.toString(10) : '',
         gkSrid: geometryKmPostLocation ? geometryKmPostLocation.srid : undefined,
-        gkLocationConfirmed: geometryKmPostLocation !== undefined ? true : undefined,
+        gkLocationConfirmed: geometryKmPostLocation !== undefined,
     };
 }
 
@@ -312,8 +313,16 @@ const kmPostEditSlice = createSlice({
             state.kmPost = {
                 ...existingKmPost,
                 ...(existingKmPost.gkLocation === undefined
-                    ? { gkLocationX: '', gkLocationY: '', gkSrid: undefined }
-                    : saveGkPointToEditingGkPoint(existingKmPost.gkLocation)),
+                    ? {
+                          gkLocationX: '',
+                          gkLocationY: '',
+                          gkSrid: undefined,
+                          gkLocationConfirmed: false,
+                      }
+                    : {
+                          ...saveGkPointToEditingGkPoint(existingKmPost.gkLocation.location),
+                          gkLocationConfirmed: existingKmPost.gkLocation.confirmed,
+                      }),
             };
             state.gkLocationEnabled = existingKmPost.gkLocation !== undefined;
             state.validationIssues = validateLinkingKmPost(state);
@@ -439,14 +448,12 @@ export function isFaithfullySaveableAsFloat(number: string): boolean {
     );
 }
 
-export function editingGkPointToSavePoint(state: KmPostEditState): GeometryPoint | undefined {
-    return state.kmPost.gkSrid === undefined
-        ? undefined
-        : {
-              x: parseFloat(state.kmPost.gkLocationX),
-              y: parseFloat(state.kmPost.gkLocationY),
-              srid: state.kmPost.gkSrid,
-          };
+export function editingGkPointToSavePoint(state: KmPostEditState): GeometryPoint {
+    return {
+        x: parseFloat(expectDefined(state.kmPost.gkLocationX)),
+        y: parseFloat(expectDefined(state.kmPost.gkLocationY)),
+        srid: expectDefined(state.kmPost.gkSrid),
+    };
 }
 export function saveGkPointToEditingGkPoint(point: GeometryPoint): {
     gkLocationX: string;
@@ -468,11 +475,11 @@ export function kmPostGkPointDiffersFromOriginal(editing: KmPostGkFields, origin
 export function gkLocationIsEdited(state: KmPostEditState): boolean {
     return state.existingKmPost?.gkLocation === undefined
         ? state.kmPost.gkLocationX !== '' || state.kmPost.gkLocationY !== ''
-        : kmPostGkPointDiffersFromOriginal(state.kmPost, state.existingKmPost.gkLocation);
+        : kmPostGkPointDiffersFromOriginal(state.kmPost, state.existingKmPost.gkLocation?.location);
 }
 
 export function gkLocationSource(state: KmPostEditState): GkLocationSource | undefined {
-    return gkLocationIsEdited(state) ? 'MANUAL' : state.existingKmPost?.gkLocationSource;
+    return gkLocationIsEdited(state) ? 'MANUAL' : state.existingKmPost?.gkLocation?.source;
 }
 
 export function kmPostSaveRequest(state: KmPostEditState): KmPostSaveRequest {
@@ -485,9 +492,13 @@ export function kmPostSaveRequest(state: KmPostEditState): KmPostSaveRequest {
     const typedSimpleFields: KmPostSimpleFields = { ...simpleFields };
     return {
         ...typedSimpleFields,
-        gkLocation: state.gkLocationEnabled ? editingGkPointToSavePoint(state) : undefined,
-        gkLocationSource: state.gkLocationEnabled ? gkLocationSource(state) : undefined,
-        gkLocationConfirmed: state.gkLocationEnabled ? state.kmPost.gkLocationConfirmed : false,
+        gkLocation: state.gkLocationEnabled
+            ? {
+                  location: editingGkPointToSavePoint(state),
+                  source: expectDefined(gkLocationSource(state)),
+                  confirmed: state.kmPost.gkLocationConfirmed,
+              }
+            : undefined,
         sourceId:
             gkLocationSource(state) === 'FROM_GEOMETRY'
                 ? state.existingKmPost?.sourceId

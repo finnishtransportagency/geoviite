@@ -75,8 +75,6 @@ const KilometerLengthsTable = ({
                                     layoutLocation={item.layoutLocation}
                                     layoutGeometrySource={item.layoutGeometrySource}
                                     gkLocation={item.gkLocation}
-                                    gkLocationSource={item.gkLocationSource}
-                                    gkLocationConfirmed={item.gkLocationConfirmed}
                                     linkedFromGeometry={item.gkLocationLinkedFromGeometry}
                                 />
                             </React.Fragment>
