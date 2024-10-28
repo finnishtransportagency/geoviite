@@ -234,8 +234,8 @@ private fun asCsvFile(
                     {
                         if (isGeneratedRow(it)) {
                             ""
-                        } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
-                            translation.t(gkLocationConfirmedTranslationKey(it.gkLocation?.confirmed))
+                        } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION && it.gkLocation != null) {
+                            translation.t(gkLocationConfirmedTranslationKey(it.gkLocation.confirmed))
                         } else {
                             translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed")
                         }
@@ -288,9 +288,9 @@ private fun locationSourceTranslationKey(
             ?.let(::LocalizationKey)
 }
 
-private fun gkLocationConfirmedTranslationKey(confirmed: Boolean?): LocalizationKey =
+private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): LocalizationKey =
     when {
-        confirmed == true -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.confirmed"
+        confirmed -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.confirmed"
         else -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed"
     }.let(::LocalizationKey)
 
