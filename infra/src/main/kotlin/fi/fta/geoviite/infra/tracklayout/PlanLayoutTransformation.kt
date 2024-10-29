@@ -90,9 +90,12 @@ fun toTrackLayoutKmPosts(
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
                 trackNumberId = trackNumberId,
-                gkLocation = planToGkTransformation.transform(kmPost.location),
-                gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
-                gkLocationConfirmed = true,
+                gkLocation =
+                    TrackLayoutKmPostGkLocation(
+                        location = planToGkTransformation.transform(kmPost.location),
+                        source = KmPostGkLocationSource.FROM_GEOMETRY,
+                        confirmed = true,
+                    ),
                 contextData = LayoutContextData.newDraft(LayoutBranch.main),
             )
         } else {

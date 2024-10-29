@@ -279,15 +279,19 @@ export type LayoutSwitchJoint = {
     locationAccuracy: LocationAccuracy;
 };
 
+export type LayoutKmPostGkLocation = {
+    location: GeometryPoint;
+    source: GkLocationSource;
+    confirmed: boolean;
+};
+
 export type LayoutKmPostId = Brand<string, 'LayoutKmPostId'>;
 
 export type LayoutKmPost = {
     id: LayoutKmPostId;
     kmNumber: KmNumber;
     layoutLocation?: Point;
-    gkLocation?: GeometryPoint;
-    gkLocationSource?: GkLocationSource;
-    gkLocationConfirmed: boolean;
+    gkLocation: LayoutKmPostGkLocation | undefined;
     state: LayoutState;
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryKmPostId;
@@ -304,9 +308,7 @@ export type LayoutKmLengthDetails = {
     coordinateSystem: CoordinateSystem;
     layoutGeometrySource: GeometrySource;
     layoutLocation?: Point;
-    gkLocation?: GeometryPoint;
-    gkLocationSource?: GkLocationSource;
-    gkLocationConfirmed: boolean;
+    gkLocation: LayoutKmPostGkLocation | undefined;
     gkLocationLinkedFromGeometry: boolean;
 };
 

@@ -29,8 +29,6 @@ class LayoutKmPostService(
                 trackNumberId = request.trackNumberId,
                 sourceId = null,
                 gkLocation = request.gkLocation,
-                gkLocationSource = request.gkLocationSource,
-                gkLocationConfirmed = request.gkLocationConfirmed,
                 contextData = LayoutContextData.newDraft(branch),
             )
         return saveDraftInternal(branch, kmPost).id
@@ -47,8 +45,6 @@ class LayoutKmPostService(
                 .copy(
                     kmNumber = kmPost.kmNumber,
                     state = kmPost.state,
-                    gkLocationConfirmed = kmPost.gkLocationConfirmed,
-                    gkLocationSource = kmPost.gkLocationSource,
                     gkLocation = kmPost.gkLocation,
                     sourceId = kmPost.sourceId,
                 )

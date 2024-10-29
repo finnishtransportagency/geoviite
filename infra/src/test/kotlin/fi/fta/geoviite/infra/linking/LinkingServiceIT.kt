@@ -221,10 +221,10 @@ constructor(
         assertNotEquals(officialKmPost, draftKmPost)
 
         assertEquals(geometryKmPostId, draftKmPost.sourceId)
-        assertEquals(true, draftKmPost.gkLocationConfirmed)
-        assertEquals(KmPostGkLocationSource.FROM_GEOMETRY, draftKmPost.gkLocationSource)
-        assertEquals(geometryKmPost.location, draftKmPost.gkLocation?.toPoint())
-        assertEquals(fetchedPlan.units.coordinateSystemSrid, draftKmPost.gkLocation?.srid)
+        assertEquals(true, draftKmPost.gkLocation?.confirmed)
+        assertEquals(KmPostGkLocationSource.FROM_GEOMETRY, draftKmPost.gkLocation?.source)
+        assertEquals(geometryKmPost.location, draftKmPost.gkLocation?.location?.toPoint())
+        assertEquals(fetchedPlan.units.coordinateSystemSrid, draftKmPost.gkLocation?.location?.srid)
     }
 
     @Test

@@ -130,7 +130,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     );
     const geometryPlanCrs = useCoordinateSystem(geometryPlan?.units?.coordinateSystemSrid);
 
-    const gkCoordinateSystem = useCoordinateSystem(kmPost.gkLocation?.srid);
+    const gkCoordinateSystem = useCoordinateSystem(kmPost.gkLocation?.location?.srid);
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
 
@@ -251,7 +251,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                         }
                         value={
                             updatedKmPost?.gkLocation
-                                ? formatToGkFinString(updatedKmPost.gkLocation)
+                                ? formatToGkFinString(updatedKmPost.gkLocation.location)
                                 : '-'
                         }
                     />
@@ -259,14 +259,14 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                         qaId="km-post-gk-coordinates-confirmed"
                         label={t(`tool-panel.km-post.layout.gk-coordinates.confirmed-title`)}
                         value={t(
-                            `tool-panel.km-post.layout.gk-coordinates.${updatedKmPost?.gkLocationConfirmed ? '' : 'not-'}confirmed`,
+                            `tool-panel.km-post.layout.gk-coordinates.${updatedKmPost?.gkLocation?.confirmed ? '' : 'not-'}confirmed`,
                         )}
                     />
                     <InfoboxField
                         qaId="km-post-gk-coordinates-source"
                         label={t('tool-panel.km-post.layout.gk-coordinates.source')}
                         value={
-                            updatedKmPost?.gkLocationSource === 'FROM_GEOMETRY' ? (
+                            updatedKmPost?.gkLocation?.source === 'FROM_GEOMETRY' ? (
                                 <span>
                                     {t(
                                         'tool-panel.km-post.layout.gk-coordinates.source-from-geometry',
@@ -289,9 +289,9 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                         {geometryPlan?.fileName}
                                     </Link>
                                 </span>
-                            ) : updatedKmPost?.gkLocationSource === 'FROM_LAYOUT' ? (
+                            ) : updatedKmPost?.gkLocation?.source === 'FROM_LAYOUT' ? (
                                 t('tool-panel.km-post.layout.gk-coordinates.source-from-layout')
-                            ) : updatedKmPost?.gkLocationSource === 'MANUAL' ? (
+                            ) : updatedKmPost?.gkLocation?.source === 'MANUAL' ? (
                                 t('tool-panel.km-post.layout.gk-coordinates.source-manual')
                             ) : (
                                 '-'
@@ -363,7 +363,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     kmPostId={kmPost.id}
                     onClose={closeEditDialog}
                     onSave={handleKmPostSave}
-                    geometryKmPostGkLocation={kmPost.gkLocation}
+                    geometryKmPostGkLocation={kmPost.gkLocation?.location}
                     editType={'MODIFY'}
                 />
             )}

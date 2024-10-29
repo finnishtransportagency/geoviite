@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPostGkLocation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
@@ -245,10 +246,13 @@ constructor(
             coordinateTransformationService.getTransformationToGkFin(kmPostSrid).transform(geometryKmPost.location)
         val modifiedLayoutKmPost =
             layoutKmPost.copy(
-                gkLocation = newGkLocation,
-                gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
+                gkLocation =
+                    TrackLayoutKmPostGkLocation(
+                        location = newGkLocation,
+                        source = KmPostGkLocationSource.FROM_GEOMETRY,
+                        confirmed = true,
+                    ),
                 sourceId = geometryKmPost.id,
-                gkLocationConfirmed = true,
             )
 
         return layoutKmPostService.saveDraft(branch, modifiedLayoutKmPost)

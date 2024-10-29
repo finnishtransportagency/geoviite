@@ -137,7 +137,6 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     updateProp,
     hasErrors,
     getVisibleErrorsByProp,
-    geometryKmPostGkLocation,
     editType,
     geometryPlanSrid,
 }) => {
@@ -149,7 +148,6 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     const layoutLocation = gkLocation ? transformGkToLayout(gkLocation) : undefined;
     const gkLocationEnabled = state.gkLocationEnabled;
     const fieldsEnabled = !isLinking && gkLocationEnabled;
-    const gkLocationEntered = geometryKmPostGkLocation !== undefined || layoutLocation != undefined;
 
     const coordinateSystems = useCoordinateSystems(GK_FIN_COORDINATE_SYSTEMS.map(([srid]) => srid));
     const isFromNonGkPlan =
@@ -266,19 +264,13 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                 value={
                     <div className={styles['km-post-edit-dialog__confirmed']}>
                         <Radio
-                            checked={
-                                (state.kmPost.gkLocationConfirmed === true || !gkLocationEntered) &&
-                                gkLocationEnabled
-                            }
+                            checked={gkLocationEnabled && state.kmPost.gkLocationConfirmed}
                             onChange={() => updateProp('gkLocationConfirmed', true)}
                             disabled={!fieldsEnabled}>
                             {t('km-post-dialog.gk-location.confirmed')}
                         </Radio>
                         <Radio
-                            checked={
-                                (state.kmPost.gkLocationConfirmed === false && gkLocationEntered) ||
-                                !gkLocationEnabled
-                            }
+                            checked={!gkLocationEnabled || !state.kmPost.gkLocationConfirmed}
                             onChange={() => updateProp('gkLocationConfirmed', false)}
                             disabled={!fieldsEnabled}>
                             {t('km-post-dialog.gk-location.not-confirmed')}

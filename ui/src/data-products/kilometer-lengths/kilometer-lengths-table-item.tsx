@@ -1,10 +1,14 @@
 import * as React from 'react';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import styles from '../data-product-table.scss';
-import { GeometrySource, GkLocationSource, LAYOUT_SRID } from 'track-layout/track-layout-model';
+import {
+    GeometrySource,
+    LAYOUT_SRID,
+    LayoutKmPostGkLocation,
+} from 'track-layout/track-layout-model';
 import { useTranslation } from 'react-i18next';
 import { CoordinateSystem } from 'common/common-model';
-import { GeometryPoint, Point } from 'model/geometry';
+import { Point } from 'model/geometry';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { useCoordinateSystem } from 'track-layout/track-layout-react-utils';
 import { KmLengthsLocationPrecision } from 'data-products/data-products-slice';
@@ -18,9 +22,7 @@ export type KilometerLengthsTableItemProps = {
     coordinateSystem: CoordinateSystem;
     layoutLocation: Point | undefined;
     layoutGeometrySource: GeometrySource;
-    gkLocation: GeometryPoint | undefined;
-    gkLocationSource: GkLocationSource | undefined;
-    gkLocationConfirmed: boolean;
+    gkLocation: LayoutKmPostGkLocation | undefined;
     locationPrecision: KmLengthsLocationPrecision;
     linkedFromGeometry: boolean;
 };
@@ -34,13 +36,11 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     layoutLocation,
     layoutGeometrySource,
     gkLocation,
-    gkLocationConfirmed,
-    gkLocationSource,
     locationPrecision,
     linkedFromGeometry,
 }) => {
     const { t } = useTranslation();
-    const kmPostCoordinateSystem = useCoordinateSystem(gkLocation?.srid);
+    const kmPostCoordinateSystem = useCoordinateSystem(gkLocation?.location?.srid);
     const layoutCoordinateSystem = useCoordinateSystem(LAYOUT_SRID);
 
     const hasLayoutLocation = layoutLocation !== undefined;
@@ -48,7 +48,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     const showingPreciseLocation = locationPrecision === 'PRECISE_LOCATION';
     const generatedRow = layoutGeometrySource === 'GENERATED';
 
-    const location = showingPreciseLocation ? gkLocation : layoutLocation;
+    const location = showingPreciseLocation ? gkLocation?.location : layoutLocation;
     const coordinateSystem = showingPreciseLocation
         ? kmPostCoordinateSystem
         : layoutCoordinateSystem;
@@ -56,7 +56,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     let locationSourceString = '';
     if (!generatedRow) {
         const gkLocationSourceString = hasGkLocation
-            ? t(`enum.gk-location-source.${gkLocationSource}`)
+            ? t(`enum.gk-location-source.${gkLocation.source}`)
             : '';
         const layoutLocationSourceString = linkedFromGeometry
             ? t('data-products.km-lengths.table.from-geometry')
@@ -69,7 +69,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
 
     let locationPrecisionString = '';
     if (!generatedRow) {
-        const gkLocationConfirmationString = gkLocationConfirmed
+        const gkLocationConfirmationString = gkLocation?.confirmed
             ? t('data-products.km-lengths.table.confirmed')
             : t('data-products.km-lengths.table.not-confirmed');
         const layoutLocationConfirmationString = t('data-products.km-lengths.table.not-confirmed');
@@ -110,7 +110,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
                         layoutGeometrySource == 'IMPORTED' &&
                         t('data-products.km-lengths.table.imported-warning')}
                     {showingPreciseLocation &&
-                        gkLocationSource === 'FROM_LAYOUT' &&
+                        gkLocation?.source === 'FROM_LAYOUT' &&
                         t('data-products.km-lengths.table.imported-warning')}
 
                     {hasLayoutLocation &&

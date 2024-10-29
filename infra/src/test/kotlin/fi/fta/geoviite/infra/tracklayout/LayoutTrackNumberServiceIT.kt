@@ -144,8 +144,6 @@ constructor(
                 layoutGeometrySource = GeometrySource.GENERATED,
                 layoutLocation = Point(0.0, 0.0),
                 gkLocation = null,
-                gkLocationConfirmed = false,
-                gkLocationSource = null,
                 gkLocationLinkedFromGeometry = false,
             ),
             kmLengths.first(),
@@ -161,13 +159,15 @@ constructor(
                 layoutGeometrySource = GeometrySource.IMPORTED,
                 layoutLocation = kmPostLocation1,
                 gkLocation = null,
-                gkLocationConfirmed = false,
-                gkLocationSource = null,
                 gkLocationLinkedFromGeometry = false,
             ),
             kmLengths[1].copy(gkLocation = null),
         )
-        assertApproximatelyEquals(transformFromLayoutToGKCoordinate(kmPostLocation1!!), kmLengths[1].gkLocation!!, 0.01)
+        assertApproximatelyEquals(
+            transformFromLayoutToGKCoordinate(kmPostLocation1!!),
+            kmLengths[1].gkLocation!!.location,
+            0.01,
+        )
 
         val kmPostLocation2 = kmPostDao.fetch(kmPostVersions[1]).layoutLocation
         assertEquals(
@@ -179,13 +179,15 @@ constructor(
                 layoutGeometrySource = GeometrySource.IMPORTED,
                 layoutLocation = kmPostLocation2,
                 gkLocation = null,
-                gkLocationConfirmed = false,
-                gkLocationSource = null,
                 gkLocationLinkedFromGeometry = false,
             ),
             kmLengths[2].copy(gkLocation = null),
         )
-        assertApproximatelyEquals(transformFromLayoutToGKCoordinate(kmPostLocation2!!), kmLengths[2].gkLocation!!, 0.01)
+        assertApproximatelyEquals(
+            transformFromLayoutToGKCoordinate(kmPostLocation2!!),
+            kmLengths[2].gkLocation!!.location,
+            0.01,
+        )
     }
 
     @Test
@@ -242,8 +244,6 @@ constructor(
                 layoutGeometrySource = GeometrySource.GENERATED,
                 layoutLocation = Point(0.0, 0.0),
                 gkLocation = null,
-                gkLocationConfirmed = false,
-                gkLocationSource = null,
                 gkLocationLinkedFromGeometry = false,
             ),
             kmLengths.first(),
@@ -259,15 +259,13 @@ constructor(
                 layoutGeometrySource = GeometrySource.IMPORTED,
                 layoutLocation = kmPostLocation,
                 gkLocation = null,
-                gkLocationConfirmed = false,
-                gkLocationSource = null,
                 gkLocationLinkedFromGeometry = false,
             ),
             kmLengths.last().copy(gkLocation = null),
         )
         assertApproximatelyEquals(
             transformFromLayoutToGKCoordinate(kmPostLocation!!),
-            kmLengths.last().gkLocation!!,
+            kmLengths.last().gkLocation!!.location,
             0.01,
         )
     }

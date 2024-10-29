@@ -25,8 +25,8 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.printCsv
-import org.springframework.transaction.annotation.Transactional
 import java.util.stream.Collectors
+import org.springframework.transaction.annotation.Transactional
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
 
@@ -214,7 +214,7 @@ private fun asCsvFile(
                     {
                         when (precision) {
                             KmLengthsLocationPrecision.PRECISE_LOCATION ->
-                                it.gkLocation?.srid?.let(getCoordinateSystem)?.name
+                                it.gkLocation?.location?.srid?.let(getCoordinateSystem)?.name
                             KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> getCoordinateSystem(LAYOUT_SRID).name
                         }
                     },
@@ -234,8 +234,8 @@ private fun asCsvFile(
                     {
                         if (isGeneratedRow(it)) {
                             ""
-                        } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
-                            translation.t(gkLocationConfirmedTranslationKey(it.gkLocationConfirmed))
+                        } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION && it.gkLocation != null) {
+                            translation.t(gkLocationConfirmedTranslationKey(it.gkLocation.confirmed))
                         } else {
                             translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed")
                         }
@@ -250,7 +250,7 @@ private fun asCsvFile(
                             translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
                         } else if (
                             precision == KmLengthsLocationPrecision.PRECISE_LOCATION &&
-                                kmPost.gkLocationSource == KmPostGkLocationSource.FROM_LAYOUT
+                                kmPost.gkLocation?.source == KmPostGkLocationSource.FROM_LAYOUT
                         ) {
                             translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
                         } else if (
@@ -278,7 +278,7 @@ private fun locationSourceTranslationKey(
         null
     } else
         if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
-                kmPost.gkLocationSource?.let { source -> "enum.gk-location-source.$source" }
+                kmPost.gkLocation?.source?.let { source -> "enum.gk-location-source.$source" }
             } else {
                 when (kmPost.gkLocationLinkedFromGeometry) {
                     true -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-geometry"
@@ -296,7 +296,7 @@ private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): LocalizationK
 
 private fun getLocationByPrecision(kmPost: TrackLayoutKmLengthDetails, precision: KmLengthsLocationPrecision): IPoint? =
     when (precision) {
-        KmLengthsLocationPrecision.PRECISE_LOCATION -> kmPost.gkLocation
+        KmLengthsLocationPrecision.PRECISE_LOCATION -> kmPost.gkLocation?.location
         KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> kmPost.layoutLocation
     }
 
@@ -319,8 +319,6 @@ private fun extractTrackKmLengths(
             layoutGeometrySource = GeometrySource.GENERATED,
             layoutLocation = startPoint.point.toPoint(),
             gkLocation = null,
-            gkLocationConfirmed = false,
-            gkLocationSource = null,
             gkLocationLinkedFromGeometry = false,
         )
     ) +
@@ -335,9 +333,7 @@ private fun extractTrackKmLengths(
                 layoutLocation = kmPost.layoutLocation,
                 gkLocation = kmPost.gkLocation,
                 layoutGeometrySource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED,
-                gkLocationConfirmed = kmPost.gkLocationConfirmed,
-                gkLocationSource = kmPost.gkLocationSource,
-                gkLocationLinkedFromGeometry = kmPost.sourceId !== null,
+                gkLocationLinkedFromGeometry = kmPost.sourceId != null,
             )
         }
 }

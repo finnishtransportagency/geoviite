@@ -22,11 +22,11 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val KM_POST_CACHE_SIZE = 10000L
 
@@ -189,6 +189,16 @@ class LayoutKmPostDao(
         }
     }
 
+    private fun getKmPostGkLocation(rs: ResultSet): TrackLayoutKmPostGkLocation? {
+        val location = rs.getGeometryPointOrNull("gk_point_x", "gk_point_y", "gk_srid")
+        val locationSource = rs.getEnumOrNull<KmPostGkLocationSource>("gk_location_source")
+        val locationConfirmed = rs.getBoolean("gk_location_confirmed")
+
+        return if (location != null && locationSource != null)
+            TrackLayoutKmPostGkLocation(location, locationSource, locationConfirmed)
+        else null
+    }
+
     override fun preloadCache(): Int {
         val sql =
             """
@@ -218,13 +228,12 @@ class LayoutKmPostDao(
         return posts.size
     }
 
-    private fun getLayoutKmPost(rs: ResultSet): TrackLayoutKmPost =
-        TrackLayoutKmPost(
+    private fun getLayoutKmPost(rs: ResultSet): TrackLayoutKmPost {
+
+        return TrackLayoutKmPost(
             trackNumberId = rs.getIntId("track_number_id"),
             kmNumber = rs.getKmNumber("km_number"),
-            gkLocation = rs.getGeometryPointOrNull("gk_point_x", "gk_point_y", "gk_srid"),
-            gkLocationSource = rs.getEnumOrNull<KmPostGkLocationSource>("gk_location_source"),
-            gkLocationConfirmed = rs.getBoolean("gk_location_confirmed"),
+            gkLocation = getKmPostGkLocation(rs),
             state = rs.getEnum("state"),
             sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
             contextData =
@@ -237,6 +246,7 @@ class LayoutKmPostDao(
                     "draft",
                 ),
         )
+    }
 
     @Transactional
     override fun insert(newItem: TrackLayoutKmPost): LayoutDaoResponse<TrackLayoutKmPost> {
@@ -286,11 +296,11 @@ class LayoutKmPostDao(
                 "layout_x" to newItem.layoutLocation?.x,
                 "layout_y" to newItem.layoutLocation?.y,
                 "layout_srid" to LAYOUT_SRID.code,
-                "gk_x" to newItem.gkLocation?.x,
-                "gk_y" to newItem.gkLocation?.y,
-                "gk_srid" to newItem.gkLocation?.srid?.code,
-                "gk_location_confirmed" to newItem.gkLocationConfirmed,
-                "gk_location_source" to newItem.gkLocationSource?.name,
+                "gk_x" to newItem.gkLocation?.location?.x,
+                "gk_y" to newItem.gkLocation?.location?.y,
+                "gk_srid" to newItem.gkLocation?.location?.srid?.code,
+                "gk_location_confirmed" to (newItem.gkLocation?.confirmed ?: false),
+                "gk_location_source" to newItem.gkLocation?.source?.name,
                 "state" to newItem.state.name,
                 "draft" to newItem.contextData.isDraft,
                 "official_row_id" to newItem.contextData.officialRowId?.intValue,
@@ -348,11 +358,11 @@ class LayoutKmPostDao(
                 "layout_x" to updatedItem.layoutLocation?.x,
                 "layout_y" to updatedItem.layoutLocation?.y,
                 "layout_srid" to LAYOUT_SRID.code,
-                "gk_x" to updatedItem.gkLocation?.x,
-                "gk_y" to updatedItem.gkLocation?.y,
-                "gk_srid" to updatedItem.gkLocation?.srid?.code,
-                "gk_location_confirmed" to updatedItem.gkLocationConfirmed,
-                "gk_location_source" to updatedItem.gkLocationSource?.name,
+                "gk_x" to updatedItem.gkLocation?.location?.x,
+                "gk_y" to updatedItem.gkLocation?.location?.y,
+                "gk_srid" to updatedItem.gkLocation?.location?.srid?.code,
+                "gk_location_confirmed" to (updatedItem.gkLocation?.confirmed ?: false),
+                "gk_location_source" to updatedItem.gkLocation?.source?.name,
                 "state" to updatedItem.state.name,
                 "draft" to updatedItem.isDraft,
                 "official_row_id" to updatedItem.contextData.officialRowId?.intValue,

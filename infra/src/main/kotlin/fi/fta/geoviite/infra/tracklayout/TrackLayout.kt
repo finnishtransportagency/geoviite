@@ -392,11 +392,15 @@ enum class KmPostGkLocationSource {
     MANUAL,
 }
 
+data class TrackLayoutKmPostGkLocation(
+    val location: GeometryPoint,
+    val source: KmPostGkLocationSource,
+    val confirmed: Boolean,
+)
+
 data class TrackLayoutKmPost(
     val kmNumber: KmNumber,
-    val gkLocation: GeometryPoint?,
-    val gkLocationSource: KmPostGkLocationSource?,
-    val gkLocationConfirmed: Boolean,
+    val gkLocation: TrackLayoutKmPostGkLocation?,
     val state: LayoutState,
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val sourceId: DomainId<GeometryKmPost>?,
@@ -405,7 +409,8 @@ data class TrackLayoutKmPost(
     @JsonIgnore val exists = !state.isRemoved()
 
     val layoutLocation =
-        if (gkLocation == null) null else transformNonKKJCoordinate(gkLocation.srid, LAYOUT_SRID, gkLocation.toPoint())
+        if (gkLocation == null) null
+        else transformNonKKJCoordinate(gkLocation.location.srid, LAYOUT_SRID, gkLocation.location.toPoint())
 
     fun getAsIntegral(): IntegralTrackLayoutKmPost? =
         if (state != LayoutState.IN_USE || layoutLocation == null || trackNumberId == null) null
@@ -437,9 +442,7 @@ data class TrackLayoutKmLengthDetails(
     val endM: BigDecimal,
     val layoutGeometrySource: GeometrySource,
     val layoutLocation: Point?,
-    val gkLocation: GeometryPoint?,
-    val gkLocationSource: KmPostGkLocationSource?,
-    val gkLocationConfirmed: Boolean,
+    val gkLocation: TrackLayoutKmPostGkLocation?,
     val gkLocationLinkedFromGeometry: Boolean,
 ) {
     val length = endM - startM
