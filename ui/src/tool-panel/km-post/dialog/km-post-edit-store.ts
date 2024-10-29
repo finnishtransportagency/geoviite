@@ -62,7 +62,7 @@ const EASTING_MARGIN_BETWEEN_GKS_DEG = 0.01;
 
 // GK-FIN coordinate systems currently only used for the live display of layout coordinates when editing km post
 // positions manually
-export const GK_FIN_COORDINATE_SYSTEMS: [Srid, string][] = [...Array(12)].map(
+export const GK_FIN_COORDINATE_SYSTEMS: [Srid, string][] = [...Array(13)].map(
     (_, meridianIndex) => {
         const meridian = 19 + meridianIndex;
         const falseNorthing = meridian * 1e6 + 0.5e6;
