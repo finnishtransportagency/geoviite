@@ -7,6 +7,7 @@ create temporary table node_points as (
         lt.id as location_track_id,
         lt.name as location_track_name,
         s.switch_id,
+        sw.version switch_version,
         s.switch_start_joint_number,
         s.switch_end_joint_number,
         s.alignment_id,
@@ -19,6 +20,8 @@ create temporary table node_points as (
           inner join layout.alignment a on a.id = s.alignment_id and a.version = s.alignment_version
           inner join layout.location_track lt on a.id = lt.alignment_id and a.version = lt.alignment_version
           inner join layout.segment_geometry sg on sg.id = s.geometry_id
+          -- TODO: for versioned nodes, we need to take the switch version at alignment changetime
+          left join layout.switch sw on s.switch_id = sw.id
         where (s.switch_id is not null and (s.switch_start_joint_number is not null or s.switch_end_joint_number is not null))
            or (s.segment_index = 0)
            or (s.segment_index = a.segment_count - 1)
@@ -28,6 +31,7 @@ create temporary table node_points as (
         location_track_id,
         location_track_name,
         switch_id,
+        switch_version,
         switch_start_joint_number as joint_number,
         postgis.st_startpoint(geometry) as location,
         alignment_id,
@@ -41,6 +45,7 @@ create temporary table node_points as (
         location_track_id,
         location_track_name,
         switch_id,
+        switch_version,
         switch_end_joint_number as joint_number,
         postgis.st_endpoint(geometry) as location,
         alignment_id,
@@ -55,6 +60,7 @@ create temporary table node_points as (
     location_track_name,
     postgis.st_clusterdbscan(location, 0.5, 1) over () as cluster_id,
     switch_id,
+    switch_version,
     joint_number,
     location,
     alignment_id,
@@ -97,6 +103,7 @@ create temporary table track_edges as (
   with segment_clusters as (
     select
       lt.id as location_track_id,
+      lt.version as location_track_version,
       lt.name as location_track_name,
       s.alignment_id,
       s.alignment_version,
@@ -122,6 +129,7 @@ create temporary table track_edges as (
     from (
       select
         location_track_id,
+        location_track_version,
         location_track_name,
         alignment_id,
         alignment_version,
@@ -243,8 +251,18 @@ insert into layout.location_track_edge (
   start_node_id,
   end_node_id
 ) (
-  -- TODO
+  select
+    e.location_track_id,
+    e.location_track_version,
+    e.start_segment_index,
+    start_node.node_id as start_node_id,
+    end_node.node_id as end_node_id
+    from track_edges e
+      left join cluster_id_to_node_id start_node on e.start_cluster_id = start_node.cluster_id
+      left join cluster_id_to_node_id end_node on e.end_cluster_id = end_node.cluster_id
+    order by e.location_track_id, e.start_segment_index
 );
+
 insert into layout.switch_joint_version_2 (
   switch_id,
   switch_version,
@@ -253,7 +271,19 @@ insert into layout.switch_joint_version_2 (
   location_accuracy,
   node_id
 ) (
-  -- TODO
+  select
+    node_points.switch_id,
+    node_points.switch_version,
+    node_points.joint_number as number,
+    joint.location,
+    joint.location_accuracy,
+    node.node_id
+    from node_points
+      inner join layout.switch_joint joint
+                 on joint.switch_id = node_points.switch_id
+                   and joint.switch_version = node_points.switch_version
+                   and joint.number = node_points.joint_number
+      inner join cluster_id_to_node_id node on node_points.cluster_id = node.cluster_id
 );
 
 -- select * from layout.edge_segment_version;

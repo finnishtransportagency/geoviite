@@ -9,6 +9,9 @@ create table layout.node
 select common.add_table_metadata('layout', 'node');
 comment on table layout.node is 'A node in the layout rail graph';
 
+-- TODO: We need multiple versions of edge geometry for draft/official/design contexts. This wont work.
+-- Either we need to make this a context-dependent layout concept or give them a non-natural primary key
+-- The latter makes it difficult to see when to reuse an edge. Maybe just make it entirely a part of locationtrack and accept that duplicates duplicate the edges.
 drop table if exists layout.edge;
 drop table if exists layout.edge_version;
 create table layout.edge
