@@ -32,7 +32,7 @@ export const FieldLayout: React.FC<FieldLayoutProps> = (props: FieldLayoutProps)
             <div className={valueClassName}>{props.value}</div>
             <div className={styles['field-layout__help']}>{props.help}</div>
             {props.errors && (
-                <div className={styles['field-layout__errors']}>
+                <div className={styles['field-layout__notices']}>
                     {props.errors.map((error, i) => (
                         <div className={styles['field-layout__error']} key={i}>
                             {error}
@@ -42,9 +42,9 @@ export const FieldLayout: React.FC<FieldLayoutProps> = (props: FieldLayoutProps)
             )}
 
             {props.warnings && (
-                <div className={styles['field-layout__errors']}>
+                <div className={styles['field-layout__notices']}>
                     {props.warnings.map((error, i) => (
-                        <div className={styles['field-layout__error']} key={i}>
+                        <div className={styles['field-layout__warning']} key={i}>
                             {error}
                         </div>
                     ))}

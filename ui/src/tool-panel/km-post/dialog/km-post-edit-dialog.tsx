@@ -209,7 +209,15 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     function getVisibleErrorsByProp(prop: keyof KmPostEditFields) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationIssues
-                  .filter((issue) => issue.field == prop)
+                  .filter((issue) => issue.field == prop && issue.type === 'ERROR')
+                  .map((issue) => t(`km-post-dialog.${issue.reason}`))
+            : [];
+    }
+
+    function getVisibleWarningsByProp(prop: keyof KmPostEditFields) {
+        return state.allFieldsCommitted || state.committedFields.includes(prop)
+            ? state.validationIssues
+                  .filter((issue) => issue.field == prop && issue.type === 'WARNING')
                   .map((issue) => t(`km-post-dialog.${issue.reason}`))
             : [];
     }
@@ -272,7 +280,9 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                     isProcessing={state.isSaving}
                                     onClick={() => saveOrConfirm()}
                                     title={getSaveDisabledReasons(
-                                        state.validationIssues.map((e) => e.reason),
+                                        state.validationIssues
+                                            .filter((e) => e.type === 'ERROR')
+                                            .map((e) => e.reason),
                                         state.isSaving,
                                     )
                                         .map((reason) => t(`km-post-dialog.${reason}`))
@@ -352,6 +362,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                     <FormLayoutColumn>
                         <KmPostEditDialogGkLocationSection
                             getVisibleErrorsByProp={getVisibleErrorsByProp}
+                            getVisibleWarningsByProp={getVisibleWarningsByProp}
                             hasErrors={hasErrors}
                             state={state}
                             stateActions={stateActions}
