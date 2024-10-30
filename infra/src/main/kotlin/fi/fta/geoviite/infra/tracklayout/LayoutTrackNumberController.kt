@@ -16,7 +16,7 @@ import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.publication.getCsvResponseEntity
@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.RequestParam
 @GeoviiteController("/track-layout/track-numbers")
 class LayoutTrackNumberController(
     private val trackNumberService: LayoutTrackNumberService,
-    private val publicationService: PublicationService,
+    private val publicationValidationService: PublicationValidationService,
     private val localizationService: LocalizationService,
 ) {
 
@@ -71,7 +71,7 @@ class LayoutTrackNumberController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<ValidatedAsset<TrackLayoutTrackNumber>> {
-        return publicationService
+        return publicationValidationService
             .validateTrackNumbersAndReferenceLines(draftTransitionOrOfficialState(publicationState, branch), listOf(id))
             .firstOrNull()
             .let(::toResponse)

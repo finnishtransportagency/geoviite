@@ -16,7 +16,7 @@ import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.publication.Operation
 import fi.fta.geoviite.infra.publication.PublicationDetails
-import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublicationLogService
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.publication.PublishedSwitch
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
@@ -60,7 +60,7 @@ constructor(
     private val ratkoAssetService: RatkoAssetService,
     private val ratkoPushDao: RatkoPushDao,
     private val ratkoClientConfiguration: RatkoClientConfiguration,
-    private val publicationService: PublicationService,
+    private val publicationLogService: PublicationLogService,
     private val calculatedChangesService: CalculatedChangesService,
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
@@ -96,10 +96,10 @@ constructor(
 
                 // Inclusive search, therefore the already pushed one is also returned
                 val publications =
-                    publicationService
+                    publicationLogService
                         .fetchPublications(layoutBranch, lastPublicationMoment)
                         .filter { it.publicationTime > lastPublicationMoment }
-                        .map { publicationService.getPublicationDetails(it.id) }
+                        .map { publicationLogService.getPublicationDetails(it.id) }
 
                 if (publications.isNotEmpty()) {
                     pushChanges(layoutBranch, publications)

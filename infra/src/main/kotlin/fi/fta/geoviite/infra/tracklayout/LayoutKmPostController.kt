@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.toResponse
@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam
 @GeoviiteController("/track-layout/km-posts")
 class LayoutKmPostController(
     private val kmPostService: LayoutKmPostService,
-    private val publicationService: PublicationService,
+    private val publicationValidationService: PublicationValidationService,
 ) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -118,7 +118,7 @@ class LayoutKmPostController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<ValidatedAsset<TrackLayoutKmPost>> {
-        return publicationService
+        return publicationValidationService
             .validateKmPosts(draftTransitionOrOfficialState(publicationState, branch), listOf(id))
             .firstOrNull()
             .let(::toResponse)
