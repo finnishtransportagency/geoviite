@@ -17,7 +17,7 @@ import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.RequestParam
 class LocationTrackController(
     private val locationTrackService: LocationTrackService,
     private val searchService: LayoutSearchService,
-    private val publicationService: PublicationService,
+    private val publicationValidationService: PublicationValidationService,
     private val switchLinkingService: SwitchLinkingService,
 ) {
 
@@ -153,7 +153,7 @@ class LocationTrackController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<ValidatedAsset<LocationTrack>> {
-        return publicationService
+        return publicationValidationService
             .validateLocationTracks(draftTransitionOrOfficialState(publicationState, layoutBranch), listOf(id))
             .firstOrNull()
             .let(::toResponse)
@@ -169,7 +169,8 @@ class LocationTrackController(
         val context = LayoutContext.of(layoutBranch, publicationState)
         val switchSuggestions = switchLinkingService.getTrackSwitchSuggestions(context, id)
         val target = ValidateTransition(publicationInOrMergeFromBranch(layoutBranch, publicationState))
-        val switchValidation = publicationService.validateSwitches(target, switchSuggestions.map { (id, _) -> id })
+        val switchValidation =
+            publicationValidationService.validateSwitches(target, switchSuggestions.map { (id, _) -> id })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id,

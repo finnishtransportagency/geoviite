@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.toResponse
@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam
 @GeoviiteController("/track-layout/switches")
 class LayoutSwitchController(
     private val switchService: LayoutSwitchService,
-    private val publicationService: PublicationService,
+    private val publicationValidationService: PublicationValidationService,
 ) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -104,7 +104,10 @@ class LayoutSwitchController(
             }
         val switchIds =
             switches.filter { switch -> switchMatchesBbox(switch, bbox, false) }.map { sw -> sw.id as IntId }
-        return publicationService.validateSwitches(draftTransitionOrOfficialState(publicationState, branch), switchIds)
+        return publicationValidationService.validateSwitches(
+            draftTransitionOrOfficialState(publicationState, branch),
+            switchIds,
+        )
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
