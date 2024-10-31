@@ -118,20 +118,31 @@ Alla oleva taulukko kuvaa eri kontekstien esitystavat tietokannan sarakkeissa, s
 
 ### Tietokantarivien elinkaari eri käyttötapauksissa
 
+Seuraavissa kappaleissa tarkastellaan tietokantarivien ID-arvojen
+käyttäytymistä eri käyttötapauksissa, muiden tietojen käsittely on sivuutettu
+tai yksinkertaistettu.
+
 #### Uusien käsitteiden lisääminen luonnospaikannuspohjan kautta
 
-Tässä käyttötapauksessa operaattori lisää järjestelmään kokonaan uuden
-ratanumeron ja raiteen.
+Tässä käyttötapauksessa operaattori on saanut tiedon maastoon toteutetuista
+rataverkon uudistuksista ja hän haluaa päivittää virallisen paikannuspohjan
+vastaamaan maaston tilannetta. Koska muutos maastoon on jo toteutettu, tässä ei
+haluta käyttää suunniteltua paikannuspohjaa, vaan muutokset tehdään suoraan
+luonnospaikannuspohjaan ja julkaistaan sieltä viralliseen paikannuspohjaan.
+
+Operaattori lisää järjestelmään uuden ratanumeron ja raiteen.
 
 ##### Alkutila
 
-Tietokannassa ei ole ratanumero tai raidetta.
+Tietokannassa ei ole ratanumeroa tai raidetta.
 
-##### Operaattori lisää ratanumeron ja raiteen.
+##### Operaattori lisää ratanumeron ja raiteen
 
 Operaattori lisää luonnospaikannuspohjaan ratanumeron ja sille yhden raiteen.
 Tietokantaan syntyy molemmille käsitteille rivit, jotka ovat merkattu luonnoksiksi.
-Raide viittaa ratanumeroon track_number_id kentän arvolla, joka on ratanumeron official_id.
+Raide viittaa ratanumeroon `track_number_id` sarakkeen arvolla, johon asetetaan ratanumeron `id`, tässä `693`.
+
+Tietokannan tilanne toimintojen jälkeen:
 
 | käsitteen nimi | id  | draft | official\_row\_id | design\_id | design\_row\_id | layout\_context\_id | official\_id |
 |:---------------|:----|:------|:------------------|:-----------|:----------------|:--------------------|:-------------|
@@ -143,12 +154,14 @@ Raide viittaa ratanumeroon track_number_id kentän arvolla, joka on ratanumeron 
 
 ##### Operaattori julkaisee ratanumeron
 
-Oikeasti operaattori todennäköisesti julkaisisi samalla myös raiteen, mutta koska käsitteitä voi julkaista erikseen,on
+Oikeasti operaattori todennäköisesti julkaisisi samalla myös raiteen, mutta koska käsitteitä voi julkaista erikseen, on
 mielekästä nähdä arvojen eläminen erikseen julkaistaessa.
 
-Tässä tilanteessa vain ratanumero-rivin draft ja layout_context_id muuttuvat. "ratanumero A" kuuluu nyt viralliseen
+Tässä tilanteessa vain ratanumero-rivin `draft` ja `layout_context_id` muuttuvat. "ratanumero A" kuuluu nyt viralliseen
 paikannuspohjaan. Huomaa että raide on yhä luonnospaikannuspohjassa, mutta se viittaa virallisessa paikannuspohjassa
-olevaan ratanumeroon. Viittaus tapahtuu official_id:llä, joka ei muutu, joten raiteen tietokantariviä ei muokata.
+olevaan ratanumeroon, tähän suuntaan viittaaminen on mahdollista.
+
+Tietokannan tilanne toimintojen jälkeen:
 
 | käsitteen nimi | id  | draft | official\_row\_id | design\_id | design\_row\_id | layout\_context\_id | official\_id |
 |:---------------|:----|:------|:------------------|:-----------|:----------------|:--------------------|:-------------|
@@ -160,7 +173,11 @@ olevaan ratanumeroon. Viittaus tapahtuu official_id:llä, joka ei muutu, joten r
 
 ##### Operaattori julkaisee raiteen
 
-Tässä muuttuvat raiteen draft ja layout_context_id. Nyt sekä ratanumero että raide ovat virallisessa paikannuspohjassa.
+Tässä muuttuvat raiteen `draft` ja `layout_context_id`. Nyt sekä ratanumero että raide ovat virallisessa
+paikannuspohjassa. Nyt maastoon toteutettu muutos on mallinnettu viralliseen paikannuspohjaan, joten tämä
+käyttötapaus on valmis.
+
+Tietokannan tilanne toimintojen jälkeen:
 
 | käsitteen nimi | id  | draft | official\_row\_id | design\_id | design\_row\_id | layout\_context\_id | official\_id |
 |:---------------|:----|:------|:------------------|:-----------|:----------------|:--------------------|:-------------|
@@ -172,11 +189,18 @@ Tässä muuttuvat raiteen draft ja layout_context_id. Nyt sekä ratanumero että
 
 #### Käsitteen muokkaaminen luonnospaikannuspohjan kautta
 
-Tässä käyttötapauksessa operaattori muokkaa virallisessa paikannuspohjassa olevaa käsitettä.
+Tässä käyttötapauksessa operaattori on saanut tiedon maastoon toteutetuista
+rataverkon muutoksesta ja hän haluaa päivittää virallisen paikannuspohjan
+vastaamaan maaston tilannetta. Koska muutos maastoon on jo toteutettu, tässä ei
+haluta käyttää suunniteltua paikannuspohjaa, vaan muutokset tehdään suoraan
+luonnospaikannuspohjaan ja julkaistaan sieltä viralliseen paikannuspohjaan.
+
+Tässä käyttötapauksessa operaattori muokkaa virallisessa paikannuspohjassa olevaa
+ratanumeroa.
 
 ##### Alkutila
 
-Virallisessa paikannuspohjassa on ratanumero, sekä siihen viittaava raide.
+Virallisessa paikannuspohjassa on ratanumero ja ratanumeroon viittaava raide.
 
 | käsitteen nimi | id  | draft | official\_row\_id | design\_id | design\_row\_id | layout\_context\_id | official\_id |
 |:---------------|:----|:------|:------------------|:-----------|:----------------|:--------------------|:-------------|
@@ -188,15 +212,15 @@ Virallisessa paikannuspohjassa on ratanumero, sekä siihen viittaava raide.
 
 ##### Operaattori muokkaa olemassa olevaa ratanumeroa
 
-Operaattori muokkaa ratanumeron tietoja (esim. nimeä). Alkuperäinen ratanumeron tietokantarivi (id=693) säilyy ja
-rinnalle
-luodaan uusi rivi (id=694). Uudessa rivissä on tieto, minkä alkuperäisen rivin luonnos se on (official_row_id).
+Operaattori muokkaa ratanumeron tietoja (tässä nimeä). Alkuperäinen ratanumeron tietokantarivi (id=693) säilyy ja
+rinnalle luodaan uusi luonnos-tilainen rivi (id=694).
+Luonnosrivi sisältää tiedon, että se on luonnos `draft=true`, sekä minkä rivin perusteella se on luotu
+`official_row_id=693`. layout
 
-Raiteen viittaus ratanumeroon tapahtuu official_id:llä, joka ei muutu, joten raiteen tietokantariviä ei muokata.
-
-Jos nyt halutaan näyttää esim. raide X:n ratanumeron nimi luonnospaikannuspohjassa (main_draft), niin raiteella on
-tiedossa ratanumeron alkuperäinen id (693), joten näillä tiedoilla voidaan hakea oikea ratanumeron tietokantarivi,
-jossa official_id=693 ja layout_context_id=main_draft. Näillä tiedoilla löytyy rivi, jonka id=694 ja nimi=ratanumero B.
+Tässä on hyvä huomata, että molemmilla ratanumeron riveillä `official_id=693`, koska
+molemmat rivit kuvaavat samaa käsitettä, mutta eri konteksteissa. Virallisen
+paikannuspohjan kontektissa (`main_official`) ratanumeron nimi on `ratanumero A`, luonnospaikannuspohjan
+kontekstissa (`main_draft`) saman ratanumeron nimi `ratanumero B`
 
 | käsitteen nimi | id  | draft | official\_row\_id | design\_id | design\_row\_id | layout\_context\_id | official\_id |
 |:---------------|:----|:------|:------------------|:-----------|:----------------|:--------------------|:-------------|
@@ -210,10 +234,17 @@ jossa official_id=693 ja layout_context_id=main_draft. Näillä tiedoilla löyty
 ##### Operaattori julkaisee ratanumeron muutoksen
 
 Kun muunnos julkaistaan luonnospaikannuspohjasta viralliseen paikannuspohjaan,
-luonnosrivi tiedot (esim. nimi) kopioidaan viralliselle riville (id=693) ja sitten luonnosrivi (id=694) poistetaan
+luonnosrivin ominaisuustiedot (esim. nimi) kopioidaan viralliselle riville ja sitten luonnosrivi poistetaan
 tietokannasta.
 
-Nyt ratanumeron nimi on päivittynyt viralliseen paikannuspohjaan.
+Tässä on hyvä huomata ero edelliseen käyttötapaukseen, jossa luotiin uusia käsitteitä. Silloinkin
+tietokannassa oli luonnosrivejä, mutta julkaistaessa luonnosrivejä ei poistettu, koska
+ei ollut olemassa ns. alkuperäisiä rivejä, joille ominaisuustiedot olisi voinut kopioida,
+vaan luonnoriveistä tehtiin virallisia rivejä. Eli riippumatta siitä missä kontekstissa käsitteen
+ensimmäinen tietokantarivi luodaan, se tulee olemaan käsitteen alkuperäinen rivi, mihin
+muut käsitteet voivat viitata.
+
+Nyt ratanumeron nimi on päivittynyt viralliseen paikannuspohjaan, joten tämä käyttötapaus on valmis.
 
 | käsitteen nimi | id  | draft | official\_row\_id | design\_id | design\_row\_id | layout\_context\_id | official\_id |
 |:---------------|:----|:------|:------------------|:-----------|:----------------|:--------------------|:-------------|
