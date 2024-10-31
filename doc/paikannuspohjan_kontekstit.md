@@ -215,7 +215,7 @@ Virallisessa paikannuspohjassa on ratanumero ja ratanumeroon viittaava raide.
 Operaattori muokkaa ratanumeron tietoja (tässä nimeä). Alkuperäinen ratanumeron tietokantarivi (id=693) säilyy ja
 rinnalle luodaan uusi luonnos-tilainen rivi (id=694).
 Luonnosrivi sisältää tiedon, että se on luonnos `draft=true`, sekä minkä rivin perusteella se on luotu
-`official_row_id=693`. layout
+`official_row_id=693`.
 
 Tässä on hyvä huomata, että molemmilla ratanumeron riveillä `official_id=693`, koska
 molemmat rivit kuvaavat samaa käsitettä, mutta eri konteksteissa. Virallisen
@@ -234,13 +234,14 @@ kontekstissa (`main_draft`) saman ratanumeron nimi `ratanumero B`
 ##### Operaattori julkaisee ratanumeron muutoksen
 
 Kun muunnos julkaistaan luonnospaikannuspohjasta viralliseen paikannuspohjaan,
-luonnosrivin ominaisuustiedot (esim. nimi) kopioidaan viralliselle riville ja sitten luonnosrivi poistetaan
+luonnosrivin `id=694` ominaisuustiedot (esim. nimi) kopioidaan viralliselle riville `id=693` ja sitten luonnosrivi
+poistetaan
 tietokannasta.
 
 Tässä on hyvä huomata ero edelliseen käyttötapaukseen, jossa luotiin uusia käsitteitä. Silloinkin
 tietokannassa oli luonnosrivejä, mutta julkaistaessa luonnosrivejä ei poistettu, koska
 ei ollut olemassa ns. alkuperäisiä rivejä, joille ominaisuustiedot olisi voinut kopioida,
-vaan luonnoriveistä tehtiin virallisia rivejä. Eli riippumatta siitä missä kontekstissa käsitteen
+joten luonnoriveistä vain muokattiin virallisia rivejä. Eli riippumatta siitä missä kontekstissa käsitteen
 ensimmäinen tietokantarivi luodaan, se tulee olemaan käsitteen alkuperäinen rivi, mihin
 muut käsitteet voivat viitata.
 
