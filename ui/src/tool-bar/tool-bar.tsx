@@ -543,20 +543,23 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 </span>
             </div>
             <div className={styles['tool-bar__right-section']}>
-                {layoutContext.publicationState === 'DRAFT' && (
-                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                        <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
-                            <Button
-                                ref={menuRef}
-                                title={newMenuTooltip}
-                                variant={ButtonVariant.GHOST}
-                                icon={Icons.Append}
-                                disabled={disableNewAssetMenu}
-                                onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
-                            />
-                        </div>
-                    </PrivilegeRequired>
-                )}
+                <div ref={menuRef}>
+                    {layoutContext.publicationState === 'DRAFT' && (
+                        <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                            <div
+                                className={styles['tool-bar__new-menu-button']}
+                                qa-id={'tool-bar.new'}>
+                                <Button
+                                    title={newMenuTooltip}
+                                    variant={ButtonVariant.GHOST}
+                                    icon={Icons.Append}
+                                    disabled={disableNewAssetMenu}
+                                    onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
+                                />
+                            </div>
+                        </PrivilegeRequired>
+                    )}
+                </div>
                 {layoutContext.publicationState == 'DRAFT' && (
                     <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button

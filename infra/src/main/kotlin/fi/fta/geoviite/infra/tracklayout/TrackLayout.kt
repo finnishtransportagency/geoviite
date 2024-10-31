@@ -408,9 +408,7 @@ data class TrackLayoutKmPost(
 ) : LayoutAsset<TrackLayoutKmPost>(contextData) {
     @JsonIgnore val exists = !state.isRemoved()
 
-    val layoutLocation =
-        if (gkLocation == null) null
-        else transformNonKKJCoordinate(gkLocation.location.srid, LAYOUT_SRID, gkLocation.location.toPoint())
+    val layoutLocation = gkLocation?.let { transformNonKKJCoordinate(it.location.srid, LAYOUT_SRID, it.location) }
 
     fun getAsIntegral(): IntegralTrackLayoutKmPost? =
         if (state != LayoutState.IN_USE || layoutLocation == null || trackNumberId == null) null

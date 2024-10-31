@@ -18,7 +18,7 @@ import {
 } from 'utils/validation-utils';
 import { isNilOrBlank, parseFloatOrUndefined } from 'utils/string-utils';
 import { filterNotEmpty, first } from 'utils/array-utils';
-import { GeometryPoint, Point } from 'model/geometry';
+import { BoundingBox, GeometryPoint, Point, rangeContainsInclusive } from 'model/geometry';
 import { Srid } from 'common/common-model';
 import proj4 from 'proj4';
 import { expectDefined } from 'utils/type-utils';
@@ -54,62 +54,63 @@ export const initialKmPostEditState: KmPostEditState = {
     allFieldsCommitted: false,
 };
 
-type GkBounds = { min: Point; max: Point };
-
 export const WGS_84_PROJECTION = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs';
 
 const EASTING_MARGIN_BETWEEN_GKS_DEG = 0.01;
 
-const GK_BOUNDS: GkBounds[] = [
+const GK_BOUNDS: BoundingBox[] = [
     {
-        min: { x: 19513254.33, y: 6663010.11 },
-        max: { x: 19527832.44, y: 6692058.68 },
+        x: { min: 19513254.33, max: 19527832.44 },
+        y: { min: 6663010.11, max: 6692058.68 },
     },
     {
-        min: { x: 20472032.84, y: 6645159.89 },
-        max: { x: 20527967.16, y: 6707657.06 },
+        x: { min: 20472032.84, max: 20527967.16 },
+        y: { min: 6645159.89, max: 6707657.06 },
     },
     {
-        min: { x: 21471965.57, y: 6636247.07 },
-        max: { x: 21528034.43, y: 7694317.48 },
+        x: { min: 21471965.57, max: 21528034.43 },
+        y: { min: 6636247.07, max: 7694317.48 },
     },
     {
-        min: { x: 22471898.34, y: 6627334.36 },
-        max: { x: 22528101.66, y: 7692086.48 },
+        x: { min: 22471898.34, max: 22528101.66 },
+        y: { min: 6627334.36, max: 7692086.48 },
     },
     {
-        min: { x: 23471889.95, y: 6626220.28 },
-        max: { x: 23528110.05, y: 7628505.09 },
+        x: { min: 23471889.95, max: 23528110.05 },
+        y: { min: 6626220.28, max: 7628505.09 },
     },
     {
-        min: { x: 24471982.38, y: 6638475.27 },
-        max: { x: 24528017.62, y: 7639659.41 },
+        x: { min: 24471982.38, max: 24528017.62 },
+        y: { min: 6638475.27, max: 7639659.41 },
     },
     {
-        min: { x: 25472049.67, y: 6647388.11 },
-        max: { x: 25527950.33, y: 7646352.07 },
+        x: { min: 25472049.67, max: 25527950.33 },
+        y: { min: 6647388.11, max: 7646352.07 },
     },
     {
-        min: { x: 26472251.88, y: 6674127.31 },
-        max: { x: 26527748.12, y: 7762365.51 },
+        x: { min: 26472251.88, max: 26527748.12 },
+        y: { min: 6674127.31, max: 7762365.51 },
     },
     {
-        min: { x: 27472403.85, y: 6694182.34 },
-        max: { x: 27527596.15, y: 7774636.97 },
+        x: { min: 27472403.85, max: 27527596.15 },
+        y: { min: 6694182.34, max: 7774636.97 },
     },
     {
-        min: { x: 28472454.57, y: 6700867.47 },
-        max: { x: 28527545.43, y: 7779099.35 },
+        x: { min: 28472454.57, max: 28527545.43 },
+        y: { min: 6700867.47, max: 7779099.35 },
     },
     {
-        min: { x: 29472895.43, y: 6758807.83 },
-        max: { x: 29527104.57, y: 7747863.07 },
+        x: { min: 29472895.43, max: 29527104.57 },
+        y: { min: 6758807.83, max: 7747863.07 },
     },
     {
-        min: { x: 30473312.92, y: 6813409.6 },
-        max: { x: 30526687.08, y: 7543736.6 },
+        x: { min: 30473312.92, max: 30526687.08 },
+        y: { min: 6813409.6, max: 7543736.6 },
     },
-    { min: { x: 31473869.79, y: 6885846.63 }, max: { x: 31530833.57, y: 7130086.16 } },
+    {
+        x: { min: 31473869.79, max: 31530833.57 },
+        y: { min: 6885846.63, max: 7130086.16 },
+    },
 ];
 
 // GK-FIN coordinate systems currently only used for the live display of layout coordinates when editing km post
@@ -190,9 +191,6 @@ const MANDATORY_FIELDS = [
     'gkSrid',
 ] as const;
 
-const xWithinGkBounds = (gkX: number, gkBounds: GkBounds): boolean =>
-    gkBounds.min.x <= gkX && gkBounds.max.x >= gkX;
-
 function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmPostEditFields>[] {
     let errors: {
         field: keyof KmPostEditFields;
@@ -252,7 +250,7 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
         if (gkX !== undefined && gkBounds) {
             const withinWgsEastingMargin = gkPoint ? isWithinEastingMargin(gkPoint) : false;
 
-            if (!xWithinGkBounds(gkX, gkBounds)) {
+            if (!rangeContainsInclusive(gkBounds.x, gkX)) {
                 errors = [
                     ...errors,
                     {
@@ -266,7 +264,7 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
                         type: FieldValidationIssueType.ERROR,
                     },
                 ];
-            } else if (xWithinGkBounds(gkX, gkBounds) && !withinWgsEastingMargin) {
+            } else if (rangeContainsInclusive(gkBounds.x, gkX) && !withinWgsEastingMargin) {
                 errors = [
                     ...errors,
                     {
@@ -283,7 +281,7 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
             }
         }
 
-        if (gkY !== undefined && gkBounds && (gkBounds.min.y >= gkY || gkBounds.max.y <= gkY)) {
+        if (gkY !== undefined && gkBounds && !rangeContainsInclusive(gkBounds.y, gkY)) {
             errors = [
                 ...errors,
                 {
