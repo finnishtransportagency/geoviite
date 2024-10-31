@@ -109,7 +109,7 @@ export const boundingBoxesIntersect = (bbox1: BoundingBox, bbox2: BoundingBox): 
     rangesIntersect(bbox1.x, bbox2.x) && rangesIntersect(bbox1.y, bbox2.y);
 
 export const boundingBoxContains = (bbox: BoundingBox, point: Point): boolean =>
-    rangeContains(bbox.x, point.x) && rangeContains(bbox.y, point.y);
+    rangeContainsExclusive(bbox.x, point.x) && rangeContainsExclusive(bbox.y, point.y);
 
 // https://stackoverflow.com/questions/9043805/test-if-two-lines-intersect-javascript-function
 // returns true if the line from (a,b)->(c,d) intersects with (p,q)->(r,s)
@@ -172,8 +172,11 @@ export function boundingBoxIntersectsLine(bbox: BoundingBox, line: Line): boolea
 export const rangesIntersect = (range1: Range<number>, range2: Range<number>): boolean =>
     range1.min < range2.max && range1.max > range1.min;
 
-export const rangeContains = (range: Range<number>, value: number): boolean =>
+export const rangeContainsExclusive = (range: Range<number>, value: number): boolean =>
     range.min < value && range.max > value;
+
+export const rangeContainsInclusive = (range: Range<number>, value: number): boolean =>
+    range.min <= value && range.max >= value;
 
 export const centerForBoundingBox = (bbox: BoundingBox): Point => ({
     x: (bbox.x.min + bbox.x.max) / 2,

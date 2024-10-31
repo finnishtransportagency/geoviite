@@ -18,7 +18,7 @@ import {
 } from 'utils/validation-utils';
 import { isNilOrBlank, parseFloatOrUndefined } from 'utils/string-utils';
 import { filterNotEmpty, first } from 'utils/array-utils';
-import { GeometryPoint, Point } from 'model/geometry';
+import { BoundingBox, GeometryPoint, Point, rangeContainsInclusive } from 'model/geometry';
 import { Srid } from 'common/common-model';
 import proj4 from 'proj4';
 import { expectDefined } from 'utils/type-utils';
@@ -56,10 +56,62 @@ export const initialKmPostEditState: KmPostEditState = {
 
 export const WGS_84_PROJECTION = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs';
 
-const SOUTHERNMOST_POINT_OF_FINLAND_DEG = 59.505;
-const NORTHMOST_POINT_OF_FINLAND_DEG = 70.092;
-const NORTHING_MARGIN_DEG = 0.1;
 const EASTING_MARGIN_BETWEEN_GKS_DEG = 0.01;
+
+const GK_BOUNDS: BoundingBox[] = [
+    {
+        x: { min: 19513254.33, max: 19527832.44 },
+        y: { min: 6663010.11, max: 6692058.68 },
+    },
+    {
+        x: { min: 20472032.84, max: 20527967.16 },
+        y: { min: 6645159.89, max: 6707657.06 },
+    },
+    {
+        x: { min: 21471965.57, max: 21528034.43 },
+        y: { min: 6636247.07, max: 7694317.48 },
+    },
+    {
+        x: { min: 22471898.34, max: 22528101.66 },
+        y: { min: 6627334.36, max: 7692086.48 },
+    },
+    {
+        x: { min: 23471889.95, max: 23528110.05 },
+        y: { min: 6626220.28, max: 7628505.09 },
+    },
+    {
+        x: { min: 24471982.38, max: 24528017.62 },
+        y: { min: 6638475.27, max: 7639659.41 },
+    },
+    {
+        x: { min: 25472049.67, max: 25527950.33 },
+        y: { min: 6647388.11, max: 7646352.07 },
+    },
+    {
+        x: { min: 26472251.88, max: 26527748.12 },
+        y: { min: 6674127.31, max: 7762365.51 },
+    },
+    {
+        x: { min: 27472403.85, max: 27527596.15 },
+        y: { min: 6694182.34, max: 7774636.97 },
+    },
+    {
+        x: { min: 28472454.57, max: 28527545.43 },
+        y: { min: 6700867.47, max: 7779099.35 },
+    },
+    {
+        x: { min: 29472895.43, max: 29527104.57 },
+        y: { min: 6758807.83, max: 7747863.07 },
+    },
+    {
+        x: { min: 30473312.92, max: 30526687.08 },
+        y: { min: 6813409.6, max: 7543736.6 },
+    },
+    {
+        x: { min: 31473869.79, max: 31530833.57 },
+        y: { min: 6885846.63, max: 7130086.16 },
+    },
+];
 
 // GK-FIN coordinate systems currently only used for the live display of layout coordinates when editing km post
 // positions manually
@@ -182,54 +234,64 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
             errors = [...errors, ...getGkCoordinateIsNotFaithfullySaveableError('gkLocationY')];
         }
 
+        const gkIndex = GK_FIN_COORDINATE_SYSTEMS.findIndex(
+            ([srid]) => srid === state.kmPost.gkSrid,
+        );
+        const gkBounds = GK_BOUNDS[gkIndex];
+        const gkX = parseFloatOrUndefined(state.kmPost.gkLocationX);
+        const gkY = parseFloatOrUndefined(state.kmPost.gkLocationY);
+
         const gkPoint = parseGk(
             state.kmPost.gkSrid,
             state.kmPost.gkLocationX,
             state.kmPost.gkLocationY,
         );
-        if (
-            !isWithinEastingMargin({
-                x: 0,
-                y: 0,
-                srid: state.kmPost.gkSrid ?? '',
-                ...gkPoint,
-            })
-        ) {
-            errors = [
-                ...errors,
-                {
-                    field: 'gkLocationX',
-                    reason: 'wrong-crs',
-                    type: FieldValidationIssueType.ERROR,
-                },
-                {
-                    field: 'gkLocationY',
-                    reason: 'wrong-crs',
-                    type: FieldValidationIssueType.ERROR,
-                },
-            ];
+
+        if (gkX !== undefined && gkBounds) {
+            const withinWgsEastingMargin = gkPoint ? isWithinEastingMargin(gkPoint) : false;
+
+            if (!rangeContainsInclusive(gkBounds.x, gkX)) {
+                errors = [
+                    ...errors,
+                    {
+                        field: 'gkLocationX',
+                        reason: 'wrong-easting',
+                        type: FieldValidationIssueType.ERROR,
+                    },
+                    {
+                        field: 'gkLocationY',
+                        reason: 'wrong-easting',
+                        type: FieldValidationIssueType.ERROR,
+                    },
+                ];
+            } else if (rangeContainsInclusive(gkBounds.x, gkX) && !withinWgsEastingMargin) {
+                errors = [
+                    ...errors,
+                    {
+                        field: 'gkLocationX',
+                        reason: 'wrong-easting-margin',
+                        type: FieldValidationIssueType.WARNING,
+                    },
+                    {
+                        field: 'gkLocationY',
+                        reason: 'wrong-easting-margin',
+                        type: FieldValidationIssueType.WARNING,
+                    },
+                ];
+            }
         }
-        const pointInWgs84 = pointToWgs84({
-            x: 0,
-            y: 0,
-            srid: state.kmPost.gkSrid ?? '',
-            ...gkPoint,
-        });
-        if (
-            pointInWgs84 &&
-            (pointInWgs84.y < SOUTHERNMOST_POINT_OF_FINLAND_DEG - NORTHING_MARGIN_DEG ||
-                pointInWgs84.y > NORTHMOST_POINT_OF_FINLAND_DEG + NORTHING_MARGIN_DEG)
-        ) {
+
+        if (gkY !== undefined && gkBounds && !rangeContainsInclusive(gkBounds.y, gkY)) {
             errors = [
                 ...errors,
                 {
                     field: 'gkLocationX',
-                    reason: 'wrong-crs',
+                    reason: 'wrong-northing',
                     type: FieldValidationIssueType.ERROR,
                 },
                 {
                     field: 'gkLocationY',
-                    reason: 'wrong-crs',
+                    reason: 'wrong-northing',
                     type: FieldValidationIssueType.ERROR,
                 },
             ];
@@ -398,7 +460,7 @@ const kmPostEditSlice = createSlice({
 export function canSaveKmPost(state: KmPostEditState): boolean {
     return (
         state.kmPost &&
-        !state.validationIssues.length &&
+        !state.validationIssues.filter((e) => e.type === 'ERROR').length &&
         !state.isSaving &&
         (state.gkLocationEnabled ? hasValidGkLocation(state) : true)
     );

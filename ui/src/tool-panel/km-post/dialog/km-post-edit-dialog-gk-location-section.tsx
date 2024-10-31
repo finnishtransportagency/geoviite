@@ -37,6 +37,7 @@ type KmPostEditDialogGkLocationSectionProps = {
     ) => void;
     hasErrors: (prop: keyof KmPostEditFields) => boolean;
     getVisibleErrorsByProp: (prop: keyof KmPostEditFields) => string[];
+    getVisibleWarningsByProp: (prop: keyof KmPostEditFields) => string[];
     geometryKmPostGkLocation?: GeometryPoint;
     editType: KmPostEditDialogType;
     geometryPlanSrid?: Srid;
@@ -137,6 +138,7 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     updateProp,
     hasErrors,
     getVisibleErrorsByProp,
+    getVisibleWarningsByProp,
     editType,
     geometryPlanSrid,
 }) => {
@@ -256,6 +258,10 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                 errors={[
                     ...getVisibleErrorsByProp('gkLocationY'),
                     ...getVisibleErrorsByProp('gkLocationX'),
+                ].filter(filterUnique)}
+                warnings={[
+                    ...getVisibleWarningsByProp('gkLocationY'),
+                    ...getVisibleWarningsByProp('gkLocationX'),
                 ].filter(filterUnique)}
             />
             <FieldLayout
