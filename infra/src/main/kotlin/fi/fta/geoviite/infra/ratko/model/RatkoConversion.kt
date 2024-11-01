@@ -93,7 +93,7 @@ fun mapGeometryTypeToNodeType(geometryType: RatkoAssetGeometryType) =
 
 fun mapJointNumberToGeometryType(number: JointNumber, baseType: SwitchBaseType): RatkoAssetGeometryType {
     val geometryType =
-        if (baseType === SwitchBaseType.YV || baseType === SwitchBaseType.TYV) {
+        if (baseType === SwitchBaseType.YV || baseType === SwitchBaseType.TYV || baseType === SwitchBaseType.EV) {
             when (number.intValue) {
                 1 -> RatkoAssetGeometryType.JOINT_A
                 2 -> RatkoAssetGeometryType.JOINT_B
