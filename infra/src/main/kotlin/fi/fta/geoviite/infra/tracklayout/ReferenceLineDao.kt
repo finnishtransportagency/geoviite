@@ -15,11 +15,11 @@ import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getTrackMeter
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val REFERENCE_LINE_CACHE_SIZE = 1000L
 
@@ -46,6 +46,7 @@ class ReferenceLineDao(
               rlv.design_row_id,
               rlv.design_id,
               rlv.draft,
+              rlv.cancelled,
               rlv.alignment_id,
               rlv.alignment_version,
               rlv.track_number_id, 
@@ -76,6 +77,7 @@ class ReferenceLineDao(
               rl.design_row_id,
               rl.design_id,
               rl.draft,
+              rl.cancelled,
               rl.alignment_id,
               rl.alignment_version,
               rl.track_number_id, 
@@ -112,6 +114,7 @@ class ReferenceLineDao(
                     "row_id",
                     "row_version",
                     "draft",
+                    "cancelled",
                 ),
         )
 
@@ -125,6 +128,7 @@ class ReferenceLineDao(
               alignment_version,
               start_address,
               draft, 
+              cancelled,
               official_row_id,
               design_row_id,
               design_id
@@ -135,6 +139,7 @@ class ReferenceLineDao(
               :alignment_version,
               :start_address, 
               :draft, 
+              :cancelled,
               :official_row_id,
               :design_row_id,
               :design_id
@@ -153,6 +158,7 @@ class ReferenceLineDao(
                 "alignment_version" to newItem.alignmentVersion.version,
                 "start_address" to newItem.startAddress.toString(),
                 "draft" to newItem.isDraft,
+                "cancelled" to newItem.isCancelled,
                 "official_row_id" to newItem.contextData.officialRowId?.intValue,
                 "design_row_id" to newItem.contextData.designRowId?.intValue,
                 "design_id" to newItem.contextData.designId?.intValue,
@@ -182,6 +188,7 @@ class ReferenceLineDao(
               alignment_version = :alignment_version,
               start_address = :start_address,
               draft = :draft,
+              cancelled = :cancelled,
               official_row_id = :official_row_id,
               design_row_id = :design_row_id,
               design_id = :design_id
@@ -201,6 +208,7 @@ class ReferenceLineDao(
                 "alignment_version" to alignmentVersion.version,
                 "start_address" to updatedItem.startAddress.toString(),
                 "draft" to updatedItem.isDraft,
+                "cancelled" to updatedItem.isCancelled,
                 "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
                 "design_row_id" to updatedItem.contextData.designRowId?.intValue,
                 "design_id" to updatedItem.contextData.designId?.intValue,

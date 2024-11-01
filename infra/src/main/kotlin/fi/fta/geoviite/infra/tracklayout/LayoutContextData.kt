@@ -39,6 +39,10 @@ interface LayoutContextAware<T> {
     @get:JsonIgnore
     val isDesign: Boolean
         get() = false
+
+    @get:JsonIgnore
+    val isCancelled: Boolean
+        get() = false
 }
 
 sealed class ContextIdHolder<T> {
@@ -135,6 +139,7 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
                         designRowId = null,
                         officialRowId = null,
                         designId = branch.designId,
+                        cancelled = false,
                     )
             }
 
@@ -146,6 +151,7 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
                         contextIdHolder = UnstoredContextIdHolder(null),
                         officialRowId = null,
                         designId = branch.designId,
+                        cancelled = false,
                     )
             }
     }
@@ -155,6 +161,7 @@ sealed class MainContextData<T> : LayoutContextData<T>()
 
 sealed class DesignContextData<T> : LayoutContextData<T>() {
     abstract override val designId: IntId<LayoutDesign>
+    abstract val cancelled: Boolean
 }
 
 data class MainOfficialContextData<T>(override val contextIdHolder: ContextIdHolder<T>) : MainContextData<T>() {
@@ -181,6 +188,7 @@ data class MainOfficialContextData<T>(override val contextIdHolder: ContextIdHol
             officialRowId = ownRowVersion.rowId,
             designRowId = null,
             designId = designId,
+            cancelled = false,
         )
     }
 }
@@ -217,6 +225,7 @@ data class DesignOfficialContextData<T>(
     override val contextIdHolder: ContextIdHolder<T>,
     override val officialRowId: LayoutRowId<T>?,
     override val designId: IntId<LayoutDesign>,
+    override val cancelled: Boolean,
 ) : DesignContextData<T>() {
     override val editState: EditState
         get() = EditState.UNEDITED
@@ -226,6 +235,9 @@ data class DesignOfficialContextData<T>(
 
     override val isDesign: Boolean
         get() = true
+
+    override val isCancelled: Boolean
+        get() = cancelled
 
     init {
         requireUniqueRowIds(this)
@@ -252,8 +264,11 @@ data class DesignOfficialContextData<T>(
             officialRowId = officialRowId,
             designRowId = ownRowVersion.rowId,
             designId = designId,
+            cancelled = cancelled,
         )
     }
+
+    fun cancelled(): DesignDraftContextData<T> = asDesignDraft().copy(cancelled = true)
 }
 
 data class DesignDraftContextData<T>(
@@ -261,6 +276,7 @@ data class DesignDraftContextData<T>(
     override val designRowId: LayoutRowId<T>?,
     override val officialRowId: LayoutRowId<T>?,
     override val designId: IntId<LayoutDesign>,
+    override val cancelled: Boolean,
 ) : DesignContextData<T>() {
     override val editState: EditState
         get() = if (designRowId != null) EditState.EDITED else EditState.CREATED
@@ -270,6 +286,9 @@ data class DesignDraftContextData<T>(
 
     override val isDesign: Boolean
         get() = true
+
+    override val isCancelled: Boolean
+        get() = cancelled
 
     init {
         requireUniqueRowIds(this)
@@ -287,6 +306,7 @@ data class DesignDraftContextData<T>(
                 ),
             officialRowId = officialRowId,
             designId = designId,
+            cancelled = cancelled,
         )
     }
 }
@@ -366,6 +386,12 @@ fun <T : LayoutAsset<T>> asDesignDraft(item: T, designId: IntId<LayoutDesign>): 
                 )
         }
     }
+
+fun <T : LayoutAsset<T>> cancelled(item: T): T =
+    item.withContext(
+        (item.contextData as? DesignOfficialContextData)?.cancelled()
+            ?: error("Only design-official items can be cancelled")
+    )
 
 private fun requireUniqueRowIds(contextData: LayoutContextData<*>) {
     contextData.rowId?.let { r ->

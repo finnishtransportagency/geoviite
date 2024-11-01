@@ -342,12 +342,14 @@ fun <T> ResultSet.getLayoutContextData(
     rowIdName: String,
     rowVersionName: String,
     draftFlagName: String,
+    cancelledName: String,
 ): LayoutContextData<T> {
     val designId = getIntIdOrNull<LayoutDesign>(designIdName)
     val designRowId = getLayoutRowIdOrNull<T>(designRowIdName)
     val officialRowId = getLayoutRowIdOrNull<T>(officialRowIdName)
     val rowVersion = LayoutRowVersion(getLayoutRowId<T>(rowIdName), getInt(rowVersionName))
     val isDraft = getBoolean(draftFlagName)
+    val cancelled = getBoolean(cancelledName)
     return if (designId != null) {
         if (isDraft) {
             DesignDraftContextData(
@@ -355,6 +357,7 @@ fun <T> ResultSet.getLayoutContextData(
                 officialRowId = officialRowId,
                 designId = designId,
                 designRowId = designRowId,
+                cancelled = cancelled,
             )
         } else {
             require(designRowId == null) {
@@ -364,6 +367,7 @@ fun <T> ResultSet.getLayoutContextData(
                 contextIdHolder = StoredContextIdHolder(rowVersion),
                 officialRowId = officialRowId,
                 designId = designId,
+                cancelled = cancelled,
             )
         }
     } else if (isDraft) {
