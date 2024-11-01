@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.dataImport.switchStructures
 import fi.fta.geoviite.infra.switchLibrary.SwitchHand
+import fi.fta.geoviite.infra.switchLibrary.SwitchNationality
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -11,7 +12,10 @@ class RatkoUtilsTest {
     fun `should reformat switch structure string without handedness`() {
         switchStructures.forEach { switchStructure ->
             val ratkoFormat = asSwitchTypeString(switchStructure.type)
-            if (switchStructure.type.parts.hand == SwitchHand.NONE) {
+            if (
+                switchStructure.type.parts.hand == SwitchHand.NONE ||
+                    switchStructure.type.parts.baseType.nationality != SwitchNationality.FINNISH
+            ) {
                 assertEquals(ratkoFormat, switchStructure.type.toString())
             } else {
                 assertEquals(ratkoFormat, switchStructure.type.toString().dropLast(2))

@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.ratko.model.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchNationality
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
@@ -46,6 +47,10 @@ fun getEndPointNodeCollection(
 }
 
 fun asSwitchTypeString(switchType: SwitchType): String {
+    if (switchType.parts.baseType.nationality != SwitchNationality.FINNISH) {
+        return switchType.toString()
+    }
+
     val radius = switchType.parts.curveRadius
     val spread = switchType.parts.spread ?: ""
     val curveRadius =
