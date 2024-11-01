@@ -29,6 +29,7 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 function getSwitchSvg(type: SwitchBaseType, hand: SwitchHand | undefined): string {
     switch (type) {
         case 'YV':
+        case 'EV':
             return hand === 'LEFT' ? switchYvVSvg : switchYvOSvg;
         case 'KV':
             return hand === 'LEFT' ? switchKvVSvg : switchKvOSvg;
@@ -54,6 +55,7 @@ function getSwitchSvg(type: SwitchBaseType, hand: SwitchHand | undefined): strin
 function getSwitchLargeSvg(type: SwitchBaseType, hand: SwitchHand | undefined): string {
     switch (type) {
         case 'YV':
+        case 'EV':
             return hand === 'LEFT' ? switchYvVSvgLarge : switchYvOSvgLarge;
         case 'KV':
             return hand === 'LEFT' ? switchKvVSvgLarge : switchKvOSvgLarge;
