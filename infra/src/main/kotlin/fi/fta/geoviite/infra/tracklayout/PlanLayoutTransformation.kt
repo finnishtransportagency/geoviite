@@ -98,7 +98,7 @@ fun toTrackLayoutKmPosts(
                         source = KmPostGkLocationSource.FROM_GEOMETRY,
                         confirmed = true,
                     ),
-                contextData = LayoutContextData.newDraft(LayoutBranch.main),
+                contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
             )
         } else {
             null
@@ -126,7 +126,7 @@ fun toTrackLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation)
             trapPoint = null,
             ownerId = null,
             source = GeometrySource.PLAN,
-            contextData = LayoutContextData.newDraft(LayoutBranch.main),
+            contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
         )
 
 fun toTrackLayoutSwitches(

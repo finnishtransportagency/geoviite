@@ -6,9 +6,8 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -242,10 +241,10 @@ constructor(
         assertEquals(RatkoOperation.CREATE, ratkoPushError.operation)
     }
 
-    fun insertAndPublishLocationTrack(): LayoutDaoResponse<LocationTrack> =
+    fun insertAndPublishLocationTrack(): LayoutRowVersion<LocationTrack> =
         locationTrackAndAlignment(trackNumberId, draft = true).let { (track, alignment) ->
             val draftVersion = locationTrackService.saveDraft(LayoutBranch.main, track, alignment)
-            locationTrackService.publish(LayoutBranch.main, ValidationVersion(draftVersion.id, draftVersion.rowVersion))
+            locationTrackService.publish(LayoutBranch.main, draftVersion)
         }
 
     fun createPublication(

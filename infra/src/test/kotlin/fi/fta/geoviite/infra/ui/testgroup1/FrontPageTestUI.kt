@@ -55,22 +55,17 @@ constructor(
     @Test
     fun `Retry failed publication`() {
         val originalTrackNumber =
-            trackNumberDao.insert(
-                trackNumber(TrackNumber("original name"), externalId = Oid("1.2.3.4.5"), draft = false)
-            )
+            trackNumberDao.save(trackNumber(TrackNumber("original name"), externalId = Oid("1.2.3.4.5"), draft = false))
         val trackNumberId = originalTrackNumber.id
         val alignmentVersion =
             alignmentDao.insert(alignment(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0)))))
-        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
+        referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
 
         val successfulPublicationId =
             publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("successful"))
         publicationDao.insertCalculatedChanges(successfulPublicationId, changesTouchingTrackNumber(trackNumberId))
 
-        trackNumberDao
-            .fetch(originalTrackNumber.rowVersion)
-            .copy(number = TrackNumber("updated name"))
-            .let(trackNumberDao::update)
+        trackNumberDao.fetch(originalTrackNumber).copy(number = TrackNumber("updated name")).let(trackNumberDao::save)
 
         val failingPublicationId =
             publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("failing test publication"))

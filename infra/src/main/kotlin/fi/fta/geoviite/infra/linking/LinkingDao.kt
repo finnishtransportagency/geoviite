@@ -60,11 +60,11 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             element.alignment_id,
             element.element_index,
             bool_or(case 
-              when location_track.row_id is not null or reference_track_number.row_id is not null then true 
+              when location_track.id is not null or reference_track_number.id is not null then true
               else false 
             end) as is_linked,
-            array_agg(distinct location_track.official_id) filter ( where location_track.official_id is not null ) as location_track_ids,
-            array_agg(distinct reference_line.official_id) filter ( where reference_line.official_id is not null ) as reference_line_ids  
+            array_agg(distinct location_track.id) filter ( where location_track.id is not null ) as location_track_ids,
+            array_agg(distinct reference_line.id) filter ( where reference_line.id is not null ) as reference_line_ids
           from geometry.alignment geometry_alignment
             join geometry.element on geometry_alignment.id = element.alignment_id
             left join layout.segment_version
@@ -78,7 +78,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               on reference_line.alignment_id = segment_version.alignment_id
                 and reference_line.alignment_version = segment_version.alignment_version
             left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_track_number
-              on reference_line.track_number_id = reference_track_number.official_id
+              on reference_line.track_number_id = reference_track_number.id
                 and reference_track_number.state != 'DELETED'
             where geometry_alignment.plan_id in (:plan_ids)
           group by plan_id, element.alignment_id, element.element_index
@@ -124,10 +124,9 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
            select
               plan_id,
               geometry_km_post.id,
-              array_agg(km_post.official_id) as km_post_id_list
+              array_agg(km_post.id) as km_post_id_list
               from geometry.km_post geometry_km_post
-              left join (select * from layout.km_post,
-                layout.km_post_is_in_layout_context(:publication_state::layout.publication_state, :design_id, km_post))
+              left join layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
                 as km_post on geometry_km_post.id = km_post.geometry_km_post_id
               where plan_id in (:plan_ids)
               group by geometry_km_post.id
@@ -179,8 +178,8 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                       from all_switch_links_in_plans link
                       group by alignment_id, alignment_version
                       having exists(select *
-                                      from layout.location_track, layout.location_track_is_in_layout_context(
-                                          :publication_state::layout.publication_state, :design_id, location_track)
+                                      from layout.location_track_in_layout_context(
+                                          :publication_state::layout.publication_state, :design_id) location_track
                                       where location_track.state != 'DELETED'
                                         and location_track.alignment_id = link.alignment_id
                                         and location_track.alignment_version = link.alignment_version)
@@ -194,9 +193,8 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                       group by layout_switch_id
                       having exists(select *
                                       from layout.switch_in_layout_context(:publication_state::layout.publication_state,
-                                                                           :design_id,
-                                                                           layout_switch_id)
-                                      where state_category != 'NOT_EXISTING')
+                                                                           :design_id)
+                                      where state_category != 'NOT_EXISTING' and id = layout_switch_id)
                   ) switch_checked
               )
             select plan_id, id, exists(select * from with_ok_layout_switch ok where ok.geometry_switch_id = switch.id) as is_linked

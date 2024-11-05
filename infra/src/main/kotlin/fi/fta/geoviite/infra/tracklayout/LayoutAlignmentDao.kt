@@ -550,31 +550,28 @@ class LayoutAlignmentDao(
                     segment_geometry.bounding_box
                   )
             )
-            select official_id,
+            select id,
                    alignment_id,
                    unnest(segment_indices) as segment_index,
                    unnest(starts) as start,
                    unnest(max_ms) as max_m,
                    unnest(has_profile_infos) as has_profile_info
               from (
-                select official_id,
+                select id,
                        alignment_id,
                        array_agg(segment_index) as segment_indices,
                        array_agg(start) as starts,
                        array_agg(max_m) as max_ms,
                        array_agg(has_profile_info) as has_profile_infos
                   from applicable_alignment_segments
-                    join (
-                    select *
-                      from layout.location_track, layout.location_track_is_in_layout_context(
+                    join layout.location_track_in_layout_context(
                           :publication_state::layout.publication_state,
-                          :design_id, location_track)
-                      where location_track.state != 'DELETED'
-                  ) location_track using (alignment_id, alignment_version)
+                          :design_id) location_track using (alignment_id, alignment_version)
                   where ((:has_profile_info::boolean is null) or :has_profile_info = has_profile_info)
-                  group by official_id, alignment_id, alignment_version
+                    and location_track.state != 'DELETED'
+                  group by id, alignment_id, alignment_version
               ) grouped
-              order by official_id, segment_index;
+              order by id, segment_index;
         """
                 .trimIndent()
 
@@ -593,7 +590,7 @@ class LayoutAlignmentDao(
         return jdbcTemplate.query(sql, params) { rs, _ ->
             val startM = rs.getDouble("start")
             MapSegmentProfileInfo(
-                id = rs.getIntId("official_id"),
+                id = rs.getIntId("id"),
                 alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
                 segmentStartM = startM,
                 segmentEndM = startM + rs.getDouble("max_m"),

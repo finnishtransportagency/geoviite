@@ -85,7 +85,7 @@ constructor(
         val revertTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isDraft).map { it.id as IntId }
         // If revert breaks other draft row references, they should be reverted too
         val draftOnlyTrackNumberIds =
-            trackNumbers.filter { tn -> tn.isDraft && tn.contextData.officialRowId == null }.map { it.id as IntId }
+            trackNumbers.filter { tn -> tn.isDraft && !tn.contextData.hasOfficial }.map { it.id as IntId }
 
         val revertLocationTrackIds =
             requestIds.locationTracks +

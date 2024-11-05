@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -27,7 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
 data class SwitchAndSegments(
-    val switch: LayoutDaoResponse<TrackLayoutSwitch>,
+    val switch: LayoutRowVersion<TrackLayoutSwitch>,
     val straightSwitchSegments: List<LayoutSegment>,
     val turningSwitchSegments: List<LayoutSegment>,
 )
@@ -71,7 +71,7 @@ constructor(
         val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
         return splitDao.saveSplit(
-            sourceLocationTrackVersion = sourceTrack.rowVersion,
+            sourceLocationTrackVersion = sourceTrack,
             splitTargets = listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
             relinkedSwitches = listOf(mainOfficialContext.createSwitch().id),
             updatedDuplicates = emptyList(),
@@ -121,12 +121,12 @@ constructor(
     fun createAsMainTrack(
         segments: List<LayoutSegment>,
         trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
-    ): LayoutDaoResponse<LocationTrack> {
+    ): LayoutRowVersion<LocationTrack> {
         val alignment = alignment(segments)
         mainOfficialContext.insert(referenceLine(trackNumberId), alignment)
 
         return mainOfficialContext.insert(locationTrack(trackNumberId), alignment).also { r ->
-            val (dbTrack, dbAlignment) = locationTrackService.getWithAlignment(r.rowVersion)
+            val (dbTrack, dbAlignment) = locationTrackService.getWithAlignment(r)
             assertEquals(trackNumberId, dbTrack.trackNumberId)
             assertEquals(segments.size, dbAlignment.segments.size)
             assertEquals(segments.sumOf { s -> s.length }, dbAlignment.length, 0.001)

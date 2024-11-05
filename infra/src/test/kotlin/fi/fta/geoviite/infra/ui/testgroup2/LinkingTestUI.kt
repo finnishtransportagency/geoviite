@@ -159,9 +159,10 @@ constructor(
         val geometryTrackEndPoint = geometryAlignment.elements.last().end
 
         val (locationTrackStartPoint, locationTrackEndPoint) =
-            alignmentDao
-                .fetch(locationTrackDao.fetch(originalLocationTrack.rowVersion).getAlignmentVersionOrThrow())
-                .let { alignment -> alignment.start!! to alignment.end!! }
+            alignmentDao.fetch(locationTrackDao.fetch(originalLocationTrack).getAlignmentVersionOrThrow()).let {
+                alignment ->
+                alignment.start!! to alignment.end!!
+            }
 
         trackLayoutPage.clickAtCoordinates(geometryTrackStartPoint)
         trackLayoutPage.clickAtCoordinates(geometryTrackEndPoint)
@@ -199,7 +200,7 @@ constructor(
                     incrementPoints = listOf(Point(1.0, 2.0), Point(1.0, 1.5), Point(4.0, 4.7)),
                 )
             )
-        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack.rowVersion)
+        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val selectionPanel = trackLayoutPage.selectionPanel
@@ -234,7 +235,7 @@ constructor(
                     incrementPoints = (1..10).map { Point(2.0, 3.0) },
                 )
             )
-        val (_, locationTrackAlignment) = locationTrackService.getWithAlignment(originalLocationTrack.rowVersion)
+        val (_, locationTrackAlignment) = locationTrackService.getWithAlignment(originalLocationTrack)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
@@ -260,8 +261,8 @@ constructor(
     @Test
     fun `Link geometry KM-Post to nearest track layout KM-post`() {
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
-        kmPostDao.insert(kmPost(trackNumberId, KmNumber("0123"), DEFAULT_BASE_POINT + Point(5.0, 5.0), draft = false))
-        kmPostDao.insert(kmPost(trackNumberId, KmNumber("0124"), DEFAULT_BASE_POINT + Point(17.0, 18.0), draft = false))
+        kmPostDao.save(kmPost(trackNumberId, KmNumber("0123"), DEFAULT_BASE_POINT + Point(5.0, 5.0), draft = false))
+        kmPostDao.save(kmPost(trackNumberId, KmNumber("0124"), DEFAULT_BASE_POINT + Point(17.0, 18.0), draft = false))
 
         testGeometryPlanService
             .buildPlan(trackNumber)
@@ -435,7 +436,7 @@ constructor(
                     incrementPoints = (1..10).map { Point(1.0, 1.0) },
                 )
             )
-        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack.rowVersion)
+        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
@@ -506,7 +507,7 @@ constructor(
                     incrementPoints = (1..10).map { Point(1.0, 1.0) },
                 )
             )
-        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack.rowVersion)
+        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
@@ -565,7 +566,7 @@ constructor(
                 incrementPoints = listOf(Point(5.0, 10.0), Point(3.0, 5.0), Point(4.0, 5.0)),
                 draft = false,
             )
-        referenceLineDao.insert(
+        referenceLineDao.save(
             originalReferenceLine.first.copy(alignmentVersion = alignmentDao.insert(originalReferenceLine.second))
         )
 
@@ -666,10 +667,10 @@ constructor(
                     ),
                 draft = false,
             )
-        switchDao.insert(switchToDelete)
+        switchDao.save(switchToDelete)
 
         // unrelated switch
-        switchDao.insert(
+        switchDao.save(
             switch(
                 name = "unrelated switch",
                 joints = listOf(switchJoint(1, Point(DEFAULT_BASE_POINT + Point(10.0, 10.0)))),
@@ -746,7 +747,7 @@ constructor(
                 startAddress = TrackMeter(KmNumber(0), 0),
                 draft = false,
             )
-        referenceLineDao.insert(commonReferenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
+        referenceLineDao.save(commonReferenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
         return alignment
     }
 

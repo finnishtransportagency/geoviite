@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTarget
@@ -130,9 +129,9 @@ constructor(
                 segment3,
                 draft = true,
             )
-        val (locationTrackId, locationTrackVersion) =
-            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
-        locationTrackService.publish(LayoutBranch.main, ValidationVersion(locationTrackId, locationTrackVersion))
+        val locationTrackVersion = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        locationTrackService.publish(LayoutBranch.main, locationTrackVersion)
+        val locationTrackId = locationTrackVersion.id
 
         val (officialTrack, officialAlignment) =
             locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.official, locationTrackId)
@@ -239,9 +238,9 @@ constructor(
                 state = LocationTrackState.DELETED,
                 draft = true,
             )
-        val (locationTrackId, locationTrackVersion) =
-            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
-        locationTrackService.publish(LayoutBranch.main, ValidationVersion(locationTrackId, locationTrackVersion))
+        val locationTrackVersion = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        val locationTrackId = locationTrackVersion.id
+        locationTrackService.publish(LayoutBranch.main, locationTrackVersion)
 
         val geometryInterval = GeometryInterval(alignmentId = IntId(0), mRange = Range(0.0, 0.0))
 
@@ -267,8 +266,8 @@ constructor(
         val (locationTrack, alignment) =
             locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, draft = true)
         val locationTrackResponse =
-            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { (id, rowVersion) ->
-                locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
+            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { rowVersion ->
+                locationTrackService.publish(LayoutBranch.main, rowVersion)
             }
 
         val geometryInterval = GeometryInterval(alignmentId = IntId(0), mRange = Range(0.0, 0.0))
@@ -276,7 +275,7 @@ constructor(
         val layoutInterval = LayoutInterval(alignmentId = locationTrackResponse.id, mRange = Range(0.0, 0.0))
 
         splitDao.saveSplit(
-            locationTrackResponse.rowVersion,
+            locationTrackResponse,
             listOf(SplitTarget(locationTrackResponse.id, 0..1, SplitTargetOperation.CREATE)),
             relinkedSwitches = emptyList(),
             updatedDuplicates = emptyList(),
@@ -320,11 +319,11 @@ constructor(
         val (locationTrack, alignment) =
             locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, segment1, draft = true)
         val locationTrackResponse =
-            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { (id, rowVersion) ->
-                locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
+            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { rowVersion ->
+                locationTrackService.publish(LayoutBranch.main, rowVersion)
             }
 
-        val (_, officialAlignment) = locationTrackService.getWithAlignment(locationTrackResponse.rowVersion)
+        val (_, officialAlignment) = locationTrackService.getWithAlignment(locationTrackResponse)
 
         val geometryInterval =
             GeometryInterval(
@@ -346,7 +345,7 @@ constructor(
         val split =
             splitDao.getOrThrow(
                 splitDao.saveSplit(
-                    locationTrackResponse.rowVersion,
+                    locationTrackResponse,
                     listOf(SplitTarget(locationTrackResponse.id, 0..1, SplitTargetOperation.CREATE)),
                     relinkedSwitches = emptyList(),
                     updatedDuplicates = emptyList(),

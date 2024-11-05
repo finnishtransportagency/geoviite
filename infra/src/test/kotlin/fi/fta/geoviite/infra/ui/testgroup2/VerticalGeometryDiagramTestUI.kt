@@ -59,7 +59,7 @@ constructor(
             referenceLine(trackNumberId, draft = true),
             alignment(segment(DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0))),
         )
-        kmPostDao.insert(
+        kmPostDao.save(
             kmPost(
                 trackNumberId = trackNumberId,
                 km = KmNumber(0),

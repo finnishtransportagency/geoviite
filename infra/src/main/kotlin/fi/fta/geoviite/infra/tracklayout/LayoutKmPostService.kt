@@ -29,7 +29,7 @@ class LayoutKmPostService(
                 trackNumberId = request.trackNumberId,
                 sourceId = null,
                 gkLocation = request.gkLocation,
-                contextData = LayoutContextData.newDraft(branch),
+                contextData = LayoutContextData.newDraft(branch, dao.createId()),
             )
         return saveDraftInternal(branch, kmPost).id
     }

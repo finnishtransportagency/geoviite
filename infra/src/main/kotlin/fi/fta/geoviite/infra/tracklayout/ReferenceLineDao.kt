@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
-import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
@@ -40,10 +39,8 @@ class ReferenceLineDao(
         val sql =
             """
             select
-              rlv.id as row_id,
-              rlv.version as row_version,
-              rlv.official_row_id,
-              rlv.design_row_id,
+              rlv.id,
+              rlv.version,
               rlv.design_id,
               rlv.draft,
               rlv.cancelled,
@@ -53,15 +50,26 @@ class ReferenceLineDao(
               postgis.st_astext(av.bounding_box) as bounding_box,
               av.length,
               av.segment_count,
-              rlv.start_address
+              rlv.start_address,
+              exists(select * from layout.reference_line official_rl
+                     where rlv.id = official_rl.id
+                       and (official_rl.design_id is not null or official_rl.design_id = rlv.design_id)
+                       and not official_rl.draft) as has_official,
+              origin_design_id
             from layout.reference_line_version rlv
               left join layout.alignment_version av on rlv.alignment_id = av.id and rlv.alignment_version = av.version
             where rlv.id = :id
+              and rlv.layout_context_id = :layout_context_id
               and rlv.version = :version
               and rlv.deleted = false
         """
                 .trimIndent()
-        val params = mapOf("id" to version.rowId.intValue, "version" to version.version)
+        val params =
+            mapOf(
+                "id" to version.id.intValue,
+                "layout_context_id" to version.context.toSqlString(),
+                "version" to version.version,
+            )
         return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getReferenceLine(rs) }).also { rl ->
             logger.daoAccess(AccessType.FETCH, ReferenceLine::class, rl.id)
         }
@@ -71,10 +79,8 @@ class ReferenceLineDao(
         val sql =
             """
             select
-              rl.id as row_id,
-              rl.version as row_version,
-              rl.official_row_id,
-              rl.design_row_id,
+              rl.id,
+              rl.version,
               rl.design_id,
               rl.draft,
               rl.cancelled,
@@ -84,8 +90,13 @@ class ReferenceLineDao(
               postgis.st_astext(av.bounding_box) as bounding_box,
               av.length,
               av.segment_count,
-              rl.start_address
+              rl.start_address,
+              official_rl.id is not null as has_official,
+              rl.origin_design_id
             from layout.reference_line rl
+              left join layout.reference_line official_rl on rl.id = official_rl.id
+                and (official_rl.design_id is null or official_rl.design_id = rl.design_id)
+                and not official_rl.draft
               left join layout.alignment_version av on rl.alignment_id = av.id and rl.alignment_version = av.version
         """
                 .trimIndent()
@@ -108,118 +119,73 @@ class ReferenceLineDao(
             segmentCount = rs.getInt("segment_count"),
             contextData =
                 rs.getLayoutContextData(
-                    "official_row_id",
-                    "design_row_id",
+                    "id",
                     "design_id",
-                    "row_id",
-                    "row_version",
                     "draft",
+                    "version",
                     "cancelled",
+                    "has_official",
+                    "origin_design_id",
                 ),
         )
 
     @Transactional
-    override fun insert(newItem: ReferenceLine): LayoutDaoResponse<ReferenceLine> {
+    override fun save(item: ReferenceLine): LayoutRowVersion<ReferenceLine> {
+        val id = item.id as? IntId ?: createId()
+
         val sql =
             """
             insert into layout.reference_line(
+              layout_context_id,
+              id,
               track_number_id,
               alignment_id,
               alignment_version,
               start_address,
               draft, 
               cancelled,
-              official_row_id,
-              design_row_id,
               design_id
             ) 
             values (
+              :layout_context_id,
+              :id,
               :track_number_id,
               :alignment_id,
               :alignment_version,
               :start_address, 
               :draft, 
               :cancelled,
-              :official_row_id,
-              :design_row_id,
               :design_id
-            ) 
-            returning 
-              official_id,
-              id as row_id,
-              version as row_version
+            ) on conflict (id, layout_context_id) do update set
+              track_number_id = excluded.track_number_id,
+              alignment_id = excluded.alignment_id,
+              alignment_version = excluded.alignment_version,
+              start_address = excluded.start_address,
+              cancelled = excluded.cancelled
+            returning id, design_id, draft, version
         """
                 .trimIndent()
         val params =
             mapOf(
-                "track_number_id" to newItem.trackNumberId.intValue,
+                "layout_context_id" to item.contextData.layoutContext.toSqlString(),
+                "id" to id.intValue,
+                "track_number_id" to item.trackNumberId.intValue,
                 "alignment_id" to
-                    (newItem.alignmentVersion?.id?.intValue ?: error("ReferenceLine in DB needs an alignment")),
-                "alignment_version" to newItem.alignmentVersion.version,
-                "start_address" to newItem.startAddress.toString(),
-                "draft" to newItem.isDraft,
-                "cancelled" to newItem.isCancelled,
-                "official_row_id" to newItem.contextData.officialRowId?.intValue,
-                "design_row_id" to newItem.contextData.designRowId?.intValue,
-                "design_id" to newItem.contextData.designId?.intValue,
+                    (item.alignmentVersion?.id?.intValue ?: error("ReferenceLine in DB needs an alignment")),
+                "alignment_version" to item.alignmentVersion.version,
+                "start_address" to item.startAddress.toString(),
+                "draft" to item.isDraft,
+                "cancelled" to item.isCancelled,
+                "design_id" to item.contextData.designId?.intValue,
             )
 
         jdbcTemplate.setUser()
-        val version: LayoutDaoResponse<ReferenceLine> =
+        val version: LayoutRowVersion<ReferenceLine> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-                rs.getDaoResponse("official_id", "row_id", "row_version")
-            } ?: error("Failed to generate ID for new Location Track")
+                rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+            } ?: error("Failed to save Location Track")
         logger.daoAccess(AccessType.INSERT, ReferenceLine::class, version)
         return version
-    }
-
-    @Transactional
-    override fun update(updatedItem: ReferenceLine): LayoutDaoResponse<ReferenceLine> {
-        val rowId =
-            requireNotNull(updatedItem.contextData.rowId) {
-                "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
-            }
-        val sql =
-            """
-            update layout.reference_line
-            set
-              track_number_id = :track_number_id,
-              alignment_id = :alignment_id,
-              alignment_version = :alignment_version,
-              start_address = :start_address,
-              draft = :draft,
-              cancelled = :cancelled,
-              official_row_id = :official_row_id,
-              design_row_id = :design_row_id,
-              design_id = :design_id
-            where id = :id
-            returning 
-              official_id,
-              id as row_id,
-              version as row_version
-        """
-                .trimIndent()
-        val alignmentVersion = updatedItem.getAlignmentVersionOrThrow()
-        val params =
-            mapOf(
-                "id" to rowId.intValue,
-                "track_number_id" to updatedItem.trackNumberId.intValue,
-                "alignment_id" to alignmentVersion.id.intValue,
-                "alignment_version" to alignmentVersion.version,
-                "start_address" to updatedItem.startAddress.toString(),
-                "draft" to updatedItem.isDraft,
-                "cancelled" to updatedItem.isCancelled,
-                "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
-                "design_row_id" to updatedItem.contextData.designRowId?.intValue,
-                "design_id" to updatedItem.contextData.designId?.intValue,
-            )
-        jdbcTemplate.setUser()
-        val result: LayoutDaoResponse<ReferenceLine> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-                rs.getDaoResponse("official_id", "row_id", "row_version")
-            } ?: error("Failed to get new version for Reference Line")
-        logger.daoAccess(AccessType.UPDATE, ReferenceLine::class, result)
-        return result
     }
 
     fun getByTrackNumber(context: LayoutContext, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? =
@@ -232,7 +198,7 @@ class ReferenceLineDao(
         // language=SQL
         val sql =
             """
-            select rl.row_id, rl.row_version 
+            select id, design_id, draft, version
             from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
             where rl.track_number_id = :track_number_id
         """
@@ -243,23 +209,21 @@ class ReferenceLineDao(
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
             )
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> rs.getLayoutRowVersion("row_id", "row_version") }
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
     }
 
     override fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-    ): List<LayoutDaoResponse<ReferenceLine>> {
+    ): List<LayoutRowVersion<ReferenceLine>> {
         val sql =
             """
-            select
-              rl.official_id,
-              rl.row_id,
-              rl.row_version
+            select rl.id, rl.design_id, rl.draft, rl.version
             from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
-              left join lateral layout.track_number_in_layout_context(:publication_state::layout.publication_state,
-                                                                      :design_id,
-                                                                      rl.track_number_id) tn on true
+              left join layout.track_number_in_layout_context(:publication_state::layout.publication_state,
+                                                              :design_id) tn on rl.track_number_id = tn.id
             where (:include_deleted = true or tn.state != 'DELETED')
         """
                 .trimIndent()
@@ -269,7 +233,9 @@ class ReferenceLineDao(
                 "design_id" to layoutContext.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
             )
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
     }
 
     fun fetchVersionsNear(
@@ -279,17 +245,12 @@ class ReferenceLineDao(
     ): List<LayoutRowVersion<ReferenceLine>> {
         val sql =
             """
-            select reference_line.id as row_id, reference_line.version as row_version
-              from (
-                select *
-                  from layout.reference_line, layout.reference_line_is_in_layout_context(
-                      :publication_state::layout.publication_state, :design_id, reference_line)
-              ) reference_line
-                join (
-                select *
-                  from layout.track_number, layout.track_number_is_in_layout_context(
-                      :publication_state::layout.publication_state, :design_id, track_number)
-              ) track_number on reference_line.track_number_id = track_number.id
+            select reference_line.id, reference_line.design_id, reference_line.draft, reference_line.version
+              from layout.reference_line_in_layout_context(
+                      :publication_state::layout.publication_state, :design_id) reference_line
+                join layout.track_number_in_layout_context(
+                      :publication_state::layout.publication_state, :design_id) track_number
+                         on reference_line.track_number_id = track_number.id
                 join layout.alignment
                      on reference_line.alignment_id = alignment.id and reference_line.alignment_version = alignment.version
               where (:include_deleted or track_number.state != 'DELETED')
@@ -317,24 +278,25 @@ class ReferenceLineDao(
                 "include_deleted" to includeDeleted,
             )
 
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("row_id", "row_version") }
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
     }
 
     fun fetchVersionsNonLinked(context: LayoutContext): List<LayoutRowVersion<ReferenceLine>> {
         val sql =
             """
-            select
-              rl.row_id,
-              rl.row_version
+            select rl.id, rl.design_id, rl.draft, rl.version
             from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
-              left join lateral layout.track_number_in_layout_context(:publication_state::layout.publication_state,
-                                                                      :design_id,
-                                                                      rl.track_number_id) tn on(true)
+              left join layout.track_number_in_layout_context(:publication_state::layout.publication_state,
+                                                              :design_id) tn on rl.track_number_id = tn.id
             where tn.state != 'DELETED'
               and rl.segment_count = 0
         """
                 .trimIndent()
         val params = mapOf("publication_state" to context.state.name, "design_id" to context.branch.designId?.intValue)
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("row_id", "row_version") }
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
     }
 }

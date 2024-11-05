@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -190,11 +191,11 @@ constructor(
 
     private fun createValidationContext(
         target: ValidationTarget,
-        trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>> = emptyList(),
-        locationTracks: List<ValidationVersion<LocationTrack>> = emptyList(),
-        referenceLines: List<ValidationVersion<ReferenceLine>> = emptyList(),
-        switches: List<ValidationVersion<TrackLayoutSwitch>> = emptyList(),
-        kmPosts: List<ValidationVersion<TrackLayoutKmPost>> = emptyList(),
+        trackNumbers: List<LayoutRowVersion<TrackLayoutTrackNumber>> = emptyList(),
+        locationTracks: List<LayoutRowVersion<LocationTrack>> = emptyList(),
+        referenceLines: List<LayoutRowVersion<ReferenceLine>> = emptyList(),
+        switches: List<LayoutRowVersion<TrackLayoutSwitch>> = emptyList(),
+        kmPosts: List<LayoutRowVersion<TrackLayoutKmPost>> = emptyList(),
     ): ValidationContext =
         createValidationContext(
             ValidationVersions(target, trackNumbers, locationTracks, referenceLines, switches, kmPosts, emptyList())
@@ -272,23 +273,23 @@ constructor(
         splitService.validateSplit(versions, validationContext, allowMultipleSplits = false).also(::assertNoSplitErrors)
 
         versions.trackNumbers.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateTrackNumber(version.officialId, validationContext)))
+            assertNoErrors(version, requireNotNull(validateTrackNumber(version.id, validationContext)))
         }
         versions.kmPosts.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateKmPost(version.officialId, validationContext)))
+            assertNoErrors(version, requireNotNull(validateKmPost(version.id, validationContext)))
         }
         versions.referenceLines.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateReferenceLine(version.officialId, validationContext)))
+            assertNoErrors(version, requireNotNull(validateReferenceLine(version.id, validationContext)))
         }
         versions.locationTracks.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateLocationTrack(version.officialId, validationContext)))
+            assertNoErrors(version, requireNotNull(validateLocationTrack(version.id, validationContext)))
         }
         versions.switches.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateSwitch(version.officialId, validationContext)))
+            assertNoErrors(version, requireNotNull(validateSwitch(version.id, validationContext)))
         }
     }
 
-    private inline fun <reified T> assertNoErrors(version: ValidationVersion<T>, issues: List<LayoutValidationIssue>) {
+    private inline fun <reified T> assertNoErrors(version: LayoutRowVersion<T>, issues: List<LayoutValidationIssue>) {
         val errors = issues.filter { issue -> issue.type == ERROR }
         if (errors.isNotEmpty()) {
             logger.warn("Validation errors in published ${T::class.simpleName}: item=$version errors=$errors")

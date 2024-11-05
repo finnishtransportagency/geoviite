@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
-import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -22,19 +21,18 @@ import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.BulkTransfer
-import fi.fta.geoviite.infra.tracklayout.ContextIdHolder
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.EditedAssetId
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetId
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
-import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
@@ -44,7 +42,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
-import fi.fta.geoviite.infra.tracklayout.OverwritingContextIdHolder
 import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
@@ -52,7 +49,6 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.UnstoredContextIdHolder
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -310,9 +306,9 @@ class TestDBService(
     final inline fun <reified T : LayoutAsset<T>> update(
         rowVersion: LayoutRowVersion<T>,
         mutate: (T) -> T = { it },
-    ): LayoutDaoResponse<T> {
+    ): LayoutRowVersion<T> {
         val dao = getDao(T::class)
-        return dao.update(mutate(dao.fetch(rowVersion)))
+        return dao.save(mutate(dao.fetch(rowVersion)))
     }
 
     fun createLayoutDesign(): IntId<LayoutDesign> = layoutDesignDao.insert(layoutDesign(getUnusedDesignName()))
@@ -330,24 +326,19 @@ class TestDBService(
             .max()
 
     /**
-     * This function can be used to create a draft-version of an official asset, creating the appropriate backwards
-     * linking as necessary. Optionally, a target branch can be given to create the draft in a different branch
-     * (main-official -> design-draft or design-official -> main-draft). If not given, the current branch is used.
+     * This function can be used to create a draft-version of an official asset. Optionally, a target branch can be
+     * given to create the draft in a different branch (main-official -> design-draft or design-official -> main-draft).
+     * If not given, the current branch is used.
      */
     final inline fun <reified S : LayoutAsset<S>> createDraft(
         officialVersion: LayoutRowVersion<S>,
         targetBranch: LayoutBranch? = null,
         mutate: (S) -> S = { it },
-    ): LayoutDaoResponse<S> {
+    ): LayoutRowVersion<S> {
         val original = fetch(officialVersion)
         check(original.isOfficial) { "$original should be official" }
         val targetContext = testContext(targetBranch ?: original.branch, DRAFT)
-        return targetContext.copyFrom(
-            officialVersion,
-            officialRowId = if (!original.isDesign) original.contextData.rowId else original.contextData.officialRowId,
-            designRowId = if (original.isDesign) original.contextData.rowId else null,
-            mutate = mutate,
-        )
+        return targetContext.copyFrom(officialVersion, mutate = mutate)
     }
 }
 
@@ -362,12 +353,12 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     inline fun <reified T : PolyLineLayoutAsset<T>> fetchWithAlignment(id: IntId<T>): Pair<T, LayoutAlignment>? =
         fetch(id)?.let { a -> a to alignmentDao.fetch(a.getAlignmentVersionOrThrow()) }
 
-    fun <T : LayoutAsset<T>> insert(asset: T): LayoutDaoResponse<T> =
-        testService.getDao(asset).insert(testService.updateContext(asset, context))
+    fun <T : LayoutAsset<T>> insert(asset: T): LayoutRowVersion<T> =
+        testService.getDao(asset).save(testService.updateContext(asset, context))
 
     fun <T : PolyLineLayoutAsset<T>> insert(
         assetAndAlignment: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
-    ): LayoutDaoResponse<T> = insert(assetAndAlignment.first, assetAndAlignment.second)
+    ): LayoutRowVersion<T> = insert(assetAndAlignment.first, assetAndAlignment.second)
 
     inline fun <reified T : LayoutAsset<T>> assertContextVersionExists(id: IntId<T>) =
         assertEquals(context, getAssetOriginContext(id))
@@ -392,14 +383,11 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     @Suppress("UNCHECKED_CAST")
     inline fun <reified T : LayoutAsset<T>> copyFrom(
         rowVersion: LayoutRowVersion<T>,
-        officialRowId: LayoutRowId<T>? = null,
-        designRowId: LayoutRowId<T>? = null,
         mutate: (T) -> T = { it },
-    ): LayoutDaoResponse<T> {
+    ): LayoutRowVersion<T> {
         val dao = getDao(T::class)
         val original = mutate(dao.fetch(rowVersion))
-        val withNewContext =
-            original.withContext(createContextData(UnstoredContextIdHolder(rowVersion), officialRowId, designRowId))
+        val withNewContext = original.withContext(createContextData(EditedAssetId(rowVersion)))
         return when (withNewContext) {
             // Also copy alignment: the types won't play nice unless we use the final ones, so this
             // duplicates
@@ -408,12 +396,11 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
             is PolyLineLayoutAsset<*> -> error("Unhandled PolyLineAsset type: ${T::class.simpleName}")
             else -> insert(withNewContext)
         }
-            as LayoutDaoResponse<T>
+            as LayoutRowVersion<T>
     }
 
     /**
-     * Moves the asset identified by [rowVersion] to the current context, maintaining the row itself. Links to
-     * official/design row are kept where possible, noting the rules of which contexts actually have them.
+     * Copies the asset identified by [rowVersion] to the current context and deletes the original row.
      *
      * <p>
      * If desired, you can also mutate the asset before moving it to the new context by providing a [mutate] function.
@@ -422,40 +409,32 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     inline fun <reified T : LayoutAsset<T>> moveFrom(
         rowVersion: LayoutRowVersion<T>,
         mutate: (T) -> T = { it },
-    ): LayoutDaoResponse<T> {
+    ): LayoutRowVersion<T> {
         val dao = getDao(T::class)
         val original = mutate(dao.fetch(rowVersion))
-        val withNewContext =
-            original.withContext(
-                original.contextData.let { origCtx ->
-                    createContextData(
-                        rowContextId = OverwritingContextIdHolder(rowVersion.rowId, rowVersion),
-                        officialRowId = origCtx.officialRowId.takeIf { context !is MainLayoutContext },
-                        designRowId = origCtx.designRowId.takeIf { context.state == DRAFT },
-                    )
-                }
-            )
-        return dao.update(withNewContext)
+        val withNewContext = original.withContext(createContextData(rowContextId = EditedAssetId(rowVersion)))
+        dao.deleteRow(original.version!!.rowId)
+        return dao.save(withNewContext)
     }
 
     @Suppress("UNCHECKED_CAST")
     fun <T : PolyLineLayoutAsset<T>> insert(
         asset: PolyLineLayoutAsset<T>,
         alignment: LayoutAlignment,
-    ): LayoutDaoResponse<T> =
+    ): LayoutRowVersion<T> =
         when (asset) {
             is LocationTrack -> insert(asset.copy(alignmentVersion = alignmentDao.insert(alignment)))
             is ReferenceLine -> insert(asset.copy(alignmentVersion = alignmentDao.insert(alignment)))
         }
-            as LayoutDaoResponse<T>
+            as LayoutRowVersion<T>
 
-    fun <T : LayoutAsset<T>> insertMany(vararg asset: T): List<LayoutDaoResponse<T>> = asset.map(::insert)
+    fun <T : LayoutAsset<T>> insertMany(vararg asset: T): List<LayoutRowVersion<T>> = asset.map(::insert)
 
     fun <T : PolyLineLayoutAsset<T>> insertMany(
         vararg assets: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
-    ): List<LayoutDaoResponse<T>> = assets.map(::insert)
+    ): List<LayoutRowVersion<T>> = assets.map(::insert)
 
-    fun <T : LayoutAsset<T>> insertAndFetch(asset: T): T = getDao(asset).fetch(insert(asset).rowVersion)
+    fun <T : LayoutAsset<T>> insertAndFetch(asset: T): T = getDao(asset).fetch(insert(asset))
 
     fun <T : PolyLineLayoutAsset<T>> insertAndFetch(
         assetAndAlignment: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
@@ -465,7 +444,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         asset: PolyLineLayoutAsset<T>,
         alignment: LayoutAlignment,
     ): Pair<T, LayoutAlignment> =
-        getDao(asset).fetch(insert(asset, alignment).rowVersion).let { a ->
+        getDao(asset).fetch(insert(asset, alignment)).let { a ->
             a to alignmentDao.fetch(a.getAlignmentVersionOrThrow())
         }
 
@@ -475,26 +454,25 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         vararg assets: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
     ): List<Pair<T, LayoutAlignment>> = assets.map(::insertAndFetch)
 
-    fun createLayoutTrackNumber(): LayoutDaoResponse<TrackLayoutTrackNumber> =
+    fun createLayoutTrackNumber(): LayoutRowVersion<TrackLayoutTrackNumber> =
         insert(trackNumber(testService.getUnusedTrackNumber()))
 
-    fun createAndFetchLayoutTrackNumber(): TrackLayoutTrackNumber =
-        createLayoutTrackNumber().let { r -> trackNumberDao.fetch(r.rowVersion) }
+    fun createAndFetchLayoutTrackNumber(): TrackLayoutTrackNumber = trackNumberDao.fetch(createLayoutTrackNumber())
 
     fun createLayoutTrackNumberAndReferenceLine(
         lineAlignment: LayoutAlignment = alignment()
-    ): LayoutDaoResponse<TrackLayoutTrackNumber> =
+    ): LayoutRowVersion<TrackLayoutTrackNumber> =
         createLayoutTrackNumber().also { tnResponse ->
             insert(referenceLine(trackNumberId = tnResponse.id), lineAlignment)
         }
 
-    fun createLayoutTrackNumbers(count: Int): List<LayoutDaoResponse<TrackLayoutTrackNumber>> =
+    fun createLayoutTrackNumbers(count: Int): List<LayoutRowVersion<TrackLayoutTrackNumber>> =
         (1..count).map { createLayoutTrackNumber() }
 
     fun getOrCreateLayoutTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
-        val response =
+        val version =
             trackNumberDao.fetchVersions(context, true, trackNumber).firstOrNull() ?: insert(trackNumber(trackNumber))
-        return response.let { r -> trackNumberDao.fetch(r.rowVersion) }
+        return trackNumberDao.fetch(version)
     }
 
     fun createTrackNumberAndId(): Pair<TrackNumber, IntId<TrackLayoutTrackNumber>> =
@@ -503,7 +481,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     fun createSwitch(
         stateCategory: LayoutStateCategory = EXISTING,
         joints: List<TrackLayoutSwitchJoint> = emptyList(),
-    ): LayoutDaoResponse<TrackLayoutSwitch> =
+    ): LayoutRowVersion<TrackLayoutSwitch> =
         insert(
             switch(name = testService.getUnusedSwitchName().toString(), stateCategory = stateCategory, joints = joints)
         )
@@ -551,34 +529,18 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         return switchId to innerTrackIds
     }
 
-    fun <T : LayoutAsset<T>> createContextData(
-        rowContextId: ContextIdHolder<T>,
-        officialRowId: LayoutRowId<T>? = null,
-        designRowId: LayoutRowId<T>? = null,
-    ): LayoutContextData<T> =
+    fun <T : LayoutAsset<T>> createContextData(rowContextId: LayoutAssetId<T>): LayoutContextData<T> =
         context.branch.let { branch ->
             when (context.state) {
                 OFFICIAL ->
                     when (branch) {
-                        is MainBranch ->
-                            MainOfficialContextData(rowContextId).also {
-                                require(officialRowId == null) {
-                                    "Can't set official row reference on official row itself"
-                                }
-                                require(designRowId == null) { "Can't set design row reference on main-official row" }
-                            }
-                        is DesignBranch ->
-                            DesignOfficialContextData(rowContextId, officialRowId, branch.designId, false).also {
-                                require(designRowId == null) {
-                                    "Can't set design row reference on official design itself"
-                                }
-                            }
+                        is MainBranch -> MainOfficialContextData(rowContextId)
+                        is DesignBranch -> DesignOfficialContextData(rowContextId, branch.designId, false)
                     }
                 DRAFT ->
                     when (branch) {
-                        is MainBranch -> MainDraftContextData(rowContextId, officialRowId, designRowId)
-                        is DesignBranch ->
-                            DesignDraftContextData(rowContextId, designRowId, officialRowId, branch.designId, false)
+                        is MainBranch -> MainDraftContextData(rowContextId, false, LayoutBranch.main)
+                        is DesignBranch -> DesignDraftContextData(rowContextId, branch.designId, false, false)
                     }
             }
         }

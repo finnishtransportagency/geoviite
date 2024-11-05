@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -90,41 +89,17 @@ constructor(
         layoutSwitchService.mergeToMainBranch(someDesignBranch, switchId)
         layoutKmPostService.mergeToMainBranch(someDesignBranch, kmPostId)
 
-        assertNotEquals(trackNumberId.intValue, mainDraftContext.fetch(trackNumberId)!!.contextData.rowId!!.intValue)
-        assertNotEquals(
-            referenceLineId.intValue,
-            mainDraftContext.fetch(referenceLineId)!!.contextData.rowId!!.intValue,
-        )
-        assertNotEquals(
-            locationTrackId.intValue,
-            mainDraftContext.fetch(locationTrackId)!!.contextData.rowId!!.intValue,
-        )
-        assertNotEquals(switchId.intValue, mainDraftContext.fetch(switchId)!!.contextData.rowId!!.intValue)
-        assertNotEquals(kmPostId.intValue, mainDraftContext.fetch(kmPostId)!!.contextData.rowId!!.intValue)
+        assertEquals(trackNumberId, mainDraftContext.fetch(trackNumberId)!!.id)
+        assertEquals(referenceLineId, mainDraftContext.fetch(referenceLineId)!!.id)
+        assertEquals(locationTrackId, mainDraftContext.fetch(locationTrackId)!!.id)
+        assertEquals(switchId, mainDraftContext.fetch(switchId)!!.id)
+        assertEquals(kmPostId, mainDraftContext.fetch(kmPostId)!!.id)
 
-        assertEquals(trackNumberId.intValue, mainDraftContext.fetch(trackNumberId)!!.contextData.designRowId!!.intValue)
-        assertEquals(
-            referenceLineId.intValue,
-            mainDraftContext.fetch(referenceLineId)!!.contextData.designRowId!!.intValue,
-        )
-        assertEquals(
-            locationTrackId.intValue,
-            mainDraftContext.fetch(locationTrackId)!!.contextData.designRowId!!.intValue,
-        )
-        assertEquals(switchId.intValue, mainDraftContext.fetch(switchId)!!.contextData.designRowId!!.intValue)
-        assertEquals(kmPostId.intValue, mainDraftContext.fetch(kmPostId)!!.contextData.designRowId!!.intValue)
-
-        assertEquals(trackNumberId.intValue, designOfficialContext.fetch(trackNumberId)!!.contextData.rowId!!.intValue)
-        assertEquals(
-            referenceLineId.intValue,
-            designOfficialContext.fetch(referenceLineId)!!.contextData.rowId!!.intValue,
-        )
-        assertEquals(
-            locationTrackId.intValue,
-            designOfficialContext.fetch(locationTrackId)!!.contextData.rowId!!.intValue,
-        )
-        assertEquals(switchId.intValue, designOfficialContext.fetch(switchId)!!.contextData.rowId!!.intValue)
-        assertEquals(kmPostId.intValue, designOfficialContext.fetch(kmPostId)!!.contextData.rowId!!.intValue)
+        assertEquals(trackNumberId, designOfficialContext.fetch(trackNumberId)!!.id)
+        assertEquals(referenceLineId, designOfficialContext.fetch(referenceLineId)!!.id)
+        assertEquals(locationTrackId, designOfficialContext.fetch(locationTrackId)!!.id)
+        assertEquals(switchId, designOfficialContext.fetch(switchId)!!.id)
+        assertEquals(kmPostId, designOfficialContext.fetch(kmPostId)!!.id)
     }
 
     @Test
@@ -139,97 +114,72 @@ constructor(
         val switchId = mainOfficialContext.insert(switch()).id
         val kmPostId = mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(123))).id
 
-        mainDraftContext.insert(
-            asMainDraft(mainOfficialContext.fetch(trackNumberId)!!)
-                .copy(description = TrackNumberDescription("edited in main"))
-        )
-        mainDraftContext.insert(
-            asMainDraft(mainOfficialContext.fetch(referenceLineId)!!).copy(startAddress = TrackMeter("0000+0123"))
-        )
-        mainDraftContext.insert(
-            asMainDraft(mainOfficialContext.fetch(locationTrackId)!!).copy(name = AlignmentName("edited in main"))
-        )
-        mainDraftContext.insert(
-            asMainDraft(mainOfficialContext.fetch(switchId)!!).copy(name = SwitchName("edited in main"))
-        )
-        mainDraftContext.insert(asMainDraft(mainOfficialContext.fetch(kmPostId)!!).copy(kmNumber = KmNumber(123)))
+        val mainDraftTrackNumber =
+            mainDraftContext.insert(
+                asMainDraft(mainOfficialContext.fetch(trackNumberId)!!)
+                    .copy(description = TrackNumberDescription("edited in main"))
+            )
+        val mainDraftReferenceLine =
+            mainDraftContext.insert(
+                asMainDraft(mainOfficialContext.fetch(referenceLineId)!!).copy(startAddress = TrackMeter("0000+0123"))
+            )
+        val mainDraftLocationTrack =
+            mainDraftContext.insert(
+                asMainDraft(mainOfficialContext.fetch(locationTrackId)!!).copy(name = AlignmentName("edited in main"))
+            )
+        val mainDraftSwitch =
+            mainDraftContext.insert(
+                asMainDraft(mainOfficialContext.fetch(switchId)!!).copy(name = SwitchName("edited in main"))
+            )
+        val mainDraftKmPost =
+            mainDraftContext.insert(asMainDraft(mainOfficialContext.fetch(kmPostId)!!).copy(kmNumber = KmNumber(123)))
 
-        val designOfficialTrackNumberRowId =
-            designOfficialContext
-                .moveFrom(
-                    designDraftContext
-                        .insert(
-                            asDesignDraft(
-                                mainOfficialContext
-                                    .fetch(trackNumberId)!!
-                                    .copy(description = TrackNumberDescription("edited in design")),
-                                someDesignBranch.designId,
-                            )
-                        )
-                        .rowVersion
+        designOfficialContext.moveFrom(
+            designDraftContext.insert(
+                asDesignDraft(
+                    mainOfficialContext
+                        .fetch(trackNumberId)!!
+                        .copy(description = TrackNumberDescription("edited in design")),
+                    someDesignBranch.designId,
                 )
-                .rowVersion
-                .rowId
-        val designOfficialReferenceLineRowId =
-            designOfficialContext
-                .moveFrom(
-                    designDraftContext
-                        .insert(
-                            asDesignDraft(
-                                mainOfficialContext
-                                    .fetch(referenceLineId)!!
-                                    .copy(startAddress = TrackMeter("0123+0000")),
-                                someDesignBranch.designId,
-                            )
-                        )
-                        .rowVersion
+            )
+        )
+
+        designOfficialContext.moveFrom(
+            designDraftContext.insert(
+                asDesignDraft(
+                    mainOfficialContext.fetch(referenceLineId)!!.copy(startAddress = TrackMeter("0123+0000")),
+                    someDesignBranch.designId,
                 )
-                .rowVersion
-                .rowId
-        val designOfficialLocationTrackRowId =
-            designOfficialContext
-                .moveFrom(
-                    designDraftContext
-                        .insert(
-                            asDesignDraft(
-                                mainOfficialContext
-                                    .fetch(locationTrackId)!!
-                                    .copy(name = AlignmentName("edited in design")),
-                                someDesignBranch.designId,
-                            )
-                        )
-                        .rowVersion
+            )
+        )
+
+        designOfficialContext.moveFrom(
+            designDraftContext.insert(
+                asDesignDraft(
+                    mainOfficialContext.fetch(locationTrackId)!!.copy(name = AlignmentName("edited in design")),
+                    someDesignBranch.designId,
                 )
-                .rowVersion
-                .rowId
-        val designOfficialSwitchRowId =
-            designOfficialContext
-                .moveFrom(
-                    designDraftContext
-                        .insert(
-                            asDesignDraft(
-                                mainOfficialContext.fetch(switchId)!!.copy(name = SwitchName("edited in design")),
-                                someDesignBranch.designId,
-                            )
-                        )
-                        .rowVersion
+            )
+        )
+
+        designOfficialContext.moveFrom(
+            designDraftContext.insert(
+                asDesignDraft(
+                    mainOfficialContext.fetch(switchId)!!.copy(name = SwitchName("edited in design")),
+                    someDesignBranch.designId,
                 )
-                .rowVersion
-                .rowId
-        val designOfficialKmPostRowId =
-            designOfficialContext
-                .moveFrom(
-                    designDraftContext
-                        .insert(
-                            asDesignDraft(
-                                mainOfficialContext.fetch(kmPostId)!!.copy(kmNumber = KmNumber(321)),
-                                someDesignBranch.designId,
-                            )
-                        )
-                        .rowVersion
+            )
+        )
+
+        designOfficialContext.moveFrom(
+            designDraftContext.insert(
+                asDesignDraft(
+                    mainOfficialContext.fetch(kmPostId)!!.copy(kmNumber = KmNumber(321)),
+                    someDesignBranch.designId,
                 )
-                .rowVersion
-                .rowId
+            )
+        )
 
         layoutTrackNumberService.mergeToMainBranch(someDesignBranch, trackNumberId)
         layoutReferenceLineService.mergeToMainBranch(someDesignBranch, referenceLineId)
@@ -237,29 +187,11 @@ constructor(
         layoutSwitchService.mergeToMainBranch(someDesignBranch, switchId)
         layoutKmPostService.mergeToMainBranch(someDesignBranch, kmPostId)
 
-        assertNotEquals(trackNumberId.intValue, mainDraftContext.fetch(trackNumberId)!!.contextData.rowId!!.intValue)
-        assertNotEquals(
-            referenceLineId.intValue,
-            mainDraftContext.fetch(referenceLineId)!!.contextData.rowId!!.intValue,
-        )
-        assertNotEquals(
-            locationTrackId.intValue,
-            mainDraftContext.fetch(locationTrackId)!!.contextData.rowId!!.intValue,
-        )
-        assertNotEquals(switchId.intValue, mainDraftContext.fetch(switchId)!!.contextData.rowId!!.intValue)
-        assertNotEquals(kmPostId.intValue, mainDraftContext.fetch(kmPostId)!!.contextData.rowId!!.intValue)
-
-        assertEquals(designOfficialTrackNumberRowId, mainDraftContext.fetch(trackNumberId)!!.contextData.designRowId)
-        assertEquals(
-            designOfficialReferenceLineRowId,
-            mainDraftContext.fetch(referenceLineId)!!.contextData.designRowId,
-        )
-        assertEquals(
-            designOfficialLocationTrackRowId,
-            mainDraftContext.fetch(locationTrackId)!!.contextData.designRowId,
-        )
-        assertEquals(designOfficialSwitchRowId, mainDraftContext.fetch(switchId)!!.contextData.designRowId)
-        assertEquals(designOfficialKmPostRowId, mainDraftContext.fetch(kmPostId)!!.contextData.designRowId)
+        assertEquals(mainDraftTrackNumber.rowId, mainDraftContext.fetch(trackNumberId)!!.version!!.rowId)
+        assertEquals(mainDraftReferenceLine.rowId, mainDraftContext.fetch(referenceLineId)!!.version!!.rowId)
+        assertEquals(mainDraftLocationTrack.rowId, mainDraftContext.fetch(locationTrackId)!!.version!!.rowId)
+        assertEquals(mainDraftSwitch.rowId, mainDraftContext.fetch(switchId)!!.version!!.rowId)
+        assertEquals(mainDraftKmPost.rowId, mainDraftContext.fetch(kmPostId)!!.version!!.rowId)
 
         assertEquals("edited in design", mainDraftContext.fetch(trackNumberId)!!.description.toString())
         assertEquals(123, mainDraftContext.fetch(referenceLineId)!!.startAddress.kmNumber.number)
@@ -286,11 +218,11 @@ constructor(
         designDraftContext.insert(cancelled(designOfficialContext.fetch(switch.id)!!))
         designDraftContext.insert(cancelled(designOfficialContext.fetch(kmPost.id)!!))
 
-        assertEquals(trackNumber.rowVersion, designOfficialContext.fetchVersion(trackNumber.id))
-        assertEquals(referenceLine.rowVersion, designOfficialContext.fetchVersion(referenceLine.id))
-        assertEquals(locationTrack.rowVersion, designOfficialContext.fetchVersion(locationTrack.id))
-        assertEquals(switch.rowVersion, designOfficialContext.fetchVersion(switch.id))
-        assertEquals(kmPost.rowVersion, designOfficialContext.fetchVersion(kmPost.id))
+        assertEquals(trackNumber, designOfficialContext.fetchVersion(trackNumber.id))
+        assertEquals(referenceLine, designOfficialContext.fetchVersion(referenceLine.id))
+        assertEquals(locationTrack, designOfficialContext.fetchVersion(locationTrack.id))
+        assertEquals(switch, designOfficialContext.fetchVersion(switch.id))
+        assertEquals(kmPost, designOfficialContext.fetchVersion(kmPost.id))
 
         assertNull(designDraftContext.fetch(trackNumber.id))
         assertNull(designDraftContext.fetch(referenceLine.id))
@@ -313,33 +245,33 @@ constructor(
 
         val designOfficialTrackNumber =
             designOfficialContext.moveFrom(
-                designDraftContext
-                    .insert(asDesignDraft(mainOfficialContext.fetch(trackNumber.id)!!, someDesignBranch.designId))
-                    .rowVersion
+                designDraftContext.insert(
+                    asDesignDraft(mainOfficialContext.fetch(trackNumber.id)!!, someDesignBranch.designId)
+                )
             )
         val designOfficialReferenceLine =
             designOfficialContext.moveFrom(
-                designDraftContext
-                    .insert(asDesignDraft(mainOfficialContext.fetch(referenceLine.id)!!, someDesignBranch.designId))
-                    .rowVersion
+                designDraftContext.insert(
+                    asDesignDraft(mainOfficialContext.fetch(referenceLine.id)!!, someDesignBranch.designId)
+                )
             )
         val designOfficialLocationTrack =
             designOfficialContext.moveFrom(
-                designDraftContext
-                    .insert(asDesignDraft(mainOfficialContext.fetch(locationTrack.id)!!, someDesignBranch.designId))
-                    .rowVersion
+                designDraftContext.insert(
+                    asDesignDraft(mainOfficialContext.fetch(locationTrack.id)!!, someDesignBranch.designId)
+                )
             )
         val designOfficialSwitch =
             designOfficialContext.moveFrom(
-                designDraftContext
-                    .insert(asDesignDraft(mainOfficialContext.fetch(switch.id)!!, someDesignBranch.designId))
-                    .rowVersion
+                designDraftContext.insert(
+                    asDesignDraft(mainOfficialContext.fetch(switch.id)!!, someDesignBranch.designId)
+                )
             )
         val designOfficialKmPost =
             designOfficialContext.moveFrom(
-                designDraftContext
-                    .insert(asDesignDraft(mainOfficialContext.fetch(kmPost.id)!!, someDesignBranch.designId))
-                    .rowVersion
+                designDraftContext.insert(
+                    asDesignDraft(mainOfficialContext.fetch(kmPost.id)!!, someDesignBranch.designId)
+                )
             )
 
         designDraftContext.insert(cancelled(designOfficialContext.fetch(trackNumber.id)!!))
@@ -348,16 +280,16 @@ constructor(
         designDraftContext.insert(cancelled(designOfficialContext.fetch(switch.id)!!))
         designDraftContext.insert(cancelled(designOfficialContext.fetch(kmPost.id)!!))
 
-        assertEquals(designOfficialTrackNumber.rowVersion, designOfficialContext.fetchVersion(trackNumber.id))
-        assertEquals(designOfficialReferenceLine.rowVersion, designOfficialContext.fetchVersion(referenceLine.id))
-        assertEquals(designOfficialLocationTrack.rowVersion, designOfficialContext.fetchVersion(locationTrack.id))
-        assertEquals(designOfficialSwitch.rowVersion, designOfficialContext.fetchVersion(switch.id))
-        assertEquals(designOfficialKmPost.rowVersion, designOfficialContext.fetchVersion(kmPost.id))
+        assertEquals(designOfficialTrackNumber, designOfficialContext.fetchVersion(trackNumber.id))
+        assertEquals(designOfficialReferenceLine, designOfficialContext.fetchVersion(referenceLine.id))
+        assertEquals(designOfficialLocationTrack, designOfficialContext.fetchVersion(locationTrack.id))
+        assertEquals(designOfficialSwitch, designOfficialContext.fetchVersion(switch.id))
+        assertEquals(designOfficialKmPost, designOfficialContext.fetchVersion(kmPost.id))
 
-        assertEquals(trackNumber.rowVersion, designDraftContext.fetchVersion(trackNumber.id))
-        assertEquals(referenceLine.rowVersion, designDraftContext.fetchVersion(referenceLine.id))
-        assertEquals(locationTrack.rowVersion, designDraftContext.fetchVersion(locationTrack.id))
-        assertEquals(switch.rowVersion, designDraftContext.fetchVersion(switch.id))
-        assertEquals(kmPost.rowVersion, designDraftContext.fetchVersion(kmPost.id))
+        assertEquals(trackNumber, designDraftContext.fetchVersion(trackNumber.id))
+        assertEquals(referenceLine, designDraftContext.fetchVersion(referenceLine.id))
+        assertEquals(locationTrack, designDraftContext.fetchVersion(locationTrack.id))
+        assertEquals(switch, designDraftContext.fetchVersion(switch.id))
+        assertEquals(kmPost, designDraftContext.fetchVersion(kmPost.id))
     }
 }

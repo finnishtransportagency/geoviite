@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.linking.switches.matchFittedSwitchToTracks
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -176,9 +175,8 @@ constructor(
         // Manually remove topology switch as it is automatically added when creating test data
         val (updatedLocationTrack, updatedAlignment) =
             removeTopologySwitchesFromLocationTrackAndUpdate(locationTrack1, alignment1, locationTrackService).let {
-                (id, version) ->
-                val (_, publishedVersion) =
-                    locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, version))
+                version ->
+                val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
                 locationTrackService.getWithAlignment(publishedVersion)
             }
 
@@ -245,9 +243,8 @@ constructor(
         // Manually remove topology switch as it is automatically added when creating test data
         val (updatedLocationTrack, updatedAlignment) =
             removeTopologySwitchesFromLocationTrackAndUpdate(locationTrack1, alignment1, locationTrackService).let {
-                (id, version) ->
-                val (_, publishedVersion) =
-                    locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, version))
+                version ->
+                val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
                 locationTrackService.getWithAlignment(publishedVersion)
             }
 
@@ -335,7 +332,7 @@ constructor(
                     JointNumber(5), // Use non-presentation joint number
                     locationTrackService = locationTrackService,
                 )
-                .let { locationTrackService.getWithAlignment(it.rowVersion) }
+                .let(locationTrackService::getWithAlignment)
 
         addTopologyEndSwitchIntoLocationTrackAndUpdate(
             updatedLocationTrack,
@@ -386,9 +383,8 @@ constructor(
                     JointNumber(1),
                     locationTrackService = locationTrackService,
                 )
-                .let { (id, version) ->
-                    val (_, publishedVersion) =
-                        locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, version))
+                .let { version ->
+                    val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
                     locationTrackService.getWithAlignment(publishedVersion)
                 }
 
@@ -1113,21 +1109,19 @@ constructor(
 
         val trackNumber =
             layoutTrackNumberDao.fetch(
-                layoutTrackNumberDao.insert(trackNumber(TrackNumber("TEST TN $sequence"), draft = false)).rowVersion
+                layoutTrackNumberDao.save(trackNumber(TrackNumber("TEST TN $sequence"), draft = false))
             )
         val kmPosts =
             kmPostData.map { (kmNumber, location) ->
                 layoutKmPostDao.fetch(
-                    layoutKmPostDao
-                        .insert(
-                            kmPost(
-                                trackNumberId = trackNumber.id as IntId,
-                                km = kmNumber,
-                                roughLayoutLocation = refPoint + location,
-                                draft = false,
-                            )
+                    layoutKmPostDao.save(
+                        kmPost(
+                            trackNumberId = trackNumber.id as IntId,
+                            km = kmNumber,
+                            roughLayoutLocation = refPoint + location,
+                            draft = false,
                         )
-                        .rowVersion
+                    )
                 )
             }
         val referenceLineGeometryVersion =
@@ -1137,18 +1131,15 @@ constructor(
         val referenceLineGeometry = layoutAlignmentDao.fetch(referenceLineGeometryVersion)
         val referenceLine =
             referenceLineDao.fetch(
-                referenceLineDao
-                    .insert(
-                        referenceLine(
-                                trackNumber.id as IntId<TrackLayoutTrackNumber>,
-                                alignment = referenceLineGeometry,
-                                startAddress =
-                                    TrackMeter(kmNumber = kmPosts.first().kmNumber, meters = BigDecimal.ZERO),
-                                draft = false,
-                            )
-                            .copy(alignmentVersion = referenceLineGeometryVersion)
-                    )
-                    .rowVersion
+                referenceLineDao.save(
+                    referenceLine(
+                            trackNumber.id as IntId<TrackLayoutTrackNumber>,
+                            alignment = referenceLineGeometry,
+                            startAddress = TrackMeter(kmNumber = kmPosts.first().kmNumber, meters = BigDecimal.ZERO),
+                            draft = false,
+                        )
+                        .copy(alignmentVersion = referenceLineGeometryVersion)
+                )
             )
 
         var locationTrackSequence = 0
@@ -1159,17 +1150,15 @@ constructor(
                 val locationTrackGeometry = layoutAlignmentDao.fetch(locationTrackGeometryVersion)
                 val locationTrack =
                     locationTrackDao.fetch(
-                        locationTrackDao
-                            .insert(
-                                locationTrack(
-                                    trackNumberId = trackNumber.id as IntId,
-                                    alignment = locationTrackGeometry,
-                                    name = "TEST LocTr $sequence ${locationTrackSequence++}",
-                                    alignmentVersion = locationTrackGeometryVersion,
-                                    draft = false,
-                                )
+                        locationTrackDao.save(
+                            locationTrack(
+                                trackNumberId = trackNumber.id as IntId,
+                                alignment = locationTrackGeometry,
+                                name = "TEST LocTr $sequence ${locationTrackSequence++}",
+                                alignmentVersion = locationTrackGeometryVersion,
+                                draft = false,
                             )
-                            .rowVersion
+                        )
                     )
                 locationTrack to locationTrackGeometry
             }
@@ -1190,9 +1179,8 @@ constructor(
                 val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
                 val (edited, editedAlignment) = locationTrackService.getWithAlignment(rowVersion)
                 if (edited.isDraft) {
-                    val publicationResponse =
-                        locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
-                    locationTrackService.getWithAlignment(publicationResponse.rowVersion)
+                    val publicationResponse = locationTrackService.publish(LayoutBranch.main, rowVersion)
+                    locationTrackService.getWithAlignment(publicationResponse)
                 } else {
                     edited to editedAlignment
                 }
@@ -1203,9 +1191,8 @@ constructor(
                 val rowVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
                 val edited = switchDao.fetch(rowVersion)
                 if (edited.isDraft) {
-                    val publicationResponse =
-                        switchService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
-                    switchDao.fetch(publicationResponse.rowVersion)
+                    val publicationResponse = switchService.publish(LayoutBranch.main, rowVersion)
+                    switchDao.fetch(publicationResponse)
                 } else {
                     edited
                 }
@@ -1229,15 +1216,9 @@ constructor(
     ): TrackLayoutSwitch {
         val switch =
             switchDao.fetch(
-                switchDao
-                    .insert(
-                        switch(
-                            name = name ?: "${trackA.first.name}-${trackB.first.name}",
-                            joints = listOf(),
-                            draft = false,
-                        )
-                    )
-                    .rowVersion
+                switchDao.save(
+                    switch(name = name ?: "${trackA.first.name}-${trackB.first.name}", joints = listOf(), draft = false)
+                )
             )
 
         val (locationTrackA, alignmentA) = trackA

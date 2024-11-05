@@ -32,11 +32,11 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
                 description = TrackNumberDescription("empty-test-track-number"),
                 state = IN_USE,
                 externalId = null,
-                contextData = LayoutContextData.newDraft(LayoutBranch.main),
+                contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
             )
-        val (id, version) = trackNumberDao.insert(original)
+        val version = trackNumberDao.save(original)
         val fromDb = trackNumberDao.fetch(version)
-        assertEquals(id, fromDb.id)
+        assertEquals(version.id, fromDb.id)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(original, fromDb, contextMatch = false)
     }
@@ -53,34 +53,35 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
 
         val tn1 = trackNumber(testDBService.getUnusedTrackNumber(), externalId = oid, draft = false)
         val tn2 = trackNumber(testDBService.getUnusedTrackNumber(), externalId = oid, draft = false)
-        trackNumberDao.insert(tn1)
-        assertThrows<DuplicateKeyException> { trackNumberDao.insert(tn2) }
+        trackNumberDao.save(tn1)
+        assertThrows<DuplicateKeyException> { trackNumberDao.save(tn2) }
     }
 
     @Test
     fun trackNumberVersioningWorks() {
         val tempTrackNumber = trackNumber(testDBService.getUnusedTrackNumber(), description = "test 1", draft = false)
-        val (id, insertVersion) = trackNumberDao.insert(tempTrackNumber)
+        val insertVersion = trackNumberDao.save(tempTrackNumber)
+        val id = insertVersion.id
         val inserted = trackNumberDao.fetch(insertVersion)
         assertMatches(tempTrackNumber, inserted, contextMatch = false)
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
         val tempDraft1 = asMainDraft(inserted).copy(description = TrackNumberDescription("test 2"))
-        val draftVersion1 = trackNumberDao.insert(tempDraft1).rowVersion
+        val draftVersion1 = trackNumberDao.save(tempDraft1)
         val draft1 = trackNumberDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(draftVersion1, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
         val tempDraft2 = draft1.copy(description = TrackNumberDescription("test 3"))
-        val draftVersion2 = trackNumberDao.update(tempDraft2).rowVersion
+        val draftVersion2 = trackNumberDao.save(tempDraft2)
         val draft2 = trackNumberDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(draftVersion2, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
-        trackNumberDao.deleteDraft(LayoutBranch.main, id).rowVersion
+        trackNumberDao.deleteDraft(LayoutBranch.main, id)
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
@@ -124,22 +125,25 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
         val v0Time = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        val (tn1Id, tn1MainV1) = mainOfficialContext.createLayoutTrackNumber()
-        val (tn2Id, tn2DesignV1) = designOfficialContext.createLayoutTrackNumber()
-        val (tn3Id, tn3DesignV1) = designOfficialContext.createLayoutTrackNumber()
+        val tn1MainV1 = mainOfficialContext.createLayoutTrackNumber()
+        val tn2DesignV1 = designOfficialContext.createLayoutTrackNumber()
+        val tn3DesignV1 = designOfficialContext.createLayoutTrackNumber()
+        val tn1Id = tn1MainV1.id
+        val tn2Id = tn2DesignV1.id
+        val tn3Id = tn3DesignV1.id
         val v1Time = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        val tn1MainV2 = testDBService.update(tn1MainV1).rowVersion
-        val tn1DesignV2 = designOfficialContext.copyFrom(tn1MainV1, officialRowId = tn1MainV1.rowId).rowVersion
-        val tn2DesignV2 = testDBService.update(tn2DesignV1).rowVersion
+        val tn1MainV2 = testDBService.update(tn1MainV1)
+        val tn1DesignV2 = designOfficialContext.copyFrom(tn1MainV1)
+        val tn2DesignV2 = testDBService.update(tn2DesignV1)
         trackNumberDao.deleteRow(tn3DesignV1.rowId)
         val v2Time = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
         trackNumberDao.deleteRow(tn1DesignV2.rowId)
         // Fake publish: update the design as a main-official
-        val tn2MainV3 = mainOfficialContext.moveFrom(tn2DesignV2).rowVersion
+        val tn2MainV3 = mainOfficialContext.moveFrom(tn2DesignV2)
         val v3Time = trackNumberDao.fetchChangeTime()
 
         assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn1Id, v0Time))

@@ -13,20 +13,12 @@ select
     and case publication_state_in
           when 'OFFICIAL' then not switch.draft
           else switch.draft
-            or case
-                 when switch.design_id is null then
-                   not exists(select *
-                                from layout.switch overriding_draft
-                                where overriding_draft.design_id is not distinct from design_id_in
-                                  and overriding_draft.draft
-                                  and not overriding_draft.cancelled
-                                  and overriding_draft.official_row_id = switch.id)
-                 else not exists(select *
-                                   from layout.switch overriding_draft
-                                   where overriding_draft.design_id is not distinct from design_id_in
-                                     and overriding_draft.draft
-                                     and overriding_draft.design_row_id = switch.id)
-               end
+            or not exists(select *
+                          from layout.switch overriding_draft
+                          where overriding_draft.design_id is not distinct from design_id_in
+                            and overriding_draft.draft
+                            and not (switch.design_id is null and overriding_draft.cancelled)
+                            and overriding_draft.id = switch.id)
         end
     and case
           when design_id_in is null then switch.design_id is null
@@ -37,26 +29,25 @@ select
                                from layout.switch overriding_design_official
                                where overriding_design_official.design_id = design_id_in
                                  and not overriding_design_official.draft
-                                 and overriding_design_official.official_row_id = switch.id
+                                 and overriding_design_official.id = switch.id
                                  and (publication_state_in = 'OFFICIAL' or not exists (
                                    select *
                                    from layout.switch design_cancellation
                                      where design_cancellation.design_id = design_id_in
                                        and design_cancellation.draft
                                        and design_cancellation.cancelled
-                                       and design_cancellation.official_row_id = switch.id))))
+                                       and design_cancellation.id = switch.id))))
         end
 $$;
 
-create function layout.switch_in_layout_context(publication_state_in layout.publication_state, design_id_in int,
-                                                official_id_in int default null)
+create function layout.switch_in_layout_context(publication_state_in layout.publication_state, design_id_in int)
   returns table
           (
-            row_id              integer,
-            official_id         integer,
+            layout_context_id   text,
+            id                  integer,
             design_id           integer,
-            draft_id            integer,
-            row_version         integer,
+            draft               boolean,
+            version             integer,
             external_id         varchar(50),
             geometry_switch_id  integer,
             name                varchar(50),
@@ -66,19 +57,18 @@ create function layout.switch_in_layout_context(publication_state_in layout.publ
             owner_id            integer,
             change_user         varchar(30),
             change_time         timestamptz,
-            source              layout.geometry_source,
-            draft               boolean
+            source              layout.geometry_source
           )
   language sql
   stable
 as
 $$
 select
-  row.id as row_id,
-  official_id,
+  layout_context_id,
+  id,
   design_id,
-  case when row.draft then row.id end as draft_id,
-  row.version as row_version,
+  draft,
+  version,
   row.external_id,
   row.geometry_switch_id,
   row.name,
@@ -88,23 +78,7 @@ select
   row.owner_id,
   row.change_user,
   row.change_time,
-  row.source,
-  row.draft
-  from (
-    select *
-      from layout.switch
-      where official_row_id = official_id_in
-    union all
-    select *
-      from layout.switch
-      where design_row_id = official_id_in
-    union all
-    select *
-      from layout.switch
-      where id = official_id_in
-    union all
-    select *
-      from layout.switch
-      where official_id_in is null
-  ) row, layout.switch_is_in_layout_context(publication_state_in, design_id_in, row)
+  row.source
+  from layout.switch row,
+    layout.switch_is_in_layout_context(publication_state_in, design_id_in, row)
 $$;

@@ -109,7 +109,7 @@ constructor(
 
         val orphanAlignmentVersion = alignmentDao.insert(alignmentOrphan)
         val locationTrackAlignmentVersion = alignmentDao.insert(alignmentLocationTrack)
-        locationTrackDao.insert(
+        locationTrackDao.save(
             locationTrack(
                 trackNumberId = trackNumberId,
                 alignment = alignmentLocationTrack,
@@ -118,7 +118,7 @@ constructor(
             )
         )
         val referenceLineAlignmentVersion = alignmentDao.insert(alignmentReferenceLine)
-        referenceLineDao.insert(
+        referenceLineDao.save(
             referenceLine(
                 trackNumberId = trackNumberId,
                 alignment = alignmentReferenceLine,
@@ -308,7 +308,7 @@ constructor(
                 segment(points = points6, source = GeometrySource.PLAN, sourceId = geometryElementWithCrsButNoProfile),
             )
         val version = alignmentDao.insert(alignment)
-        locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version, draft = false))
+        locationTrackDao.save(locationTrack(trackNumberId, alignmentVersion = version, draft = false))
 
         val boundingBox = boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
         val profileInfo =

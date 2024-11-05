@@ -1,5 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.common.DesignLayoutContext
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import java.util.*
@@ -68,5 +72,25 @@ class TrackLayoutTest {
                 segment(toSegmentPoints(Point(1.0, 100.0), Point(1.0, 200.0))),
             )
         }
+    }
+
+    @Test
+    fun `LayoutRowVersion toString() and parse roundtripping`() {
+        assertRoundTrip(LayoutRowVersion(IntId<LocationTrack>(10), LayoutBranch.main.official, 4))
+        assertRoundTrip(LayoutRowVersion(IntId<LocationTrack>(10), LayoutBranch.main.draft, 4))
+        assertRoundTrip(
+            LayoutRowVersion(IntId<LocationTrack>(10), DesignLayoutContext.of(IntId(4), PublicationState.OFFICIAL), 4)
+        )
+        assertRoundTrip(
+            LayoutRowVersion(IntId<LocationTrack>(10), DesignLayoutContext.of(IntId(4), PublicationState.DRAFT), 4)
+        )
+    }
+
+    private fun <T> assertRoundTrip(version: LayoutRowVersion<T>) {
+        val text = version.toString()
+        val versionAgain = LayoutRowVersion<T>(text)
+        val textAgain = versionAgain.toString()
+        kotlin.test.assertEquals(version, versionAgain)
+        kotlin.test.assertEquals(text, textAgain)
     }
 }
