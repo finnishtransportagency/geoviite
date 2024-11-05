@@ -438,7 +438,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         qaId="current-mode-tab"
                         selected={layoutContextMode === 'MAIN-OFFICIAL'}
                         title={layoutContextTransferDisabledReason}
-                        disabled={!!splittingState}
+                        disabled={!!splittingState || !!linkingState}
                         onClick={() => switchToMainOfficial()}>
                         {t('tool-bar.current-mode')}
                     </TabHeader>
@@ -447,6 +447,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             className={styles['tool-bar__tab-header']}
                             qaId={'draft-mode-tab'}
                             selected={layoutContextMode === 'MAIN-DRAFT'}
+                            disabled={!!splittingState || !!linkingState}
                             onClick={() => switchToMainDraft()}>
                             {t('tool-bar.draft-mode')}
                         </TabHeader>
@@ -460,7 +461,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                     selected={layoutContextMode === 'DESIGN'}
                                     onClick={switchToDesign}
                                     title={layoutContextTransferDisabledReason}
-                                    disabled={!!splittingState}>
+                                    disabled={!!splittingState || !!linkingState}>
                                     <div className={styles['tool-bar__design-tab-content']}>
                                         {t('tool-bar.design-mode')}
                                         <span>{currentDesign && `:`}</span>
@@ -470,7 +471,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                 size={ButtonSize.SMALL}
                                                 icon={Icons.Down}
                                                 iconPosition={ButtonIconPosition.END}
-                                                disabled={!!splittingState}
+                                                disabled={!!splittingState || !!linkingState}
                                                 inheritTypography={true}
                                                 ref={designIdButtonRef}
                                                 onClick={() => {
