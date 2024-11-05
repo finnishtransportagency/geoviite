@@ -193,16 +193,17 @@ private fun getAllTicksToSendForKm(
 // segment boundary ticks for clarity.
 private fun tickIsGoodToSend(
     segmentIndex: Int?,
-    i: Int,
+    tickIndex: Int,
     trackMeterInKm: BigDecimal,
     allTicks: List<TrackMeterHeightTick>,
     minTickSpace: BigDecimal,
 ): Boolean {
     val isSegmentBoundaryPoint = segmentIndex != null
-    val isKmStartTick = i == 0
-    val hasSpaceAfterPreviousTick = i > 0 && trackMeterInKm - allTicks[i - 1].trackMeterInKm >= minTickSpace
+    val isKmStartTick = tickIndex == 0
+    val hasSpaceAfterPreviousTick =
+        tickIndex > 0 && trackMeterInKm - allTicks[tickIndex - 1].trackMeterInKm >= minTickSpace
     val hasSpaceBeforeNextTick =
-        (i == allTicks.lastIndex || allTicks[i + 1].trackMeterInKm - trackMeterInKm >= minTickSpace)
+        (tickIndex == allTicks.lastIndex || allTicks[tickIndex + 1].trackMeterInKm - trackMeterInKm >= minTickSpace)
 
     return isSegmentBoundaryPoint || isKmStartTick || (hasSpaceAfterPreviousTick && hasSpaceBeforeNextTick)
 }
@@ -245,8 +246,8 @@ private fun getTickTrackLocationsByKm(
             kmTicks.map { tick -> TrackMeter(km, tick.trackMeterInKm) }
         }
     return processFlattened(trackAddresses) { allTrackAddresses ->
-        // null-safety: fitKmTicksWithinAlignmentBounds drops all ticks outside the alignment
-        // bounds, so everything is geocodable.
+        // null-safety: ticksByKm came from fitKmTicksWithinAlignmentBounds, which
+        // drops all ticks outside the alignment bounds, so everything is geocodable.
         geocodingContext.getTrackLocations(alignment, allTrackAddresses).map(::checkNotNull)
     }
 }
