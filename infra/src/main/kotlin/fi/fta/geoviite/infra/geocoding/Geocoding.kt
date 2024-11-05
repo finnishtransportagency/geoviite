@@ -537,18 +537,30 @@ fun splitRange(range: ClosedRange<TrackMeter>, splits: List<ClosedRange<TrackMet
         else maxOf(range.start, allowedRange.start)..minOf(range.endInclusive, allowedRange.endInclusive)
     }
 
+fun <T, R : Comparable<R>> getIndexRangeForRangeInOrderedList(
+    things: List<T>,
+    rangeStart: R,
+    rangeEnd: R,
+    compare: (thing: T, rangeEnd: R) -> Int,
+): IntRange? {
+    if (rangeEnd < rangeStart) {
+        return null
+    }
+    val startInsertionPoint = things.binarySearch { t -> compare(t, rangeStart) }
+    val endInsertionPoint = things.binarySearch { t -> compare(t, rangeEnd) }
+    val start = if (startInsertionPoint < 0) -startInsertionPoint - 1 else startInsertionPoint
+    val end = if (endInsertionPoint < 0) -endInsertionPoint - 2 else endInsertionPoint
+    return start..end
+}
+
 fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
     things: List<T>,
     range: ClosedRange<R>,
     compare: (thing: T, rangeEnd: R) -> Int,
-): List<T> {
-    if (range.isEmpty()) {
-        return listOf()
-    }
-    val start = things.binarySearch { t -> compare(t, range.start) }
-    val end = things.binarySearch { t -> compare(t, range.endInclusive) }
-    return things.subList(if (start < 0) -start - 1 else start, if (end < 0) -end - 1 else end + 1)
-}
+): List<T> =
+    getIndexRangeForRangeInOrderedList(things, range.start, range.endInclusive, compare)?.let { indexRange ->
+        things.subList(indexRange.first, indexRange.last + 1)
+    } ?: listOf()
 
 fun getProjectedAddressPoint(projection: ProjectionLine, alignment: IAlignment): AddressPoint? {
     val segment = getCollisionSegment(projection.projection, alignment)

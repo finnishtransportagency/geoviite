@@ -22,3 +22,11 @@ fun rangesOfConsecutiveIndicesOf(
         .chunked(2)
         .map { c -> c[0] until c[1] + offsetRangeEndsBy }
         .toList()
+
+fun <T> chunkBySizes(list: List<T>, sizes: List<Int>): List<List<T>> {
+    val starts = sizes.scan(0) { acc, size -> acc + size }
+    return sizes.zip(starts) { size, start -> list.subList(start, start + size) }
+}
+
+fun <T, R> processFlattened(lists: List<List<T>>, process: (listIn: List<T>) -> List<R>): List<List<R>> =
+    chunkBySizes(process(lists.flatten()), lists.map { it.size })
