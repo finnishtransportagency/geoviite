@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
 private val logger: Logger = LoggerFactory.getLogger(E2EViewFragment::class.java)
 
 val defaultWait: Duration = Duration.ofSeconds(10L)
-val defaultPoll: Duration = Duration.ofMillis(100)
+val defaultPoll: Duration = Duration.ofMillis(10)
 
 fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolean = false) {
 
