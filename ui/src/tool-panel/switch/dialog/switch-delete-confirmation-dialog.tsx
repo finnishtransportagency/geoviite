@@ -53,7 +53,7 @@ const SwitchDeleteConfirmationDialog: React.FC<SwitchDeleteConfirmationDialogPro
                         isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
                         onClick={deleteSwitch}>
-                        {t('button.delete')}
+                        {t('button.delete-draft')}
                     </Button>
                 </div>
             }>

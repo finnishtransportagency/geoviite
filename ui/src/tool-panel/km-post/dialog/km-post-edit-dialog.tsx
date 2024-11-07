@@ -391,7 +391,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                 isProcessing={state.isSaving}
                                 variant={ButtonVariant.PRIMARY_WARNING}
                                 onClick={save}>
-                                {t('button.delete')}
+                                {t('button.delete-draft')}
                             </Button>
                         </div>
                     }>

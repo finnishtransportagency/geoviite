@@ -302,11 +302,7 @@ export const SwitchEditDialog = ({
                             <Button
                                 disabled={!existingSwitch?.isDraft}
                                 onClick={() => setShowDeleteDraftConfirmDialog(true)}
-                                variant={
-                                    existingSwitch?.isDraft
-                                        ? ButtonVariant.WARNING
-                                        : ButtonVariant.SECONDARY
-                                }>
+                                variant={ButtonVariant.WARNING}>
                                 {t('button.delete-draft')}
                             </Button>
                         )}

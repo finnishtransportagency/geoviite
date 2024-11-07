@@ -65,7 +65,7 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
                         isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
                         onClick={deleteDraftLocationTrack}>
-                        {t('button.delete')}
+                        {t('button.delete-draft')}
                     </Button>
                 </div>
             }>

@@ -43,7 +43,7 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button disabled={isSaving} variant={ButtonVariant.SECONDARY} onClick={onClose}>
+                    <Button disabled={isSaving} variant={ButtonVariant.WARNING} onClick={onClose}>
                         {t('button.cancel')}
                     </Button>
                     <Button
@@ -51,7 +51,7 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
                         isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
                         onClick={() => deleteDraftLocationTrack(id)}>
-                        {t('button.delete')}
+                        {t('button.delete-draft')}
                     </Button>
                 </div>
             }>

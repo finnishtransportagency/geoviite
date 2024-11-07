@@ -458,10 +458,10 @@
             "location-title": "Ratanumeron sijaintitiedot",
             "start-address": "Alkusijainti (km + m)",
             "delete-dialog": {
-                "delete-draft-confirm": "Poistetaanko luonnos?",
-                "can-be-deleted": "Tätä ratanumeroa ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa ratanumeroa.",
-                "delete-succeeded": "Ratanumero poistettu.",
-                "delete-failed": "Poisto epäonnistui."
+                "delete-draft-confirm": "Hylätäänkö luonnos?",
+                "can-be-deleted": "Luonnoksen hylkääminen palauttaa ratanumeron ja pituusmittauslinjan takaisin uusimpaan viralliseen tilaan. Ratanumero ja pituusmittauslinja poistetaan jos niitä ei ole vielä julkaistu Ratkoon.",
+                "delete-succeeded": "Ratanumeron ja pituusmittauslinjan luonnokset hylätty.",
+                "delete-failed": "Luonnosten hylkääminen epäonnistui."
             }
         },
         "km-post": {
@@ -678,10 +678,10 @@
             "owner": "Omistaja",
             "duplicate-on-different-track-number": "Raide on eri ratanumerolla ({{trackNumber}})",
             "delete-dialog": {
-                "delete-draft-confirm": "Poistetaanko luonnos?",
-                "can-be-deleted": "Tätä sijaintiraidetta ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa sijaintiraidetta.",
-                "delete-succeeded": "Sijaintiraide poistettu.",
-                "delete-failed": "Poisto epäonnistui."
+                "delete-draft-confirm": "Hylätäänkö luonnos?",
+                "can-be-deleted": "Luonnoksen hylkääminen palauttaa sijaintiraiteen takaisin uusimpaan viralliseen tilaan. Sijaintiraide poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
+                "delete-succeeded": "Sijaintiraiteen luonnos hylätty.",
+                "delete-failed": "Luonnoksen hylkääminen epäonnistui."
             },
             "ratko-info-heading": "Ratko",
             "push-to-ratko": "Vie Ratkoon...",
@@ -1817,10 +1817,10 @@
         "confirm-km-post-delete": "Haluatko poistaa tasakilometripisteen paikannuspohjasta?"
     },
     "km-post-delete-draft-dialog": {
-        "delete-draft-confirm": "Poistetaanko luonnos?",
-        "can-be-deleted": "Tätä tasakilometripistettä ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa tasakilometripistettä.",
-        "delete-succeeded": "Tasakilometripiste poistettu.",
-        "delete-failed": "Tasakilometripisteen poisto epäonnistui."
+        "delete-draft-confirm": "Hylätäänkö luonnos?",
+        "can-be-deleted": "Luonnoksen hylkääminen palauttaa kilometripylvään takaisin uusimpaan viralliseen tilaan. Kilometripylväs poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
+        "delete-succeeded": "Tasakilometripisteen luonnos hylätty.",
+        "delete-failed": "Luonnoksen hylkääminen epäonnistui."
     },
     "switch-dialog": {
         "title-new": "Uusi vaihde",
@@ -1878,9 +1878,9 @@
         "name-invalid": "Nimi sisältää kiellettyjä merkkejä"
     },
     "switch-delete-dialog": {
-        "title": "Poistetaanko luonnos?",
-        "guide": "Tätä vaihdetta ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa vaihdetta.",
-        "success": "Vaihde poistettu."
+        "title": "Hylätäänkö luonnos?",
+        "guide": "Luonnoksen hylkääminen palauttaa vaihteen takaisin uusimpaan viralliseen tilaan. Vaihde poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
+        "success": "Vaihteen luonnos hylätty."
     },
     "track-number-edit": {
         "title": {
