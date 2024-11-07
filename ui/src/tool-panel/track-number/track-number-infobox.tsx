@@ -18,7 +18,6 @@ import {
     useReferenceLineChangeTimes,
     useReferenceLineStartAndEnd,
     useTrackNumberChangeTimes,
-    useTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
@@ -28,8 +27,6 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { formatDateShort, getMaxTimestamp, getMinTimestamp } from 'utils/date-utils';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
-import { Icons } from 'vayla-design-lib/icon/Icon';
-import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
@@ -38,12 +35,10 @@ import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { ChangeTimes } from 'common/common-slice';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import { ChangesBeingReverted } from 'preview/preview-view';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
-import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -102,14 +97,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
-    const [deleting, setDeleting] = React.useState<ChangesBeingReverted>();
     const isOfficial = layoutContext.publicationState === 'OFFICIAL';
-    const officialTrackNumbers = useTrackNumbers(officialLayoutContext(layoutContext));
-    const isDeletable =
-        officialTrackNumbers &&
-        !officialTrackNumbers.find(
-            (officialTrackNumber) => officialTrackNumber.id === trackNumber.id,
-        );
 
     React.useEffect(() => {
         setCanUpdate(
@@ -146,9 +134,6 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         onSelect,
         onUnselect,
     );
-
-    const onRequestDelete = () =>
-        onRequestDeleteTrackNumber(layoutContext.branch, trackNumber, setDeleting);
 
     return (
         <React.Fragment>
@@ -353,27 +338,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             label={t('tool-panel.changed')}
                             value={formatDateShort(changedTime)}
                         />
-                        {isDeletable && (
-                            <InfoboxButtons>
-                                <Button
-                                    onClick={onRequestDelete}
-                                    icon={Icons.Delete}
-                                    variant={ButtonVariant.WARNING}
-                                    size={ButtonSize.SMALL}>
-                                    {t('button.delete-draft')}
-                                </Button>
-                            </InfoboxButtons>
-                        )}
                     </InfoboxContent>
                 </Infobox>
-            )}
-            {deleting !== undefined && (
-                <TrackNumberDeleteConfirmationDialog
-                    layoutContext={layoutContext}
-                    changesBeingReverted={deleting}
-                    onClose={() => setDeleting(undefined)}
-                    onSave={handleTrackNumberSave}
-                />
             )}
             {showEditDialog && (
                 <TrackNumberEditDialogContainer

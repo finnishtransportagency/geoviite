@@ -14,7 +14,6 @@ import {
     TimeStamp,
 } from 'common/common-model';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
-import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getKmPost, getKmPostInfoboxExtras } from 'track-layout/layout-km-post-api';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
@@ -104,7 +103,6 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id, layoutContext);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
-    const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState(false);
     const updatedKmPost = useLoader(
         () => getKmPost(kmPost.id, layoutContext),
         [kmPost.id, kmPostChangeTime, layoutContext.publicationState, layoutContext.branch],
@@ -336,27 +334,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         </React.Fragment>
                     )}
-                    {kmPost?.editState === 'CREATED' && (
-                        <InfoboxButtons>
-                            <Button
-                                onClick={() => setConfirmingDraftDelete(true)}
-                                icon={Icons.Delete}
-                                variant={ButtonVariant.WARNING}
-                                size={ButtonSize.SMALL}>
-                                {t('button.delete-draft')}
-                            </Button>
-                        </InfoboxButtons>
-                    )}
                 </InfoboxContent>
             </Infobox>
-            {confirmingDraftDelete && (
-                <KmPostDeleteConfirmationDialog
-                    layoutContext={layoutContext}
-                    id={kmPost.id}
-                    onSave={() => handleKmPostSave(kmPost.id)}
-                    onClose={() => setConfirmingDraftDelete(false)}
-                />
-            )}
 
             {showEditDialog && (
                 <KmPostEditDialogContainer

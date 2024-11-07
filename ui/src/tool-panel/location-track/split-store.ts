@@ -241,7 +241,7 @@ export const splitReducers = {
                 trackSwitches: payload.trackSwitches,
                 duplicateTracks: payload.duplicateTracks,
                 endLocation: payload.endLocation,
-                disabled: payload.locationTrack.editState !== 'UNEDITED',
+                disabled: payload.locationTrack.isDraft,
                 trackNumber: payload.trackNumber,
                 focusedSplit: undefined,
                 highlightedSplit: undefined,
