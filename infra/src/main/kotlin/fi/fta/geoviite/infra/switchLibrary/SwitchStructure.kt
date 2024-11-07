@@ -21,7 +21,8 @@ import kotlin.math.abs
 
 class InvalidJointsException(msg: String) : IllegalArgumentException(msg)
 
-enum class SwitchBaseType {
+enum class SwitchBaseType(val nationality: SwitchNationality = SwitchNationality.FINNISH) {
+    // Finnish
     YV,
     TYV,
     KV,
@@ -31,6 +32,14 @@ enum class SwitchBaseType {
     UKV,
     RR,
     SRR,
+
+    // Swedish
+    EV(nationality = SwitchNationality.SWEDISH),
+}
+
+enum class SwitchNationality {
+    FINNISH,
+    SWEDISH,
 }
 
 enum class SwitchHand(val abbreviation: String) {
@@ -42,20 +51,39 @@ enum class SwitchHand(val abbreviation: String) {
 val SWITCH_BASE_TYPES_WITH_HANDEDNESS =
     setOf(SwitchBaseType.YV, SwitchBaseType.KV, SwitchBaseType.SKV, SwitchBaseType.UKV)
 
-val SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS =
-    enumValues<SwitchBaseType>().joinToString(separator = "|", transform = { it.name })
+val FINNISH_SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS =
+    enumValues<SwitchBaseType>()
+        .filter { it.nationality == SwitchNationality.FINNISH }
+        .joinToString(separator = "|", transform = { it.name })
+val SWEDISH_SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS =
+    enumValues<SwitchBaseType>()
+        .filter { it.nationality == SwitchNationality.SWEDISH }
+        .joinToString(separator = "|", transform = { it.name })
+
 val SWITCH_TYPE_HAND_REGEX_OPTIONS =
     enumValues<SwitchHand>()
         .filter { it.abbreviation.isNotEmpty() }
         .joinToString(separator = "|", transform = { it.abbreviation })
-private val SWITCH_TYPE_REGEX =
+
+private val FINNISH_SWITCH_TYPE_REGEX =
     Regex(
         "^" +
-            "($SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS)" + // simple type
+            "($FINNISH_SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS)" + // simple type
             "(\\d{2})" + // rail weight
             "(?:-([\\d/]+)([()A-Z]*))?" + // optional radius of the curve(s) + spread/tilted
             "-((?:\\dx)?1:[\\w\\d,.\\-/]+?)" + // ratio
             "(?:-($SWITCH_TYPE_HAND_REGEX_OPTIONS))?" + // optional hand
+            "$"
+    )
+private val SWEDISH_SWITCH_TYPE_REGEX =
+    Regex(
+        "^" +
+            "($SWEDISH_SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS)" + // simple type
+            "-(SJ)" + // Additional switch type information not relevant to Geoviite
+            "(\\d{2})" + // rail weight
+            "-(5,9)" +
+            "-(\\d:\\d)" + // ratio
+            "(?:-(V|H))?" + // hand
             "$"
     )
 
@@ -76,15 +104,23 @@ private fun parseCurveRadius(curveRadiusList: String): List<Int> {
     return curveRadiusList.split("/").mapNotNull { radius -> radius.toIntOrNull() }
 }
 
-private fun findSwitchTypeHand(abbreviation: String): SwitchHand {
+private fun findFinnishSwitchTypeHand(abbreviation: String): SwitchHand {
     return SwitchHand.values().find { hand -> hand.abbreviation == abbreviation } ?: SwitchHand.NONE
 }
 
+private fun findSwedishSwitchTypeHand(abbreviation: String): SwitchHand =
+    when (abbreviation) {
+        "V" -> SwitchHand.LEFT
+        "H" -> SwitchHand.RIGHT
+        else -> SwitchHand.NONE
+    }
+
 /** Returns parsed switch type parts or null if parsing fails */
-fun parseSwitchType(typeName: String): SwitchTypeParts? {
-    val matchResult = SWITCH_TYPE_REGEX.find(typeName) ?: return null
+fun parseFinnishSwitchType(typeName: String): SwitchTypeParts? {
+    val matchResult = FINNISH_SWITCH_TYPE_REGEX.find(typeName) ?: return null
     val captured = matchResult.destructured.toList()
-    val hand = if (captured.count() <= 5 || captured[5] == "") SwitchHand.NONE else findSwitchTypeHand(captured[5])
+    val hand =
+        if (captured.count() <= 5 || captured[5] == "") SwitchHand.NONE else findFinnishSwitchTypeHand(captured[5])
 
     return SwitchTypeParts(
         baseType = SwitchBaseType.valueOf(captured[0]),
@@ -96,10 +132,29 @@ fun parseSwitchType(typeName: String): SwitchTypeParts? {
     )
 }
 
+fun parseSwedishSwitchType(typeName: String): SwitchTypeParts? {
+    val matchResult = SWEDISH_SWITCH_TYPE_REGEX.find(typeName) ?: return null
+    val captured = matchResult.destructured.toList()
+
+    return SwitchTypeParts(
+        baseType = SwitchBaseType.valueOf(captured[0]),
+        railWeight = captured[2].toInt(),
+        curveRadius = emptyList(),
+        spread = null,
+        ratio = captured[4],
+        hand = findSwedishSwitchTypeHand(captured[5]),
+    )
+}
+
 data class SwitchType @JsonCreator(mode = DELEGATING) constructor(val typeName: String) {
     val parts =
-        parseSwitchType(typeName)
-            ?: throw IllegalArgumentException("Cannot parse switch type: \"${formatForException(typeName)}\"")
+        if (typeName.startsWith("EV")) {
+            parseSwedishSwitchType(typeName)
+                ?: throw IllegalArgumentException("Cannot parse switch type: \"${formatForException(typeName)}\"")
+        } else {
+            parseFinnishSwitchType(typeName)
+                ?: throw IllegalArgumentException("Cannot parse switch type: \"${formatForException(typeName)}\"")
+        }
 
     @JsonValue override fun toString(): String = typeName
 }
@@ -329,6 +384,7 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
         SwitchBaseType.YRV,
         SwitchBaseType.SKV,
         SwitchBaseType.UKV,
+        SwitchBaseType.EV,
         SwitchBaseType.KV ->
             SwitchConnectivity(
                 alignments = structure.alignments.map { LinkableSwitchAlignment(it.jointNumbers, it) },
