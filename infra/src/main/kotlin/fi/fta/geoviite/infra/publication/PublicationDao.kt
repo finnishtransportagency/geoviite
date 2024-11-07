@@ -207,6 +207,7 @@ class PublicationDao(
                     designRowReferrer = getDesignRowReferrer(rs),
                     boundingBox = rs.getBboxOrNull("bounding_box"),
                     publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
+                    geometryChanges = listOf(),
                 )
             }
         logger.daoAccess(

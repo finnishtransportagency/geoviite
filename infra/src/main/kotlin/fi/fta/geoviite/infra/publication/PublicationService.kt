@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
@@ -34,10 +35,6 @@ import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
-import java.time.Instant
-import java.time.ZoneId
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import org.postgresql.util.PSQLException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -45,6 +42,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
+import java.time.ZoneId
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 @GeoviiteService
 class PublicationService
@@ -97,12 +98,30 @@ constructor(
             )
             .map { (key, fn) -> CsvEntry(translation.t(key), fn) }
 
+    fun getChangedGeometryRanges(segments: List<LayoutSegment>, segments2: List<LayoutSegment>): List<Range<Double>> {
+        val added = segments.filter { s -> segments2.none { s2 -> s.geometry.id == s2.geometry.id } }
+        val removed = segments2.filter { s -> segments.none { s2 -> s.geometry.id == s2.geometry.id } }
+        return (added + removed).map { s -> Range(s.startM, s.endM) }
+    }
+
+    fun fetchChangedGeometryRanges(id: IntId<LocationTrack>, transition: LayoutContextTransition): List<Range<Double>> {
+        val trackWithAlignment1 = locationTrackService.getWithAlignment(transition.candidateContext, id)
+        val trackWithAlignment2 = locationTrackService.getWithAlignment(transition.baseContext, id)
+        return getChangedGeometryRanges(
+            trackWithAlignment1?.second?.segments ?: emptyList(),
+            trackWithAlignment2?.second?.segments ?: emptyList(),
+        )
+    }
+
     @Transactional(readOnly = true)
     fun collectPublicationCandidates(transition: LayoutContextTransition): PublicationCandidates {
         return PublicationCandidates(
             transition = transition,
             trackNumbers = publicationDao.fetchTrackNumberPublicationCandidates(transition),
-            locationTracks = publicationDao.fetchLocationTrackPublicationCandidates(transition),
+            locationTracks =
+                publicationDao.fetchLocationTrackPublicationCandidates(transition).map { ltc ->
+                    ltc.copy(geometryChanges = fetchChangedGeometryRanges(ltc.id, transition))
+                },
             referenceLines = publicationDao.fetchReferenceLinePublicationCandidates(transition),
             switches = publicationDao.fetchSwitchPublicationCandidates(transition),
             kmPosts = publicationDao.fetchKmPostPublicationCandidates(transition),
@@ -527,9 +546,12 @@ constructor(
         message: FreeTextWithNewLines,
     ): PublicationResult {
         try {
-            val result = requireNotNull(
-                transactionTemplate.execute { publishChangesTransaction(branch, versions, calculatedChanges, message) }
-            )
+            val result =
+                requireNotNull(
+                    transactionTemplate.execute {
+                        publishChangesTransaction(branch, versions, calculatedChanges, message)
+                    }
+                )
             result.publicationId?.let { publicationGeometryChangeRemarksUpdateService.processPublication(it) }
             return result
         } catch (exception: DataIntegrityViolationException) {

@@ -63,6 +63,7 @@ import {
 import { debounceAsync } from 'utils/async-utils';
 import { DesignDraftsExistError } from 'preview/preview-view-design-drafts-exist-error';
 import { createClassName } from 'vayla-design-lib/utils';
+import { createAreaSelectTool } from 'map/tools/area-select-tool';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -427,6 +428,20 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         },
     };
 
+    const publishCandidateSelectTool = React.useMemo(
+        () =>
+            createAreaSelectTool((items) => {
+                setStageForSpecificChanges(
+                    [
+                        ...(items.locationTrackPublicationCandidates || []),
+                        ...(items.switchPublicationCandidates || []),
+                    ].flat(),
+                    PublicationStage.STAGED,
+                );
+            }),
+        [publicationCandidates],
+    );
+
     return (
         <React.Fragment>
             <div className={styles['preview-view']} qa-id="preview-content">
@@ -556,6 +571,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                   ? draftLayoutContext(props.layoutContext)
                                   : officialLayoutContext(props.layoutContext)
                         }
+                        publicationCandidates={publicationCandidates}
+                        customActiveMapTool={publishCandidateSelectTool}
                     />
                 </MapContext.Provider>
                 <PreviewFooter

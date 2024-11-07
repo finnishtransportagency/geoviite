@@ -11,6 +11,7 @@ const mapLayerOrder: MapLayerName[] = [
     'location-track-background-layer',
     'reference-line-background-layer',
     'track-number-diagram-layer',
+    'publication-candidate-layer',
     'plan-section-highlight-layer',
     'missing-profile-highlight-layer',
     'missing-linking-highlight-layer',

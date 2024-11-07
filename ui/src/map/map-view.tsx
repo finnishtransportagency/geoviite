@@ -22,7 +22,7 @@ import {
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import { selectTool } from './tools/select-tool';
-import { MapToolActivateOptions } from './tools/tool-model';
+import { MapTool, MapToolActivateOptions } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { highlightTool } from 'map/tools/highlight-tool';
@@ -36,7 +36,6 @@ import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
 import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
-import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
@@ -87,6 +86,10 @@ import { layersCoveringLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import Feature from 'ol/Feature';
+import { createPublicationCandidateLayer } from 'map/layers/highlight/publication-candidate-layer';
+import { PublicationCandidate } from 'publication/publication-model';
+import { measurementTool } from 'map/tools/measurement-tool';
+import { areaSelectTool } from 'map/tools/area-select-tool';
 
 declare global {
     interface Window {
@@ -117,6 +120,8 @@ export type MapViewProps = {
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayerNames: MapLayerName[];
+    publicationCandidates?: PublicationCandidate[];
+    customActiveMapTool?: MapTool;
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -181,14 +186,16 @@ const MapView: React.FC<MapViewProps> = ({
     onMapLayerChange,
     mapLayerMenuGroups,
     visibleLayerNames,
+    publicationCandidates,
+    customActiveMapTool,
 }: MapViewProps) => {
     const { t } = useTranslation();
-
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
-    const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
+    // const [measurementToolActive, _setMeasurementToolActive] = React.useState(false);
+    const [activeTool, _setActiveTool] = React.useState<MapTool | undefined>(customActiveMapTool);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
@@ -345,6 +352,17 @@ const MapView: React.FC<MapViewProps> = ({
                             resolution,
                             map.layerSettings['track-number-diagram-layer'],
                             (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'publication-candidate-layer':
+                        return createPublicationCandidateLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            changeTimes,
+                            layoutContext,
+                            resolution,
+                            // map.layerSettings['track-number-diagram-layer'],
+                            (loading) => onLayerLoading(layerName, loading),
+                            publicationCandidates?.length ? publicationCandidates : [],
                         );
                     case 'track-number-addresses-layer':
                         return createTrackNumberEndPointAddressesLayer(
@@ -655,6 +673,7 @@ const MapView: React.FC<MapViewProps> = ({
         map.layerSettings,
         hoveredOverPlanSection,
         manuallySetPlan,
+        publicationCandidates,
     ]);
 
     React.useEffect(() => {
@@ -672,7 +691,7 @@ const MapView: React.FC<MapViewProps> = ({
             pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
         ];
 
-        if (!measurementToolActive) {
+        if (activeTool === undefined) {
             deactivateCallbacks.push(
                 selectTool.activate(olMap, visibleLayers, toolActivateOptions),
             );
@@ -686,43 +705,62 @@ const MapView: React.FC<MapViewProps> = ({
         return () => {
             deactivateCallbacks.forEach((f) => f());
         };
-    }, [olMap, visibleLayers, measurementToolActive]);
+    }, [olMap, visibleLayers, activeTool]);
 
     React.useEffect(() => {
-        if (measurementToolActive && olMap) {
-            return measurementTool.activate(olMap);
+        _setActiveTool(customActiveMapTool);
+    }, [customActiveMapTool]);
+
+    React.useEffect(() => {
+        if (activeTool && olMap) {
+            return activeTool.activate(olMap, visibleLayers);
         } else {
             return () => undefined;
         }
-    }, [olMap, measurementToolActive]);
+    }, [olMap, activeTool, visibleLayers]);
+
+    // React.useEffect(() => {
+    //     if (measurementToolActive && olMap) {
+    //         return measurementTool.activate(olMap);
+    //     } else {
+    //         return () => undefined;
+    //     }
+    // }, [olMap, measurementToolActive]);
 
     return (
         <div className={styles.map}>
             <ol className="map__map-tools">
                 <li
-                    onClick={() => setMeasurementToolActive(false)}
+                    onClick={() => _setActiveTool(undefined)}
                     className={createClassName(
                         styles['map__map-tool'],
-                        !measurementToolActive && styles['map__map-tool--active'],
+                        activeTool === undefined && styles['map__map-tool--active'],
                     )}>
                     <Icons.Select color={IconColor.INHERIT} />
                 </li>
                 <li
-                    onClick={() => setMeasurementToolActive(true)}
+                    onClick={() => _setActiveTool(measurementTool)}
                     className={createClassName(
                         styles['map__map-tool'],
-                        measurementToolActive && styles['map__map-tool--active'],
+                        activeTool === measurementTool && styles['map__map-tool--active'],
                     )}>
                     <Icons.Measure color={IconColor.INHERIT} />
                 </li>
+                <li
+                    onClick={() => _setActiveTool(areaSelectTool)}
+                    className={createClassName(
+                        styles['map__map-tool'],
+                        activeTool === areaSelectTool && styles['map__map-tool--active'],
+                    )}>
+                    <Icons.Edit color={IconColor.INHERIT} />
+                </li>
             </ol>
-
+            ‚
             <div
                 ref={olMapContainer}
                 qa-resolution={olMap?.getView()?.getResolution()}
                 className={styles['map__ol-map']}
             />
-
             <div id="clusteroverlay">
                 {first(selection.selectedItems.clusterPoints) && (
                     <div className={styles['map__popup-menu']}>
@@ -756,14 +794,12 @@ const MapView: React.FC<MapViewProps> = ({
                     visibleLayers={visibleLayerNames}
                 />
             </div>
-
             <LocationHolderView
                 hoveredCoordinate={hoveredLocation}
                 trackNumbers={selection.selectedItems.trackNumbers}
                 locationTracks={selection.selectedItems.locationTracks}
                 layoutContext={layoutContext}
             />
-
             {isLoading() && (
                 <div className={styles['map__loading-spinner']} qa-id="map-loading-spinner">
                     <Spinner />

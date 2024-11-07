@@ -121,6 +121,7 @@ export type LocationTrackPublicationCandidate = BasePublicationCandidate &
         trackNumberId: LayoutTrackNumberId;
         name: string;
         duplicateOf: LocationTrackId;
+        geometryChanges: Range<number>[];
     };
 
 export type ReferenceLinePublicationCandidate = BasePublicationCandidate &

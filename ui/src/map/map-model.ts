@@ -48,7 +48,8 @@ export type MapLayerName =
     | 'debug-1m-points-layer'
     | 'debug-layer'
     | 'virtual-km-post-linking-layer'
-    | 'virtual-hide-geometry-layer';
+    | 'virtual-hide-geometry-layer'
+    | 'publication-candidate-layer';
 
 export type MapViewportSource = 'Map';
 

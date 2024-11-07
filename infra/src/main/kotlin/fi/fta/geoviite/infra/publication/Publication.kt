@@ -366,6 +366,7 @@ data class LocationTrackPublicationCandidate(
     override val designRowReferrer: DesignRowReferrer,
     override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
+    var geometryChanges: List<Range<Double>>,
 ) : PublicationCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
 }
