@@ -199,8 +199,9 @@ export function loadLayerData<Data, FeatureType extends Geometry>(
                 onLoadingData(false, data);
             }
         })
-        .catch(() => {
+        .catch((e) => {
             if (isLatest()) {
+                console.error(e);
                 clearFeatures(source);
                 onLoadingData(false, undefined);
             }
