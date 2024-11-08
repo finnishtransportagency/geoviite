@@ -72,8 +72,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
         editTrackNumberId,
     );
     const editReferenceLine = useTrackNumberReferenceLine(trackNumberId, layoutContext);
-    const isDeletable =
-        !!editReferenceLine && editReferenceLine.isDraft && editReferenceLine.hasOfficial;
+    const isNewDraft = !!editReferenceLine && !editReferenceLine.hasOfficial;
 
     if (trackNumbers !== undefined && trackNumberId == editReferenceLine?.trackNumberId) {
         return (
@@ -82,7 +81,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
                 inEditTrackNumber={trackNumbers.find((tn) => tn.id == trackNumberId)}
                 inEditReferenceLine={editReferenceLine}
                 trackNumbers={trackNumbers}
-                isNewDraft={isDeletable}
+                isNewDraft={isNewDraft}
                 onClose={onClose}
                 onSave={onSave}
                 onEditTrackNumber={setTrackNumberId}
