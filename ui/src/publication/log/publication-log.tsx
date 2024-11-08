@@ -136,19 +136,21 @@ const PublicationLog: React.FC = () => {
         updatePublicationsTable(
             storedStartDate ?? parseISOOrUndefined(defaultPublicationSearch.startDate),
             storedEndDate ?? parseISOOrUndefined(defaultPublicationSearch.endDate),
+            sortInfo,
             getPublicationsAsTableItems,
         );
     }, []);
 
     const updateTableSorting = (updatedSort: PublicationDetailsTableSortInformation) => {
-        setSortInfo(updatedSort);
-
         if (pagedPublications?.items.length === MAX_RETURNED_PUBLICATION_LOG_ROWS) {
             updatePublicationsTable(
                 storedStartDate,
                 storedEndDate,
+                updatedSort,
                 publicationTableFetchFunctionByChangeMethod('SORTING_CHANGED'),
-            );
+            ).then(() => setSortInfo(updatedSort));
+        } else {
+            setSortInfo(updatedSort);
         }
     };
 
@@ -159,6 +161,7 @@ const PublicationLog: React.FC = () => {
         updatePublicationsTable(
             newStartDate,
             storedEndDate,
+            sortInfo,
             publicationTableFetchFunctionByChangeMethod(source),
         );
     };
@@ -168,6 +171,7 @@ const PublicationLog: React.FC = () => {
         updatePublicationsTable(
             storedStartDate,
             newEndDate,
+            sortInfo,
             publicationTableFetchFunctionByChangeMethod(source),
         );
     };
@@ -189,17 +193,18 @@ const PublicationLog: React.FC = () => {
     const updatePublicationsTable = (
         startDate: Date | undefined,
         endDate: Date | undefined,
+        sortInfo: PublicationDetailsTableSortInformation,
         fetchFn: TableFetchFn,
-    ) => {
+    ): Promise<Page<PublicationTableItem> | undefined> => {
         if (!isValidPublicationLogSearchRange(startDate, endDate)) {
             clearPublicationsTable();
-            return;
+            return Promise.resolve(undefined);
         }
 
         setIsLoading(true);
         const currentFetchId = ++fetchId;
 
-        fetchFn(
+        return fetchFn(
             startDate && startOfDay(startDate),
             endDate && endOfDay(endDate),
             sortInfo.propName,
@@ -209,6 +214,8 @@ const PublicationLog: React.FC = () => {
                 r && setPagedPublications(r);
                 setIsLoading(false);
             }
+
+            return r;
         });
     };
 
