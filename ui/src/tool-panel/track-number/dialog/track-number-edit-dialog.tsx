@@ -121,15 +121,14 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(false);
 
+    const canSetDeleted = inEditTrackNumber !== undefined && !isNewDraft;
     const trackNumberStateOptions = layoutStates
-        .filter((s) => s.value !== 'PLANNED')
-        .map((s) =>
-            s.value !== 'DELETED' || inEditTrackNumber !== undefined ? s : { ...s, disabled: true },
-        )
+        .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((s) => ({ ...s, qaId: s.value }));
 
     const confirmNewDraftDelete = () => {
-        inEditTrackNumber && onRequestDeleteTrackNumber(inEditTrackNumber, setDeletingDraft);
+        inEditTrackNumber &&
+            onRequestDeleteTrackNumber(layoutContext.branch, inEditTrackNumber, setDeletingDraft);
     };
 
     const saveOrConfirm = () => {
@@ -335,7 +334,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 value={
                                     <TextField
                                         value={
-                                            startAndEndPoints?.end
+                                            startAndEndPoints?.end?.address
                                                 ? formatTrackMeter(startAndEndPoints.end.address)
                                                 : '-'
                                         }
@@ -372,10 +371,13 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={() => setNonDraftDeleteConfirmationVisible(false)}
-                                variant={ButtonVariant.SECONDARY}>
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={saveInProgress}>
                                 {t('button.cancel')}
                             </Button>
                             <Button
+                                disabled={saveInProgress}
+                                isProcessing={saveInProgress}
                                 variant={ButtonVariant.PRIMARY_WARNING}
                                 onClick={saveTrackNumber}>
                                 {t('button.delete')}

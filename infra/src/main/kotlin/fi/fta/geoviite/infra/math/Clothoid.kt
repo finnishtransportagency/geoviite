@@ -4,34 +4,27 @@ import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.pow
 
-
 /**
  * Clothoid x/y estimations are done by estimating the integral via Fresnel functions:
  *
- * C(theta) = 1/1! - theta^2/2!*5 + theta^4/4!*9 - ... + (-1)^k*theta^(2k) / (2k)!*(4k+1)
- * S(theta) = theta/1!*3 - theta^3/3!*7 + theta^5/5!*11 - ... + (-1)^k*theta^(2k+1) / (2k+1)!*(4k+3)
+ * C(theta) = 1/1! - theta^2/2!*5 + theta^4/4!*9 - ... + (-1)^k*theta^(2k) / (2k)!*(4k+1) S(theta) = theta/1!*3 -
+ * theta^3/3!*7 + theta^5/5!*11 - ... + (-1)^k*theta^(2k+1) / (2k+1)!*(4k+3)
  *
  * References:
  * <ul>
- *     <li>http://precismultipla.altervista.org/ESU2/chap08.htm</li>
- *     <li>https://pwayblog.com/2016/07/03/the-clothoid/</li>
+ * <li>http://precismultipla.altervista.org/ESU2/chap08.htm</li>
+ * <li>https://pwayblog.com/2016/07/03/the-clothoid/</li>
  * </ul>
  */
 private const val MAX_ITERATIONS = 6
 private const val ACCURACY = 0.0000001 // About 1mm on 10km long clothoid segment
 
-/**
- * Precalculated static divisor elements for Fresnel C function (x-coordinate).
- * Indexed by iteration (k: 0-based)
- */
+/** Precalculated static divisor elements for Fresnel C function (x-coordinate). Indexed by iteration (k: 0-based) */
 private val fresnelDivisorsC: LongArray by lazy {
     (0..MAX_ITERATIONS).map { k -> fresnelTermSign(k) * fresnelCDivisor(k) }.toLongArray()
 }
 
-/**
- * Precalculated static divisor elements for Fresnel S function (y-coordinate).
- * Indexed by iteration (k: 0-based)
- */
+/** Precalculated static divisor elements for Fresnel S function (y-coordinate). Indexed by iteration (k: 0-based) */
 private val fresnelDivisorsS: LongArray by lazy {
     (0..MAX_ITERATIONS).map { k -> fresnelTermSign(k) * fresnelSDivisor(k) }.toLongArray()
 }
@@ -114,8 +107,8 @@ private fun theta(constantA: Double, offset: Double): Double {
 }
 
 /**
- * Fresnel C function single iteration.
- * Summing the results from k=0.. approaches the precise mathematical value for x offset from spiral origin.
+ * Fresnel C function single iteration. Summing the results from k=0.. approaches the precise mathematical value for x
+ * offset from spiral origin.
  *
  * @param k iteration number, starting from 0 (up to $MAX_ITERATIONS)
  * @param theta theta value, calculated for curve & desired length
@@ -126,8 +119,8 @@ private fun fresnelC(k: Int, theta: Double): Double {
 }
 
 /**
- * Fresnel S function single iteration.
- * Summing the results from k=0.. approaches the precise mathematical value for y offset from spiral origin.
+ * Fresnel S function single iteration. Summing the results from k=0.. approaches the precise mathematical value for y
+ * offset from spiral origin.
  *
  * @param k iteration number, starting from 0 (up to $MAX_ITERATIONS)
  * @param theta theta value, calculated for curve & desired length

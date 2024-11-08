@@ -8,7 +8,8 @@ val DIALOG_BY: By = By.className("dialog")
 
 open class E2EDialog(val dialogBy: By = DIALOG_BY) : E2EViewFragment(dialogBy) {
 
-    val title: String get() = childText(By.className("dialog__title"))
+    val title: String
+        get() = childText(By.className("dialog__title"))
 
     fun clickPrimaryButton() {
         logger.info("Click primary button")
@@ -34,30 +35,32 @@ open class E2EDialog(val dialogBy: By = DIALOG_BY) : E2EViewFragment(dialogBy) {
         clickButton(By.cssSelector("button.button--warning"))
     }
 
-    fun <T> waitUntilClosed(fn: () -> T): Unit = fn().run {
-        logger.info("Waiting for dialog to disappear")
+    fun <T> waitUntilClosed(fn: () -> T): Unit =
+        fn().run {
+            logger.info("Waiting for dialog to disappear")
 
-        waitUntilNotExist(dialogBy)
-    }
+            waitUntilNotExist(dialogBy)
+        }
 }
 
 class E2EDialogWithTextField(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
-    fun inputValue(value: String, textFieldIdx: Int = 0): E2EDialog = apply {
+    fun inputValue(value: String, textFieldIdx: Int = 0): E2EDialogWithTextField = apply {
         logger.info("Input field $textFieldIdx with value $value")
 
         childTextInput(
-            ByChained(
-                By.className("dialog__content"),
-                By.xpath("(//*[@class='text-field__input-element'])[${textFieldIdx + 1}]")
+                ByChained(
+                    By.className("dialog__content"),
+                    By.xpath("(//*[@class='text-field__input-element'])[${textFieldIdx + 1}]"),
+                )
             )
-        ).replaceValue(value)
+            .replaceValue(value)
     }
 
-    fun inputValues(values: List<String>): E2EDialog = apply {
+    fun inputValues(values: List<String>): E2EDialogWithTextField = apply {
         logger.info("Input values $values")
 
-        values.forEachIndexed { index, value ->
-            inputValue(value, index)
-        }
+        values.forEachIndexed { index, value -> inputValue(value, index) }
     }
+
+    fun selectInput(by: By): E2EDialogWithTextField = apply { clickChild(by) }
 }

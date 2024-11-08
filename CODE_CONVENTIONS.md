@@ -97,6 +97,12 @@
 
 ### Kotlin
 
+#### Formatting
+
+- Use Ktfmt to format Kotlin code, for instructions see `doc/ktfmt.md` (in Finnish)
+
+#### Coding
+
 - Favor named variables in lambdas, rather than using the default "it"
     - Good: `myList.map { item -> item.name }`
     - Bad: `myList.map { it.name }`

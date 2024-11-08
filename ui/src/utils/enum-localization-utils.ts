@@ -40,7 +40,6 @@ export const planSources: LocalizedEnum<PlanSource>[] = values('plan-source', [
 ]);
 
 export const layoutStates: LocalizedEnum<LayoutState>[] = values('layout-state', [
-    'PLANNED',
     'IN_USE',
     'NOT_IN_USE',
     'DELETED',
@@ -48,12 +47,12 @@ export const layoutStates: LocalizedEnum<LayoutState>[] = values('layout-state',
 
 export const locationTrackStates: LocalizedEnum<LocationTrackState>[] = values(
     'location-track-state',
-    ['PLANNED', 'BUILT', 'IN_USE', 'NOT_IN_USE', 'DELETED'],
+    ['BUILT', 'IN_USE', 'NOT_IN_USE', 'DELETED'],
 );
 
 export const layoutStateCategories: LocalizedEnum<LayoutStateCategory>[] = values(
     'layout-state-category',
-    ['FUTURE_EXISTING', 'EXISTING', 'NOT_EXISTING'],
+    ['EXISTING', 'NOT_EXISTING'],
 );
 
 export const locationTrackTypes: LocalizedEnum<LocationTrackType>[] = values(

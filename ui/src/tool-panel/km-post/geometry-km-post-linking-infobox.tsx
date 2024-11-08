@@ -22,7 +22,11 @@ import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-fi
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { filterNotEmpty } from 'utils/array-utils';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { refereshKmPostSelection, useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import {
+    refereshKmPostSelection,
+    usePlanHeader,
+    useTrackNumbers,
+} from 'track-layout/track-layout-react-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 
@@ -63,6 +67,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
         () => (planId ? getPlanLinkStatus(planId, layoutContext) : undefined),
         [planId, kmPostChangeTime, layoutContext],
     );
+    const geometryPlan = usePlanHeader(planId);
 
     const linkedLayoutKmPosts = useLoader(() => {
         if (!planStatus) return undefined;
@@ -74,20 +79,20 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
 
     const kmPosts =
         useLoader(async () => {
-            return geometryKmPost.location
+            return geometryKmPost.layoutLocation
                 ? await getKmPostForLinking(
                       layoutContext,
                       geometryKmPost.trackNumberId,
-                      geometryKmPost.location,
+                      geometryKmPost.layoutLocation,
                       0,
                       40,
                   )
                 : [];
         }, [
             layoutContext.publicationState,
-            layoutContext.designId,
+            layoutContext.branch,
             geometryKmPost.trackNumberId,
-            geometryKmPost.location,
+            geometryKmPost.layoutLocation,
             layoutKmPost,
         ]) || [];
     const trackNumbers = useTrackNumbers(layoutContext);
@@ -103,7 +108,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
 
         try {
             if (linkingState && geometryKmPost && geometryKmPost.sourceId && layoutKmPost) {
-                await linkKmPost({
+                await linkKmPost(layoutContext.branch, {
                     geometryPlanId: planId,
                     geometryKmPostId: geometryKmPost.sourceId,
                     layoutKmPostId: layoutKmPost.id,
@@ -162,6 +167,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
+                                    disabled={layoutContext.publicationState !== 'DRAFT'}
                                     size={ButtonSize.SMALL}
                                     qa-id="start-geometry-km-post-linking"
                                     onClick={() =>
@@ -270,6 +276,9 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                     onClose={() => setShowAddDialog(false)}
                     onSave={handleKmPostSave}
                     prefilledTrackNumberId={geometryKmPost.trackNumberId}
+                    geometryKmPostGkLocation={geometryKmPost.gkLocation?.location}
+                    editType={'LINKING'}
+                    geometryPlanSrid={geometryPlan?.units?.coordinateSystemSrid}
                 />
             )}
         </React.Fragment>

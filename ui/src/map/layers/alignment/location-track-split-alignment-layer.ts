@@ -16,6 +16,8 @@ import { Stroke, Style } from 'ol/style';
 import { filterNotEmpty, first, last } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 import { expectDefined } from 'utils/type-utils';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
+import { interpolate } from 'utils/math-utils';
 
 const splittingLocationTrackStyle = new Style({
     stroke: new Stroke({
@@ -72,9 +74,13 @@ function splitToParts(
             index + 1 < allSplits.length
                 ? expectDefined(allSplits[index + 1]).distance
                 : endOfAlignment;
-        const pointsForSplit = alignment.points.filter(
-            (point) => point.m >= start && point.m <= end,
-        );
+        const startIndex = alignment.points.findIndex((point) => point.m >= start);
+        const firstIndexPastEnd = findFirstIndexAfterM(alignment.points, end);
+        const pointsForSplit = [
+            ...interpolateWithPrecedingPointOnAlignment(alignment.points, startIndex, start),
+            ...alignment.points.slice(startIndex, firstIndexPastEnd),
+            ...interpolateWithPrecedingPointOnAlignment(alignment.points, firstIndexPastEnd, end),
+        ];
         const alignmentPart = {
             ...alignment,
             points: pointsForSplit,
@@ -88,6 +94,37 @@ function splitToParts(
             alignmentStyle(splittingEnabled, splitIsFocused),
         );
     });
+}
+
+function findFirstIndexAfterM(points: AlignmentPoint[], m: number): number {
+    const index = points.findIndex((point) => point.m > m);
+    return index === -1 ? points.length : index;
+}
+
+function interpolateWithPrecedingPointOnAlignment(
+    points: AlignmentPoint[],
+    index: number,
+    alignmentM: number,
+): AlignmentPoint[] {
+    const preceding = points[index - 1];
+    const here = points[index];
+    // check vs points being too close to avoid bad precision in interpolation
+    return preceding === undefined || here === undefined || here.m - preceding.m < 0.0001
+        ? []
+        : [linearlyInterpolateAlignmentPoint(preceding, here, alignmentM)];
+}
+
+function linearlyInterpolateAlignmentPoint(
+    start: AlignmentPoint,
+    end: AlignmentPoint,
+    alignmentM: number,
+): AlignmentPoint {
+    const portion = (alignmentM - start.m) / (end.m - start.m);
+    return {
+        x: interpolate(start.x, end.x, portion),
+        y: interpolate(start.y, end.y, portion),
+        m: alignmentM,
+    };
 }
 
 export function createLocationTrackSplitAlignmentLayer(

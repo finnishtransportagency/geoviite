@@ -158,6 +158,11 @@ const infraModelSlice = createSlice({
             { payload: response }: PayloadAction<ValidationResponse>,
         ) => {
             state.validationResponse = response;
+            state.validationIssues = validateParams(
+                response.geometryPlan,
+                state.extraInfraModelParameters,
+                state.overrideInfraModelParameters,
+            );
 
             if (response.planLayout) {
                 const bBox = response.planLayout.boundingBox;

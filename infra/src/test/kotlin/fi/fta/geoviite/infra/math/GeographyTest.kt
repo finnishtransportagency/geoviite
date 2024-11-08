@@ -3,38 +3,39 @@ package fi.fta.geoviite.infra.math
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geography.crs
+import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
-import fi.fta.geoviite.infra.geography.transformToGKCoordinate
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import kotlin.test.assertEquals
 
 class GeographyTest {
 
     @Test
     fun boundingPolygonEpsg3067To3067Works() {
-        val points3067 = listOf(
-            Point(410380.415197, 6695143.038955),
-            Point(413592.399002, 6696145.121685),
-            Point(418533.823337, 6697740.232228),
-            Point(425552.596286, 6696334.091957),
-            Point(424930.649942, 6696750.252024),
-            Point(424912.100006, 6696759.418478),
-            Point(416258.105283, 6697012.526639),
-        )
+        val points3067 =
+            listOf(
+                Point(410380.415197, 6695143.038955),
+                Point(413592.399002, 6696145.121685),
+                Point(418533.823337, 6697740.232228),
+                Point(425552.596286, 6696334.091957),
+                Point(424930.649942, 6696750.252024),
+                Point(424912.100006, 6696759.418478),
+                Point(416258.105283, 6697012.526639),
+            )
 
-        val bounds = boundingPolygonPointsByConvexHull(points3067, crs(Srid(3067)))
+        val bounds = boundingPolygonPointsByConvexHull(points3067, Srid(3067))
 
-        val expectedBounds = listOf(
-            Point(410380.415197, 6695143.038955),
-            Point(418533.823337, 6697740.232228),
-            Point(424912.100006, 6696759.418478),
-            Point(424930.649942, 6696750.252024),
-            Point(425552.596286, 6696334.091957),
-            Point(410380.415197, 6695143.038955),
-        )
+        val expectedBounds =
+            listOf(
+                Point(410380.415197, 6695143.038955),
+                Point(418533.823337, 6697740.232228),
+                Point(424912.100006, 6696759.418478),
+                Point(424930.649942, 6696750.252024),
+                Point(425552.596286, 6696334.091957),
+                Point(410380.415197, 6695143.038955),
+            )
 
         assertEquals(expectedBounds, bounds)
     }
@@ -55,7 +56,7 @@ class GeographyTest {
         // https://kartta.paikkatietoikkuna.fi converter tool, TM35FIN -> GK30
         val pointGK30 = Point(30488465.8931, 6943581.3836)
 
-        val transformedPoint = transformToGKCoordinate(Srid(3067), pointTM35FINInJoensuu)
+        val transformedPoint = transformFromLayoutToGKCoordinate(pointTM35FINInJoensuu)
         assertEquals(transformedPoint.srid, Srid(3884))
         assertApproximatelyEquals(transformedPoint, pointGK30, 0.01)
     }
@@ -67,7 +68,7 @@ class GeographyTest {
         // https://kartta.paikkatietoikkuna.fi converter tool, TM35FIN -> GK21
         val pointGK21 = Point(21522350.1588, 6836123.7529)
 
-        val transformedPoint = transformToGKCoordinate(Srid(3067), pointTM35FINInPori)
+        val transformedPoint = transformFromLayoutToGKCoordinate(pointTM35FINInPori)
         assertEquals(transformedPoint.srid, Srid(3875))
         assertApproximatelyEquals(transformedPoint, pointGK21, 0.01)
     }
@@ -77,40 +78,9 @@ class GeographyTest {
         val pointTM35FINInTooFarEast = Point(735000.0, 6983000.0)
         val pointTM35FINInTooFarWest = Point(1000.0, 6765000.0)
 
-        assertThrows<IllegalArgumentException> {
-            transformToGKCoordinate(Srid(3067), pointTM35FINInTooFarEast)
-        }
+        assertThrows<IllegalArgumentException> { transformFromLayoutToGKCoordinate(pointTM35FINInTooFarEast) }
 
-        assertThrows<IllegalArgumentException> {
-            transformToGKCoordinate(Srid(3067), pointTM35FINInTooFarWest)
-        }
-    }
-
-    @Test
-    fun pointEpsg2392To3857Works() {
-        val point2392 = Point(2545821.01, 6679696.72)
-        val point3857 = Point(2763351.44, 8450266.36)
-
-        val transformed3857 = transformNonKKJCoordinate(Srid(2392), Srid(3857), point2392)
-        assertApproximatelyEquals(point3857, transformed3857, 0.01)
-    }
-
-    @Test
-    fun pointEpsg2392To3857Works2() {
-        val point2392 = Point(2493105.32, 7472870.07)
-        val point3857 = Point(2653350.403813375, 10254765.780128963)
-
-        val transformed3857 = transformNonKKJCoordinate(Srid(2392), Srid(3857), point2392)
-        assertApproximatelyEquals(point3857, transformed3857, 0.01)
-    }
-
-    @Test
-    fun pointEpsg3857To2392Works() {
-        val point3857 = Point(2763351.44, 8450266.36)
-        val point2392 = Point(2545821.01, 6679696.72)
-
-        val transformed2392 = transformNonKKJCoordinate(Srid(3857), Srid(2392), point3857)
-        assertApproximatelyEquals(point2392, transformed2392, 0.01)
+        assertThrows<IllegalArgumentException> { transformFromLayoutToGKCoordinate(pointTM35FINInTooFarWest) }
     }
 
     @Test
@@ -135,11 +105,7 @@ class GeographyTest {
     fun shouldReturnDistanceBetweenTwoPoints() {
         Assertions.assertEquals(
             525811.478,
-            calculateDistance(
-                listOf(
-                    Point(24.92842, 60.29733),
-                    Point(25.47091, 65.00844),
-                ), Srid(4326)),
+            calculateDistance(listOf(Point(24.92842, 60.29733), Point(25.47091, 65.00844)), Srid(4326)),
             0.001,
         )
     }
@@ -148,11 +114,10 @@ class GeographyTest {
     fun shouldReturnDistanceBetweenMultiplePoints() {
         Assertions.assertEquals(
             558.088,
-            calculateDistance(listOf(
-                Point(25.41464, 65.01486),
-                Point(25.42244, 65.01473),
-                Point(25.42499, 65.01605),
-            ), Srid(4326)),
+            calculateDistance(
+                listOf(Point(25.41464, 65.01486), Point(25.42244, 65.01473), Point(25.42499, 65.01605)),
+                Srid(4326),
+            ),
             0.001,
         )
     }
@@ -162,8 +127,7 @@ class GeographyTest {
         val p3067 = Point(509099.11577, 6711823.23316)
         val p4326 = transformNonKKJCoordinate(Srid(3067), Srid(4326), p3067)
         val p3067v2 = transformNonKKJCoordinate(Srid(4326), Srid(3067), p4326)
-        assertApproximatelyEquals(Point(x=27.165853988, y=60.542330292), p4326, 0.000000001)
+        assertApproximatelyEquals(Point(x = 27.165853988, y = 60.542330292), p4326, 0.000000001)
         assertApproximatelyEquals(p3067, p3067v2, 0.01)
     }
-
 }

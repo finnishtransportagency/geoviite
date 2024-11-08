@@ -5,12 +5,10 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
-import java.time.Duration
 
 private const val GEOMETRY_CHANGE_BATCH_SIZE = 10
 
@@ -23,12 +21,10 @@ class PublicationGeometryChangeRemarksUpdateService(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @Transactional
     fun processPublication(publicationId: IntId<Publication>) {
         publicationDao.fetchUnprocessedGeometryChangeRemarks(publicationId).forEach(::processOne)
     }
 
-    @Scheduled(initialDelay = 1000 * 30, fixedDelay = 24 * 60 * 60 * 1000)
     fun updateUnprocessedGeometryChangeRemarks() {
         lockDao.runWithLock(DatabaseLock.PUBLICATION_GEOMETRY_CHANGE_CALCULATION, Duration.ofMinutes(60)) {
             var unprocessedRemarksWereLeft = true
@@ -49,11 +45,15 @@ class PublicationGeometryChangeRemarksUpdateService(
     }
 
     private fun processOne(unprocessedChange: PublicationDao.UnprocessedGeometryChange) {
-        val geocodingContext = geocodingService.getGeocodingContextAtMoment(
-            unprocessedChange.branch,
-            unprocessedChange.trackNumberId,
-            unprocessedChange.publicationTime,
+        logger.info(
+            "Processing publication change remarks for location track ${unprocessedChange.locationTrackId} in publication ${unprocessedChange.publicationId}"
         )
+        val geocodingContext =
+            geocodingService.getGeocodingContextAtMoment(
+                unprocessedChange.branch,
+                unprocessedChange.trackNumberId,
+                unprocessedChange.publicationTime,
+            )
         publicationDao.upsertGeometryChangeSummaries(
             unprocessedChange.publicationId,
             unprocessedChange.locationTrackId,
@@ -65,7 +65,7 @@ class PublicationGeometryChangeRemarksUpdateService(
                     oldAlignment = alignmentDao.fetch(unprocessedChange.oldAlignmentVersion),
                     newAlignment = alignmentDao.fetch(unprocessedChange.newAlignmentVersion),
                 )
-            }
+            },
         )
     }
 }

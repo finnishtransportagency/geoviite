@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.math
 
+import kotlin.math.PI
+import kotlin.test.assertFalse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import kotlin.math.PI
-import kotlin.test.assertFalse
 
 const val DOUBLE_CALC_DELTA = 0.00000000000001
 
@@ -67,14 +67,14 @@ class AngleTest {
         assertEquals(0.0, rotateAngle(PI, -PI), DOUBLE_CALC_DELTA)
         assertEquals(-PI, rotateAngle(0.0, -PI), DOUBLE_CALC_DELTA)
         assertEquals(-PI, rotateAngle(0.0, PI), DOUBLE_CALC_DELTA)
-        assertEquals(-PI, rotateAngle(0.0, 3*PI), DOUBLE_CALC_DELTA)
-        assertEquals(-PI, rotateAngle(0.0, -3*PI), DOUBLE_CALC_DELTA)
-        assertEquals(0.1, rotateAngle(0.0, -4*PI+0.1), DOUBLE_CALC_DELTA)
-        assertEquals(0.1, rotateAngle(0.0, 4*PI+0.1), DOUBLE_CALC_DELTA)
-        assertEquals(0.8*PI, rotateAngle(-0.6*PI, -0.6*PI), DOUBLE_CALC_DELTA)
-        assertEquals(-0.8*PI, rotateAngle(0.6*PI, 0.6*PI), DOUBLE_CALC_DELTA)
-        assertEquals(0.0, rotateAngle(0.6*PI, -0.6*PI), DOUBLE_CALC_DELTA)
-        assertEquals(0.0, rotateAngle(-0.6*PI, 0.6*PI), DOUBLE_CALC_DELTA)
+        assertEquals(-PI, rotateAngle(0.0, 3 * PI), DOUBLE_CALC_DELTA)
+        assertEquals(-PI, rotateAngle(0.0, -3 * PI), DOUBLE_CALC_DELTA)
+        assertEquals(0.1, rotateAngle(0.0, -4 * PI + 0.1), DOUBLE_CALC_DELTA)
+        assertEquals(0.1, rotateAngle(0.0, 4 * PI + 0.1), DOUBLE_CALC_DELTA)
+        assertEquals(0.8 * PI, rotateAngle(-0.6 * PI, -0.6 * PI), DOUBLE_CALC_DELTA)
+        assertEquals(-0.8 * PI, rotateAngle(0.6 * PI, 0.6 * PI), DOUBLE_CALC_DELTA)
+        assertEquals(0.0, rotateAngle(0.6 * PI, -0.6 * PI), DOUBLE_CALC_DELTA)
+        assertEquals(0.0, rotateAngle(-0.6 * PI, 0.6 * PI), DOUBLE_CALC_DELTA)
     }
 
     @Test
@@ -96,13 +96,13 @@ class AngleTest {
         assertEquals(0.0, angleAvgRads(0.1, -0.1), DOUBLE_CALC_DELTA)
         assertEquals(0.1, angleAvgRads(0.0, 0.2), DOUBLE_CALC_DELTA)
         assertEquals(-0.2, angleAvgRads(-0.1, -0.3), DOUBLE_CALC_DELTA)
-        assertEquals(0.0, angleAvgRads(0.4*PI, -0.4*PI), DOUBLE_CALC_DELTA)
-        assertEquals(PI, angleAvgRads(0.6*PI, -0.6*PI), DOUBLE_CALC_DELTA)
-        assertEquals(PI, angleAvgRads(0.9*PI, -0.9*PI), DOUBLE_CALC_DELTA)
+        assertEquals(0.0, angleAvgRads(0.4 * PI, -0.4 * PI), DOUBLE_CALC_DELTA)
+        assertEquals(PI, angleAvgRads(0.6 * PI, -0.6 * PI), DOUBLE_CALC_DELTA)
+        assertEquals(PI, angleAvgRads(0.9 * PI, -0.9 * PI), DOUBLE_CALC_DELTA)
         assertEquals(PI, angleAvgRads(PI, -PI), DOUBLE_CALC_DELTA)
-        assertEquals(0.8*PI, angleAvgRads(0.9*PI, 0.7*PI), DOUBLE_CALC_DELTA)
-        assertEquals(0.9*PI, angleAvgRads(0.7*PI, -0.9*PI), DOUBLE_CALC_DELTA)
-        assertEquals(-0.9*PI, angleAvgRads(0.9*PI, -0.7*PI), DOUBLE_CALC_DELTA)
+        assertEquals(0.8 * PI, angleAvgRads(0.9 * PI, 0.7 * PI), DOUBLE_CALC_DELTA)
+        assertEquals(0.9 * PI, angleAvgRads(0.7 * PI, -0.9 * PI), DOUBLE_CALC_DELTA)
+        assertEquals(-0.9 * PI, angleAvgRads(0.9 * PI, -0.7 * PI), DOUBLE_CALC_DELTA)
     }
 
     @Test
@@ -135,21 +135,21 @@ class AngleTest {
 
     @Test
     fun relativeAngleWorks() {
-        assertEquals(-0.2, relativeAngle(-5*PI+0.1, 5*PI-0.1), DOUBLE_CALC_DELTA)
-        assertEquals(0.2, relativeAngle(5*PI-0.1, -5*PI+0.1), DOUBLE_CALC_DELTA)
+        assertEquals(-0.2, relativeAngle(-5 * PI + 0.1, 5 * PI - 0.1), DOUBLE_CALC_DELTA)
+        assertEquals(0.2, relativeAngle(5 * PI - 0.1, -5 * PI + 0.1), DOUBLE_CALC_DELTA)
         assertEquals(0.0, relativeAngle(0.0, 0.0), DOUBLE_CALC_DELTA)
         assertEquals(0.0, relativeAngle(0.7, 0.7), DOUBLE_CALC_DELTA)
         assertEquals(0.1, relativeAngle(0.7, 0.8), DOUBLE_CALC_DELTA)
         assertEquals(0.1, relativeAngle(3.08, 3.18), DOUBLE_CALC_DELTA)
         assertEquals(-0.1, relativeAngle(0.7, 0.6), DOUBLE_CALC_DELTA)
         assertEquals(-0.1, relativeAngle(3.18, 3.08), DOUBLE_CALC_DELTA)
-        assertEquals(3.0, relativeAngle(0.0, 3.0), DOUBLE_CALC_DELTA);
-        assertEquals(5.0-PI*2.0, relativeAngle(0.0, 5.0), DOUBLE_CALC_DELTA)
-        assertEquals(PI*2.0-5.0, relativeAngle(5.0, 0.0), DOUBLE_CALC_DELTA)
+        assertEquals(3.0, relativeAngle(0.0, 3.0), DOUBLE_CALC_DELTA)
+        assertEquals(5.0 - PI * 2.0, relativeAngle(0.0, 5.0), DOUBLE_CALC_DELTA)
+        assertEquals(PI * 2.0 - 5.0, relativeAngle(5.0, 0.0), DOUBLE_CALC_DELTA)
 
         // sign flip exactly around pi
-        assertEquals(-PI+0.01, relativeAngle(0.0, PI+0.01), DOUBLE_CALC_DELTA)
-        assertEquals(PI-0.01, relativeAngle(0.0, PI-0.01), DOUBLE_CALC_DELTA)
+        assertEquals(-PI + 0.01, relativeAngle(0.0, PI + 0.01), DOUBLE_CALC_DELTA)
+        assertEquals(PI - 0.01, relativeAngle(0.0, PI - 0.01), DOUBLE_CALC_DELTA)
         // results in half-closed [-PI..PI) range
         assertEquals(-PI, relativeAngle(0.0, PI), DOUBLE_CALC_DELTA)
         assertEquals(-PI, relativeAngle(PI, 0.0), DOUBLE_CALC_DELTA)
@@ -158,28 +158,43 @@ class AngleTest {
             for (y in (0..7)) {
                 val a = x.toDouble()
                 val b = y.toDouble()
-                assertEquals(relativeAngle(a, b), -relativeAngle(b, a), DOUBLE_CALC_DELTA, "relativeAngle antisymmetry with (a, b) = ($a, $b")
+                assertEquals(
+                    relativeAngle(a, b),
+                    -relativeAngle(b, a),
+                    DOUBLE_CALC_DELTA,
+                    "relativeAngle antisymmetry with (a, b) = ($a, $b",
+                )
             }
         }
     }
 
     @Test
     fun geoMathAngleConversionWorks() {
-        verifyMathGeoConversion(0.0, 0.5*PI)
-        verifyMathGeoConversion(0.1*PI, 0.4*PI)
-        verifyMathGeoConversion(0.6*PI, 1.9*PI)
-        verifyMathGeoConversion(0.9*PI, 1.6*PI)
-        verifyMathGeoConversion(-0.1*PI, 0.6*PI)
-        verifyMathGeoConversion(-0.4*PI, 0.9*PI)
-        verifyMathGeoConversion(-0.6*PI, 1.1*PI)
-        verifyMathGeoConversion(-0.9*PI, 1.4*PI)
+        verifyMathGeoConversion(0.0, 0.5 * PI)
+        verifyMathGeoConversion(0.1 * PI, 0.4 * PI)
+        verifyMathGeoConversion(0.6 * PI, 1.9 * PI)
+        verifyMathGeoConversion(0.9 * PI, 1.6 * PI)
+        verifyMathGeoConversion(-0.1 * PI, 0.6 * PI)
+        verifyMathGeoConversion(-0.4 * PI, 0.9 * PI)
+        verifyMathGeoConversion(-0.6 * PI, 1.1 * PI)
+        verifyMathGeoConversion(-0.9 * PI, 1.4 * PI)
     }
 
     private fun verifyMathGeoConversion(mathRads: Double, geoRads: Double) {
         val delta = 0.00000001
         assertEquals(geoRads, radsMathToGeo(mathRads), delta, "math=PI*${mathRads/PI} geo=PI*${geoRads/PI}")
         assertEquals(mathRads, radsGeoToMath(geoRads), delta, "math=PI*${mathRads/PI} geo=PI*${geoRads/PI}")
-        assertEquals(geoRads, radsMathToGeo(radsGeoToMath(geoRads)), delta, "math=PI*${mathRads/PI} geo=PI*${geoRads/PI}")
-        assertEquals(mathRads, radsGeoToMath(radsMathToGeo(mathRads)), delta, "math=PI*${mathRads/PI} geo=PI*${geoRads/PI}")
+        assertEquals(
+            geoRads,
+            radsMathToGeo(radsGeoToMath(geoRads)),
+            delta,
+            "math=PI*${mathRads/PI} geo=PI*${geoRads/PI}",
+        )
+        assertEquals(
+            mathRads,
+            radsGeoToMath(radsMathToGeo(mathRads)),
+            delta,
+            "math=PI*${mathRads/PI} geo=PI*${geoRads/PI}",
+        )
     }
 }

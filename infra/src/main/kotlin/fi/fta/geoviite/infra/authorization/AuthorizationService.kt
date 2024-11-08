@@ -1,48 +1,52 @@
 package fi.fta.geoviite.infra.authorization
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.util.Code
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
 const val LDAP_GROUP_GEOVIITE_PREFIX = "geoviite_"
 const val DESIRED_ROLE_COOKIE_NAME = "desiredRole"
 
+enum class ExtApiUserType(val roleCode: AuthCode) {
+    LOCAL(AuthCode("api-private")),
+    PUBLIC(AuthCode("api-public")),
+    PRIVATE(AuthCode("api-private")),
+}
+
 @GeoviiteService
 class AuthorizationService @Autowired constructor(private val authorizationDao: AuthorizationDao) {
 
     val defaultRoleCodeOrder by lazy {
         listOf(
-            Code("operator"),
-            Code("team"),
-            Code("authority"),
-            Code("consultant"),
-            Code("browser"),
+            AuthCode("operator"),
+            AuthCode("team"),
+            AuthCode("authority"),
+            AuthCode("consultant"),
+            AuthCode("browser"),
         )
     }
 
-    fun getRoles(roleCodes: List<Code>): List<Role> {
+    fun getRole(roleCode: AuthCode): Role? {
+        return authorizationDao.getRoleByRoleCode(roleCode)
+    }
+
+    fun getRoles(roleCodes: List<AuthCode>): List<Role> {
         return authorizationDao.getRolesByRoleCodes(roleCodes)
     }
 
     @Transactional(readOnly = true)
-    fun getRolesByUserGroups(ldapGroupNames: List<Code>): List<Role> {
+    fun getRolesByUserGroups(ldapGroupNames: List<AuthCode>): List<Role> {
         return ldapGroupNames
             .filter { groupName -> groupName.startsWith(LDAP_GROUP_GEOVIITE_PREFIX) }
-            .let { geoviiteUserGroups ->
-                authorizationDao.getRolesByUserGroups(geoviiteUserGroups)
-            }
+            .let { geoviiteUserGroups -> authorizationDao.getRolesByUserGroups(geoviiteUserGroups) }
     }
 
     fun getDefaultRole(userRoles: List<Role>): Role {
-        check(userRoles.isNotEmpty()) {
-            "There must be at least one available user role!"
-        }
+        check(userRoles.isNotEmpty()) { "There must be at least one available user role!" }
 
-        return defaultRoleCodeOrder.asSequence()
-            .mapNotNull { defaultRoleCode ->
-                userRoles.find { userRole -> userRole.code == defaultRoleCode }
-            }
+        return defaultRoleCodeOrder
+            .asSequence()
+            .mapNotNull { defaultRoleCode -> userRoles.find { userRole -> userRole.code == defaultRoleCode } }
             .firstOrNull() ?: userRoles.first()
     }
 }

@@ -1,7 +1,7 @@
 import { Point } from 'model/geometry';
 import {
-    LayoutKmPostId,
     AlignmentPoint,
+    LayoutKmPostId,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -9,7 +9,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { compare } from 'utils/array-utils';
 import i18next from 'i18next';
-import { Brand } from 'common/brand';
+import { brand, Brand } from 'common/brand';
 
 export type RotationDirection = 'CW' | 'CCW';
 export type LinearUnit = 'MILLIMETER' | 'CENTIMETER' | 'METER' | 'KILOMETER';
@@ -17,19 +17,27 @@ export type AngularUnit = 'RADIANS' | 'GRADS';
 
 export type DataType = 'STORED' | 'TEMP';
 
-export type LayoutDesignId = string;
+export type LayoutDesignId = Brand<string, 'LayoutDesignId'>;
+export type MainBranch = 'MAIN';
+export type DesignBranch = Brand<string, 'DesignBranch'>;
+export type LayoutBranch = MainBranch | DesignBranch;
+
 export type PublicationState = 'OFFICIAL' | 'DRAFT';
 export type LayoutContext = {
     publicationState: PublicationState;
-    designId: LayoutDesignId | undefined;
+    branch: LayoutBranch;
 };
+
+export const designBranch = (designId: LayoutDesignId): DesignBranch => brand(`DESIGN_${designId}`);
+
+export type LayoutContextMode = 'MAIN-OFFICIAL' | 'MAIN-DRAFT' | 'DESIGN';
 
 export const officialLayoutContext = (layoutContext: LayoutContext): LayoutContext =>
     layoutContext.publicationState === 'OFFICIAL'
         ? layoutContext
         : {
               publicationState: 'OFFICIAL',
-              designId: layoutContext.designId,
+              branch: layoutContext.branch,
           };
 
 export const draftLayoutContext = (layoutContext: LayoutContext): LayoutContext =>
@@ -37,20 +45,27 @@ export const draftLayoutContext = (layoutContext: LayoutContext): LayoutContext 
         ? layoutContext
         : {
               publicationState: 'DRAFT',
-              designId: layoutContext.designId,
+              branch: layoutContext.branch,
           };
 
 const officialMainContext: LayoutContext = Object.freeze({
     publicationState: 'OFFICIAL',
-    designId: undefined,
+    branch: 'MAIN',
 });
 const draftMainContext: LayoutContext = Object.freeze({
     publicationState: 'DRAFT',
-    designId: undefined,
+    branch: 'MAIN',
 });
 
 export const officialMainLayoutContext = (): LayoutContext => officialMainContext;
 export const draftMainLayoutContext = (): LayoutContext => draftMainContext;
+
+export function draftDesignLayoutContext(designId: LayoutDesignId): LayoutContext {
+    return {
+        publicationState: 'DRAFT',
+        branch: designBranch(designId),
+    };
+}
 
 export type LayoutMode = 'DEFAULT' | 'PREVIEW';
 
@@ -138,7 +153,17 @@ export type LayoutAssetChangeInfo = {
 export type Message = string;
 
 export type SwitchHand = 'RIGHT' | 'LEFT' | 'NONE';
-export type SwitchBaseType = 'YV' | 'KV' | 'KRV' | 'YRV' | 'RR' | 'SRR' | 'TYV' | 'UKV' | 'SKV';
+export type SwitchBaseType =
+    | 'YV'
+    | 'KV'
+    | 'KRV'
+    | 'YRV'
+    | 'RR'
+    | 'SRR'
+    | 'TYV'
+    | 'UKV'
+    | 'SKV'
+    | 'EV';
 export type JointNumber = string;
 
 export type Oid = string;
@@ -194,11 +219,6 @@ export type LocationTrackOwner = {
 };
 
 export type RowVersion = string;
-
-export enum LocationTrackPointUpdateType {
-    END_POINT = 'END_POINT',
-    START_POINT = 'START_POINT',
-}
 
 export enum LayoutEndPoint {
     SWITCH = 'SWITCH', // vaihde

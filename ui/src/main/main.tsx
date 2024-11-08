@@ -18,7 +18,7 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 // fontsource requires fonts to be imported somewhere in code
 import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/600.css';
-import { getEnvironmentInfo } from 'environment/environment-info';
+import { useEnvironmentInfo } from 'environment/environment-info';
 import { createDelegates } from 'store/store-utils';
 import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import { Button } from 'vayla-design-lib/button/button';
@@ -100,11 +100,10 @@ export const MainContainer: React.FC = () => {
     const mapDelegates = createDelegates(trackLayoutActionCreators);
 
     const layoutMode = useTrackLayoutAppSelector((state) => state.layoutMode);
-    const versionInStore = useCommonDataAppSelector((state) => state.version);
-    const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
-    const [versionStatus, setVersionStatus] = React.useState<'loading' | 'reload' | 'ok'>(
-        'loading',
-    );
+    const commonAppData = useCommonDataAppSelector((state) => state);
+    const versionInStore = commonAppData.version;
+    const versionStatus = commonAppData.versionStatus;
+    const versionFromBackend = useEnvironmentInfo()?.releaseVersion;
     const delegates = React.useMemo(() => createDelegates(commonActionCreators), []);
 
     React.useEffect(() => {
@@ -119,7 +118,7 @@ export const MainContainer: React.FC = () => {
 
     React.useEffect(() => {
         if (typeof versionFromBackend == 'string') {
-            setVersionStatus(
+            delegates.setVersionStatus(
                 !versionInStore || versionInStore === versionFromBackend ? 'ok' : 'reload',
             );
 

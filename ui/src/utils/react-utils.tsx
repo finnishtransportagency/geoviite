@@ -58,37 +58,69 @@ export function useLoaderWithStatus<TEntity>(
     return useRateLimitedLoaderWithStatus(loadFunc, 0, deps);
 }
 
+function dependenciesAreEqual(deps1: unknown[], deps2: unknown[]): boolean {
+    // React uses "Object.is" to compare dependencies, so this should return equal result
+    return deps1.length === deps2.length && deps1.every((d1, index) => Object.is(d1, deps2[index]));
+}
+
+const initialDeps: unknown[] = [];
+
+function dependenciesAreChangedInState(deps: unknown[]): boolean {
+    const [depsInState, setDepsInState] = React.useState(initialDeps);
+    if (depsInState === initialDeps || !dependenciesAreEqual(deps, depsInState)) {
+        setDepsInState(deps);
+        return true;
+    }
+    return false;
+}
+
 export function useRateLimitedLoaderWithStatus<TEntity>(
     loadFunc: () => Promise<TEntity> | undefined,
     minWaitTime: number,
     deps: unknown[],
 ): [TEntity | undefined, LoaderStatus] {
     const [entity, setEntity] = React.useState<TEntity>();
-    const [loaderStatus, setLoaderStatus] = React.useState<LoaderStatus>(LoaderStatus.Initialized);
+    const [loaderStatusInState, setLoaderStatusInState] = React.useState<LoaderStatus>(
+        LoaderStatus.Initialized,
+    );
+    const depsAreChanged = dependenciesAreChangedInState(deps);
+
     useRateLimitedEffect(
         () => {
             const result = loadFunc();
             let cancel = false;
             if (result) {
-                setLoaderStatus(LoaderStatus.Loading);
+                setLoaderStatusInState(LoaderStatus.Loading);
                 result
                     .then((r) => {
                         if (!cancel) {
                             setEntity(r);
-                            setLoaderStatus(LoaderStatus.Ready);
+                            setLoaderStatusInState(LoaderStatus.Ready);
                         }
                     })
                     .catch((e) => console.log('loader promise rejected', e));
-            } else setEntity(undefined);
+            } else {
+                setEntity(undefined);
+                setLoaderStatusInState(LoaderStatus.Ready);
+            }
 
             return () => {
                 cancel = true;
-                setLoaderStatus(LoaderStatus.Cancelled);
+                setLoaderStatusInState(LoaderStatus.Cancelled);
             };
         },
         minWaitTime,
         deps,
     );
+
+    // If "useLoader" is called with modified dependencies, actual "load" function will be called
+    // asynchronously and status will then be set to "loading", but it is more precise to set and
+    // return "initialize" status synchronously.
+    const loaderStatus = depsAreChanged ? LoaderStatus.Initialized : loaderStatusInState;
+    if (loaderStatus != loaderStatusInState) {
+        setLoaderStatusInState(loaderStatus);
+    }
+
     return [entity, loaderStatus];
 }
 
@@ -125,9 +157,9 @@ export function useTwoPartEffectWithStatus<TEntity>(
 ): LoaderStatus {
     const [loaderStatus, setLoaderStatus] = React.useState<LoaderStatus>(LoaderStatus.Initialized);
 
-    let cancelled = false;
     useEffect(() => {
         const promise = loadFunc();
+        let cancelled = false;
 
         if (promise) {
             setLoaderStatus(LoaderStatus.Loading);
@@ -161,6 +193,7 @@ export function useLoaderWithTimer<TEntity>(
     React.useEffect(() => {
         let cancel = false;
         setEntity(undefined);
+
         function fetchEntities() {
             const result = loadFunc();
             if (result) {
@@ -171,6 +204,7 @@ export function useLoaderWithTimer<TEntity>(
                     .catch((e) => console.log('loader promise rejected', e));
             }
         }
+
         fetchEntities();
         const intervalTimer = setInterval(fetchEntities, timeout);
         return () => {
@@ -290,6 +324,7 @@ export function useMapState<K, V>(
         });
     return [map, setValue, removeKey, setMap];
 }
+
 export function useSetState<T>(
     initial?: Set<T> | (() => Set<T>),
 ): [

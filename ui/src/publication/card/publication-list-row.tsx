@@ -7,20 +7,19 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createClassName } from 'vayla-design-lib/utils';
-import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { AppNavigateFunction } from 'common/navigate';
 import { Menu, menuOption, MenuSelectOption } from 'vayla-design-lib/menu/menu';
 import { SplitDetailsDialog } from 'publication/split/split-details-dialog';
 import { putBulkTransferState } from 'publication/split/split-api';
 import { success } from 'geoviite-design-lib/snackbar/snackbar';
-import { updateSplitChangeTime } from 'common/change-time-api';
+import { getChangeTimes, updateSplitChangeTime } from 'common/change-time-api';
+import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
+import { Link } from 'react-router-dom';
 
 type PublicationListRowProps = {
     publication: PublicationDetails;
     setSelectedPublicationId: (id: string) => void;
-    navigate: AppNavigateFunction;
 };
 
 const publicationStateIcon: React.FC<PublicationDetails> = (publication) => {
@@ -64,16 +63,14 @@ const bulkTransferStateIcon = (bulkTransferState: BulkTransferState | undefined)
         case 'IN_PROGRESS':
             return <Spinner size={SpinnerSize.SMALL} />;
         default:
-            exhaustiveMatchingGuard(bulkTransferState);
+            return exhaustiveMatchingGuard(bulkTransferState);
     }
 };
 
-export const PublicationListRow: React.FC<PublicationListRowProps> = ({
-    publication,
-    setSelectedPublicationId,
-    navigate,
-}) => {
+export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publication }) => {
     const { t } = useTranslation();
+
+    const design = useLayoutDesign(getChangeTimes().layoutDesign, publication.layoutBranch)?.name;
 
     const [menuOpen, setMenuOpen] = React.useState(false);
     const [splitDetailsDialogOpen, setSplitDetailsDialogOpen] = React.useState(false);
@@ -124,16 +121,24 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                         </span>
                     )}
                     <span className={styles['publication-list-item__text']}>
-                        <Link
-                            onClick={() => {
-                                setSelectedPublicationId(publication.id);
-                                navigate('publication-view', publication.id);
-                            }}>
-                            {formatDateFull(publication.publicationTime)}
-                        </Link>
+                        {(() => {
+                            const text = formatDateFull(publication.publicationTime);
+                            return publication.layoutBranch === 'MAIN' ? (
+                                <Link to={`/publications/${publication.id}`}>{text}</Link>
+                            ) : (
+                                text
+                            );
+                        })()}
                     </span>
                 </span>
-                <span>{publication.message}</span>
+                <span>
+                    {design && (
+                        <span className={styles['publication-list-item__design-name']}>
+                            {`${design}:`}
+                        </span>
+                    )}
+                    {publication.message}
+                </span>
             </div>
             {publication.split && (
                 <div className={styles['publication-list-item__split']}>

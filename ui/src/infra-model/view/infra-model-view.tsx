@@ -24,6 +24,8 @@ import { MapViewContainer } from 'map/map-view-container';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_GEOMETRY_FILE } from 'user/user-model';
 
+type InfraModelFileSource = 'STORED' | 'PV_IMPORT' | 'FILE_UPLOAD';
+
 export type InfraModelBaseProps = InfraModelState & {
     onExtraParametersChange: <TKey extends keyof ExtraInfraModelParameters>(
         parameters: Prop<ExtraInfraModelParameters, TKey>,
@@ -31,11 +33,16 @@ export type InfraModelBaseProps = InfraModelState & {
     onOverrideParametersChange: (parameters: OverrideInfraModelParameters) => void;
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
-    isLoading: boolean;
+    isValidating: boolean;
+    isSaving: boolean;
     onClose: () => void;
+    setLoading: (loading: boolean) => void;
+    setSaving: (saving: boolean) => void;
+    clearInfraModelState: () => void;
 };
 export type InfraModelViewProps = InfraModelBaseProps & {
     onSave: () => Promise<boolean>;
+    fileSource: InfraModelFileSource;
 };
 
 export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelViewProps) => {
@@ -46,7 +53,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
 
     const geometryPlan = props.validationResponse?.geometryPlan;
     const planLayout = props.validationResponse?.planLayout;
-    const isNewPlan = geometryPlan?.dataType !== 'STORED';
+    const isNewPlan = props.fileSource === 'FILE_UPLOAD';
 
     const fileMenuItems: Item<FileMenuOption>[] = isNewPlan
         ? [
@@ -66,7 +73,9 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     };
 
     const onProgressClick = () => {
-        getFieldValidationWarnings().length || !planLayout
+        getFieldValidationWarnings().length > 0 ||
+        getFieldValidationIssues().length > 0 ||
+        !planLayout
             ? setShowCriticalWarning(true)
             : onSaveClick();
     };
@@ -96,7 +105,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     };
 
     const fileName = geometryPlan?.fileName || '';
-    const toolbarName = `${isNewPlan ? `${t('im-form.toolbar.upload')}: ` : ''}${fileName}`;
+    const toolbarName = `${isNewPlan && fileName.length > 0 ? `${t('im-form.toolbar.upload')}: ` : ''}${fileName}`;
     const showMap = props.validationResponse?.planLayout != undefined;
 
     return (
@@ -112,7 +121,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         <InfraModelForm
                             changeTimes={props.changeTimes}
                             validationIssues={props.validationIssues}
-                            upLoading={props.isLoading}
+                            isSaving={props.isSaving}
                             geometryPlan={geometryPlan}
                             onInfraModelOverrideParametersChange={props.onOverrideParametersChange}
                             onInfraModelExtraParametersChange={props.onExtraParametersChange}
@@ -132,7 +141,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         <Button
                             onClick={props.onClose}
                             variant={ButtonVariant.WARNING}
-                            disabled={props.isLoading}
+                            disabled={props.isValidating}
                             icon={Icons.Delete}>
                             {t('button.cancel')}
                         </Button>
@@ -141,7 +150,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         <Button
                             onClick={props.onClose}
                             variant={ButtonVariant.SECONDARY}
-                            disabled={props.isLoading}>
+                            disabled={props.isValidating}>
                             {t('button.return')}
                         </Button>
                     )}
@@ -151,13 +160,13 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             title={getVisibleErrors()}
                             onClick={() => onProgressClick()}
                             disabled={
-                                props.isLoading ||
+                                props.isValidating ||
                                 !props.validationResponse ||
                                 fileHandlingFailedErrors.length > 0 ||
                                 getFieldValidationIssues().length > 0
                             }
                             icon={Icons.Tick}
-                            isProcessing={props.isLoading}>
+                            isProcessing={props.isValidating}>
                             {t(isNewPlan ? 'button.save' : 'im-form.save-changes')}
                         </Button>
                     </PrivilegeRequired>
@@ -179,15 +188,15 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
-                                disabled={props.isLoading}
+                                disabled={props.isSaving}
                                 onClick={() => setShowCriticalWarning(false)}>
                                 {t('button.cancel')}
                             </Button>
                             <Button
                                 id="infra-model-upload-dialog-save-button"
                                 onClick={() => onSaveClick()}
-                                disabled={props.isLoading}
-                                isProcessing={props.isLoading}>
+                                disabled={props.isSaving}
+                                isProcessing={props.isSaving}>
                                 {t('button.save')}
                             </Button>
                         </div>

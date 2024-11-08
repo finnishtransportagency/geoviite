@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.common
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.TestApi
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -11,15 +12,11 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.OK
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-class IdConversionTest @Autowired constructor(
-    mapper: ObjectMapper,
-    mockMvc: MockMvc,
-) {
+class IdConversionTest @Autowired constructor(mapper: ObjectMapper, mockMvc: MockMvc) {
 
     val testApi = TestApi(mapper, mockMvc)
 
@@ -135,18 +132,12 @@ class IdConversionTest @Autowired constructor(
 
     @Test
     fun getWithOidInArgumentSucceeds() {
-        assertEquals(
-            successResponse(Oid("234.123.789")),
-            testApi.doGet("$ID_TEST_URL/oid-test-arg?id=234.123.789", OK),
-        )
+        assertEquals(successResponse(Oid("234.123.789")), testApi.doGet("$ID_TEST_URL/oid-test-arg?id=234.123.789", OK))
     }
 
     @Test
     fun getWithSridInArgumentSucceeds() {
-        assertEquals(
-            successResponse(Srid(23412)),
-            testApi.doGet("$ID_TEST_URL/srid-test-arg?id=EPSG:23412", OK),
-        )
+        assertEquals(successResponse(Srid(23412)), testApi.doGet("$ID_TEST_URL/srid-test-arg?id=EPSG:23412", OK))
     }
 
     @Test
@@ -304,11 +295,15 @@ class IdConversionTest @Autowired constructor(
     @Test
     fun `Overlong IndexedIds are rejected`() {
         assertThrows<IllegalArgumentException> {
-            IndexedId.parse<IdConversionTest>(IndexedId<IdConversionTest>(Int.MAX_VALUE, Int.MAX_VALUE).toString() + "0")
+            IndexedId.parse<IdConversionTest>(
+                IndexedId<IdConversionTest>(Int.MAX_VALUE, Int.MAX_VALUE).toString() + "0"
+            )
         }
     }
 
     private fun successResponse(id: DomainId<IdTestObject>): String = testApi.response(IdTestObject(id))
+
     private fun successResponse(id: Oid<OidTestObject>): String = testApi.response(OidTestObject(id))
+
     private fun successResponse(id: Srid): String = testApi.response(SridTestObject(id))
 }

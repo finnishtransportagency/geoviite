@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
-import org.junit.jupiter.api.Assertions.assertEquals
 import kotlin.test.assertNull
+import org.junit.jupiter.api.Assertions.assertEquals
 
 private const val COORDINATE_DELTA: Double = 0.000000001
 private const val LENGTH_DELTA: Double = 0.00001
@@ -19,10 +19,7 @@ fun assertMatches(expected: TrackLayoutTrackNumber, actual: TrackLayoutTrackNumb
 }
 
 fun assertMatches(expected: ReferenceLine, actual: ReferenceLine, contextMatch: Boolean = false) {
-    val expectedWithSameFloats = expected.copy(
-        boundingBox = actual.boundingBox,
-        length = actual.length,
-    )
+    val expectedWithSameFloats = expected.copy(boundingBox = actual.boundingBox, length = actual.length)
     if (contextMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
@@ -33,10 +30,7 @@ fun assertMatches(expected: ReferenceLine, actual: ReferenceLine, contextMatch: 
 }
 
 fun assertMatches(expected: LocationTrack, actual: LocationTrack, contextMatch: Boolean = false) {
-    val expectedWithSameFloats = expected.copy(
-        boundingBox = actual.boundingBox,
-        length = actual.length,
-    )
+    val expectedWithSameFloats = expected.copy(boundingBox = actual.boundingBox, length = actual.length)
     if (contextMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
@@ -47,16 +41,11 @@ fun assertMatches(expected: LocationTrack, actual: LocationTrack, contextMatch: 
 }
 
 fun assertMatches(expected: LayoutAlignment, actual: LayoutAlignment, idMatch: Boolean = false) {
-    val expectedWithSameFloats = expected.copy(
-        segments = actual.segments,
-    )
+    val expectedWithSameFloats = expected.copy(segments = actual.segments)
     if (idMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
-        val unified = actual.copy(
-            id = expected.id,
-            dataType = expected.dataType,
-        )
+        val unified = actual.copy(id = expected.id, dataType = expected.dataType)
         assertEquals(expectedWithSameFloats, unified)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
@@ -85,26 +74,17 @@ fun assertMatches(expected: AlignmentPoint, actual: AlignmentPoint) {
     assertEquals(expected.x, actual.x, COORDINATE_DELTA)
     assertEquals(expected.y, actual.y, COORDINATE_DELTA)
     assertEquals(expected.m, actual.m, COORDINATE_DELTA)
-    if (expected.z == null) assertNull(actual.z)
-    else assertEquals(expected.z!!, actual.z!!, HEIGHT_DELTA)
-    if (expected.cant == null) assertNull(actual.cant)
-    else assertEquals(expected.cant!!, actual.cant!!, CANT_DELTA)
+    if (expected.z == null) assertNull(actual.z) else assertEquals(expected.z!!, actual.z!!, HEIGHT_DELTA)
+    if (expected.cant == null) assertNull(actual.cant) else assertEquals(expected.cant!!, actual.cant!!, CANT_DELTA)
 }
 
 fun assertMatches(expected: TrackLayoutKmPost, actual: TrackLayoutKmPost, contextMatch: Boolean = false) {
     if (contextMatch) {
         assertEquals(expected, actual)
     } else {
-        val unified = actual.copy(
-            contextData = expected.contextData,
-            sourceId = expected.sourceId,
-        )
+        val unified = actual.copy(contextData = expected.contextData, sourceId = expected.sourceId)
         assertEquals(expected, unified)
         assertEquals(expected.sourceId != null, actual.sourceId != null)
-    }
-    assertEquals(expected.location == null, actual.location == null)
-    if (expected.location != null) {
-        assertApproximatelyEquals(expected.location!!, actual.location!!, COORDINATE_DELTA)
     }
 }
 

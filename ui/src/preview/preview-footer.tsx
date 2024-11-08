@@ -4,8 +4,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import { useTranslation } from 'react-i18next';
 import styles from './preview-view.scss';
-import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { publishPublicationCandidates } from 'publication/publication-api';
+import { mergeCandidatesToMain, publishPublicationCandidates } from 'publication/publication-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     updateKmPostChangeTime,
@@ -14,24 +13,29 @@ import {
     updateSwitchChangeTime,
     updateTrackNumberChangeTime,
 } from 'common/change-time-api';
-import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import {
+    LayoutValidationIssue,
+    LayoutValidationIssueType,
     PublicationCandidate,
     PublicationResult,
-    LayoutValidationIssue,
+    validationIssueIsError,
 } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
-import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
-import { TextArea } from 'vayla-design-lib/text-area/text-area';
-import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
+import { PreviewPublicationConfirmationDialog } from 'preview/preview-publication-confirmation-dialog';
+import { DesignPublicationMode } from 'preview/preview-tool-bar';
+import { PreviewMergeToMainConfirmationDialog } from 'preview/preview-merge-to-main-confirmation-dialog';
+import { MapDisplayTransitionSide } from 'preview/preview-view';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
     onPublish: () => void;
     layoutContext: LayoutContext;
-    onChangeLayoutContext: (context: LayoutContext) => void;
+    onChangeMapDisplayTransitionSide: (side: MapDisplayTransitionSide) => void;
+    mapDisplayTransitionSide: MapDisplayTransitionSide;
     stagedPublicationCandidates: PublicationCandidate[];
-    validating: boolean;
+    disablePublication: boolean;
+    designPublicationMode: DesignPublicationMode;
 };
 
 function previewChangesCanBePublished(publishCandidates: PublicationCandidate[]) {
@@ -46,9 +50,23 @@ function publishErrors(publishCandidates: PublicationCandidate[]): LayoutValidat
     return publishCandidates.flatMap((candidate) => candidate.issues);
 }
 
+function checkStagedCandidateValidation(
+    stagedPublicationCandidates: PublicationCandidate[],
+    designPublicationMode: DesignPublicationMode,
+): boolean {
+    const disablesPublication: (issue: LayoutValidationIssueType) => boolean =
+        designPublicationMode === 'MERGE_TO_MAIN' ? (t) => t === 'FATAL' : validationIssueIsError;
+    return (
+        publishErrors(stagedPublicationCandidates)
+            .map((error) => error.type)
+            .filter(disablesPublication).length === 0
+    );
+}
+
 export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooterProps) => {
-    const allPublishErrors = publishErrors(props.stagedPublicationCandidates).filter(
-        (error) => error.type === 'ERROR',
+    const stagedCandidateValidationOk = checkStagedCandidateValidation(
+        props.stagedPublicationCandidates,
+        props.designPublicationMode,
     );
     const describeResult = (result: PublicationResult | undefined): string => {
         return [
@@ -76,11 +94,9 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     const [publishConfirmVisible, setPublishConfirmVisible] = React.useState(false);
 
     const [isPublishing, setPublishing] = React.useState(false);
-    const [message, setMessage] = React.useState('');
 
-    const publish = () => {
-        setPublishing(true);
-        publishPublicationCandidates(props.stagedPublicationCandidates, message)
+    const publishWith = (publicationPromise: Promise<PublicationResult>) =>
+        publicationPromise
             .then((r) => {
                 Snackbar.success('publish.publish-success', describeResult(r));
                 updateChangeTimes(r);
@@ -90,6 +106,23 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                 setPublishConfirmVisible(false);
                 setPublishing(false);
             });
+
+    const publish = (message: string) => {
+        setPublishing(true);
+        publishWith(
+            publishPublicationCandidates(
+                props.layoutContext.branch,
+                props.stagedPublicationCandidates,
+                message,
+            ),
+        );
+    };
+
+    const mergeToMain = () => {
+        const branch = props.layoutContext.branch;
+        if (branch === 'MAIN') return;
+        setPublishing(true);
+        publishWith(mergeCandidatesToMain(branch, props.stagedPublicationCandidates));
     };
 
     const candidateCount = props.stagedPublicationCandidates.length;
@@ -103,8 +136,8 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     disabled={
                         candidateCount === 0 ||
                         publishConfirmVisible ||
-                        props.validating ||
-                        (allPublishErrors && allPublishErrors?.length > 0) ||
+                        props.disablePublication ||
+                        !stagedCandidateValidationOk ||
                         !publishPreviewChanges
                     }>
                     {t('preview-footer.publish-changes')}
@@ -113,57 +146,33 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             <div className={styles['preview-footer__map-toggle']}>
                 <Switch
                     onCheckedChange={(check) =>
-                        props.onChangeLayoutContext(
-                            check
-                                ? draftLayoutContext(props.layoutContext)
-                                : officialLayoutContext(props.layoutContext),
+                        props.onChangeMapDisplayTransitionSide(
+                            check ? 'WITH_CHANGES' : 'BASE_CONTEXT',
                         )
                     }
-                    checked={props.layoutContext.publicationState === 'DRAFT'}>
+                    checked={props.mapDisplayTransitionSide === 'WITH_CHANGES'}>
                     {t('preview-footer.publish-tracklayout')}
                 </Switch>
             </div>
-            {publishConfirmVisible && (
-                <Dialog
-                    title={t('publish.publish-confirm.title')}
-                    variant={DialogVariant.LIGHT}
-                    allowClose={!isPublishing}
-                    onClose={() => setPublishConfirmVisible(false)}
-                    footerContent={
-                        <div className={dialogStyles['dialog__footer-content--centered']}>
-                            <Button
-                                onClick={() => setPublishConfirmVisible(false)}
-                                disabled={candidateCount === 0 || isPublishing}
-                                variant={ButtonVariant.SECONDARY}>
-                                {t('publish.publish-confirm.cancel')}
-                            </Button>
-                            <Button
-                                qa-id={'publication-confirm'}
-                                disabled={isPublishing || message.length === 0}
-                                isProcessing={isPublishing}
-                                onClick={publish}>
-                                {t('publish.publish-confirm.confirm', {
-                                    candidates: candidateCount,
-                                })}
-                            </Button>
-                        </div>
-                    }>
-                    <div className={styles['preview-confirm__description']}>
-                        {t('publish.publish-confirm.description')}
-                    </div>
-                    <FieldLayout
-                        label={`${t('publish.publish-confirm.message')} *`}
-                        value={
-                            <TextArea
-                                qa-id={'publication-message'}
-                                value={message}
-                                wide
-                                onChange={(e) => setMessage(e.currentTarget.value)}
-                            />
-                        }
+            {publishConfirmVisible &&
+                (props.designPublicationMode === 'PUBLISH_CHANGES' ? (
+                    <PreviewPublicationConfirmationDialog
+                        isPublishing={isPublishing}
+                        onCancel={() => setPublishConfirmVisible(false)}
+                        candidateCount={candidateCount}
+                        publish={publish}
                     />
-                </Dialog>
-            )}
+                ) : (
+                    props.layoutContext.branch !== 'MAIN' && (
+                        <PreviewMergeToMainConfirmationDialog
+                            designBranch={props.layoutContext.branch}
+                            isPublishing={isPublishing}
+                            onCancel={() => setPublishConfirmVisible(false)}
+                            candidateCount={candidateCount}
+                            mergeToMain={mergeToMain}
+                        />
+                    )
+                ))}
         </footer>
     );
 };

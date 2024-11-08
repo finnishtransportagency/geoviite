@@ -16,6 +16,7 @@ import { LoaderStatus, useLoader, useLoaderWithStatus, useOptionalLoader } from 
 import {
     CoordinateSystem,
     LayoutAssetChangeInfo,
+    LayoutBranch,
     LayoutContext,
     Srid,
     SwitchStructure,
@@ -49,17 +50,18 @@ import {
 import { getKmPost, getKmPostChangeInfo, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
-import { updateAllChangeTimes } from 'common/change-time-api';
-import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
+    updateAllChangeTimes,
     updateKmPostChangeTime,
-    updateSwitchChangeTime,
     updateLocationTrackChangeTime,
+    updateSwitchChangeTime,
 } from 'common/change-time-api';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { deduplicate } from 'utils/array-utils';
 import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
+import { getLayoutDesignByBranch, LayoutDesign } from 'track-layout/layout-design-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -71,7 +73,7 @@ export function useTrackNumberReferenceLine(
             trackNumberId
                 ? getTrackNumberReferenceLine(trackNumberId, layoutContext, changeTime)
                 : undefined,
-        [trackNumberId, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [trackNumberId, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -82,7 +84,7 @@ export function useReferenceLine(
 ): LayoutReferenceLine | undefined {
     return useOptionalLoader(
         () => (id ? getReferenceLine(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -94,12 +96,7 @@ export function useReferenceLines(
     return (
         useLoader(
             () => (ids ? getReferenceLines(ids, layoutContext) : undefined),
-            [
-                JSON.stringify(ids),
-                layoutContext.publicationState,
-                layoutContext.designId,
-                changeTime,
-            ],
+            [JSON.stringify(ids), layoutContext.publicationState, layoutContext.branch, changeTime],
         ) || []
     );
 }
@@ -111,7 +108,7 @@ export function useLocationTrack(
 ): LayoutLocationTrack | undefined {
     return useOptionalLoader(
         () => (id ? getLocationTrack(id, layoutContext) : undefined),
-        [id, layoutContext.publicationState, layoutContext.designId, changeTime],
+        [id, layoutContext.publicationState, layoutContext.branch, changeTime],
     );
 }
 
@@ -123,12 +120,7 @@ export function useLocationTracks(
     return (
         useLoader(
             () => (ids ? getLocationTracks(ids, layoutContext) : undefined),
-            [
-                JSON.stringify(ids),
-                layoutContext.designId,
-                layoutContext.publicationState,
-                changeTime,
-            ],
+            [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
         ) || []
     );
 }
@@ -140,7 +132,7 @@ export function useSwitch(
 ): LayoutSwitch | undefined {
     return useOptionalLoader(
         () => (id ? getSwitch(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -152,12 +144,7 @@ export function useSwitches(
     return (
         useLoader(
             () => (ids ? getSwitches(ids, layoutContext) : undefined),
-            [
-                JSON.stringify(ids),
-                layoutContext.designId,
-                layoutContext.publicationState,
-                changeTime,
-            ],
+            [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
         ) || []
     );
 }
@@ -173,7 +160,7 @@ export function useTrackNumber(
 ): LayoutTrackNumber | undefined {
     return useLoader(
         () => (id ? getTrackNumberById(id, layoutContext, changeTime) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -184,7 +171,7 @@ export function useTrackNumberWithStatus(
 ): [LayoutTrackNumber | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () => (id ? getTrackNumberById(id, layoutContext, changeTime) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -194,7 +181,7 @@ export function useTrackNumbers(
 ): LayoutTrackNumber[] | undefined {
     return useLoader(
         () => getTrackNumbers(layoutContext, changeTime),
-        [layoutContext.designId, layoutContext.publicationState, changeTime],
+        [layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -204,7 +191,7 @@ export function useTrackNumbersIncludingDeleted(
 ): LayoutTrackNumber[] | undefined {
     return useLoader(
         () => getTrackNumbers(layoutContext, changeTime, true),
-        [layoutContext.designId, layoutContext.publicationState, changeTime],
+        [layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -215,7 +202,7 @@ export function useReferenceLineStartAndEnd(
 ): AlignmentStartAndEnd | undefined {
     return useLoader(
         () => (id ? getReferenceLineStartAndEnd(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -228,10 +215,11 @@ export function useLocationTrackStartAndEnd(
         changeTimes.layoutLocationTrack,
         changeTimes.layoutTrackNumber,
         changeTimes.layoutReferenceLine,
+        changeTimes.layoutKmPost,
     );
     return useLoaderWithStatus(
         () => (id ? getLocationTrackStartAndEnd(id, layoutContext, changeTime) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -245,9 +233,10 @@ export function useLocationTrackInfoboxExtras(
             id === undefined
                 ? undefined
                 : getLocationTrackInfoboxExtras(id, layoutContext, changeTimes),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTimes],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTimes],
     );
 }
+
 export function useConflictingTracks(
     trackNumberId: LayoutTrackNumberId | undefined,
     trackNames: string[],
@@ -263,14 +252,17 @@ export function useConflictingTracks(
         () =>
             trackNumberId === undefined || properAlignmentNames.length === 0
                 ? undefined
-                : getLocationTracksByName(trackNumberId, properAlignmentNames, layoutContext).then(
-                      (tracks) => tracks.filter((t) => !trackIds.includes(t.id)),
-                  ),
+                : getLocationTracksByName(
+                      trackNumberId,
+                      properAlignmentNames,
+                      layoutContext,
+                      false,
+                  ).then((tracks) => tracks.filter((t) => !trackIds.includes(t.id))),
         [
             trackNumberId,
             namesString,
             trackIdsString,
-            layoutContext.designId,
+            layoutContext.branch,
             layoutContext.publicationState,
         ],
     );
@@ -286,7 +278,7 @@ export function useTrackNumberChangeTimes(
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getTrackNumberChangeTimes(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState],
+        [id, layoutContext.branch, layoutContext.publicationState],
     );
 }
 
@@ -296,7 +288,7 @@ export function useReferenceLineChangeTimes(
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getReferenceLineChangeTimes(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState],
+        [id, layoutContext.branch, layoutContext.publicationState],
     );
 }
 
@@ -306,7 +298,7 @@ export function useLocationTrackChangeTimes(
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getLocationTrackChangeTimes(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState],
+        [id, layoutContext.branch, layoutContext.publicationState],
     );
 }
 
@@ -316,7 +308,7 @@ export function useSwitchChangeTimes(
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getSwitchChangeTimes(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState],
+        [id, layoutContext.branch, layoutContext.publicationState],
     );
 }
 
@@ -326,12 +318,19 @@ export function useKmPostChangeTimes(
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getKmPostChangeInfo(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState],
+        [id, layoutContext.branch, layoutContext.publicationState],
     );
 }
 
-export function useCoordinateSystem(srid: Srid): CoordinateSystem | undefined {
-    return useLoader(() => getCoordinateSystem(srid), [srid]);
+export function useCoordinateSystem(srid: Srid | undefined): CoordinateSystem | undefined {
+    return useLoader(() => (srid === undefined ? undefined : getCoordinateSystem(srid)), [srid]);
+}
+
+export function useCoordinateSystems(srids: Srid[]): CoordinateSystem[] | undefined {
+    return useLoader(
+        () => Promise.all(srids.map((srid) => getCoordinateSystem(srid))),
+        [srids.join('_')],
+    );
 }
 
 export function useKmPost(
@@ -341,7 +340,7 @@ export function useKmPost(
 ): LayoutKmPost | undefined {
     return useOptionalLoader(
         () => (id ? getKmPost(id, layoutContext, changeTime) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -353,12 +352,7 @@ export function useKmPosts(
     return (
         useLoader(
             () => (ids ? getKmPosts(ids, layoutContext, changeTime) : undefined),
-            [
-                JSON.stringify(ids),
-                layoutContext.designId,
-                layoutContext.publicationState,
-                changeTime,
-            ],
+            [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
         ) || []
     );
 }
@@ -443,3 +437,13 @@ export const getSaveDisabledReasons = (reasons: string[], saveInProgress: boolea
                   else return reason;
               }),
           );
+
+export const useLayoutDesign = (
+    changeTime: TimeStamp,
+    layoutBranch: LayoutBranch,
+): LayoutDesign | undefined =>
+    useLoader(
+        () =>
+            layoutBranch === 'MAIN' ? undefined : getLayoutDesignByBranch(changeTime, layoutBranch),
+        [layoutBranch],
+    );

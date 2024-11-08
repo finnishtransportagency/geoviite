@@ -4,20 +4,19 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
-import java.util.stream.Collectors
 
 @GeoviiteService
-class PlanLayoutService(
-    private val planLayoutCache: PlanLayoutCache,
-    private val geometryDao: GeometryDao,
-) {
+class PlanLayoutService(private val planLayoutCache: PlanLayoutCache, private val geometryDao: GeometryDao) {
     fun getLayoutPlan(
         planVersion: RowVersion<GeometryPlan>,
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
-    ): Pair<GeometryPlanLayout?, TransformationError?> = handlePointListStepLength(
-        planLayoutCache.getPlanLayout(planVersion, includeGeometryData), includeGeometryData, pointListStepLength
-    )
+    ): Pair<GeometryPlanLayout?, TransformationError?> =
+        handlePointListStepLength(
+            planLayoutCache.getPlanLayout(planVersion, includeGeometryData),
+            includeGeometryData,
+            pointListStepLength,
+        )
 
     fun getLayoutPlan(
         geometryPlanId: IntId<GeometryPlan>,
@@ -25,19 +24,6 @@ class PlanLayoutService(
         pointListStepLength: Int = 1,
     ): Pair<GeometryPlanLayout?, TransformationError?> =
         getLayoutPlan(geometryDao.fetchPlanVersion(geometryPlanId), includeGeometryData, pointListStepLength)
-
-    fun getManyLayoutPlans(
-        planIds: List<IntId<GeometryPlan>>,
-        includeGeometryData: Boolean = true,
-        pointListStepLength: Int = 1,
-    ): List<Pair<GeometryPlanLayout?, TransformationError?>> = planIds
-        .map { planId ->
-            val planVersion = geometryDao.fetchPlanVersion(planId)
-            planLayoutCache.prepareGetPlanLayout(planVersion, includeGeometryData)
-        }
-        .parallelStream()
-        .map { process -> handlePointListStepLength(process(), includeGeometryData, pointListStepLength) }
-        .collect(Collectors.toList())
 
     private fun handlePointListStepLength(
         layoutResult: Pair<GeometryPlanLayout?, TransformationError?>,

@@ -44,6 +44,7 @@ $dropdown-border-error: 2px;
 .dropdown--wide {
     display: block;
     width: auto;
+    min-width: 165px;
 }
 
 .dropdown--stretch {
@@ -79,16 +80,20 @@ $dropdown-border-error: 2px;
 .dropdown--disabled {
     .dropdown__header {
         @include dropdown-shadow($color: colors.$color-white-darker, $width: 1px, $has-icon: false);
-        color: colors.$color-black-lighter;
+        color: colors.$color-white-darker;
         cursor: default;
     }
 
     .dropdown__icon {
-        fill: colors.$color-black-lighter;
+        fill: colors.$color-white-darker;
     }
 
     .dropdown__input {
         background: colors.$color-white-default;
+
+        &:disabled {
+            color: colors.$color-black-lighter;
+        }
     }
 }
 
@@ -148,15 +153,24 @@ $dropdown-border-error: 2px;
 
 .dropdown__list-container {
     @include typography.typography-body;
+    display: flex;
+    flex-direction: column;
+    background: colors.$color-white-default;
+}
+
+.dropdown__list-container--modal {
     @include shadows.shadow-8dp;
     position: absolute;
     z-index: layers.$layer-popup;
-    display: flex;
-    flex-direction: column;
     margin-top: 2px;
     max-height: 270px;
     border-radius: 4px;
     background: colors.$color-white-default;
+}
+
+.dropdown__list-container--inline {
+    zoom: 1;
+    max-height: 306px;
 }
 
 .dropdown--wide-list {

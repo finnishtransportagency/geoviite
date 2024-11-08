@@ -6,15 +6,15 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdownListItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
+import java.time.LocalDate
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilInvisible
 import waitUntilVisible
-import java.time.LocalDate
 
 class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.className("tool-bar")) {
     private val searchDropdown: E2EDropdown by lazy {
-        childDropdown(By.cssSelector(".tool-bar__left-section .dropdown"))
+        childDropdown(By.cssSelector(".tool-bar__right-section .dropdown"))
     }
 
     val mapLayerMenu: E2EMapLayerPanel by lazy {
@@ -35,7 +35,8 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
         waitUntilInvisible(By.className("dropdown__loading-indicator"))
     }
 
-    val searchResults: List<E2EDropdownListItem> get() = searchDropdown.options
+    val searchResults: List<E2EDropdownListItem>
+        get() = searchDropdown.options
 
     fun selectSearchResult(resultContains: String) = apply {
         logger.info("Select result '$resultContains'")
@@ -82,7 +83,8 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
         E2EDropdown(byQaId("workspace-dropdown")).new()
         val newDialog = E2EWorkspaceEditDialog()
 
-        // Slight hack: Set date before name to make sure datepicker closes and doesn't block the save button
+        // Slight hack: Set date before name to make sure datepicker closes and doesn't block the
+        // save button
         newDialog.setDate(date)
         newDialog.setName(name)
         newDialog.save()
@@ -100,7 +102,6 @@ class E2EMapLayerPanel(panelBy: By) : E2EViewFragment(panelBy) {
         SWITCHES("switch-layer"),
         KM_POSTS("km-post-layer"),
         TRACK_NUMBER_DIAGRAM("track-number-diagram-layer"),
-
         GEOMETRY_ALIGNMENTS("geometry-alignment-layer"),
         GEOMETRY_SWITCHES("geometry-switch-layer"),
         GEOMETRY_KM_POSTS("geometry-km-post-layer"),

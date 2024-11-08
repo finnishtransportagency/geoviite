@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.configuration.HTTP_HEADER_JWT_DATA
-import fi.fta.geoviite.infra.util.Code
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -14,8 +14,6 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-import kotlin.test.assertEquals
-
 
 /*
 Generated via jwt.io
@@ -51,7 +49,9 @@ const val TOKEN =
 @ActiveProfiles("dev", "test", "backend")
 @SpringBootTest(properties = ["geoviite.jwt.validation.enabled=false", "geoviite.skip-auth=false"])
 @AutoConfigureMockMvc
-class AuthorizationIT @Autowired constructor(
+class AuthorizationIT
+@Autowired
+constructor(
     authorizationDao: AuthorizationDao,
     authorizationService: AuthorizationService,
     mapper: ObjectMapper,
@@ -60,15 +60,16 @@ class AuthorizationIT @Autowired constructor(
 
     val testApi = TestApi(mapper, mockMvc)
 
-    val availableRoles = authorizationDao.getRolesByRoleCodes(listOf(Code("browser")))
+    val availableRoles = authorizationDao.getRolesByRoleCodes(listOf(AuthCode("browser")))
     val user by lazy {
         User(
-            details = UserDetails(
-                userName = UserName.of("A123456"),
-                firstName = AuthName.of("John"),
-                lastName = AuthName.of("Doe"),
-                organization = AuthName.of("Test Oy"),
-            ),
+            details =
+                UserDetails(
+                    userName = UserName.of("A123456"),
+                    firstName = AuthName.of("John"),
+                    lastName = AuthName.of("Doe"),
+                    organization = AuthName.of("Test Oy"),
+                ),
             role = authorizationService.getDefaultRole(availableRoles),
             availableRoles = availableRoles,
         )
@@ -76,10 +77,7 @@ class AuthorizationIT @Autowired constructor(
 
     @Test
     fun authorizedUserGetsOwnDetailsCorrectly() {
-        assertEquals(
-            testApi.response(user),
-            testApi.doGet(getRequest("/authorization/own-details"), HttpStatus.OK),
-        )
+        assertEquals(testApi.response(user), testApi.doGet(getRequest("/authorization/own-details"), HttpStatus.OK))
     }
 
     @Test
@@ -92,40 +90,27 @@ class AuthorizationIT @Autowired constructor(
 
     @Test
     fun callWithPublicApiSucceeds() {
-        assertEquals(
-            testApi.response(OK),
-            testApi.doGet(getRequest("/test-auth/public"), HttpStatus.OK),
-        )
+        assertEquals(testApi.response(OK), testApi.doGet(getRequest("/test-auth/public"), HttpStatus.OK))
     }
 
     @Test
     fun callWithOkPrivilegeSucceeds() {
-        assertEquals(
-            testApi.response(OK),
-            testApi.doGet(getRequest("/test-auth/read"), HttpStatus.OK),
-        )
+        assertEquals(testApi.response(OK), testApi.doGet(getRequest("/test-auth/read"), HttpStatus.OK))
     }
 
     @Test
     fun callWithNokPrivilegeFailsWith403() {
-        testApi.assertErrorResult(
-            testApi.doGet(getRequest("/test-auth/write"), HttpStatus.FORBIDDEN),
-            "Access Denied",
-        )
+        testApi.assertErrorResult(testApi.doGet(getRequest("/test-auth/write"), HttpStatus.FORBIDDEN), "Access Denied")
     }
 
     @Test
     fun callWithNonexistingPrivilegeFailsWith403() {
-        testApi.assertErrorResult(
-            testApi.doGet(getRequest("/test-auth/fail"), HttpStatus.FORBIDDEN),
-            "Access Denied",
-        )
+        testApi.assertErrorResult(testApi.doGet(getRequest("/test-auth/fail"), HttpStatus.FORBIDDEN), "Access Denied")
     }
 
-    private fun getRequest(url: String) = MockMvcRequestBuilders
-        .get(url)
-        .header(HTTP_HEADER_JWT_DATA, TOKEN)
-        .characterEncoding(Charsets.UTF_8)
-        .contentType(MediaType.APPLICATION_JSON)
-
+    private fun getRequest(url: String) =
+        MockMvcRequestBuilders.get(url)
+            .header(HTTP_HEADER_JWT_DATA, TOKEN)
+            .characterEncoding(Charsets.UTF_8)
+            .contentType(MediaType.APPLICATION_JSON)
 }

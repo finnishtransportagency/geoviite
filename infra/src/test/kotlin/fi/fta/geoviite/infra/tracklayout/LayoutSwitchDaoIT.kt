@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -8,6 +9,9 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.math.Point
+import kotlin.test.assertContains
+import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
@@ -17,14 +21,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LayoutSwitchDaoIT @Autowired constructor(
-    private val switchDao: LayoutSwitchDao,
-) : DBTestBase() {
+class LayoutSwitchDaoIT @Autowired constructor(private val switchDao: LayoutSwitchDao) : DBTestBase() {
 
     @BeforeEach
     fun cleanup() {
@@ -41,23 +41,25 @@ class LayoutSwitchDaoIT @Autowired constructor(
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
-        val switch1 = switch(5, externalId = oid.toString(), draft = false)
-        val switch2 = switch(6, externalId = oid.toString(), draft = false)
+        val switch1 = switch(externalId = oid.toString(), draft = false)
+        val switch2 = switch(externalId = oid.toString(), draft = false)
         switchDao.insert(switch1)
         assertThrows<DuplicateKeyException> { switchDao.insert(switch2) }
     }
 
     @Test
     fun switchesAreStoredAndLoadedOk() {
-        (1..10).map { seed -> switch(seed, draft = false) }.forEach { switch ->
-            val rowVersion = switchDao.insert(switch).rowVersion
-            assertMatches(switch, switchDao.fetch(rowVersion))
-        }
+        (1..10)
+            .map { switch(draft = false) }
+            .forEach { switch ->
+                val rowVersion = switchDao.insert(switch).rowVersion
+                assertMatches(switch, switchDao.fetch(rowVersion))
+            }
     }
 
     @Test
     fun switchVersioningWorks() {
-        val tempSwitch = switch(2, name = "TST001", joints = joints(3, 5), draft = false)
+        val tempSwitch = switch(name = "TST001", joints = joints(3, 5), draft = false)
         val (insertId, insertVersion) = switchDao.insert(tempSwitch)
         val inserted = switchDao.fetch(insertVersion)
         assertMatches(tempSwitch, inserted)
@@ -90,7 +92,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @Test
     fun shouldSuccessfullyDeleteDraftSwitches() {
-        val draftSwitch = switch(0, draft = true)
+        val draftSwitch = switch(draft = true)
         val (insertedId, insertedVersion) = switchDao.insert(draftSwitch)
         val insertedSwitch = switchDao.fetch(insertedVersion)
 
@@ -104,12 +106,10 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @Test
     fun shouldThrowExceptionWhenDeletingNormalSwitch() {
-        val switch = switch(1, draft = false)
+        val switch = switch(draft = false)
         val insertedSwitch = switchDao.insert(switch)
 
-        assertThrows<DeletingFailureException> {
-            switchDao.deleteDraft(LayoutBranch.main, insertedSwitch.id)
-        }
+        assertThrows<DeletingFailureException> { switchDao.deleteDraft(LayoutBranch.main, insertedSwitch.id) }
     }
 
     @Test
@@ -129,7 +129,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val draftWithoutDeleted = switchDao.fetchVersions(MainLayoutContext.draft, false)
         assertContains(draftWithoutDeleted, undeletedDraft)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraft))
-        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraft.id})
+        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraft.id })
 
         val draftWithDeleted = switchDao.fetchVersions(MainLayoutContext.draft, true)
         assertContains(draftWithDeleted, undeletedDraft)
@@ -152,7 +152,8 @@ class LayoutSwitchDaoIT @Autowired constructor(
         Thread.sleep(1) // Ensure that they get different timestamps
 
         val switch1MainV2 = testDBService.update(switch1MainV1).rowVersion
-        val switch1DesignV2 = designOfficialContext.copyFrom(switch1MainV1, officialRowId = switch1MainV1.rowId).rowVersion
+        val switch1DesignV2 =
+            designOfficialContext.copyFrom(switch1MainV1, officialRowId = switch1MainV1.rowId).rowVersion
         val switch2DesignV2 = testDBService.update(switch2DesignV1).rowVersion
         switchDao.deleteRow(switch3DesignV1.rowId)
         val v2Time = switchDao.fetchChangeTime()
@@ -190,5 +191,31 @@ class LayoutSwitchDaoIT @Autowired constructor(
         assertEquals(switch1MainV2, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v3Time))
         assertEquals(switch2MainV3, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v3Time))
         assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v3Time))
+    }
+
+    @Test
+    fun `findLocationTracksLinkedToSwitches() does not return a draft whose link was removed`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val switch = mainOfficialContext.insert(switch()).id
+        val oid = Oid<LocationTrack>("1.2.3.4.5")
+        val officialTrack =
+            mainOfficialContext.insert(
+                locationTrack(trackNumber, externalId = oid),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch, startJointNumber = JointNumber(1))
+                ),
+            )
+        mainDraftContext.insert(
+            asMainDraft(mainOfficialContext.fetch(officialTrack.id)!!),
+            alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+        )
+        assertEquals(
+            listOf(LayoutSwitchDao.LocationTrackIdentifiers(officialTrack.id, officialTrack.rowVersion, oid)),
+            switchDao.findLocationTracksLinkedToSwitches(MainLayoutContext.official, listOf(switch))[switch],
+        )
+        assertEquals(
+            null,
+            switchDao.findLocationTracksLinkedToSwitches(MainLayoutContext.draft, listOf(switch))[switch],
+        )
     }
 }

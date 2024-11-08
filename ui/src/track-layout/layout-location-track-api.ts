@@ -1,21 +1,17 @@
 import {
-    AddressPoint,
     AlignmentPoint,
     AlignmentStartAndEnd,
     DuplicateStatus,
     LayoutLocationTrack,
-    LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackDescription,
     LocationTrackId,
     LocationTrackInfoboxExtras,
-    OperatingPoint,
 } from 'track-layout/track-layout-model';
 import {
     draftLayoutContext,
     LayoutAssetChangeInfo,
     LayoutContext,
-    Oid,
     TimeStamp,
     TrackMeter,
 } from 'common/common-model';
@@ -66,44 +62,21 @@ export type AlignmentPlanSection = {
     id: string;
 };
 
-export type SplitDuplicateMatch = 'FULL' | 'PARTIAL' | 'NONE';
-
-// TODO: GVT-2525 combine into SplitDuplicate
-export type SplitDuplicateStatus = {
-    match: SplitDuplicateMatch;
-    duplicateOfId: LocationTrackId | undefined;
-    startSwitchId: LayoutSwitchId | undefined;
-    endSwitchId: LayoutSwitchId | undefined;
-    startPoint: AlignmentPoint | undefined;
-    endPoint: AlignmentPoint | undefined;
-};
-
-export type SplitDuplicate = {
+export type SplitDuplicateTrack = {
     id: LocationTrackId;
     name: string;
-    start: AddressPoint;
-    end: AddressPoint;
+    length: number;
     status: DuplicateStatus;
-};
-
-export type LocationTrackDuplicate = {
-    id: LocationTrackId;
-    trackNumberId: LayoutTrackNumberId;
-    name: string;
-    externalId: Oid;
-    duplicateStatus: DuplicateStatus;
 };
 
 export type SplitInitializationParameters = {
     id: LocationTrackId;
     switches: SwitchOnLocationTrack[];
-    duplicates: SplitDuplicate[];
-    nearestOperatingPointToEnd: OperatingPoint | undefined;
-    nearestOperatingPointToStart: OperatingPoint | undefined;
+    duplicates: SplitDuplicateTrack[];
 };
 
 const cacheKey = (id: LocationTrackId, layoutContext: LayoutContext) =>
-    `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
 
 export async function getLocationTrack(
     id: LocationTrackId,
@@ -145,8 +118,9 @@ export async function getLocationTracksByName(
     trackNumberId: LayoutTrackNumberId,
     locationTrackNames: string[],
     layoutContext: LayoutContext,
+    includeDeleted: boolean,
 ): Promise<LayoutLocationTrack[]> {
-    const params = queryParams({ locationTrackNames });
+    const params = queryParams({ locationTrackNames, includeDeleted });
     return getNonNull<LayoutLocationTrack[]>(
         `${layoutUri('track-numbers', layoutContext)}/${trackNumberId}/location-tracks${params}`,
     );

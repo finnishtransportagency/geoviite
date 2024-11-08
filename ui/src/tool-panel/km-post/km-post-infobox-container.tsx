@@ -38,8 +38,8 @@ export const KmPostInfoboxContainer: React.FC<KmPostInfoboxContainerProps> = ({
             onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
             onShowOnMap={() =>
-                kmPost.location &&
-                delegates.showArea(calculateBoundingBoxToShowAroundLocation(kmPost.location))
+                kmPost.layoutLocation &&
+                delegates.showArea(calculateBoundingBoxToShowAroundLocation(kmPost.layoutLocation))
             }
         />
     );

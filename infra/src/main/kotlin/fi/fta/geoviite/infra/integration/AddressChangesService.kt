@@ -10,8 +10,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 
 fun addressPointsAreEqual(point1: AddressPoint?, point2: AddressPoint?): Boolean =
     if (point1 == null && point2 == null) true
-    else if (point1 == null || point2 == null) false
-    else point1.isSame(point2)
+    else if (point1 == null || point2 == null) false else point1.isSame(point2)
 
 fun resolveChangedGeometryKilometers(
     originalAddresses: AlignmentAddresses?,
@@ -25,10 +24,7 @@ fun resolveChangedGeometryKilometers(
     return (addedAddresses + removedAddresses).toSet()
 }
 
-private fun findDiffAddresses(
-    points1: List<AddressPoint>,
-    points2: List<AddressPoint>,
-): MutableList<KmNumber> {
+private fun findDiffAddresses(points1: List<AddressPoint>, points2: List<AddressPoint>): MutableList<KmNumber> {
     val differences = mutableListOf<KmNumber>()
 
     var points1Index = 0
@@ -67,6 +63,7 @@ data class AddressChanges(
     companion object {
         fun empty() = AddressChanges(setOf(), startPointChanged = false, endPointChanged = false)
     }
+
     fun isChanged() = changedKmNumbers.isNotEmpty() || startPointChanged || endPointChanged
 }
 
@@ -82,10 +79,7 @@ class AddressChangesService(val geocodingService: GeocodingService) {
         if (beforeTrack == afterTrack && beforeContextKey == afterContextKey) {
             AddressChanges(setOf(), startPointChanged = false, endPointChanged = false)
         } else {
-            getAddressChanges(
-                getAddresses(beforeTrack, beforeContextKey),
-                getAddresses(afterTrack, afterContextKey),
-            )
+            getAddressChanges(getAddresses(beforeTrack, beforeContextKey), getAddresses(afterTrack, afterContextKey))
         }
 
     private fun getAddresses(track: LocationTrack?, contextKey: GeocodingContextCacheKey?): AlignmentAddresses? =
@@ -93,11 +87,9 @@ class AddressChangesService(val geocodingService: GeocodingService) {
         else geocodingService.getAddressPoints(contextKey, track.getAlignmentVersionOrThrow())
 }
 
-fun getAddressChanges(
-    oldAddresses: AlignmentAddresses?,
-    newAddresses: AlignmentAddresses?,
-) = AddressChanges(
-    changedKmNumbers = resolveChangedGeometryKilometers(oldAddresses, newAddresses),
-    startPointChanged = !addressPointsAreEqual(oldAddresses?.startPoint, newAddresses?.startPoint),
-    endPointChanged = !addressPointsAreEqual(oldAddresses?.endPoint, newAddresses?.endPoint),
-)
+fun getAddressChanges(oldAddresses: AlignmentAddresses?, newAddresses: AlignmentAddresses?) =
+    AddressChanges(
+        changedKmNumbers = resolveChangedGeometryKilometers(oldAddresses, newAddresses),
+        startPointChanged = !addressPointsAreEqual(oldAddresses?.startPoint, newAddresses?.startPoint),
+        endPointChanged = !addressPointsAreEqual(oldAddresses?.endPoint, newAddresses?.endPoint),
+    )

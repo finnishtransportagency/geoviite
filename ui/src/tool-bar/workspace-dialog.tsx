@@ -5,18 +5,31 @@ import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/fo
 import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
-import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
+import {
+    DatePicker,
+    END_OF_CENTURY,
+    START_OF_MILLENNIUM,
+} from 'vayla-design-lib/datepicker/datepicker';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import styles from './workspace-dialog.scss';
-import { LayoutDesign, LayoutDesignSaveRequest } from 'track-layout/layout-design-api';
+import {
+    getLayoutDesigns,
+    LayoutDesign,
+    LayoutDesignSaveRequest,
+} from 'track-layout/layout-design-api';
 import { LayoutDesignId } from 'common/common-model';
 import { formatISODate } from 'utils/date-utils';
+import { getChangeTimes } from 'common/change-time-api';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { isEqualIgnoreCase } from 'utils/string-utils';
+import { filterNotEmpty } from 'utils/array-utils';
 
 type WorkspaceDialogProps = {
     existingDesign?: LayoutDesign;
     onCancel: () => void;
     onSave: (id: LayoutDesignId | undefined, saveRequest: LayoutDesignSaveRequest) => void;
+    saving: boolean;
 };
 
 const saveRequest = (name: string, estimatedCompletion: Date): LayoutDesignSaveRequest => ({
@@ -25,17 +38,45 @@ const saveRequest = (name: string, estimatedCompletion: Date): LayoutDesignSaveR
     designState: 'ACTIVE',
 });
 
+export const DESIGN_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-+_!?.,"/()<>:&*#€$]*$/g;
+function validateDesignName(name: string, committed: boolean): string[] {
+    return [
+        committed && name.length < 2 ? 'name-too-short' : undefined,
+        name.length > 100 ? 'name-too-long' : undefined,
+        !name.match(DESIGN_NAME_REGEX) ? 'name-invalid' : undefined,
+    ].filter(filterNotEmpty);
+}
+
 export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
     existingDesign,
     onCancel,
     onSave,
+    saving,
 }) => {
     const { t } = useTranslation();
 
     const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
         existingDesign ? new Date(existingDesign?.estimatedCompletion) : undefined,
     );
-    const [name, setName] = React.useState<string | undefined>(existingDesign?.name ?? '');
+    const [name, setName] = React.useState<string>(existingDesign?.name ?? '');
+    const [nameCommitted, setNameCommitted] = React.useState<boolean>(false);
+
+    const [allDesigns, allDesignsFetchStatus] = useLoaderWithStatus(
+        () => getLayoutDesigns(getChangeTimes().layoutDesign),
+        [getChangeTimes().layoutDesign],
+    );
+    const designNameErrors = validateDesignName(name.trim(), nameCommitted);
+    if (!nameCommitted && name.trim().length > 1 && designNameErrors.length === 0) {
+        setNameCommitted(true);
+    }
+    const designNameNotUnique =
+        allDesignsFetchStatus !== LoaderStatus.Ready ||
+        allDesigns?.some(
+            (design) => isEqualIgnoreCase(design.name, name) && design.id !== existingDesign?.id,
+        );
+    const allErrors = designNameErrors
+        .map((e) => t(`workspace-dialog.${e}`))
+        .concat(designNameNotUnique ? [t('workspace-dialog.name-not-unique')] : []);
 
     return (
         <Dialog
@@ -50,15 +91,20 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                         <Button
                             variant={ButtonVariant.SECONDARY}
                             onClick={onCancel}
+                            disabled={saving}
                             qa-id={'workspace-dialog-cancel'}>
                             {t('button.cancel')}
                         </Button>
                         <Button
-                            disabled={!name || !selectedDate}
+                            disabled={!name || !selectedDate || allErrors.length > 0 || saving}
                             qa-id={'workspace-dialog-save'}
+                            isProcessing={saving}
                             onClick={() => {
                                 if (name && selectedDate) {
-                                    onSave(existingDesign?.id, saveRequest(name, selectedDate));
+                                    onSave(
+                                        existingDesign?.id,
+                                        saveRequest(name.trim(), selectedDate),
+                                    );
                                 }
                             }}>
                             {t('button.save')}
@@ -77,8 +123,11 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                                 value={name}
                                 onChange={(evt) => setName(evt.target.value)}
                                 qa-id={'workspace-dialog-name'}
+                                hasError={allErrors.length > 0}
+                                onBlur={() => setNameCommitted(true)}
                             />
                         }
+                        errors={allErrors}
                     />
                     <FieldLayout
                         label={`${t('workspace-dialog.completion-date')} *`}
@@ -87,6 +136,8 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                                 value={selectedDate}
                                 onChange={(date) => setSelectedDate(date)}
                                 wide={true}
+                                minDate={START_OF_MILLENNIUM}
+                                maxDate={END_OF_CENTURY}
                                 qa-id={'workspace-dialog-date'}
                             />
                         }

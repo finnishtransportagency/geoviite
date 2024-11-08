@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.hello.ERROR_TEST_URL
 import fi.fta.geoviite.infra.hello.ErrorTestBody
 import fi.fta.geoviite.infra.hello.ErrorTestResponse
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -12,15 +13,11 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus.*
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-class ApiErrorHandlerTest @Autowired constructor(
-    mapper: ObjectMapper,
-    mockMvc: MockMvc,
-) {
+class ApiErrorHandlerTest @Autowired constructor(mapper: ObjectMapper, mockMvc: MockMvc) {
     val testApi = TestApi(mapper, mockMvc)
 
     @Test
@@ -105,10 +102,7 @@ class ApiErrorHandlerTest @Autowired constructor(
 
     @Test
     fun correctBodyIs200() {
-        assertEquals(
-            successResponse(),
-            testApi.doPost("$ERROR_TEST_URL/body", ErrorTestBody("name", 1), OK),
-        )
+        assertEquals(successResponse(), testApi.doPost("$ERROR_TEST_URL/body", ErrorTestBody("name", 1), OK))
     }
 
     @Test

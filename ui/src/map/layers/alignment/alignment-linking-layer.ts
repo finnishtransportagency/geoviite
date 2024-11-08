@@ -37,16 +37,19 @@ import { getTickStyle } from '../utils/alignment-layer-utils';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getReferenceLine } from 'track-layout/layout-reference-line-api';
 import { formatTrackMeter } from 'utils/geography-utils';
-import { Rectangle } from 'model/geometry';
+import { Point, Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { expectCoordinate } from 'utils/type-utils';
+import { expectCoordinate, expectDefined } from 'utils/type-utils';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { distance, dot, interpolate, minus, portion } from 'utils/math-utils';
+import { Precision, roundToPrecisionNumber } from 'utils/rounding';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
 const clusterLinkPointRadius = 7;
 const clusterLinkPointSelectedRadius = 9;
+const linkPointSnapRadiusInPixels = 15;
 
 enum zIndexes {
     layoutAlignment,
@@ -280,6 +283,7 @@ function getClusterPointStyle(
     else if (!layoutPointFound && !geometryPointFound) return clusterPointStyle;
     else if (layoutPointFound) return clusterPointLayoutSelectedStyle;
     else if (geometryPointFound) return clusterPointGeometrySelectedStyle;
+    else return undefined;
 }
 
 function createClusterPointFeatures(
@@ -459,14 +463,32 @@ function createAlignmentFeatures(
     pointHighlightLargeStyle: Style,
     alignmentHighlightStyle: Style,
 ): Feature<OlPoint | LineString>[] {
+    const interpolatedPoints = [
+        highlightLinkPoint,
+        selectedLinkInterval.start,
+        selectedLinkInterval.end,
+    ]
+        .filter(filterNotEmpty)
+        .filter((p) => p.isInterpolated);
+
+    const allPoints = [...points, ...interpolatedPoints].sort((a, b) => a.m - b.m);
+
     const highlightInterval = getHighlightInterval(selectedLinkInterval, highlightLinkPoint);
 
     const highlightIntervalStart = highlightInterval.start?.m;
     const highlightIntervalEnd = highlightInterval.end?.m || highlightIntervalStart;
 
-    const beforeHighlightPoints = getPointsByOrder(points, 0, highlightIntervalStart || Infinity);
-    const afterHighlightPoints = getPointsByOrder(points, highlightIntervalEnd, Infinity);
-    const highlightPoints = getPointsByOrder(points, highlightIntervalStart, highlightIntervalEnd);
+    const beforeHighlightPoints = getPointsByOrder(
+        allPoints,
+        0,
+        highlightIntervalStart || Infinity,
+    );
+    const afterHighlightPoints = getPointsByOrder(allPoints, highlightIntervalEnd, Infinity);
+    const highlightPoints = getPointsByOrder(
+        allPoints,
+        highlightIntervalStart,
+        highlightIntervalEnd,
+    );
 
     return [
         // Line before selected interval
@@ -550,14 +572,15 @@ function overlappingPoint(
         layoutPoint.y,
     );
     const buffer = 0.01;
-    if (distance <= buffer)
-        return {
-            id: geometryPoint.id + layoutPoint.id,
-            x: geometryPoint.x,
-            y: geometryPoint.y,
-            layoutPoint: layoutPoint,
-            geometryPoint: geometryPoint,
-        };
+    return distance <= buffer
+        ? {
+              id: geometryPoint.id + layoutPoint.id,
+              x: geometryPoint.x,
+              y: geometryPoint.y,
+              layoutPoint: layoutPoint,
+              geometryPoint: geometryPoint,
+          }
+        : undefined;
 }
 
 function createConnectingLineFeature(start: LinkPoint, end: LinkPoint): Feature<LineString> {
@@ -806,6 +829,7 @@ async function getLinkingData(
     selection: Selection,
     state: LinkingState | undefined,
     changeTimes: ChangeTimes,
+    includeSegmentEndPoints: boolean,
 ): Promise<LinkingData> {
     const changeTime = getMaxTimestamp(
         changeTimes.layoutReferenceLine,
@@ -817,7 +841,13 @@ async function getLinkingData(
         return { type: 'empty' };
     } else if (state.type === LinkingType.LinkingAlignment) {
         const [points, pointAddresses] = await Promise.all([
-            getLinkPointsByTiles(changeTime, layoutContext, mapTiles, state.layoutAlignment),
+            getLinkPointsByTiles(
+                changeTime,
+                layoutContext,
+                mapTiles,
+                state.layoutAlignment,
+                includeSegmentEndPoints,
+            ),
             getLinkPointsWithAddresses(layoutContext, state.layoutAlignment, {
                 layoutStart: state.layoutAlignmentInterval.start,
                 layoutEnd: state.layoutAlignmentInterval.end,
@@ -959,7 +989,78 @@ const emptySearchResult = (): LayerItemSearchResult => ({
     clusterPoints: [],
 });
 
-const searchItems = (source: VectorSource, hitArea: Rectangle): LayerItemSearchResult => {
+function getPointByOlPoint(olPoint: OlPoint): Point {
+    const c = olPoint.getCoordinates();
+    return {
+        x: expectDefined(c[0]),
+        y: expectDefined(c[1]),
+    };
+}
+
+function createInterpolatedLinkPoint(p1: LinkPoint, p2: LinkPoint, targetPoint: Point): LinkPoint {
+    const portionBetweenPoints = portion(p1, p2, targetPoint);
+    const interpolatedM = roundToPrecisionNumber(
+        interpolate(p1.m, p2.m, portionBetweenPoints),
+        Precision.alignmentM,
+    );
+    return {
+        ...p1,
+        id: 'interpolated_' + interpolatedM,
+        x: interpolate(p1.x, p2.x, portionBetweenPoints),
+        y: interpolate(p1.y, p2.y, portionBetweenPoints),
+        m: interpolatedM,
+        isSegmentEndPoint: false,
+        isEndPoint: false,
+        isInterpolated: true,
+    };
+}
+
+function getInterpolatedLinkPoint(
+    linkPointFeatures: Feature<OlPoint>[],
+    targetPoint: Point,
+    featureType: FeatureType,
+    resolution: number,
+): LinkPoint | undefined {
+    const filteredLinkPointFeatures = linkPointFeatures.filter((f) => {
+        const linkPoint = getFeatureData(f) as LinkPoint;
+        return !linkPoint.isInterpolated;
+    });
+
+    const closestLinkPoint = findFirstOfType(filteredLinkPointFeatures, featureType) as LinkPoint;
+    if (!closestLinkPoint) {
+        return undefined;
+    }
+
+    const closestLinkPointDistanceInPixels = distance(targetPoint, closestLinkPoint) / resolution;
+    if (closestLinkPointDistanceInPixels > linkPointSnapRadiusInPixels) {
+        const fromClosestPointToTargetVector = minus(targetPoint, closestLinkPoint);
+
+        const neighbourPointFeature = linkPointFeatures.find((f) => {
+            const testPointType = getFeatureType(f);
+            if (testPointType !== featureType) {
+                return false;
+            }
+            const testLinkPoint = getFeatureData(f) as LinkPoint;
+            const fromTestPointToTargetVector = minus(targetPoint, testLinkPoint);
+            const dotProduct = dot(fromClosestPointToTargetVector, fromTestPointToTargetVector);
+            const oppositeDirection = dotProduct < 0;
+            return closestLinkPoint.id !== testLinkPoint.id && oppositeDirection;
+        });
+
+        if (neighbourPointFeature) {
+            const neighbourLinkPoint = getFeatureData(neighbourPointFeature) as LinkPoint;
+            return createInterpolatedLinkPoint(closestLinkPoint, neighbourLinkPoint, targetPoint);
+        }
+    }
+    return closestLinkPoint;
+}
+
+const searchItems = (
+    source: VectorSource,
+    hitArea: Rectangle,
+    resolution: number,
+    allowInterpolation: boolean,
+): LayerItemSearchResult => {
     const features = findIntersectingFeatures<OlPoint | LineString>(hitArea, source);
 
     const clusterPoint: ClusterPoint | undefined = findFirstOfType<ClusterPoint>(
@@ -971,10 +1072,9 @@ const searchItems = (source: VectorSource, hitArea: Rectangle): LayerItemSearchR
     let geometryLinkPoint: LinkPoint | undefined;
 
     if (!clusterPoint) {
-        const linkPointFeatures = getSortedLinkPointFeatures(
-            source.getFeatures(),
-            centroid(hitArea),
-        );
+        const centerOlPoint = centroid(hitArea);
+        const centerPoint = getPointByOlPoint(centerOlPoint);
+        const linkPointFeatures = getSortedLinkPointFeatures(source.getFeatures(), centerOlPoint);
 
         const onLayoutLine = containsType(features, FeatureType.LayoutLine);
         const onGeometryLine = containsType(features, FeatureType.GeometryLine);
@@ -991,7 +1091,16 @@ const searchItems = (source: VectorSource, hitArea: Rectangle): LayerItemSearchR
         } else if (onGeometryLine) {
             geometryLinkPoint = findFirstOfType(linkPointFeatures, FeatureType.GeometryPoint);
         } else if (onLayoutLine) {
-            layoutLinkPoint = findFirstOfType(linkPointFeatures, FeatureType.LayoutPoint);
+            if (allowInterpolation) {
+                layoutLinkPoint = getInterpolatedLinkPoint(
+                    linkPointFeatures,
+                    centerPoint,
+                    FeatureType.LayoutPoint,
+                    resolution,
+                );
+            } else {
+                layoutLinkPoint = findFirstOfType(linkPointFeatures, FeatureType.LayoutPoint);
+            }
         }
     }
 
@@ -1017,6 +1126,7 @@ export function createAlignmentLinkingLayer(
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const drawLinkingDots = resolution <= LINKING_DOTS;
+    const loadSegmentEndPoints = drawLinkingDots;
 
     const dataPromise = getLinkingData(
         mapTiles,
@@ -1024,6 +1134,7 @@ export function createAlignmentLinkingLayer(
         selection,
         linkingState,
         changeTimes,
+        loadSegmentEndPoints,
     );
 
     loadLayerData(source, isLatest, onLoadingData, dataPromise, (data) =>
@@ -1038,7 +1149,14 @@ export function createAlignmentLinkingLayer(
                 //If dots are not drawn, do not select anything
                 return emptySearchResult();
             } else {
-                return searchItems(source, hitArea);
+                // Currently link point interpolation is used for shortening layout alignments only.
+                // To use interpolated link points to link a geometry alignment and a layout alignment the whole concept
+                // must be revised, as in this case geometry points and layout points locate at somewhat the same line,
+                // and therefore finding an interpolated point hops between geometry and alignment points and this could
+                // be very disturbing.
+                const allowInterpolatedLinkPoints =
+                    linkingState?.type === LinkingType.LinkingAlignment;
+                return searchItems(source, hitArea, resolution, allowInterpolatedLinkPoints);
             }
         },
     };

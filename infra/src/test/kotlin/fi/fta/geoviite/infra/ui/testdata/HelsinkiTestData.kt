@@ -55,9 +55,9 @@ class HelsinkiTestData private constructor() {
         }
 
         fun westGeometryAlignment(): GeometryAlignment {
-            val point1 = Point(x = HKI_BASE_POINT_X + 680.00, y = HKI_BASE_POINT_Y + 410.00) //etelä
+            val point1 = Point(x = HKI_BASE_POINT_X + 680.00, y = HKI_BASE_POINT_Y + 410.00) // etelä
             val point2 = Point(x = HKI_BASE_POINT_X + 695.00, y = HKI_BASE_POINT_Y + 500.00)
-            val point3 = Point(x = HKI_BASE_POINT_X + 700.00, y = HKI_BASE_POINT_Y + 560.00) //pohjoinen
+            val point3 = Point(x = HKI_BASE_POINT_X + 700.00, y = HKI_BASE_POINT_Y + 560.00) // pohjoinen
 
             val staStart = BigDecimal("543.333470")
             val length1 = calculateDistance(listOf(point1, point2), LAYOUT_SRID).toBigDecimal()
@@ -70,10 +70,11 @@ class HelsinkiTestData private constructor() {
                 state = PlanState.PROPOSED,
                 featureTypeCode = FeatureTypeCode("111"),
                 staStart = BigDecimal("0.000000"),
-                elements = listOf(
-                    geometryLine("south", "1", point1, point2, staStart, length1),
-                    geometryLine("north", "2", point2, point3, staStart, length2)
-                ),
+                elements =
+                    listOf(
+                        geometryLine("south", "1", point1, point2, staStart, length1),
+                        geometryLine("north", "2", point2, point3, staStart, length2),
+                    ),
                 profile = null,
             )
         }
@@ -91,12 +92,16 @@ class HelsinkiTestData private constructor() {
             )
         }
 
-        fun westReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>, draft: Boolean = false): Pair<ReferenceLine, LayoutAlignment> {
-            val points = toSegmentPoints(
-                Point(x = HKI_BASE_POINT_X + 670.00, y = HKI_BASE_POINT_Y + 410.00), //etelä
-                Point(x = HKI_BASE_POINT_X + 685.00, y = HKI_BASE_POINT_Y + 500.00),
-                Point(x = HKI_BASE_POINT_X + 690.00, y = HKI_BASE_POINT_Y + 560.00), //pohjoinen
-            )
+        fun westReferenceLine(
+            trackNumber: IntId<TrackLayoutTrackNumber>,
+            draft: Boolean = false,
+        ): Pair<ReferenceLine, LayoutAlignment> {
+            val points =
+                toSegmentPoints(
+                    Point(x = HKI_BASE_POINT_X + 670.00, y = HKI_BASE_POINT_Y + 410.00), // etelä
+                    Point(x = HKI_BASE_POINT_X + 685.00, y = HKI_BASE_POINT_Y + 500.00),
+                    Point(x = HKI_BASE_POINT_X + 690.00, y = HKI_BASE_POINT_Y + 560.00), // pohjoinen
+                )
             val alignment = alignment(segment(points))
             return referenceLine(
                 alignment = alignment,
@@ -107,11 +112,12 @@ class HelsinkiTestData private constructor() {
         }
 
         fun eastReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
-            val points = toSegmentPoints(
-                Point(x = HKI_BASE_POINT_X + 675.00, y = HKI_BASE_POINT_Y + 410.00), //etelä
-                Point(x = HKI_BASE_POINT_X + 690.00, y = HKI_BASE_POINT_Y + 500.00),
-                Point(x = HKI_BASE_POINT_X + 695.00, y = HKI_BASE_POINT_Y + 560.00), //pohjoinen
-            )
+            val points =
+                toSegmentPoints(
+                    Point(x = HKI_BASE_POINT_X + 675.00, y = HKI_BASE_POINT_Y + 410.00), // etelä
+                    Point(x = HKI_BASE_POINT_X + 690.00, y = HKI_BASE_POINT_Y + 500.00),
+                    Point(x = HKI_BASE_POINT_X + 695.00, y = HKI_BASE_POINT_Y + 560.00), // pohjoinen
+                )
             val alignment = alignment(segment(points))
             return referenceLine(
                 alignment = alignment,
@@ -137,9 +143,24 @@ class HelsinkiTestData private constructor() {
             val point3 = HKI_BASE_POINT + Point(x = 690.00, y = 560.00)
 
             return arrayListOf(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0001we"), location = point1, draft = false),
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0002we"), location = point2, draft = false),
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0003we"), location = point3, draft = false),
+                kmPost(
+                    trackNumberId = trackNumberId,
+                    km = KmNumber("0001we"),
+                    roughLayoutLocation = point1,
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = trackNumberId,
+                    km = KmNumber("0002we"),
+                    roughLayoutLocation = point2,
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = trackNumberId,
+                    km = KmNumber("0003we"),
+                    roughLayoutLocation = point3,
+                    draft = false,
+                ),
             )
         }
 
@@ -149,9 +170,24 @@ class HelsinkiTestData private constructor() {
             val point3 = HKI_BASE_POINT + Point(x = 752.00, y = 560.00)
 
             return arrayListOf(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0001es"), location = point1, draft = false),
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0002es"), location = point2, draft = false),
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0003es"), location = point3, draft = false),
+                kmPost(
+                    trackNumberId = trackNumberId,
+                    km = KmNumber("0001es"),
+                    roughLayoutLocation = point1,
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = trackNumberId,
+                    km = KmNumber("0002es"),
+                    roughLayoutLocation = point2,
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = trackNumberId,
+                    km = KmNumber("0003es"),
+                    roughLayoutLocation = point3,
+                    draft = false,
+                ),
             )
         }
 

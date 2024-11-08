@@ -38,11 +38,7 @@ export const NewAuthorDialog: React.FC<NewAuthorDialogProps> = ({ authors, onClo
         [authors],
     );
 
-    const getErrorMessage = () => {
-        if (duplicateName) {
-            return [t('im-form.duplicate-author-name')];
-        }
-    };
+    const getErrorMessage = () => (duplicateName ? [t('im-form.duplicate-author-name')] : []);
 
     const onNameChange = (name: string) => {
         setAuthorName(name);

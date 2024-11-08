@@ -20,6 +20,7 @@ $button-animation-size-small: 12px;
     vertical-align: middle;
     height: size.$input-height;
     display: inline-flex;
+    flex-direction: row;
     align-items: center;
     padding: 8px 16px;
     border-radius: $button-border-radius;
@@ -29,8 +30,17 @@ $button-animation-size-small: 12px;
     white-space: nowrap;
 }
 
+.button--icon-at-end {
+    flex-direction: row-reverse;
+}
+
 .button--wide {
     width: 100%;
+}
+
+.button.button--inherit-typography {
+    font: inherit;
+    color: inherit;
 }
 
 .button--attach-left {
@@ -221,18 +231,28 @@ $button-animation-size-small: 12px;
     padding: 8px 12px;
 
     .button__icon-and-animation {
-        margin-bottom: -2px; // adjust vertical position
+        display: flex;
+        align-items: center;
         width: auto;
     }
 
     .button__label {
         margin-left: 8px;
     }
+
+    &.button--icon-at-end {
+        .button__label {
+            margin-left: 0;
+            margin-right: 8px;
+        }
+    }
 }
 
 .button__icon {
     // button__icon contains an icon
     transition: all transitions.$transitions-speed-fast;
+    display: flex;
+    align-items: center;
 }
 
 .button--has-animation:not(.button--has-icon) {

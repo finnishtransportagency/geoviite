@@ -11,6 +11,12 @@
 .publication-list-item {
     display: inline-flex;
 
+    a {
+        text-decoration: none;
+        cursor: pointer;
+        color: vayla-design.$color-blue-dark;
+    }
+
     > div {
         margin-top: auto;
         margin-bottom: auto;
@@ -94,8 +100,14 @@
 
     &__split-actions {
         display: flex;
+
         > :not(:last-child) {
             margin-right: 6px;
         }
+    }
+
+    &__design-name {
+        font-weight: 600;
+        margin-right: 2px;
     }
 }

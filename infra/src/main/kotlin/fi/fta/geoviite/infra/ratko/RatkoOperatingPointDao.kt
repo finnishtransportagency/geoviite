@@ -5,12 +5,12 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.*
+import java.sql.ResultSet
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.time.Instant
 
 fun toRatkoOperatingPoint(rs: ResultSet): RatkoOperatingPoint {
     return RatkoOperatingPoint(
@@ -37,16 +37,23 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
     }
 
     private fun deleteRemovedPoints(newPoints: List<RatkoOperatingPointParse>) {
-        val oldPointsIds = jdbcTemplate.query("""select external_id from layout.operating_point""") { rs, _ ->
-            rs.getOid<RatkoOperatingPoint>("external_id")
-        }
+        val oldPointsIds =
+            jdbcTemplate.query("""select external_id from layout.operating_point""") { rs, _ ->
+                rs.getOid<RatkoOperatingPoint>("external_id")
+            }
         val newPointsIds = newPoints.map { point -> point.externalId }.toSet()
-        jdbcTemplate.batchUpdate("""delete from layout.operating_point where external_id = :id""",
-            oldPointsIds.filter { id -> !newPointsIds.contains(id) }.map { id -> mapOf("id" to id.toString()) }.toTypedArray())
+        jdbcTemplate.batchUpdate(
+            """delete from layout.operating_point where external_id = :id""",
+            oldPointsIds
+                .filter { id -> !newPointsIds.contains(id) }
+                .map { id -> mapOf("id" to id.toString()) }
+                .toTypedArray(),
+        )
     }
 
     private fun upsertPoints(newPoints: List<RatkoOperatingPointParse>) {
-        val sql = """
+        val sql =
+            """
                 insert into layout.operating_point
                   (external_id, name, abbreviation, uic_code, type, location, track_number_id)
                   (select
@@ -74,30 +81,37 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
                     or operating_point.type != excluded.type
                     or not postgis.st_equals(operating_point.location, excluded.location)
                     or operating_point.track_number_id != excluded.track_number_id
-                """.trimIndent()
+                """
+                .trimIndent()
 
-        jdbcTemplate.batchUpdate(sql, newPoints.map { point ->
-            mapOf(
-                "externalId" to point.externalId.toString(),
-                "name" to point.name,
-                "abbreviation" to point.abbreviation,
-                "uicCode" to point.uicCode,
-                "type" to point.type.name,
-                "x" to point.location.x,
-                "y" to point.location.y,
-                "srid" to LAYOUT_SRID.code,
-                "trackNumberExternalId" to point.trackNumberExternalId.toString(),
-            )
-        }.toTypedArray())
+        jdbcTemplate.batchUpdate(
+            sql,
+            newPoints
+                .map { point ->
+                    mapOf(
+                        "externalId" to point.externalId.toString(),
+                        "name" to point.name,
+                        "abbreviation" to point.abbreviation,
+                        "uicCode" to point.uicCode,
+                        "type" to point.type.name,
+                        "x" to point.location.x,
+                        "y" to point.location.y,
+                        "srid" to LAYOUT_SRID.code,
+                        "trackNumberExternalId" to point.trackNumberExternalId.toString(),
+                    )
+                }
+                .toTypedArray(),
+        )
     }
 
     fun getChangeTime(): Instant {
         return fetchLatestChangeTime(DbTable.OPERATING_POINT)
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     fun getOperatingPoints(bbox: BoundingBox): List<RatkoOperatingPoint> {
-        val sql = """
+        val sql =
+            """
             select
               external_id,
               name,
@@ -109,16 +123,18 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
               track_number_id
               from layout.operating_point
               where postgis.st_contains(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid), location)
-        """.trimIndent()
+        """
+                .trimIndent()
 
         return jdbcTemplate.query(
-            sql, mapOf(
+            sql,
+            mapOf(
                 "x_min" to bbox.x.min,
                 "x_max" to bbox.x.max,
                 "y_min" to bbox.y.min,
                 "y_max" to bbox.y.max,
-                "layout_srid" to LAYOUT_SRID.code
-            )
+                "layout_srid" to LAYOUT_SRID.code,
+            ),
         ) { rs, _ ->
             toRatkoOperatingPoint(rs)
         }
@@ -126,7 +142,8 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
 
     @Transactional(readOnly = true)
     fun searchOperatingPoints(searchTerm: FreeText, resultLimit: Int): List<RatkoOperatingPoint> {
-        val sql = """
+        val sql =
+            """
             select
               external_id,
               name,
@@ -137,20 +154,15 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
               postgis.st_y(location) as y,
               track_number_id
             from layout.operating_point
-              where name ilike concat('%', :searchTerm, '%')
-              or abbreviation ilike concat('%', :searchTerm, '%')
+              where name ilike concat('%', regexp_replace(:searchTerm, '%|_', '\\\&'), '%') 
+              or abbreviation ilike concat('%', regexp_replace(:searchTerm, '%|_', '\\\&'), '%')
               or external_id = :searchTerm
             order by name
             limit :resultLimit
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "searchTerm" to searchTerm,
-                "resultLimit" to resultLimit,
-            )
-        ) { rs, _ ->
+        return jdbcTemplate.query(sql, mapOf("searchTerm" to searchTerm, "resultLimit" to resultLimit)) { rs, _ ->
             toRatkoOperatingPoint(rs)
         }
     }

@@ -3,21 +3,19 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import childExists
 import fi.fta.geoviite.infra.publication.PublicationGroup
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EMenu
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2EMenuItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.util.byQaId
-import getElement
 import getElementWhenExists
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
-class E2EChangePreviewTable(
-    tableBy: By,
-) : E2ETable<E2EChangePreviewRow>(tableBy, By.cssSelector("tbody tr")) {
-    val errorRows: List<E2EChangePreviewRow> get() = rows.filter { it.state == E2EChangePreviewRow.State.ERROR }
+class E2EChangePreviewTable(tableBy: By) : E2ETable<E2EChangePreviewRow>(tableBy, By.cssSelector("tbody tr")) {
+    val errorRows: List<E2EChangePreviewRow>
+        get() = rows.filter { it.state == E2EChangePreviewRow.State.ERROR }
 
-    val warningRows: List<E2EChangePreviewRow> get() = rows.filter { it.state == E2EChangePreviewRow.State.WARNING }
+    val warningRows: List<E2EChangePreviewRow>
+        get() = rows.filter { it.state == E2EChangePreviewRow.State.WARNING }
 
     fun hasErrors(): Boolean = errorRows.isNotEmpty()
 
@@ -55,18 +53,20 @@ class E2EChangePreviewTable(
         rows.find { row ->
             val rowMenu = openMenu(row)
 
-            val movePublicationGroupMenuItem = rowMenu.items.firstOrNull { menuItem ->
-                val menuItemQaId = menuItem.element?.getAttribute("qa-id")
-                menuItemQaId == "preview-move-publication-group-${publicationGroup.id}"
-            }
+            val movePublicationGroupMenuItem =
+                rowMenu.items.firstOrNull { menuItem ->
+                    val menuItemQaId = menuItem.element?.getAttribute("qa-id")
+                    menuItemQaId == "preview-move-publication-group-${publicationGroup.id}"
+                }
 
             movePublicationGroupMenuItem?.let { item ->
                 item.element?.click()
                 true
-            } ?: run {
-                closeMenu(row)
-                false
             }
+                ?: run {
+                    closeMenu(row)
+                    false
+                }
         }
     }
 
@@ -75,19 +75,22 @@ class E2EChangePreviewTable(
     }
 }
 
-data class E2EChangePreviewRow(
-    val name: String,
-    val trackNumber: String,
-    val state: State,
-) {
-    enum class State { OK, WARNING, ERROR }
+data class E2EChangePreviewRow(val name: String, val trackNumber: String, val state: State) {
+    enum class State {
+        OK,
+        WARNING,
+        ERROR,
+    }
 
-    constructor(row: WebElement, columns: List<WebElement>, headers: List<WebElement>) : this(
+    constructor(
+        row: WebElement,
+        columns: List<WebElement>,
+        headers: List<WebElement>,
+    ) : this(
         name = getColumnContent("preview-table.change-target", columns, headers),
         trackNumber = getColumnContent("preview-table.track-number-short", columns, headers),
-        state = if (row.childExists(By.className("preview-table-item__error-status"))) State.ERROR
-        else if (row.childExists(By.className("preview-table-item__warning-status"))) State.WARNING
-        else State.OK
+        state =
+            if (row.childExists(By.className("preview-table-item__error-status"))) State.ERROR
+            else if (row.childExists(By.className("preview-table-item__warning-status"))) State.WARNING else State.OK,
     )
-
 }

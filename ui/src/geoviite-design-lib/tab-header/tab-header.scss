@@ -2,7 +2,8 @@
 
 .tab-header {
     @include vayla-design.typography-caption;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 6px 8px 6px 8px;
     border-top: 0;
     border-left: 0;
@@ -19,5 +20,10 @@
 
     &--selected {
         border-color: vayla-design.$color-blue-light;
+    }
+
+    &--disabled {
+        cursor: default;
+        color: vayla-design.$color-black-lighter;
     }
 }

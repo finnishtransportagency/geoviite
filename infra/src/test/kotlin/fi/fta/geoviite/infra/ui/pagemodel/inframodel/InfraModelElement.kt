@@ -4,17 +4,17 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.localDateFromString
 import fi.fta.geoviite.infra.ui.util.localDateTimeFromString
+import java.time.LocalDateTime
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import waitUntilTextIs
-import java.time.LocalDateTime
 
-
-class E2EInfraModelTable(tableBy: By) : E2ETable<E2EInfraModelTableRow>(
-    tableBy = tableBy,
-    headersBy = By.cssSelector("thead th"),
-    rowsBy = By.cssSelector("tbody tr"),
-) {
+class E2EInfraModelTable(tableBy: By) :
+    E2ETable<E2EInfraModelTableRow>(
+        tableBy = tableBy,
+        headersBy = By.cssSelector("thead th"),
+        rowsBy = By.cssSelector("tbody tr"),
+    ) {
     override fun getRowContent(row: WebElement): E2EInfraModelTableRow {
         return E2EInfraModelTableRow(row.findElements(By.tagName("td")), headerElements)
     }
@@ -44,7 +44,10 @@ data class E2EInfraModelTableRow(
     val linked: LocalDateTime?,
 ) {
 
-    constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
+    constructor(
+        columns: List<WebElement>,
+        headers: List<WebElement>,
+    ) : this(
         projectName = getColumnContent("im-form.name-header", columns, headers),
         fileName = getColumnContent("im-form.file-name-header", columns, headers),
         trackNumber = getColumnContent("im-form.track-number-header", columns, headers),
@@ -54,9 +57,10 @@ data class E2EInfraModelTableRow(
         decisionPhase = getColumnContent("im-form.decision-phase-header", columns, headers),
         planTime = localDateFromString(getColumnContent("im-form.created-at-header", columns, headers)),
         created = localDateTimeFromString(getColumnContent("im-form.uploaded-at-header", columns, headers)),
-        linked = getColumnContent("im-form.linked-at-header", columns, headers)
-            .takeIf(String::isNotBlank)
-            ?.let(::localDateFromString),
+        linked =
+            getColumnContent("im-form.linked-at-header", columns, headers)
+                .takeIf(String::isNotBlank)
+                ?.let(::localDateFromString),
     )
 }
 
@@ -64,16 +68,14 @@ class E2EConfirmDialog : E2EDialog() {
     fun confirm() {
         logger.info("Confirm")
 
-        waitUntilClosed {
-            clickPrimaryButton()
-        }
+        waitUntilClosed { clickPrimaryButton() }
     }
 }
 
-
 abstract class E2EFormGroup(formBy: By) : E2EViewFragment(formBy) {
 
-    val title: String get() = childText(By.className("formgroup__title"))
+    val title: String
+        get() = childText(By.className("formgroup__title"))
 
     internal fun formGroupField(qaId: String) = childComponent(byQaId(qaId), ::E2EFormGroupField)
 }
@@ -84,8 +86,8 @@ internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
         get() {
             val dropdownValueBy = By.className("field-layout__value")
 
-            val valueClass = if (childExists(dropdownValueBy)) dropdownValueBy
-            else By.className("formgroup__field-value")
+            val valueClass =
+                if (childExists(dropdownValueBy)) dropdownValueBy else By.className("formgroup__field-value")
 
             return childText(valueClass)
         }
@@ -96,8 +98,7 @@ internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
         toggleEdit()
 
         values.forEachIndexed { index, value ->
-            childDropdown(By.cssSelector(".dropdown:nth-child(${index + 1})"))
-                .selectByName(value)
+            childDropdown(By.cssSelector(".dropdown:nth-child(${index + 1})")).selectByName(value)
         }
 
         toggleEdit()
@@ -108,14 +109,9 @@ internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
 
         toggleEdit()
 
-        childDropdown(By.className("dropdown"))
-            .open()
-            .new()
+        childDropdown(By.className("dropdown")).open().new()
 
-        E2EDialogWithTextField()
-            .inputValues(newValues)
-            .clickPrimaryButton()
-            .also { waitAndClearToast(toastId) }
+        E2EDialogWithTextField().inputValues(newValues).clickPrimaryButton().also { waitAndClearToast(toastId) }
 
         toggleEdit()
     }
@@ -130,5 +126,5 @@ internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
         waitUntilFieldIs(value)
     }
 
-    private fun toggleEdit() = clickChild(By.xpath("div[@class='formgroup__edit-icon']/div"))
+    private fun toggleEdit() = clickChild(By.xpath("div[@class='formgroup__edit-icon']/button"))
 }

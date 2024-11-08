@@ -53,9 +53,9 @@ class AddressPointsCache(
     }
 
     /**
-     * This is for caching address points. Please don't call this directly if possible, please
-     * prefer GeocodingService's getAddressPoints method instead
-     **/
+     * This is for caching address points. Please don't call this directly if possible, please prefer GeocodingService's
+     * getAddressPoints method instead
+     */
     fun getAddressPoints(cacheKey: AddressPointCacheKey): AlignmentAddresses? {
         return getAddressPointCalculationData(cacheKey)?.let(::getAddressPoints)
     }

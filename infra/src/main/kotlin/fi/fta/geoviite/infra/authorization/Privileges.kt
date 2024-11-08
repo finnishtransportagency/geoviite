@@ -14,4 +14,7 @@ const val AUTH_VIEW_PV_DOCUMENTS = "hasAuthority('view-pv-documents')"
 
 const val LAYOUT_BRANCH = "layoutBranch"
 const val PUBLICATION_STATE = "publicationState"
-const val AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE = "(#$PUBLICATION_STATE.name() == 'DRAFT' && $AUTH_VIEW_LAYOUT_DRAFT) || (#$PUBLICATION_STATE.name() == 'OFFICIAL' && $AUTH_VIEW_LAYOUT)"
+const val AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE =
+    "(#$PUBLICATION_STATE.name() == 'DRAFT' && $AUTH_VIEW_LAYOUT_DRAFT) || (#$PUBLICATION_STATE.name() == 'OFFICIAL' && $AUTH_VIEW_LAYOUT)"
+
+const val AUTH_API_FRAME_CONVERTER = "hasAuthority('api-frame-converter')"

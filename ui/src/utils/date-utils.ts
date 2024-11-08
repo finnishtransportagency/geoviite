@@ -96,3 +96,9 @@ export function parseISOOrUndefined(timestamp: TimeStamp | undefined): Date | un
 
     return parseISO(timestamp);
 }
+
+export function daysBetween(date1: Date, date2: Date): number {
+    const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
+    const differenceInMilliseconds = Math.abs(date2.getTime() - date1.getTime());
+    return Math.ceil(differenceInMilliseconds / oneDayInMilliseconds);
+}

@@ -3,12 +3,14 @@ import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { RevertRequestType } from 'preview/preview-view-revert-request';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { getRevertRequestDependencies } from 'publication/publication-api';
+import { LayoutBranch } from 'common/common-model';
 
 export const onRequestDeleteTrackNumber = (
+    layoutBranch: LayoutBranch,
     trackNumber: LayoutTrackNumber,
     setChangesBeingReverted: (changes: ChangesBeingReverted) => void,
 ) => {
-    getRevertRequestDependencies([
+    getRevertRequestDependencies(layoutBranch, [
         {
             id: trackNumber.id,
             type: DraftChangeType.TRACK_NUMBER,

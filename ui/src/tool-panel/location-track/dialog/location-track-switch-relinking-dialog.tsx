@@ -33,7 +33,7 @@ export const LocationTrackSwitchRelinkingDialogContainer: React.FC<
     const delegates = createDelegates(TrackLayoutActions);
     const relinkableSwitchesCount = useLoader(
         () => getRelinkableSwitchesCount(props.locationTrackId, props.layoutContext),
-        [props.locationTrackId, props.layoutContext.publicationState, props.layoutContext.designId],
+        [props.locationTrackId, props.layoutContext.publicationState, props.layoutContext.branch],
     );
 
     return relinkableSwitchesCount === undefined ? (
@@ -74,7 +74,7 @@ export const LocationTrackSwitchRelinkingDialog: React.FC<
 
     const startRelinking = async () => {
         setIsRelinking(true);
-        const relinkingResult = await relinkTrackSwitches(locationTrackId);
+        const relinkingResult = await relinkTrackSwitches(layoutContext.branch, locationTrackId);
         closeDialog();
         const validation = await getSwitchesValidation(
             draftLayoutContext(layoutContext),
@@ -102,7 +102,7 @@ export const LocationTrackSwitchRelinkingDialog: React.FC<
             showLocationTrackTaskList({
                 locationTrackId,
                 type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION,
-                designId: layoutContext.designId,
+                branch: layoutContext.branch,
             });
         }
     };

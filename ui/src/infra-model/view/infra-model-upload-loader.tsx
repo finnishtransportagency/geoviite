@@ -13,7 +13,6 @@ import { ValidationResponse } from 'infra-model/infra-model-slice';
 export type InfraModelUploadLoaderProps = InfraModelBaseProps & {
     file?: SerializableFile;
     onValidation: (validationResponse: ValidationResponse) => void;
-    setLoading: (loading: boolean) => void;
 };
 
 export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ ...props }) => {
@@ -25,6 +24,8 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
     const overrideParams = props.overrideInfraModelParameters;
 
     React.useEffect(() => {
+        props.clearInfraModelState();
+
         // Convert serializable file to native file
         if (props.file) {
             const file = convertToNativeFile(props.file);
@@ -35,10 +36,9 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
     const onValidate: () => void = async () => {
         if (file) {
             props.setLoading(true);
-            props.onValidation(
-                await getGeometryValidationIssuesForInfraModelFile(file, overrideParams),
-            );
-            props.setLoading(false);
+            await getGeometryValidationIssuesForInfraModelFile(file, overrideParams)
+                .then(props.onValidation)
+                .finally(() => props.setLoading(false));
         }
     };
     // Automatically re-validate whenever the file or manually input data changes
@@ -48,13 +48,12 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
 
     const onSave: () => Promise<boolean> = async () => {
         if (file) {
-            props.setLoading(true);
-            const response = await saveInfraModelFile(file, extraParams, overrideParams).finally(
-                () => {
-                    props.setLoading(false);
-                },
-            );
-            return response != undefined;
+            props.setSaving(true);
+            return await saveInfraModelFile(file, extraParams, overrideParams)
+                .then((response) => response != undefined)
+                .finally(() => {
+                    props.setSaving(false);
+                });
         } else {
             return false;
         }
@@ -68,7 +67,7 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
 
     return (
         <>
-            <InfraModelView {...props} onSave={onSave} />
+            <InfraModelView {...props} fileSource={'FILE_UPLOAD'} onSave={onSave} />
 
             {showFileHandlingFailed && (
                 <CharsetSelectDialog

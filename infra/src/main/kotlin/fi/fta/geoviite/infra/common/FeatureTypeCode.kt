@@ -5,13 +5,17 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.util.assertSanitized
 
-private val featureTypeCodeLength = 3..3
-private val featureTypeCodeRegex = Regex("^\\d{3}\$")
+data class FeatureTypeCode @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+    CharSequence by value {
 
-data class FeatureTypeCode @JsonCreator(mode = DELEGATING) constructor(private val value: String)
-    : CharSequence by value {
-    init { assertSanitized<FeatureTypeCode>(value, featureTypeCodeRegex, featureTypeCodeLength) }
+    companion object {
+        private val sanitizer = Regex("^\\d{3}\$")
+        private val allowedLength = 3..3
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    init {
+        assertSanitized<FeatureTypeCode>(value, sanitizer, allowedLength)
+    }
+
+    @JsonValue override fun toString(): String = value
 }

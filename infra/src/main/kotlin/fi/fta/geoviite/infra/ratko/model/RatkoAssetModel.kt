@@ -22,31 +22,34 @@ data class RatkoMetadataAsset(
     override val properties: Collection<RatkoAssetProperty>,
     override val rowMetadata: RatkoMetadata = RatkoMetadata(),
     override val locations: List<RatkoAssetLocation>,
-) : RatkoAsset(
-    state = RatkoAssetState.IN_USE,
-    type = RatkoAssetType.METADATA,
-    rowMetadata = rowMetadata,
-    properties = properties,
-    locations = locations
-) {
+) :
+    RatkoAsset(
+        state = RatkoAssetState.IN_USE,
+        type = RatkoAssetType.METADATA,
+        rowMetadata = rowMetadata,
+        properties = properties,
+        locations = locations,
+    ) {
     override fun withoutGeometries() = this.copy(locations = locations.map { it.withoutGeometries() })
 }
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class RatkoSwitchAsset constructor(
+data class RatkoSwitchAsset
+constructor(
     val id: String?,
     override val state: RatkoAssetState,
     override val properties: Collection<RatkoAssetProperty>,
     override val rowMetadata: RatkoMetadata = RatkoMetadata(),
     override val locations: List<RatkoAssetLocation>?,
     val assetGeoms: Collection<RatkoAssetGeometry>?,
-) : RatkoAsset(
-    state = state,
-    type = RatkoAssetType.TURNOUT,
-    rowMetadata = rowMetadata,
-    properties = properties,
-    locations = locations
-) {
+) :
+    RatkoAsset(
+        state = state,
+        type = RatkoAssetType.TURNOUT,
+        rowMetadata = rowMetadata,
+        properties = properties,
+        locations = locations,
+    ) {
     override fun withoutGeometries() = this.copy(locations = locations?.map { it.withoutGeometries() })
 }
 
@@ -58,11 +61,7 @@ data class RatkoAssetProperty(
     val stringValue: String? = null,
 )
 
-data class RatkoAssetLocation(
-    val nodecollection: RatkoNodes,
-    val priority: Int,
-    val accuracyType: RatkoAccuracyType,
-) {
+data class RatkoAssetLocation(val nodecollection: RatkoNodes, val priority: Int, val accuracyType: RatkoAccuracyType) {
     fun withoutGeometries() = this.copy(nodecollection = nodecollection.withoutGeometries())
 }
 
@@ -81,52 +80,32 @@ enum class RatkoAssetGeometryType(@get:JsonValue val value: String) {
     MATH_POINT_AB("MATH_POINT_AB"),
     MATH_POINT_AC("MATH_POINT_AC"),
     MATH_POINT_AD("MATH_POINT_AD"),
-
-    @Suppress("unused")
-    CACHE_POINT("CACHE_POINT")
+    @Suppress("unused") CACHE_POINT("CACHE_POINT"),
 }
 
 enum class RatkoAssetState(@get:JsonValue val value: String, val category: LayoutStateCategory? = null) {
-    PLANNED("PLANNED", LayoutStateCategory.FUTURE_EXISTING), // RATAVAGE -prosessin kautta suunniteltu
+    @Suppress("unused") PLANNED("PLANNED"), // RATAVAGE -prosessin kautta suunniteltu
     IN_USE(
         "IN USE",
-        LayoutStateCategory.EXISTING
+        LayoutStateCategory.EXISTING,
     ), // liikennöinti ilman rajoituksia, kunnossapitäjä kunnossapitourakoitsija
-
-    @Suppress("unused")
-    SUGGESTED("SUGGESTED", LayoutStateCategory.FUTURE_EXISTING),
-
+    @Suppress("unused") SUGGESTED("SUGGESTED"),
     BUILT("BUILT", LayoutStateCategory.EXISTING), // rakennettu
-
     @Suppress("unused")
     IN_TRAFFIC(
         "IN TRAFFIC",
-        LayoutStateCategory.EXISTING
+        LayoutStateCategory.EXISTING,
     ), // liikennöinti voi alkaa rajoituksin, kunnossapitäjä rakennusurakoitsija
-
-    @Suppress("unused")
-    REPLACED("REPLACED", LayoutStateCategory.NOT_EXISTING),
+    @Suppress("unused") REPLACED("REPLACED", LayoutStateCategory.NOT_EXISTING),
     NOT_IN_USE("NOT IN USE", LayoutStateCategory.EXISTING), // olemassa, mutta ei käytössä
-
-    @Suppress("unused")
-    REMOVED("REMOVED", LayoutStateCategory.NOT_EXISTING), // olemassa, mutta irti radasta
+    @Suppress("unused") REMOVED("REMOVED", LayoutStateCategory.NOT_EXISTING), // olemassa, mutta irti radasta
     DELETED("DELETED", LayoutStateCategory.NOT_EXISTING), // purettu maastossa
-
-    @Suppress("unused")
-
-    TRANSITION("TRANSITION"),
-
-    @Suppress("unused")
-    CANCELED("CANCELED"), // muutospyyntö peruttu
-
-    @Suppress("unused")
-    COMPLETED("COMPLETED"), // muutospyyntö käsitelty
-
+    @Suppress("unused") TRANSITION("TRANSITION"),
+    @Suppress("unused") CANCELED("CANCELED"), // muutospyyntö peruttu
+    @Suppress("unused") COMPLETED("COMPLETED"), // muutospyyntö käsitelty
     @Suppress("unused")
     REJECTED("REJECTED"), // Hylätyn RYHTI toimenpide-ehdotuksen tai RATKO UI:n kautta tehty muutosilmoitus
-
-    @Suppress("unused")
-    OLD("OLD"),
+    @Suppress("unused") OLD("OLD"),
 }
 
 enum class RatkoAssetType(@get:JsonValue val value: String) {
@@ -135,25 +114,32 @@ enum class RatkoAssetType(@get:JsonValue val value: String) {
     RAILWAY_TRAFFIC_OPERATING_POINT("railway_traffic_operating_point"),
 }
 
-
 data class RatkoOperatingPointAssetsResponse(val assets: List<RatkoOperatingPointAsset>)
+
 data class RatkoOperatingPointAsset(
     val id: String,
     val properties: Collection<RatkoAssetProperty>,
     val locations: List<IncomingRatkoAssetLocation>?,
 ) {
     fun getIntProperty(name: String): Int? = properties.find { it.name == name }?.integerValue
+
     fun getStringProperty(name: String): String? = properties.find { it.name == name }?.stringValue
+
     inline fun <reified T : Enum<T>> getEnumProperty(name: String): T? =
-        properties.find { it.name == name }?.enumValue?.let { v ->
-            T::class.java.enumConstants.find { c -> c.name == v }
-        }
+        properties
+            .find { it.name == name }
+            ?.enumValue
+            ?.let { v -> T::class.java.enumConstants.find { c -> c.name == v } }
 }
 
 data class IncomingRatkoAssetLocation(val nodecollection: IncomingRatkoNodes)
+
 data class IncomingRatkoNodes(val nodes: Collection<IncomingRatkoNode> = listOf())
+
 data class IncomingRatkoNode(val point: IncomingRatkoPoint, val nodeType: RatkoNodeType)
+
 data class IncomingRatkoPoint(val geometry: IncomingRatkoGeometry, val routenumber: RatkoOid<RatkoRouteNumber>)
+
 data class IncomingRatkoGeometry(val type: RatkoGeometryType, val coordinates: List<Double>, val crs: RatkoCrs)
 
 data class RatkoBulkTransferResponse(val id: IntId<BulkTransfer>, val state: BulkTransferState)

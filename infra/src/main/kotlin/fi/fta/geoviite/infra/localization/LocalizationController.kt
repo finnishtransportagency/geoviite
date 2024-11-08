@@ -9,9 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 
 @GeoviiteController("/localization")
-class LocalizationController @Autowired constructor(
-    val localizationService: LocalizationService,
-) {
+class LocalizationController @Autowired constructor(val localizationService: LocalizationService) {
 
     @GetMapping("/{language}.json")
     @PreAuthorize(AUTH_BASIC)

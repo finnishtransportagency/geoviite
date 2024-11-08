@@ -31,8 +31,8 @@ export const GeometryKmPostInfoboxContainer: React.FC<GeometryKmPostInfoboxConta
             geometryKmPost={kmPost}
             planId={planId}
             onShowOnMap={() =>
-                kmPost.location &&
-                delegates.showArea(calculateBoundingBoxToShowAroundLocation(kmPost.location))
+                kmPost.layoutLocation &&
+                delegates.showArea(calculateBoundingBoxToShowAroundLocation(kmPost.layoutLocation))
             }
             visibilities={visibility}
             onVisibilityChange={onVisiblityChange}

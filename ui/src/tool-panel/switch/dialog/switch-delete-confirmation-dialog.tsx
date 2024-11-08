@@ -22,14 +22,20 @@ const SwitchDeleteConfirmationDialog: React.FC<SwitchDeleteConfirmationDialogPro
     onClose,
 }) => {
     const { t } = useTranslation();
+
+    const [isSaving, setIsSaving] = React.useState(false);
+
     const deleteSwitch = () => {
-        deleteDraftSwitch(layoutContext, switchId).then((id) => {
-            if (id) {
-                Snackbar.success('switch-delete-dialog.success');
-                onSave(id);
-                onClose();
-            }
-        });
+        setIsSaving(true);
+        deleteDraftSwitch(layoutContext, switchId)
+            .then((id) => {
+                if (id) {
+                    Snackbar.success('switch-delete-dialog.success');
+                    onSave(id);
+                    onClose();
+                }
+            })
+            .finally(() => setIsSaving(false));
     };
 
     return (
@@ -39,10 +45,14 @@ const SwitchDeleteConfirmationDialog: React.FC<SwitchDeleteConfirmationDialogPro
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
+                    <Button disabled={isSaving} variant={ButtonVariant.SECONDARY} onClick={onClose}>
                         {t('button.cancel')}
                     </Button>
-                    <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={deleteSwitch}>
+                    <Button
+                        disabled={isSaving}
+                        isProcessing={isSaving}
+                        variant={ButtonVariant.PRIMARY_WARNING}
+                        onClick={deleteSwitch}>
                         {t('button.delete')}
                     </Button>
                 </div>

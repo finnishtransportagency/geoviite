@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.split
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.Publication
@@ -13,7 +14,6 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 
 class BulkTransfer
@@ -32,7 +32,9 @@ data class SplitHeader(
     val bulkTransferState: BulkTransferState,
     val publicationId: IntId<Publication>?,
 ) {
-    constructor(split: Split) : this(
+    constructor(
+        split: Split
+    ) : this(
         id = split.id,
         locationTrackId = split.sourceLocationTrackId,
         bulkTransferState = split.bulkTransferState,
@@ -76,22 +78,30 @@ data class Split(
 
     fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean =
         targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId }
+
     fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
+
     fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? =
         targetLocationTracks.find { track -> track.locationTrackId == trackId }
 
     fun containsSwitch(switchId: IntId<TrackLayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
 }
 
-enum class SplitTargetOperation { CREATE, OVERWRITE, TRANSFER }
+enum class SplitTargetOperation {
+    CREATE,
+    OVERWRITE,
+    TRANSFER,
+}
 
 enum class SplitTargetDuplicateOperation {
     TRANSFER,
     OVERWRITE;
-    fun toSplitTargetOperation(): SplitTargetOperation = when (this) {
-        TRANSFER -> SplitTargetOperation.TRANSFER
-        OVERWRITE -> SplitTargetOperation.OVERWRITE
-    }
+
+    fun toSplitTargetOperation(): SplitTargetOperation =
+        when (this) {
+            TRANSFER -> SplitTargetOperation.TRANSFER
+            OVERWRITE -> SplitTargetOperation.OVERWRITE
+        }
 }
 
 data class SplitTarget(
@@ -108,26 +118,21 @@ data class SplitLayoutValidationIssues(
     val switches: Map<IntId<TrackLayoutSwitch>, List<LayoutValidationIssue>>,
 ) {
     fun allIssues(): List<LayoutValidationIssue> =
-        (trackNumbers.values + referenceLines.values + kmPosts.values + locationTracks.values + switches.values).flatten()
+        (trackNumbers.values + referenceLines.values + kmPosts.values + locationTracks.values + switches.values)
+            .flatten()
 }
 
-data class SplitRequestTargetDuplicate(
-    val id: IntId<LocationTrack>,
-    val operation: SplitTargetDuplicateOperation,
-)
+data class SplitRequestTargetDuplicate(val id: IntId<LocationTrack>, val operation: SplitTargetDuplicateOperation)
 
 data class SplitRequestTarget(
     val duplicateTrack: SplitRequestTargetDuplicate?,
     val startAtSwitchId: IntId<TrackLayoutSwitch>?,
     val name: AlignmentName,
-    val descriptionBase: FreeText,
+    val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: DescriptionSuffixType,
 ) {
     fun getOperation(): SplitTargetOperation =
         duplicateTrack?.operation?.toSplitTargetOperation() ?: SplitTargetOperation.CREATE
 }
 
-data class SplitRequest(
-    val sourceTrackId: IntId<LocationTrack>,
-    val targetTracks: List<SplitRequestTarget>,
-)
+data class SplitRequest(val sourceTrackId: IntId<LocationTrack>, val targetTracks: List<SplitRequestTarget>)

@@ -1,5 +1,6 @@
 import { asyncCache } from 'cache/cache';
 import {
+    KmPostInfoboxExtras,
     LayoutKmLengthDetails,
     LayoutKmPost,
     LayoutKmPostId,
@@ -28,13 +29,14 @@ import { KmPostSaveRequest } from 'linking/linking-model';
 import { ValidatedKmPost } from 'publication/publication-model';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import i18next from 'i18next';
+import { KmLengthsLocationPrecision } from 'data-products/data-products-slice';
 
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostCache = asyncCache<string, LayoutKmPost | undefined>();
 
 const cacheKey = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
-    `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
 
 export async function getKmPost(
     id: LayoutKmPostId,
@@ -93,7 +95,7 @@ export async function getKmPostsByTile(
     });
     return kmPostListCache.get(
         changeTime,
-        `${layoutContext.publicationState}_${layoutContext.designId}_${JSON.stringify(params)}`,
+        `${layoutContext.publicationState}_${layoutContext.branch}_${JSON.stringify(params)}`,
         () => getNonNull(`${layoutUri('km-posts', layoutContext)}${params}`),
     );
 }
@@ -112,7 +114,8 @@ export async function getKmPostForLinking(
         offset: offset,
         limit: limit,
     });
-    return kmPostForLinkingCache.get(kmPostChangeTime, params, () =>
+    const key = `${params}_${layoutContext.branch}`;
+    return kmPostForLinkingCache.get(kmPostChangeTime, key, () =>
         getNonNull(`${layoutUri('km-posts', layoutContext)}${params}`),
     );
 }
@@ -184,11 +187,13 @@ export async function getKmLengths(
     );
 }
 
-export async function getSingleKmPostKmLength(
+export async function getKmPostInfoboxExtras(
     layoutContext: LayoutContext,
     id: LayoutKmPostId,
-): Promise<number | undefined> {
-    return getNullable<number>(`${layoutUri('km-posts', layoutContext, id)}/km-length`);
+): Promise<KmPostInfoboxExtras | undefined> {
+    return getNullable<KmPostInfoboxExtras>(
+        `${layoutUri('km-posts', layoutContext, id)}/infobox-extras`,
+    );
 }
 
 export const getKmLengthsAsCsv = (
@@ -196,10 +201,12 @@ export const getKmLengthsAsCsv = (
     trackNumberId: LayoutTrackNumberId,
     startKmNumber: KmNumber | undefined,
     endKmNumber: KmNumber | undefined,
+    precision: KmLengthsLocationPrecision,
 ) => {
     const params = queryParams({
         startKmNumber,
         endKmNumber,
+        precision,
         lang: i18next.language,
     });
 

@@ -10,19 +10,19 @@ Ajoympäristö: https://github.com/finnishtransportagency/geoviite/blob/main/aws
 
 | Backend                       | Teknologia              | Versio |
 |-------------------------------|-------------------------|--------|
-| Totetuskieli                  | Kotlin                  | 1.4    |
-| Framework                     | Spring Boot             | 2.4    |
-| Tietokanta                    | PostgreSQL (+PostGIS)   | 12     |
-| Tietokantamigraatiot          | Flyway                  | 8.0    |
-| Build & dependency management | Gradle                  | 6.8    |
+| Toteutuskieli                 | Kotlin                  | 1.9    |
+| Framework                     | Spring Boot             | 3      |
+| Tietokanta                    | PostgreSQL (+PostGIS)   | 16 (3) |
+| Tietokantamigraatiot          | Flyway                  | 10     |
+| Build & dependency management | Gradle                  | 8      |
 | Yksikkötestaus                | Jupiter (Junit 5)       |        |
 | E2E-testaus                   | Selenium/Jupiter/Kotlin |        |
 
-| Frontend     | Teknologia | Versio |
-|--------------|------------|--------|
-| Totetuskieli | TypeScript | 4.2    |
-| Framework    | React      | 17.0   |
-| Muita        | Redux      | 7.1    |
+| Frontend      | Teknologia | Versio |
+|---------------|------------|--------|
+| Toteutuskieli | TypeScript | 5      |
+| Framework     | React      | 18     |
+| Muita         | Redux      | 5      |
 
 | Ajoympäristö | Teknologia                                                   |
 |--------------|--------------------------------------------------------------|

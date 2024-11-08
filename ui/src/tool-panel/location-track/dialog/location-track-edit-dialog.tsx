@@ -139,9 +139,11 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.changeTimes,
     );
 
+    const canSetDeleted =
+        !state.isNewLocationTrack && state.existingLocationTrack?.editState !== 'CREATED';
     const stateOptions = locationTrackStates
-        .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
-        .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED', qaId: ls.value }));
+        .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
+        .map((ls) => ({ ...ls, qaId: ls.value }));
 
     const typeOptions = locationTrackTypes.map((ls) => ({ ...ls, qaId: ls.value }));
     const topologicalConnectivityOptions = topologicalConnectivityTypes.map((tc) => ({
@@ -286,7 +288,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const getDuplicateTrackOptions = React.useCallback(
         (searchTerm: string) =>
             findDuplicateTrackOptions(layoutContextDraft, props.locationTrack?.id, searchTerm),
-        [layoutContextDraft.designId, props.locationTrack?.id],
+        [layoutContextDraft.branch, props.locationTrack?.id],
     );
 
     function onDuplicateTrackSelected(duplicateTrack: LocationTrackItemValue | undefined) {
@@ -324,7 +326,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             case 'SWITCH_TO_OWNERSHIP_BOUNDARY':
                 return switchToOwnershipBoundaryDescriptionSuffix();
             default:
-                exhaustiveMatchingGuard(mode);
+                return exhaustiveMatchingGuard(mode);
         }
     };
 
@@ -644,7 +646,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     className={
                                         styles['location-track-edit-dialog__readonly-value']
                                     }>
-                                    {startAndEndPoints?.start
+                                    {startAndEndPoints?.start?.address
                                         ? formatTrackMeter(startAndEndPoints.start.address)
                                         : '-'}
                                 </span>
@@ -657,7 +659,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     className={
                                         styles['location-track-edit-dialog__readonly-value']
                                     }>
-                                    {startAndEndPoints?.end
+                                    {startAndEndPoints?.end?.address
                                         ? formatTrackMeter(startAndEndPoints.end.address)
                                         : '-'}
                                 </span>
@@ -715,10 +717,15 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={() => setNonDraftDeleteConfirmationVisible(false)}
-                                variant={ButtonVariant.SECONDARY}>
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={state.isSaving}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
+                            <Button
+                                disabled={state.isSaving}
+                                isProcessing={state.isSaving}
+                                variant={ButtonVariant.PRIMARY_WARNING}
+                                onClick={save}>
                                 {t('button.delete')}
                             </Button>
                         </div>

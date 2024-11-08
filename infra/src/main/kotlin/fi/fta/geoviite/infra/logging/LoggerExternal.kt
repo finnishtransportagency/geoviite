@@ -6,12 +6,12 @@ import fi.fta.geoviite.infra.util.formatForLog
 import fi.fta.geoviite.infra.util.resetCollected
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.slf4j.Logger
-import org.springframework.web.reactive.function.client.ClientRequest
-import org.springframework.web.reactive.function.client.ClientResponse
 import java.time.Duration
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.slf4j.Logger
+import org.springframework.web.reactive.function.client.ClientRequest
+import org.springframework.web.reactive.function.client.ClientResponse
 
 fun Logger.apiRequest(req: HttpServletRequest, requestIp: String) {
     if (isDebugEnabled) debug("Request: {}:{} ip={}", req.method, req.requestURL, requestIp)
@@ -43,16 +43,24 @@ private fun responseParams(
     val timeMs = Duration.between(startTime, Instant.now()).toMillis()
     val timingString = if (timingMap.isEmpty()) "[no timings]" else "[$timingMap]"
     return paramsToLog(
-        "status" to res.status,
-        "time" to "$timeMs ms",
-        "contentType" to res.contentType,
-        "ip" to requestIp,
-        "request" to "${req.method}:${req.requestURL}",
-        "timings" to timingString,
-    ).joinToString(" ")
+            "status" to res.status,
+            "time" to "$timeMs ms",
+            "contentType" to res.contentType,
+            "ip" to requestIp,
+            "request" to "${req.method}:${req.requestURL}",
+            "timings" to timingString,
+        )
+        .joinToString(" ")
 }
 
-enum class AccessType { VERSION_FETCH, FETCH, INSERT, UPDATE, UPSERT, DELETE }
+enum class AccessType {
+    VERSION_FETCH,
+    FETCH,
+    INSERT,
+    UPDATE,
+    UPSERT,
+    DELETE,
+}
 
 fun Logger.daoAccess(accessType: AccessType, objectType: KClass<*>, vararg ids: Any) {
     daoAccess(accessType, objectType, ids.toList())
@@ -75,16 +83,15 @@ fun Logger.daoAccess(accessType: AccessType, objectType: String, ids: List<Any>)
 }
 
 fun Logger.daoAccess(method: String, params: List<Pair<String, *>>, returnValue: Any?) {
-    info(
-        "method={} params={} returnValue={}",
-        method,
-        paramsToLog(params),
-        returnValueToLog(returnValue),
-    )
+    info("method={} params={} returnValue={}", method, paramsToLog(params), returnValueToLog(returnValue))
 }
 
 fun Logger.apiCall(method: String, params: List<Pair<String, *>>) {
     if (isInfoEnabled) info("method={} params={}", method, paramsToLog(params))
+}
+
+fun Logger.apiResult(method: String, params: List<Pair<String, *>>) {
+    if (isInfoEnabled) info("method={} result={}", method, paramsToLog(params))
 }
 
 fun Logger.serviceCall(method: String, params: List<Pair<String, *>>) {

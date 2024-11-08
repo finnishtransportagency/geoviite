@@ -5,13 +5,16 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.util.assertSanitized
 
-private val oidLength = 5..50
-private val oidRegex = Regex("^\\d+(\\.\\d+){2,9}\$")
-
 data class Oid<T> @JsonCreator(mode = DELEGATING) constructor(private val value: String) : CharSequence by value {
 
-    init { assertSanitized<Oid<T>>(value, oidRegex, oidLength, allowBlank = false) }
+    companion object {
+        private val allowedLength = 5..50
+        private val sanitizer = Regex("^\\d+(\\.\\d+){2,9}\$")
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    init {
+        assertSanitized<Oid<T>>(value, sanitizer, allowedLength)
+    }
+
+    @JsonValue override fun toString(): String = value
 }

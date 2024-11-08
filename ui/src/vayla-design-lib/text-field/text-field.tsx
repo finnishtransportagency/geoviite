@@ -21,6 +21,7 @@ export type TextFieldProps = {
     wide?: boolean;
     attachLeft?: boolean;
     attachRight?: boolean;
+    onClickIcon?: () => void;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
@@ -33,6 +34,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
             wide,
             attachLeft,
             attachRight,
+            onClickIcon,
             ...props
         }: TextFieldProps,
         forwardedRef,
@@ -56,7 +58,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
             <div className={className}>
                 <div className="text-field__input">
                     {Icon && (
-                        <div className={styles['text-field__icon']}>
+                        <div className={styles['text-field__icon']} onClick={onClickIcon}>
                             <Icon size={IconSize.SMALL} color={IconColor.INHERIT} />
                         </div>
                     )}

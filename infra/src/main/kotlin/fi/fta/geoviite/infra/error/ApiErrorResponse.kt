@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.error
 
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
-import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
 
 data class ApiErrorResponse(

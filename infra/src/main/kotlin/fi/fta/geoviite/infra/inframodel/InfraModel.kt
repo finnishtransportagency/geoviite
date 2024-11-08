@@ -1,4 +1,5 @@
 package fi.fta.geoviite.infra.inframodel
+
 import fi.fta.geoviite.infra.error.InframodelParsingException
 
 interface InfraModel {
@@ -34,7 +35,7 @@ interface InfraModelProject {
     val feature: InfraModelFeature?
 }
 
-interface InfraModelApplication{
+interface InfraModelApplication {
     val name: String
     val desc: String?
     val manufacturer: String
@@ -43,7 +44,7 @@ interface InfraModelApplication{
     val author: InfraModelAuthor?
 }
 
-interface InfraModelAuthor{
+interface InfraModelAuthor {
     val createdBy: String?
     val createdByEmail: String?
     val company: String?
@@ -51,21 +52,21 @@ interface InfraModelAuthor{
     val timeStamp: String?
 }
 
-interface InfraModelCoordinateSystem{
+interface InfraModelCoordinateSystem {
     val name: String
     val epsgCode: String
     val verticalCoordinateSystemName: String
     val rotationAngle: String
 }
 
-interface InfraModelAlignmentGroup{
+interface InfraModelAlignmentGroup {
     val name: String
     val desc: String?
     val state: String?
     val alignments: List<InfraModelAlignment>
 }
 
-interface InfraModelAlignment{
+interface InfraModelAlignment {
     val name: String
     val desc: String?
     val state: String?
@@ -78,7 +79,7 @@ interface InfraModelAlignment{
     val staEquations: List<InfraModelStaEquation>
 }
 
-interface InfraModelStaEquation{
+interface InfraModelStaEquation {
     val staBack: String
     val staAhead: String
     val staInternal: String
@@ -96,16 +97,16 @@ interface InfraModelGeometryElement {
     val features: List<InfraModelFeature>
 }
 
-interface InfraModelLine: InfraModelGeometryElement
+interface InfraModelLine : InfraModelGeometryElement
 
-interface InfraModelCurve: InfraModelGeometryElement {
+interface InfraModelCurve : InfraModelGeometryElement {
     val rot: String
     val radius: String
     val chord: String
     val center: String
 }
 
-interface InfraModelSpiral: InfraModelGeometryElement {
+interface InfraModelSpiral : InfraModelGeometryElement {
     val rot: String
     val constant: String?
     val dirStart: String?
@@ -116,7 +117,7 @@ interface InfraModelSpiral: InfraModelGeometryElement {
     val pi: String
 }
 
-interface InfraModelCant{
+interface InfraModelCant {
     val name: String
     val desc: String?
     val gauge: String
@@ -124,20 +125,19 @@ interface InfraModelCant{
     val stations: List<InfraModelCantStation>
 }
 
-interface InfraModelCantStation{
+interface InfraModelCantStation {
     val station: String
     val appliedCant: String
     val curvature: String
     val transitionType: String?
 }
 
-interface InfraModelProfile{
+interface InfraModelProfile {
     val profAlign: InfraModelProfAlign?
     val features: List<InfraModelFeature>
 }
 
-
-interface InfraModelProfAlign{
+interface InfraModelProfAlign {
     val name: String
     val elements: List<InfraModelProfileElement>
     val features: List<InfraModelFeature>
@@ -153,7 +153,7 @@ interface InfraModelPvi {
     val point: String
 }
 
-interface InfraModelCircCurve{
+interface InfraModelCircCurve {
     val length: String
     val radius: String
 }

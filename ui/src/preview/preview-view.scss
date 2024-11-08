@@ -40,7 +40,7 @@ $-color-warning: vayla-design.$color-lemon-dark;
         margin-left: 24px;
 
         > :first-child {
-            margin-right: 8px;
+            margin-right: 16px;
         }
     }
 
@@ -69,6 +69,10 @@ $-color-warning: vayla-design.$color-lemon-dark;
             @include vayla-design.typography-caption;
         }
     }
+}
+
+.preview-view__changes--no-calculated-changes {
+    grid-template-rows: 2fr 2fr 0fr;
 }
 
 .preview-section__spinner-container {

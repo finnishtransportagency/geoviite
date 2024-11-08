@@ -12,7 +12,6 @@ function getTranslationKey(layoutState: LocationTrackStateModel) {
         case 'BUILT':
         case 'IN_USE':
         case 'NOT_IN_USE':
-        case 'PLANNED':
         case 'DELETED':
             return layoutState;
         default:

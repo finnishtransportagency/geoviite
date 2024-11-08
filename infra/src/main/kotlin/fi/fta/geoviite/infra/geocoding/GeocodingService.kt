@@ -15,10 +15,11 @@ import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.util.*
+import kotlin.jvm.optionals.getOrNull
+import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
 class GeocodingService(
@@ -27,10 +28,7 @@ class GeocodingService(
     private val geocodingCacheService: GeocodingCacheService,
 ) {
 
-    fun getAddressPoints(
-        layoutContext: LayoutContext,
-        locationTrackId: IntId<LocationTrack>,
-    ): AlignmentAddresses? {
+    fun getAddressPoints(layoutContext: LayoutContext, locationTrackId: IntId<LocationTrack>): AlignmentAddresses? {
         return addressPointsCache
             .getAddressPointCacheKey(layoutContext, locationTrackId)
             ?.let(addressPointsCache::getAddressPoints)
@@ -56,25 +54,18 @@ class GeocodingService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         location: IPoint,
     ): TrackMeter? {
-        return getGeocodingContext(layoutContext, trackNumberId)
-            ?.getAddress(location)
-            ?.let { (address, intersect) -> if (intersect != WITHIN) null else address }
+        return getGeocodingContext(layoutContext, trackNumberId)?.getAddress(location)?.let { (address, intersect) ->
+            if (intersect != WITHIN) null else address
+        }
     }
 
-    fun getLocationTrackStartAndEnd(
-        layoutContext: LayoutContext,
-        locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
-    ): AlignmentStartAndEnd? {
-        return getGeocodingContext(layoutContext, locationTrack.trackNumberId)?.getStartAndEnd(alignment)
-    }
-
-    fun getReferenceLineStartAndEnd(
-        layoutContext: LayoutContext,
-        referenceLine: ReferenceLine,
-        alignment: LayoutAlignment,
-    ): AlignmentStartAndEnd? {
-        return getGeocodingContext(layoutContext, referenceLine.trackNumberId)?.getStartAndEnd(alignment)
+    fun getLazyGeocodingContexts(layoutContext: LayoutContext): (IntId<TrackLayoutTrackNumber>) -> GeocodingContext? {
+        val contexts: MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>> = mutableMapOf()
+        return { trackNumberId ->
+            contexts
+                .computeIfAbsent(trackNumberId) { Optional.ofNullable(getGeocodingContext(layoutContext, it)) }
+                .getOrNull()
+        }
     }
 
     fun getTrackLocation(
@@ -88,9 +79,9 @@ class GeocodingService(
 
     @Transactional(readOnly = true)
     fun getGeocodingContexts(layoutContext: LayoutContext): Map<IntId<TrackLayoutTrackNumber>, GeocodingContext?> =
-        geocodingDao
-            .listLayoutGeocodingContextCacheKeys(layoutContext)
-            .associate { key -> key.trackNumberId to geocodingCacheService.getGeocodingContext(key) }
+        geocodingDao.listLayoutGeocodingContextCacheKeys(layoutContext).associate { key ->
+            key.trackNumberId to geocodingCacheService.getGeocodingContext(key)
+        }
 
     fun getGeocodingContext(
         layoutContext: LayoutContext,
@@ -115,13 +106,10 @@ class GeocodingService(
         branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant,
-    ): GeocodingContext? =
-        geocodingCacheService.getGeocodingContextAtMoment(branch, trackNumberId, moment)
+    ): GeocodingContext? = geocodingCacheService.getGeocodingContextAtMoment(branch, trackNumberId, moment)
 
-    fun getGeocodingContext(
-        trackNumber: TrackNumber,
-        plan: RowVersion<GeometryPlan>,
-    ): GeocodingContext? = geocodingCacheService.getGeocodingContext(trackNumber, plan)
+    fun getGeocodingContext(trackNumber: TrackNumber, plan: RowVersion<GeometryPlan>): GeocodingContext? =
+        geocodingCacheService.getGeocodingContext(trackNumber, plan)
 
     fun getGeocodingContextCacheKey(
         layoutContext: LayoutContext,

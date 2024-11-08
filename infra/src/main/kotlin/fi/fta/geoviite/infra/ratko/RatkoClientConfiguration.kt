@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.logging.integrationCall
+import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -16,17 +17,16 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
-import java.time.Duration
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
 
-class RatkoWebClient(
-    val client: WebClient
-) : WebClient by client
+class RatkoWebClient(val client: WebClient) : WebClient by client
 
 @Configuration
-@ConditionalOnProperty(prefix = "geoviite.ratko", name = ["enabled"], havingValue = "true")
-class RatkoClientConfiguration @Autowired constructor(
+@ConditionalOnProperty(name = ["geoviite.ratko.enabled"], havingValue = "true", matchIfMissing = false)
+class RatkoClientConfiguration
+@Autowired
+constructor(
     @Value("\${geoviite.ratko.url:}") private val ratkoBaseUrl: String,
     @Value("\${geoviite.ratko.username:}") private val basicAuthUsername: String,
     @Value("\${geoviite.ratko.password:}") private val basicAuthPassword: String,
@@ -39,13 +39,14 @@ class RatkoClientConfiguration @Autowired constructor(
     fun webClient(): RatkoWebClient {
         val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout)
 
-        val webClientBuilder = WebClient.builder()
-            .clientConnector(ReactorClientHttpConnector(httpClient))
-            .baseUrl(ratkoBaseUrl)
-            .filter(logRequest())
-            .filter(logResponse())
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .codecs { it.defaultCodecs().maxInMemorySize(10 * 1024 * 1024) }
+        val webClientBuilder =
+            WebClient.builder()
+                .clientConnector(ReactorClientHttpConnector(httpClient))
+                .baseUrl(ratkoBaseUrl)
+                .filter(logRequest())
+                .filter(logResponse())
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .codecs { it.defaultCodecs().maxInMemorySize(10 * 1024 * 1024) }
 
         if (basicAuthUsername.isNotBlank() && basicAuthPassword.isNotBlank()) {
             webClientBuilder.defaultHeaders { header -> header.setBasicAuth(basicAuthUsername, basicAuthPassword) }

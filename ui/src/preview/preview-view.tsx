@@ -2,15 +2,16 @@ import * as React from 'react';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import styles from './preview-view.scss';
 import { useTranslation } from 'react-i18next';
-import { useLoader } from 'utils/react-utils';
+import { useLoader, useTwoPartEffectWithStatus } from 'utils/react-utils';
 import {
     getCalculatedChanges,
     getPublicationCandidates,
     getRevertRequestDependencies,
     revertPublicationCandidates,
+    validateMergeToMain,
     validatePublicationCandidates,
 } from 'publication/publication-api';
-import { PreviewToolBar } from 'preview/preview-tool-bar';
+import { DesignPublicationMode, PreviewToolBar } from 'preview/preview-tool-bar';
 import { OnSelectFunction } from 'selection/selection-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -20,6 +21,7 @@ import {
     PublicationCandidateReference,
     PublicationGroup,
     PublicationStage,
+    PublicationValidationState,
 } from 'publication/publication-model';
 import PreviewTable from 'preview/preview-table';
 import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-revert-changes-dialog';
@@ -33,7 +35,9 @@ import {
     addValidationState,
     conditionallyUpdateCandidates,
     countPublicationGroupAmounts,
+    noCalculatedChanges,
     PublicationAssetChangeAmounts,
+    setValidationStateToApiError,
     stageTransform,
 } from 'publication/publication-utils';
 import {
@@ -49,8 +53,16 @@ import {
     filterByPublicationStage,
     filterByUser,
 } from 'preview/preview-view-filters';
-import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import {
+    draftLayoutContext,
+    draftMainLayoutContext,
+    LayoutBranch,
+    LayoutContext,
+    officialLayoutContext,
+} from 'common/common-model';
 import { debounceAsync } from 'utils/async-utils';
+import { DesignDraftsExistError } from 'preview/preview-view-design-drafts-exist-error';
+import { createClassName } from 'vayla-design-lib/utils';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -96,12 +108,23 @@ export type ChangesBeingReverted = {
     changeIncludingDependencies: PublicationCandidateReference[];
 };
 
+export type MapDisplayTransitionSide = 'BASE_CONTEXT' | 'WITH_CHANGES';
+
 const validateDebounced = debounceAsync(
-    (candidates: PublicationCandidateReference[]) => validatePublicationCandidates(candidates),
+    (
+        designPublicationMode: DesignPublicationMode,
+        layoutBranch: LayoutBranch,
+        candidates: PublicationCandidateReference[],
+    ) =>
+        designPublicationMode === 'MERGE_TO_MAIN'
+            ? validateMergeToMain(layoutBranch, candidates)
+            : validatePublicationCandidates(layoutBranch, candidates),
     1000,
 );
+
 const getCalculatedChangesDebounced = debounceAsync(
-    (candidates: PublicationCandidateReference[]) => getCalculatedChanges(candidates),
+    (layoutBranch: LayoutBranch, candidates: PublicationCandidateReference[]) =>
+        getCalculatedChanges(layoutBranch, candidates),
     1000,
 );
 
@@ -111,53 +134,110 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
     const [showPreview, setShowPreview] = React.useState<boolean>(true);
 
-    const [showValidationStatusSpinner, setShowValidationStatusSpinner] =
-        React.useState<boolean>(true);
+    const latestValidationIdRef = React.useRef<number>(0);
+    const [publicationValidationState, setPublicationValidationState] =
+        React.useState<PublicationValidationState>('IN_PROGRESS');
 
     const [publicationCandidates, setPublicationCandidates] = React.useState<
         PublicationCandidate[]
     >([]);
 
-    useLoader(
+    const [designPublicationMode, setDesignPublicationMode] =
+        React.useState<DesignPublicationMode>('PUBLISH_CHANGES');
+
+    const showCalculatedChanges = props.layoutContext.branch == 'MAIN';
+
+    const onChangeDesignPublicationMode = (newMode: DesignPublicationMode) => {
+        setDesignPublicationMode(newMode);
+    };
+
+    const canRevertChanges =
+        props.layoutContext.branch === 'MAIN' || designPublicationMode === 'PUBLISH_CHANGES';
+
+    const [mapDisplayTransitionSide, setMapDisplayTransitionSide] =
+        React.useState<MapDisplayTransitionSide>('WITH_CHANGES');
+
+    const hasDesignDraftsInDesign =
+        useLoader(
+            () =>
+                props.layoutContext.branch === 'MAIN' || designPublicationMode === 'PUBLISH_CHANGES'
+                    ? Promise.resolve(false)
+                    : getPublicationCandidates(props.layoutContext.branch, 'DRAFT').then(
+                          (candidates) => candidates.length > 0,
+                      ),
+            [props.changeTimes, props.layoutContext.branch, designPublicationMode],
+        ) ?? false;
+
+    useTwoPartEffectWithStatus(
         () =>
-            getPublicationCandidates().then((candidates) => {
-                const candidatesWithUpdatedStage = candidates.map((candidate) => {
-                    const candidateIsStaged = props.stagedPublicationCandidateReferences.some(
-                        (stagedCandidate) => candidateIdAndTypeMatches(stagedCandidate, candidate),
-                    );
+            getPublicationCandidates(
+                props.layoutContext.branch,
+                designPublicationMode === 'PUBLISH_CHANGES' ? 'DRAFT' : 'OFFICIAL',
+            ),
+        (candidates) => {
+            const candidatesWithUpdatedStage = candidates.map((candidate) => {
+                const candidateIsStaged = props.stagedPublicationCandidateReferences.some(
+                    (stagedCandidate) => candidateIdAndTypeMatches(stagedCandidate, candidate),
+                );
 
-                    return candidateIsStaged
-                        ? {
-                              ...candidate,
-                              stage: PublicationStage.STAGED,
-                          }
-                        : candidate;
-                });
+                return candidateIsStaged
+                    ? {
+                          ...candidate,
+                          stage: PublicationStage.STAGED,
+                      }
+                    : candidate;
+            });
 
-                setPublicationCandidates(candidatesWithUpdatedStage);
-                props.setStagedPublicationCandidateReferences(candidatesWithUpdatedStage);
+            setPublicationCandidates(candidatesWithUpdatedStage);
+            props.setStagedPublicationCandidateReferences(candidatesWithUpdatedStage);
 
-                setShowPreview(true);
-            }),
-        [props.changeTimes],
+            setShowPreview(true);
+        },
+        [props.changeTimes, props.layoutContext.branch, designPublicationMode],
     );
 
     const validatedPublicationCandidates =
         useLoader(() => {
-            setShowValidationStatusSpinner(true);
+            const validationId = latestValidationIdRef.current + 1;
+            latestValidationIdRef.current = validationId;
+            setPublicationValidationState('IN_PROGRESS');
 
-            return validateDebounced(props.stagedPublicationCandidateReferences).finally(() =>
-                setShowValidationStatusSpinner(false),
-            );
-        }, [props.stagedPublicationCandidateReferences]) ?? emptyValidatedPublicationCandidates();
+            return validateDebounced(
+                designPublicationMode,
+                props.layoutContext.branch,
+                props.stagedPublicationCandidateReferences,
+            )
+                .then((result) => {
+                    if (latestValidationIdRef.current === validationId) {
+                        setPublicationValidationState('API_CALL_OK');
+                    }
+
+                    return result;
+                })
+                .catch((_err) => {
+                    setPublicationValidationState('API_CALL_ERROR');
+
+                    return Promise.resolve({
+                        validatedAsPublicationUnit: stagedPublicationCandidates.map(
+                            setValidationStateToApiError,
+                        ),
+                        allChangesValidated: publicationCandidates.map(
+                            setValidationStateToApiError,
+                        ),
+                    });
+                });
+        }, [props.stagedPublicationCandidateReferences, publicationCandidates]) ??
+        emptyValidatedPublicationCandidates();
 
     const calculatedChanges = useLoader(
-        () => getCalculatedChangesDebounced(props.stagedPublicationCandidateReferences),
+        () =>
+            showCalculatedChanges
+                ? getCalculatedChangesDebounced(
+                      props.layoutContext.branch,
+                      props.stagedPublicationCandidateReferences,
+                  )
+                : Promise.resolve(noCalculatedChanges),
         [props.stagedPublicationCandidateReferences],
-    );
-
-    const [layoutContext, setLayoutContext] = React.useState<LayoutContext>(
-        draftLayoutContext(props.layoutContext),
     );
 
     const unstagedPublicationCandidates = addValidationState(
@@ -190,7 +270,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             return;
         }
 
-        revertPublicationCandidates(changesBeingReverted.changeIncludingDependencies)
+        revertPublicationCandidates(
+            props.layoutContext.branch,
+            changesBeingReverted.changeIncludingDependencies,
+        )
             .then((r) => {
                 if (r.isOk()) {
                     const updatedCandidates = publicationCandidates.filter(
@@ -270,15 +353,17 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         publishCandidates: PublicationCandidate[],
         revertRequestSource: RevertRequestSource,
     ) => {
-        getRevertRequestDependencies(publishCandidates).then((changeIncludingDependencies) => {
-            setChangesBeingReverted({
-                requestedRevertChange: {
-                    type: RevertRequestType.CHANGES_WITH_DEPENDENCIES,
-                    source: revertRequestSource,
-                },
-                changeIncludingDependencies,
-            });
-        });
+        getRevertRequestDependencies(props.layoutContext.branch, publishCandidates).then(
+            (changeIncludingDependencies) => {
+                setChangesBeingReverted({
+                    requestedRevertChange: {
+                        type: RevertRequestType.CHANGES_WITH_DEPENDENCIES,
+                        source: revertRequestSource,
+                    },
+                    changeIncludingDependencies,
+                });
+            },
+        );
     };
 
     const revertStageChanges = (
@@ -347,14 +432,28 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             <div className={styles['preview-view']} qa-id="preview-content">
                 <PreviewToolBar
                     onClosePreview={props.onClosePreview}
-                    designId={props.layoutContext.designId}
+                    layoutBranch={props.layoutContext.branch}
+                    designPublicationMode={designPublicationMode}
+                    onChangeDesignPublicationMode={onChangeDesignPublicationMode}
                 />
-                <div className={styles['preview-view__changes']}>
+                <div
+                    className={createClassName(
+                        styles['preview-view__changes'],
+                        !showCalculatedChanges &&
+                            styles['preview-view__changes--no-calculated-changes'],
+                    )}>
                     {(showPreview && (
                         <>
                             <section
                                 qa-id={'unstaged-changes'}
                                 className={styles['preview-section']}>
+                                {hasDesignDraftsInDesign && (
+                                    <DesignDraftsExistError
+                                        goToPublishChangesMode={() =>
+                                            setDesignPublicationMode('PUBLISH_CHANGES')
+                                        }
+                                    />
+                                )}
                                 <div className={styles['preview-view__changes-title']}>
                                     <h3>
                                         {t('preview-view.unstaged-changes-title', {
@@ -372,7 +471,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     </Checkbox>
                                 </div>
                                 <PreviewTable
-                                    layoutContext={layoutContext}
+                                    layoutContext={props.layoutContext}
                                     changesBeingReverted={changesBeingReverted}
                                     publicationCandidates={displayedUnstagedPublicationCandidates}
                                     staged={false}
@@ -387,21 +486,30 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                             : publicationAssetChangeAmounts.unstaged
                                     }
                                     previewOperations={previewOperations}
-                                    validationInProgress={showValidationStatusSpinner}
-                                    isRowValidating={(item) => item.pendingValidation}
+                                    tableValidationState={publicationValidationState}
+                                    tableEntryValidationState={(item) => {
+                                        return publicationValidationState === 'API_CALL_ERROR'
+                                            ? 'API_CALL_ERROR'
+                                            : item.validationState;
+                                    }}
+                                    canRevertChanges={canRevertChanges}
                                 />
                             </section>
-
                             <section qa-id={'staged-changes'} className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
                                     <h3>
-                                        {t('preview-view.staged-changes-title', {
-                                            amount: publicationAssetChangeAmounts.staged,
-                                        })}
+                                        {t(
+                                            designPublicationMode === 'PUBLISH_CHANGES'
+                                                ? 'preview-view.staged-changes-title'
+                                                : 'preview-view.merging-to-main-changes-title',
+                                            {
+                                                amount: publicationAssetChangeAmounts.staged,
+                                            },
+                                        )}
                                     </h3>
                                 </div>
                                 <PreviewTable
-                                    layoutContext={layoutContext}
+                                    layoutContext={props.layoutContext}
                                     changesBeingReverted={changesBeingReverted}
                                     publicationCandidates={stagedPublicationCandidates}
                                     staged={true}
@@ -414,18 +522,20 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                         publicationAssetChangeAmounts.staged
                                     }
                                     previewOperations={previewOperations}
-                                    validationInProgress={showValidationStatusSpinner}
-                                    isRowValidating={() => showValidationStatusSpinner}
+                                    tableValidationState={publicationValidationState}
+                                    tableEntryValidationState={() => publicationValidationState}
+                                    canRevertChanges={canRevertChanges}
                                 />
                             </section>
-
                             <div className={styles['preview-section']}>
-                                {calculatedChanges && (
-                                    <CalculatedChangesView
-                                        layoutContext={props.layoutContext}
-                                        calculatedChanges={calculatedChanges}
-                                    />
-                                )}
+                                {showCalculatedChanges &&
+                                    calculatedChanges &&
+                                    designPublicationMode !== 'MERGE_TO_MAIN' && (
+                                        <CalculatedChangesView
+                                            layoutContext={props.layoutContext}
+                                            calculatedChanges={calculatedChanges}
+                                        />
+                                    )}
                                 {!calculatedChanges && <Spinner />}
                             </div>
                         </>
@@ -436,24 +546,37 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     )}
                 </div>
                 <MapContext.Provider value="track-layout">
-                    <MapViewContainer layoutContext={layoutContext} />
+                    <MapViewContainer
+                        layoutContext={
+                            designPublicationMode === 'MERGE_TO_MAIN'
+                                ? mapDisplayTransitionSide === 'WITH_CHANGES'
+                                    ? officialLayoutContext(props.layoutContext)
+                                    : draftMainLayoutContext()
+                                : mapDisplayTransitionSide === 'WITH_CHANGES'
+                                  ? draftLayoutContext(props.layoutContext)
+                                  : officialLayoutContext(props.layoutContext)
+                        }
+                    />
                 </MapContext.Provider>
-
                 <PreviewFooter
                     onSelect={props.onSelect}
-                    layoutContext={layoutContext}
-                    onChangeLayoutContext={setLayoutContext}
+                    layoutContext={props.layoutContext}
+                    onChangeMapDisplayTransitionSide={setMapDisplayTransitionSide}
+                    mapDisplayTransitionSide={mapDisplayTransitionSide}
                     onPublish={() => {
                         props.onPublish();
                         clearStagedCandidates();
                     }}
                     stagedPublicationCandidates={stagedPublicationCandidates}
-                    validating={showValidationStatusSpinner}
+                    disablePublication={
+                        publicationValidationState !== 'API_CALL_OK' || hasDesignDraftsInDesign
+                    }
+                    designPublicationMode={designPublicationMode}
                 />
             </div>
             {changesBeingReverted !== undefined && (
                 <PreviewConfirmRevertChangesDialog
-                    layoutContext={layoutContext}
+                    layoutContext={props.layoutContext}
                     changesBeingReverted={changesBeingReverted}
                     cancelRevertChanges={() => {
                         setChangesBeingReverted(undefined);

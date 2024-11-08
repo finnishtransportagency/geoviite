@@ -1,3 +1,4 @@
+-- increment this to force re-execution: 1
 drop view if exists layout.km_post_change_view;
 create view layout.km_post_change_view as
 (

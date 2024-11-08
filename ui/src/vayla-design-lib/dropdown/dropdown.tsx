@@ -46,9 +46,15 @@ export type DropdownOptions<TItemValue> =
     | Item<TItemValue>[]
     | ((searchTerm: string) => Promise<Item<TItemValue>[]>);
 
+export enum DropdownPopupMode {
+    Modal,
+    Inline,
+}
+
 export type DropdownProps<TItemValue> = {
     unselectText?: string;
     placeholder?: string;
+    displaySelectedName?: boolean;
     value?: TItemValue;
     getName?: (value: TItemValue) => string;
     canUnselect?: boolean;
@@ -70,6 +76,8 @@ export type DropdownProps<TItemValue> = {
     qaId?: string;
     inputRef?: React.RefObject<HTMLInputElement>;
     openOverride?: boolean;
+    popupMode?: DropdownPopupMode;
+    customIcon?: IconComponent;
 } & Pick<React.HTMLProps<HTMLInputElement>, 'disabled' | 'title'>;
 
 function isOptionsArray<TItemValue>(
@@ -82,10 +90,17 @@ function nameStartsWith<TItemValue>(option: Item<TItemValue>, searchTerm: string
     return option.name.toUpperCase().startsWith(searchTerm.toUpperCase());
 }
 
+export function nameIncludes<TItemValue>(option: Item<TItemValue>, searchTerm: string) {
+    return option.name.toUpperCase().includes(searchTerm.toUpperCase());
+}
+
 export const Dropdown = function <TItemValue>({
     size = DropdownSize.MEDIUM,
     filter = nameStartsWith,
     searchable = true,
+    popupMode = DropdownPopupMode.Modal,
+    customIcon: CustomIcon = undefined,
+    displaySelectedName = true,
     ...props
 }: DropdownProps<TItemValue>): JSX.Element {
     const { t } = useTranslation();
@@ -317,7 +332,7 @@ export const Dropdown = function <TItemValue>({
                 }
             }
         }
-    }, [open, optionFocusIndex]);
+    }, [openOrOverridden, optionFocusIndex]);
 
     // When options change, update option focus index
     React.useEffect(() => {
@@ -331,6 +346,81 @@ export const Dropdown = function <TItemValue>({
         );
     }, [options]);
 
+    function renderMenuItems() {
+        return (
+            <React.Fragment>
+                <ul className={styles['dropdown__list']} ref={listRef}>
+                    {showEmptyOption && (
+                        <li
+                            className={getItemClassName(undefined, -1)}
+                            onClick={unselect}
+                            title={props.unselectText || 'Ei valittu'}
+                            ref={optionFocusIndex == -1 ? focusedOptionRef : undefined}>
+                            <span className={styles['dropdown__list-item-icon']}>
+                                <Icons.Selected size={IconSize.SMALL} />
+                            </span>
+                            <span className={styles['dropdown__list-item-text']}>
+                                {props.unselectText || 'Ei valittu'}
+                            </span>
+                        </li>
+                    )}
+                    {!isLoading &&
+                        filteredOptions.map((item, index) => (
+                            <li
+                                className={getItemClassName(item, index)}
+                                key={index}
+                                qa-id={item.qaId}
+                                onClick={(event) => handleItemClick(item, event)}
+                                title={item.name}
+                                aria-disabled={!!item.disabled}
+                                ref={optionFocusIndex == index ? focusedOptionRef : undefined}>
+                                <span className={styles['dropdown__list-item-icon']}>
+                                    <Icons.Selected size={IconSize.SMALL} />
+                                </span>
+                                <span className={styles['dropdown__list-item-text']}>
+                                    {item.name}
+                                </span>
+                            </li>
+                        ))}
+                    {searchTerm && !isLoading && filteredOptions.length == 0 && (
+                        <li
+                            title="Ei vaihtoehtoja"
+                            className={createClassName(
+                                styles['dropdown__list-item'],
+                                styles['dropdown__list-item--no-options'],
+                            )}>
+                            Ei vaihtoehtoja
+                        </li>
+                    )}
+                    {isLoading && (
+                        <li
+                            title="Ladataan"
+                            className={createClassName(
+                                styles['dropdown__list-item'],
+                                styles['dropdown__list-item--loading'],
+                            )}>
+                            Ladataan
+                            <span className={styles['dropdown__loading-indicator']} />
+                        </li>
+                    )}
+                </ul>
+                {props.onAddClick && (
+                    <div className="dropdown__add-new-container">
+                        <Button
+                            variant={ButtonVariant.GHOST}
+                            icon={props.onAddClickIcon ?? Icons.Append}
+                            wide
+                            onClick={() => {
+                                props.onAddClick && props.onAddClick();
+                            }}>
+                            {props.onAddClickTitle ?? t('dropdown.add-new')}
+                        </Button>
+                    </div>
+                )}
+            </React.Fragment>
+        );
+    }
+
     return (
         <div
             qa-id={props.qaId}
@@ -340,9 +430,8 @@ export const Dropdown = function <TItemValue>({
             <div
                 className={styles['dropdown__header']}
                 role="button"
-                onClick={(e) => {
+                onClick={() => {
                     if (!props.disabled) {
-                        e.stopPropagation();
                         focusInput();
                         openOrOverridden ? setOpen(false) : openListAndFocusSelectedItem();
                     }
@@ -357,13 +446,18 @@ export const Dropdown = function <TItemValue>({
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
                         disabled={props.disabled}
-                        value={searchCommitted ? searchTerm : selectedName}
+                        value={searchCommitted || !displaySelectedName ? searchTerm : selectedName}
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder={props.placeholder}
                     />
                 </div>
                 <div className={styles['dropdown__icon']}>
-                    {searchable && optionsIsFunc ? (
+                    {CustomIcon ? (
+                        <CustomIcon
+                            size={IconSize.SMALL}
+                            color={props.disabled ? IconColor.INHERIT : undefined}
+                        />
+                    ) : searchable && optionsIsFunc ? (
                         <Icons.Search
                             size={IconSize.SMALL}
                             color={props.disabled ? IconColor.INHERIT : undefined}
@@ -376,82 +470,29 @@ export const Dropdown = function <TItemValue>({
                     )}
                 </div>
             </div>
-            {openOrOverridden && (
-                <CloseableModal
-                    useRefWidth
-                    onClickOutside={() => setOpen(false)}
-                    className={styles['dropdown__list-container']}
-                    offsetY={36}
-                    maxHeight={270}
-                    positionRef={menuRef}>
-                    <ul className={styles['dropdown__list']} ref={listRef}>
-                        {showEmptyOption && (
-                            <li
-                                className={getItemClassName(undefined, -1)}
-                                onClick={unselect}
-                                title={props.unselectText || 'Ei valittu'}
-                                ref={optionFocusIndex == -1 ? focusedOptionRef : undefined}>
-                                <span className={styles['dropdown__list-item-icon']}>
-                                    <Icons.Selected size={IconSize.SMALL} />
-                                </span>
-                                <span className={styles['dropdown__list-item-text']}>
-                                    {props.unselectText || 'Ei valittu'}
-                                </span>
-                            </li>
+            {openOrOverridden &&
+                (popupMode === DropdownPopupMode.Modal ? (
+                    <CloseableModal
+                        useRefWidth
+                        onClickOutside={() => setOpen(false)}
+                        className={createClassName(
+                            styles['dropdown__list-container'],
+                            styles['dropdown__list-container--modal'],
                         )}
-                        {!isLoading &&
-                            filteredOptions.map((item, index) => (
-                                <li
-                                    className={getItemClassName(item, index)}
-                                    key={index}
-                                    qa-id={item.qaId}
-                                    onClick={(event) => handleItemClick(item, event)}
-                                    title={item.name}
-                                    aria-disabled={!!item.disabled}
-                                    ref={optionFocusIndex == index ? focusedOptionRef : undefined}>
-                                    <span className={styles['dropdown__list-item-icon']}>
-                                        <Icons.Selected size={IconSize.SMALL} />
-                                    </span>
-                                    <span className={styles['dropdown__list-item-text']}>
-                                        {item.name}
-                                    </span>
-                                </li>
-                            ))}
-                        {searchTerm && !isLoading && filteredOptions.length == 0 && (
-                            <li
-                                title="Ei vaihtoehtoja"
-                                className={createClassName(
-                                    styles['dropdown__list-item'],
-                                    styles['dropdown__list-item--no-options'],
-                                )}>
-                                Ei vaihtoehtoja
-                            </li>
-                        )}
-                        {isLoading && (
-                            <li
-                                title="Ladataan"
-                                className={createClassName(
-                                    styles['dropdown__list-item'],
-                                    styles['dropdown__list-item--loading'],
-                                )}>
-                                Ladataan
-                                <span className={styles['dropdown__loading-indicator']} />
-                            </li>
-                        )}
-                    </ul>
-                    {props.onAddClick && (
-                        <div className="dropdown__add-new-container">
-                            <Button
-                                variant={ButtonVariant.GHOST}
-                                icon={props.onAddClickIcon ?? Icons.Append}
-                                wide
-                                onClick={props.onAddClick}>
-                                {props.onAddClickTitle ?? t('dropdown.add-new')}
-                            </Button>
-                        </div>
-                    )}
-                </CloseableModal>
-            )}
+                        offsetY={36}
+                        maxHeight={270}
+                        positionRef={menuRef}>
+                        {renderMenuItems()}
+                    </CloseableModal>
+                ) : (
+                    <div
+                        className={createClassName(
+                            styles['dropdown__list-container'],
+                            styles['dropdown__list-container--inline'],
+                        )}>
+                        {renderMenuItems()}
+                    </div>
+                ))}
         </div>
     );
 };

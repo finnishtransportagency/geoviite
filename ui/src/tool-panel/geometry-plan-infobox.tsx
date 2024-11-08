@@ -189,11 +189,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     <InfoboxField
                         qaId="geometry-plan-coordinate-system"
                         label={t('tool-panel.geometry-plan.coordinate-system')}
-                        value={
-                            coordinateSystemModel && (
-                                <CoordinateSystemView coordinateSystem={coordinateSystemModel} />
-                            )
-                        }
+                        value={<CoordinateSystemView coordinateSystem={coordinateSystemModel} />}
                     />
                     <InfoboxField
                         qaId="geometry-plan-vertical-geometry"

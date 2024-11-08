@@ -3,10 +3,10 @@ package fi.fta.geoviite.infra.ui.pagemodel.dataproducts
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementIfExists
-import org.openqa.selenium.By
-import org.openqa.selenium.WebElement
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import org.openqa.selenium.By
+import org.openqa.selenium.WebElement
 
 abstract class E2EElementListPage : E2EViewFragment(By.className("data-product-view")) {
     fun layoutListPage(): E2EDataProductLayoutElementListPage {
@@ -27,6 +27,7 @@ abstract class E2EElementListPage : E2EViewFragment(By.className("data-product-v
         logger.info("Open entire rail network tab")
 
         clickChild(byQaId("select-entire-rail-network"))
+
         return E2EDataProductEntireNetworkElementListPage()
     }
 }
@@ -77,9 +78,7 @@ class E2EDataProductLayoutElementListPage : E2EElementListPage() {
 
     val locationTrackLayoutGeometryRadioButton by lazy { getElementIfExists(byQaId("select-layout-geometry")) }
     val layoutPlanGeometryRadioButton by lazy { getElementIfExists(byQaId("select-plan-geometry")) }
-    val entireRailNetworkGeometryRadioButton by lazy {
-        getElementIfExists(byQaId("select-entire-rail-network"))
-    }
+    val entireRailNetworkGeometryRadioButton by lazy { getElementIfExists(byQaId("select-entire-rail-network")) }
 
     val entireRailNetworkDownloadCsvButton = getElementIfExists(byQaId("element-list-csv-download"))
 
@@ -90,16 +89,13 @@ class E2EDataProductLayoutElementListPage : E2EElementListPage() {
     }
 }
 
-
 class E2EDataProductEntireNetworkElementListPage : E2EElementListPage() {
-    val downloadUrl: String get() = childElement(byQaId("element-list-csv-download")).getAttribute("href")
+    val downloadUrl: String
+        get() = childElement(byQaId("element-list-csv-download")).getAttribute("href")
 }
 
-
-abstract class E2EDataProductElementList<Item : E2EDataProductElementListItem> : E2ETable<Item>(
-    tableBy = By.className("data-product-table__table-container"),
-    rowsBy = By.cssSelector("tbody tr")
-)
+abstract class E2EDataProductElementList<Item : E2EDataProductElementListItem> :
+    E2ETable<Item>(tableBy = By.className("data-product-table__table-container"), rowsBy = By.cssSelector("tbody tr"))
 
 class E2EDataProductLayoutElementList : E2EDataProductElementList<E2EDataProductLayoutElementListItem>() {
     override fun getRowContent(row: WebElement) =
@@ -120,15 +116,15 @@ abstract class E2EDataProductElementListItem(
     val plan: String,
     val source: String,
 ) {
-    constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
+    constructor(
+        columns: List<WebElement>,
+        headers: List<WebElement>,
+    ) : this(
         trackNumber = getColumnContent("data-products.element-list.element-list-table.track-number", columns, headers),
         alignment = getColumnContent("data-products.element-list.element-list-table.alignment", columns, headers),
         elementType = getColumnContent("data-products.element-list.element-list-table.element-type", columns, headers),
-        locationStartE = getColumnContent(
-            "data-products.element-list.element-list-table.location-start-e",
-            columns,
-            headers,
-        ),
+        locationStartE =
+            getColumnContent("data-products.element-list.element-list-table.location-start-e", columns, headers),
         length = getColumnContent("data-products.element-list.element-list-table.length", columns, headers),
         plan = getColumnContent("data-products.element-list.element-list-table.plan", columns, headers),
         source = getColumnContent("data-products.element-list.element-list-table.source", columns, headers),
@@ -144,9 +140,6 @@ data class E2EDataProductLayoutElementListItem(
     private val columns: List<WebElement>,
     private val headers: List<WebElement>,
 ) : E2EDataProductElementListItem(columns, headers) {
-    val locationTrack = getColumnContent(
-        "data-products.element-list.element-list-table.location-track",
-        columns,
-        headers,
-    )
+    val locationTrack =
+        getColumnContent("data-products.element-list.element-list-table.location-track", columns, headers)
 }

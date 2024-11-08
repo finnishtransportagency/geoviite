@@ -72,11 +72,6 @@
         }
     }
 
-    &__edit-icon {
-        padding: 0 5px;
-        cursor: pointer;
-    }
-
     &__text {
         @include vayla-design.typography-caption;
 

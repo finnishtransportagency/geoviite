@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.util
 
+import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DesignLayoutContext
 import fi.fta.geoviite.infra.common.FeatureTypeCode
@@ -17,6 +18,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -26,15 +28,16 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.StoredContextIdHolder
 import java.sql.ResultSet
 import java.time.Instant
 import java.time.LocalDate
@@ -71,6 +74,7 @@ fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T
         null
     }
 }
+
 fun <T> ResultSet.getLayoutRowId(name: String): LayoutRowId<T> = verifyNotNull(name, ::getLayoutRowIdOrNull)
 
 fun <T> ResultSet.getLayoutRowIdOrNull(name: String): LayoutRowId<T>? = getIntOrNull(name)?.let(::LayoutRowId)
@@ -91,9 +95,8 @@ fun ResultSet.getSrid(name: String): Srid = verifyNotNull(name, ::getSridOrNull)
 
 fun ResultSet.getSridOrNull(name: String): Srid? = getIntOrNull(name)?.let(::Srid)
 
-fun ResultSet.getTrackNumber(name: String): TrackNumber = requireNotNull(getTrackNumberOrNull(name)) {
-    "Track number was null"
-}
+fun ResultSet.getTrackNumber(name: String): TrackNumber =
+    requireNotNull(getTrackNumberOrNull(name)) { "Track number was null" }
 
 fun ResultSet.getTrackNumberOrNull(name: String): TrackNumber? = getString(name)?.let(::TrackNumber)
 
@@ -113,9 +116,16 @@ fun ResultSet.getFeatureTypeCode(name: String): FeatureTypeCode = verifyNotNull(
 
 fun ResultSet.getFeatureTypeCodeOrNull(name: String): FeatureTypeCode? = getString(name)?.let(::FeatureTypeCode)
 
-fun ResultSet.getPoint(nameX: String, nameY: String): Point = requireNotNull(getPointOrNull(nameX, nameY)) {
-    "Point does not exist in result set: nameX=$nameX nameY=$nameY"
-}
+fun ResultSet.getPoint(nameX: String, nameY: String): Point =
+    requireNotNull(getPointOrNull(nameX, nameY)) { "Point does not exist in result set: nameX=$nameX nameY=$nameY" }
+
+fun ResultSet.getGeometryPoint(nameX: String, nameY: String, nameSrid: String): GeometryPoint =
+    getPoint(nameX, nameY).let { point -> GeometryPoint(point.x, point.y, getSrid(nameSrid)) }
+
+fun ResultSet.getGeometryPointOrNull(nameX: String, nameY: String, nameSrid: String): GeometryPoint? =
+    getPointOrNull(nameX, nameY)?.let { point ->
+        getSridOrNull(nameSrid)?.let { srid -> GeometryPoint(point.x, point.y, srid) }
+    }
 
 fun ResultSet.getPointOrNull(nameX: String, nameY: String): Point? {
     val x = getDoubleOrNull(nameX)
@@ -188,20 +198,18 @@ fun ResultSet.getIntArrayOfArrayOrNull(name: String): List<List<Int>>? =
 
 inline fun <reified T> ResultSet.getList(name: String): List<T> = verifyNotNull(name, ::getListOrNull)
 
-inline fun <reified T> ResultSet.getListOrNull(name: String): List<T>? = getArray(name)?.array?.let { arr ->
-    if (arr is Array<*>) (arr as Array<out Any?>).mapNotNull(::verifyType)
-    else null
-}
+inline fun <reified T> ResultSet.getListOrNull(name: String): List<T>? =
+    getArray(name)?.array?.let { arr ->
+        if (arr is Array<*>) (arr as Array<out Any?>).mapNotNull(::verifyType) else null
+    }
 
-inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? = getArray(name)?.array?.let { arr ->
-    if (arr is Array<*>) (arr as Array<out Any?>).map { it?.let(::verifyType) }
-    else null
-}
+inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? =
+    getArray(name)?.array?.let { arr ->
+        if (arr is Array<*>) (arr as Array<out Any?>).map { it?.let(::verifyType) } else null
+    }
 
-fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) = DaoResponse<T>(
-    id = getIntId(officialIdName),
-    rowVersion = getLayoutRowVersion(versionIdName, versionName),
-)
+fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) =
+    LayoutDaoResponse<T>(id = getIntId(officialIdName), rowVersion = getLayoutRowVersion(versionIdName, versionName))
 
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
     RowVersion(getIntId(idName), getIntNonNull(versionName))
@@ -223,15 +231,19 @@ fun <T> ResultSet.getLayoutRowVersionOrNull(rowIdName: String, versionName: Stri
 
 fun ResultSet.getIntNonNull(name: String) = getIntOrNull(name) ?: error("$name can't be null")
 
-fun ResultSet.getCode(name: String): Code = getCodeOrNull(name) ?: error("StringCode was null")
+fun ResultSet.getCode(name: String): AuthCode = getCodeOrNull(name) ?: error("StringCode was null")
 
-fun ResultSet.getCodeOrNull(name: String): Code? = getString(name)?.let(::Code)
+fun ResultSet.getCodeOrNull(name: String): AuthCode? = getString(name)?.let(::AuthCode)
 
 fun ResultSet.getFreeText(name: String): FreeText = verifyNotNull(name, ::getFreeTextOrNull)
 
 fun ResultSet.getFreeTextOrNull(name: String): FreeText? = getString(name)?.let(::FreeText)
 
-fun ResultSet.getFreeTextWithNewLinesOrNull(name: String): FreeTextWithNewLines? = getString(name)?.let(::FreeTextWithNewLines)
+fun ResultSet.getFreeTextWithNewLines(name: String): FreeTextWithNewLines =
+    verifyNotNull(name, ::getFreeTextWithNewLinesOrNull)
+
+fun ResultSet.getFreeTextWithNewLinesOrNull(name: String): FreeTextWithNewLines? =
+    getString(name)?.let(FreeTextWithNewLines::of)
 
 fun ResultSet.getFileName(name: String): FileName = verifyNotNull(name, ::getFileNameOrNull)
 
@@ -246,13 +258,18 @@ fun ResultSet.getPolygonPointList(name: String): List<Point> = verifyNotNull(nam
 
 fun ResultSet.getPolygonPointListOrNull(name: String): List<Point>? = getString(name)?.let(::parse2DPolygon)
 
-fun ResultSet.getPVProjectName(name: String): PVProjectName = verifyNotNull(name, ::getPVProjectNameOrNull)
+fun ResultSet.getUnsafeString(name: String): UnsafeString = verifyNotNull(name, ::getUnsafeStringOrNull)
 
-fun ResultSet.getPVProjectNameOrNull(name: String): PVProjectName? = getString(name)?.let(::PVProjectName)
+fun ResultSet.getUnsafeStringOrNull(name: String): UnsafeString? = getString(name)?.let(::UnsafeString)
 
 fun ResultSet.getPVDictionaryName(name: String): PVDictionaryName = verifyNotNull(name, ::getPVDictionaryNameOrNull)
 
-fun ResultSet.getPVDictionaryNameOrNull(name: String): PVDictionaryName? = getString(name)?.let(::PVDictionaryName)
+fun ResultSet.getPVDictionaryNameOrNull(name: String): PVDictionaryName? =
+    getUnsafeStringOrNull(name)?.let(::PVDictionaryName)
+
+fun ResultSet.getPVProjectName(name: String): PVProjectName = verifyNotNull(name, ::getPVProjectNameOrNull)
+
+fun ResultSet.getPVProjectNameOrNull(name: String): PVProjectName? = getUnsafeStringOrNull(name)?.let(::PVProjectName)
 
 fun ResultSet.getPVDictionaryCode(name: String): PVDictionaryCode = verifyNotNull(name, ::getPVDictionaryCodeOrNull)
 
@@ -267,6 +284,12 @@ fun <T> ResultSet.getChange(name: String, getter: (name: String) -> T?): Change<
 
 fun ResultSet.getChangePoint(nameX: String, nameY: String) =
     Change(getPointOrNull("old_$nameX", "old_$nameY"), getPointOrNull(nameX, nameY))
+
+fun ResultSet.getChangeGeometryPoint(nameX: String, nameY: String, sridName: String) =
+    Change(
+        getGeometryPointOrNull("old_$nameX", "old_$nameY", "old_$sridName"),
+        getGeometryPointOrNull(nameX, nameY, sridName),
+    )
 
 fun <T> ResultSet.getChangeRowVersion(idName: String, versionName: String): Change<RowVersion<T>> =
     Change(getRowVersionOrNull("old_$idName", "old_$versionName"), getRowVersionOrNull(idName, versionName))
@@ -306,10 +329,11 @@ fun ResultSet.getLayoutBranch(designIdName: String): LayoutBranch =
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
     requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }
 
-inline fun <reified T> verifyType(value: Any?): T = value.let { v ->
-    require(v is T) { "Value is of unexpected type: expected=${T::class.simpleName} value=${v}" }
-    v
-}
+inline fun <reified T> verifyType(value: Any?): T =
+    value.let { v ->
+        require(v is T) { "Value is of unexpected type: expected=${T::class.simpleName} value=${v}" }
+        v
+    }
 
 fun <T> ResultSet.getLayoutContextData(
     officialRowIdName: String,
@@ -318,47 +342,44 @@ fun <T> ResultSet.getLayoutContextData(
     rowIdName: String,
     rowVersionName: String,
     draftFlagName: String,
+    cancelledName: String,
 ): LayoutContextData<T> {
     val designId = getIntIdOrNull<LayoutDesign>(designIdName)
     val designRowId = getLayoutRowIdOrNull<T>(designRowIdName)
     val officialRowId = getLayoutRowIdOrNull<T>(officialRowIdName)
-    val rowId = getLayoutRowId<T>(rowIdName)
-    val rowVersion = LayoutRowVersion(rowId, getInt(rowVersionName))
+    val rowVersion = LayoutRowVersion(getLayoutRowId<T>(rowIdName), getInt(rowVersionName))
     val isDraft = getBoolean(draftFlagName)
+    val cancelled = getBoolean(cancelledName)
     return if (designId != null) {
         if (isDraft) {
             DesignDraftContextData(
+                contextIdHolder = StoredContextIdHolder(rowVersion),
                 officialRowId = officialRowId,
-                rowId = rowId,
-                version = rowVersion,
                 designId = designId,
                 designRowId = designRowId,
+                cancelled = cancelled,
             )
         } else {
             require(designRowId == null) {
-                "For official design rows, design row ref should be null: officialRow=$officialRowId rowId=$rowId designRowId=$designRowId"
+                "For official design rows, design row ref should be null: officialRow=$officialRowId rowVersion=$rowVersion designRowId=$designRowId"
             }
             DesignOfficialContextData(
+                contextIdHolder = StoredContextIdHolder(rowVersion),
                 officialRowId = officialRowId,
-                rowId = rowId,
-                version = rowVersion,
                 designId = designId,
+                cancelled = cancelled,
             )
         }
     } else if (isDraft) {
         MainDraftContextData(
+            contextIdHolder = StoredContextIdHolder(rowVersion),
             officialRowId = officialRowId,
-            rowId = rowId,
-            version = rowVersion,
             designRowId = designRowId,
         )
     } else {
         require(officialRowId == null) {
-            "For official rows, official row ref should be null: officialRow=$officialRowId rowId=$rowId draft=$isDraft"
+            "For official rows, official row ref should be null: officialRow=$officialRowId rowVersion=$rowVersion draft=$isDraft"
         }
-        MainOfficialContextData(
-            rowId = rowId,
-            version = rowVersion,
-        )
+        MainOfficialContextData(contextIdHolder = StoredContextIdHolder(rowVersion))
     }
 }

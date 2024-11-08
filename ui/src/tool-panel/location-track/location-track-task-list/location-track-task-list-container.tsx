@@ -27,6 +27,7 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { validationIssueIsError } from 'publication/publication-model';
 
 type SwitchRelinkingValidationTaskListProps = {
     layoutContext: LayoutContext;
@@ -34,12 +35,9 @@ type SwitchRelinkingValidationTaskListProps = {
     onShowSwitch: (layoutSwitch: LayoutSwitch, point?: Point) => void;
     onClose: () => void;
     selectedSwitches: LayoutSwitchId[];
-    selectingWorkspace: boolean;
 };
 
-export const LocationTrackTaskListContainer: React.FC<{ selectingWorkspace: boolean }> = ({
-    selectingWorkspace,
-}) => {
+export const LocationTrackTaskListContainer: React.FC = () => {
     const delegates = createDelegates(TrackLayoutActions);
     const locationTrackList = useTrackLayoutAppSelector((state) => state.locationTrackTaskList);
     const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
@@ -62,11 +60,12 @@ export const LocationTrackTaskListContainer: React.FC<{ selectingWorkspace: bool
     React.useEffect(() => {
         if (
             locationTrackList &&
-            (locationTrackList.designId !== layoutContext.designId || selectingWorkspace)
+            (locationTrackList.branch !== layoutContext.branch ||
+                layoutContext.publicationState !== 'DRAFT')
         ) {
             delegates.hideLocationTrackTaskList();
         }
-    }, [layoutContext.designId, selectingWorkspace]);
+    }, [layoutContext.branch, layoutContext.publicationState]);
 
     return createPortal(
         locationTrackList?.type == LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION ? (
@@ -76,7 +75,6 @@ export const LocationTrackTaskListContainer: React.FC<{ selectingWorkspace: bool
                 onClose={onClose}
                 onShowSwitch={onShowSwitch}
                 selectedSwitches={selectedSwitches}
-                selectingWorkspace={selectingWorkspace}
             />
         ) : (
             <React.Fragment />
@@ -102,7 +100,10 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
     );
 
     const [switchesAndErrors, switchesLoadingStatus] = useLoaderWithStatus(async () => {
-        const relinkingResults = await validateLocationTrackSwitchRelinking(locationTrackId);
+        const relinkingResults = await validateLocationTrackSwitchRelinking(
+            layoutContext.branch,
+            locationTrackId,
+        );
         const switchIds = relinkingResults
             .filter((r) => r.validationIssues.length > 0 || r.successfulSuggestion == null)
             .map((s) => s.id);
@@ -165,8 +166,8 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                                 );
 
                                 const errors =
-                                    switchRelinkingResult?.validationIssues?.filter(
-                                        (e) => e.type === 'ERROR',
+                                    switchRelinkingResult?.validationIssues?.filter((e) =>
+                                        validationIssueIsError(e.type),
                                     ) ?? [];
 
                                 const title = errors

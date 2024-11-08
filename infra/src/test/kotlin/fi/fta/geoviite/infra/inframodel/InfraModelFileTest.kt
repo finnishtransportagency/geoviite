@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.inframodel
 
+import kotlin.test.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import kotlin.test.assertFalse
 
 class InfraModelFileTest {
 

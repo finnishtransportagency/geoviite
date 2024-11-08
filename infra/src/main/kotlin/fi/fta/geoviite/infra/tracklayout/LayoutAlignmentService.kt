@@ -12,9 +12,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
-class LayoutAlignmentService(
-    private val dao: LayoutAlignmentDao,
-) {
+class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
     fun update(alignment: LayoutAlignment) = dao.update(alignment)
 
     fun saveAsNew(alignment: LayoutAlignment): RowVersion<LayoutAlignment> = save(asNew(alignment))
@@ -28,8 +26,7 @@ class LayoutAlignmentService(
         save(asNew(dao.fetch(alignmentVersion)))
 
     fun save(alignment: LayoutAlignment): RowVersion<LayoutAlignment> =
-        if (alignment.dataType == DataType.STORED) dao.update(alignment)
-        else dao.insert(alignment)
+        if (alignment.dataType == DataType.STORED) dao.update(alignment) else dao.insert(alignment)
 
     fun newEmpty(): Pair<LayoutAlignment, RowVersion<LayoutAlignment>> {
         val alignment = emptyAlignment()
@@ -71,12 +68,11 @@ private fun toPlanSectionPoint(point: IPoint, alignment: LayoutAlignment, contex
         PlanSectionPoint(
             address = address,
             location = point,
-            m = alignment.getClosestPointM(point)?.first ?: throw IllegalArgumentException(
-                "Could not find closest point for $point"
-            ),
+            m =
+                alignment.getClosestPointM(point)?.first
+                    ?: throw IllegalArgumentException("Could not find closest point for $point"),
         )
     }
 
 private fun asNew(alignment: LayoutAlignment): LayoutAlignment =
-    if (alignment.dataType == TEMP) alignment
-    else alignment.copy(id = StringId(), dataType = TEMP)
+    if (alignment.dataType == TEMP) alignment else alignment.copy(id = StringId(), dataType = TEMP)

@@ -2,6 +2,9 @@ package fi.fta.geoviite.infra.configuration
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
+import fi.fta.geoviite.api.frameconverter.v1.FrameConverterLocationTrackTypeV1
+import fi.fta.geoviite.api.frameconverter.v1.FrameConverterStringV1
+import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.AlignmentName
@@ -28,21 +31,21 @@ import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeName
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
-import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
-import fi.fta.geoviite.infra.projektivelho.PVTargetCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
-import fi.fta.geoviite.infra.util.Code
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.HttpsUrl
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import fi.fta.geoviite.infra.util.HttpsUri
+import fi.fta.geoviite.infra.util.UnsafeString
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 import org.springframework.context.annotation.Configuration
 import org.springframework.format.FormatterRegistry
@@ -51,18 +54,43 @@ import org.springframework.http.converter.HttpMessageConverter
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+import org.springframework.web.servlet.resource.PathResourceResolver
 
 @ConditionalOnWebApplication
 @EnableWebMvc
 @Configuration
-class WebConfig : WebMvcConfigurer {
+class WebConfig(
+    @Value("\${geoviite.static-url:}") val staticUrl: String,
+    @Value("\${geoviite.static-resources:}") val staticResourcesPath: String,
+    @Value("\${geoviite.ext-api.enabled:false}") val extApiEnabled: Boolean,
+    @Value("\${geoviite.ext-api.static-url:}") val extApiStaticUrl: String,
+    @Value("\${geoviite.ext-api.static-resources:}") val extApiStaticResourcesPath: String,
+) : WebMvcConfigurer {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
+        if (staticUrl.isNotEmpty() && staticResourcesPath.isNotEmpty()) {
+            logger.info("Static file serving enabled, url=$staticUrl, resources=$staticResourcesPath")
+            registry
+                .addResourceHandler(staticUrl)
+                .addResourceLocations(staticResourcesPath)
+                .resourceChain(true)
+                .addResolver(PathResourceResolver())
+        }
+
+        if (extApiEnabled && extApiStaticUrl.isNotEmpty() && extApiStaticResourcesPath.isNotEmpty()) {
+            logger.info("Static file serving enabled, url=$extApiStaticUrl, resources=$extApiStaticResourcesPath")
+            registry.addResourceHandler(extApiStaticUrl).addResourceLocations(extApiStaticResourcesPath)
+        }
+    }
 
     override fun addFormatters(registry: FormatterRegistry) {
         logger.info("Registering sanitized string converters")
-        registry.addStringConstructorConverter(::Code)
+        registry.addStringConstructorConverter(::AuthCode)
         registry.addStringConstructorConverter(::FreeText)
+        registry.addStringConstructorConverter(FreeTextWithNewLines::of)
         registry.addStringConstructorConverter(::LocalizationKey)
 
         registry.addStringConstructorConverter(UserName::of)
@@ -71,9 +99,11 @@ class WebConfig : WebMvcConfigurer {
         registry.addStringConstructorConverter(::CoordinateSystemName)
         registry.addStringConstructorConverter(::FeatureTypeCode)
 
+        registry.addStringConstructorConverter(::UnsafeString)
+
         logger.info("Registering geometry name converters")
         registry.addStringConstructorConverter(::FileName)
-        registry.addStringConstructorConverter(::HttpsUrl)
+        registry.addStringConstructorConverter(::HttpsUri)
         registry.addStringConstructorConverter(::MetaDataName)
         registry.addStringConstructorConverter(::CompanyName)
         registry.addStringConstructorConverter(::ProjectName)
@@ -121,18 +151,23 @@ class WebConfig : WebMvcConfigurer {
         logger.info("Registering ProjektiVelho sanitized string converters")
         registry.addStringConstructorConverter(::PVId)
         registry.addStringConstructorConverter(::PVDictionaryCode)
-        registry.addStringConstructorConverter(::PVDictionaryName)
-        registry.addStringConstructorConverter(::PVTargetCategory)
 
         logger.info("Registering localization language converters")
         registry.addStringConstructorConverter { enumCaseInsensitive<LocalizationLanguage>(it) }
+
+        if (extApiEnabled) {
+            logger.info("Registering frame converter converters")
+            registry.addStringConstructorConverter(::FrameConverterStringV1)
+            registry.addStringConstructorConverter { FrameConverterLocationTrackTypeV1.fromValue(it) }
+        }
     }
 
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
         val builder = Jackson2ObjectMapperBuilder().featuresToDisable(WRITE_DATES_AS_TIMESTAMPS)
         builder.serializationInclusion(JsonInclude.Include.NON_NULL)
-        converters.add(MappingJackson2HttpMessageConverter(builder.build()))
+
         converters.add(ByteArrayHttpMessageConverter())
+        converters.add(MappingJackson2HttpMessageConverter(builder.build()))
     }
 }
 

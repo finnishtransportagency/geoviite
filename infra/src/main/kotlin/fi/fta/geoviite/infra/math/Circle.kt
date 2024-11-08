@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.math
 
 import kotlin.math.*
 
-
 fun circleArcAngle(radius: Double, chord: Double): Double {
     // Derived from law of cosines:
     // c = sqrt(a^2+b^2 - 2ab cos(alpha))
@@ -24,9 +23,9 @@ fun circleSubArcLength(radius: Double, angle: Double): Double {
 }
 
 /**
- * Calculates Y-coordinate corresponding given X-coordinate for a point on the circe arc.
- * If radius is positive, the center is assumed to be above the arc -> use lower half of the arc (negative Y).
- * If radius is negative, the center is assumed to be below the arc -> use upper half of the arc (positive Y).
+ * Calculates Y-coordinate corresponding given X-coordinate for a point on the circe arc. If radius is positive, the
+ * center is assumed to be above the arc -> use lower half of the arc (negative Y). If radius is negative, the center is
+ * assumed to be below the arc -> use upper half of the arc (positive Y).
  */
 fun circleArcYAtX(center: Point, radius: Double, x: Double): Double {
     val absRadius = abs(radius)

@@ -36,7 +36,7 @@ import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 import {
     getSplittingInitializationParameters,
-    SplitDuplicate,
+    SplitDuplicateTrack,
 } from 'track-layout/layout-location-track-api';
 import {
     useCoordinateSystem,
@@ -136,16 +136,28 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     );
 
     const isDraft = layoutContext.publicationState === 'DRAFT';
+    const isMainDraft = layoutContext.branch === 'MAIN' && isDraft;
     const locationTrackIsDraft = locationTrack.editState !== 'UNEDITED';
     const duplicatesOnOtherTrackNumbers = extraInfo?.duplicates?.some(
         (duplicate) => duplicate.trackNumberId !== trackNumber?.id,
     );
+    const duplicatesOnOtherLocationTracks = extraInfo?.duplicates?.some(
+        (duplicate) =>
+            duplicate.duplicateStatus.duplicateOfId !== undefined &&
+            duplicate.duplicateStatus.duplicateOfId !== locationTrack.id,
+    );
+    const startAndEndAddressDefined =
+        startAndEndPoints?.start?.address && startAndEndPoints?.end?.address;
 
     const getSplittingDisabledReasonsTranslated = () => {
         const reasons: string[] = [];
 
         if (!isDraft) {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        }
+
+        if (layoutContext.branch !== 'MAIN') {
+            return t('tool-panel.location-track.splitting.validation.branch-not-main');
         }
 
         if (extraInfo?.partOfUnfinishedSplit) {
@@ -156,14 +168,28 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.location-track.unsupported-state-for-splitting');
         }
 
-        if (locationTrackIsDraft)
+        if (locationTrackIsDraft) {
             reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
-        if (duplicatesOnOtherTrackNumbers)
+        }
+        if (duplicatesOnOtherTrackNumbers) {
             reasons.push(
                 t(
                     'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
                 ),
             );
+        }
+        if (duplicatesOnOtherLocationTracks) {
+            reasons.push(
+                t(
+                    'tool-panel.location-track.splitting.validation.duplicates-on-different-location-track',
+                ),
+            );
+        }
+        if (!startAndEndAddressDefined) {
+            reasons.push(
+                t('tool-panel.location-track.splitting.validation.unresolved-start-or-end-address'),
+            );
+        }
 
         return reasons.join('\n\n');
     };
@@ -200,7 +226,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     startAndEndPoints?.start &&
                     startAndEndPoints?.end &&
                     trackNumber &&
-                    extraInfo
+                    extraInfo &&
+                    extraInfo.startSplitPoint &&
+                    extraInfo.endSplitPoint
                 ) {
                     const switches = splitInitializationParameters?.switches || [];
                     const getSwitchName = (switchId: LayoutSwitchId) =>
@@ -215,32 +243,34 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                         noNameErrorTerm;
 
                     const duplicates = splitInitializationParameters?.duplicates || [];
-                    const duplicatesWithNames: SplitDuplicate[] = duplicates.map((duplicate) => {
-                        return {
-                            ...duplicate,
-                            status: {
-                                ...duplicate.status,
-                                startSplitPoint: duplicate.status.startSplitPoint && {
-                                    ...duplicate.status.startSplitPoint,
-                                    name:
-                                        getSplitPointName(
-                                            duplicate.status.startSplitPoint,
-                                            getSwitchName,
-                                            endPointTerm,
-                                        ) || noNameErrorTerm,
+                    const duplicatesWithNames: SplitDuplicateTrack[] = duplicates.map(
+                        (duplicate) => {
+                            return {
+                                ...duplicate,
+                                status: {
+                                    ...duplicate.status,
+                                    startSplitPoint: duplicate.status.startSplitPoint && {
+                                        ...duplicate.status.startSplitPoint,
+                                        name:
+                                            getSplitPointName(
+                                                duplicate.status.startSplitPoint,
+                                                getSwitchName,
+                                                endPointTerm,
+                                            ) || noNameErrorTerm,
+                                    },
+                                    endSplitPoint: duplicate.status.endSplitPoint && {
+                                        ...duplicate.status.endSplitPoint,
+                                        name:
+                                            getSplitPointName(
+                                                duplicate.status.endSplitPoint,
+                                                getSwitchName,
+                                                endPointTerm,
+                                            ) || noNameErrorTerm,
+                                    },
                                 },
-                                endSplitPoint: duplicate.status.endSplitPoint && {
-                                    ...duplicate.status.endSplitPoint,
-                                    name:
-                                        getSplitPointName(
-                                            duplicate.status.endSplitPoint,
-                                            getSwitchName,
-                                            endPointTerm,
-                                        ) || noNameErrorTerm,
-                                },
-                            },
-                        };
-                    });
+                            };
+                        },
+                    );
                     const startSwitchId =
                         extraInfo.startSplitPoint.type === 'SWITCH_SPLIT_POINT'
                             ? extraInfo.startSplitPoint.switchId
@@ -300,7 +330,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             state.layoutAlignment.type === 'LOCATION_TRACK'
         ) {
             setUpdatingLength(true);
-            updateLocationTrackGeometry(state.layoutAlignment.id, {
+            updateLocationTrackGeometry(layoutContext.branch, state.layoutAlignment.id, {
                 min: state.layoutAlignmentInterval.start.m,
                 max: state.layoutAlignmentInterval.end.m,
             })
@@ -326,8 +356,11 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         !isDraft ||
         locationTrackIsDraft ||
         duplicatesOnOtherTrackNumbers ||
+        duplicatesOnOtherLocationTracks ||
         extraInfo?.partOfUnfinishedSplit ||
-        startingSplitting;
+        startingSplitting ||
+        !startAndEndAddressDefined ||
+        layoutContext.branch !== 'MAIN';
 
     return (
         startAndEndPoints &&
@@ -351,7 +384,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                         location={startAndEndPoints?.start?.point}
                                     />
                                 ) : (
-                                    t('tool-panel.location-track.unset')
+                                    t('tool-panel.location-track.unresolvable')
                                 )}
                             </InfoboxField>
                             <InfoboxField
@@ -363,7 +396,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                         location={startAndEndPoints?.end?.point}
                                     />
                                 ) : (
-                                    t('tool-panel.location-track.unset')
+                                    t('tool-panel.location-track.unresolvable')
                                 )}
                             </InfoboxField>
 
@@ -432,28 +465,40 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             )}
                             <EnvRestricted restrictTo="test">
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {isDraft &&
-                                        locationTrackIsDraft &&
-                                        !extraInfo?.partOfUnfinishedSplit && (
-                                            <InfoboxContentSpread>
-                                                <MessageBox>
-                                                    {t(
-                                                        'tool-panel.location-track.splitting.validation.track-draft-exists',
-                                                    )}
-                                                </MessageBox>
-                                            </InfoboxContentSpread>
-                                        )}
-                                    {isDraft &&
-                                        duplicatesOnOtherTrackNumbers &&
-                                        !extraInfo?.partOfUnfinishedSplit && (
-                                            <InfoboxContentSpread>
-                                                <MessageBox>
-                                                    {t(
-                                                        'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
-                                                    )}
-                                                </MessageBox>
-                                            </InfoboxContentSpread>
-                                        )}
+                                    {isMainDraft && (
+                                        <React.Fragment>
+                                            {locationTrackIsDraft &&
+                                                !extraInfo?.partOfUnfinishedSplit && (
+                                                    <InfoboxContentSpread>
+                                                        <MessageBox>
+                                                            {t(
+                                                                'tool-panel.location-track.splitting.validation.track-draft-exists',
+                                                            )}
+                                                        </MessageBox>
+                                                    </InfoboxContentSpread>
+                                                )}
+                                            {duplicatesOnOtherTrackNumbers &&
+                                                !extraInfo?.partOfUnfinishedSplit && (
+                                                    <InfoboxContentSpread>
+                                                        <MessageBox>
+                                                            {t(
+                                                                'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
+                                                            )}
+                                                        </MessageBox>
+                                                    </InfoboxContentSpread>
+                                                )}
+                                            {duplicatesOnOtherLocationTracks &&
+                                                !extraInfo?.partOfUnfinishedSplit && (
+                                                    <InfoboxContentSpread>
+                                                        <MessageBox>
+                                                            {t(
+                                                                'tool-panel.location-track.splitting.validation.duplicates-on-different-location-track',
+                                                            )}
+                                                        </MessageBox>
+                                                    </InfoboxContentSpread>
+                                                )}
+                                        </React.Fragment>
+                                    )}
                                     <InfoboxButtons>
                                         {!linkingState && !splittingState && (
                                             <SplitButton

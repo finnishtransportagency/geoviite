@@ -199,8 +199,9 @@ export function loadLayerData<Data, FeatureType extends Geometry>(
                 onLoadingData(false, data);
             }
         })
-        .catch(() => {
+        .catch((e) => {
             if (isLatest()) {
+                console.error(e);
                 clearFeatures(source);
                 onLoadingData(false, undefined);
             }
@@ -248,10 +249,6 @@ export function mergePartialItemSearchResults(
             suggestedSwitches: mergeOptionalArrays(
                 merged.suggestedSwitches,
                 searchResult.suggestedSwitches,
-            ),
-            locationTrackEndPoints: mergeOptionalArrays(
-                merged.locationTrackEndPoints,
-                searchResult.locationTrackEndPoints,
             ),
             geometryPlans: mergeOptionalArrays(merged.geometryPlans, searchResult.geometryPlans),
         };

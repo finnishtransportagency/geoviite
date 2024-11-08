@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignName
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
@@ -20,24 +21,24 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenc
 import fi.fta.geoviite.infra.ui.util.assertZeroBrowserConsoleErrors
 import fi.fta.geoviite.infra.ui.util.assertZeroErrorToasts
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.util.FreeText
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.openqa.selenium.By
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
-import waitUntilExists
-import waitUntilNotExist
 import java.time.LocalDate
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
+import waitUntilExists
+import waitUntilNotExist
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
-class UserRoleTestUI @Autowired constructor(
+class UserRoleTestUI
+@Autowired
+constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
@@ -57,7 +58,9 @@ class UserRoleTestUI @Autowired constructor(
         referenceLineDao.insert(referenceLineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
 
         val designName = "test design"
-        layoutDesignDao.insert(LayoutDesignSaveRequest(FreeText(designName), LocalDate.now(), DesignState.ACTIVE))
+        layoutDesignDao.insert(
+            LayoutDesignSaveRequest(LayoutDesignName(designName), LocalDate.now(), DesignState.ACTIVE)
+        )
 
         startGeoviite()
 
@@ -99,30 +102,28 @@ fun assertFrontPage() {
 }
 
 fun assertPublicationLog(frontpage: E2EFrontPage) {
-    frontpage
-        .openPublicationLog()
-        .returnToFrontPage()
+    frontpage.openPublicationLog().returnToFrontPage()
 }
 
 fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
     val mapPage = E2EAppBar().goToMap()
 
     when (role) {
-        E2ERole.Operator,
-        -> {
+        E2ERole.Operator -> {
             mapPage
                 .also { assertDraftAndDesignModeTabsVisible() }
-                // TODO: Design mode is checked before draft mode because for whatever reason design mode selections fail
-                // if draft mode checks go before them. Find out why
-                .switchToDesignMode()
-                .also { it.toolBar.workspaceDropdown().selectByName(designName) }
-                .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
-                .also { assertEditDesignButtonsVisible() }
                 .switchToDraftMode()
-                .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
+                .also { page -> assertTrackLayoutPageEditButtonsVisible(page, trackNumber) }
                 .goToPreview()
                 .waitForAllTableValidationsToComplete()
                 .goToTrackLayout()
+                .switchToDesignMode()
+                .also { page ->
+                    page.addDesign()
+                    assertEditDesignButtonsVisible()
+                    assertTrackLayoutPageEditButtonsVisible(page, trackNumber)
+                    page.removeActiveDesign()
+                }
                 .switchToOfficialMode()
         }
 
@@ -139,8 +140,7 @@ fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
 
         E2ERole.Authority,
         E2ERole.Browser,
-        E2ERole.Consultant,
-        -> {
+        E2ERole.Consultant -> {
             mapPage
                 .also { assertDraftAndDesignModeTabsInvisible() }
                 .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
@@ -169,22 +169,22 @@ fun assertEditDesignButtonsInvisible() {
     waitUntilNotExist(byQaId("workspace-delete-button"))
 }
 
-fun assertTrackLayoutPageEditButtonsInvisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
+fun assertTrackLayoutPageEditButtonsInvisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber) {
     trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
 
     waitUntilNotExist(byQaId("open-preview-view"))
     waitUntilNotExist(byQaId("tool-bar.new"))
-    waitUntilNotExist(By.cssSelector(".infobox__edit-icon"))
+    waitUntilNotExist(byQaId("infobox-edit-button"))
 }
 
-fun assertTrackLayoutPageEditButtonsVisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
+fun assertTrackLayoutPageEditButtonsVisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber) {
     trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
 
     waitUntilExists(byQaId("draft-mode-tab"))
     waitUntilExists(byQaId("design-mode-tab"))
     waitUntilExists(byQaId("open-preview-view"))
     waitUntilExists(byQaId("tool-bar.new"))
-    waitUntilExists(By.cssSelector(".infobox__edit-icon"))
+    waitUntilExists(byQaId("infobox-edit-button"))
 }
 
 fun assertInfraModelPage(role: E2ERole) {
@@ -192,8 +192,7 @@ fun assertInfraModelPage(role: E2ERole) {
         E2ERole.Operator,
         E2ERole.Team,
         E2ERole.Authority,
-        E2ERole.Browser,
-        -> {
+        E2ERole.Browser -> {
             val infraModelPage = E2EAppBar().goToInfraModel()
             assertInfraModelPageTabs(role, infraModelPage)
         }
@@ -207,18 +206,13 @@ fun assertInfraModelPage(role: E2ERole) {
 fun assertInfraModelPageTabs(role: E2ERole, infraModelPage: E2EInfraModelPage) {
     when (role) {
         E2ERole.Operator,
-        E2ERole.Team,
-        -> {
-            infraModelPage
-                .openVelhoWaitingForApprovalList()
-                .openRejectedList()
-                .goToInfraModelList()
+        E2ERole.Team -> {
+            infraModelPage.openVelhoWaitingForApprovalList().openRejectedList().goToInfraModelList()
         }
 
         E2ERole.Authority,
         E2ERole.Browser,
-        E2ERole.Consultant
-        -> {
+        E2ERole.Consultant -> {
             assertNotNull(infraModelPage.infraModelNavTabPlan)
             assertNull(infraModelPage.infraModelNavTabWaiting)
             assertNull(infraModelPage.infraModelNavTabRejected)
@@ -231,11 +225,9 @@ fun assertInfraModelLink(role: E2ERole) {
         E2ERole.Operator,
         E2ERole.Team,
         E2ERole.Authority,
-        E2ERole.Browser,
-        -> waitUntilExists(byQaId(E2EAppBar.NavLink.INFRA_MODEL.qaId))
+        E2ERole.Browser -> waitUntilExists(byQaId(E2EAppBar.NavLink.INFRA_MODEL.qaId))
 
-        E2ERole.Consultant,
-        -> assertFalse(exists(byQaId(E2EAppBar.NavLink.INFRA_MODEL.qaId)))
+        E2ERole.Consultant -> assertFalse(exists(byQaId(E2EAppBar.NavLink.INFRA_MODEL.qaId)))
     }
 }
 
@@ -246,8 +238,7 @@ fun assertDataProductNavigationLinks(role: E2ERole) {
         E2ERole.Operator,
         E2ERole.Team,
         E2ERole.Authority,
-        E2ERole.Browser,
-        -> {
+        E2ERole.Browser -> {
             waitUntilExists(byQaId(E2EAppBar.NavLink.DATA_PRODUCT.qaId))
             assertTrue(exists(byQaId(E2EAppBar.NavLink.DATA_PRODUCT.qaId)))
 
@@ -259,24 +250,20 @@ fun assertDataProductNavigationLinks(role: E2ERole) {
 
             navigationBar.closeDataProductsMenu()
         }
-        E2ERole.Consultant ->
-            assertFalse(exists(byQaId(E2EAppBar.NavLink.DATA_PRODUCT.qaId)))
+        E2ERole.Consultant -> assertFalse(exists(byQaId(E2EAppBar.NavLink.DATA_PRODUCT.qaId)))
     }
 }
 
 fun assertElementListLink(role: E2ERole, navigationBar: E2EAppBar) {
-    val elementListLinkExists =
-        navigationBar.dataProductNavLinkExists(E2EAppBar.DataProductNavLink.ELEMENT_LIST)
+    val elementListLinkExists = navigationBar.dataProductNavLinkExists(E2EAppBar.DataProductNavLink.ELEMENT_LIST)
 
     when (role) {
         E2ERole.Operator,
         E2ERole.Team,
         E2ERole.Authority,
-        E2ERole.Browser,
-        -> assertTrue(elementListLinkExists)
+        E2ERole.Browser -> assertTrue(elementListLinkExists)
 
-        E2ERole.Consultant,
-        -> assertFalse(elementListLinkExists)
+        E2ERole.Consultant -> assertFalse(elementListLinkExists)
     }
 }
 
@@ -288,17 +275,14 @@ fun assertVerticalGeometryListLink(role: E2ERole, navigationBar: E2EAppBar) {
         E2ERole.Operator,
         E2ERole.Team,
         E2ERole.Authority,
-        E2ERole.Browser,
-        -> assertTrue(verticalGeometryListLinkExists)
+        E2ERole.Browser -> assertTrue(verticalGeometryListLinkExists)
 
-        E2ERole.Consultant,
-        -> assertFalse(verticalGeometryListLinkExists)
+        E2ERole.Consultant -> assertFalse(verticalGeometryListLinkExists)
     }
 }
 
 fun assertKmLengthsLink(navigationBar: E2EAppBar) {
-    val kmLengthsLinkExists =
-        navigationBar.dataProductNavLinkExists(E2EAppBar.DataProductNavLink.KILOMETER_LENGTHS)
+    val kmLengthsLinkExists = navigationBar.dataProductNavLinkExists(E2EAppBar.DataProductNavLink.KILOMETER_LENGTHS)
 
     assertTrue(kmLengthsLinkExists)
 }
@@ -308,29 +292,23 @@ fun assertElementListingPage(role: E2ERole) {
         E2ERole.Operator,
         E2ERole.Team,
         E2ERole.Authority,
-        E2ERole.Browser,
-        -> {
+        E2ERole.Browser -> {
             val elementListPage = E2EAppBar().goToElementListPage()
 
             when (role) {
                 E2ERole.Operator,
-                E2ERole.Team,
-                -> {
+                E2ERole.Team -> {
                     val entireNetworkPage = elementListPage.entireNetworkPage()
                     assertNotNull(entireNetworkPage.downloadUrl)
                 }
 
-                else
-                -> assertNull(elementListPage.entireRailNetworkGeometryRadioButton)
+                else -> assertNull(elementListPage.entireRailNetworkGeometryRadioButton)
             }
 
-            elementListPage
-                .planListPage()
-                .layoutListPage()
+            elementListPage.planListPage().layoutListPage()
         }
 
-        E2ERole.Consultant,
-        -> {} // Consultant should not have access to this page.
+        E2ERole.Consultant -> {} // Consultant should not have access to this page.
     }
 }
 
@@ -339,26 +317,20 @@ fun assertVerticalGeometryListPage(role: E2ERole) {
         E2ERole.Operator,
         E2ERole.Team,
         E2ERole.Authority,
-        E2ERole.Browser,
-        -> {
+        E2ERole.Browser -> {
             val verticalGeometryListPage = E2EAppBar().goToVerticalGeometryListPage()
 
             when (role) {
                 E2ERole.Operator,
-                E2ERole.Team,
-                -> assertNotNull(verticalGeometryListPage.entireNetworkPage().downloadUrl)
+                E2ERole.Team -> assertNotNull(verticalGeometryListPage.entireNetworkPage().downloadUrl)
 
-                else
-                -> assertNull(verticalGeometryListPage.entireRailNetworkVerticalGeometryRadioButton)
+                else -> assertNull(verticalGeometryListPage.entireRailNetworkVerticalGeometryRadioButton)
             }
 
-            verticalGeometryListPage
-                .planListPage()
-                .layoutListPage()
+            verticalGeometryListPage.planListPage().layoutListPage()
         }
 
-        E2ERole.Consultant,
-        -> {} // Consultant should not have access to this page.
+        E2ERole.Consultant -> {} // Consultant should not have access to this page.
     }
 }
 
@@ -367,14 +339,12 @@ fun assertKmLengthsPage(role: E2ERole) {
         E2ERole.Operator,
         E2ERole.Team,
         E2ERole.Authority,
-        E2ERole.Browser
-        -> {
+        E2ERole.Browser -> {
             val kmLengthsPage = E2EAppBar().goToKilometerLengthsPage()
 
             when (role) {
                 E2ERole.Operator,
-                E2ERole.Team,
-                -> assertNotNull(kmLengthsPage.openEntireNetworkTab().downloadUrl)
+                E2ERole.Team -> assertNotNull(kmLengthsPage.openEntireNetworkTab().downloadUrl)
 
                 else -> assertNull(kmLengthsPage.entireRailNetworkKmLengthsRadioButton)
             }

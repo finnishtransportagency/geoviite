@@ -9,13 +9,19 @@ import {
 } from 'data-products/data-products-utils';
 import { KilometerLengthTableItem } from 'data-products/kilometer-lengths/kilometer-lengths-table-item';
 import { LayoutKmLengthDetails } from 'track-layout/track-layout-model';
+import { KmLengthsLocationPrecision } from 'data-products/data-products-slice';
 
 type KilometerLengthsTableProps = {
     kmLengths: LayoutKmLengthDetails[];
     isLoading: boolean;
+    locationPrecision: KmLengthsLocationPrecision;
 };
 
-const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengthsTableProps) => {
+const KilometerLengthsTable = ({
+    kmLengths,
+    isLoading,
+    locationPrecision,
+}: KilometerLengthsTableProps) => {
     const { t } = useTranslation();
     const amount = kmLengths.length;
     const headings: ElementHeading[] = [
@@ -24,8 +30,11 @@ const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengthsTablePr
         numericHeading('station-start', 'station-start'),
         numericHeading('station-end'),
         numericHeading('length'),
+        nonNumericHeading('coordinate-system'),
         numericHeading('location-e'),
         numericHeading('location-n'),
+        nonNumericHeading('location-source'),
+        nonNumericHeading('location-confirmed'),
         nonNumericHeading('warning'),
     ];
 
@@ -56,14 +65,17 @@ const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengthsTablePr
                         {kmLengths.map((item) => (
                             <React.Fragment key={`${item.kmNumber}`}>
                                 <KilometerLengthTableItem
+                                    locationPrecision={locationPrecision}
                                     trackNumber={item.trackNumber}
                                     length={item.length}
                                     kilometer={item.kmNumber}
                                     startM={item.startM}
                                     endM={item.endM}
-                                    locationE={item.location?.x}
-                                    locationN={item.location?.y}
-                                    source={item.locationSource}
+                                    coordinateSystem={item.coordinateSystem}
+                                    layoutLocation={item.layoutLocation}
+                                    layoutGeometrySource={item.layoutGeometrySource}
+                                    gkLocation={item.gkLocation}
+                                    linkedFromGeometry={item.gkLocationLinkedFromGeometry}
                                 />
                             </React.Fragment>
                         ))}

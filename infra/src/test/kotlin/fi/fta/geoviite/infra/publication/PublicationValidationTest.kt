@@ -9,17 +9,17 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
-import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.FUTURE_EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.NOT_EXISTING
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -47,29 +47,14 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import fi.fta.geoviite.infra.util.LocalizationKey
-import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
 
 class PublicationValidationTest {
 
     private val structure = switchStructureYV60_300_1_9()
-
-    @Test
-    fun trackNumberFieldValidationCatchesCatchesPublishingPlanned() {
-        assertFieldError(
-            true,
-            trackNumber(state = LayoutState.PLANNED, draft = true),
-            "$VALIDATION_TRACK_NUMBER.state.PLANNED",
-        )
-        assertFieldError(
-            false,
-            trackNumber(state = LayoutState.IN_USE, draft = true),
-            "$VALIDATION_TRACK_NUMBER.state.PLANNED",
-        )
-    }
 
     @Test
     fun trackNumberValidationCatchesLocationTrackReferencingDeletedTrackNumber() {
@@ -97,13 +82,6 @@ class PublicationValidationTest {
             alignment.copy(state = LocationTrackState.IN_USE),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
-    }
-
-    @Test
-    fun kmPostFieldValidationCatchesCatchesPublishingPlanned() {
-        val someKmPost = kmPost(IntId(1), KmNumber(1), draft = true)
-        assertFieldError(true, someKmPost.copy(state = LayoutState.PLANNED), "$VALIDATION_KM_POST.state.PLANNED")
-        assertFieldError(false, someKmPost.copy(state = LayoutState.IN_USE), "$VALIDATION_KM_POST.state.PLANNED")
     }
 
     @Test
@@ -147,66 +125,52 @@ class PublicationValidationTest {
     }
 
     @Test
-    fun switchFieldValidationCatchesCatchesPublishingPlanned() {
-        assertFieldError(
-            true,
-            switch(stateCategory = FUTURE_EXISTING, draft = true),
-            "$VALIDATION_SWITCH.state-category.FUTURE_EXISTING",
-        )
-        assertFieldError(
-            false,
-            switch(stateCategory = EXISTING, draft = true),
-            "$VALIDATION_SWITCH.state-category.EXISTING",
-        )
-    }
-
-    @Test
     fun switchValidationCatchesNonContinuousAlignment() {
-        val switch = switch(structureId = structure.id as IntId, id = IntId(1), draft = true)
-        val good = locationTrackAndAlignment(
-            trackNumberId = IntId(0),
-            segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
-                switchId = switch.id, endJointNumber = switch.joints.last().number
-            ),
-            segment(Point(10.0, 10.0), Point(20.0, 20.0)).copy(
-                switchId = switch.id, startJointNumber = switch.joints.first().number
-            ),
-            segment(Point(20.0, 20.0), Point(30.0, 30.0)),
-            draft = true,
-        )
-        val broken = locationTrackAndAlignment(
-            trackNumberId = IntId(0),
-            segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
-                switchId = switch.id, endJointNumber = switch.joints.last().number
-            ),
-            segment(Point(10.0, 10.0), Point(20.0, 20.0)),
-            segment(Point(20.0, 20.0), Point(30.0, 30.0)).copy(
-                switchId = switch.id, startJointNumber = switch.joints.first().number
-            ),
-            draft = true,
-        )
+        val switch =
+            switch(
+                structureId = structure.id as IntId,
+                id = IntId(1),
+                draft = true,
+                stateCategory = EXISTING,
+                joints =
+                    listOf(
+                        TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null),
+                        TrackLayoutSwitchJoint(JointNumber(2), Point(0.0, 10.0), null),
+                    ),
+            )
+        val good =
+            locationTrackAndAlignment(
+                trackNumberId = IntId(0),
+                segment(Point(0.0, 0.0), Point(10.0, 10.0))
+                    .copy(switchId = switch.id as IntId, endJointNumber = switch.joints.last().number),
+                segment(Point(10.0, 10.0), Point(20.0, 20.0))
+                    .copy(switchId = switch.id as IntId, startJointNumber = switch.joints.first().number),
+                segment(Point(20.0, 20.0), Point(30.0, 30.0)),
+                draft = true,
+            )
+        val broken =
+            locationTrackAndAlignment(
+                trackNumberId = IntId(0),
+                segment(Point(0.0, 0.0), Point(10.0, 10.0))
+                    .copy(switchId = switch.id as IntId, endJointNumber = switch.joints.last().number),
+                segment(Point(10.0, 10.0), Point(20.0, 20.0)),
+                segment(Point(20.0, 20.0), Point(30.0, 30.0))
+                    .copy(switchId = switch.id as IntId, startJointNumber = switch.joints.first().number),
+                state = LocationTrackState.IN_USE,
+                draft = true,
+            )
 
-        assertSwitchSegmentStructureError(
-            false,
-            switch,
-            good,
-            "$VALIDATION_SWITCH.location-track.not-continuous",
-        )
-        assertSwitchSegmentStructureError(
-            true,
-            switch,
-            broken,
-            "$VALIDATION_SWITCH.location-track.not-continuous",
-        )
+        assertSwitchSegmentStructureError(false, switch, good, "$VALIDATION_SWITCH.location-track.not-continuous")
+        assertSwitchSegmentStructureError(true, switch, broken, "$VALIDATION_SWITCH.location-track.not-continuous")
     }
 
     @Test
     fun switchValidationCatchesLocationMismatch() {
         val (switch, alignments) = switchAndMatchingAlignments(IntId(0), structure, draft = true)
-        val broken = alignments.mapIndexed { index, (track, alignment) ->
-            if (index == 0) track to offsetAlignment(alignment, Point(5.0, 0.0))
-            else track to alignment
-        }
+        val broken =
+            alignments.mapIndexed { index, (track, alignment) ->
+                if (index == 0) track to offsetAlignment(alignment, Point(5.0, 0.0)) else track to alignment
+            }
         assertSwitchSegmentStructureError(
             hasError = false,
             switch = switch,
@@ -241,40 +205,14 @@ class PublicationValidationTest {
 
     @Test
     fun alignmentFieldValidationCatchesLackingGeometry() {
-        assertLocationTrackFieldError(
-            true,
-            alignment(listOf()),
-            "$VALIDATION_LOCATION_TRACK.empty-segments",
-        )
-        assertLocationTrackFieldError(
-            false,
-            alignment(someSegment()),
-            "$VALIDATION_LOCATION_TRACK.empty-segments",
-        )
-    }
-
-    @Test
-    fun alignmentFieldValidationCatchesPublishingPlanned() {
-        assertFieldError(
-            true,
-            locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.PLANNED),
-            "$VALIDATION_LOCATION_TRACK.state.PLANNED",
-        )
-        assertFieldError(
-            false,
-            locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.IN_USE),
-            "$VALIDATION_LOCATION_TRACK.state.PLANNED",
-        )
+        assertLocationTrackFieldError(true, alignment(listOf()), "$VALIDATION_LOCATION_TRACK.empty-segments")
+        assertLocationTrackFieldError(false, alignment(someSegment()), "$VALIDATION_LOCATION_TRACK.empty-segments")
     }
 
     @Test
     fun validationCatchesReferencingDraftRow() {
         val segmentSwitch = segmentSwitchPair(switchDraft = true, switchInPublication = true)
-        assertSegmentSwitchError(
-            false,
-            segmentSwitch,
-            "$VALIDATION_LOCATION_TRACK.switch.not-official",
-        )
+        assertSegmentSwitchError(false, segmentSwitch, "$VALIDATION_LOCATION_TRACK.switch.not-official")
         assertSegmentSwitchError(
             true,
             editSegment(segmentSwitch) { segment ->
@@ -325,21 +263,19 @@ class PublicationValidationTest {
     @Test
     fun validationCatchesSegmentSwitchLocationMismatch() {
         val segmentSwitch = segmentSwitchPair()
-        assertSegmentSwitchError(
-            false,
-            segmentSwitch,
-            "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch",
-        )
+        assertSegmentSwitchError(false, segmentSwitch, "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch")
         assertSegmentSwitchError(
             true,
             editSegment(segmentSwitch) { segment ->
                 segment.copy(
-                    geometry = segment.geometry.withPoints(
-                        segmentPoints = toSegmentPoints(
-                            segment.alignmentPoints.first(),
-                            segment.alignmentPoints.last() + Point(0.0, 1.0),
-                        ),
-                    )
+                    geometry =
+                        segment.geometry.withPoints(
+                            segmentPoints =
+                                toSegmentPoints(
+                                    segment.alignmentPoints.first(),
+                                    segment.alignmentPoints.last() + Point(0.0, 1.0),
+                                )
+                        )
                 )
             },
             "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch",
@@ -348,12 +284,14 @@ class PublicationValidationTest {
             true,
             editSegment(segmentSwitch) { segment ->
                 segment.copy(
-                    geometry = segment.geometry.withPoints(
-                        segmentPoints = toSegmentPoints(
-                            segment.alignmentPoints.first() + Point(0.0, 1.0),
-                            segment.alignmentPoints.last(),
-                        ),
-                    )
+                    geometry =
+                        segment.geometry.withPoints(
+                            segmentPoints =
+                                toSegmentPoints(
+                                    segment.alignmentPoints.first() + Point(0.0, 1.0),
+                                    segment.alignmentPoints.last(),
+                                )
+                        )
                 )
             },
             "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch",
@@ -377,34 +315,31 @@ class PublicationValidationTest {
                 "",
             ) {
                 // Alignment at slight angle to reference line -> should be OK
-                context.getAddressPoints(
-                    alignment(segment(Point(10.0, 10.0), Point(20.0, 100.0))).copy(id = IntId(2))
-                )
+                context.getAddressPoints(alignment(segment(Point(10.0, 10.0), Point(20.0, 100.0))).copy(id = IntId(2)))
             },
         )
     }
 
     @Test
     fun validationCatchesStretchedOutAddressPoints() {
-        val context = simpleGeocodingContext(
-            // Reference line goes straight up
-            toSegmentPoints(
-                Point(0.0, 0.0),
-                Point(0.0, 1000.0),
+        val context =
+            simpleGeocodingContext(
+                // Reference line goes straight up
+                toSegmentPoints(Point(0.0, 0.0), Point(0.0, 1000.0))
             )
-        )
         val geocode = {
             context.getAddressPoints(
                 alignment(
-                    segment(
-                        Point(0.0, 10.0),
-                        Point(0.0, 20.0),
-                        Point(10.0, 40.0),
-                        Point(30.0, 60.0),
-                        Point(50.0, 70.0), // Over 45 degree diff to reference line -> should fail
-                        Point(70.0, 90.0),
+                        segment(
+                            Point(0.0, 10.0),
+                            Point(0.0, 20.0),
+                            Point(10.0, 40.0),
+                            Point(30.0, 60.0),
+                            Point(50.0, 70.0), // Over 45 degree diff to reference line -> should fail
+                            Point(70.0, 90.0),
+                        )
                     )
-                ).copy(id = IntId(2))
+                    .copy(id = IntId(2))
             )
         }
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.stretched-meters")
@@ -413,51 +348,35 @@ class PublicationValidationTest {
 
     @Test
     fun stretchedOutAddressPointsAtStartAndEndOfLineAreDescribedProperly() {
-        val context = simpleGeocodingContext(
-            // Reference line goes straight up
-            toSegmentPoints(
-                Point(0.0, 0.0),
-                Point(0.0, 1000.0),
+        val context =
+            simpleGeocodingContext(
+                // Reference line goes straight up
+                toSegmentPoints(Point(0.0, 0.0), Point(0.0, 1000.0))
             )
-        )
         val geocode = {
             context.getAddressPoints(
-                alignment(
-                    segment(
-                        Point(0.0, 0.0),
-                        Point(120.0, 50.0),
-                        Point(120.0, 60.0),
-                        Point(240.0, 110.0),
-                    )
-                ).copy(id = IntId(2))
+                alignment(segment(Point(0.0, 0.0), Point(120.0, 50.0), Point(120.0, 60.0), Point(240.0, 110.0)))
+                    .copy(id = IntId(2))
             )
         }
-        assertSingleAddressPointErrorRangeDescription(
-            geocode, "0000+0000..0000+0050, 0000+0060..0000+0110"
-        )
+        assertSingleAddressPointErrorRangeDescription(geocode, "0000+0000..0000+0050, 0000+0060..0000+0110")
     }
 
     @Test
     fun validationCatchesZigZagAddressPoints() {
-        val context = simpleGeocodingContext(
-            toSegmentPoints(
-                Point(0.0, 0.0),
-                Point(0.0, 10.0),
-                // Reference line makes a bend to right
-                Point(2.5, 15.0),
-                Point(2.5, 25.0),
+        val context =
+            simpleGeocodingContext(
+                toSegmentPoints(
+                    Point(0.0, 0.0),
+                    Point(0.0, 10.0),
+                    // Reference line makes a bend to right
+                    Point(2.5, 15.0),
+                    Point(2.5, 25.0),
+                )
             )
-        )
         val geocode = {
             //  alignment goes straight up at offset -> should get non-continuous points
-            context.getAddressPoints(
-                alignment(
-                    segment(
-                        Point(5.0, 5.0),
-                        Point(5.0, 25.0),
-                    )
-                ).copy(id = IntId(2))
-            )
+            context.getAddressPoints(alignment(segment(Point(5.0, 5.0), Point(5.0, 25.0))).copy(id = IntId(2)))
         }
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
     }
@@ -467,22 +386,15 @@ class PublicationValidationTest {
         val referenceLinePoints = simpleSphereArc(10.0, PI, 20)
         val context = simpleGeocodingContext(toSegmentPoints(to3DMPoints(referenceLinePoints)))
 
-        val sharpAngleTrack = to3DMPoints(
-            listOf(
-                Point(10.0, 0.0),
-                Point(10.0, 10.0),
-                Point(0.0, 0.0),
-            )
-        )
+        val sharpAngleTrack = to3DMPoints(listOf(Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 0.0)))
 
         val geocode = {
-            context.getAddressPoints(
-                alignment(segment(toSegmentPoints(sharpAngleTrack))).copy(id = IntId(2))
-            )
+            context.getAddressPoints(alignment(segment(toSegmentPoints(sharpAngleTrack))).copy(id = IntId(2)))
         }
 
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
-        // the correct error range is hard to calculate because it depends on how lines get projected; this at least
+        // the correct error range is hard to calculate because it depends on how lines get
+        // projected; this at least
         // seems OK though
         assertSingleAddressPointErrorRangeDescription(geocode, "0000+0006..0000+0008")
     }
@@ -567,62 +479,65 @@ class PublicationValidationTest {
         assertContainsError(
             true,
             validateDuplicateOfState(lt, lt, AlignmentName("duplicateof"), listOf()),
-            "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated"
+            "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated",
         )
     }
 
     @Test
     fun validationCatchesMisplacedTopologyLink() {
-        val wrongPlaceSwitch = switch(
-            seed = 123,
-            joints = listOf(
-                TrackLayoutSwitchJoint(JointNumber(1), Point(100.0, 100.0), null),
-            ),
-            id = IntId(1),
-            draft = true,
-        )
-        val rightPlaceSwitch = switch(
-            seed = 124,
-            joints = listOf(
-                TrackLayoutSwitchJoint(JointNumber(1), Point(200.0, 200.0), null),
-            ),
-            id = IntId(2),
-            draft = true,
-        )
-        val unlinkedTrack = locationTrackAndAlignment(
-            IntId(0),
-            segment(Point(150.0, 150.0), Point(200.0, 200.0)),
-            draft = true,
-        )
-        val lt = unlinkedTrack.first.copy(
-            topologyStartSwitch = TopologyLocationTrackSwitch(wrongPlaceSwitch.id as IntId, JointNumber(1)),
-            topologyEndSwitch = TopologyLocationTrackSwitch(rightPlaceSwitch.id as IntId, JointNumber(1))
-        ) to unlinkedTrack.second
+        val wrongPlaceSwitch =
+            switch(
+                stateCategory = EXISTING,
+                joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(100.0, 100.0), null)),
+                id = IntId(1),
+                draft = true,
+            )
+        val rightPlaceSwitch =
+            switch(
+                stateCategory = EXISTING,
+                joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(200.0, 200.0), null)),
+                id = IntId(2),
+                draft = true,
+            )
+        val unlinkedTrack =
+            locationTrackAndAlignment(
+                IntId(0),
+                segment(Point(150.0, 150.0), Point(200.0, 200.0)),
+                draft = true,
+                state = LocationTrackState.IN_USE,
+            )
+        val lt =
+            unlinkedTrack.first.copy(
+                topologyStartSwitch = TopologyLocationTrackSwitch(wrongPlaceSwitch.id as IntId, JointNumber(1)),
+                topologyEndSwitch = TopologyLocationTrackSwitch(rightPlaceSwitch.id as IntId, JointNumber(1)),
+            ) to unlinkedTrack.second
 
         assertContainsError(
             true,
             validateSwitchLocationTrackLinkStructure(wrongPlaceSwitch, switchStructureYV60_300_1_9(), listOf(lt)),
-            "$VALIDATION_SWITCH.location-track.joint-location-mismatch"
+            "$VALIDATION_SWITCH.location-track.joint-location-mismatch",
         )
 
         assertContainsError(
             false,
             validateSwitchLocationTrackLinkStructure(rightPlaceSwitch, switchStructureYV60_300_1_9(), listOf(lt)),
-            "$VALIDATION_SWITCH.location-track.joint-location-mismatch"
+            "$VALIDATION_SWITCH.location-track.joint-location-mismatch",
         )
     }
 
     @Test
     fun `Combine versions overrides official version with validation version`() {
-        val officialVersions: List<DaoResponse<PublicationValidationTest>> = listOf(
-            DaoResponse(IntId(1), LayoutRowVersion(LayoutRowId(1), 2)),
-            DaoResponse(IntId(2), LayoutRowVersion(LayoutRowId(2), 3)),
-            DaoResponse(IntId(3), LayoutRowVersion(LayoutRowId(3), 4)),
-        )
-        val validationVersions: List<ValidationVersion<PublicationValidationTest>> = listOf(
-            ValidationVersion(IntId(2), LayoutRowVersion(LayoutRowId(16), 1)),
-            ValidationVersion(IntId(4), LayoutRowVersion(LayoutRowId(17), 1)),
-        )
+        val officialVersions: List<LayoutDaoResponse<PublicationValidationTest>> =
+            listOf(
+                LayoutDaoResponse(IntId(1), LayoutRowVersion(LayoutRowId(1), 2)),
+                LayoutDaoResponse(IntId(2), LayoutRowVersion(LayoutRowId(2), 3)),
+                LayoutDaoResponse(IntId(3), LayoutRowVersion(LayoutRowId(3), 4)),
+            )
+        val validationVersions: List<ValidationVersion<PublicationValidationTest>> =
+            listOf(
+                ValidationVersion(IntId(2), LayoutRowVersion(LayoutRowId(16), 1)),
+                ValidationVersion(IntId(4), LayoutRowVersion(LayoutRowId(17), 1)),
+            )
         assertEquals(
             listOf(
                 LayoutRowVersion(LayoutRowId(1), 2),
@@ -637,304 +552,293 @@ class PublicationValidationTest {
 
     @Test
     fun `should return validation warning if location track end is linked to switch a but connectivity type is set to NONE`() {
-        val noneConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                trackNumberId = IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.NONE,
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1))
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    trackNumberId = IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.NONE,
+                    draft = true,
+                ),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                ),
+            )
 
-        assertEquals(1, noneConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(noneConnectivityTypeWarnings, "end-switch-is-topologically-connected")
+        assertEquals(1, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "end-switch-is-topologically-connected")
     }
 
     @Test
     fun `should return validation warnings if location track start is not linked to a switch but connectivity type is set to START`() {
-        val startConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                trackNumberId = IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.START,
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1))
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    trackNumberId = IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.START,
+                    draft = true,
+                ),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                ),
+            )
 
-        assertEquals(2, startConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(startConnectivityTypeWarnings, "start-switch-missing")
-        assertContainsConnectivityWarning(startConnectivityTypeWarnings, "end-switch-is-topologically-connected")
+        assertEquals(2, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "start-switch-missing")
+        assertContainsConnectivityWarning(connectivityWarnings, "end-switch-is-topologically-connected")
     }
 
     @Test
     fun `should not return any validation warnings if location track end is linked to a switch and connectivity type is set to END`() {
-        val endConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                trackNumberId = IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.END,
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1))
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    trackNumberId = IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.END,
+                    draft = true,
+                ),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                ),
+            )
 
-        assertEquals(0, endConnectivityTypeWarnings.size)
+        assertEquals(0, connectivityWarnings.size)
     }
 
     @Test
     fun `should return validation warning if only location track end is linked to a switch but connectivity type is set to START AND END`() {
-        val startEndConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                trackNumberId = IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1))
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    trackNumberId = IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
+                    draft = true,
+                ),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                ),
+            )
 
-        assertEquals(1, startEndConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(startEndConnectivityTypeWarnings, "start-switch-missing")
+        assertEquals(1, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "start-switch-missing")
     }
 
     @Test
     fun `should return validation warning if location track start is linked to a switch but connectivity type is set to NONE`() {
-        val noneConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                trackNumberId = IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.NONE,
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0))
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    trackNumberId = IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.NONE,
+                    draft = true,
+                ),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
+                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                ),
+            )
 
-        assertEquals(1, noneConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(noneConnectivityTypeWarnings, "start-switch-is-topologically-connected")
+        assertEquals(1, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "start-switch-is-topologically-connected")
     }
 
     @Test
     fun `should not return validation warning if location track start is linked to a switch and connectivity type is set to START`() {
-        val startConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                trackNumberId = IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.START,
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0))
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    trackNumberId = IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.START,
+                    draft = true,
+                ),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
+                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                ),
+            )
 
-        assertEquals(0, startConnectivityTypeWarnings.size)
+        assertEquals(0, connectivityWarnings.size)
     }
 
     @Test
     fun `should return validation warnings if location start is linked to a switch but connectivity type is set to END`() {
-        val endConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                trackNumberId = IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.END,
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0))
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    trackNumberId = IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.END,
+                    draft = true,
+                ),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
+                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                ),
+            )
 
-        assertEquals(2, endConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(endConnectivityTypeWarnings, "start-switch-is-topologically-connected")
-        assertContainsConnectivityWarning(endConnectivityTypeWarnings, "end-switch-missing")
+        assertEquals(2, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "start-switch-is-topologically-connected")
+        assertContainsConnectivityWarning(connectivityWarnings, "end-switch-missing")
     }
 
     @Test
     fun `should return validation warning if location start is linked to a switch but connectivity type is set to START AND END`() {
-        val startEndConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                trackNumberId = IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0))
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    trackNumberId = IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
+                    draft = true,
+                ),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
+                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                ),
+            )
 
-        assertEquals(1, startEndConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(startEndConnectivityTypeWarnings, "end-switch-missing")
+        assertEquals(1, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "end-switch-missing")
     }
 
     @Test
     fun `should return validation warning if location track end is topologically connected but connectivity type is set to NONE`() {
-        val noneConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                trackNumberId = IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.NONE,
-                topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    trackNumberId = IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.NONE,
+                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
+                    draft = true,
+                ),
+                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+            )
 
-        assertEquals(1, noneConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(noneConnectivityTypeWarnings, "end-switch-is-topologically-connected")
+        assertEquals(1, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "end-switch-is-topologically-connected")
     }
 
     @Test
     fun `should return validation warnings if location track end is topologically connected but connectivity type is set to START`() {
-        val startConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                trackNumberId = IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.START,
-                topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    trackNumberId = IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.START,
+                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
+                    draft = true,
+                ),
+                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+            )
 
-        assertEquals(2, startConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(startConnectivityTypeWarnings, "start-switch-missing")
-        assertContainsConnectivityWarning(startConnectivityTypeWarnings, "end-switch-is-topologically-connected")
+        assertEquals(2, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "start-switch-missing")
+        assertContainsConnectivityWarning(connectivityWarnings, "end-switch-is-topologically-connected")
     }
 
     @Test
     fun `should not return any validation warnings if location track end is topologically connected and connectivity type is set to END`() {
-        val endConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.END,
-                topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.END,
+                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
+                    draft = true,
+                ),
+                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+            )
 
-        assertEquals(0, endConnectivityTypeWarnings.size)
+        assertEquals(0, connectivityWarnings.size)
     }
 
     @Test
     fun `should return validation warning if location track end is topologically connected but connectivity type is set to START AND END`() {
-        val startEndConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
-                topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
+                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
+                    draft = true,
+                ),
+                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+            )
 
-        assertEquals(1, startEndConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(startEndConnectivityTypeWarnings, "start-switch-missing")
+        assertEquals(1, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "start-switch-missing")
     }
 
     @Test
     fun `should return validation warning if location track start is topologically connected but connectivity type is set to NONE`() {
-        val noneConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.NONE,
-                topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.NONE,
+                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
+                    draft = true,
+                ),
+                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+            )
 
-        assertEquals(1, noneConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(noneConnectivityTypeWarnings, "start-switch-is-topologically-connected")
+        assertEquals(1, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "start-switch-is-topologically-connected")
     }
 
     @Test
     fun `should not return any validation warnings if location track start is topologically connected and connectivity type is set to START`() {
-        val startConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.START,
-                topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.START,
+                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
+                    draft = true,
+                ),
+                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+            )
 
-        assertEquals(0, startConnectivityTypeWarnings.size)
+        assertEquals(0, connectivityWarnings.size)
     }
 
     @Test
     fun `should return validation warnings if location track start is topologically connected but connectivity type is set to END`() {
-        val endConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.END,
-                topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.END,
+                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
+                    draft = true,
+                ),
+                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+            )
 
-        assertEquals(2, endConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(endConnectivityTypeWarnings, "start-switch-is-topologically-connected")
-        assertContainsConnectivityWarning(endConnectivityTypeWarnings, "end-switch-missing")
+        assertEquals(2, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "start-switch-is-topologically-connected")
+        assertContainsConnectivityWarning(connectivityWarnings, "end-switch-missing")
     }
 
     @Test
     fun `should return validation warning if location start is topologically connceted but connectivity type is set to START AND END`() {
-        val startEndConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
-            locationTrack(
-                IntId(100),
-                topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
-                topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                draft = true,
-            ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-            ),
-        )
+        val connectivityWarnings =
+            validateLocationTrackSwitchConnectivity(
+                locationTrack(
+                    IntId(100),
+                    topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
+                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
+                    draft = true,
+                ),
+                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+            )
 
-        assertEquals(1, startEndConnectivityTypeWarnings.size)
-        assertContainsConnectivityWarning(startEndConnectivityTypeWarnings, "end-switch-missing")
+        assertEquals(1, connectivityWarnings.size)
+        assertContainsConnectivityWarning(connectivityWarnings, "end-switch-missing")
     }
 
-    private fun assertContainsConnectivityWarning(
-        warnings: Collection<LayoutValidationIssue>,
-        translationKey: String,
-    ) {
+    private fun assertContainsConnectivityWarning(warnings: Collection<LayoutValidationIssue>, translationKey: String) {
         assertContains(
             warnings,
             LayoutValidationIssue(
@@ -945,29 +849,30 @@ class PublicationValidationTest {
     }
 
     private fun editSegment(segmentSwitch: SegmentSwitch, edit: (segment: LayoutSegment) -> LayoutSegment) =
-        segmentSwitch.copy(
-            segments = segmentSwitch.segments.map(edit),
-        )
+        segmentSwitch.copy(segments = segmentSwitch.segments.map(edit))
 
     private fun segmentSwitchPair(
         switchStateCategory: LayoutStateCategory = EXISTING,
         switchDraft: Boolean = false,
         switchInPublication: Boolean = true,
     ): SegmentSwitch {
-        val switch = switch(
-            seed = 123,
-            id = if (switchDraft) IntId(2) else IntId(1),
-            stateCategory = switchStateCategory,
-            draft = switchDraft,
-            draftOfId = if (switchDraft) IntId(1) else null,
-        )
+        val switch =
+            switch(
+                id = if (switchDraft) IntId(2) else IntId(1),
+                stateCategory = switchStateCategory,
+                draft = switchDraft,
+                joints =
+                    listOf(
+                        TrackLayoutSwitchJoint(JointNumber(1), Point(10.0, 10.0), null),
+                        TrackLayoutSwitchJoint(JointNumber(2), Point(20.0, 20.0), null),
+                    ),
+                draftOfId = if (switchDraft) IntId(1) else null,
+            )
         val joint1 = switch.joints.first()
         val joint2 = switch.joints.last()
-        val segment = segment(joint1.location, joint2.location).copy(
-            switchId = switch.id,
-            startJointNumber = joint1.number,
-            endJointNumber = joint2.number,
-        )
+        val segment =
+            segment(joint1.location, joint2.location)
+                .copy(switchId = switch.id as IntId, startJointNumber = joint1.number, endJointNumber = joint2.number)
         return SegmentSwitch(
             switchId = switch.id as IntId,
             switchName = switch.name,
@@ -976,18 +881,6 @@ class PublicationValidationTest {
             segments = listOf(segment),
         )
     }
-
-    private fun assertFieldError(hasError: Boolean, trackNumber: TrackLayoutTrackNumber, error: String) =
-        assertContainsError(hasError, validateDraftTrackNumberFields(trackNumber), error)
-
-    private fun assertFieldError(hasError: Boolean, kmPost: TrackLayoutKmPost, error: String) =
-        assertContainsError(hasError, validateDraftKmPostFields(kmPost), error)
-
-    private fun assertFieldError(hasError: Boolean, switch: TrackLayoutSwitch, error: String) =
-        assertContainsError(hasError, validateDraftSwitchFields(switch), error)
-
-    private fun assertFieldError(hasError: Boolean, track: LocationTrack, error: String) =
-        assertContainsError(hasError, validateDraftLocationTrackFields(track), error)
 
     private fun assertLocationTrackFieldError(hasError: Boolean, alignment: LayoutAlignment, error: String) =
         assertContainsError(hasError, validateLocationTrackAlignment(alignment), error)
@@ -998,13 +891,14 @@ class PublicationValidationTest {
         referenceLine: ReferenceLine?,
         locationTrack: LocationTrack,
         error: String,
-    ) = assertTrackNumberReferenceError(
-        hasError,
-        trackNumber,
-        referenceLine,
-        error,
-        locationTracks = listOf(locationTrack),
-    )
+    ) =
+        assertTrackNumberReferenceError(
+            hasError,
+            trackNumber,
+            referenceLine,
+            error,
+            locationTracks = listOf(locationTrack),
+        )
 
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
@@ -1013,11 +907,12 @@ class PublicationValidationTest {
         error: String,
         kmPosts: List<TrackLayoutKmPost> = listOf(),
         locationTracks: List<LocationTrack> = listOf(),
-    ) = assertContainsError(
-        hasError,
-        validateTrackNumberReferences(trackNumber, referenceLine, kmPosts, locationTracks),
-        error,
-    )
+    ) =
+        assertContainsError(
+            hasError,
+            validateTrackNumberReferences(trackNumber, referenceLine, kmPosts, locationTracks),
+            error,
+        )
 
     private fun assertKmPostReferenceError(
         hasError: Boolean,
@@ -1026,22 +921,19 @@ class PublicationValidationTest {
         referenceLine: ReferenceLine?,
         trackNumberNumber: TrackNumber,
         error: String,
-    ) = assertContainsError(
-        hasError,
-        validateKmPostReferences(kmPost, trackNumber, referenceLine, trackNumberNumber),
-        error,
-    )
+    ) =
+        assertContainsError(
+            hasError,
+            validateKmPostReferences(kmPost, trackNumber, referenceLine, trackNumberNumber),
+            error,
+        )
 
     private fun assertSegmentSwitchError(
         hasError: Boolean,
         segmentAndSwitch: SegmentSwitch,
         error: String,
         locationTrack: LocationTrack = locationTrack(IntId(1), draft = true),
-    ) = assertContainsError(
-        hasError,
-        validateSegmentSwitchReferences(locationTrack, listOf(segmentAndSwitch)),
-        error,
-    )
+    ) = assertContainsError(hasError, validateSegmentSwitchReferences(locationTrack, listOf(segmentAndSwitch)), error)
 
     private fun assertSwitchSegmentStructureError(
         hasError: Boolean,
@@ -1079,12 +971,8 @@ class PublicationValidationTest {
         geocode: () -> AlignmentAddresses?,
         errorRangeDescription: String,
     ) {
-        val errors = validateAddressPoints(
-            trackNumber(draft = true),
-            locationTrack(IntId(1), draft = true),
-            "",
-            geocode,
-        )
+        val errors =
+            validateAddressPoints(trackNumber(draft = true), locationTrack(IntId(1), draft = true), "", geocode)
         assertEquals(errorRangeDescription, errors[0].params.get("kmNumbers"))
     }
 
@@ -1100,12 +988,13 @@ class PublicationValidationTest {
         referenceLinePoints: List<SegmentPoint>,
         kmPosts: List<TrackLayoutKmPost>,
     ): GeocodingContextCreateResult {
-        val (referenceLine, alignment) = referenceLineAndAlignment(
-            trackNumberId = IntId(1),
-            segments = listOf(segment(referenceLinePoints)),
-            startAddress = TrackMeter.ZERO,
-            draft = true,
-        )
+        val (referenceLine, alignment) =
+            referenceLineAndAlignment(
+                trackNumberId = IntId(1),
+                segments = listOf(segment(referenceLinePoints)),
+                startAddress = TrackMeter.ZERO,
+                draft = true,
+            )
         return GeocodingContext.create(
             // Start the geocoding from 0+0m
             TrackNumber("0000"),

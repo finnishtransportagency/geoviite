@@ -52,7 +52,7 @@ const GeometryKmPostInfobox: React.FC<GeometryKmPostInfoboxProps> = ({
                     <InfoboxButtons>
                         <Button
                             size={ButtonSize.SMALL}
-                            disabled={!geometryKmPost.location}
+                            disabled={!geometryKmPost.layoutLocation}
                             variant={ButtonVariant.SECONDARY}
                             onClick={() => onShowOnMap()}>
                             {t('tool-panel.km-post.geometry.show-on-map')}

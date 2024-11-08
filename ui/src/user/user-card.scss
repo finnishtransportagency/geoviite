@@ -2,6 +2,10 @@
 
 .user-card {
     padding-top: 12px;
+    width: 420px;
+    height: fit-content;
+    float: left;
+    margin: 5px 20px 5px 20px;
 
     &__username-title {
         @include vayla-design.typography-sub-heading;

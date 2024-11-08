@@ -18,9 +18,10 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.split.SplitService
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -28,6 +29,7 @@ import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPostGkLocation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
@@ -42,15 +44,17 @@ fun isAlignmentConnected(
 }
 
 @GeoviiteService
-class LinkingService @Autowired constructor(
+class LinkingService
+@Autowired
+constructor(
     private val geometryService: GeometryService,
     private val planLayoutService: PlanLayoutService,
     private val referenceLineService: ReferenceLineService,
     private val locationTrackService: LocationTrackService,
     private val layoutKmPostService: LayoutKmPostService,
     private val linkingDao: LinkingDao,
-    private val coordinateTransformationService: CoordinateTransformationService,
     private val splitService: SplitService,
+    private val coordinateTransformationService: CoordinateTransformationService,
 ) {
 
     fun getSuggestedAlignments(
@@ -146,7 +150,8 @@ class LinkingService @Autowired constructor(
         val referenceLineId = parameters.layoutAlignmentId
         val geometryInterval = parameters.geometryInterval
 
-        val (referenceLine, layoutAlignment) = referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
+        val (referenceLine, layoutAlignment) =
+            referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
         val newAlignment = replaceLayoutGeometry(layoutAlignment, geometryAlignment, geometryInterval.mRange)
@@ -212,40 +217,53 @@ class LinkingService @Autowired constructor(
     }
 
     fun getGeometryPlanLinkStatus(layoutContext: LayoutContext, planId: IntId<GeometryPlan>): GeometryPlanLinkStatus {
-        return linkingDao.fetchPlanLinkStatus(layoutContext, planId)
+        return linkingDao.fetchPlanLinkStatuses(layoutContext, listOf(planId))[0]
     }
 
     fun getGeometryPlanLinkStatuses(
         layoutContext: LayoutContext,
         planIds: List<IntId<GeometryPlan>>,
     ): List<GeometryPlanLinkStatus> {
-        return planIds.map { planId -> linkingDao.fetchPlanLinkStatus(layoutContext, planId) }
+        return linkingDao.fetchPlanLinkStatuses(layoutContext, planIds)
     }
 
     @Transactional
-    fun saveKmPostLinking(branch: LayoutBranch, parameters: KmPostLinkingParameters): DaoResponse<TrackLayoutKmPost> {
+    fun saveKmPostLinking(
+        branch: LayoutBranch,
+        parameters: KmPostLinkingParameters,
+    ): LayoutDaoResponse<TrackLayoutKmPost> {
         verifyPlanNotHidden(parameters.geometryPlanId)
 
         val geometryKmPost = geometryService.getKmPost(parameters.geometryKmPostId)
-        val kmPostSrid = geometryService.getKmPostSrid(parameters.geometryKmPostId)
-            ?: throw IllegalArgumentException("Cannot link a geometry km post with an unknown coordinate system!")
+        val kmPostSrid =
+            geometryService.getKmPostSrid(parameters.geometryKmPostId)
+                ?: throw IllegalArgumentException("Cannot link a geometry km post with an unknown coordinate system!")
         requireNotNull(geometryKmPost.location) { "Cannot link a geometry km post without a location!" }
 
         val layoutKmPost = layoutKmPostService.getOrThrow(branch.draft, parameters.layoutKmPostId)
 
-        val newLocationInLayoutSpace =
-            coordinateTransformationService.transformCoordinate(kmPostSrid, LAYOUT_SRID, geometryKmPost.location)
-        val modifiedLayoutKmPost = layoutKmPost.copy(
-            location = newLocationInLayoutSpace, sourceId = geometryKmPost.id
-        )
+        val newGkLocation =
+            coordinateTransformationService.getTransformationToGkFin(kmPostSrid).transform(geometryKmPost.location)
+        val modifiedLayoutKmPost =
+            layoutKmPost.copy(
+                gkLocation =
+                    TrackLayoutKmPostGkLocation(
+                        location = newGkLocation,
+                        source = KmPostGkLocationSource.FROM_GEOMETRY,
+                        confirmed = true,
+                    ),
+                sourceId = geometryKmPost.id,
+            )
 
         return layoutKmPostService.saveDraft(branch, modifiedLayoutKmPost)
     }
 
     fun verifyPlanNotHidden(id: IntId<GeometryPlan>) {
-        if (geometryService.getPlanHeader(id).isHidden) throw LinkingFailureException(
-            message = "Cannot link a plan that is hidden", localizedMessageKey = "plan-hidden"
-        )
+        if (geometryService.getPlanHeader(id).isHidden)
+            throw LinkingFailureException(
+                message = "Cannot link a plan that is hidden",
+                localizedMessageKey = "plan-hidden",
+            )
     }
 
     fun verifyAllSplitsDone(branch: LayoutBranch, id: IntId<LocationTrack>) {

@@ -6,8 +6,11 @@ import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_PUBLICATION
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
@@ -19,6 +22,9 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.toResponse
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
@@ -29,24 +35,28 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
-import java.time.Duration
-import java.time.Instant
-import java.time.ZoneId
 
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
 @GeoviiteController("/publications")
-class PublicationController @Autowired constructor(
+class PublicationController
+@Autowired
+constructor(
     private val lockDao: LockDao,
     private val publicationService: PublicationService,
+    private val publicationValidationService: PublicationValidationService,
+    private val publicationLogService: PublicationLogService,
     private val calculatedChangesService: CalculatedChangesService,
     private val localizationService: LocalizationService,
 ) {
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/{$LAYOUT_BRANCH}/candidates")
-    fun getPublicationCandidates(@PathVariable(LAYOUT_BRANCH) branch: LayoutBranch): PublicationCandidates {
-        return publicationService.collectPublicationCandidates(branch)
+    @GetMapping("/{$LAYOUT_BRANCH}/{from_state}/candidates")
+    fun getPublicationCandidates(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable("from_state") fromState: PublicationState,
+    ): PublicationCandidates {
+        return publicationService.collectPublicationCandidates(publicationInOrMergeFromBranch(branch, fromState))
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
@@ -55,8 +65,20 @@ class PublicationController @Autowired constructor(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody request: PublicationRequestIds,
     ): ValidatedPublicationCandidates {
-        return publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(branch),
+        return publicationValidationService.validatePublicationCandidates(
+            publicationService.collectPublicationCandidates(LayoutContextTransition.publicationIn(branch)),
+            request,
+        )
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
+    @PostMapping("/{$LAYOUT_BRANCH}/validate-merge-to-main")
+    fun validateMergeToMain(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody request: PublicationRequestIds,
+    ): ValidatedPublicationCandidates {
+        return publicationValidationService.validatePublicationCandidates(
+            publicationService.collectPublicationCandidates(LayoutContextTransition.mergeToMainFrom(branch)),
             request,
         )
     }
@@ -78,10 +100,11 @@ class PublicationController @Autowired constructor(
     ): PublicationResult {
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.revertPublicationCandidates(branch, toDelete)
-        } ?: throw PublicationFailureException(
-            message = "Could not reserve publication lock",
-            localizedMessageKey = "lock-obtain-failed",
-        )
+        }
+            ?: throw PublicationFailureException(
+                message = "Could not reserve publication lock",
+                localizedMessageKey = "lock-obtain-failed",
+            )
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
@@ -102,13 +125,23 @@ class PublicationController @Autowired constructor(
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.updateExternalId(branch, request.content)
             val versions = publicationService.getValidationVersions(branch, request.content)
-            publicationService.validatePublicationRequest(versions)
+            publicationValidationService.validatePublicationRequest(versions)
             val calculatedChanges = publicationService.getCalculatedChanges(versions)
             publicationService.publishChanges(branch, versions, calculatedChanges, request.message)
-        } ?: throw PublicationFailureException(
-            message = "Could not reserve publication lock",
-            localizedMessageKey = "lock-obtain-failed",
-        )
+        }
+            ?: throw PublicationFailureException(
+                message = "Could not reserve publication lock",
+                localizedMessageKey = "lock-obtain-failed",
+            )
+    }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/merge-to-main/{$LAYOUT_BRANCH}")
+    fun mergeChangesToMain(
+        @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
+        @RequestBody request: PublicationRequestIds,
+    ): PublicationResult {
+        return publicationService.mergeChangesToMain(branch, request)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
@@ -118,26 +151,23 @@ class PublicationController @Autowired constructor(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
     ): Page<PublicationDetails> {
-        val publications = publicationService.fetchPublicationDetailsBetweenInstants(
-            layoutBranch ?: LayoutBranch.main,
-            from,
-            to,
-        )
+        val publications =
+            publicationLogService.fetchPublicationDetailsBetweenInstants(layoutBranch ?: LayoutBranch.main, from, to)
 
         return Page(
             totalCount = publications.size,
             start = 0,
-            items = publications.take(50) //Prevents frontend from going kaput
+            items = publications.take(50), // Prevents frontend from going kaput
         )
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
-    @GetMapping("latest")
+    @GetMapping("latest/{branchType}")
     fun getLatestPublications(
-        @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
+        @PathVariable("branchType") branchType: LayoutBranchType,
         @RequestParam("count") count: Int,
     ): Page<PublicationDetails> {
-        val publications = publicationService.fetchLatestPublicationDetails(layoutBranch ?: LayoutBranch.main, count)
+        val publications = publicationLogService.fetchLatestPublicationDetails(branchType, count)
 
         return Page(totalCount = publications.size, start = 0, items = publications)
     }
@@ -153,15 +183,16 @@ class PublicationController @Autowired constructor(
         @RequestParam("timeZone") timeZone: ZoneId?,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
-        val publicationsAsCsv = publicationService.fetchPublicationsAsCsv(
-            layoutBranch ?: LayoutBranch.main,
-            from,
-            to,
-            sortBy,
-            order,
-            timeZone,
-            localizationService.getLocalization(lang),
-        )
+        val publicationsAsCsv =
+            publicationLogService.fetchPublicationsAsCsv(
+                layoutBranch ?: LayoutBranch.main,
+                from,
+                to,
+                sortBy,
+                order,
+                timeZone,
+                localizationService.getLocalization(lang),
+            )
 
         val dateString = getDateStringForFileName(from, to, timeZone ?: ZoneId.of("UTC"))
 
@@ -179,19 +210,20 @@ class PublicationController @Autowired constructor(
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): Page<PublicationTableItem> {
-        val publications = publicationService.fetchPublicationDetails(
-            layoutBranch = layoutBranch ?: LayoutBranch.main,
-            from = from,
-            to = to,
-            sortBy = sortBy,
-            order = order,
-            translation = localizationService.getLocalization(lang),
-        )
+        val publications =
+            publicationLogService.fetchPublicationDetails(
+                layoutBranch = layoutBranch ?: LayoutBranch.main,
+                from = from,
+                to = to,
+                sortBy = sortBy,
+                order = order,
+                translation = localizationService.getLocalization(lang),
+            )
 
         return Page(
             totalCount = publications.size,
             start = 0,
-            items = publications.take(500) //Prevents frontend from going kaput
+            items = publications.take(500), // Prevents frontend from going kaput
         )
     }
 
@@ -201,26 +233,29 @@ class PublicationController @Autowired constructor(
         @PathVariable("id") id: IntId<Publication>,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): List<PublicationTableItem> {
-        return publicationService.getPublicationDetailsAsTableItems(id, localizationService.getLocalization(lang))
+        return publicationLogService.getPublicationDetailsAsTableItems(id, localizationService.getLocalization(lang))
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
     @GetMapping("/{id}")
     fun getPublicationDetails(@PathVariable("id") id: IntId<Publication>): PublicationDetails {
-        return publicationService.getPublicationDetails(id)
+        return publicationLogService.getPublicationDetails(id)
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
     @GetMapping("/{id}/split-details")
     fun getSplitDetails(@PathVariable("id") id: IntId<Publication>): ResponseEntity<SplitInPublication> {
-        return publicationService.getSplitInPublication(id).let(::toResponse)
+        return publicationLogService.getSplitInPublication(id).let(::toResponse)
     }
 
     @PreAuthorize(AUTH_DOWNLOAD_PUBLICATION)
     @GetMapping("/{id}/split-details/csv")
-    fun getSplitDetailsAsCsv(@PathVariable("id") id: IntId<Publication>, @RequestParam("lang") lang: LocalizationLanguage): ResponseEntity<ByteArray> {
-        return publicationService
-            .getSplitInPublicationCsv(id, lang)
-            .let { (csv, ltName) -> getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv")) }
+    fun getSplitDetailsAsCsv(
+        @PathVariable("id") id: IntId<Publication>,
+        @RequestParam("lang") lang: LocalizationLanguage,
+    ): ResponseEntity<ByteArray> {
+        return publicationLogService.getSplitInPublicationCsv(id, lang).let { (csv, ltName) ->
+            getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv"))
+        }
     }
 }

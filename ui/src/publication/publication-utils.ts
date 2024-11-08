@@ -1,12 +1,13 @@
 import { subMonths } from 'date-fns';
 import {
+    CalculatedChanges,
+    DraftChangeType,
+    PublicationCandidate,
+    PublicationCandidateId,
+    PublicationCandidateReference,
     PublicationGroupId,
     PublicationSearch,
     PublicationStage,
-    PublicationCandidate,
-    PublicationCandidateReference,
-    DraftChangeType,
-    PublicationCandidateId,
 } from 'publication/publication-model';
 import { currentDay } from 'utils/date-utils';
 import { candidateIdAndTypeMatches } from 'preview/preview-view-filters';
@@ -31,10 +32,10 @@ export const conditionallyUpdateCandidates = (
 export const stageTransform = (
     newStage: PublicationStage,
 ): ((candidate: PublicationCandidate) => PublicationCandidate) => {
-    return (candidate) => ({
+    return (candidate): PublicationCandidate => ({
         ...candidate,
         stage: newStage,
-        pendingValidation: true,
+        validationState: 'IN_PROGRESS',
     });
 };
 
@@ -55,7 +56,7 @@ export const countPublicationGroupAmounts = (
         const publicationGroupId = candidate.publicationGroup?.id;
 
         if (publicationGroupId) {
-            publicationGroupId in groupSizes
+            groupSizes[publicationGroupId] !== undefined
                 ? (groupSizes[publicationGroupId] += 1)
                 : (groupSizes[publicationGroupId] = 1);
         }
@@ -101,7 +102,7 @@ export const addValidationState = (
     publicationCandidates: PublicationCandidate[],
     validationGroup: PublicationCandidate[],
 ): PublicationCandidate[] => {
-    return publicationCandidates.map((candidate) => {
+    return publicationCandidates.map((candidate): PublicationCandidate => {
         const validatedCandidate = validationGroup.find((validatedCandidate) =>
             candidateIdAndTypeMatches(validatedCandidate, candidate),
         );
@@ -110,8 +111,31 @@ export const addValidationState = (
             ? {
                   ...candidate,
                   issues: validatedCandidate.issues,
-                  pendingValidation: false,
+                  validationState: 'API_CALL_OK',
               }
             : candidate;
     });
+};
+
+export const setValidationStateToApiError = (
+    candidate: PublicationCandidate,
+): PublicationCandidate => ({
+    ...candidate,
+    validationState: 'API_CALL_ERROR',
+    issues: [],
+});
+
+export const noCalculatedChanges: CalculatedChanges = {
+    directChanges: {
+        kmPostChanges: [],
+        locationTrackChanges: [],
+        switchChanges: [],
+        referenceLineChanges: [],
+        trackNumberChanges: [],
+    },
+    indirectChanges: {
+        locationTrackChanges: [],
+        switchChanges: [],
+        trackNumberChanges: [],
+    },
 };

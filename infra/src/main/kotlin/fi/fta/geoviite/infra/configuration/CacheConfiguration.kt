@@ -14,15 +14,12 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.time.Duration
 
-
 const val CACHE_GEOMETRY_PLAN = "geometry-plan"
 const val CACHE_GEOMETRY_SWITCH = "geometry-switch"
-const val CACHE_GEOMETRY_PLAN_LAYOUT = "geometry-plan-layout"
 
 const val CACHE_ROLES = "roles"
 const val CACHE_COORDINATE_SYSTEMS = "coordinate-systems"
 const val CACHE_FEATURE_TYPES = "feature-types"
-const val CACHE_COMMON_SWITCH_STRUCTURE = "switch-structure"
 const val CACHE_COMMON_SWITCH_OWNER = "switch-owner"
 const val CACHE_COMMON_LOCATION_TRACK_OWNER = "location-track-owner"
 const val CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK = "kkj-tm35fin-triangles"
@@ -41,9 +38,9 @@ val staticDataCacheDuration: Duration = Duration.ofHours(24)
 
 @EnableCaching
 @Configuration
-class CacheConfiguration @Autowired constructor(
-    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
-) {
+class CacheConfiguration
+@Autowired
+constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     private val healthCheckLifetime: Duration = Duration.ofSeconds(10)
@@ -58,10 +55,9 @@ class CacheConfiguration @Autowired constructor(
             manager.registerCustomCache(CACHE_ROLES, cache(10, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_COORDINATE_SYSTEMS, cache(1, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_FEATURE_TYPES, cache(1, staticDataCacheDuration))
-            manager.registerCustomCache(CACHE_COMMON_SWITCH_STRUCTURE, cache(1, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK, cache(2, staticDataCacheDuration))
 
-            manager.registerCustomCache(CACHE_GEOCODING_CONTEXTS, cache(500, layoutCacheDuration))
+            manager.registerCustomCache(CACHE_GEOCODING_CONTEXTS, cache(1000, layoutCacheDuration))
 
             manager.registerCustomCache(CACHE_GEOMETRY_PLAN, cache(100, planCacheDuration))
             manager.registerCustomCache(CACHE_GEOMETRY_SWITCH, cache(10000, planCacheDuration))
@@ -71,7 +67,6 @@ class CacheConfiguration @Autowired constructor(
 
             manager.registerCustomCache(CACHE_PUBLISHED_LOCATION_TRACKS, cache(500, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_PUBLISHED_SWITCHES, cache(500, staticDataCacheDuration))
-
 
             manager
         } else {

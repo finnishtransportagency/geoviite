@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
+import { Dialog, DialogVariant, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
@@ -15,9 +15,10 @@ import {
     initialKmPostEditState,
     isValidKmNumber,
     KmPostEditState,
+    kmPostSaveRequest,
     reducer,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
-import { KmPostSaveRequest } from 'linking/linking-model';
+import { KmPostEditFields } from 'linking/linking-model';
 import {
     getKmPost,
     getKmPostByNumber,
@@ -35,14 +36,21 @@ import {
     getSaveDisabledReasons,
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
-import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, Srid } from 'common/common-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
+import { KmPostEditDialogGkLocationSection } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
+import { GeometryPoint } from 'model/geometry';
+
+export type KmPostEditDialogType = 'MODIFY' | 'CREATE' | 'LINKING';
 
 type KmPostEditDialogContainerProps = {
     kmPostId?: LayoutKmPostId;
     onClose: () => void;
     onSave?: (kmPostId: LayoutKmPostId) => void;
     prefilledTrackNumberId?: LayoutTrackNumberId;
+    geometryKmPostGkLocation?: GeometryPoint;
+    editType: KmPostEditDialogType;
+    geometryPlanSrid?: Srid;
 };
 
 type KmPostEditDialogProps = {
@@ -52,6 +60,10 @@ type KmPostEditDialogProps = {
     onSave?: (kmPostId: LayoutKmPostId) => void;
     prefilledTrackNumberId?: LayoutTrackNumberId;
     onEditKmPost: (id?: LayoutKmPostId) => void;
+    geometryKmPostGkLocation?: GeometryPoint;
+    geometryKmPostLocation?: GeometryPoint;
+    editType: KmPostEditDialogType;
+    geometryPlanSrid?: Srid;
 };
 
 export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps> = (
@@ -69,17 +81,24 @@ export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps>
             onSave={props.onSave}
             onEditKmPost={setEditKmPostId}
             prefilledTrackNumberId={props.prefilledTrackNumberId}
+            geometryKmPostGkLocation={props.geometryKmPostGkLocation}
+            editType={props.editType}
+            geometryPlanSrid={props.geometryPlanSrid}
         />
     );
 };
 
 export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostEditDialogProps) => {
     const { t } = useTranslation();
-    const [state, dispatcher] = React.useReducer(reducer, initialKmPostEditState);
+    const [state, dispatcher] = React.useReducer(reducer, {
+        ...initialKmPostEditState,
+        gkLocationEnabled: !!props.geometryKmPostGkLocation,
+    });
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
+    const canSetDeleted = !state.isNewKmPost && state.existingKmPost?.editState !== 'CREATED';
     const kmPostStateOptions = layoutStates
-        .filter((ls) => !state.isNewKmPost || ls.value != 'DELETED')
-        .map((ls) => ({ ...ls, qaId: ls.value, disabled: ls.value === 'PLANNED' }));
+        .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
+        .map((ls) => ({ ...ls, qaId: ls.value }));
 
     const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
@@ -108,7 +127,10 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                 })
                 .catch(() => close());
         } else {
-            stateActions.initWithNewKmPost(props.prefilledTrackNumberId);
+            stateActions.initWithNewKmPost({
+                trackNumberId: props.prefilledTrackNumberId,
+                geometryKmPostLocation: props.geometryKmPostGkLocation,
+            });
             firstInputRef.current?.focus();
         }
     }, [props.kmPostId]);
@@ -134,7 +156,10 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
 
     async function saveState(state: KmPostEditState): Promise<LayoutKmPostId | undefined> {
         if (state.isNewKmPost) {
-            return insertKmPost(draftLayoutContext(props.layoutContext), state.kmPost).then(
+            return insertKmPost(
+                draftLayoutContext(props.layoutContext),
+                kmPostSaveRequest(state),
+            ).then(
                 (kmPostId) => {
                     Snackbar.success('km-post-dialog.insert-succeeded');
                     return kmPostId;
@@ -145,7 +170,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
             return updateKmPost(
                 draftLayoutContext(props.layoutContext),
                 state.existingKmPost.id,
-                state.kmPost,
+                kmPostSaveRequest(state),
             ).then(
                 (kmPostId) => {
                     Snackbar.success('km-post-dialog.modify-succeeded');
@@ -170,9 +195,9 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         }
     }
 
-    function updateProp<TKey extends keyof KmPostSaveRequest>(
+    function updateProp<TKey extends keyof KmPostEditFields>(
         key: TKey,
-        value: KmPostSaveRequest[TKey],
+        value: KmPostEditFields[TKey],
     ) {
         stateActions.onUpdateProp({
             key: key,
@@ -181,15 +206,23 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         });
     }
 
-    function getVisibleErrorsByProp(prop: keyof KmPostSaveRequest) {
+    function getVisibleErrorsByProp(prop: keyof KmPostEditFields) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationIssues
-                  .filter((issue) => issue.field == prop)
+                  .filter((issue) => issue.field == prop && issue.type === 'ERROR')
                   .map((issue) => t(`km-post-dialog.${issue.reason}`))
             : [];
     }
 
-    function hasErrors(prop: keyof KmPostSaveRequest) {
+    function getVisibleWarningsByProp(prop: keyof KmPostEditFields) {
+        return state.allFieldsCommitted || state.committedFields.includes(prop)
+            ? state.validationIssues
+                  .filter((issue) => issue.field == prop && issue.type === 'WARNING')
+                  .map((issue) => t(`km-post-dialog.${issue.reason}`))
+            : [];
+    }
+
+    function hasErrors(prop: keyof KmPostEditFields) {
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
@@ -216,26 +249,24 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         : t('km-post-dialog.title-edit')
                 }
                 onClose={close}
+                width={DialogWidth.TWO_COLUMNS}
                 footerContent={
                     <React.Fragment>
                         {state.existingKmPost?.editState === 'CREATED' && !state.isNewKmPost && (
-                            <Button
-                                onClick={() =>
-                                    props.kmPostId
-                                        ? setDraftDeleteConfirmationVisible(true)
-                                        : undefined
-                                }
-                                icon={Icons.Delete}
-                                variant={ButtonVariant.WARNING}>
-                                {t('button.delete-draft')}
-                            </Button>
+                            <div className={dialogStyles['dialog__footer-content--left-aligned']}>
+                                <Button
+                                    onClick={() =>
+                                        props.kmPostId
+                                            ? setDraftDeleteConfirmationVisible(true)
+                                            : undefined
+                                    }
+                                    icon={Icons.Delete}
+                                    variant={ButtonVariant.WARNING}>
+                                    {t('button.delete-draft')}
+                                </Button>
+                            </div>
                         )}
-                        <div
-                            className={
-                                state.existingKmPost?.editState === 'CREATED'
-                                    ? dialogStyles['dialog__footer-content--right-aligned']
-                                    : dialogStyles['dialog__footer-content--centered']
-                            }>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={state.isSaving}
@@ -249,7 +280,9 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                     isProcessing={state.isSaving}
                                     onClick={() => saveOrConfirm()}
                                     title={getSaveDisabledReasons(
-                                        state.validationIssues.map((e) => e.reason),
+                                        state.validationIssues
+                                            .filter((e) => e.type === 'ERROR')
+                                            .map((e) => e.reason),
                                         state.isSaving,
                                     )
                                         .map((reason) => t(`km-post-dialog.${reason}`))
@@ -260,7 +293,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         </div>
                     </React.Fragment>
                 }>
-                <FormLayout>
+                <FormLayout dualColumn>
                     <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
                             {t('km-post-dialog.general-title')}
@@ -325,21 +358,18 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             }
                             errors={getVisibleErrorsByProp('state')}
                         />
-                        <Heading size={HeadingSize.SUB}>
-                            {t('km-post-dialog.extra-info-heading')}
-                        </Heading>
-                        <FieldLayout
-                            label={t('km-post-dialog.owner')}
-                            value={
-                                <Dropdown
-                                    value={undefined}
-                                    options={[]}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
+                    </FormLayoutColumn>
+                    <FormLayoutColumn>
+                        <KmPostEditDialogGkLocationSection
+                            getVisibleErrorsByProp={getVisibleErrorsByProp}
+                            getVisibleWarningsByProp={getVisibleWarningsByProp}
+                            hasErrors={hasErrors}
+                            state={state}
+                            stateActions={stateActions}
+                            updateProp={updateProp}
+                            geometryKmPostGkLocation={props.geometryKmPostGkLocation}
+                            editType={props.editType}
+                            geometryPlanSrid={props.geometryPlanSrid}
                         />
                     </FormLayoutColumn>
                 </FormLayout>
@@ -353,10 +383,15 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
-                                onClick={() => setNonDraftDeleteConfirmationVisible(false)}>
+                                onClick={() => setNonDraftDeleteConfirmationVisible(false)}
+                                disabled={state.isSaving}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
+                            <Button
+                                disabled={state.isSaving}
+                                isProcessing={state.isSaving}
+                                variant={ButtonVariant.PRIMARY_WARNING}
+                                onClick={save}>
                                 {t('button.delete')}
                             </Button>
                         </div>

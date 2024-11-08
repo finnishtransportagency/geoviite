@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { compareTimestamps } from 'utils/date-utils';
 import { PublicationList } from 'publication/card/publication-list';
@@ -13,36 +14,42 @@ import { Link } from 'vayla-design-lib/link/link';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
-import { useEffect } from 'react';
 import { useAppNavigate } from 'common/navigate';
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getLatestPublications } from 'publication/publication-api';
-import { TimeStamp } from 'common/common-model';
+import { LayoutBranch, TimeStamp } from 'common/common-model';
 import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
-import { first } from 'utils/array-utils';
+import { LayoutBranchType, PublicationDetails } from 'publication/publication-model';
 
 type PublishListProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
     splitChangeTime: TimeStamp;
     ratkoStatus: RatkoStatus | undefined;
+    branchType: LayoutBranchType;
 };
+
+const RATKO_SUPPORT_EMAIL = 'vayla.asiakkaat.fi@cgi.com';
+export const GEOVIITE_SUPPORT_EMAIL = 'geoviite.support@solita.fi';
 
 const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, contact: string) => {
     return (
         <span>
             {i18n.t(`error-in-ratko-connection.${errorType}`, { code: ratkoStatusCode })}
             <br />
-            {i18n.t(`error-in-ratko-connection.${contact}`)}
+            {i18n.t(`error-in-ratko-connection.${contact}`, {
+                geoviiteSupportEmail: GEOVIITE_SUPPORT_EMAIL,
+                ratkoSupportEmail: RATKO_SUPPORT_EMAIL,
+            })}
         </span>
     );
 };
 
-const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }) => {
+const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }): JSX.Element => {
     if (ratkoStatus.statusCode >= 500) {
         return ratkoStatus.statusCode === 503
             ? parseRatkoConnectionError(
@@ -67,8 +74,30 @@ const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }) => {
             ratkoStatus.statusCode,
             'contact-geoviite-support',
         );
+    } else {
+        return <React.Fragment />;
     }
 };
+
+function latestFailureByLayoutBranch(
+    allPublicationForBranchType: PublicationDetails[],
+): PublicationDetails[] {
+    const failures = allPublicationForBranchType.filter((publication) =>
+        ratkoPushFailed(publication.ratkoPushStatus),
+    );
+    // Design publications are independent from each other, but only per design branch, so only show the latest
+    // failure per design branch. Or if this is the main branch's publication card, only the latest one for that.
+    return [
+        ...failures
+            .reduce((mapByPublication, publication) => {
+                if (!mapByPublication.has(publication.layoutBranch)) {
+                    mapByPublication.set(publication.layoutBranch, publication);
+                }
+                return mapByPublication;
+            }, new Map<LayoutBranch, PublicationDetails>())
+            .values(),
+    ].sort((a, b) => compareTimestamps(b.publicationTime, a.publicationTime));
+}
 
 export const MAX_LISTED_PUBLICATIONS = 8;
 
@@ -77,6 +106,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
     ratkoPushChangeTime,
     splitChangeTime,
     ratkoStatus,
+    branchType,
 }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -92,7 +122,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
 
     const [pageCount, setPageCount] = React.useState(1);
     const [publications, publicationFetchStatus] = useLoaderWithStatus(
-        () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount),
+        () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount, branchType),
         [publicationChangeTime, ratkoPushChangeTime, splitChangeTime, pageCount],
     );
 
@@ -109,10 +139,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
         ratkoPushSucceeded(publication.ratkoPushStatus),
     );
 
-    const latestFailure = first(
-        allPublications.filter((publication) => ratkoPushFailed(publication.ratkoPushStatus)),
-    );
-
+    const latestFailures = latestFailureByLayoutBranch(allPublications);
     const ratkoConnectionError =
         ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;
 
@@ -129,7 +156,11 @@ const PublicationCard: React.FC<PublishListProps> = ({
             content={
                 <React.Fragment>
                     <h2 className={styles['publication-card__title']}>
-                        {t('publication-card.title')}
+                        {t(
+                            branchType === 'MAIN'
+                                ? 'publication-card.title'
+                                : 'publication-card.designs-title',
+                        )}
                     </h2>
                     <ProgressIndicatorWrapper
                         indicator={ProgressIndicatorType.Area}
@@ -144,9 +175,9 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                         {parseRatkoOfflineStatus(ratkoStatus)}
                                     </p>
                                 )}
-                                {latestFailure && (
-                                    <RatkoPushErrorDetails latestFailure={latestFailure} />
-                                )}
+                                {latestFailures.map((fail) => (
+                                    <RatkoPushErrorDetails key={fail.id} failedPublication={fail} />
+                                ))}
                                 <PublicationList publications={nonSuccesses} />
                                 {allWaiting && (
                                     <div className={styles['publication-card__waiting-text']}>
@@ -157,9 +188,12 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                         <span>{t('publication-card.transfer-starts-shortly')}</span>
                                     </div>
                                 )}
-                                {latestFailure && (
+                                {latestFailures.length > 0 && (
                                     <div className={styles['publication-card__ratko-push-button']}>
-                                        <RatkoPublishButton disabled={ratkoConnectionError} />
+                                        <RatkoPublishButton
+                                            branchType={branchType}
+                                            disabled={ratkoConnectionError}
+                                        />
                                     </div>
                                 )}
                             </section>
@@ -181,13 +215,15 @@ const PublicationCard: React.FC<PublishListProps> = ({
                             </Link>
                         </div>
                         <br />
-                        <div>
-                            <Link
-                                onClick={() => navigateToPublicationLog()}
-                                qa-id={'open-publication-log'}>
-                                {t('publication-card.log-link')}
-                            </Link>
-                        </div>
+                        {branchType === 'MAIN' && (
+                            <div>
+                                <Link
+                                    onClick={() => navigateToPublicationLog()}
+                                    qa-id={'open-publication-log'}>
+                                    {t('publication-card.log-link')}
+                                </Link>
+                            </div>
+                        )}
                     </ProgressIndicatorWrapper>
                 </React.Fragment>
             }

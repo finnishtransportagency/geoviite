@@ -6,9 +6,6 @@ spring:
 geoviite:
   scheduling:
     enabled: false
-  cache:
-    enabled: false
-    preload: false
   data:
     import: false
   skip-auth: true
@@ -18,10 +15,10 @@ geoviite:
     distribution-name: example.com
   ratko:
     enabled: true
-    url: http://localhost:12345
-    test-port: 12345
+    url: ${E2E_URL_RATKO:http://localhost:12345}
+    test-port: ${HOST_PORT_GEOVIITE_E2E_RATKO:12345}
   projektivelho:
     enabled: true
-    url: http://localhost:12346
-    auth_url: http://localhost:12346/oauth2/token
-    test-port: 12346
+    url: ${E2E_URL_PROJEKTIVELHO:http://localhost:12346}
+    auth_url: ${E2E_URL_PROJEKTIVELHO:http://localhost:12346}/oauth2/token
+    test-port: ${HOST_PORT_GEOVIITE_E2E_PROJEKTIVELHO:12346}

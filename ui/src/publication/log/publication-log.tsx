@@ -2,15 +2,25 @@ import * as React from 'react';
 import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'vayla-design-lib/link/link';
-import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
-import { parseISOOrUndefined } from 'utils/date-utils';
+import {
+    DatePicker,
+    DatePickerDateSource,
+    END_OF_CENTURY,
+    START_OF_2022,
+} from 'vayla-design-lib/datepicker/datepicker';
+import { daysBetween, parseISOOrUndefined } from 'utils/date-utils';
 import { endOfDay, startOfDay } from 'date-fns';
-import { getPublicationsAsTableItems, getPublicationsCsvUri } from 'publication/publication-api';
+import {
+    getPublicationsAsTableItems,
+    getPublicationsCsvUri,
+    MAX_RETURNED_PUBLICATION_LOG_ROWS,
+} from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import {
     InitiallyUnsorted,
+    PublicationDetailsTableSortField,
     PublicationDetailsTableSortInformation,
 } from 'publication/table/publication-table-utils';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
@@ -24,8 +34,78 @@ import { useAppNavigate } from 'common/navigate';
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { DOWNLOAD_PUBLICATION } from 'user/user-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { debounceAsync } from 'utils/async-utils';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { SortDirection } from 'utils/table-utils';
+
+const MAX_SEARCH_DAYS = 180;
+
+type TableFetchFn = (
+    from?: Date,
+    to?: Date,
+    sortBy?: PublicationDetailsTableSortField,
+    order?: SortDirection,
+) => Promise<Page<PublicationTableItem>>;
 
 let fetchId = 0;
+const debouncedGetPublicationsAsTableItems = debounceAsync(getPublicationsAsTableItems, 500);
+
+type DataSourceChangeMethod = DatePickerDateSource | 'SORTING_CHANGED';
+
+const publicationTableFetchFunctionByChangeMethod = (
+    changeMethod: DataSourceChangeMethod,
+): TableFetchFn => {
+    switch (changeMethod) {
+        case 'TEXT':
+            return debouncedGetPublicationsAsTableItems;
+        case 'PICKER':
+            return getPublicationsAsTableItems;
+        case 'SORTING_CHANGED':
+            return getPublicationsAsTableItems;
+        default:
+            return exhaustiveMatchingGuard(changeMethod);
+    }
+};
+
+type PublicationLogTableHeadingProps = {
+    isLoading: boolean;
+    isTruncated: boolean;
+    publicationAmount: number;
+};
+
+const PublicationLogTableHeading: React.FC<PublicationLogTableHeadingProps> = ({
+    isLoading,
+    isTruncated,
+    publicationAmount,
+}) => {
+    const { t } = useTranslation();
+
+    return (
+        <React.Fragment>
+            {!isLoading && (
+                <span
+                    title={
+                        isTruncated
+                            ? t('publication-table.truncated', {
+                                  number: publicationAmount,
+                              })
+                            : ''
+                    }>
+                    {t('publication-table.count-header', {
+                        number: publicationAmount,
+                        truncated: isTruncated ? '+' : '',
+                    })}
+                </span>
+            )}
+            {isLoading && (
+                <React.Fragment>
+                    {t('publication-table.loading')}
+                    <Spinner inline={true} />
+                </React.Fragment>
+            )}
+        </React.Fragment>
+    );
+};
 
 const PublicationLog: React.FC = () => {
     const { t } = useTranslation();
@@ -45,7 +125,7 @@ const PublicationLog: React.FC = () => {
 
     const [sortInfo, setSortInfo] =
         React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
-    const [isLoading, setIsLoading] = React.useState(true);
+    const [isLoading, setIsLoading] = React.useState(false);
     const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
 
     React.useEffect(() => {
@@ -56,32 +136,70 @@ const PublicationLog: React.FC = () => {
         updatePublicationsTable(
             storedStartDate ?? parseISOOrUndefined(defaultPublicationSearch.startDate),
             storedEndDate ?? parseISOOrUndefined(defaultPublicationSearch.endDate),
+            getPublicationsAsTableItems,
         );
     }, []);
 
-    const setStartDate = (newStartDate: Date | undefined) => {
+    const updateTableSorting = (updatedSort: PublicationDetailsTableSortInformation) => {
+        setSortInfo(updatedSort);
+
+        if (pagedPublications?.items.length === MAX_RETURNED_PUBLICATION_LOG_ROWS) {
+            updatePublicationsTable(
+                storedStartDate,
+                storedEndDate,
+                publicationTableFetchFunctionByChangeMethod('SORTING_CHANGED'),
+            );
+        }
+    };
+
+    const setStartDate = (newStartDate: Date | undefined, source: DataSourceChangeMethod) => {
         trackLayoutActionDelegates.setSelectedPublicationSearchStartDate(
             newStartDate?.toISOString(),
         );
-        updatePublicationsTable(newStartDate, storedEndDate);
+        updatePublicationsTable(
+            newStartDate,
+            storedEndDate,
+            publicationTableFetchFunctionByChangeMethod(source),
+        );
     };
 
-    const setEndDate = (newEndDate: Date | undefined) => {
+    const setEndDate = (newEndDate: Date | undefined, source: DataSourceChangeMethod) => {
         trackLayoutActionDelegates.setSelectedPublicationSearchEndDate(newEndDate?.toISOString());
-        updatePublicationsTable(storedStartDate, newEndDate);
+        updatePublicationsTable(
+            storedStartDate,
+            newEndDate,
+            publicationTableFetchFunctionByChangeMethod(source),
+        );
     };
 
-    const updatePublicationsTable = (startDate: Date | undefined, endDate: Date | undefined) => {
-        const datesAreValid = startDate && endDate;
-        if (!datesAreValid) {
+    const isValidPublicationLogSearchRange = (
+        start: Date | undefined,
+        end: Date | undefined,
+    ): boolean => {
+        return (
+            start !== undefined && end !== undefined && daysBetween(start, end) < MAX_SEARCH_DAYS
+        );
+    };
+
+    const isStoredSearchRangeValid = isValidPublicationLogSearchRange(
+        storedStartDate,
+        storedEndDate,
+    );
+
+    const updatePublicationsTable = (
+        startDate: Date | undefined,
+        endDate: Date | undefined,
+        fetchFn: TableFetchFn,
+    ) => {
+        if (!isValidPublicationLogSearchRange(startDate, endDate)) {
             clearPublicationsTable();
             return;
         }
 
         setIsLoading(true);
-
         const currentFetchId = ++fetchId;
-        getPublicationsAsTableItems(
+
+        fetchFn(
             startDate && startOfDay(startDate),
             endDate && endOfDay(endDate),
             sortInfo.propName,
@@ -107,7 +225,7 @@ const PublicationLog: React.FC = () => {
             ? [t('publication-log.end-before-start')]
             : [];
 
-    const truncated =
+    const isTruncated =
         pagedPublications !== undefined &&
         pagedPublications.totalCount !== pagedPublications.items.length;
 
@@ -132,7 +250,9 @@ const PublicationLog: React.FC = () => {
                         value={
                             <DatePicker
                                 value={storedStartDate}
-                                onChange={setStartDate}
+                                onChange={(date, source) => setStartDate(date, source)}
+                                minDate={START_OF_2022}
+                                maxDate={END_OF_CENTURY}
                                 qa-id={'publication-log-start-date-input'}
                             />
                         }
@@ -142,7 +262,9 @@ const PublicationLog: React.FC = () => {
                         value={
                             <DatePicker
                                 value={storedEndDate}
-                                onChange={setEndDate}
+                                onChange={(date, source) => setEndDate(date, source)}
+                                minDate={START_OF_2022}
+                                maxDate={END_OF_CENTURY}
                                 qa-id={'publication-log-end-date-input'}
                             />
                         }
@@ -152,6 +274,14 @@ const PublicationLog: React.FC = () => {
                         <div className={styles['publication-log__export_button']}>
                             <Button
                                 icon={Icons.Download}
+                                disabled={!isStoredSearchRangeValid}
+                                title={
+                                    isStoredSearchRangeValid
+                                        ? undefined
+                                        : t('publication-log.search-range-too-long', {
+                                              maxDays: MAX_SEARCH_DAYS,
+                                          })
+                                }
                                 onClick={() =>
                                     (location.href = getPublicationsCsvUri(
                                         storedStartDate,
@@ -166,26 +296,25 @@ const PublicationLog: React.FC = () => {
                     </PrivilegeRequired>
                 </div>
                 <div className={styles['publication-log__count-header']}>
-                    <span
-                        title={
-                            truncated
-                                ? t('publication-table.truncated', {
-                                      number: pagedPublications?.items?.length || 0,
-                                  })
-                                : ''
-                        }>
-                        {t('publication-table.count-header', {
-                            number: pagedPublications?.items?.length || 0,
-                            truncated: truncated ? '+' : '',
-                        })}
-                    </span>
-                    {isLoading && <Spinner inline={true} />}
+                    {isStoredSearchRangeValid ? (
+                        <PublicationLogTableHeading
+                            isLoading={isLoading}
+                            isTruncated={isTruncated}
+                            publicationAmount={pagedPublications?.items?.length || 0}
+                        />
+                    ) : (
+                        <span className={styles['publication-log__table-header-error']}>
+                            {t('publication-log.search-range-too-long', {
+                                maxDays: MAX_SEARCH_DAYS,
+                            })}
+                        </span>
+                    )}
                 </div>
                 <PublicationTable
                     isLoading={isLoading}
                     items={pagedPublications?.items || []}
                     sortInfo={sortInfo}
-                    onSortChange={setSortInfo}
+                    onSortChange={updateTableSorting}
                 />
             </div>
         </div>

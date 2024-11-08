@@ -47,7 +47,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
             [
                 switchAlignments,
                 jointConnections,
-                layoutContext.designId,
+                layoutContext.branch,
                 layoutContext.publicationState,
             ],
         ),

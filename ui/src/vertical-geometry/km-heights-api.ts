@@ -45,7 +45,7 @@ function heightCacheKey(
     tickLength: number,
 ): HeightCacheKey {
     return 'locationTrackId' in alignmentId
-        ? `${alignmentId.locationTrackId}_${alignmentId.layoutContext.publicationState}_${alignmentId.layoutContext.designId}_${tickLength}`
+        ? `${alignmentId.locationTrackId}_${alignmentId.layoutContext.publicationState}_${alignmentId.layoutContext.branch}_${tickLength}`
         : `${alignmentId.planId}_${alignmentId.alignmentId}_${tickLength}`;
 }
 

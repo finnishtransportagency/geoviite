@@ -22,7 +22,9 @@ import org.springframework.test.context.ActiveProfiles
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 @ConditionalOnBean(RatkoClient::class)
-class RatkoClientIT @Autowired constructor(
+class RatkoClientIT
+@Autowired
+constructor(
     private val ratkoClient: RatkoClient,
     private val switchLibraryService: SwitchLibraryService,
     private val fakeRatkoService: FakeRatkoService,
@@ -63,7 +65,7 @@ class RatkoClientIT @Autowired constructor(
     fun shouldUpdateRatkoSwitchProperties() {
         val oid = "1.2.3.4.5"
         fakeRatko.hasSwitch(ratkoSwitch(oid))
-        val layoutSwitch = switch(123, externalId = oid, draft = false)
+        val layoutSwitch = switch(externalId = oid, draft = false)
         val basicUpdateSwitch = createRatkoBasicUpdateSwitch(layoutSwitch)
         ratkoClient.updateAssetProperties(RatkoOid(oid), basicUpdateSwitch.properties)
     }
@@ -90,9 +92,7 @@ class RatkoClientIT @Autowired constructor(
 
     @Test
     fun `New bulk transfer can be started`() {
-        val split = splitTestDataService
-            .insertSplit()
-            .let(splitDao::getOrThrow)
+        val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
 
         val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
 
@@ -105,9 +105,7 @@ class RatkoClientIT @Autowired constructor(
 
     @Test
     fun `Bulk transfer state can be polled`() {
-        val split = splitTestDataService
-            .insertSplit()
-            .let(splitDao::getOrThrow)
+        val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
 
         val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
 

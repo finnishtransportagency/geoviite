@@ -53,7 +53,7 @@ export const SwitchLink: React.FC<SwitchLinkProps> = (props: SwitchLinkProps) =>
         [
             props.switchId,
             props.layoutContext.publicationState,
-            props.layoutContext.designId,
+            props.layoutContext.branch,
             props.changeTime,
         ],
     );

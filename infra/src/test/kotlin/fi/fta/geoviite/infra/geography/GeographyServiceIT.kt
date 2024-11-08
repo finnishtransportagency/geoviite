@@ -11,9 +11,7 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class GeographyServiceIT @Autowired constructor(
-    private val geographyService: GeographyService
-): DBTestBase() {
+class GeographyServiceIT @Autowired constructor(private val geographyService: GeographyService) : DBTestBase() {
 
     @Test
     fun someCoordinateSystemsAreReturnedAsDefault() {

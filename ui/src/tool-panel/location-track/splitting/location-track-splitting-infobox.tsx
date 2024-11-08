@@ -11,7 +11,7 @@ import {
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
 import {
-    AddressPoint,
+    AlignmentEndPoint,
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
@@ -81,7 +81,7 @@ type LocationTrackSplittingInfoboxProps = {
     changeTimes: ChangeTimes;
     splittingState: SplittingState;
     removeSplit: (splitPoint: SplitPoint) => void;
-    sourceEnd: AddressPoint;
+    sourceEnd: AlignmentEndPoint;
     stopSplitting: () => void;
     updateSplit: (updatedSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     returnToSplitting: () => void;
@@ -159,9 +159,10 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     const [switchRelinkingErrors, switchRelinkingLoaderState] = useLoaderWithStatus(
         () =>
             splittingState
-                ? validateLocationTrackSwitchRelinking(splittingState.originLocationTrack.id).then(
-                      (results) => results.filter((res) => res.validationIssues.length > 0),
-                  )
+                ? validateLocationTrackSwitchRelinking(
+                      layoutContext.branch,
+                      splittingState.originLocationTrack.id,
+                  ).then((results) => results.filter((res) => res.validationIssues.length > 0))
                 : Promise.resolve([]),
         [changeTimes.layoutLocationTrack, changeTimes.layoutSwitch],
     );
@@ -183,7 +184,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         delegates.showLocationTrackTaskList({
             type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION,
             locationTrackId: locationTrack,
-            designId: layoutContext.designId,
+            branch: layoutContext.branch,
         });
     };
 
@@ -399,7 +400,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 splittingState.splits,
                 duplicateTracksInCurrentSplits,
             ),
-            undefined,
+            layoutContext.branch,
         )
             .then(async () => {
                 await updateAllChangeTimes();

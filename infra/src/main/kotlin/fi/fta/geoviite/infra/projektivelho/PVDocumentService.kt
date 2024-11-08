@@ -4,15 +4,14 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.inframodel.*
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
-class PVDocumentService @Autowired constructor(
-    private val pvDao: PVDao,
-    private val infraModelService: InfraModelService,
-) {
+class PVDocumentService
+@Autowired
+constructor(private val pvDao: PVDao, private val infraModelService: InfraModelService) {
 
     fun getDocumentHeaders(status: PVDocumentStatus?): List<PVDocumentHeader> {
         return pvDao.getDocumentHeaders(status)
@@ -36,9 +35,10 @@ class PVDocumentService @Autowired constructor(
         overrides: OverrideParameters?,
         extraInfo: ExtraInfoParameters?,
     ): IntId<GeometryPlan> {
-        val file = requireNotNull(getFile(documentId)) {
-            "ProjektiVelho document has no file to import: documentId=$documentId"
-        }
+        val file =
+            requireNotNull(getFile(documentId)) {
+                "ProjektiVelho document has no file to import: documentId=$documentId"
+            }
         val id = infraModelService.saveInfraModel(file, overrides, extraInfo).id
         updateDocumentStatus(documentId, PVDocumentStatus.ACCEPTED)
         return id

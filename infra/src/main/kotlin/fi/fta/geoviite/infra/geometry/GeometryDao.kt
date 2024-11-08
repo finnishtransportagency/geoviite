@@ -21,27 +21,32 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.toAngle
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.*
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 enum class VerticalIntersectionType {
-    POINT, CIRCULAR_CURVE,
+    POINT,
+    CIRCULAR_CURVE,
 }
 
 const val PLAN_HEADER_CACHE_SIZE = 10000L
 
 @Transactional(readOnly = true)
 @Component
-class GeometryDao @Autowired constructor(
+class GeometryDao
+@Autowired
+constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
 ) : DaoBase(jdbcTemplateParam) {
@@ -57,18 +62,23 @@ class GeometryDao @Autowired constructor(
     ): RowVersion<GeometryPlan> {
         jdbcTemplate.setUser()
 
-        val projectId: IntId<Project> = if (plan.project.id is IntId) plan.project.id
-        else findProject(plan.project.name)?.id as IntId? ?: insertProjectInternal(plan.project).id
+        val projectId: IntId<Project> =
+            if (plan.project.id is IntId) plan.project.id
+            else findProject(plan.project.name)?.id as IntId? ?: insertProjectInternal(plan.project).id
 
-        val authorId: IntId<Author>? = plan.author?.let { author: Author ->
-            if (author.id is IntId) author.id
-            else findAuthor(author.companyName)?.id as IntId? ?: insertAuthorInternal(author).id
-        }
-        val applicationId: IntId<Application> = if (plan.application.id is IntId) plan.application.id
-        else findApplication(plan.application.name, plan.application.version)?.id as IntId?
-            ?: insertApplicationInternal(plan.application).id
+        val authorId: IntId<Author>? =
+            plan.author?.let { author: Author ->
+                if (author.id is IntId) author.id
+                else findAuthor(author.companyName)?.id as IntId? ?: insertAuthorInternal(author).id
+            }
+        val applicationId: IntId<Application> =
+            if (plan.application.id is IntId) plan.application.id
+            else
+                findApplication(plan.application.name, plan.application.version)?.id as IntId?
+                    ?: insertApplicationInternal(plan.application).id
 
-        val sql = """
+        val sql =
+            """
             insert into geometry.plan(
               track_number,
               track_number_description,
@@ -116,34 +126,36 @@ class GeometryDao @Autowired constructor(
               :hidden
             )
             returning id, version
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val params = mapOf(
-            "track_number" to plan.trackNumber?.toString(),
-            "track_number_description" to plan.trackNumberDescription,
-            "plan_project_id" to projectId.intValue,
-            "plan_author_id" to authorId?.intValue,
-            "plan_application_id" to applicationId.intValue,
-            "plan_time" to plan.planTime?.let { instant -> Timestamp.from(instant) },
-            "linear_unit" to plan.units.linearUnit.name,
-            "direction_unit" to plan.units.directionUnit.name,
-            "srid" to plan.units.coordinateSystemSrid?.code,
-            "coordinate_system_name" to plan.units.coordinateSystemName,
-            "polygon_string" to if (!boundingBoxInLayoutCoordinates.isNullOrEmpty()) create2DPolygonString(
-                boundingBoxInLayoutCoordinates
+        val params =
+            mapOf(
+                "track_number" to plan.trackNumber?.toString(),
+                "track_number_description" to plan.trackNumberDescription,
+                "plan_project_id" to projectId.intValue,
+                "plan_author_id" to authorId?.intValue,
+                "plan_application_id" to applicationId.intValue,
+                "plan_time" to plan.planTime?.let { instant -> Timestamp.from(instant) },
+                "linear_unit" to plan.units.linearUnit.name,
+                "direction_unit" to plan.units.directionUnit.name,
+                "srid" to plan.units.coordinateSystemSrid?.code,
+                "coordinate_system_name" to plan.units.coordinateSystemName,
+                "polygon_string" to
+                    if (!boundingBoxInLayoutCoordinates.isNullOrEmpty())
+                        create2DPolygonString(boundingBoxInLayoutCoordinates)
+                    else null,
+                "vertical_coordinate_system" to plan.units.verticalCoordinateSystem?.name,
+                "mapSrid" to LAYOUT_SRID.code,
+                "source" to plan.source.name,
+                "projektivelho_document_id" to plan.pvDocumentId?.intValue,
+                "plan_phase" to plan.planPhase?.name,
+                "plan_decision" to plan.decisionPhase?.name,
+                "measurement_method" to plan.measurementMethod?.name,
+                "elevation_measurement_method" to plan.elevationMeasurementMethod?.name,
+                "message" to plan.message,
+                "hidden" to plan.isHidden,
             )
-            else null,
-            "vertical_coordinate_system" to plan.units.verticalCoordinateSystem?.name,
-            "mapSrid" to LAYOUT_SRID.code,
-            "source" to plan.source.name,
-            "projektivelho_document_id" to plan.pvDocumentId?.intValue,
-            "plan_phase" to plan.planPhase?.name,
-            "plan_decision" to plan.decisionPhase?.name,
-            "measurement_method" to plan.measurementMethod?.name,
-            "elevation_measurement_method" to plan.elevationMeasurementMethod?.name,
-            "message" to plan.message,
-            "hidden" to plan.isHidden,
-        )
 
         val planId: RowVersion<GeometryPlan> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
@@ -158,19 +170,18 @@ class GeometryDao @Autowired constructor(
     }
 
     private fun insertPlanFile(planId: IntId<GeometryPlan>, file: InfraModelFile): IntId<InfraModelFile> {
-        val sql = """
+        val sql =
+            """
            insert into geometry.plan_file(plan_id, name, content) 
            values (:plan_id, :file_name, xmlparse(document :file_content))
            returning id, hash
-       """.trimIndent()
-        val params = mapOf(
-            "plan_id" to planId.intValue,
-            "file_name" to file.name,
-            "file_content" to file.content,
-        )
-        val (fileId, hash) = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getIntId<InfraModelFile>("id") to rs.getString("hash")
-        } ?: throw IllegalStateException("Failed to insert plan file into DB")
+       """
+                .trimIndent()
+        val params = mapOf("plan_id" to planId.intValue, "file_name" to file.name, "file_content" to file.content)
+        val (fileId, hash) =
+            jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+                rs.getIntId<InfraModelFile>("id") to rs.getString("hash")
+            } ?: throw IllegalStateException("Failed to insert plan file into DB")
         require(hash == file.hash) {
             "Backend hash calculation should match the automatic DB-generated: file=${file.name} db=$hash backend=${file.hash}"
         }
@@ -180,66 +191,70 @@ class GeometryDao @Autowired constructor(
     }
 
     fun getPlanFile(planId: IntId<GeometryPlan>): InfraModelFileWithSource {
-        val sql = """
+        val sql =
+            """
           select name as file_name, plan.source, xmlserialize(document content as varchar) as file_content
             from geometry.plan_file
             inner join geometry.plan 
             on plan_id = plan.id
           where plan_id = :plan_id
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("plan_id" to planId.intValue)
-        return getOne(planId, jdbcTemplate.query(sql, params) { rs, _ ->
-            InfraModelFileWithSource(
-                file = InfraModelFile(
-                    name = rs.getFileName("file_name"),
-                    content = rs.getString("file_content"),
-                ), source = rs.getEnum("source")
-            )
-        })
+        return getOne(
+            planId,
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                InfraModelFileWithSource(
+                    file = InfraModelFile(name = rs.getFileName("file_name"), content = rs.getString("file_content")),
+                    source = rs.getEnum("source"),
+                )
+            },
+        )
     }
 
     fun fetchDuplicateGeometryPlanVersion(newFile: InfraModelFile, source: PlanSource): RowVersion<GeometryPlan>? {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             select plan.id, plan.version
             from geometry.plan 
               left join geometry.plan_file on plan.id = plan_file.plan_id
             where plan_file.hash = :hash 
               and plan.source = :source::geometry.plan_source
               and plan.hidden = false
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("hash" to newFile.hash, "source" to source.name)
 
-        return jdbcTemplate.queryOptional<RowVersion<GeometryPlan>>(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        }?.also {
-            logger.daoAccess(FETCH, GeometryPlan::class, it)
-        }
+        return jdbcTemplate
+            .queryOptional<RowVersion<GeometryPlan>>(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+            ?.also { logger.daoAccess(FETCH, GeometryPlan::class, it) }
     }
 
     fun getPlanLinking(planId: IntId<GeometryPlan>): GeometryPlanLinkedItems = getPlanLinkings(listOf(planId)).first()
 
     fun getPlanLinkings(planIds: List<IntId<GeometryPlan>>): List<GeometryPlanLinkedItems> {
         if (planIds.isEmpty()) return listOf()
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             with
               location_tracks as (
                 select
-                  distinct ga.plan_id, coalesce(track.official_row_id, track.id) as id
+                  distinct ga.plan_id, track.official_id as id
                   from layout.location_track track
                     left join layout.segment_version sv on sv.alignment_id = track.alignment_id and sv.alignment_version = track.alignment_version
                     left join geometry.alignment ga on ga.id = sv.geometry_alignment_id
               ),
               switches as (
                 select
-                  distinct gs.plan_id, coalesce(switch.official_row_id, switch.id) as id
+                  distinct gs.plan_id, switch.official_id as id
                   from layout.switch
                     left join geometry.switch gs on gs.id = switch.geometry_switch_id
               ),
               km_posts as (
                 select
-                  distinct gp.plan_id, coalesce(km_post.official_row_id, km_post.id) as id
+                  distinct gp.plan_id, km_post.official_id as id
                   from layout.km_post
                     left join geometry.km_post gp on gp.id = km_post.geometry_km_post_id
               )
@@ -247,41 +262,44 @@ class GeometryDao @Autowired constructor(
               (select array_agg(id) from location_tracks where plan_id in (:plan_ids)) as location_track_ids,
               (select array_agg(id) from switches where plan_id in (:plan_ids)) as switch_ids,
               (select array_agg(id) from km_posts where plan_id in (:plan_ids)) as km_post_ids
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("plan_ids" to planIds.map(IntId<GeometryPlan>::intValue))
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            GeometryPlanLinkedItems(
-                rs.getIntIdArray("location_track_ids"),
-                rs.getIntIdArray("switch_ids"),
-                rs.getIntIdArray("km_post_ids"),
-            )
-        }.also { logger.daoAccess(FETCH, GeometryPlanLinkedItems::class, planIds) }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                GeometryPlanLinkedItems(
+                    rs.getIntIdArray("location_track_ids"),
+                    rs.getIntIdArray("switch_ids"),
+                    rs.getIntIdArray("km_post_ids"),
+                )
+            }
+            .also { logger.daoAccess(FETCH, GeometryPlanLinkedItems::class, planIds) }
     }
 
     @Transactional
     fun setPlanHidden(id: IntId<GeometryPlan>, hidden: Boolean): RowVersion<GeometryPlan> {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             update geometry.plan
             set hidden = :hidden
             where id = :id
             returning id, version
-        """.trimIndent()
-        val params = mapOf(
-            "id" to id.intValue,
-            "hidden" to hidden,
-        )
+        """
+                .trimIndent()
+        val params = mapOf("id" to id.intValue, "hidden" to hidden)
 
         jdbcTemplate.setUser()
-        return jdbcTemplate.queryOne<RowVersion<GeometryPlan>>(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        }.also { v -> logger.daoAccess(UPDATE, GeometryPlan::class, id) }
+        return jdbcTemplate
+            .queryOne<RowVersion<GeometryPlan>>(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+            .also { v -> logger.daoAccess(UPDATE, GeometryPlan::class, id) }
     }
 
     @Transactional
     fun updatePlan(planId: IntId<GeometryPlan>, geometryPlan: GeometryPlan): RowVersion<GeometryPlan> {
         jdbcTemplate.setUser()
-        val sql = """
+        val sql =
+            """
             update geometry.plan
             set
               track_number = :track_number,
@@ -302,33 +320,35 @@ class GeometryDao @Autowired constructor(
               hidden = :hidden
             where id = :id
             returning id, version
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val params = mapOf(
-            "id" to planId.intValue,
-            "track_number" to geometryPlan.trackNumber?.toString(),
-            "track_number_description" to geometryPlan.trackNumberDescription,
-            "plan_project_id" to (geometryPlan.project.id as IntId).intValue,
-            "plan_author_id" to (geometryPlan.author?.id as IntId?)?.intValue,
-            "plan_time" to geometryPlan.planTime?.let { instant -> Timestamp.from(instant) },
-            "srid" to geometryPlan.units.coordinateSystemSrid?.code,
-            "coordinate_system_name" to geometryPlan.units.coordinateSystemName,
-            "vertical_coordinate_system" to geometryPlan.units.verticalCoordinateSystem?.name,
-            "projektivelho_document_id" to geometryPlan.pvDocumentId?.intValue,
-            "plan_phase" to geometryPlan.planPhase?.name,
-            "plan_decision" to geometryPlan.decisionPhase?.name,
-            "measurement_method" to geometryPlan.measurementMethod?.name,
-            "elevation_measurement_method" to geometryPlan.elevationMeasurementMethod?.name,
-            "message" to geometryPlan.message,
-            "source" to geometryPlan.source.name,
-            "hidden" to geometryPlan.isHidden,
-        )
+        val params =
+            mapOf(
+                "id" to planId.intValue,
+                "track_number" to geometryPlan.trackNumber?.toString(),
+                "track_number_description" to geometryPlan.trackNumberDescription,
+                "plan_project_id" to (geometryPlan.project.id as IntId).intValue,
+                "plan_author_id" to (geometryPlan.author?.id as IntId?)?.intValue,
+                "plan_time" to geometryPlan.planTime?.let { instant -> Timestamp.from(instant) },
+                "srid" to geometryPlan.units.coordinateSystemSrid?.code,
+                "coordinate_system_name" to geometryPlan.units.coordinateSystemName,
+                "vertical_coordinate_system" to geometryPlan.units.verticalCoordinateSystem?.name,
+                "projektivelho_document_id" to geometryPlan.pvDocumentId?.intValue,
+                "plan_phase" to geometryPlan.planPhase?.name,
+                "plan_decision" to geometryPlan.decisionPhase?.name,
+                "measurement_method" to geometryPlan.measurementMethod?.name,
+                "elevation_measurement_method" to geometryPlan.elevationMeasurementMethod?.name,
+                "message" to geometryPlan.message,
+                "source" to geometryPlan.source.name,
+                "hidden" to geometryPlan.isHidden,
+            )
 
-        return getOne(planId, jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion<GeometryPlan>("id", "version")
-        }).also {
-            logger.daoAccess(UPDATE, GeometryPlan::class, planId)
-        }
+        return getOne(
+                planId,
+                jdbcTemplate.query(sql, params) { rs, _ -> rs.getRowVersion<GeometryPlan>("id", "version") },
+            )
+            .also { logger.daoAccess(UPDATE, GeometryPlan::class, planId) }
     }
 
     @Transactional
@@ -338,17 +358,17 @@ class GeometryDao @Autowired constructor(
     }
 
     private fun insertProjectInternal(project: Project): RowVersion<Project> {
-        val sql = """
+        val sql =
+            """
             insert into geometry.plan_project(name, description) 
             values (:name, :description) 
             returning id, version
-        """.trimIndent()
-        val params = mapOf(
-            "name" to project.name, "description" to project.description
-        )
-        val projectVersion: RowVersion<Project> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        } ?: throw IllegalStateException("Failed to get generated ID for new project")
+        """
+                .trimIndent()
+        val params = mapOf("name" to project.name, "description" to project.description)
+        val projectVersion: RowVersion<Project> =
+            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+                ?: throw IllegalStateException("Failed to get generated ID for new project")
         logger.daoAccess(INSERT, Project::class, projectVersion)
         return projectVersion
     }
@@ -360,16 +380,18 @@ class GeometryDao @Autowired constructor(
     }
 
     private fun insertAuthorInternal(author: Author): RowVersion<Author> {
-        val sql = """
+        val sql =
+            """
             insert into geometry.plan_author(company_name)
             values (:company_name)
             returning id, version
-        """.trimIndent()
+        """
+                .trimIndent()
 
         val params = mapOf("company_name" to author.companyName)
-        val authorVersion: RowVersion<Author> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        } ?: throw IllegalStateException("Failed to get generated ID for new author")
+        val authorVersion: RowVersion<Author> =
+            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+                ?: throw IllegalStateException("Failed to get generated ID for new author")
         logger.daoAccess(INSERT, Author::class, authorVersion)
         return authorVersion
     }
@@ -381,47 +403,55 @@ class GeometryDao @Autowired constructor(
     }
 
     private fun insertApplicationInternal(application: Application): RowVersion<Application> {
-        val sql = """
+        val sql =
+            """
             insert into geometry.plan_application(name, manufacturer, application_version)
             values (:name, :manufacturer, :application_version) 
             returning id, version
             """
-        val params = mapOf(
-            "name" to application.name,
-            "manufacturer" to application.manufacturer,
-            "application_version" to application.version,
-        )
-        val appId: RowVersion<Application> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        } ?: throw IllegalStateException("Failed to get generated ID for new application")
+        val params =
+            mapOf(
+                "name" to application.name,
+                "manufacturer" to application.manufacturer,
+                "application_version" to application.version,
+            )
+        val appId: RowVersion<Application> =
+            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+                ?: throw IllegalStateException("Failed to get generated ID for new application")
         logger.daoAccess(INSERT, Application::class, appId)
         return appId
     }
 
     fun findApplication(name: MetaDataName, version: MetaDataName): Application? {
-        val sql = """
+        val sql =
+            """
             select
               id, name, manufacturer, application_version
             from geometry.plan_application
             where unique_name = common.nospace_lowercase(:name) || ' ' || common.nospace_lowercase(:application_version)
-        """.trimIndent()
+        """
+                .trimIndent()
 
         val params = mapOf("name" to name, "application_version" to version)
-        val application = jdbcTemplate.query(sql, params) { rs, _ ->
-            Application(
-                id = rs.getIntId("id"),
-                name = MetaDataName(rs.getString("name")),
-                manufacturer = MetaDataName(rs.getString("manufacturer")),
-                version = MetaDataName(rs.getString("application_version")),
-            )
-        }.firstOrNull()
+        val application =
+            jdbcTemplate
+                .query(sql, params) { rs, _ ->
+                    Application(
+                        id = rs.getIntId("id"),
+                        name = MetaDataName(rs.getString("name")),
+                        manufacturer = MetaDataName(rs.getString("manufacturer")),
+                        version = MetaDataName(rs.getString("application_version")),
+                    )
+                }
+                .firstOrNull()
 
         application?.also { logger.daoAccess(FETCH, Application::class, it.id) }
         return application
     }
 
     fun getApplication(applicationId: IntId<Application>): Application {
-        val sql = """
+        val sql =
+            """
             select 
             id,
             name,
@@ -429,18 +459,22 @@ class GeometryDao @Autowired constructor(
             application_version
             from geometry.plan_application
             where id = :id
-        """.trimIndent()
+        """
+                .trimIndent()
 
         val params = mapOf("id" to applicationId.intValue)
 
-        val application = jdbcTemplate.query(sql, params) { rs, _ ->
-            Application(
-                id = rs.getIntId("id"),
-                name = MetaDataName(rs.getString("name")),
-                manufacturer = MetaDataName(rs.getString("manufacturer")),
-                version = MetaDataName(rs.getString("application_version")),
-            )
-        }.firstOrNull() ?: throw NoSuchEntityException(Project::class, applicationId)
+        val application =
+            jdbcTemplate
+                .query(sql, params) { rs, _ ->
+                    Application(
+                        id = rs.getIntId("id"),
+                        name = MetaDataName(rs.getString("name")),
+                        manufacturer = MetaDataName(rs.getString("manufacturer")),
+                        version = MetaDataName(rs.getString("application_version")),
+                    )
+                }
+                .firstOrNull() ?: throw NoSuchEntityException(Project::class, applicationId)
         logger.daoAccess(FETCH, Application::class, application.id)
 
         return application
@@ -454,7 +488,8 @@ class GeometryDao @Autowired constructor(
     }
 
     private fun insertSwitch(plandId: IntId<GeometryPlan>, switch: GeometrySwitch): IntId<GeometrySwitch> {
-        val sql = """
+        val sql =
+            """
             insert into geometry.switch(
               plan_id, 
               name,
@@ -470,33 +505,40 @@ class GeometryDao @Autowired constructor(
               :state::geometry.plan_state
             )
             returning id
-        """.trimIndent()
-        val params = mapOf(
-            "plan_id" to plandId.intValue,
-            "name" to switch.name,
-            "switch_structure_id" to switch.switchStructureId?.intValue,
-            "type_name" to switch.typeName,
-            "state" to switch.state?.name
-        )
-        val id = jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<GeometrySwitch>("id") }
-            ?: throw IllegalStateException("Failed to get generated ID for new switch")
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "plan_id" to plandId.intValue,
+                "name" to switch.name,
+                "switch_structure_id" to switch.switchStructureId?.intValue,
+                "type_name" to switch.typeName,
+                "state" to switch.state?.name,
+            )
+        val id =
+            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<GeometrySwitch>("id") }
+                ?: throw IllegalStateException("Failed to get generated ID for new switch")
         insertSwitchJoints(id, switch.joints)
         return id
     }
 
     private fun insertSwitchJoints(switchId: IntId<GeometrySwitch>, joints: List<GeometrySwitchJoint>) {
-        val sql = """
+        val sql =
+            """
             insert into geometry.switch_joint(switch_id, number, location)
             values (:switch_id, :number, postgis.st_point(:x, :y))
             """
-        val params = joints.map { joint ->
-            mapOf(
-                "switch_id" to switchId.intValue,
-                "number" to joint.number.intValue,
-                "x" to joint.location.x,
-                "y" to joint.location.y,
-            )
-        }.toTypedArray()
+        val params =
+            joints
+                .map { joint ->
+                    mapOf(
+                        "switch_id" to switchId.intValue,
+                        "number" to joint.number.intValue,
+                        "x" to joint.location.x,
+                        "y" to joint.location.y,
+                    )
+                }
+                .toTypedArray()
         jdbcTemplate.batchUpdate(sql, params)
     }
 
@@ -505,33 +547,36 @@ class GeometryDao @Autowired constructor(
         alignments: List<GeometryAlignment>,
         switchDatabaseIds: Map<DomainId<GeometrySwitch>, IntId<GeometrySwitch>>,
     ) {
-        val idToAlignment: List<Pair<IntId<GeometryAlignment>, GeometryAlignment>> = alignments.map { alignment ->
-            insertAlignment(planId, alignment).id to alignment
-        }
+        val idToAlignment: List<Pair<IntId<GeometryAlignment>, GeometryAlignment>> =
+            alignments.map { alignment -> insertAlignment(planId, alignment).id to alignment }
 
-        val elementParams = idToAlignment.flatMap { (alignmentId, alignment) ->
-            getGeometryElementSqlParams(alignmentId, alignment.elements, switchDatabaseIds)
-        }
+        val elementParams =
+            idToAlignment.flatMap { (alignmentId, alignment) ->
+                getGeometryElementSqlParams(alignmentId, alignment.elements, switchDatabaseIds)
+            }
         insertGeometryElements(elementParams)
 
-        val viParams = idToAlignment.flatMap { (alignmentId, alignment) ->
-            alignment.profile?.let { profile -> getVerticalIntersectionSqlParams(alignmentId, profile.elements) }
-                ?: listOf()
-        }
+        val viParams =
+            idToAlignment.flatMap { (alignmentId, alignment) ->
+                alignment.profile?.let { profile -> getVerticalIntersectionSqlParams(alignmentId, profile.elements) }
+                    ?: listOf()
+            }
         if (viParams.isNotEmpty()) {
             insertVerticalIntersections(viParams)
         }
 
-        val cantParams = idToAlignment.flatMap { (alignmentId, alignment) ->
-            alignment.cant?.let { cant -> getCantPointSqlParams(alignmentId, cant.points) } ?: listOf()
-        }
+        val cantParams =
+            idToAlignment.flatMap { (alignmentId, alignment) ->
+                alignment.cant?.let { cant -> getCantPointSqlParams(alignmentId, cant.points) } ?: listOf()
+            }
         if (cantParams.isNotEmpty()) {
             insertCantPoints(cantParams)
         }
     }
 
     private fun insertKmPosts(kmPostParams: List<Map<String, Any?>>) {
-        val sql = """
+        val sql =
+            """
             insert into geometry.km_post(
               km_post_index,
               plan_id,
@@ -558,10 +603,7 @@ class GeometryDao @Autowired constructor(
         jdbcTemplate.batchUpdate(sql, kmPostParams.toTypedArray())
     }
 
-    private fun getKmPostParams(
-        planId: IntId<GeometryPlan>,
-        kmPosts: List<GeometryKmPost>,
-    ): List<Map<String, Any?>> {
+    private fun getKmPostParams(planId: IntId<GeometryPlan>, kmPosts: List<GeometryKmPost>): List<Map<String, Any?>> {
         return kmPosts.mapIndexed { index, kmPost ->
             mapOf(
                 "km_post_index" to index,
@@ -582,7 +624,8 @@ class GeometryDao @Autowired constructor(
         planId: IntId<GeometryPlan>,
         alignment: GeometryAlignment,
     ): RowVersion<GeometryAlignment> {
-        val sql = """ 
+        val sql =
+            """ 
             insert into geometry.alignment(
               plan_id,
               name,
@@ -608,27 +651,30 @@ class GeometryDao @Autowired constructor(
               :cant_rotation_point::geometry.cant_rotation_point,
               :feature_type_code)
             returning id --, version
-        """.trimIndent()
-        val params = mapOf(
-            "plan_id" to planId.intValue,
-            "name" to alignment.name,
-            "description" to alignment.description,
-            "state" to alignment.state?.name,
-            "sta_start" to alignment.staStart,
-            "profile_name" to alignment.profile?.name,
-            "cant_name" to alignment.cant?.name,
-            "cant_description" to alignment.cant?.description,
-            "cant_gauge" to alignment.cant?.gauge,
-            "cant_rotation_point" to alignment.cant?.rotationPoint?.name,
-            "feature_type_code" to alignment.featureTypeCode
-        )
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "plan_id" to planId.intValue,
+                "name" to alignment.name,
+                "description" to alignment.description,
+                "state" to alignment.state?.name,
+                "sta_start" to alignment.staStart,
+                "profile_name" to alignment.profile?.name,
+                "cant_name" to alignment.cant?.name,
+                "cant_description" to alignment.cant?.description,
+                "cant_gauge" to alignment.cant?.gauge,
+                "cant_rotation_point" to alignment.cant?.rotationPoint?.name,
+                "feature_type_code" to alignment.featureTypeCode,
+            )
         return jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            RowVersion(rs.getIntId("id"), 1)//rs.getRowVersion("id", "version")
+            RowVersion(rs.getIntId("id"), 1) // rs.getRowVersion("id", "version")
         } ?: throw IllegalStateException("Failed to get generated ID for new alignment")
     }
 
-    fun preloadHeaderCache() {
-        val sql = """
+    fun preloadHeaderCache(): Int {
+        val sql =
+            """
           select 
             plan.id as plan_id, 
             plan.version as plan_version, 
@@ -667,11 +713,15 @@ class GeometryDao @Autowired constructor(
                 bool_or(cant_name is not null) as has_cant
               from geometry.alignment where plan_id = plan.id
             ) alignments on (true)
-        """.trimIndent()
-        val headers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getPlanHeader(rs) }
-            .associateBy(GeometryPlanHeader::version)
+        """
+                .trimIndent()
+        val headers =
+            jdbcTemplate
+                .query(sql, mapOf<String, Any>()) { rs, _ -> getPlanHeader(rs) }
+                .associateBy(GeometryPlanHeader::version)
         logger.daoAccess(FETCH, GeometryPlanHeader::class, headers.keys)
         headerCache.putAll(headers)
+        return headers.size
     }
 
     fun getPlanHeader(planId: IntId<GeometryPlan>) = getPlanHeader(fetchPlanVersion(planId))
@@ -683,8 +733,9 @@ class GeometryDao @Autowired constructor(
         else getPlanHeaderInternal(rowVersion)
 
     private fun getPlanHeaderInternal(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
           select 
             plan.id as plan_id, 
             plan.version as plan_version, 
@@ -725,22 +776,21 @@ class GeometryDao @Autowired constructor(
             ) alignments on (true)
           where :plan_id = plan.id 
             and :plan_version = plan.version
-        """.trimIndent()
-        val params = mapOf(
-            "plan_id" to rowVersion.id.intValue,
-            "plan_version" to rowVersion.version,
-        )
+        """
+                .trimIndent()
+        val params = mapOf("plan_id" to rowVersion.id.intValue, "plan_version" to rowVersion.version)
         return getOne(rowVersion.id, jdbcTemplate.query(sql, params) { rs, _ -> getPlanHeader(rs) }).also { header ->
             logger.daoAccess(FETCH, GeometryPlanHeader::class, header.version)
         }
     }
 
     private fun getPlanHeader(rs: ResultSet): GeometryPlanHeader {
-        val project = Project(
-            id = rs.getIntId("project_id"),
-            name = ProjectName(rs.getString("project_name")),
-            description = rs.getFreeTextOrNull("project_description"),
-        )
+        val project =
+            Project(
+                id = rs.getIntId("project_id"),
+                name = ProjectName(rs.getString("project_name")),
+                description = rs.getFreeTextOrNull("project_description"),
+            )
 
         val minKm = rs.getKmNumberOrNull("min_km_number")
         val maxKm = rs.getKmNumberOrNull("max_km_number")
@@ -761,13 +811,14 @@ class GeometryDao @Autowired constructor(
             message = rs.getFreeTextWithNewLinesOrNull("message"),
             linkedAsPlanId = rs.getIntIdOrNull("linked_as_plan_id"),
             uploadTime = rs.getInstant("upload_time"),
-            units = GeometryUnits(
-                coordinateSystemSrid = rs.getSridOrNull("srid"),
-                coordinateSystemName = rs.getString("coordinate_system_name")?.let(::CoordinateSystemName),
-                verticalCoordinateSystem = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
-                directionUnit = rs.getEnum("direction_unit"),
-                linearUnit = rs.getEnum("linear_unit"),
-            ),
+            units =
+                GeometryUnits(
+                    coordinateSystemSrid = rs.getSridOrNull("srid"),
+                    coordinateSystemName = rs.getString("coordinate_system_name")?.let(::CoordinateSystemName),
+                    verticalCoordinateSystem = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
+                    directionUnit = rs.getEnum("direction_unit"),
+                    linearUnit = rs.getEnum("linear_unit"),
+                ),
             author = rs.getString("author"),
             hasProfile = rs.getBoolean("has_profile"),
             hasCant = rs.getBoolean("has_cant"),
@@ -778,11 +829,9 @@ class GeometryDao @Autowired constructor(
     fun fetchPlanHeaders(sources: List<PlanSource>, bbox: BoundingBox?): List<GeometryPlanHeader> =
         fetchPlanVersions(sources, bbox).map(::getPlanHeader)
 
-    fun fetchPlanVersions(
-        sources: List<PlanSource>,
-        bbox: BoundingBox?,
-    ): List<RowVersion<GeometryPlan>> {
-        val sql = """
+    fun fetchPlanVersions(sources: List<PlanSource>, bbox: BoundingBox?): List<RowVersion<GeometryPlan>> {
+        val sql =
+            """
             select id, version
             from geometry.plan
             where source::text in (:sources)
@@ -791,15 +840,15 @@ class GeometryDao @Autowired constructor(
                 plan.bounding_polygon_simple,
                 postgis.st_polygonfromtext(:polygon_wkt::varchar, :map_srid)
               ))
-        """.trimIndent()
-        val params = mapOf(
-            "sources" to (sources.ifEmpty { PlanSource.values().toList() }).map(PlanSource::name),
-            "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
-            "map_srid" to LAYOUT_SRID.code,
-        )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        }
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "sources" to (sources.ifEmpty { PlanSource.values().toList() }).map(PlanSource::name),
+                "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
+                "map_srid" to LAYOUT_SRID.code,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
     }
 
     fun fetchPlanVersions() = fetchRowVersions<GeometryPlan>(GEOMETRY_PLAN)
@@ -809,25 +858,25 @@ class GeometryDao @Autowired constructor(
     fun fetchManyPlanVersions(ids: List<IntId<GeometryPlan>>) = fetchManyRowVersions(ids, GEOMETRY_PLAN)
 
     fun fetchAlignmentPlanVersion(alignmentId: IntId<GeometryAlignment>): RowVersion<GeometryPlan> {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             select plan.id, plan.version
             from geometry.alignment 
               left join geometry.plan on plan.id = alignment.plan_id
             where alignment.id = :alignment_id
-        """.trimIndent()
-        val params = mapOf(
-            "alignment_id" to alignmentId.intValue,
-        )
+        """
+                .trimIndent()
+        val params = mapOf("alignment_id" to alignmentId.intValue)
         return jdbcTemplate.queryOne(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
     }
-
 
     fun fetchPlanChangeTime(): Instant = fetchLatestChangeTime(GEOMETRY_PLAN)
 
     fun fetchPlanAreas(mapBoundingBox: BoundingBox): List<GeometryPlanArea> {
         val searchPolygonWkt = create2DPolygonString(mapBoundingBox.polygonFromCorners)
-        val sql = """
+        val sql =
+            """
           select 
             plan.id,
             plan_file.name as file_name,
@@ -839,26 +888,29 @@ class GeometryDao @Autowired constructor(
                   plan.bounding_polygon_simple, 
                   postgis.st_polygonfromtext(:polygon_wkt, :map_srid)
               )
-        """.trimIndent()
-        val params = mapOf(
-            "polygon_wkt" to searchPolygonWkt,
-            "map_srid" to LAYOUT_SRID.code,
-        )
-        val result = jdbcTemplate.query(sql, params) { rs, _ ->
-            val area = GeometryPlanArea(
-                id = rs.getIntId("id"),
-                fileName = rs.getFileName("file_name"),
-                polygon = rs.getPolygonPointList("bounding_polygon"),
-            )
-            area
-        }.filterNotNull()
+        """
+                .trimIndent()
+        val params = mapOf("polygon_wkt" to searchPolygonWkt, "map_srid" to LAYOUT_SRID.code)
+        val result =
+            jdbcTemplate
+                .query(sql, params) { rs, _ ->
+                    val area =
+                        GeometryPlanArea(
+                            id = rs.getIntId("id"),
+                            fileName = rs.getFileName("file_name"),
+                            polygon = rs.getPolygonPointList("bounding_polygon"),
+                        )
+                    area
+                }
+                .filterNotNull()
         logger.daoAccess(FETCH, GeometryPlanArea::class, result.map { a -> a.id })
         return result
     }
 
     @Cacheable(CACHE_GEOMETRY_PLAN, sync = true)
     fun fetchPlan(planVersion: RowVersion<GeometryPlan>): GeometryPlan {
-        val sql = """
+        val sql =
+            """
             select
               plan.id,
               plan.source,
@@ -891,110 +943,133 @@ class GeometryDao @Autowired constructor(
               left join geometry.plan_author on plan.plan_author_id = plan_author.id
               left join geometry.plan_application on plan.plan_application_id = plan_application.id
             where plan.id = :plan_id
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("plan_id" to planVersion.id.intValue)
 
-        val plan = jdbcTemplate.query(sql, params) { rs, i ->
-            val units = GeometryUnits(
-                coordinateSystemSrid = rs.getSridOrNull("srid"),
-                coordinateSystemName = rs.getString("coordinate_system_name")?.let(::CoordinateSystemName),
-                verticalCoordinateSystem = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
-                directionUnit = rs.getEnum("direction_unit"),
-                linearUnit = rs.getEnum("linear_unit"),
-            )
-            val authorId = rs.getIntIdOrNull<Author>("author_id")
-            val geometryPlan = GeometryPlan(
-                id = rs.getIntId("id"),
-                source = rs.getEnum<PlanSource>("source"),
-                project = getProject(rs.getIntId("plan_project_id")),
-                author = authorId?.let { id ->
-                    Author(id = id, companyName = CompanyName(rs.getString("author_company_name")))
-                },
-                application = Application(
-                    id = rs.getIntId("application_id"),
-                    name = MetaDataName(rs.getString("application_name")),
-                    manufacturer = MetaDataName(rs.getString("application_manufacturer")),
-                    version = MetaDataName(rs.getString("application_version")),
-                ),
-                planTime = rs.getInstantOrNull("plan_time"),
-                units = units,
-                trackNumber = rs.getTrackNumberOrNull("track_number"),
-                trackNumberDescription = PlanElementName(rs.getString("track_number_description")),
-                alignments = fetchAlignments(units, planVersion.id),
-                switches = fetchSwitches(planId = planVersion.id, switchId = null),
-                kmPosts = fetchKmPosts(planVersion.id),
-                fileName = rs.getFileName("file_name"),
-                pvDocumentId = rs.getIntIdOrNull("projektivelho_document_id"),
-                planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
-                decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
-                measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
-                elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
-                dataType = DataType.STORED,
-                message = rs.getFreeTextWithNewLinesOrNull("message"),
-                uploadTime = rs.getInstant("upload_time"),
-                isHidden = rs.getBoolean("hidden"),
-            )
-            geometryPlan
-        }.firstOrNull() ?: throw NoSuchEntityException(GeometryPlan::class, planVersion.id)
+        val plan =
+            jdbcTemplate
+                .query(sql, params) { rs, i ->
+                    val units =
+                        GeometryUnits(
+                            coordinateSystemSrid = rs.getSridOrNull("srid"),
+                            coordinateSystemName = rs.getString("coordinate_system_name")?.let(::CoordinateSystemName),
+                            verticalCoordinateSystem =
+                                rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
+                            directionUnit = rs.getEnum("direction_unit"),
+                            linearUnit = rs.getEnum("linear_unit"),
+                        )
+                    val authorId = rs.getIntIdOrNull<Author>("author_id")
+                    val geometryPlan =
+                        GeometryPlan(
+                            id = rs.getIntId("id"),
+                            source = rs.getEnum<PlanSource>("source"),
+                            project = getProject(rs.getIntId("plan_project_id")),
+                            author =
+                                authorId?.let { id ->
+                                    Author(id = id, companyName = CompanyName(rs.getString("author_company_name")))
+                                },
+                            application =
+                                Application(
+                                    id = rs.getIntId("application_id"),
+                                    name = MetaDataName(rs.getString("application_name")),
+                                    manufacturer = MetaDataName(rs.getString("application_manufacturer")),
+                                    version = MetaDataName(rs.getString("application_version")),
+                                ),
+                            planTime = rs.getInstantOrNull("plan_time"),
+                            units = units,
+                            trackNumber = rs.getTrackNumberOrNull("track_number"),
+                            trackNumberDescription = PlanElementName(rs.getString("track_number_description")),
+                            alignments = fetchAlignments(units, planVersion.id),
+                            switches = fetchSwitches(planId = planVersion.id, switchId = null),
+                            kmPosts = fetchKmPosts(planVersion.id),
+                            fileName = rs.getFileName("file_name"),
+                            pvDocumentId = rs.getIntIdOrNull("projektivelho_document_id"),
+                            planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
+                            decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
+                            measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
+                            elevationMeasurementMethod =
+                                rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
+                            dataType = DataType.STORED,
+                            message = rs.getFreeTextWithNewLinesOrNull("message"),
+                            uploadTime = rs.getInstant("upload_time"),
+                            isHidden = rs.getBoolean("hidden"),
+                        )
+                    geometryPlan
+                }
+                .firstOrNull() ?: throw NoSuchEntityException(GeometryPlan::class, planVersion.id)
         logger.daoAccess(FETCH, GeometryPlan::class, planVersion)
         return plan
     }
 
     fun getProject(projectId: IntId<Project>): Project {
-        val sql = """
+        val sql =
+            """
             select id, name, description
             from geometry.plan_project
             where id = :id
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("id" to projectId.intValue)
 
-        val project = jdbcTemplate.query(sql, params) { rs, _ ->
-            Project(
-                id = rs.getIntId("id"),
-                name = ProjectName(rs.getString("name")),
-                description = rs.getFreeTextOrNull("description"),
-            )
-        }.firstOrNull() ?: throw NoSuchEntityException(Project::class, projectId)
+        val project =
+            jdbcTemplate
+                .query(sql, params) { rs, _ ->
+                    Project(
+                        id = rs.getIntId("id"),
+                        name = ProjectName(rs.getString("name")),
+                        description = rs.getFreeTextOrNull("description"),
+                    )
+                }
+                .firstOrNull() ?: throw NoSuchEntityException(Project::class, projectId)
         logger.daoAccess(FETCH, Project::class, project.id)
         return project
     }
 
     fun findProject(projectName: ProjectName): Project? {
-        val sql = """
+        val sql =
+            """
             select
               id, name, description
             from geometry.plan_project
             where unique_name = common.nospace_lowercase(:name)
-        """.trimIndent()
+        """
+                .trimIndent()
 
         val params = mapOf("name" to projectName)
-        val project = jdbcTemplate.query(sql, params) { rs, _ ->
-            Project(
-                id = rs.getIntId("id"),
-                name = ProjectName(rs.getString("name")),
-                description = rs.getFreeTextOrNull("description"),
-            )
-        }.firstOrNull()
+        val project =
+            jdbcTemplate
+                .query(sql, params) { rs, _ ->
+                    Project(
+                        id = rs.getIntId("id"),
+                        name = ProjectName(rs.getString("name")),
+                        description = rs.getFreeTextOrNull("description"),
+                    )
+                }
+                .firstOrNull()
 
         project?.also { logger.daoAccess(FETCH, Project::class, it.id) }
         return project
     }
 
     fun fetchProjects(): List<Project> {
-        val sql = """
+        val sql =
+            """
             select
               id
             , name
             , description
             from geometry.plan_project
-        """.trimIndent()
-        val projects = jdbcTemplate.query(sql) { rs, _ ->
-            Project(
-                id = rs.getIntId("id"),
-                name = ProjectName(rs.getString("name")),
-                description = rs.getFreeTextOrNull("description"),
-            )
-        }
+        """
+                .trimIndent()
+        val projects =
+            jdbcTemplate.query(sql) { rs, _ ->
+                Project(
+                    id = rs.getIntId("id"),
+                    name = ProjectName(rs.getString("name")),
+                    description = rs.getFreeTextOrNull("description"),
+                )
+            }
 
         logger.daoAccess(FETCH, Project::class)
         return projects
@@ -1005,59 +1080,63 @@ class GeometryDao @Autowired constructor(
     fun fetchAuthorChangeTime(): Instant = fetchLatestChangeTime(GEOMETRY_PLAN_AUTHOR)
 
     fun findAuthor(companyName: CompanyName): Author? {
-        val sql = """
+        val sql =
+            """
             select
               id
             , company_name
             from geometry.plan_author
             where unique_company_name = common.nospace_lowercase(:company_name)
-        """.trimIndent()
+        """
+                .trimIndent()
 
         val params = mapOf("company_name" to companyName)
-        val author = jdbcTemplate.query(sql, params) { rs, _ ->
-            Author(
-                id = rs.getIntId("id"),
-                companyName = CompanyName(rs.getString("company_name")),
-            )
-        }.firstOrNull()
+        val author =
+            jdbcTemplate
+                .query(sql, params) { rs, _ ->
+                    Author(id = rs.getIntId("id"), companyName = CompanyName(rs.getString("company_name")))
+                }
+                .firstOrNull()
 
         author?.also { logger.daoAccess(FETCH, Author::class, it.id) }
         return author
     }
 
     fun getAuthor(authorId: IntId<Author>): Author {
-        val sql = """
+        val sql =
+            """
             select
               id
             , company_name
             from geometry.plan_author
             where id = :id
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("id" to authorId.intValue)
 
-        val author = jdbcTemplate.query(sql, params) { rs, _ ->
-            Author(
-                id = rs.getIntId("id"),
-                companyName = CompanyName(rs.getString("company_name")),
-            )
-        }.firstOrNull() ?: throw NoSuchEntityException(Project::class, authorId)
+        val author =
+            jdbcTemplate
+                .query(sql, params) { rs, _ ->
+                    Author(id = rs.getIntId("id"), companyName = CompanyName(rs.getString("company_name")))
+                }
+                .firstOrNull() ?: throw NoSuchEntityException(Project::class, authorId)
         logger.daoAccess(FETCH, Author::class, author.id)
         return author
     }
 
     fun fetchAuthors(): List<Author> {
-        val sql = """
+        val sql =
+            """
             select
               id
             , company_name
             from geometry.plan_author
-        """.trimIndent()
-        val authors = jdbcTemplate.query(sql) { rs, _ ->
-            Author(
-                id = rs.getIntId("id"),
-                companyName = CompanyName(rs.getString("company_name")),
-            )
-        }
+        """
+                .trimIndent()
+        val authors =
+            jdbcTemplate.query(sql) { rs, _ ->
+                Author(id = rs.getIntId("id"), companyName = CompanyName(rs.getString("company_name")))
+            }
 
         logger.daoAccess(FETCH, Author::class, authors.map { it.id })
         return authors
@@ -1068,7 +1147,8 @@ class GeometryDao @Autowired constructor(
         planId: IntId<GeometryPlan>? = null,
         geometryAlignmentId: IntId<GeometryAlignment>? = null,
     ): List<GeometryAlignment> {
-        val sql = """
+        val sql =
+            """
             select 
               alignment.id, alignment.oid_part, 
               alignment.name, alignment.state, alignment.description,
@@ -1081,9 +1161,11 @@ class GeometryDao @Autowired constructor(
             where (:plan_id::int is null or alignment.plan_id = :plan_id)
               and (:alignment_id::int is null or alignment.id = :alignment_id)
             order by alignment.id
-        """.trimIndent()
+        """
+                .trimIndent()
         return jdbcTemplate.query(
-            sql, mapOf("plan_id" to planId?.intValue, "alignment_id" to geometryAlignmentId?.intValue)
+            sql,
+            mapOf("plan_id" to planId?.intValue, "alignment_id" to geometryAlignmentId?.intValue),
         ) { rs, _ ->
             val alignmentId = rs.getIntId<GeometryAlignment>("id")
             val profileName = rs.getString("profile_name")
@@ -1097,20 +1179,20 @@ class GeometryDao @Autowired constructor(
                 state = rs.getEnumOrNull<PlanState>("state"),
                 staStart = rs.getBigDecimal("sta_start"),
                 elements = fetchElements(alignmentId, units),
-                profile = profileName?.let { name ->
-                    GeometryProfile(
-                        name = PlanElementName(name), elements = fetchProfileElements(alignmentId)
-                    )
-                },
-                cant = cantName?.let { name ->
-                    GeometryCant(
-                        name = PlanElementName(name),
-                        description = PlanElementName(rs.getString("cant_description")),
-                        gauge = rs.getBigDecimal("cant_gauge"),
-                        rotationPoint = rs.getEnumOrNull<CantRotationPoint>("cant_rotation_point"),
-                        points = fetchCantPoints(alignmentId),
-                    )
-                },
+                profile =
+                    profileName?.let { name ->
+                        GeometryProfile(name = PlanElementName(name), elements = fetchProfileElements(alignmentId))
+                    },
+                cant =
+                    cantName?.let { name ->
+                        GeometryCant(
+                            name = PlanElementName(name),
+                            description = PlanElementName(rs.getString("cant_description")),
+                            gauge = rs.getBigDecimal("cant_gauge"),
+                            rotationPoint = rs.getEnumOrNull<CantRotationPoint>("cant_rotation_point"),
+                            points = fetchCantPoints(alignmentId),
+                        )
+                    },
                 featureTypeCode = featureTypeCode,
             )
         }
@@ -1119,14 +1201,15 @@ class GeometryDao @Autowired constructor(
     @Cacheable(CACHE_GEOMETRY_SWITCH, sync = true)
     fun getSwitch(id: IntId<GeometrySwitch>) = getOne(id, fetchSwitches(planId = null, switchId = id))
 
-    fun getSwitchPlanId(id: IntId<GeometrySwitch>): IntId<GeometryPlan>? = jdbcTemplate.queryOptional(
-        "select plan_id from geometry.switch where id = :id", mapOf("id" to id.intValue)
-    ) { rs, _ ->
-        rs.getIntId("plan_id")
-    }
+    fun getSwitchPlanId(id: IntId<GeometrySwitch>): IntId<GeometryPlan> =
+        jdbcTemplate.queryOne("select plan_id from geometry.switch where id = :id", mapOf("id" to id.intValue)) { rs, _
+            ->
+            rs.getIntId("plan_id")
+        }
 
     private fun fetchSwitches(planId: IntId<GeometryPlan>?, switchId: IntId<GeometrySwitch>?): List<GeometrySwitch> {
-        val sql = """
+        val sql =
+            """
             select
               id,
               name,
@@ -1136,7 +1219,8 @@ class GeometryDao @Autowired constructor(
             from geometry.switch
             where (:plan_id::int is null or plan_id = :plan_id) 
               and (:switch_id::int is null or id = :switch_id)
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("plan_id" to planId?.intValue, "switch_id" to switchId?.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             val id: IntId<GeometrySwitch> = rs.getIntId("id")
@@ -1152,31 +1236,37 @@ class GeometryDao @Autowired constructor(
     }
 
     private fun getSwitchJoints(switchId: IntId<GeometrySwitch>): List<GeometrySwitchJoint> {
-        val sql = """
+        val sql =
+            """
             select 
               number,
               postgis.st_x(location) as location_x,
               postgis.st_y(location) as location_y
             from geometry.switch_joint
             where switch_id = :switch_id
-        """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf("switch_id" to switchId.intValue)) { rs, _ ->
-            GeometrySwitchJoint(
-                number = rs.getJointNumber("number"),
-                location = rs.getPoint("location_x", "location_y"),
-            )
-        }.sortedBy { j -> j.number }
+        """
+                .trimIndent()
+        return jdbcTemplate
+            .query(sql, mapOf("switch_id" to switchId.intValue)) { rs, _ ->
+                GeometrySwitchJoint(
+                    number = rs.getJointNumber("number"),
+                    location = rs.getPoint("location_x", "location_y"),
+                )
+            }
+            .sortedBy { j -> j.number }
     }
 
     fun getSwitchSrid(id: IntId<GeometrySwitch>): Srid? {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             select
                 plan.srid
             from geometry.switch
                 left join geometry.plan plan on switch.plan_id = plan.id
             where switch.id = :switch_id
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("switch_id" to id.intValue)
         logger.daoAccess(FETCH, GeometrySwitch::class, params)
         return jdbcTemplate.queryOne(sql, params, id.toString()) { rs, _ -> rs.getSridOrNull("srid") }
@@ -1188,7 +1278,8 @@ class GeometryDao @Autowired constructor(
         planId: IntId<GeometryPlan>? = null,
         kmPostId: IntId<GeometryKmPost>? = null,
     ): List<GeometryKmPost> {
-        val sql = """
+        val sql =
+            """
             select
               km_post.id,
               km_post.km_post_index, 
@@ -1203,10 +1294,9 @@ class GeometryDao @Autowired constructor(
             from geometry.km_post
             where (:plan_id::int is null or plan_id = :plan_id) 
               and (:km_post_id::int is null or id = :km_post_id)
-        """.trimIndent()
-        val params = mapOf(
-            "plan_id" to planId?.intValue, "km_post_id" to kmPostId?.intValue
-        )
+        """
+                .trimIndent()
+        val params = mapOf("plan_id" to planId?.intValue, "km_post_id" to kmPostId?.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             GeometryKmPost(
                 id = rs.getIntId("id"),
@@ -1222,14 +1312,16 @@ class GeometryDao @Autowired constructor(
     }
 
     fun getKmPostSrid(id: IntId<GeometryKmPost>): Srid? {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             select
                 plan.srid
             from geometry.km_post
                 left join geometry.plan plan on km_post.plan_id = plan.id
             where km_post.id = :km_post_id
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("km_post_id" to id.intValue)
         return jdbcTemplate.queryOne(sql, params, id.toString()) { rs, _ -> rs.getSridOrNull("srid") }
     }
@@ -1243,7 +1335,8 @@ class GeometryDao @Autowired constructor(
     }
 
     fun fetchPlanUnits(alignmentId: IntId<GeometryAlignment>): GeometryPlanUnits {
-        val sql = """
+        val sql =
+            """
             select 
                 plan.id, 
                 plan.direction_unit, 
@@ -1254,19 +1347,24 @@ class GeometryDao @Autowired constructor(
             from geometry.alignment alignment 
               left join geometry.plan plan on alignment.plan_id = plan.id
             where alignment.id = :alignment_id
-        """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf("alignment_id" to alignmentId.intValue)) { rs, _ ->
-            GeometryPlanUnits(
-                id = rs.getIntId("id"),
-                units = GeometryUnits(
-                    coordinateSystemSrid = rs.getSridOrNull("srid"),
-                    coordinateSystemName = rs.getString("coordinate_system_name")?.let(::CoordinateSystemName),
-                    verticalCoordinateSystem = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
-                    directionUnit = rs.getEnum("direction_unit"),
-                    linearUnit = rs.getEnum("linear_unit"),
-                ),
-            )
-        }.firstOrNull() ?: throw NoSuchEntityException(GeometryAlignment::class, alignmentId)
+        """
+                .trimIndent()
+        return jdbcTemplate
+            .query(sql, mapOf("alignment_id" to alignmentId.intValue)) { rs, _ ->
+                GeometryPlanUnits(
+                    id = rs.getIntId("id"),
+                    units =
+                        GeometryUnits(
+                            coordinateSystemSrid = rs.getSridOrNull("srid"),
+                            coordinateSystemName = rs.getString("coordinate_system_name")?.let(::CoordinateSystemName),
+                            verticalCoordinateSystem =
+                                rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
+                            directionUnit = rs.getEnum("direction_unit"),
+                            linearUnit = rs.getEnum("linear_unit"),
+                        ),
+                )
+            }
+            .firstOrNull() ?: throw NoSuchEntityException(GeometryAlignment::class, alignmentId)
     }
 
     fun fetchElements(
@@ -1274,7 +1372,8 @@ class GeometryDao @Autowired constructor(
         units: GeometryUnits,
         geometryElementId: IndexedId<GeometryElement>? = null,
     ): List<GeometryElement> {
-        val sql = """
+        val sql =
+            """
             select
               alignment_id,
               element_index,
@@ -1306,42 +1405,40 @@ class GeometryDao @Autowired constructor(
             where alignment_id = :alignment_id
               and (:element_index::int is null or element_index = :element_index)
             order by element_index
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val params = mapOf(
-            "alignment_id" to alignmentId.intValue, "element_index" to geometryElementId?.index
-        )
+        val params = mapOf("alignment_id" to alignmentId.intValue, "element_index" to geometryElementId?.index)
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
             val id = rs.getIndexedId<GeometryElement>("alignment_id", "element_index")
             when (rs.getEnum<GeometryElementType>("type")) {
-                LINE -> GeometryLine(
-                    elementData = getElementData(rs),
-                    switchData = getSwitchData(rs),
-                    id = id,
-                )
+                LINE -> GeometryLine(elementData = getElementData(rs), switchData = getSwitchData(rs), id = id)
 
-                CURVE -> GeometryCurve(
-                    elementData = getElementData(rs),
-                    curveData = getCurveData(rs),
-                    switchData = getSwitchData(rs),
-                    id = id,
-                )
+                CURVE ->
+                    GeometryCurve(
+                        elementData = getElementData(rs),
+                        curveData = getCurveData(rs),
+                        switchData = getSwitchData(rs),
+                        id = id,
+                    )
 
-                CLOTHOID -> GeometryClothoid(
-                    elementData = getElementData(rs),
-                    spiralData = getSpiralData(rs, units),
-                    switchData = getSwitchData(rs),
-                    constant = rs.getBigDecimal("clothoid_constant"),
-                    id = id,
-                )
+                CLOTHOID ->
+                    GeometryClothoid(
+                        elementData = getElementData(rs),
+                        spiralData = getSpiralData(rs, units),
+                        switchData = getSwitchData(rs),
+                        constant = rs.getBigDecimal("clothoid_constant"),
+                        id = id,
+                    )
 
-                BIQUADRATIC_PARABOLA -> BiquadraticParabola(
-                    elementData = getElementData(rs),
-                    spiralData = getSpiralData(rs, units),
-                    switchData = getSwitchData(rs),
-                    id = id,
-                )
+                BIQUADRATIC_PARABOLA ->
+                    BiquadraticParabola(
+                        elementData = getElementData(rs),
+                        spiralData = getSpiralData(rs, units),
+                        switchData = getSwitchData(rs),
+                        id = id,
+                    )
             }
         }
     }
@@ -1357,73 +1454,83 @@ class GeometryDao @Autowired constructor(
         )
     }
 
-    private fun getSwitchData(rs: ResultSet): SwitchData = SwitchData(
-        switchId = rs.getIntIdOrNull("switch_id"),
-        startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
-        endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
-    )
+    private fun getSwitchData(rs: ResultSet): SwitchData =
+        SwitchData(
+            switchId = rs.getIntIdOrNull("switch_id"),
+            startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
+            endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
+        )
 
-    private fun getCurveData(rs: ResultSet): CurveData = CurveData(
-        rotation = rs.getEnum("rotation"),
-        radius = rs.getBigDecimal("curve_radius"),
-        chord = rs.getBigDecimal("curve_chord"),
-        center = rs.getPoint("curve_center_x", "curve_center_y"),
-    )
+    private fun getCurveData(rs: ResultSet): CurveData =
+        CurveData(
+            rotation = rs.getEnum("rotation"),
+            radius = rs.getBigDecimal("curve_radius"),
+            chord = rs.getBigDecimal("curve_chord"),
+            center = rs.getPoint("curve_center_x", "curve_center_y"),
+        )
 
-    private fun getSpiralData(rs: ResultSet, units: GeometryUnits): SpiralData = SpiralData(
-        rotation = rs.getEnum("rotation"),
-        directionStart = rs.getBigDecimal("spiral_dir_start")?.let { bd -> toAngle(bd, units.directionUnit) },
-        directionEnd = rs.getBigDecimal("spiral_dir_end")?.let { bd -> toAngle(bd, units.directionUnit) },
-        radiusStart = rs.getBigDecimal("spiral_radius_start"),
-        radiusEnd = rs.getBigDecimal("spiral_radius_end"),
-        pi = rs.getPoint("spiral_pi_x", "spiral_pi_y"),
-    )
+    private fun getSpiralData(rs: ResultSet, units: GeometryUnits): SpiralData =
+        SpiralData(
+            rotation = rs.getEnum("rotation"),
+            directionStart = rs.getBigDecimal("spiral_dir_start")?.let { bd -> toAngle(bd, units.directionUnit) },
+            directionEnd = rs.getBigDecimal("spiral_dir_end")?.let { bd -> toAngle(bd, units.directionUnit) },
+            radiusStart = rs.getBigDecimal("spiral_radius_start"),
+            radiusEnd = rs.getBigDecimal("spiral_radius_end"),
+            pi = rs.getPoint("spiral_pi_x", "spiral_pi_y"),
+        )
 
     private fun fetchProfileElements(alignmentId: IntId<GeometryAlignment>): List<VerticalIntersection> {
-        val sql = """
+        val sql =
+            """
             select type, description, postgis.st_x(point) as point_x, postgis.st_y(point) as point_y, circular_radius, circular_length
             from geometry.vertical_intersection
             where alignment_id = :alignment_id
             order by intersection_index
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("alignment_id" to alignmentId.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             when (rs.getEnum<VerticalIntersectionType>("type")) {
-                VerticalIntersectionType.POINT -> VIPoint(
-                    description = PlanElementName(rs.getString("description")),
-                    point = rs.getPoint("point_x", "point_y"),
-                )
+                VerticalIntersectionType.POINT ->
+                    VIPoint(
+                        description = PlanElementName(rs.getString("description")),
+                        point = rs.getPoint("point_x", "point_y"),
+                    )
 
-                VerticalIntersectionType.CIRCULAR_CURVE -> VICircularCurve(
-                    description = PlanElementName(rs.getString("description")),
-                    point = rs.getPoint("point_x", "point_y"),
-                    radius = rs.getBigDecimal("circular_radius"),
-                    length = rs.getBigDecimal("circular_length"),
-                )
+                VerticalIntersectionType.CIRCULAR_CURVE ->
+                    VICircularCurve(
+                        description = PlanElementName(rs.getString("description")),
+                        point = rs.getPoint("point_x", "point_y"),
+                        radius = rs.getBigDecimal("circular_radius"),
+                        length = rs.getBigDecimal("circular_length"),
+                    )
             }
         }
     }
 
     private fun fetchCantPoints(alignmentId: IntId<GeometryAlignment>): List<GeometryCantPoint> {
-        val sql = """
+        val sql =
+            """
             select station, applied_cant, curvature, transition_type
             from geometry.cant_point
             where alignment_id = :alignment_id
             order by cant_point_index
-        """.trimIndent()
+        """
+                .trimIndent()
         val params = mapOf("alignment_id" to alignmentId.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             GeometryCantPoint(
                 station = rs.getBigDecimal("station"),
                 appliedCant = rs.getBigDecimal("applied_cant"),
                 curvature = rs.getEnum("curvature"),
-                transitionType = rs.getEnum("transition_type")
+                transitionType = rs.getEnum("transition_type"),
             )
         }
     }
 
     private fun insertGeometryElements(elementSqlParams: List<Map<String, Any?>>) {
-        val sql = """
+        val sql =
+            """
             insert into geometry.element(
               alignment_id,
               element_index,
@@ -1468,7 +1575,8 @@ class GeometryDao @Autowired constructor(
               :switch_start_joint_number,
               :switch_end_joint_number
             )
-        """.trimIndent()
+        """
+                .trimIndent()
         jdbcTemplate.batchUpdate(sql, elementSqlParams.toTypedArray())
     }
 
@@ -1478,60 +1586,70 @@ class GeometryDao @Autowired constructor(
         switchIds: Map<DomainId<GeometrySwitch>, IntId<GeometrySwitch>>,
     ): List<Map<String, Any?>> {
         return elements.mapIndexed { index, element ->
-            val common = mapOf(
-                "alignment_id" to alignmentId.intValue,
-                "element_index" to index,
-                "type" to element.type.name,
-                "oid_part" to element.oidPart,
-                "name" to element.name,
-                "sta_start" to element.staStart,
-                "length" to element.length,
-                "rotation" to null,
-                "curve_radius" to null,
-                "curve_chord" to null,
-                "clothoid_constant" to null,
-                "spiral_dir_start" to null,
-                "spiral_dir_end" to null,
-                "spiral_radius_start" to null,
-                "spiral_radius_end" to null,
-                "spiral_dir_end" to null,
-            ).plus(getPointSqlParams("start_point", element.start))
-                .plus(getPointSqlParams("end_point", element.end))
-                .plus(getPointSqlParams("curve_center_point", null))
-                .plus(getPointSqlParams("spiral_pi_point", null))
-            val specific = when (element) {
-                is GeometryLine -> mapOf()
-                is GeometryCurve -> mapOf(
-                    "rotation" to element.rotation.name,
-                    "curve_radius" to element.radius,
-                    "curve_chord" to element.chord,
-                ).plus(getPointSqlParams("curve_center_point", element.center))
+            val common =
+                mapOf(
+                        "alignment_id" to alignmentId.intValue,
+                        "element_index" to index,
+                        "type" to element.type.name,
+                        "oid_part" to element.oidPart,
+                        "name" to element.name,
+                        "sta_start" to element.staStart,
+                        "length" to element.length,
+                        "rotation" to null,
+                        "curve_radius" to null,
+                        "curve_chord" to null,
+                        "clothoid_constant" to null,
+                        "spiral_dir_start" to null,
+                        "spiral_dir_end" to null,
+                        "spiral_radius_start" to null,
+                        "spiral_radius_end" to null,
+                        "spiral_dir_end" to null,
+                    )
+                    .plus(getPointSqlParams("start_point", element.start))
+                    .plus(getPointSqlParams("end_point", element.end))
+                    .plus(getPointSqlParams("curve_center_point", null))
+                    .plus(getPointSqlParams("spiral_pi_point", null))
+            val specific =
+                when (element) {
+                    is GeometryLine -> mapOf()
+                    is GeometryCurve ->
+                        mapOf(
+                                "rotation" to element.rotation.name,
+                                "curve_radius" to element.radius,
+                                "curve_chord" to element.chord,
+                            )
+                            .plus(getPointSqlParams("curve_center_point", element.center))
 
-                is GeometrySpiral -> mapOf(
-                    "rotation" to element.rotation.name,
-                    "spiral_dir_start" to element.directionStart?.original,
-                    "spiral_dir_end" to element.directionEnd?.original,
-                    "spiral_radius_start" to element.radiusStart,
-                    "spiral_radius_end" to element.radiusEnd,
-                ).plus(getPointSqlParams("spiral_pi_point", element.pi)).plus(
-                    when (element) {
-                        is GeometryClothoid -> mapOf("clothoid_constant" to element.constant)
-                        is BiquadraticParabola -> mapOf()
-                    }
+                    is GeometrySpiral ->
+                        mapOf(
+                                "rotation" to element.rotation.name,
+                                "spiral_dir_start" to element.directionStart?.original,
+                                "spiral_dir_end" to element.directionEnd?.original,
+                                "spiral_radius_start" to element.radiusStart,
+                                "spiral_radius_end" to element.radiusEnd,
+                            )
+                            .plus(getPointSqlParams("spiral_pi_point", element.pi))
+                            .plus(
+                                when (element) {
+                                    is GeometryClothoid -> mapOf("clothoid_constant" to element.constant)
+                                    is BiquadraticParabola -> mapOf()
+                                }
+                            )
+                }
+            val switch =
+                mapOf(
+                    "switch_id" to element.switchId?.let { tempId -> switchIds[tempId]?.intValue },
+                    "switch_start_joint_number" to element.startJointNumber?.intValue,
+                    "switch_end_joint_number" to element.endJointNumber?.intValue,
                 )
-            }
-            val switch = mapOf(
-                "switch_id" to element.switchId?.let { tempId -> switchIds[tempId]?.intValue },
-                "switch_start_joint_number" to element.startJointNumber?.intValue,
-                "switch_end_joint_number" to element.endJointNumber?.intValue,
-            )
 
             common + specific + switch
         }
     }
 
     private fun insertVerticalIntersections(viParams: List<Map<String, Any?>>) {
-        val sql = """
+        val sql =
+            """
             insert into geometry.vertical_intersection(
               alignment_id,
               intersection_index,
@@ -1550,7 +1668,8 @@ class GeometryDao @Autowired constructor(
               :circular_radius,
               :circular_length
             )
-        """.trimIndent()
+        """
+                .trimIndent()
 
         jdbcTemplate.batchUpdate(sql, viParams.toTypedArray())
     }
@@ -1560,29 +1679,33 @@ class GeometryDao @Autowired constructor(
         vis: List<VerticalIntersection>,
     ): List<Map<String, Any?>> {
         return vis.mapIndexed { index, vi ->
-            val common = mapOf(
-                "alignment_id" to alignmentId.intValue,
-                "intersection_index" to index,
-                "description" to vi.description,
-                "point_x" to vi.point.x,
-                "point_y" to vi.point.y,
-                "circular_radius" to null,
-                "circular_length" to null,
-            )
-            val typed = when (vi) {
-                is VIPoint -> mapOf("type" to VerticalIntersectionType.POINT.name)
-                is VICircularCurve -> mapOf(
-                    "type" to VerticalIntersectionType.CIRCULAR_CURVE.name,
-                    "circular_radius" to vi.radius,
-                    "circular_length" to vi.length,
+            val common =
+                mapOf(
+                    "alignment_id" to alignmentId.intValue,
+                    "intersection_index" to index,
+                    "description" to vi.description,
+                    "point_x" to vi.point.x,
+                    "point_y" to vi.point.y,
+                    "circular_radius" to null,
+                    "circular_length" to null,
                 )
-            }
+            val typed =
+                when (vi) {
+                    is VIPoint -> mapOf("type" to VerticalIntersectionType.POINT.name)
+                    is VICircularCurve ->
+                        mapOf(
+                            "type" to VerticalIntersectionType.CIRCULAR_CURVE.name,
+                            "circular_radius" to vi.radius,
+                            "circular_length" to vi.length,
+                        )
+                }
             common + typed
         }
     }
 
     private fun insertCantPoints(cantPointParams: List<Map<String, Any?>>) {
-        val sql = """
+        val sql =
+            """
             insert into geometry.cant_point(
               alignment_id, 
               cant_point_index, 
@@ -1599,7 +1722,8 @@ class GeometryDao @Autowired constructor(
               :curvature::common.rotation_direction, 
               :transition_type::geometry.cant_transition_type
             )
-        """.trimIndent()
+        """
+                .trimIndent()
         jdbcTemplate.batchUpdate(sql, cantPointParams.toTypedArray())
     }
 
@@ -1623,37 +1747,25 @@ class GeometryDao @Autowired constructor(
         return mapOf("${name}_x" to point?.x, "${name}_y" to point?.y)
     }
 
-    fun getMeasurementMethodForSwitch(id: IntId<GeometrySwitch>): MeasurementMethod? {
-        val sql = """
-            select plan.measurement_method
-            from geometry.plan
-                join geometry.switch on plan.id = switch.plan_id
-            where switch.id = :switch_id
-        """.trimIndent()
-
-        return jdbcTemplate.query(
-            sql, mapOf(
-                "switch_id" to id.intValue
-            )
-        ) { rs, _ ->
-            rs.getEnumOrNull<MeasurementMethod>("measurement_method")
-        }.firstOrNull()
-    }
-
-    /**
-     * If planIds is null, returns all plans' linking summaries
-     */
-    fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>? = null): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
+    /** If planIds is null, returns all plans' linking summaries */
+    fun getLinkingSummaries(
+        planIds: List<IntId<GeometryPlan>>? = null
+    ): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
         if (planIds?.isEmpty() == true) {
             return mapOf()
         }
 
-        // For a given linkable object, treat the first version of it that was linked to a given plan as the one where
-        // linking happened, hence taking that version's change_time and change_user as the linking time and user.
-        // For objects composed of parts where it's the parts that get linked (i.e. location tracks and reference lines,
-        // made of segments), versioning still goes based on the segment, but the change time and change user come
+        // For a given linkable object, treat the first version of it that was linked to a given
+        // plan as the one where
+        // linking happened, hence taking that version's change_time and change_user as the linking
+        // time and user.
+        // For objects composed of parts where it's the parts that get linked (i.e. location tracks
+        // and reference lines,
+        // made of segments), versioning still goes based on the segment, but the change time and
+        // change user come
         // from the actual publishable unit.
-        val sql = """
+        val sql =
+            """
             with
               segment_links as (
                 select plan_id, segment.change_user, segment.change_time
@@ -1735,16 +1847,58 @@ class GeometryDao @Autowired constructor(
               ) as linked_layout_object
               where linked_layout_object.plan_id in (:plan_ids) or :return_all
               group by linked_layout_object.plan_id;
-        """.trimIndent()
+        """
+                .trimIndent()
 
         val params =
             mapOf("plan_ids" to (planIds?.map { it.intValue } ?: listOf(null)), "return_all" to (planIds == null))
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getIntId<GeometryPlan>("plan_id") to GeometryPlanLinkingSummary(
-                linkedAt = rs.getInstantOrNull("linked_at"),
-                linkedByUsers = rs.getStringArrayOrNull("linked_by_users")?.map(UserName::of) ?: listOf(),
-                currentlyLinked = rs.getBoolean("is_currently_linked"),
-            )
-        }.associate { it }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                rs.getIntId<GeometryPlan>("plan_id") to
+                    GeometryPlanLinkingSummary(
+                        linkedAt = rs.getInstantOrNull("linked_at"),
+                        linkedByUsers = rs.getStringArrayOrNull("linked_by_users")?.map(UserName::of) ?: listOf(),
+                        currentlyLinked = rs.getBoolean("is_currently_linked"),
+                    )
+            }
+            .associate { it }
+    }
+
+    fun getPlanIdForKmPost(id: IntId<GeometryKmPost>): IntId<GeometryPlan>? {
+        val sql =
+            """
+            select plan_id from geometry.km_post where id = :id
+        """
+                .trimIndent()
+        return jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue)) { rs, _ -> rs.getIntId("plan_id") }
+    }
+
+    fun getLocationTracksLinkedThroughGeometryElementToSwitch(
+        layoutBranch: LayoutBranch,
+        geometrySwitchId: IntId<GeometrySwitch>,
+    ): List<LayoutRowVersion<LocationTrack>> {
+        val sql =
+            """
+            select location_track.id, location_track.version
+              from layout.location_track, layout.location_track_is_in_layout_context('DRAFT', :design_id, location_track)
+              where exists(select *
+                             from layout.segment_version
+                             where segment_version.alignment_id = location_track.alignment_id
+                               and segment_version.alignment_version = location_track.alignment_version
+                               and exists(select *
+                                            from geometry.element
+                                            where segment_version.geometry_alignment_id = element.alignment_id
+                                              and segment_version.geometry_element_index = element.element_index
+                                              and element.switch_id = :switch_id)
+                )
+                and state != 'DELETED';
+        """
+                .trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            mapOf("design_id" to layoutBranch.designId?.intValue, "switch_id" to geometrySwitchId.intValue),
+        ) { rs, _ ->
+            rs.getLayoutRowVersion("id", "version")
+        }
     }
 }

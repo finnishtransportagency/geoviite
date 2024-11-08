@@ -8,5 +8,4 @@ class CodeDictionaryService @Autowired constructor(private val codeDictionaryDao
     fun getFeatureTypes(): List<FeatureType> {
         return codeDictionaryDao.getFeatureTypes()
     }
-
 }

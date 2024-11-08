@@ -22,7 +22,9 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LayoutContextDataIT @Autowired constructor(
+class LayoutContextDataIT
+@Autowired
+constructor(
     private val switchDao: LayoutSwitchDao,
     private val switchService: LayoutSwitchService,
     private val kmPostService: LayoutKmPostService,
@@ -66,7 +68,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftAndOfficialSwitchesHaveSameOfficialId() {
-        val dbSwitch = insertAndVerify(switch(123, draft = false))
+        val dbSwitch = insertAndVerify(switch(draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
 
         assertNotEquals(dbSwitch, dbDraft)
@@ -78,7 +80,8 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftAndOfficialKmPostsHaveSameOfficialId() {
-        val dbKmPost = insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
+        val dbKmPost =
+            insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
 
         assertNotEquals(dbKmPost, dbDraft)
@@ -120,7 +123,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftSwitchesAreIncludedInDraftListingsOnly() {
-        val dbSwitch = insertAndVerify(switch(456, draft = false))
+        val dbSwitch = insertAndVerify(switch(draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
 
         val officials = switchService.list(MainLayoutContext.official)
@@ -135,7 +138,8 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftKmPostsAreIncludedInDraftListingsOnly() {
-        val dbKmPost = insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
+        val dbKmPost =
+            insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
 
         val officials = kmPostService.list(MainLayoutContext.official)
@@ -172,7 +176,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun switchCanOnlyHaveOneDraft() {
-        val switch = insertAndVerify(switch(9, draft = false))
+        val switch = insertAndVerify(switch(draft = false))
 
         val draft1 = asMainDraft(switch)
         val draft2 = asMainDraft(switch)
@@ -183,7 +187,8 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun kmPostCanOnlyHaveOneDraft() {
-        val kmPost = insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
+        val kmPost =
+            insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
 
         val draft1 = asMainDraft(kmPost)
         val draft2 = asMainDraft(kmPost)
@@ -213,7 +218,8 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun editStateOfOfficialIsReturnedCorrectly() {
-        val official = insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
+        val official =
+            insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
         assertEquals(official.editState, EditState.UNEDITED)
         assertTrue(official.isOfficial)
         assertFalse(official.isDraft)
@@ -221,7 +227,10 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun editStateOfChangedDraftIsReturnedCorrectly() {
-        val edited = asMainDraft(insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false)))
+        val edited =
+            asMainDraft(
+                insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
+            )
         assertEquals(edited.editState, EditState.EDITED)
         assertFalse(edited.isOfficial)
         assertTrue(edited.isDraft)
@@ -242,7 +251,7 @@ class LayoutContextDataIT @Autowired constructor(
         )
 
     private fun createAndVerifyDraftLine(
-        dbLineAndAlignment: Pair<ReferenceLine, LayoutAlignment>,
+        dbLineAndAlignment: Pair<ReferenceLine, LayoutAlignment>
     ): Pair<ReferenceLine, LayoutAlignment> {
         val (dbLine, dbAlignment) = dbLineAndAlignment
         assertTrue(dbLine.id is IntId)
@@ -258,7 +267,7 @@ class LayoutContextDataIT @Autowired constructor(
     }
 
     private fun createAndVerifyDraftTrack(
-        dbTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
+        dbTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>
     ): Pair<LocationTrack, LayoutAlignment> {
         val (dbTrack, dbAlignment) = dbTrackAndAlignment
         assertTrue(dbTrack.id is IntId)
@@ -295,13 +304,13 @@ class LayoutContextDataIT @Autowired constructor(
         return draft
     }
 
-    private fun alterLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) = lineAndAlignment.first.copy(
-        startAddress = lineAndAlignment.first.startAddress + 10.0
-    ) to lineAndAlignment.second
+    private fun alterLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) =
+        lineAndAlignment.first.copy(startAddress = lineAndAlignment.first.startAddress + 10.0) to
+            lineAndAlignment.second
 
-    private fun alterTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) = trackAndAlignment.first.copy(
-        name = AlignmentName("${trackAndAlignment.first.name}-D")
-    ) to trackAndAlignment.second
+    private fun alterTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) =
+        trackAndAlignment.first.copy(name = AlignmentName("${trackAndAlignment.first.name}-D")) to
+            trackAndAlignment.second
 
     private fun alter(switch: TrackLayoutSwitch): TrackLayoutSwitch = switch.copy(name = SwitchName("${switch.name}-D"))
 
@@ -309,7 +318,7 @@ class LayoutContextDataIT @Autowired constructor(
         kmPost.copy(kmNumber = KmNumber(kmPost.kmNumber.number, (kmPost.kmNumber.extension ?: "") + "B"))
 
     private fun insertAndVerifyLine(
-        lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>,
+        lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>
     ): Pair<ReferenceLine, LayoutAlignment> {
         val (line, alignment) = lineAndAlignment
         assertEquals(DataType.TEMP, line.dataType)
@@ -326,7 +335,7 @@ class LayoutContextDataIT @Autowired constructor(
     }
 
     private fun insertAndVerifyTrack(
-        trackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
+        trackAndAlignment: Pair<LocationTrack, LayoutAlignment>
     ): Pair<LocationTrack, LayoutAlignment> {
         val (track, alignment) = trackAndAlignment
         assertEquals(DataType.TEMP, track.dataType)

@@ -297,7 +297,7 @@ classDiagram
     class LayoutSwitch {
         externalId: Oid
         name: String
-        state: EXISTING/FUTURE_EXISTING/NOT_EXISTING
+        state: EXISTING/NOT_EXISTING
     }
     class LayoutSwitchJoint {
         jointNumber: Int

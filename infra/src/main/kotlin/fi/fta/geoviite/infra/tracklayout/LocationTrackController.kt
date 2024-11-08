@@ -8,19 +8,21 @@ import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEndWithId
-import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublicationValidationService
+import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidatedAsset
+import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
+import fi.fta.geoviite.infra.publication.publicationInOrMergeFromBranch
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
@@ -37,8 +39,7 @@ import org.springframework.web.bind.annotation.RequestParam
 class LocationTrackController(
     private val locationTrackService: LocationTrackService,
     private val searchService: LayoutSearchService,
-    private val geocodingService: GeocodingService,
-    private val publicationService: PublicationService,
+    private val publicationValidationService: PublicationValidationService,
     private val switchLinkingService: SwitchLinkingService,
 ) {
 
@@ -93,13 +94,9 @@ class LocationTrackController(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): ResponseEntity<AlignmentStartAndEndWithId<*>> {
+    ): ResponseEntity<AlignmentStartAndEnd<LocationTrack>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        val locationTrackAndAlignment = locationTrackService.getWithAlignment(context, id)
-        return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) ->
-            geocodingService.getLocationTrackStartAndEnd(context, locationTrack, alignment)
-                ?.let { AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end) }
-        })
+        return locationTrackService.getStartAndEnd(context, listOf(id)).singleOrNull().let(::toResponse)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -108,14 +105,9 @@ class LocationTrackController(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
-    ): List<AlignmentStartAndEndWithId<*>> {
+    ): List<AlignmentStartAndEnd<LocationTrack>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return ids.mapNotNull { id ->
-            locationTrackService.getWithAlignment(context, id)?.let { (locationTrack, alignment) ->
-                geocodingService.getLocationTrackStartAndEnd(context, locationTrack, alignment)
-                    ?.let { AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end) }
-            }
-        }
+        return locationTrackService.getStartAndEnd(context, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -150,21 +142,9 @@ class LocationTrackController(
     ): List<LocationTrackDescription> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return ids.mapNotNull { id ->
-            id.let { locationTrackService.get(context, it) }?.let { lt ->
-                LocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang))
-            }
+            id.let { locationTrackService.get(context, it) }
+                ?.let { lt -> LocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang)) }
         }
-    }
-
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/end-points")
-    fun getLocationTrackAlignmentEndpoints(
-        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
-        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("bbox") bbox: BoundingBox,
-    ): List<LocationTrackEndpoint> {
-        val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.getLocationTrackEndpoints(context, bbox)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -174,8 +154,10 @@ class LocationTrackController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<ValidatedAsset<LocationTrack>> {
-        val context = LayoutContext.of(layoutBranch, publicationState)
-        return publicationService.validateLocationTracks(context, listOf(id)).firstOrNull().let(::toResponse)
+        return publicationValidationService
+            .validateLocationTracks(draftTransitionOrOfficialState(publicationState, layoutBranch), listOf(id))
+            .firstOrNull()
+            .let(::toResponse)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -187,7 +169,9 @@ class LocationTrackController(
     ): List<SwitchValidationWithSuggestedSwitch> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         val switchSuggestions = switchLinkingService.getTrackSwitchSuggestions(context, id)
-        val switchValidation = publicationService.validateSwitches(context, switchSuggestions.map { (id, _) -> id })
+        val target = ValidateTransition(publicationInOrMergeFromBranch(layoutBranch, publicationState))
+        val switchValidation =
+            publicationValidationService.validateSwitches(target, switchSuggestions.map { (id, _) -> id })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id,
@@ -225,11 +209,16 @@ class LocationTrackController(
         return locationTrackService.deleteDraft(layoutBranch, id).id
     }
 
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/{$LAYOUT_BRANCH}/{id}/cancel")
+    fun cancelLocationTrack(
+        @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): ResponseEntity<IntId<LocationTrack>> = toResponse(locationTrackService.cancel(branch, id)?.id)
+
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/draft/non-linked")
-    fun getNonLinkedLocationTracks(
-        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
-    ): List<LocationTrack> {
+    fun getNonLinkedLocationTracks(@PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch): List<LocationTrack> {
         return locationTrackService.listNonLinked(layoutBranch)
     }
 
@@ -263,9 +252,10 @@ class LocationTrackController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("locationTrackNames") names: List<AlignmentName>,
+        @RequestParam("includeDeleted") includeDeleted: Boolean = true,
     ): List<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.list(context, trackNumberId, names)
+        return locationTrackService.list(context, includeDeleted, trackNumberId, names)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

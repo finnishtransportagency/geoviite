@@ -14,11 +14,13 @@ import {
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { draftLayoutContext, TrackMeter, TrackNumber } from 'common/common-model';
 import { Point } from 'model/geometry';
-import { SplitDuplicate } from 'track-layout/layout-location-track-api';
+import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
 import { getOperation } from './splitting/split-utils';
 import { mapReducers } from 'map/map-store';
 import { expectDefined } from 'utils/type-utils';
 import { filterNotEmpty } from 'utils/array-utils';
+
+export const PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS = 10;
 
 export type SplitTargetDuplicateOperation = 'TRANSFER' | 'OVERWRITE';
 export type SplitTargetOperation = SplitTargetDuplicateOperation | 'CREATE';
@@ -58,7 +60,7 @@ export type SplittingState = {
     trackSwitches: SwitchOnLocationTrack[];
     startSplitPoint: SplitPoint;
     endSplitPoint: SplitPoint;
-    duplicateTracks: SplitDuplicate[];
+    duplicateTracks: SplitDuplicateTrack[];
     firstSplit: FirstSplitTargetCandidate;
     splits: SplitTargetCandidate[];
     disabled: boolean;
@@ -74,7 +76,7 @@ export type SplitStart = {
     startSplitPoint: SplitPoint;
     endSplitPoint: SplitPoint;
     prefilledSplitPoints: SplitPoint[];
-    duplicateTracks: SplitDuplicate[];
+    duplicateTracks: SplitDuplicateTrack[];
     startLocation: AlignmentPoint;
     endLocation: AlignmentPoint;
     trackNumber: TrackNumber;
@@ -115,7 +117,7 @@ function getNextSplitId(): number {
     return splitIdSequence++;
 }
 
-const findDuplicateStartingAt = (duplicates: SplitDuplicate[], splitPoint: SplitPoint) => {
+const findDuplicateStartingAt = (duplicates: SplitDuplicateTrack[], splitPoint: SplitPoint) => {
     return duplicates.find((duplicate) => {
         const duplicateSplitPoint = duplicate.status.startSplitPoint;
         return (
@@ -137,7 +139,7 @@ export function getAllowedSwitchesFromState(state: SplittingState) {
 const prefillSplits = (
     prefilledSplitPoints: SplitPoint[],
     switchesOnTrack: SwitchOnLocationTrack[],
-    duplicateTracks: SplitDuplicate[],
+    duplicateTracks: SplitDuplicateTrack[],
     originTrackId: LocationTrackId,
 ): SplitTargetCandidate[] =>
     prefilledSplitPoints
@@ -398,7 +400,7 @@ const isAlreadySplit = (existingSplits: SplitTargetCandidate[], splitPoint: Spli
     existingSplits.some((split) => splitPointsAreSame(splitPoint, split.splitPoint));
 
 function splitPointToSplitTargetCandidate(
-    duplicateTracks: SplitDuplicate[],
+    duplicateTracks: SplitDuplicateTrack[],
     originLocationTrackId: LocationTrackId,
     switchLocation: Point,
     switchDistance: number,

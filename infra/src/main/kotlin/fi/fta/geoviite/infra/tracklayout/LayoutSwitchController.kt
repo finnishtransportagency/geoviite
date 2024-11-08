@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -13,8 +14,9 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
+import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -29,7 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam
 @GeoviiteController("/track-layout/switches")
 class LayoutSwitchController(
     private val switchService: LayoutSwitchService,
-    private val publicationService: PublicationService,
+    private val publicationValidationService: PublicationValidationService,
 ) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -95,15 +97,18 @@ class LayoutSwitchController(
         @RequestParam("bbox") bbox: BoundingBox?,
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        val switches = if (ids != null) {
-            switchService.getMany(layoutContext, ids)
-        } else {
-            switchService.list(layoutContext, false)
-        }
-        val switchIds = switches
-            .filter { switch -> switchMatchesBbox(switch, bbox, false) }
-            .map { sw -> sw.id as IntId }
-        return publicationService.validateSwitches(layoutContext, switchIds)
+        val switches =
+            if (ids != null) {
+                switchService.getMany(layoutContext, ids)
+            } else {
+                switchService.list(layoutContext, false)
+            }
+        val switchIds =
+            switches.filter { switch -> switchMatchesBbox(switch, bbox, false) }.map { sw -> sw.id as IntId }
+        return publicationValidationService.validateSwitches(
+            draftTransitionOrOfficialState(publicationState, branch),
+            switchIds,
+        )
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
@@ -133,6 +138,13 @@ class LayoutSwitchController(
     ): IntId<TrackLayoutSwitch> {
         return switchService.deleteDraft(branch, switchId).id
     }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/{$LAYOUT_BRANCH}/{id}/cancel")
+    fun cancelSwitch(
+        @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
+        @PathVariable("id") id: IntId<TrackLayoutSwitch>,
+    ): ResponseEntity<IntId<TrackLayoutSwitch>> = toResponse(switchService.cancel(branch, id)?.id)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/{id}/change-info")

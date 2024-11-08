@@ -9,18 +9,11 @@ const val OK = "OK"
 @GeoviiteController("/test-auth")
 class AuthorizationTestController {
 
-    @GetMapping("/public")
-    fun testPublic() = OK
+    @GetMapping("/public") fun testPublic() = OK
 
-    @PreAuthorize(AUTH_BASIC)
-    @GetMapping("/read")
-    fun testRead() = OK
+    @PreAuthorize(AUTH_BASIC) @GetMapping("/read") fun testRead() = OK
 
-    @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @GetMapping("/write")
-    fun testWrite() = OK
+    @PreAuthorize(AUTH_EDIT_LAYOUT) @GetMapping("/write") fun testWrite() = OK
 
-    @PreAuthorize("hasAuthority('there-is-no-such-privilege')")
-    @GetMapping("/fail")
-    fun testFail() = OK
+    @PreAuthorize("hasAuthority('there-is-no-such-privilege')") @GetMapping("/fail") fun testFail() = OK
 }

@@ -18,7 +18,6 @@
     }
 
     &__left-section,
-    &__middle-section,
     &__right-section {
         flex: 1;
         display: flex;
@@ -31,12 +30,17 @@
     }
 
     &__tabs {
-        width: 330px;
-        height: 100%;
+        display: flex;
     }
 
-    &__left-section .dropdown {
-        width: 330px;
+    &__design-id-selector-popup {
+        @include vayla-design.shadow-8dp;
+        z-index: vayla-design.$layer-popup;
+    }
+
+    &__search-container {
+        width: 300px;
+        margin-left: 16px;
     }
 
     &__middle-section {
@@ -54,11 +58,30 @@
     }
 
     &__tab-header {
-        height: 100%;
         padding: 12px 8px;
+        max-width: none;
 
         &:not(:last-child) {
             margin-right: 10px;
         }
+    }
+
+    &__design-tab-content {
+        display: flex;
+        align-items: center;
+    }
+
+    &__design-name {
+        display: inline-block;
+        max-width: 12em;
+        text-overflow: ellipsis;
+        overflow-x: hidden;
+        vertical-align: text-bottom;
+    }
+
+    &__design-tab-actions {
+        display: flex;
+        align-items: center;
+        margin-left: 4px;
     }
 }

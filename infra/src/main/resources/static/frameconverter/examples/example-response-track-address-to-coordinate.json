@@ -1,0 +1,81 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "geometry": {
+                "type": "Point",
+                "coordinates": []
+            },
+            "properties": {
+                "x": 259352.28689470183,
+                "y": 6804091.487162549,
+                "valimatka": 0.0,
+                "ratanumero": "002",
+                "sijaintiraide": "AHV 072",
+                "sijaintiraide_kuvaus": "Ahvenus raide: 072 V001 - V002",
+                "sijaintiraide_tyyppi": "sivuraide",
+                "ratakilometri": 270,
+                "ratametri": 300,
+                "ratametri_desimaalit": 0
+            },
+            "type": "Feature"
+        },
+        {
+            "geometry": {
+                "type": "Point",
+                "coordinates": []
+            },
+            "properties": {
+                "x": 259353.7089218206,
+                "y": 6804090.432379263,
+                "valimatka": 0.0,
+                "ratanumero": "002",
+                "sijaintiraide": "AHV V003-P",
+                "sijaintiraide_kuvaus": "Ahvenus raide: V003-P V003 - Puskin",
+                "sijaintiraide_tyyppi": "turvaraide",
+                "ratakilometri": 270,
+                "ratametri": 300,
+                "ratametri_desimaalit": 0
+            },
+            "type": "Feature"
+        },
+        {
+            "geometry": {
+                "type": "Point",
+                "coordinates": []
+            },
+            "properties": {
+                "x": 259348.2044106648,
+                "y": 6804094.515329783,
+                "valimatka": 0.0,
+                "ratanumero": "002",
+                "sijaintiraide": "AHV 071",
+                "sijaintiraide_kuvaus": "Ahvenus raide: 071 V001 - V002",
+                "sijaintiraide_tyyppi": "pääraide",
+                "ratakilometri": 270,
+                "ratametri": 300,
+                "ratametri_desimaalit": 0
+            },
+            "type": "Feature"
+        },
+        {
+            "geometry": {
+                "type": "Point",
+                "coordinates": []
+            },
+            "properties": {
+                "x": 259348.20489785343,
+                "y": 6804094.514968412,
+                "valimatka": 0.0,
+                "ratanumero": "002",
+                "sijaintiraide": "002",
+                "sijaintiraide_kuvaus": "Lielahti-Kokemäki-Pori-Mäntyluoto",
+                "sijaintiraide_tyyppi": "pääraide",
+                "ratakilometri": 270,
+                "ratametri": 300,
+                "ratametri_desimaalit": 0
+            },
+            "type": "Feature"
+        }
+    ]
+}

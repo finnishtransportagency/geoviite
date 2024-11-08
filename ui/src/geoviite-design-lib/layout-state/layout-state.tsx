@@ -11,7 +11,6 @@ function getTranslationKey(layoutState: LayoutStateModel) {
     switch (layoutState) {
         case 'IN_USE':
         case 'NOT_IN_USE':
-        case 'PLANNED':
         case 'DELETED':
             return layoutState;
         default:

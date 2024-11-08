@@ -29,7 +29,6 @@ const links: Link[] = [
         type: 'prod',
         qaId: 'track-layout-link',
     },
-    { link: '/registry', name: 'app-bar.register', type: 'test' },
     {
         link: '/infra-model',
         name: 'app-bar.infra-model',

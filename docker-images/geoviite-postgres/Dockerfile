@@ -1,7 +1,14 @@
-FROM postgres:15.3-alpine
+FROM postgres:16.3-alpine
 
-ENV POSTGIS_VERSION 3.3.3
-ENV POSTGIS_SHA256 441bb33bd2be362c7c463161207f290a1c25083027a069322696eeec74fc916b
+# The available postgres versions can be checked with:
+# aws rds describe-db-engine-versions --engine aurora-postgresql --query '*[].[EngineVersion]' --output text --profile geoviite-kehitys --region eu-west-1
+
+# Also check that Postgres and PostGIS versions are compatible with Aurora, so that dev uses the same version as prod
+# https://docs.aws.amazon.com/AmazonRDS/latest/AuroraPostgreSQLReleaseNotes/AuroraPostgreSQL.Extensions.html
+ENV POSTGIS_VERSION=3.4.2
+
+# Check SHA to ensure the downloaded file is not corrupted. To get this, run `sha256sum postgis.tar.gz` on the correct file on your own computer
+ENV POSTGIS_SHA256=17aa8760a5c4fcb9a1fdc750c1c9aca0198a35dd1e320628064c43f178eefed2
 
 RUN addgroup -g 1000 -S pg-user && adduser -G pg-user -u 1000 -S pg-user
 

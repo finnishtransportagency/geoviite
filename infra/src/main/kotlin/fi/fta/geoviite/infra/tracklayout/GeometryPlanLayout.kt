@@ -28,21 +28,31 @@ data class GeometryPlanLayout(
 ) : Loggable {
     val boundingBox: BoundingBox? = boundingBoxCombining(alignments.mapNotNull { a -> a.boundingBox })
 
-    fun withLayoutGeometry(resolution: Int? = null) = copy(
-        alignments = alignments.map { alignment ->
-            alignment.copy(
-                polyLine = toAlignmentPolyLine(alignment.id, alignment.header.alignmentType, alignment, resolution),
-                segmentMValues = getSegmentBorderMValues(alignment),
-            )
-        },
-    )
+    fun withLayoutGeometry(resolution: Int? = null) =
+        copy(
+            alignments =
+                alignments.map { alignment ->
+                    alignment.copy(
+                        polyLine =
+                            toAlignmentPolyLine(
+                                alignment.id,
+                                alignment.header.alignmentType,
+                                alignment,
+                                resolution,
+                                includeSegmentEndPoints = true,
+                            ),
+                        segmentMValues = getSegmentBorderMValues(alignment),
+                    )
+                }
+        )
 
-    override fun toLog(): String = logFormat(
-        "plan" to id,
-        "alignments" to alignments.map(PlanLayoutAlignment::toLog),
-        "switches" to switches.map(TrackLayoutSwitch::toLog),
-        "kmPosts" to kmPosts.map(TrackLayoutKmPost::toLog),
-    )
+    override fun toLog(): String =
+        logFormat(
+            "plan" to id,
+            "alignments" to alignments.map(PlanLayoutAlignment::toLog),
+            "switches" to switches.map(TrackLayoutSwitch::toLog),
+            "kmPosts" to kmPosts.map(TrackLayoutKmPost::toLog),
+        )
 }
 
 data class PlanLayoutAlignment(
@@ -52,17 +62,15 @@ data class PlanLayoutAlignment(
     val segmentMValues: List<Double> = listOf(),
 ) : IAlignment {
     @get:JsonIgnore
-    override val id: DomainId<GeometryAlignment> get() = header.id
+    override val id: DomainId<GeometryAlignment>
+        get() = header.id
 
     @get:JsonIgnore
-    override val boundingBox: BoundingBox? get() = header.boundingBox
+    override val boundingBox: BoundingBox?
+        get() = header.boundingBox
 
-    override fun toLog(): String = logFormat(
-        "id" to id,
-        "name" to header.name,
-        "segments" to segments.size,
-        "points" to polyLine?.points?.size,
-    )
+    override fun toLog(): String =
+        logFormat("id" to id, "name" to header.name, "segments" to segments.size, "points" to polyLine?.points?.size)
 }
 
 data class PlanLayoutSegment(

@@ -5,19 +5,14 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 import { createDelegates } from 'store/store-utils';
 import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
-import { getSuggestedSwitchByPoint } from 'linking/linking-api';
+import { getSuggestedSwitchForLayoutSwitchPlacing } from 'linking/linking-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
-import { first } from 'utils/array-utils';
 
 type ToolPanelContainerProps = {
     setHoveredOverItem: (item: HighlightedAlignment | undefined) => void;
-    selectingWorkspace: boolean;
 };
 
-const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({
-    setHoveredOverItem,
-    selectingWorkspace,
-}) => {
+const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverItem }) => {
     const store = useTrackLayoutAppSelector((state) => state);
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
@@ -48,18 +43,19 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({
     React.useEffect(() => {
         const linkingState = store.linkingState;
         if (linkingState?.type == LinkingType.PlacingSwitch && linkingState.location) {
-            getSuggestedSwitchByPoint(linkingState.location, linkingState.layoutSwitch.id).then(
-                (suggestedSwitches) => {
-                    delegates.stopLinking();
+            getSuggestedSwitchForLayoutSwitchPlacing(
+                store.layoutContext.branch,
+                linkingState.location,
+                linkingState.layoutSwitch.id,
+            ).then((suggestedSwitch) => {
+                delegates.stopLinking();
 
-                    const suggestedSwitch = first(suggestedSwitches);
-                    if (suggestedSwitch) {
-                        startSwitchLinking(suggestedSwitch, linkingState.layoutSwitch);
-                    } else {
-                        delegates.hideLayers(['switch-linking-layer']);
-                    }
-                },
-            );
+                if (suggestedSwitch) {
+                    startSwitchLinking(suggestedSwitch, linkingState.layoutSwitch);
+                } else {
+                    delegates.hideLayers(['switch-linking-layer']);
+                }
+            });
         }
     }, [store.linkingState]);
 
@@ -86,7 +82,6 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({
             viewport={store.map.viewport}
             verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramState.visible}
             onHoverOverPlanSection={setHoveredOverItem}
-            selectingWorkspace={selectingWorkspace}
         />
     );
 };

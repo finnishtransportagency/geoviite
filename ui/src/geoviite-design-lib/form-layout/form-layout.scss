@@ -10,6 +10,10 @@
         grid-template-columns: 1fr 1fr;
         grid-gap: 24px;
     }
+
+    &--error-at-bottom {
+        padding-bottom: 0;
+    }
 }
 
 .form-layout__glass {

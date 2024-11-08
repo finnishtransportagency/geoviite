@@ -25,19 +25,14 @@ internal fun validateSourceGeometry(
     } else {
         val officialPoints = officialAddressPoint.allPoints
 
-        draftAddresses
-            .allPoints
+        draftAddresses.allPoints
             .withIndex()
             .firstOrNull { (targetIndex, targetPoint) ->
                 val idx = min(officialPoints.lastIndex, targetIndex)
                 !targetPoint.isSame(officialPoints[idx])
             }
             ?.let { (_, point) ->
-                LayoutValidationIssue(
-                    ERROR,
-                    "$VALIDATION_SPLIT.geometry-changed",
-                    mapOf("point" to point),
-                )
+                LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.geometry-changed", mapOf("point" to point))
             }
     }
 }
@@ -45,33 +40,31 @@ internal fun validateSourceGeometry(
 internal fun validateSplitContent(
     trackVersions: List<ValidationVersion<LocationTrack>>,
     switchVersions: List<ValidationVersion<TrackLayoutSwitch>>,
-    splits: Collection<Split>,
+    publicationSplits: Collection<Split>,
     allowMultipleSplits: Boolean,
 ): List<Pair<Split, LayoutValidationIssue>> {
-    val multipleSplitsStagedErrors = if (!allowMultipleSplits && splits.size > 1) {
-        splits.map { split ->
-            split to LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.multiple-splits-not-allowed")
-        }
-    } else {
-        emptyList()
-    }
-
-    val contentErrors = splits
-        .filter { split -> split.publicationId == null }
-        .flatMap { split ->
-            val containsSource = trackVersions.any { it.officialId == split.sourceLocationTrackId }
-            val containsTargets = split.targetLocationTracks.all { tlt ->
-                trackVersions.any { it.officialId == tlt.locationTrackId }
+    val multipleSplitsStagedErrors =
+        if (!allowMultipleSplits && publicationSplits.size > 1) {
+            publicationSplits.map { split ->
+                split to LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.multiple-splits-not-allowed")
             }
+        } else {
+            emptyList()
+        }
+
+    val contentErrors =
+        publicationSplits.flatMap { split ->
+            val containsSource = trackVersions.any { it.officialId == split.sourceLocationTrackId }
+            val containsTargets =
+                split.targetLocationTracks.all { tlt -> trackVersions.any { it.officialId == tlt.locationTrackId } }
             val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.officialId == s } }
             listOfNotNull(
-                validate(containsSource && containsTargets, ERROR) {
-                    "$VALIDATION_SPLIT.split-missing-location-tracks"
-                },
-                validate(containsSwitches, ERROR) {
-                    "$VALIDATION_SPLIT.split-missing-switches"
-                },
-            ).map { e -> split to e }
+                    validate(containsSource && containsTargets, ERROR) {
+                        "$VALIDATION_SPLIT.split-missing-location-tracks"
+                    },
+                    validate(containsSwitches, ERROR) { "$VALIDATION_SPLIT.split-missing-switches" },
+                )
+                .map { e -> split to e }
         }
 
     return listOf(multipleSplitsStagedErrors, contentErrors).flatten()
@@ -87,20 +80,21 @@ internal fun validateTargetGeometry(
     return if (targetPoints == null || sourcePoints == null) {
         LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
-        targetPoints
-            .withIndex()
-            .firstNotNullOfOrNull { (targetIndex, targetPoint) ->
-                val sourcePoint = sourcePoints.getOrNull(targetIndex)
-                if (sourcePoint?.address != targetPoint.address) {
-                    LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.trackmeters-changed")
-                } else if (operation != SplitTargetOperation.TRANSFER && !targetPoint.point.isSame(sourcePoint.point)) {
-                    LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.geometry-changed")
-                } else if (operation == SplitTargetOperation.TRANSFER && lineLength(targetPoint.point, sourcePoint.point) > MAX_SPLIT_POINT_OFFSET) {
-                    LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.transfer-geometry-changed")
-                } else {
-                    null
-                }
+        targetPoints.withIndex().firstNotNullOfOrNull { (targetIndex, targetPoint) ->
+            val sourcePoint = sourcePoints.getOrNull(targetIndex)
+            if (sourcePoint?.address != targetPoint.address) {
+                LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.trackmeters-changed")
+            } else if (operation != SplitTargetOperation.TRANSFER && !targetPoint.point.isSame(sourcePoint.point)) {
+                LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.geometry-changed")
+            } else if (
+                operation == SplitTargetOperation.TRANSFER &&
+                    lineLength(targetPoint.point, sourcePoint.point) > MAX_SPLIT_POINT_OFFSET
+            ) {
+                LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.transfer-geometry-changed")
+            } else {
+                null
             }
+        }
     }
 }
 
@@ -125,14 +119,12 @@ internal fun validateSplitStatus(
         validationError("$VALIDATION_SPLIT.track-split-in-progress", "sourceName" to sourceTrack.name)
     }
 
-internal fun validateSplitSourceLocationTrack(
-    locationTrack: LocationTrack,
-    split: Split,
-): List<LayoutValidationIssue> = listOfNotNull(
-    produceIf(locationTrack.exists) {
-        validationError("$VALIDATION_SPLIT.source-not-deleted", "sourceName" to locationTrack.name)
-    },
-    produceIf(locationTrack.version != split.sourceLocationTrackVersion) {
-        validationError("$VALIDATION_SPLIT.source-edited-after-split", "sourceName" to locationTrack.name)
-    }
-)
+internal fun validateSplitSourceLocationTrack(locationTrack: LocationTrack, split: Split): List<LayoutValidationIssue> =
+    listOfNotNull(
+        produceIf(locationTrack.exists) {
+            validationError("$VALIDATION_SPLIT.source-not-deleted", "sourceName" to locationTrack.name)
+        },
+        produceIf(locationTrack.version != split.sourceLocationTrackVersion) {
+            validationError("$VALIDATION_SPLIT.source-edited-after-split", "sourceName" to locationTrack.name)
+        },
+    )

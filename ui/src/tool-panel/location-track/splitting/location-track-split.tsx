@@ -8,14 +8,16 @@ import { createClassName } from 'vayla-design-lib/utils';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import {
-    AddressPoint,
+    AlignmentEndPoint,
     LayoutLocationTrack,
     LocationTrackId,
     SplitPoint,
 } from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
+    PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS,
     SplitTargetCandidate,
+    SplitTargetOperation,
 } from 'tool-panel/location-track/split-store';
 import {
     calculateBoundingBoxToShowAroundLocation,
@@ -30,10 +32,11 @@ import {
 } from './split-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { BoundingBox, Point } from 'model/geometry';
-import { SplitDuplicate } from 'track-layout/layout-location-track-api';
+import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
+import { filterNotEmpty } from 'utils/array-utils';
 
 type CommonProps = {
-    addressPoint: AddressPoint | undefined;
+    addressPoint: AlignmentEndPoint | undefined;
     editingDisabled: boolean;
     showArea: (bbox: BoundingBox) => void;
 };
@@ -55,7 +58,7 @@ type SplitProps = CommonProps & {
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
-    allDuplicateLocationTracks: SplitDuplicate[];
+    allDuplicateLocationTracks: SplitDuplicateTrack[];
     duplicateLocationTrack: LayoutLocationTrack | undefined;
     underlyingAssetExists: boolean;
     showArea: (bbox: BoundingBox) => void;
@@ -155,6 +158,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     const endSwitchMatchingError = switchIssues.find(
         (error) => error.reason == END_SPLIT_POINT_NOT_MATCHING_ERROR,
     );
+    const duplicate = allDuplicateLocationTracks.find((d) => d.id == split.duplicateTrackId);
 
     // TODO: Adding any kind of dependency array causes infinite re-render loops, find out why
     React.useEffect(() => {
@@ -168,6 +172,57 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
 
     const nameErrorsVisible = nameCommitted && nameIssues.length > 0;
     const descriptionErrorsVisible = descriptionCommitted && descriptionIssues.length > 0;
+
+    const isPartialDuplicate = split.duplicateStatus?.match == 'PARTIAL';
+    const duplicateLength = duplicate?.length;
+    const overlappingDuplicateLength = split.duplicateStatus?.overlappingLength;
+    const nonOverlappingDuplicateLength =
+        (duplicateLength !== undefined &&
+            overlappingDuplicateLength != undefined &&
+            duplicateLength - overlappingDuplicateLength) ||
+        undefined;
+
+    const isShortNonOverlappingDuplicateLength =
+        isPartialDuplicate &&
+        nonOverlappingDuplicateLength != undefined &&
+        nonOverlappingDuplicateLength < nonOverlappingDuplicateLength != undefined &&
+        nonOverlappingDuplicateLength <
+            PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS;
+
+    function getOperationTooltip(
+        operation: SplitTargetOperation,
+        overlappingDuplicateLength: number | undefined,
+        nonOverlappingDuplicateLength: number | undefined,
+        isShortNonOverlappingDuplicateLength: boolean,
+    ) {
+        if (operation == 'TRANSFER') {
+            const isPartialTooltip = t(
+                'tool-panel.location-track.splitting.is-partial-duplicate-tooltip',
+                {
+                    overlappingLength: overlappingDuplicateLength?.toFixed(1),
+                    nonOverlappingLength: nonOverlappingDuplicateLength?.toFixed(1),
+                },
+            );
+            const tooShortNonOverlappingLengthWarning = isShortNonOverlappingDuplicateLength
+                ? t('tool-panel.location-track.splitting.short-duplicate-non-overlap-warning', {
+                      overlappingLength: overlappingDuplicateLength?.toFixed(1),
+                      nonOverlappingLength: nonOverlappingDuplicateLength?.toFixed(1),
+                  })
+                : undefined;
+            return [isPartialTooltip, tooShortNonOverlappingLengthWarning]
+                .filter(filterNotEmpty)
+                .join('\n\n');
+        } else {
+            return '';
+        }
+    }
+
+    const operationTooltip = getOperationTooltip(
+        split.operation,
+        overlappingDuplicateLength,
+        nonOverlappingDuplicateLength,
+        isShortNonOverlappingDuplicateLength,
+    );
 
     function showSwitchOnMap(location: Point) {
         showArea(getShowSwitchOnMapBoundingBox(location));
@@ -297,11 +352,44 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             hasErrors={nameErrorsVisible}
                             label={''}>
                             {!nameErrorsVisible && split.operation && (
-                                <InfoboxText
-                                    value={t(
+                                <span
+                                    className={createClassName(
+                                        styles['location-track-infobox__split-operation'],
+                                        isShortNonOverlappingDuplicateLength &&
+                                            styles[
+                                                'location-track-infobox__split-operation--warning'
+                                            ],
+                                    )}
+                                    title={operationTooltip}>
+                                    {t(
                                         `tool-panel.location-track.splitting.operation.${split.operation}`,
                                     )}
-                                />
+
+                                    {split.operation == 'TRANSFER' && (
+                                        <span
+                                            className={createClassName(
+                                                styles[
+                                                    'location-track-infobox__split-operation-icon'
+                                                ],
+                                                isShortNonOverlappingDuplicateLength &&
+                                                    styles[
+                                                        'location-track-infobox__split-operation-icon--warning'
+                                                    ],
+                                            )}>
+                                            {isShortNonOverlappingDuplicateLength ? (
+                                                <Icons.StatusError
+                                                    size={IconSize.SMALL}
+                                                    color={IconColor.INHERIT}
+                                                />
+                                            ) : (
+                                                <Icons.Info
+                                                    size={IconSize.SMALL}
+                                                    color={IconColor.INHERIT}
+                                                />
+                                            )}
+                                        </span>
+                                    )}
+                                </span>
                             )}
                             {nameErrorsVisible &&
                                 nameIssues.map((error, i) => (

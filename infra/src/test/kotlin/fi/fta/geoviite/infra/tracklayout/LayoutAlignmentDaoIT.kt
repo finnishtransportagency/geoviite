@@ -8,15 +8,19 @@ import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryProfile
+import fi.fta.geoviite.infra.geometry.VIPoint
 import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.infraModelFile
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.util.getIntId
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -27,11 +31,12 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LayoutAlignmentDaoIT @Autowired constructor(
+class LayoutAlignmentDaoIT
+@Autowired
+constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
@@ -137,51 +142,23 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
     @Test
     fun mixedNullsInHeightAndCantWork() {
-        val points = listOf(
-            SegmentPoint(
-                x = 10.0,
-                y = 20.0,
-                z = 1.0,
-                cant = 0.1,
-                m = 0.0,
-            ),
-            SegmentPoint(
-                x = 10.0,
-                y = 21.0,
-                z = null,
-                cant = null,
-                m = 1.0,
-            ),
-            SegmentPoint(
-                x = 10.0,
-                y = 22.0,
-                z = 1.5,
-                cant = 0.2,
-                m = 2.0,
-            ),
-        )
+        val points =
+            listOf(
+                SegmentPoint(x = 10.0, y = 20.0, z = 1.0, cant = 0.1, m = 0.0),
+                SegmentPoint(x = 10.0, y = 21.0, z = null, cant = null, m = 1.0),
+                SegmentPoint(x = 10.0, y = 22.0, z = 1.5, cant = 0.2, m = 2.0),
+            )
         val alignment = alignment(segment(points))
         val version = alignmentDao.insert(alignment)
         val fromDb = alignmentDao.fetch(version)
         assertEquals(1, fromDb.segments.size)
         assertEquals(points, fromDb.segments[0].segmentPoints)
 
-        val points2 = listOf(
-            SegmentPoint(
-                x = 11.0,
-                y = 22.0,
-                z = 1.0,
-                cant = null,
-                m = 0.0,
-            ),
-            SegmentPoint(
-                x = 11.0,
-                y = 23.0,
-                z = null,
-                cant = 0.3,
-                m = 1.0,
-            ),
-        )
+        val points2 =
+            listOf(
+                SegmentPoint(x = 11.0, y = 22.0, z = 1.0, cant = null, m = 0.0),
+                SegmentPoint(x = 11.0, y = 23.0, z = null, cant = 0.3, m = 1.0),
+            )
 
         val updatedVersion = alignmentDao.update(fromDb.copy(segments = listOf(segment(points2))))
         val updatedFromDb = alignmentDao.fetch(updatedVersion)
@@ -199,29 +176,33 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val points5 = arrayOf(Point(10.0, 14.0), Point(10.0, 15.0))
 
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val planVersion = geometryDao.insertPlan(
-            plan = plan(
-                trackNumber = trackNumber,
-                alignments = listOf(
-                    geometryAlignment(
-                        name = "test-alignment-name",
-                        elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
-                    )
-                ),
-            ),
-            file = infraModelFile("testfile.xml"),
-            boundingBoxInLayoutCoordinates = null,
-        )
+        val planVersion =
+            geometryDao.insertPlan(
+                plan =
+                    plan(
+                        trackNumber = trackNumber,
+                        alignments =
+                            listOf(
+                                geometryAlignment(
+                                    name = "test-alignment-name",
+                                    elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
+                                )
+                            ),
+                    ),
+                file = infraModelFile("testfile.xml"),
+                boundingBoxInLayoutCoordinates = null,
+            )
         val plan = geometryDao.fetchPlan(planVersion)
         val geometryAlignment = plan.alignments.first()
         val geometryElement = geometryAlignment.elements.first()
-        val alignment = alignment(
-            segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement.id),
-            segment(points = points2, source = GeometrySource.PLAN, sourceId = geometryElement.id),
-            segment(points = points3, source = GeometrySource.GENERATED),
-            segment(points = points4, source = GeometrySource.GENERATED),
-            segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement.id),
-        )
+        val alignment =
+            alignment(
+                segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement),
+                segment(points = points2, source = GeometrySource.PLAN, sourceId = geometryElement),
+                segment(points = points3, source = GeometrySource.GENERATED),
+                segment(points = points4, source = GeometrySource.GENERATED),
+                segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement),
+            )
         val version = alignmentDao.insert(alignment)
 
         val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(version, null, null)
@@ -256,66 +237,105 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val points3 = arrayOf(Point(10.0, 12.0), Point(10.0, 13.0))
         val points4 = arrayOf(Point(10.0, 13.0), Point(10.0, 14.0))
         val points5 = arrayOf(Point(10.0, 14.0), Point(10.0, 15.0))
+        val points6 = arrayOf(Point(10.0, 15.0), Point(10.0, 16.0))
 
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
-        val planVersion = geometryDao.insertPlan(
-            plan = plan(
-                trackNumber = trackNumber,
-                alignments = listOf(
-                    geometryAlignment(
-                        name = "test-alignment-name",
-                        elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
-                    )
-                ),
-                coordinateSystemName = CoordinateSystemName("testcrs"),
-                verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
-            ),
-            file = infraModelFile("testfile.xml"),
-            boundingBoxInLayoutCoordinates = null,
-        )
+        val planVersion =
+            geometryDao.insertPlan(
+                plan =
+                    plan(
+                        trackNumber = trackNumber,
+                        alignments =
+                            listOf(
+                                geometryAlignment(
+                                    name = "test-alignment-name",
+                                    elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
+                                    profile =
+                                        GeometryProfile(
+                                            PlanElementName("profile"),
+                                            listOf(
+                                                VIPoint(PlanElementName("point1"), Point(0.0, 0.0)),
+                                                VIPoint(PlanElementName("point2"), Point(1.0, 1.0)),
+                                            ),
+                                        ),
+                                ),
+                                geometryAlignment(
+                                    name = "alignment-missing-profile",
+                                    elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
+                                ),
+                            ),
+                        coordinateSystemName = CoordinateSystemName("testcrs"),
+                        verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
+                    ),
+                file = infraModelFile("testfile.xml"),
+                boundingBoxInLayoutCoordinates = null,
+            )
         val plan = geometryDao.fetchPlan(planVersion)
         val geometryAlignment = plan.alignments.first()
         val geometryElement = geometryAlignment.elements.first()
+        val geometryAlignmentWithCrsButNoProfile = plan.alignments[1]
+        val geometryElementWithCrsButNoProfile = geometryAlignmentWithCrsButNoProfile.elements.first()
 
-        val planVersionWithoutCrs = geometryDao.insertPlan(
-            plan = plan(
-                trackNumber = trackNumber,
-                alignments = listOf(
-                    geometryAlignment(
-                        name = "test-alignment-name-2",
-                        elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
-                    )
-                ),
-                coordinateSystemName = null,
-                verticalCoordinateSystem = null,
-            ),
-            file = infraModelFile("testfile2.xml"),
-            boundingBoxInLayoutCoordinates = null,
-        )
+        val planVersionWithoutCrs =
+            geometryDao.insertPlan(
+                plan =
+                    plan(
+                        trackNumber = trackNumber,
+                        alignments =
+                            listOf(
+                                geometryAlignment(
+                                    name = "test-alignment-name-2",
+                                    elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
+                                )
+                            ),
+                        coordinateSystemName = null,
+                        verticalCoordinateSystem = null,
+                    ),
+                file = infraModelFile("testfile2.xml"),
+                boundingBoxInLayoutCoordinates = null,
+            )
         val planWithoutCrs = geometryDao.fetchPlan(planVersionWithoutCrs)
         val geometryAlignmentWithoutCrs = planWithoutCrs.alignments.first()
         val geometryElementWithoutCrs = geometryAlignmentWithoutCrs.elements.first()
 
-        val alignment = alignment(
-            segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement.id),
-            segment(points = points2, source = GeometrySource.IMPORTED),
-            segment(points = points3, source = GeometrySource.GENERATED),
-            segment(points = points4, source = GeometrySource.PLAN, sourceId = geometryElementWithoutCrs.id),
-            segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement.id),
-        )
+        val alignment =
+            alignment(
+                segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement),
+                segment(points = points2, source = GeometrySource.IMPORTED),
+                segment(points = points3, source = GeometrySource.GENERATED),
+                segment(points = points4, source = GeometrySource.PLAN, sourceId = geometryElementWithoutCrs),
+                segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement),
+                segment(points = points6, source = GeometrySource.PLAN, sourceId = geometryElementWithCrsButNoProfile),
+            )
         val version = alignmentDao.insert(alignment)
         locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version, draft = false))
 
-        val profileInfo = alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
-            MainLayoutContext.official,
-            boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList()),
-        )
-        assertEquals(5, profileInfo.size)
-        assertTrue(profileInfo[0].hasProfile)
-        assertFalse(profileInfo[1].hasProfile)
-        assertFalse(profileInfo[2].hasProfile)
-        assertFalse(profileInfo[3].hasProfile)
-        assertTrue(profileInfo[4].hasProfile)
+        val boundingBox = boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
+        val profileInfo =
+            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
+                MainLayoutContext.official,
+                boundingBox,
+            )
+        assertEquals(6, profileInfo.size)
+        assertEquals(listOf(true, false, false, false, true, false), profileInfo.map { it.hasProfile })
+
+        val onlyProfileless =
+            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
+                MainLayoutContext.official,
+                boundingBox,
+                false,
+            )
+        assertEquals(profileInfo.slice(1..3) + profileInfo[5], onlyProfileless)
+
+        val onlyProfileful =
+            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
+                MainLayoutContext.official,
+                boundingBox,
+                true,
+            )
+
+        assertEquals(2, onlyProfileful.size)
+        assertEquals(listOf(profileInfo[0], profileInfo[4]), onlyProfileful)
     }
 
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =
@@ -330,31 +350,30 @@ class LayoutAlignmentDaoIT @Autowired constructor(
     private fun segmentsWithoutZAndCant(alignmentSeed: Int, count: Int) =
         fixSegmentStarts((0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) })
 
-    private fun segmentWithoutZAndCant(segmentSeed: Int) = createSegment(
-        segmentSeed,
-        points(
-            count = 10,
-            x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
-            y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
-        ),
-    )
+    private fun segmentWithoutZAndCant(segmentSeed: Int) =
+        createSegment(
+            segmentSeed,
+            points(
+                count = 10,
+                x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
+                y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
+            ),
+        )
 
-    private fun segmentWithZAndCant(segmentSeed: Int) = createSegment(
-        segmentSeed,
-        points(
-            count = 20,
-            x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
-            y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
-            z = segmentSeed.toDouble()..segmentSeed + 20.0,
-            cant = segmentSeed.toDouble()..segmentSeed + 20.0,
-        ),
-    )
+    private fun segmentWithZAndCant(segmentSeed: Int) =
+        createSegment(
+            segmentSeed,
+            points(
+                count = 20,
+                x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
+                y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
+                z = segmentSeed.toDouble()..segmentSeed + 20.0,
+                cant = segmentSeed.toDouble()..segmentSeed + 20.0,
+            ),
+        )
 
-    private fun createSegment(segmentSeed: Int, points: List<SegmentPoint>) = segment(
-        points = points,
-        startM = segmentSeed * 0.1,
-        source = GeometrySource.PLAN,
-    )
+    private fun createSegment(segmentSeed: Int, points: List<SegmentPoint>) =
+        segment(points = points, startM = segmentSeed * 0.1, source = GeometrySource.PLAN)
 
     fun insertAndVerify(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
         val rowVersion = alignmentDao.insert(alignment)
@@ -373,30 +392,32 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         return rowVersion
     }
 
-    fun getDbSegmentCount(alignmentId: IntId<LayoutAlignment>): Int = jdbc.queryForObject(
-        """
+    fun getDbSegmentCount(alignmentId: IntId<LayoutAlignment>): Int =
+        jdbc.queryForObject(
+            """
                 select count(*) 
                 from layout.alignment inner join layout.segment_version 
                   on alignment.id = segment_version.alignment_id and alignment.version = segment_version.alignment_version
                 where alignment_id = :id
                 """,
-        mapOf("id" to alignmentId.intValue),
-    ) { rs, _ -> rs.getInt("count") } ?: 0
+            mapOf("id" to alignmentId.intValue),
+        ) { rs, _ ->
+            rs.getInt("count")
+        } ?: 0
 
     private fun assertDbGeometriesHaveCorrectMValues() {
-        val sql = """
+        val sql =
+            """
            select id, postgis.st_astext(geometry) as geom, postgis.st_length(geometry) as length
            from layout.segment_geometry
            where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0
              or abs(postgis.st_m(postgis.st_endpoint(geometry)) - postgis.st_length(geometry))/postgis.st_length(geometry) > 0.01;
-        """.trimIndent()
-        val geometriesWithInvalidMValues = jdbc.query(sql, mapOf<String, Any>()) { rs, _ ->
-            Triple(
-                rs.getIntId<SegmentGeometry>("id"),
-                rs.getDouble("length"),
-                rs.getString("geom"),
-            )
-        }
+        """
+                .trimIndent()
+        val geometriesWithInvalidMValues =
+            jdbc.query(sql, mapOf<String, Any>()) { rs, _ ->
+                Triple(rs.getIntId<SegmentGeometry>("id"), rs.getDouble("length"), rs.getString("geom"))
+            }
         assertTrue(
             geometriesWithInvalidMValues.isEmpty(),
             "All geometries should have m-values at 0.0-length: violations=$geometriesWithInvalidMValues",

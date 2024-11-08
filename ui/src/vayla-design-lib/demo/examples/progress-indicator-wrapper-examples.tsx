@@ -24,6 +24,8 @@ export const ProgressIndicatorWrapperExamples: React.FC = () => {
                 inProgress ? 4000 : 2000,
             );
             return () => clearTimeout(timeoutId);
+        } else {
+            return () => undefined;
         }
     }, [inProgress, changeAutomatically]);
 

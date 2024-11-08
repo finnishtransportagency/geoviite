@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.math
 
 import fi.fta.geoviite.infra.math.IntersectType.*
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
 import kotlin.math.hypot
 import kotlin.math.sqrt
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 const val DOUBLE_CALC_ACCURACY = 0.00000000000001
 
@@ -128,45 +128,69 @@ class LineTest {
                 val xi = xIntersection.toDouble()
                 val yi = yIntersection.toDouble()
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = WITHIN, inSegment2 = WITHIN,
+                    Point(xi, yi),
+                    inSegment1 = WITHIN,
+                    inSegment2 = WITHIN,
                     lineIntersection(
-                        Point(xi - 10.0, yi), Point(xi + 10.0, yi),
-                        Point(xi, yi - 10.0), Point(xi, yi + 10.0)
+                        Point(xi - 10.0, yi),
+                        Point(xi + 10.0, yi),
+                        Point(xi, yi - 10.0),
+                        Point(xi, yi + 10.0),
                     )!!,
                 )
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = WITHIN, inSegment2 = WITHIN,
+                    Point(xi, yi),
+                    inSegment1 = WITHIN,
+                    inSegment2 = WITHIN,
                     lineIntersection(
-                        Point(xi - 4.0, yi - 3.0), Point(xi + 4.0, yi + 3.0),
-                        Point(xi + 2.0, yi - 4.0), Point(xi - 2.0, yi + 4.0)
+                        Point(xi - 4.0, yi - 3.0),
+                        Point(xi + 4.0, yi + 3.0),
+                        Point(xi + 2.0, yi - 4.0),
+                        Point(xi - 2.0, yi + 4.0),
                     )!!,
                 )
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = AFTER, inSegment2 = WITHIN,
+                    Point(xi, yi),
+                    inSegment1 = AFTER,
+                    inSegment2 = WITHIN,
                     lineIntersection(
-                        Point(xi - 10.0, yi), Point(xi - 1.0, yi),
-                        Point(xi, yi - 10.0), Point(xi, yi + 10.0)
+                        Point(xi - 10.0, yi),
+                        Point(xi - 1.0, yi),
+                        Point(xi, yi - 10.0),
+                        Point(xi, yi + 10.0),
                     )!!,
                 )
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = BEFORE, inSegment2 = WITHIN,
+                    Point(xi, yi),
+                    inSegment1 = BEFORE,
+                    inSegment2 = WITHIN,
                     lineIntersection(
-                        Point(xi - 1.0, yi), Point(xi - 10.0, yi),
-                        Point(xi, yi - 10.0), Point(xi, yi + 10.0)
+                        Point(xi - 1.0, yi),
+                        Point(xi - 10.0, yi),
+                        Point(xi, yi - 10.0),
+                        Point(xi, yi + 10.0),
                     )!!,
                 )
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = WITHIN, inSegment2 = AFTER,
+                    Point(xi, yi),
+                    inSegment1 = WITHIN,
+                    inSegment2 = AFTER,
                     lineIntersection(
-                        Point(xi - 10.0, yi), Point(xi + 10.0, yi),
-                        Point(xi, yi + 10.0), Point(xi, yi + 1.0)
+                        Point(xi - 10.0, yi),
+                        Point(xi + 10.0, yi),
+                        Point(xi, yi + 10.0),
+                        Point(xi, yi + 1.0),
                     )!!,
                 )
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = WITHIN, inSegment2 = BEFORE,
+                    Point(xi, yi),
+                    inSegment1 = WITHIN,
+                    inSegment2 = BEFORE,
                     lineIntersection(
-                        Point(xi - 10.0, yi), Point(xi + 10.0, yi),
-                        Point(xi, yi + 1.0), Point(xi, yi + 10.0)
+                        Point(xi - 10.0, yi),
+                        Point(xi + 10.0, yi),
+                        Point(xi, yi + 1.0),
+                        Point(xi, yi + 10.0),
                     )!!,
                 )
             }

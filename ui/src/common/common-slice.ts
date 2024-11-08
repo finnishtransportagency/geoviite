@@ -39,14 +39,18 @@ export const initialChangeTimes: ChangeTimes = {
     layoutDesign: initialChangeTime,
 };
 
+export type VersionStatus = 'loading' | 'reload' | 'ok';
+
 export type CommonState = {
     version: string | undefined;
+    versionStatus: VersionStatus;
     changeTimes: ChangeTimes;
     user: User | undefined;
 };
 
-export const initialCommonState = {
+export const initialCommonState: CommonState = {
     version: undefined,
+    versionStatus: 'loading',
     changeTimes: initialChangeTimes,
     user: undefined,
 };
@@ -66,6 +70,12 @@ const commonSlice = createSlice({
     reducers: {
         setVersion: (state: CommonState, { payload: version }: PayloadAction<string>): void => {
             state.version = version;
+        },
+        setVersionStatus: (
+            state: CommonState,
+            { payload: versionStatus }: PayloadAction<VersionStatus>,
+        ): void => {
+            state.versionStatus = versionStatus;
         },
         setChangeTimes: function (
             { changeTimes }: CommonState,

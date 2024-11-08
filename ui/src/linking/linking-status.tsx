@@ -28,7 +28,7 @@ export const LinkingStatus: React.FC<LinkingStatusProps> = ({
         () => (planId ? getPlanLinkStatus(planId, layoutContext) : undefined),
         [
             planId,
-            layoutContext.designId,
+            layoutContext.branch,
             layoutContext.publicationState,
             switchChangeTime,
             locationTrackChangeTime,

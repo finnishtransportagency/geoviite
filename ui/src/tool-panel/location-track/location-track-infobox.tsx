@@ -157,15 +157,17 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 visibilityChange={visibilityChange}
                 setConfirmingDraftDelete={setConfirmingDraftDelete}
             />
-            <LocationTrackRatkoSyncInfobox
-                layoutContext={layoutContext}
-                locationTrackId={locationTrack.id}
-                visibilities={visibilities}
-                visibilityChange={visibilityChange}
-                setShowRatkoPushDialog={setShowRatkoPushDialog}
-            />
+            {layoutContext.branch === 'MAIN' && layoutContext.publicationState === 'OFFICIAL' && (
+                <LocationTrackRatkoSyncInfobox
+                    layoutContext={layoutContext}
+                    locationTrackId={locationTrack.id}
+                    visibilities={visibilities}
+                    visibilityChange={visibilityChange}
+                    setShowRatkoPushDialog={setShowRatkoPushDialog}
+                />
+            )}
 
-            {showRatkoPushDialog && (
+            {layoutContext.branch == 'MAIN' && showRatkoPushDialog && (
                 <LocationTrackRatkoPushDialog
                     layoutContext={layoutContext}
                     locationTrackId={locationTrack.id}

@@ -60,6 +60,8 @@ export const KilometerLengthsView = () => {
                         state={state}
                         onUpdateProp={dataProductsDelegates.onUpdateKmLengthsSearchProp}
                         setLoading={setLoading}
+                        locationPrecision={state.locationPrecision}
+                        setLocationPrecision={dataProductsDelegates.setKmLengthsLocationPrecision}
                     />
                 )}
                 {state.selectedSearch === 'ENTIRE_RAIL_NETWORK' && (
@@ -67,7 +69,11 @@ export const KilometerLengthsView = () => {
                 )}
             </div>
             {state.selectedSearch !== 'ENTIRE_RAIL_NETWORK' && (
-                <KilometerLengthsTable kmLengths={kmLengths} isLoading={loading} />
+                <KilometerLengthsTable
+                    kmLengths={kmLengths}
+                    isLoading={loading}
+                    locationPrecision={state.locationPrecision}
+                />
             )}
         </div>
     );

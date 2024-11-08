@@ -1,3 +1,4 @@
+-- increment this to force re-execution: 1
 drop view if exists layout.track_number_change_view;
 create view layout.track_number_change_view as
 (

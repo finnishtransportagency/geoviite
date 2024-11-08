@@ -32,7 +32,7 @@ import {
 import { bboxString, pointString } from 'common/common-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
-import { TRACK_LAYOUT_URI, contextInUri } from 'track-layout/track-layout-api';
+import { contextInUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { alignmentPointToLinkPoint, createLinkPoints } from 'linking/linking-store';
 import {
     deduplicate,
@@ -146,7 +146,7 @@ function geocodingUri(layoutContext: LayoutContext): string {
 }
 
 function cacheKey(id: ReferenceLineId | LocationTrackId, layoutContext: LayoutContext) {
-    return `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    return `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
 }
 
 export async function getMapAlignmentsByTiles(
@@ -312,7 +312,7 @@ function getLocationTrackSectionsWithoutProfileByTile(
     layoutContext: LayoutContext,
     mapTile: MapTile,
 ): Promise<AlignmentHighlight[]> {
-    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}`;
     const params = queryParams({ bbox: bboxString(mapTile.area) });
     return sectionsWithoutProfileCache.get(changeTime, tileKey, () =>
         getNonNull(`${mapUri(layoutContext)}/location-track/without-profile${params}`),
@@ -340,7 +340,7 @@ async function getAlignmentSectionsWithoutLinkingByTile(
     type: AlignmentFetchType,
     mapTile: MapTile,
 ): Promise<AlignmentHighlight[]> {
-    const tileKey = `${mapTile.id}_${type}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    const tileKey = `${mapTile.id}_${type}_${layoutContext.publicationState}_${layoutContext.branch}`;
     const params = queryParams({ bbox: bboxString(mapTile.area), type: type });
     return sectionsWithoutLinkingCache.get(changeTime, tileKey, () =>
         getNonNull(`${mapUri(layoutContext)}/alignment/without-linking${params}`),
@@ -412,6 +412,7 @@ export async function getLinkPointsByTiles(
     layoutContext: LayoutContext,
     mapTiles: MapTile[],
     alignment: LayoutAlignmentTypeAndId,
+    includeSegmentEndPoints: boolean = false,
 ): Promise<LinkPoint[]> {
     const segmentEndMs = await getSegmentEnds(
         draftLayoutContext(layoutContext),
@@ -421,7 +422,13 @@ export async function getLinkPointsByTiles(
     );
     const tiledAlignments = await Promise.all(
         mapTiles.map((tile) =>
-            getPolyLines(tile, changeTime, draftLayoutContext(layoutContext), 'ALL'),
+            getPolyLines(
+                tile,
+                changeTime,
+                draftLayoutContext(layoutContext),
+                'ALL',
+                includeSegmentEndPoints,
+            ),
         ),
     );
     const allPieces = tiledAlignments
@@ -479,12 +486,14 @@ async function getPolyLines(
     changeTime: TimeStamp,
     layoutContext: LayoutContext,
     fetchType: AlignmentFetchType,
+    includeSegmentEndPoints: boolean = false,
 ): Promise<AlignmentPolyLine[]> {
-    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.designId}_${fetchType}`;
+    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}_${fetchType}_${includeSegmentEndPoints}`;
     const params = queryParams({
         resolution: toMapAlignmentResolution(mapTile.resolution),
         bbox: bboxString(mapTile.area),
         type: fetchType.toUpperCase(),
+        includeSegmentEndPoints: includeSegmentEndPoints,
     });
     return await alignmentPolyLinesCache.get(changeTime, tileKey, () =>
         getNonNull<AlignmentPolyLine[]>(`${mapUri(layoutContext)}/alignment-polylines${params}`),
@@ -497,7 +506,7 @@ async function getLocationTrackPolyline(
     changeTime: TimeStamp,
     layoutContext: LayoutContext,
 ): Promise<AlignmentPolyLine | undefined> {
-    const tileKey = `${locationTrackId}_${mapTile.id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    const tileKey = `${locationTrackId}_${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}`;
     const params = queryParams({
         resolution: toMapAlignmentResolution(mapTile.resolution),
         bbox: bboxString(mapTile.area),
@@ -524,7 +533,7 @@ export async function getTrackMeter(
 
     return trackNumberTrackMeterCache.get(
         changeTime,
-        `${trackNumberId}_${layoutContext.publicationState}_${pointString(location)}`,
+        `${trackNumberId}_${layoutContext.publicationState}_${layoutContext.branch}_${pointString(location)}`,
         () => {
             return getNullable<TrackMeter>(
                 `${geocodingUri(layoutContext)}/address/${trackNumberId}${params}`,

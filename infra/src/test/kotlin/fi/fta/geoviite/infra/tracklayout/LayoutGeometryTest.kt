@@ -1,14 +1,15 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import kotlin.math.hypot
-import kotlin.test.assertEquals
 
 class LayoutGeometryTest {
 
@@ -16,11 +17,7 @@ class LayoutGeometryTest {
 
     @Test
     fun shouldReturnSegmentAsIsWhenDistanceIsOverSegmentsMValues() {
-        val segment = segment(
-            segmentPoint(0.0, 0.0, 1.0),
-            segmentPoint(10.0, 0.0, 11.0),
-            segmentPoint(20.0, 0.0, 21.0),
-        )
+        val segment = segment(segmentPoint(0.0, 0.0, 1.0), segmentPoint(10.0, 0.0, 11.0), segmentPoint(20.0, 0.0, 21.0))
 
         val (startSegment, endSegment) = segment.splitAtM(30.0, 0.0)
         assertEquals(segment, startSegment)
@@ -33,12 +30,13 @@ class LayoutGeometryTest {
 
     @Test
     fun shouldSplitFromSegmentPoint() {
-        val segment = segment(
-            segmentPoint(0.0, 0.0, 0.0),
-            segmentPoint(10.0, 0.0, 10.0),
-            segmentPoint(20.0, 0.0, 20.0),
-            start = 1.0,
-        )
+        val segment =
+            segment(
+                segmentPoint(0.0, 0.0, 0.0),
+                segmentPoint(10.0, 0.0, 10.0),
+                segmentPoint(20.0, 0.0, 20.0),
+                start = 1.0,
+            )
 
         val (startSegment, endSegment) = segment.splitAtM(11.0, 0.0001)
         assertEquals(2, startSegment.alignmentPoints.size)
@@ -55,22 +53,22 @@ class LayoutGeometryTest {
 
     @Test
     fun splitSegmentMetadataShouldBeCorrect() {
-        val segment = LayoutSegment(
-            geometry = SegmentGeometry(
-                segmentPoints = listOf(
-                    segmentPoint(10.0, 10.0, 0.0),
-                    segmentPoint(20.0, 20.0, 0.0 + hypot(10.0, 10.0)),
-                ),
-                resolution = 2,
-            ),
-            startM = 10.0,
-            sourceId = StringId(),
-            sourceStart = 15.0,
-            switchId = StringId(),
-            startJointNumber = JointNumber(2),
-            endJointNumber = JointNumber(2),
-            source = GeometrySource.IMPORTED,
-        )
+        val segment =
+            LayoutSegment(
+                geometry =
+                    SegmentGeometry(
+                        segmentPoints =
+                            listOf(segmentPoint(10.0, 10.0, 0.0), segmentPoint(20.0, 20.0, 0.0 + hypot(10.0, 10.0))),
+                        resolution = 2,
+                    ),
+                startM = 10.0,
+                sourceId = IndexedId(1, 1),
+                sourceStart = 15.0,
+                switchId = IntId(1),
+                startJointNumber = JointNumber(2),
+                endJointNumber = JointNumber(2),
+                source = GeometrySource.IMPORTED,
+            )
 
         val (startSegment, endSegment) = segment.splitAtM(20.0, 0.5)
         assertNotNull(endSegment)
@@ -95,11 +93,7 @@ class LayoutGeometryTest {
 
     @Test
     fun shouldSplitFromPointWithinTolerance() {
-        val segment = segment(
-            segmentPoint(0.0, 0.0, 0.0),
-            segmentPoint(10.0, 0.0, 10.0),
-            segmentPoint(20.0, 0.0, 20.0),
-        )
+        val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
 
         val (startSegment, endSegment) = segment.splitAtM(9.9, 0.5)
         assertEquals(2, startSegment.alignmentPoints.size)
@@ -116,11 +110,7 @@ class LayoutGeometryTest {
 
     @Test
     fun shouldNotSplitWhenEndPointIsWithinTolerance() {
-        val segment = segment(
-            segmentPoint(0.0, 0.0, 0.0),
-            segmentPoint(10.0, 0.0, 10.0),
-            segmentPoint(20.0, 0.0, 20.0),
-        )
+        val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
 
         val (startSegment, endSegment) = segment.splitAtM(20.5, 1.0)
         assertNull(endSegment)
@@ -131,11 +121,7 @@ class LayoutGeometryTest {
 
     @Test
     fun shouldSplitFromANewPointWhenNonePointsWithinTolerance() {
-        val segment = segment(
-            segmentPoint(0.0, 0.0, 0.0),
-            segmentPoint(10.0, 0.0, 10.0),
-            segmentPoint(20.0, 0.0, 20.0),
-        )
+        val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
 
         val (startSegment1, endSegment1) = segment.splitAtM(5.0, 0.5)
         assertEquals(2, startSegment1.alignmentPoints.size)
@@ -168,127 +154,52 @@ class LayoutGeometryTest {
 
     @Test
     fun seekSegmentPointAtMWorks() {
-        val segment = segment(
-            segmentPoint(0.0, 0.0, 0.0),
-            segmentPoint(10.0, 0.0, 10.0),
-            segmentPoint(20.0, 0.0, 20.0),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(0.0, 0.0, 0.0), 0, true),
-            segment.seekPointAtM(0.0),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(10.0, 0.0, 10.0), 1, true),
-            segment.seekPointAtM(10.0),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(20.0, 0.0, 20.0), 2, true),
-            segment.seekPointAtM(20.0),
-        )
+        val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
+        assertEquals(PointSeekResult(alignmentPoint(0.0, 0.0, 0.0), 0, true), segment.seekPointAtM(0.0))
+        assertEquals(PointSeekResult(alignmentPoint(10.0, 0.0, 10.0), 1, true), segment.seekPointAtM(10.0))
+        assertEquals(PointSeekResult(alignmentPoint(20.0, 0.0, 20.0), 2, true), segment.seekPointAtM(20.0))
 
-        assertEquals(
-            PointSeekResult(alignmentPoint(0.0, 0.0, 0.0), 0, true),
-            segment.seekPointAtM(-5.0),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(20.0, 0.0, 20.0), 2, true),
-            segment.seekPointAtM(25.0),
-        )
+        assertEquals(PointSeekResult(alignmentPoint(0.0, 0.0, 0.0), 0, true), segment.seekPointAtM(-5.0))
+        assertEquals(PointSeekResult(alignmentPoint(20.0, 0.0, 20.0), 2, true), segment.seekPointAtM(25.0))
 
-        assertEquals(
-            PointSeekResult(alignmentPoint(5.0, 0.0, 5.0), 1, false),
-            segment.seekPointAtM(5.0),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(13.0, 0.0, 13.0), 2, false),
-            segment.seekPointAtM(13.0),
-        )
+        assertEquals(PointSeekResult(alignmentPoint(5.0, 0.0, 5.0), 1, false), segment.seekPointAtM(5.0))
+        assertEquals(PointSeekResult(alignmentPoint(13.0, 0.0, 13.0), 2, false), segment.seekPointAtM(13.0))
     }
 
     @Test
     fun segmentPointAtLengthSnapsCorrectly() {
-        val segment = segment(
-            segmentPoint(0.0, 0.0, 0.0),
-            segmentPoint(10.0, 0.0, 10.0),
-            segmentPoint(20.0, 0.0, 20.0),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(0.05, 0.0, 0.05), 1, false),
-            segment.seekPointAtM(0.05, 0.0),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(0.0, 0.0, 0.0), 0, true),
-            segment.seekPointAtM(0.05, 0.1),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(0.15, 0.0, 0.15), 1, false),
-            segment.seekPointAtM(0.15, 0.1),
-        )
+        val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
+        assertEquals(PointSeekResult(alignmentPoint(0.05, 0.0, 0.05), 1, false), segment.seekPointAtM(0.05, 0.0))
+        assertEquals(PointSeekResult(alignmentPoint(0.0, 0.0, 0.0), 0, true), segment.seekPointAtM(0.05, 0.1))
+        assertEquals(PointSeekResult(alignmentPoint(0.15, 0.0, 0.15), 1, false), segment.seekPointAtM(0.15, 0.1))
 
-        assertEquals(
-            PointSeekResult(alignmentPoint(9.95, 0.0, 9.95), 1, false),
-            segment.seekPointAtM(9.95, 0.0),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(10.0, 0.0, 10.0), 1, true),
-            segment.seekPointAtM(9.95, 0.1),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(9.85, 0.0, 9.85), 1, false),
-            segment.seekPointAtM(9.85, 0.1),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(10.05, 0.0, 10.05), 2, false),
-            segment.seekPointAtM(10.05, 0.0),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(10.0, 0.0, 10.0), 1, true),
-            segment.seekPointAtM(10.05, 0.1),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(10.15, 0.0, 10.15), 2, false),
-            segment.seekPointAtM(10.15, 0.1),
-        )
+        assertEquals(PointSeekResult(alignmentPoint(9.95, 0.0, 9.95), 1, false), segment.seekPointAtM(9.95, 0.0))
+        assertEquals(PointSeekResult(alignmentPoint(10.0, 0.0, 10.0), 1, true), segment.seekPointAtM(9.95, 0.1))
+        assertEquals(PointSeekResult(alignmentPoint(9.85, 0.0, 9.85), 1, false), segment.seekPointAtM(9.85, 0.1))
+        assertEquals(PointSeekResult(alignmentPoint(10.05, 0.0, 10.05), 2, false), segment.seekPointAtM(10.05, 0.0))
+        assertEquals(PointSeekResult(alignmentPoint(10.0, 0.0, 10.0), 1, true), segment.seekPointAtM(10.05, 0.1))
+        assertEquals(PointSeekResult(alignmentPoint(10.15, 0.0, 10.15), 2, false), segment.seekPointAtM(10.15, 0.1))
 
-        assertEquals(
-            PointSeekResult(alignmentPoint(19.95, 0.0, 19.95), 2, false),
-            segment.seekPointAtM(19.95, 0.0),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(20.0, 0.0, 20.0), 2, true),
-            segment.seekPointAtM(19.95, 0.1),
-        )
-        assertEquals(
-            PointSeekResult(alignmentPoint(19.85, 0.0, 19.85), 2, false),
-            segment.seekPointAtM(19.85, 0.1),
-        )
+        assertEquals(PointSeekResult(alignmentPoint(19.95, 0.0, 19.95), 2, false), segment.seekPointAtM(19.95, 0.0))
+        assertEquals(PointSeekResult(alignmentPoint(20.0, 0.0, 20.0), 2, true), segment.seekPointAtM(19.95, 0.1))
+        assertEquals(PointSeekResult(alignmentPoint(19.85, 0.0, 19.85), 2, false), segment.seekPointAtM(19.85, 0.1))
     }
 
     @Test
     fun alignmentPointAtLengthWorks() {
         val diagonalLength = hypot(5.0, 5.0)
-        val alignment = alignment(
-            segment(
-                segmentPoint(0.0, 0.0, 0.0),
-                segmentPoint(10.0, 0.0, 10.0),
-            ),
-            segment(
-                segmentPoint(10.0, 0.0, 10.0),
-                segmentPoint(15.0, 5.0, 10.0 + diagonalLength),
-                segmentPoint(15.0, 15.0, 20.0 + diagonalLength),
-            ),
-        )
+        val alignment =
+            alignment(
+                segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0)),
+                segment(
+                    segmentPoint(10.0, 0.0, 10.0),
+                    segmentPoint(15.0, 5.0, 10.0 + diagonalLength),
+                    segmentPoint(15.0, 15.0, 20.0 + diagonalLength),
+                ),
+            )
 
-        assertApproximatelyEquals(
-            segmentPoint(0.0, 0.0, 0.0),
-            alignment.getPointAtM(0.0)!!,
-            accuracy,
-        )
-        assertApproximatelyEquals(
-            segmentPoint(10.0, 0.0, 10.0),
-            alignment.getPointAtM(10.0)!!,
-            accuracy,
-        )
+        assertApproximatelyEquals(segmentPoint(0.0, 0.0, 0.0), alignment.getPointAtM(0.0)!!, accuracy)
+        assertApproximatelyEquals(segmentPoint(10.0, 0.0, 10.0), alignment.getPointAtM(10.0)!!, accuracy)
         assertApproximatelyEquals(
             segmentPoint(15.0, 5.0, 10.0 + diagonalLength),
             alignment.getPointAtM(10.0 + diagonalLength)!!,
@@ -300,21 +211,14 @@ class LayoutGeometryTest {
             accuracy,
         )
 
+        assertApproximatelyEquals(segmentPoint(0.0, 0.0, 0.0), alignment.getPointAtM(-5.0)!!, accuracy)
         assertApproximatelyEquals(
-            segmentPoint(0.0, 0.0, 0.0),
-            alignment.getPointAtM(-5.0)!!,
-            accuracy)
-        assertApproximatelyEquals(
-            segmentPoint(15.0, 15.0, 20.0+diagonalLength),
+            segmentPoint(15.0, 15.0, 20.0 + diagonalLength),
             alignment.getPointAtM(50.0)!!,
             accuracy,
         )
 
-        assertApproximatelyEquals(
-            segmentPoint(5.0, 0.0, 5.0),
-            alignment.getPointAtM(5.0)!!,
-            accuracy,
-        )
+        assertApproximatelyEquals(segmentPoint(5.0, 0.0, 5.0), alignment.getPointAtM(5.0)!!, accuracy)
         assertApproximatelyEquals(
             segmentPoint(13.0, 3.0, 10 + hypot(3.0, 3.0)),
             alignment.getPointAtM(10 + hypot(3.0, 3.0))!!,
@@ -325,24 +229,27 @@ class LayoutGeometryTest {
     @Test
     fun sliceWorksWithNewStartM() {
         val pointInterval = hypot(10.0, 10.0)
-        val original = LayoutSegment(
-            geometry = SegmentGeometry(
-                segmentPoints = listOf(
-                    segmentPoint(10.0, 10.0, 0.0),
-                    segmentPoint(20.0, 20.0, 0.0 + pointInterval),
-                    segmentPoint(30.0, 30.0, 0.0 + 2 * pointInterval),
-                    segmentPoint(40.0, 40.0, 0.0 + 3 * pointInterval),
-                ),
-                resolution = 2,
-            ),
-            startM = 10.0,
-            sourceId = StringId(),
-            sourceStart = 15.0,
-            switchId = StringId(),
-            startJointNumber = JointNumber(2),
-            endJointNumber = JointNumber(2),
-            source = GeometrySource.IMPORTED,
-        )
+        val original =
+            LayoutSegment(
+                geometry =
+                    SegmentGeometry(
+                        segmentPoints =
+                            listOf(
+                                segmentPoint(10.0, 10.0, 0.0),
+                                segmentPoint(20.0, 20.0, 0.0 + pointInterval),
+                                segmentPoint(30.0, 30.0, 0.0 + 2 * pointInterval),
+                                segmentPoint(40.0, 40.0, 0.0 + 3 * pointInterval),
+                            ),
+                        resolution = 2,
+                    ),
+                startM = 10.0,
+                sourceId = IndexedId(1, 1),
+                sourceStart = 15.0,
+                switchId = IntId(1),
+                startJointNumber = JointNumber(2),
+                endJointNumber = JointNumber(2),
+                source = GeometrySource.IMPORTED,
+            )
 
         val newStart = 11.0
         val slice = original.slice(1, 2, newStart)
@@ -369,24 +276,27 @@ class LayoutGeometryTest {
     @Test
     fun sliceWorksWithDefaultStartM() {
         val pointInterval = hypot(10.0, 10.0)
-        val original = LayoutSegment(
-            geometry = SegmentGeometry(
-                segmentPoints = listOf(
-                    segmentPoint(10.0, 10.0, 0.0),
-                    segmentPoint(20.0, 20.0, 0.0 + pointInterval),
-                    segmentPoint(30.0, 30.0, 0.0 + 2 * pointInterval),
-                    segmentPoint(40.0, 40.0, 0.0 + 3 * pointInterval),
-                ),
-                resolution = 2,
-            ),
-            startM = 10.0,
-            sourceId = StringId(),
-            sourceStart = 15.0,
-            switchId = StringId(),
-            startJointNumber = JointNumber(2),
-            endJointNumber = JointNumber(2),
-            source = GeometrySource.IMPORTED,
-        )
+        val original =
+            LayoutSegment(
+                geometry =
+                    SegmentGeometry(
+                        segmentPoints =
+                            listOf(
+                                segmentPoint(10.0, 10.0, 0.0),
+                                segmentPoint(20.0, 20.0, 0.0 + pointInterval),
+                                segmentPoint(30.0, 30.0, 0.0 + 2 * pointInterval),
+                                segmentPoint(40.0, 40.0, 0.0 + 3 * pointInterval),
+                            ),
+                        resolution = 2,
+                    ),
+                startM = 10.0,
+                sourceId = IndexedId(1, 1),
+                sourceStart = 15.0,
+                switchId = IntId(1),
+                startJointNumber = JointNumber(2),
+                endJointNumber = JointNumber(2),
+                source = GeometrySource.IMPORTED,
+            )
 
         val slice = original.slice(1, 2)
         assertNotNull(slice)
@@ -411,28 +321,27 @@ class LayoutGeometryTest {
 
     @Test
     fun `getMaxDirectionDeltaRads with shared segment points`() {
-        val alignment = alignment(
-            segment(Point(0.0, 0.0), Point(1.0, 1.0)),
-            segment(Point(1.0, 1.0), Point(2.0, 2.0)),
-        )
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)), segment(Point(1.0, 1.0), Point(2.0, 2.0)))
         assertEquals(0.0, alignment.getMaxDirectionDeltaRads())
     }
 
     @Test
     fun `takeLast(n) with smaller last segment than n points`() {
-        val alignment = alignment(
-            segment(Point(0.0, 0.0), Point(3.0, 0.0)),
-            segment(Point(3.0001, 0.0), Point(4.0001, 0.0), Point(5.0001, 0.0))
-        )
+        val alignment =
+            alignment(
+                segment(Point(0.0, 0.0), Point(3.0, 0.0)),
+                segment(Point(3.0001, 0.0), Point(4.0001, 0.0), Point(5.0001, 0.0)),
+            )
         assertEquals(listOf(1.0, 2.0, 3.0001, 4.0001, 5.0001), alignment.takeLast(5).map { it.x })
     }
 
     @Test
     fun `takeFirst(n) with smaller first segment than n points`() {
-        val alignment = alignment(
-            segment(Point(0.0, 0.0), Point(3.0, 0.0)),
-            segment(Point(3.0001, 0.0), Point(4.0001, 0.0), Point(5.0001, 0.0))
-        )
+        val alignment =
+            alignment(
+                segment(Point(0.0, 0.0), Point(3.0, 0.0)),
+                segment(Point(3.0001, 0.0), Point(4.0001, 0.0), Point(5.0001, 0.0)),
+            )
         assertEquals(listOf(0.0, 1.0, 2.0, 3.0001, 4.0001), alignment.takeFirst(5).map { it.x })
     }
 }

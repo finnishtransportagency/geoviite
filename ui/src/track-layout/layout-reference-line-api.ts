@@ -21,7 +21,7 @@ import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 const referenceLineCache = asyncCache<string, LayoutReferenceLine | undefined>();
 
 export function cacheKey(id: ReferenceLineId, layoutContext: LayoutContext) {
-    return `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    return `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
 }
 
 export async function getReferenceLine(
@@ -60,7 +60,7 @@ export async function getTrackNumberReferenceLine(
     layoutContext: LayoutContext,
     changeTime: TimeStamp = getChangeTimes().layoutReferenceLine,
 ): Promise<LayoutReferenceLine | undefined> {
-    const cacheKey = `TN_${trackNumberId}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    const cacheKey = `TN_${trackNumberId}_${layoutContext.publicationState}_${layoutContext.branch}`;
     return referenceLineCache.get(changeTime, cacheKey, () =>
         getNullable<LayoutReferenceLine>(
             `${layoutUri('reference-lines', layoutContext)}/by-track-number/${trackNumberId}`,

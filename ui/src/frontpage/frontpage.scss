@@ -1,20 +1,13 @@
 @use 'vayla-design-lib' as vayla-design;
 
 .frontpage {
-    background: vayla-design.$color-white-dark;
     overflow: hidden auto;
     padding: 8px 16px 16px 16px;
     min-width: 494px;
+    width: 100%;
 
-    .card {
-        margin: 16px;
-        width: 420px;
-    }
-
-    &__photo {
-        flex: 1;
-        background-image: url('geoviite-design-lib/frontpage-background.jpeg');
-        background-size: cover;
-        background-position: right center;
-    }
+    background: #bbb url('geoviite-design-lib/frontpage-background.jpeg');
+    background-blend-mode: color-burn;
+    background-size: cover;
+    background-position: right center;
 }

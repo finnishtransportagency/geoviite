@@ -23,6 +23,7 @@ spring:
       connection-timeout: 10000
       leak-detection-threshold: 60000
       validation-timeout: 5000
+      connection-init-sql: "set jit=off;"
   jdbc:
     template:
       query-timeout: 15
@@ -31,7 +32,7 @@ spring:
   flyway:
     clean-disabled: true
     clean-on-validation-error: false
-    locations: classpath:db/migration/**/*.sql,classpath:fi/fta/geoviite/infra/dataImport
+    locations: classpath:db/migration/**/*.sql,classpath:fi/fta/geoviite/infra/dataImport,classpath:fi/fta/geoviite/infra/migration
     url: "${spring.datasource.url}"
     user: "${spring.datasource.username}"
     password: "${spring.datasource.password}"
@@ -39,46 +40,100 @@ spring:
     lock-retry-count: 900
 
 geoviite:
+  api-root: "/api"
+  app-root: "/app"
+
+  cookies:
+    secure: true
+
   cloudfront:
     key-pair-id: "${CLOUDFRONT_KEY_PAIR_ID:}"
     private-key: "${CLOUDFRONT_PRIVATE_KEY:}"
     distribution-name: "${CLOUDFRONT_DNS_NAME:}"
+
   scheduling:
     enabled: true
+
   cache:
     enabled: true
-    preload: true
+    tasks:
+      preload:
+        geocoding-contexts: false
+        plan-headers: true
+        enabled: true
+        initial-delay: PT1S
+        interval: PT45M
+
   data:
     import: false
+
+  data-products:
+    tasks:
+      create-element-listing-csv:
+        enabled: true
+        initial-delay: PT30S
+        cron: "0 0 3 * * *"
+
+      create-vertical-geometry-listing-csv:
+        enabled: true
+        initial-delay: PT5M
+        cron: "0 0 4 * * *"
+
+      publication-geometry-remarks-update:
+        enabled: true
+        initial-delay: PT30S
+        interval: PT24H
+
   jwt:
     validation:
       enabled: true
       jwks-url: "${AUTH_JWKS_URL:}"
       elb-jwt-key-url: "${AUTH_ELB_JWT_KEY_URL:}"
+
   ratko:
     enabled: "${RATKO_ENABLED:false}"
     url: "${RATKO_URL:}"
     username: "${RATKO_USERNAME:}"
     password: "${RATKO_PASSWORD:}"
     bulk-transfers-enabled: "${RATKO_BULK_TRANSFERS_ENABLED:false}"
+    tasks:
+      push:
+        enabled: true
+        cron: "0 * * * * *"
+
+      operating-points-fetch:
+        enabled: true
+        cron: "0 30 3 * * *"
+
   projektivelho:
     enabled: "${PROJEKTIVELHO_ENABLED:false}"
     url: "${PROJEKTIVELHO_URL:}"
     auth_url: "${PROJEKTIVELHO_AUTH_URL:}"
     client_id: "${PROJEKTIVELHO_CLIENT_ID:}"
     secret_key: "${PROJEKTIVELHO_SECRET_KEY:}"
-    search-poll:
-      initial: PT1H
-      rate: PT4H
-    result-poll:
-      initial: PT5M
-      rate: PT15M
-  rail-network-export:
-    schedule: "0 0 3 * * *"
-    vertical-geometry-schedule: "0 0 4 * * *"
+    tasks:
+      enabled: true
+
+      search-poll:
+        initial-delay: PT1H
+        interval: PT4H
+
+      result-poll:
+        initial-delay: PT5M
+        interval: PT15M
+
+  ext-api:
+    enabled: false
+    url-path-prefixes: [ ]
 
 server:
   compression:
     enabled: true
     mime-types: application/json,text/plain,text/csv
     min-response-size: 1KB
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

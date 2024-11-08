@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.HeightTriangle
+import fi.fta.geoviite.infra.geography.ToGkFinTransformation
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -34,7 +35,6 @@ import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
-import fi.fta.geoviite.infra.tracklayout.LayoutState.PLANNED
 import java.math.BigDecimal
 import kotlin.math.max
 
@@ -48,20 +48,22 @@ fun toTrackLayout(
     planToLayout: Transformation,
     pointListStepLength: Int,
     includeGeometryData: Boolean,
+    planToGkTransformation: ToGkFinTransformation,
 ): GeometryPlanLayout {
     val switches = toTrackLayoutSwitches(geometryPlan.switches, planToLayout)
 
-    val alignments: List<PlanLayoutAlignment> = toMapAlignments(
-        trackNumberId,
-        geometryPlan.alignments,
-        planToLayout,
-        pointListStepLength,
-        heightTriangles,
-        geometryPlan.units.verticalCoordinateSystem,
-        includeGeometryData
-    )
+    val alignments: List<PlanLayoutAlignment> =
+        toMapAlignments(
+            trackNumberId,
+            geometryPlan.alignments,
+            planToLayout,
+            pointListStepLength,
+            heightTriangles,
+            geometryPlan.units.verticalCoordinateSystem,
+            includeGeometryData,
+        )
 
-    val kmPosts = toTrackLayoutKmPosts(trackNumberId, geometryPlan.kmPosts, planToLayout)
+    val kmPosts = toTrackLayoutKmPosts(trackNumberId, geometryPlan.kmPosts, planToGkTransformation)
     val startAddress = getPlanStartAddress(geometryPlan.kmPosts)
 
     return GeometryPlanLayout(
@@ -72,49 +74,60 @@ fun toTrackLayout(
         alignments = alignments,
         switches = switches.values.toList(),
         kmPosts = kmPosts,
-        startAddress = startAddress
+        startAddress = startAddress,
     )
 }
 
 fun toTrackLayoutKmPosts(
     trackNumberId: IntId<TrackLayoutTrackNumber>?,
     kmPosts: List<GeometryKmPost>,
-    planToLayout: Transformation,
+    planToGkTransformation: ToGkFinTransformation,
 ): List<TrackLayoutKmPost> {
-    return kmPosts.mapNotNull { kmPost ->
-        if (kmPost.location != null && kmPost.kmNumber != null) {
+    return kmPosts.mapIndexedNotNull { _, kmPost ->
+        if (
+            kmPost.location != null && kmPost.kmNumber != null && (kmPost.location.x != 0.0 || kmPost.location.y != 0.0)
+        ) {
             TrackLayoutKmPost(
                 kmNumber = kmPost.kmNumber,
-                location = planToLayout.transform(kmPost.location),
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
                 trackNumberId = trackNumberId,
+                gkLocation =
+                    TrackLayoutKmPostGkLocation(
+                        location = planToGkTransformation.transform(kmPost.location),
+                        source = KmPostGkLocationSource.FROM_GEOMETRY,
+                        confirmed = true,
+                    ),
                 contextData = LayoutContextData.newDraft(LayoutBranch.main),
             )
-        } else null
+        } else {
+            null
+        }
     }
 }
 
 fun toTrackLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation): TrackLayoutSwitch? =
     if (switch.switchStructureId == null) null
-    else TrackLayoutSwitch(
-        name = switch.name,
-        switchStructureId = switch.switchStructureId,
-        stateCategory = getLayoutStateOrDefault(switch.state).category,
-        joints = switch.joints.map { j ->
-            TrackLayoutSwitchJoint(
-                number = j.number,
-                location = toMapCoordinate.transform(j.location),
-                locationAccuracy = LocationAccuracy.DESIGNED_GEOLOCATION,
-            )
-        },
-        sourceId = switch.id,
-        externalId = null,
-        trapPoint = null,
-        ownerId = null,
-        source = GeometrySource.PLAN,
-        contextData = LayoutContextData.newDraft(LayoutBranch.main),
-    )
+    else
+        TrackLayoutSwitch(
+            name = switch.name,
+            switchStructureId = switch.switchStructureId,
+            stateCategory = getLayoutStateOrDefault(switch.state).category,
+            joints =
+                switch.joints.map { j ->
+                    TrackLayoutSwitchJoint(
+                        number = j.number,
+                        location = toMapCoordinate.transform(j.location),
+                        locationAccuracy = LocationAccuracy.DESIGNED_GEOLOCATION,
+                    )
+                },
+            sourceId = switch.id,
+            externalId = null,
+            trapPoint = null,
+            ownerId = null,
+            source = GeometrySource.PLAN,
+            contextData = LayoutContextData.newDraft(LayoutBranch.main),
+        )
 
 fun toTrackLayoutSwitches(
     geometrySwitches: List<GeometrySwitch>,
@@ -132,19 +145,21 @@ fun toMapAlignments(
     includeGeometryData: Boolean = true,
 ): List<PlanLayoutAlignment> {
     return geometryAlignments.map { alignment ->
-        val mapSegments = toMapSegments(
-            alignment = alignment,
-            planToLayoutTransformation = planToLayout,
-            pointListStepLength = pointListStepLength,
-            heightTriangles = heightTriangles,
-            verticalCoordinateSystem = verticalCoordinateSystem,
-            includeGeometryData = includeGeometryData,
-        )
+        val mapSegments =
+            toMapSegments(
+                alignment = alignment,
+                planToLayoutTransformation = planToLayout,
+                pointListStepLength = pointListStepLength,
+                heightTriangles = heightTriangles,
+                verticalCoordinateSystem = verticalCoordinateSystem,
+                includeGeometryData = includeGeometryData,
+            )
 
-        val boundingBoxInLayoutSpace = alignment.bounds?.let {
-            val cornersInLayoutSpace = it.corners.map { corner -> planToLayout.transform(corner) }
-            boundingBoxAroundPoints(cornersInLayoutSpace)
-        }
+        val boundingBoxInLayoutSpace =
+            alignment.bounds?.let {
+                val cornersInLayoutSpace = it.corners.map { corner -> planToLayout.transform(corner) }
+                boundingBoxAroundPoints(cornersInLayoutSpace)
+            }
 
         PlanLayoutAlignment(
             header = toAlignmentHeader(trackNumberId, alignment, boundingBoxInLayoutSpace),
@@ -157,21 +172,21 @@ fun toAlignmentHeader(
     trackNumberId: IntId<TrackLayoutTrackNumber>?,
     alignment: GeometryAlignment,
     boundingBoxInLayoutSpace: BoundingBox? = null,
-) = AlignmentHeader(
-    id = alignment.id,
-    name = alignment.name,
-    alignmentSource = MapAlignmentSource.GEOMETRY,
-    alignmentType = getAlignmentType(alignment.featureTypeCode),
-    state = getLayoutStateOrDefault(alignment.state),
-    trackNumberId = trackNumberId,
-    boundingBox = boundingBoxInLayoutSpace,
-    length = alignment.elements.sumOf(GeometryElement::calculatedLength),
-    segmentCount = alignment.elements.size,
-    version = null,
-    duplicateOf = null,
-    trackType = null,
-)
-
+) =
+    AlignmentHeader(
+        id = alignment.id,
+        name = alignment.name,
+        alignmentSource = MapAlignmentSource.GEOMETRY,
+        alignmentType = getAlignmentType(alignment.featureTypeCode),
+        state = getLayoutStateOrDefault(alignment.state),
+        trackNumberId = trackNumberId,
+        boundingBox = boundingBoxInLayoutSpace,
+        length = alignment.elements.sumOf(GeometryElement::calculatedLength),
+        segmentCount = alignment.elements.size,
+        version = null,
+        duplicateOf = null,
+        trackType = null,
+    )
 
 private fun toMapSegments(
     alignment: GeometryAlignment,
@@ -183,55 +198,61 @@ private fun toMapSegments(
 ): List<PlanLayoutSegment> {
     val alignmentStationStart = alignment.staStart.toDouble()
     var segmentStartLength = 0.0
-    val elements = alignment.elements.map { element ->
-        val startLength = segmentStartLength
-        segmentStartLength += element.calculatedLength
-        element to startLength
-    }.filter { (e, _) -> e.calculatedLength >= 0.001 }
-    val segments = if (!includeGeometryData) listOf()
-    else elements.map { (element, segmentStartLength) ->
-        val segmentPoints = toPointList(element, pointListStepLength).map { p ->
-            toSegmentGeometryPoint(
-                point = planToLayoutTransformation.transform(p),
-                mValue = p.m,
-                profile = alignment.profile,
-                cant = alignment.cant,
-                alignmentStartStation = alignmentStationStart,
-                segmentStart = segmentStartLength,
-                heightTriangles = heightTriangles,
-                verticalCoordinateSystem = verticalCoordinateSystem,
-            )
-        }
+    val elements =
+        alignment.elements
+            .map { element ->
+                val startLength = segmentStartLength
+                segmentStartLength += element.calculatedLength
+                element to startLength
+            }
+            .filter { (e, _) -> e.calculatedLength >= 0.001 }
+    val segments =
+        if (!includeGeometryData) listOf()
+        else
+            elements.map { (element, segmentStartLength) ->
+                val segmentPoints =
+                    toPointList(element, pointListStepLength).map { p ->
+                        toSegmentGeometryPoint(
+                            point = planToLayoutTransformation.transform(p),
+                            mValue = p.m,
+                            profile = alignment.profile,
+                            cant = alignment.cant,
+                            alignmentStartStation = alignmentStationStart,
+                            segmentStart = segmentStartLength,
+                            heightTriangles = heightTriangles,
+                            verticalCoordinateSystem = verticalCoordinateSystem,
+                        )
+                    }
 
-        PlanLayoutSegment(
-            id = deriveFromSourceId("AS", element.id),
-            geometry = SegmentGeometry(
-                resolution = pointListStepLength,
-                segmentPoints = segmentPoints,
-            ),
-            startM = segmentStartLength,
-            sourceId = element.id,
-            sourceStart = 0.0,
-            source = GeometrySource.PLAN,
-            pointCount = segmentPoints.size,
-        )
-    }
+                PlanLayoutSegment(
+                    id = deriveFromSourceId("AS", element.id),
+                    geometry = SegmentGeometry(resolution = pointListStepLength, segmentPoints = segmentPoints),
+                    startM = segmentStartLength,
+                    sourceId = element.id,
+                    sourceStart = 0.0,
+                    source = GeometrySource.PLAN,
+                    pointCount = segmentPoints.size,
+                )
+            }
 
     return segments
 }
 
-fun getAlignmentType(typeCode: FeatureTypeCode?): MapAlignmentType = when (typeCode) {
-    REFERENCE_LINE_TYPE_CODE -> MapAlignmentType.REFERENCE_LINE
-    else -> MapAlignmentType.LOCATION_TRACK
-}
+fun getAlignmentType(typeCode: FeatureTypeCode?): MapAlignmentType =
+    when (typeCode) {
+        REFERENCE_LINE_TYPE_CODE -> MapAlignmentType.REFERENCE_LINE
+        else -> MapAlignmentType.LOCATION_TRACK
+    }
 
-fun getLayoutStateOrDefault(planState: PlanState?) = planState?.let { state -> getLayoutState(state) } ?: PLANNED
-fun getLayoutState(planState: PlanState): LayoutState = when (planState) {
-    ABANDONED -> DELETED
-    DESTROYED -> DELETED
-    EXISTING -> IN_USE
-    PROPOSED -> NOT_IN_USE
-}
+fun getLayoutStateOrDefault(planState: PlanState?) = planState?.let { state -> getLayoutState(state) } ?: IN_USE
+
+fun getLayoutState(planState: PlanState): LayoutState =
+    when (planState) {
+        ABANDONED -> DELETED
+        DESTROYED -> DELETED
+        EXISTING -> IN_USE
+        PROPOSED -> NOT_IN_USE
+    }
 
 fun toSegmentGeometryPoint(
     point: Point,
@@ -244,42 +265,41 @@ fun toSegmentGeometryPoint(
     verticalCoordinateSystem: VerticalCoordinateSystem?,
 ): SegmentPoint {
     // Profile station values are alignment m-values calculated from given station-start
-    val heightValue = verticalCoordinateSystem?.let { vcs ->
-        if (vcs == VerticalCoordinateSystem.N43) null
-        else profile
-            ?.getHeightAt(alignmentStartStation + segmentStart + mValue)
-            ?.let { value -> transformHeightValue(value, point, heightTriangles, vcs) }
-    }
-    // Cant station values are alignment m-values, calculated from 0 (ignoring alignment station-start)
+    val heightValue =
+        verticalCoordinateSystem?.let { vcs ->
+            if (vcs == VerticalCoordinateSystem.N43) null
+            else
+                profile?.getHeightAt(alignmentStartStation + segmentStart + mValue)?.let { value ->
+                    transformHeightValue(value, point, heightTriangles, vcs)
+                }
+        }
+    // Cant station values are alignment m-values, calculated from 0 (ignoring alignment
+    // station-start)
     val cantValue = cant?.getCantValue(segmentStart + mValue)
-    return SegmentPoint(
-        x = point.x,
-        y = point.y,
-        z = heightValue,
-        m = mValue,
-        cant = cantValue,
-    )
+    return SegmentPoint(x = point.x, y = point.y, z = heightValue, m = mValue, cant = cantValue)
 }
 
 /**
  * Generates the list of points at stepLength interval along the element. Special rules:
  * - Always include the first and last point as-is, rather than calculated.
- *   - This ensures the result alignment is continuous (next segment starts where previous ends), despite less-than perfect parameter accuracy
+ *     - This ensures the result alignment is continuous (next segment starts where previous ends), despite less-than
+ *       perfect parameter accuracy
  * - Avoid generating a point very close to the end-point, even if total length would have it due to step length
- *   - Inaccuracy in parameters could cause the point to be in any direction -> could create a short zig-zag with the actual end-point
+ *     - Inaccuracy in parameters could cause the point to be in any direction -> could create a short zig-zag with the
+ *       actual end-point
  */
 fun toPointList(element: GeometryElement, stepLength: Int): List<Point3DM> {
     return lengthPoints(element.calculatedLength, stepLength).map { length ->
-        val point = if (length <= 0.0) element.start
-        else if (length > element.calculatedLength - MIN_POINT_DISTANCE) element.end
-        else element.getCoordinateAt(length)
+        val point =
+            if (length <= 0.0) element.start
+            else if (length > element.calculatedLength - MIN_POINT_DISTANCE) element.end
+            else element.getCoordinateAt(length)
         Point3DM(point.x, point.y, length)
     }
 }
 
 fun lengthPoints(length: Double, stepSize: Int): List<Double> {
-    val last1mPoint = if (length % 1.0 > MIN_POINT_DISTANCE) length.toInt()
-    else max(length.toInt() - 1, 0)
+    val last1mPoint = if (length % 1.0 > MIN_POINT_DISTANCE) length.toInt() else max(length.toInt() - 1, 0)
     val midPoints = (0..last1mPoint step stepSize).map(Int::toDouble)
     return midPoints + length
 }
@@ -293,12 +313,13 @@ private fun getPlanStartAddress(planKmPosts: List<GeometryKmPost>): TrackMeter? 
     return if (minimumKmNumberPosts.size == 1) {
         val precedingKmPost = minimumKmNumberPosts[0]
         // safety: minimumKmNumberPosts was filtered for equality with a known-not-null kmNumber
-        // Negative or zero staInternals are assumed to be the distance of the preceding km post from the plan's
+        // Negative or zero staInternals are assumed to be the distance of the preceding km post
+        // from the plan's
         // reference line's start; for anything else, let's not assume we know what to do with it.
-        // Round to 6 decimals to make sure TrackNumber creation doesn't fail due to too many decimals
-        if (precedingKmPost.staInternal <= BigDecimal.ZERO) TrackMeter(
-            precedingKmPost.kmNumber!!, round(-precedingKmPost.staInternal, 6)
-        )
+        // Round to 6 decimals to make sure TrackNumber creation doesn't fail due to too many
+        // decimals
+        if (precedingKmPost.staInternal <= BigDecimal.ZERO)
+            TrackMeter(precedingKmPost.kmNumber!!, round(-precedingKmPost.staInternal, 6))
         else null
     } else null
 }

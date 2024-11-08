@@ -36,10 +36,7 @@ fun closestPointOnLine(start: IPoint, end: IPoint, target: IPoint): Point {
     }
 }
 
-
-/**
- * Derived from: https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
- */
+/** Derived from: https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection */
 fun lineIntersection(start1: IPoint, end1: IPoint, start2: IPoint, end2: IPoint): Intersection? {
     val denominator = (start1.x - end1.x) * (start2.y - end2.y) - (start1.y - end1.y) * (start2.x - end2.x)
 
@@ -51,39 +48,41 @@ fun lineIntersection(start1: IPoint, end1: IPoint, start2: IPoint, end2: IPoint)
 
     val t = numeratorT / denominator
     return Intersection(
-        point = Point(
-            x = start1.x + (end1.x - start1.x) * t,
-            y = start1.y + (end1.y - start1.y) * t,
-        ),
+        point = Point(x = start1.x + (end1.x - start1.x) * t, y = start1.y + (end1.y - start1.y) * t),
         segment1Portion = numeratorT / denominator,
         segment2Portion = numeratorU / denominator,
     )
 }
 
-enum class IntersectType { BEFORE, WITHIN, AFTER }
+enum class IntersectType {
+    BEFORE,
+    WITHIN,
+    AFTER,
+}
+
 data class Intersection(val point: Point, val segment1Portion: Double, val segment2Portion: Double) {
-    val inSegment1 by lazy { getIntersectType(segment1Portion) }
-    val inSegment2 by lazy { getIntersectType(segment2Portion) }
-    val relativeDistance1 by lazy { toRelativeDistance(segment1Portion) }
-    val relativeDistance2 by lazy { toRelativeDistance(segment2Portion) }
+    val inSegment1 = getIntersectType(segment1Portion)
+    val inSegment2 = getIntersectType(segment2Portion)
+    val relativeDistance2 = toRelativeDistance(segment2Portion)
 
     fun linesIntersect() = inSegment1 == IntersectType.WITHIN && inSegment2 == IntersectType.WITHIN
 }
 
-fun getIntersectType(portion: Double): IntersectType = when {
-    portion < 0.0 -> IntersectType.BEFORE
-    portion > 1.0 -> IntersectType.AFTER
-    else -> IntersectType.WITHIN
-}
+fun getIntersectType(portion: Double): IntersectType =
+    when {
+        portion < 0.0 -> IntersectType.BEFORE
+        portion > 1.0 -> IntersectType.AFTER
+        else -> IntersectType.WITHIN
+    }
 
-private fun toRelativeDistance(portion: Double): Double = when {
-    portion < 0.0 -> abs(portion)
-    portion > 1.0 -> portion - 1.0
-    else -> 0.0
-}
+private fun toRelativeDistance(portion: Double): Double =
+    when {
+        portion < 0.0 -> abs(portion)
+        portion > 1.0 -> portion - 1.0
+        else -> 0.0
+    }
 
-fun linePointAtDistance(line: Line, distance: Double): Point =
-    linePointAtDistance(line.start, line.end, distance)
+fun linePointAtDistance(line: Line, distance: Double): Point = linePointAtDistance(line.start, line.end, distance)
 
 fun linePointAtDistance(start: IPoint, end: IPoint, distance: Double): Point {
     val length = lineLength(start, end)
@@ -101,9 +100,8 @@ fun lineYAtX(start: Point, end: Point, x: Double): Double {
 fun lineSlope(pointA: Point, pointB: Point): Double {
     val deltaY = pointB.y - pointA.y
     val deltaX = pointB.x - pointA.x
-    if (deltaX == 0.0) throw IllegalArgumentException(
-        "Cannot calculate line slope without X delta: pointA=$pointA pointB=$pointB"
-    )
+    if (deltaX == 0.0)
+        throw IllegalArgumentException("Cannot calculate line slope without X delta: pointA=$pointA pointB=$pointB")
     return (deltaY / deltaX)
 }
 

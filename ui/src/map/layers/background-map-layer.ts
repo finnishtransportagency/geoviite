@@ -31,6 +31,8 @@ const makeMMLTileSourcePromise = (sourceType: BackgroundMapLayerSourceType) =>
                 `/location-map/wmts/maasto/1.0.0/${sourceType}/default/ETRS-TM35FIN/{TileMatrix}/{TileRow}/{TileCol}.png`,
             ];
             return new WMTS(options);
+        } else {
+            return undefined;
         }
     });
 

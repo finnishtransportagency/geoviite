@@ -39,8 +39,8 @@ import { getChangeTimes } from 'common/change-time-api';
 import {
     ElevationMeasurementMethod,
     KmNumber,
+    LayoutBranch,
     LayoutContext,
-    LayoutDesignId,
     officialMainLayoutContext,
     PublicationState,
     TimeStamp,
@@ -48,7 +48,7 @@ import {
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { bboxString } from 'common/common-api';
-import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
+import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import i18next from 'i18next';
@@ -67,7 +67,7 @@ const planVerticalGeometryCache = asyncCache<
     PlanVerticalGeometryKey,
     VerticalGeometryItem[] | undefined
 >;
-type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublicationState}_${LayoutDesignId}`;
+type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublicationState}_${LayoutBranch}`;
 const locationTrackVerticalGeometryCache = asyncCache<
     LocationTrackVerticalGeometryKey,
     VerticalGeometryItem[] | undefined
@@ -191,7 +191,7 @@ export async function getLocationTrackVerticalGeometry(
         ? fetch()
         : locationTrackVerticalGeometryCache.get(
               changeTime,
-              `${id}_${layoutContext.publicationState}_${layoutContext.designId}`,
+              `${id}_${layoutContext.publicationState}_${layoutContext.branch}`,
               fetch,
           );
 }
@@ -300,22 +300,9 @@ export async function getTrackLayoutPlans(
     changeTime: TimeStamp,
     includeGeometryData = true,
 ): Promise<GeometryPlanLayout[]> {
-    const url = (planIds: GeometryPlanId[], includeGeometryData: boolean) =>
-        `${GEOMETRY_URI}/plans/layout?planIds=${planIds}&includeGeometryData=${includeGeometryData}`;
-    return trackLayoutPlanCache
-        .getMany(
-            changeTime,
-            planIds,
-            (id) => `${id}-${includeGeometryData}`,
-            (fetchIds) =>
-                getNonNull<GeometryPlanLayout[]>(url(fetchIds, includeGeometryData)).then(
-                    (tracks) => {
-                        const trackMap = indexIntoMap(tracks);
-                        return (id) => trackMap.get(id);
-                    },
-                ),
-        )
-        .then((plans) => plans.filter(filterNotEmpty));
+    return Promise.all(
+        planIds.map((planId) => getTrackLayoutPlan(planId, changeTime, includeGeometryData)),
+    ).then((layouts) => layouts.filter(filterNotEmpty));
 }
 
 export async function getProjects(changeTime = getChangeTimes().project): Promise<Project[]> {
@@ -427,7 +414,7 @@ export async function getLocationTrackHeights(
 }
 
 const locationTrackLinkingSummaryCache = asyncCache<
-    `${LocationTrackId}_${PublicationState}_${LayoutDesignId}`,
+    `${LocationTrackId}_${PublicationState}_${LayoutBranch}`,
     PlanLinkingSummaryItem[]
 >();
 
@@ -438,7 +425,7 @@ export async function getLocationTrackLinkingSummary(
 ): Promise<PlanLinkingSummaryItem[]> {
     return locationTrackLinkingSummaryCache.get(
         changeTime,
-        `${locationTrackId}_${layoutContext.publicationState}_${layoutContext.designId}`,
+        `${locationTrackId}_${layoutContext.publicationState}_${layoutContext.branch}`,
         () =>
             getNonNull(
                 `${geometryLayoutPath(layoutContext)}/location-tracks/${locationTrackId}/linking-summary`,

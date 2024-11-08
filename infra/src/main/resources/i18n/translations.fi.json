@@ -1,4 +1,26 @@
 {
+    "ext-api": {
+        "error": {
+            "features-not-found": "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
+            "missing-x-coordinate": "Pyyntö ei sisältänyt x-koordinaattia.",
+            "missing-y-coordinate": "Pyyntö ei sisältänyt y-koordinaattia.",
+            "missing-track-kilometer": "Pyyntö ei sisältänyt ratakilometriä.",
+            "missing-track-meter": "Pyyntö ei sisältänyt ratametriä.",
+            "missing-track-number": "Pyyntö ei sisältänyt ratanumeroa.",
+            "unsupported-request-type": "Pyyntötyyppiä ei tueta.",
+            "search-radius-undefined": "Pyyntö sisälsi hakusääteen ilman arvoa (sade=null).",
+            "search-radius-under-range": "Pyyntö sisälsi pienemmän hakusäteen kuin sallittu minimiarvo (1.0).",
+            "search-radius-over-range": "Pyyntö sisälsi suuremman hakusäteen kuin sallittu maksimiarvo (1000.0).",
+            "address-geocoding-failed": "Rataosoitteen geokoodaus epäonnistui.",
+            "invalid-track-number-name": "Pyyntö sisälsi virheellisen ratanumero-asetuksen.",
+            "invalid-location-track-name": "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
+            "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
+            "invalid-track-address": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+            "too-many-requests": "Kutsu sisälsi liian monta muunnospyyntöä. Yhdessä kutsussa saa olla korkeintaan 1000 muunnosta.",
+            "track-number-not-found": "Pyynnön ratanumeroa ei löydetty.",
+            "input-coordinate-transformation-failed": "Koordinaattimuunnos ei onnistunut. Onko koordinaatisto järkevä syötekoordinaatille?"
+        }
+    },
     "error": {
         "integration-not-configured": {
             "RATKO": "Ratko-integraatio ei ole käytössä tässä ympäristössä",
@@ -10,7 +32,9 @@
             "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma",
             "plan-hidden": "Linkitystä ei voida tehdä, koska suunnitelma on poistettu",
             "unfinished-splits": "Linkitystä ei voida tehdä, koska raiteen jakaminen ei ole valmis",
-            "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa"
+            "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa",
+            "invalid-gk-srid": "Asetettu koordinaattijärjestelmä (EPSG:{{srid}}) ei ole GK-koordinaattijärjestelmä",
+            "invalid-gk-location": "Sijainnin määritys on virheellinen: {{y}} N {{x}} E (EPSG:{{srid}})"
         },
         "split": {
             "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
@@ -50,6 +74,7 @@
                 "TrackNumber": "Ratanumeron tunnus {{value}} on virheellinen",
                 "KmNumber": "Tasakilometripisteen tunnus {{value}} on virheellinen",
                 "JointNumber": "Vaihdepisteen numero {{value}} on virheellinen",
+                "LayoutDesignName": "Työtilan nimi {{value}} on virheellinen",
                 "FileName": "Tiedoston nimessä on virhe",
                 "AngularUnit": "Suuntakulmien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
                 "LinearUnit": "Pituuksien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
@@ -67,7 +92,8 @@
             "invalid-path": "Virhe: pyynnön polku oli virheellinen ({{method}})",
             "missing-parameter": "Virhe: pyynnöstä puuttuu vaadittu parametri ({{param}})",
             "invalid-body": "Virhe: pyynnön sisältöä ei voitu lukea",
-            "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}"
+            "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}",
+            "invalid-version": "Virhe: Käyttöliittymän versio ei vastaa palvelimen versiota"
         },
         "deleting": {
             "generic": "Poistamisessa tapahtui virhe",
@@ -109,6 +135,9 @@
                 "plan-transformation-failed": "Suunnitelman muuntaminen kartalla esitettävään muotoon epäonnistui"
             }
         },
+        "design": {
+            "duplicate-name": "Nimi {{name}} on jo käytössä toisella suunnitelmalla"
+        },
         "entity-not-found": "Tietoa ei löydy",
         "entity-not-found-on-path": "Tietoa ei löytynyt: {{path}}",
         "request-failed": "Pyyntö epäonnistui: {{path}}",
@@ -149,6 +178,9 @@
         }
     },
     "reference-line": "Pituusmittauslinja",
+    "design": {
+        "duplicate-name": "Nimi {{name}} on jo käytössä"
+    },
     "enum": {
         "plan-phase": {
             "RAILWAY_PLAN": "Ratasuunnitelma, RaS",
@@ -219,17 +251,14 @@
             "BUILT": "Rakennettu",
             "IN_USE": "Käytössä",
             "NOT_IN_USE": "Käytöstä poistettu",
-            "PLANNED": "Suunniteltu",
             "DELETED": "Poistettu"
         },
         "layout-state": {
             "IN_USE": "Käytössä",
             "NOT_IN_USE": "Käytöstä poistettu",
-            "PLANNED": "Suunniteltu",
             "DELETED": "Poistettu"
         },
         "layout-state-category": {
-            "FUTURE_EXISTING": "Tuleva kohde",
             "EXISTING": "Olemassa oleva kohde",
             "NOT_EXISTING": "Poistunut kohde"
         },
@@ -254,6 +283,11 @@
             "SWITCH_TO_BUFFER": "Vaihde - Puskin",
             "SWITCH_TO_OWNERSHIP_BOUNDARY": "Vaihde - Omistusraja",
             "NONE": "Ei lisäosaa"
+        },
+        "gk-location-source": {
+            "FROM_GEOMETRY": "Linkitetty geometriasta",
+            "FROM_LAYOUT": "Konvertoitu paikannuspohjasta",
+            "MANUAL": "Operaattorin asettama"
         }
     },
     "environment": {
@@ -267,7 +301,6 @@
     "app-bar": {
         "frontpage": "Etusivu",
         "track-layout": "Kartta",
-        "register": "Rekisteri",
         "infra-model": "InfraModel",
         "components": "Components",
         "localization": "Localization",
@@ -359,7 +392,8 @@
         "deleted-successfully": "Sijaintiraide poistettu",
         "mandatory-field": "Pakollinen kenttä",
         "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
-        "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+        "invalid-description-length": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+        "invalid-description-characters": "Kuvauksen perusosa sisältää virheellisiä merkkejä",
         "invalid-name": "Virheellinen sijaintiraidetunnus",
         "save-in-progress": "Tallennetaan",
         "duplicate-of": "Duplikaatti raiteelle",
@@ -439,11 +473,23 @@
                 "state": "Tila",
                 "kilometer-length": "Ratakilometrin pituus",
                 "location-title": "Tasakilometripisteen sijaintitiedot",
-                "coordinates": "Koordinaatit (TM35FIN)",
+                "coordinates": "Sijainti paikannuspohjassa (TM35FIN)",
+                "gk-coordinates": {
+                    "coordinate-system": "Koordinaatisto",
+                    "location": "Sijainti ({{coordinateSystemName}})",
+                    "confirmed-title": "Sijainti vahvistettu",
+                    "confirmed": "Vahvistettu",
+                    "not-confirmed": "Ei vahvistettu",
+                    "source": "Sijainnin lähde",
+                    "source-from-geometry": "Linkitetty suunnitelmasta",
+                    "source-from-layout": "Konvertoitu paikannuspohjasta",
+                    "source-manual": "Operaattorin asettama"
+                },
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
                 "negative-kilometer-length": "Virheellinen sijainti",
-                "no-location": "Ei sijaintia"
+                "no-location": "Ei sijaintia",
+                "plan-crs": "Lähdekoordinaatisto"
             },
             "geometry": {
                 "general-title": "Raidegeometria: Tasakilometripiste",
@@ -495,8 +541,13 @@
                 "trap-point": "Turvavaihde",
                 "linking-header": "Linkitys",
                 "is-linked": "Linkitetty",
-                "cannot-start-switch-linking-related-tracks-not-linked-msg": "Vaihdetta ei voi linkittää, koska vaihteeseen liittyvää raidegeometriaa ei ole linkitetty.",
-                "cannot-start-switch-linking-insufficient-geometry-switch-joints": "Vaihteen geometrialla ei ole vähintään kahta vaihdepistettä, joten sitä ei voi linkittää.",
+                "cannot-start-switch-linking": {
+                    "RELATED_TRACKS_NOT_LINKED": "Vaihdetta ei voi linkittää, koska vaihteeseen liittyvää raidegeometriaa ei ole linkitetty.",
+                    "LESS_THAN_TWO_JOINTS": "Vaihteen geometrialla ei ole vähintään kahta vaihdepistettä, joten sitä ei voi linkittää.",
+                    "NO_SWITCH_STRUCTURE_ID_ON_SWITCH": "Linkitettävältä vaihteelta puuttuu vaihdetyyppitieto, joten sitä ei voi linkittää.",
+                    "NO_SRID_ON_PLAN": "Linkitettävän vaihteen suunnitelmalta puuttuu koordinaatistotieto.",
+                    "INVALID_JOINTS": "Linkitettävän vaihteen vaihdepisteet eivät vastaa vaihdetyypin vaihdepisteitä."
+                },
                 "start-setup": "Aloita linkitys",
                 "select-switch-msg": "Valitse vaihde, johon linkitetään",
                 "cannot-link-invalid-switch-type": "Valitun vaihteen tyyppi:\n{{selectedType}}\n\neroaa liikaa oletetusta vaihteen tyyppistä:\n{{suggestedType}}\n\nVaihdetta ei voi linkittää.",
@@ -595,8 +646,15 @@
             "description": "Kuvaus",
             "track-number": "Ratanumero",
             "duplicate-of": "Duplikaatti raiteelle",
+            "location-track": "Raide \"{{trackName}}\"",
+            "errors": "Virheet ({{count}}):",
+            "warnings": "Varoitukset ({{count}}):",
+            "infos": "Huomiot ({{count}}):",
+            "is-partial-duplicate-tooltip": "Raide on osittainen duplikaatti, päällekkäinen osuus {{overlappingLength}} m, ei-päällekkäinen osuus {{nonOverlappingLength}} m",
             "implicit-duplicate-tooltip": "Raidetta \"{{trackName}}\" ei ole merkattu raiteen \"{{otherTrackName}}\" duplikaatiksi, mutta raiteilla on päällekkäistä geometriaa",
             "non-overlapping-duplicate-tooltip": "Raide \"{{trackName}}\" on merkattu raiteen \"{{otherTrackName}}\" duplikaatiksi, mutta raiteilla ei ole päällekkäistä geometriaa",
+            "overlapping-duplicate-of-different-track-tooltip": "Raide \"{{implicitDuplicateName}}\" on merkattu eri raiteen duplikaatiksi (\"{{explicitDuplicateName}}\",) mutta sillä on päällekkäistä geometriaa myös raiteen \"{{trackName}}\" kanssa",
+            "short-non-overlapping-length-warning": "Duplikaattiraiteen ei-päällekkäisen osuuden pituus on vain {{nonOverlappingLength}} m, joten kannattaa tarkastaa, ettei geometria jatku tarkoituksettomasti vaihteiden yli",
             "has-duplicates": "Duplikaattiraiteet",
             "not-a-duplicate": "Ei duplikaatti",
             "change-info-heading": "Lokitiedot",
@@ -646,6 +704,7 @@
             "end-switch": "Vaihde raiteen lopussa",
             "no-start-or-end-switch": "Ei vaihdetta",
             "unset": "Ei asetettu",
+            "unresolvable": "Ei laskettavissa",
             "switch-relinking-dialog": {
                 "title": "Linkitä raiteen vaihteet",
                 "confirm-relinking": "Haluatko linkittää kaikki \"{{name}}\" raiteen vaihteet ({{linkedSwitchesCount}} kpl)?",
@@ -671,6 +730,8 @@
                     "TRANSFER": "Siirretään vain ratakohteet",
                     "CREATE": "Luodaan uusi raide"
                 },
+                "is-partial-duplicate-tooltip": "Raide on osittainen duplikaatti, päällekkäinen osuus {{overlappingLength}} m, ei-päällekkäinen osuus {{nonOverlappingLength}} m.\n\nOsittaisen duplikaatin geometriaa ei muokata, vain ratakohteet siirretään.",
+                "short-duplicate-non-overlap-warning": "Ei-päällekkäisen osuuden pituus on kuitenkin vain {{nonOverlappingLength}} m, joten kannattaa tarkastaa, ettei geometria jatku tarkoituksettomasti vaihteiden yli.",
                 "description-base": "Kuvauksen perusosa",
                 "description-suffix": "Kuvauksen lisäosa",
                 "exit-title": "Lopeta raiteen jakaminen",
@@ -679,12 +740,15 @@
                 "exit": "Lopeta jakaminen",
                 "validation": {
                     "duplicates-on-different-track-number": "Raiteen jakamista ei voi suorittaa, koska osa tämän raiteen duplikaattiraiteista sijaitsee eri ratanumerolla.",
+                    "duplicates-on-different-location-track": "Raiteen jakamista ei voi suorittaa, koska osa tämän raiteen duplikaattiraiteista on merkitty eri raiteen duplikaateiksi.",
                     "unused-non-overlapping-duplicates-exist": "Raiteen jakamista ei voi suorittaa, koska duplikaattiraiteilla {{duplicateNames}} ei ole päällekkäistä geometriaa pilkottavan raiteen kanssa.",
+                    "unresolved-start-or-end-address": "Raiteen jakamista ei voi suorittaa, koska sen alku- ja loppuosoitteet eivät ole määriteltyjä. Tarkasta pituusmittauslinjan oikeellisuus.",
                     "track-draft-exists": "Muokattua sijaintiraidetta ei voi jakaa. Julkaise tai kumoa muutokset.",
                     "conflicts-with-split": "Tunnus on jo käytössä toisella katkaisukohdalla",
                     "conflicts-with-track": "Tunnus on jo käytössä toisella raiteella",
                     "mandatory-field": "Pakollinen kenttä",
-                    "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+                    "invalid-description-length": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+                    "invalid-description-characters": "Virheellinen kuvauksen perusosa",
                     "invalid-name": "Virheellinen sijaintiraidetunnus",
                     "missing-fields": "Pakollisia tietoja puuttuu",
                     "switch-not-found": "Katkaisukohdan vaihde on poistettu. Poista katkaisukohta tai peruuta vaihteen poisto",
@@ -693,7 +757,8 @@
                     "duplicate-not-published": "Duplikaattiraiteen {{duplicateName}} muutoksia ei ole julkaistu Ratkoon. Poikkeavat tiedot Geoviitteen ja Ratkon välillä voivat aiheuttaa ongelmia kohteiden massasiirrossa Ratkossa.",
                     "publish-duplicate": "Julkaise tai hylkää duplikaattiraiteen muutokset ja yritä jakamista sitten uudestaan.",
                     "has-errors": "Tiedoissa on virheitä",
-                    "show": "näytä"
+                    "show": "näytä",
+                    "branch-not-main": "Raiteita voi jakaa vain luonnostilassa"
                 },
                 "validation-in-progress": "Raiteen vaihteita validoidaan...",
                 "relink-critical-errors": "Raiteen vaihteiden linkityksessä on kriittisiä ongelmia, jotka täytyy korjata ennen raiteen jakamista",
@@ -759,6 +824,9 @@
             "download-csv": "Lataa CSV",
             "track-meter-range": "Ratakilometriväli",
             "track-number": "Ratanumero",
+            "location-info": "Sijaintitiedot",
+            "precise-location": "Tarkka sijainti",
+            "layout-location": "Sijainti paikannuspohjassa",
             "search": "Hae..."
         },
         "element-list": {
@@ -928,8 +996,15 @@
                 "station-start": "Alkupaalu",
                 "station-end": "Loppupaalu",
                 "length": "Pituus (m)",
+                "coordinate-system": "Koordinaattijärjestelmä",
                 "location-e": "Koordinaatti E",
                 "location-n": "Koordinaatti N",
+                "location-source": "Sijainnin lähde",
+                "location-confirmed": "Sijainti varmistettu",
+                "from-geometry": "Linkitetty suunnitelmasta",
+                "from-ratko": "Tuotu Ratkosta",
+                "confirmed": "Vahvistettu",
+                "not-confirmed": "Ei vahvistettu",
                 "warning": "Huomiot",
                 "generated-warning": "Sijainti on pituusmittauslinjan alun sijainti.",
                 "imported-warning": "Sijainti on raiteen keskilinjalle projisoitu sijainti."
@@ -940,8 +1015,15 @@
                 "station-start": "Alkupaalu",
                 "station-end": "Loppupaalu",
                 "length": "Pituus (m)",
+                "coordinate-system": "Koordinaattijärjestelmä",
                 "location-e": "Koordinaatti E",
                 "location-n": "Koordinaatti N",
+                "location-source": "Sijainnin lähde",
+                "location-confirmed": "Sijainti varmistettu",
+                "from-geometry": "Linkitetty suunnitelmasta",
+                "from-ratko": "Tuotu Ratkosta",
+                "confirmed": "Vahvistettu",
+                "not-confirmed": "Ei vahvistettu",
                 "warning": "Huomiot",
                 "generated-warning": "Sijainti on pituusmittauslinjan alun sijainti.",
                 "imported-warning": "Sijainti on raiteen keskilinjalle projisoitu sijainti."
@@ -1150,7 +1232,8 @@
             },
             "km-post": {
                 "duplicate-km-posts": "Suunnitelmassa on useita tasakilometripisteitä seuraaville ratakilometreille: {{value}}",
-                "sta-ahead-not-negative": "Suunnitelman ensimmäisen tasakilometripisteen staAhead-arvo on suurempi kuin 0.0"
+                "sta-ahead-not-negative": "Suunnitelman ensimmäisen tasakilometripisteen staAhead-arvo on suurempi kuin 0.0",
+                "location-missing": "Tasakilometripisteellä {{value}} ei ole sijaintia"
             }
         }
     },
@@ -1208,6 +1291,7 @@
     "preview-view": {
         "unstaged-changes-title": "Muutokset ({{amount}} kpl)",
         "staged-changes-title": "Julkaistavat muutokset ({{amount}} kpl)",
+        "merging-to-main-changes-title": "Valitut muutokset ({{amount}} kpl)",
         "show-only-mine": "Näytä vain omat muutokset ({{amount}} kpl)",
         "map-crop": "Rajaa kartalta",
         "track-address-changes": "Rataosoitemuutokset",
@@ -1215,7 +1299,8 @@
         "disabled-message": "(Rataosoitemuutoksia ei voi laskea)",
         "location-tracks": "Sijaintiraiteet",
         "switches": "Vaihteet",
-        "no-calculated-changes-text": "Ei rataosoitemuutoksia"
+        "no-calculated-changes-text": "Ei rataosoitemuutoksia",
+        "design-has-design-drafts-error": "Suunnitelmaan liittyy julkaisemattomia muutoksia. Vain julkaistut muutokset voi siirtää luonnostilaan.  Voit käydä julkaisemassa suunnitelman muutokset <actionLink>täällä</actionLink>."
     },
     "preview-table": {
         "change-target": "Muutoskohde",
@@ -1229,7 +1314,8 @@
         "errors-status-text": "virheitä ({{errors}} kpl)",
         "warnings-status-text": "varoituksia ({{warnings}} kpl)",
         "errors-group-title": "Virheitä",
-        "warnings-group-title": "Varoituksia"
+        "warnings-group-title": "Varoituksia",
+        "api-error-icon-hover-text": "Validointipyynnössä tapahtui virhe"
     },
     "preview-footer": {
         "reject-changes": "Hylkää muutokset",
@@ -1241,13 +1327,20 @@
         "title-design": "Suunnitelmatilan esikatselu",
         "return-to-draft": "Palaa luonnostilaan",
         "return-to-design": "Palaa suunnitelmatilaan",
-        "publish-changes": "Muutosten hyväksyntä",
-        "design-to-draft": "Muutosten siirto luonnostilaan"
+        "publish-changes": "Julkaisu",
+        "design-to-draft": "Siirto luonnostilaan"
     },
     "publish": {
         "publish-confirm": {
             "title": "Julkaise muutokset",
             "description": "Syötä vielä muutoksia kuvaava selite. Julkaisun jälkeen Geoviite lähettää muutokset automaattisesti Ratkoon.",
+            "cancel": "Peruuta",
+            "message": "Selite",
+            "confirm": "Julkaise muutokset ({{candidates}} kpl)"
+        },
+        "merge-to-main-confirm": {
+            "title": "Siirrä muutokset luonnostilaan",
+            "description": "Haluatko siirtää suunnitelman {{design}} tehdyt muutokset ({{candidateCount}} kpl) luonnostilaan?",
             "cancel": "Peruuta",
             "message": "Selite",
             "confirm": "Julkaise muutokset ({{candidates}} kpl)"
@@ -1300,9 +1393,6 @@
             "track-number": {
                 "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava ratanumero ei ole luonnos",
-                "state": {
-                    "PLANNED": "Ratanumero on tilassa \"Suunniteltu\""
-                },
                 "reference-line": {
                     "not-published": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa"
                 },
@@ -1313,27 +1403,25 @@
                     "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia tasakilometripisteitä: {{kmPosts}}"
                 },
                 "duplicate-name-official": "Ratanumeron numero {{trackNumber}} on jo käytössä",
-                "duplicate-name-draft": "Muutosjoukossa on monta ratanumeroa nimellä {{trackNumber}}"
+                "duplicate-name-draft": "Muutosjoukossa on monta ratanumeroa nimellä {{trackNumber}}",
+                "duplicate-name-draft-in-main": "Ratanumeron numero {{trackNumber}} on jo käytössä luonnostilassa"
             },
             "km-post": {
                 "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava tasakilometripiste ei ole luonnos",
-                "state": {
-                    "PLANNED": "Tasakilometripiste on tilassa \"Suunniteltu\""
-                },
                 "no-location": "Tasakilometripisteelle ei ole linkitetty sijaintia.",
                 "track-number": {
                     "null": "Tasakilometripisteeltä puuttuu ratanumero tai se ei ole mukana julkaisussa",
                     "not-official": "Tasakilometripiste viittaa ratanumeron {{trackNumber}} luonnosriviin",
                     "not-published": "Tasakilometripiste viittaa julkaisemattomaan ratanumeroon {{trackNumber}}",
                     "state": {
-                        "PLANNED": "Tasakilometripiste viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Suunniteltu\"",
                         "DELETED": "Tasakilometripiste viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Poistettu\""
                     }
                 },
                 "reference-line": {
                     "null": "Tasakilometripisteen pituusmittauslinja ei ole mukana julkaisussa"
-                }
+                },
+                "duplicate-km-number": "Ratanumerolla ei voi olla kahta tasakilometripistettä samalla tunnuksella. Tunnus on jo käytössä tällä ratanumerolla."
             },
             "reference-line": {
                 "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
@@ -1351,7 +1439,6 @@
                 "no-context": "Sijaintiraiteelle ei voida laskea tasametripisteitä koska siitä puuttuu tietoja",
                 "duplicate-of": {
                     "state": {
-                        "PLANNED": "Raiteen duplikaatti {{duplicateTrack}} on tilassa \"Suunniteltu\". Duplikaattitietoa ei tarvita.",
                         "DELETED": "Raiteen duplikaatti {{duplicateTrack}} on poistettu. Duplikaattitietoa ei enää tarvita."
                     },
                     "not-official": "Raide viittaa duplikaattiraiteen {{duplicateTrack}} luonnosriviin",
@@ -1366,14 +1453,10 @@
                     "not-continuous": "Sijaintiraiteen pisteet eivät ole jatkuvia (kulma on liian suuri pisteiden välillä)"
                 },
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava sijaintiraide ei ole luonnos",
-                "state": {
-                    "PLANNED": "Sijaintiraide on tilassa \"Suunniteltu\""
-                },
                 "track-number": {
                     "not-official": "Sijaintiraide viittaa ratanumeron {{trackNumber}} luonnosriviin",
                     "not-published": "Sijaintiraide viittaa ratanumeroon {{trackNumber}}, joka ei ole mukana julkaisussa",
                     "state": {
-                        "PLANNED": "Sijaintiraide viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Suunniteltu\"",
                         "DELETED": "Sijaintiraide viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Poistettu\""
                     }
                 },
@@ -1381,7 +1464,6 @@
                     "not-official": "Sijaintiraide viittaa vaihteen {{switch}} luonnosriviin",
                     "not-published": "Sijaintiraide viittaa julkaisemattomaan luonnosvaihteeseen {{switch}}",
                     "state-category": {
-                        "FUTURE_EXISTING": "Sijaintiraide viittaa vaihteeseen {{switch}}, joka on tilakategoriassa \"Tuleva kohde\"",
                         "NOT_EXISTING": "Sijaintiraide viittaa vaihteeseen {{switch}}, joka on tilakategoriassa \"Poistunut kohde\""
                     },
                     "alignment-not-continuous": "Sijaintiraide on kytketty vaihteelle {{switch}} useammasta kuin yhdestä kohtaa",
@@ -1392,12 +1474,15 @@
                 "switch-linkage": {
                     "front-joint-not-connected": "Vaihteen {{switch}} etujatkokselta ei jatku raidetta",
                     "front-joint-only-duplicate-connected": "Vaihteen {{switch}} etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
-                    "switch-alignment-not-connected": "Joitakin vaihteen {{switch}} linjoja ei ole liitetty raiteelle: {{locationTracks}}",
+                    "switch-no-alignments-connected": "Raiteen muutoksen myötä vaihteen {{switch}} läpi ei kulje raiteita",
+                    "switch-alignment-not-connected": "Joitakin vaihteen {{switch}} linjoja ei ole liitetty raiteelle: {{alignments}}",
                     "switch-alignment-only-connected-to-duplicate": "Joitakin vaihteen {{switch}} linjoja on liitetty ainoastaan duplikaatiksi merkityille raiteille: {{locationTracks}}",
-                    "multiple-tracks-through-joint": "Joistain vaihteen {{switch}} pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}"
+                    "switch-alignment-partially-connected": "Jotkin vaihteen {{switch}} linjoista on liitetty raiteelle vain yhdellä vaihdepisteellä: {{locationTracks}}",
+                    "switch-alignment-multiply-connected": "Jotkin vaihteen {{switch}} linjoista on liitetty useammalle kuin yhdelle raiteelle: {{locationTracks}}"
                 },
                 "duplicate-name-official": "Sijaintiraiteen nimi {{locationTrack}} on jo käytössä toisella ratanumeron {{trackNumber}} sijaintiraiteella",
                 "duplicate-name-draft": "Muutosjoukossa on monta sijaintiraidetta nimellä {{locationTrack}} ratanumerolla {{trackNumber}}",
+                "duplicate-name-draft-in-main": "Sijaintiraiteen nimi {{locationTrack}} on jo käytössä toisella ratanumeron {{trackNumber}} sijaintiraiteella luonnostilassa",
                 "topological-connectivity": {
                     "start-switch-is-topologically-connected": "Raiteen alku on kytkeytynyt rataverkkoon vaikka ominaisuustietojen mukaan raiteen ei pitäisi olla kytketty",
                     "end-switch-is-topologically-connected": "Raiteen loppu on kytkeytynyt rataverkkoon vaikka ominaisuustietojen mukaan raiteen ei pitäisi olla kytketty",
@@ -1407,9 +1492,6 @@
             },
             "switch": {
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava vaihde ei ole luonnos",
-                "state-category": {
-                    "FUTURE_EXISTING": "Vaihde on tilakategoriassa \"Tulevaksi kohteeksi\""
-                },
                 "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
                 "location-track": {
                     "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen raiteita: {{locationTracks}}",
@@ -1420,12 +1502,15 @@
                 },
                 "duplicate-name-official": "Vaihteen nimi {{switch}} on jo käytössä jollain toisella paikannuspohjan vaihteella",
                 "duplicate-name-draft": "Muutosjoukossa on monta vaihdetta nimellä {{switch}}",
+                "duplicate-name-draft-in-main": "Vaihteen nimi {{switch}} on jo käytössä jollain toisella paikannuspohjan vaihteella luonnostilassa",
                 "track-linkage": {
                     "front-joint-not-connected": "Vaihteen etujatkokselta ei jatku raidetta",
                     "front-joint-only-duplicate-connected": "Vaihteen etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
-                    "switch-alignment-not-connected": "Joitakin vaihteen linjoja ei ole liitetty raiteelle: {{locationTracks}}",
+                    "switch-no-alignments-connected": "Vaihteen läpi ei kulje raiteita",
+                    "switch-alignment-not-connected": "Joitakin vaihteen linjoja ei ole liitetty raiteelle: {{alignments}}",
                     "switch-alignment-only-connected-to-duplicate": "Joitakin vaihteen linjoja on liitetty ainoastaan duplikaatiksi merkityille raiteille: {{locationTracks}}",
-                    "multiple-tracks-through-joint": "Joistain vaihteen pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}",
+                    "switch-alignment-partially-connected": "Jotkin vaihteen linjoista on liitetty raiteelle vain yhdellä vaihdepisteellä: {{locationTracks}}",
+                    "switch-alignment-multiply-connected": "Jotkin vaihteen linjoista on liitetty useammalle kuin yhdelle raiteelle: {{locationTracks}}",
                     "relinking-failed": "Vaihteen {{switch}} uudelleenlinkitys epäonnistui"
                 }
             },
@@ -1483,7 +1568,8 @@
         "calculated-change": "Laskennallinen muutos",
         "calculated-change-lowercase": "laskennallinen muutos",
         "truncated": "Käyttöliittymässä näytetään {{number}} ensimmäistä muutosta",
-        "changes": "Muutokset"
+        "changes": "Muutokset",
+        "loading": "Julkaisulokia ladataan"
     },
     "publication-details-table": {
         "property": "Muuttunut kohde",
@@ -1527,6 +1613,11 @@
             "owner": "Omistaja",
             "length": "Pituus",
             "location": "Sijainti",
+            "layout-location": "Sijainti paikannuspohjassa (TM35FIN)",
+            "gk-location": "Sijainti",
+            "gk-srid": "Koordinaatisto",
+            "gk-location-source": "Sijainnin lähde",
+            "gk-location-confirmed": "Sijainti vahvistettu",
             "start-location": "Alkukoordinaatit (TM35FIN)",
             "end-location": "Loppukoordinaatit (TM35FIN)",
             "geometry": "Geometria",
@@ -1549,12 +1640,14 @@
         "start-date": "Alkupvm.",
         "end-date": "Loppupvm.",
         "export-csv": "Lataa CSV",
-        "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää"
+        "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää",
+        "search-range-too-long": "Hakuaikaväli on liian pitkä. Lyhennä hakuaikaväliä alle {{maxDays}} päivän mittaiseksi."
     },
     "publication-card": {
         "latest": "Viimeisimmät viedyt julkaisut",
         "waiting": "Odottaa Ratkoon vientiä",
         "title": "Julkaisut",
+        "designs-title": "Suunnitelmien julkaisut",
         "log-link": "Hae julkaisuja",
         "no-success-publications": "Ei julkaisuja.",
         "show-more": "Näytä lisää",
@@ -1564,7 +1657,15 @@
         "show-split-info": "Näytä raiteen jakamisen tiedot",
         "mark-as-successful": "Merkitse kohteiden siirto onnistuneeksi",
         "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
-        "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi"
+        "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
+        "push-error": {
+            "location-track": "Sijaintiraiteen",
+            "track-number": "Ratanumeron",
+            "switch": "Vaihteen",
+            "connection-issue": "Yhteysvirhe Ratko-viennissä",
+            "internal-error": "SISÄINEN VIRHE: {{assetType}} ({{name}}) {{operation}} epäonnistui. Ota yhteyttä {{geoviiteSupportEmail}}",
+            "ratko-error": "{{assetType}} ({{name}}) {{errorType}} {{operation}} epäonnistui"
+        }
     },
     "split-details-dialog": {
         "title": "Raiteen jakamisen tiedot",
@@ -1597,9 +1698,9 @@
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{code}}). ",
         "integration-error-status-code": "Vika Ratko-integraatiossa ({{code}}) ",
         "temporary-error-status-code": "Tilapäinen vika Ratko-integraatiossa ({{code}}). Yritä myöhemmin uudelleen.",
-        "contact-geoviite-support": "Ota yhteyttä geoviite.support@solita.fi",
-        "contact-ratko-support": "Ota yhteyttä vayla.asiakkaat.fi@cgi.com",
-        "contact-ratko-support-if-needed": "Tilanteen jatkuessa ota yhteyttä vayla.asiakkaat.fi@cgi.com"
+        "contact-geoviite-support": "Ota yhteyttä {{geoviiteSupportEmail}}",
+        "contact-ratko-support": "Ota yhteyttä {{ratkoSupportEmail}}",
+        "contact-ratko-support-if-needed": "Tilanteen jatkuessa ota yhteyttä {{ratkoSupportEmail}}"
     },
     "publishing": {
         "publish-to-ratko": "Vie Ratkoon",
@@ -1642,7 +1743,8 @@
         "new-km-post": "Uusi tasakilometripiste",
         "splitting-in-progress": "Raiteen jakaminen on kesken",
         "linking-in-progress": "Linkitys on kesken",
-        "choose-workspace": "Valitse työtila"
+        "choose-workspace": "Valitse työtila",
+        "search-design": "Hae suunnitelma"
     },
     "user-card": {
         "my-details": "Omat tiedot",
@@ -1678,6 +1780,12 @@
         "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
         "save-in-progress": "Tallennetaan",
         "km-post-regexp": "Tunnuksessa tulee olla 4 numeroa, tai 4 numeroa ja enintään 2 kirjainta (esim. 1234 tai 1234AA)",
+        "wrong-easting": "Sijainnin E-arvo on liian kaukana valitun GK-kaistan alueelta",
+        "wrong-northing": "Sijainnin N-arvo on liian kaukana valitun GK-kaistan alueelta",
+        "wrong-easting-margin": "Sijainnin E-arvo on kaukana valitun GK-kaistan alueelta",
+        "gk-coordinate-parse": "GK-sijainnin koordinaatin tulee olla luku",
+        "gk-coordinate-saveable-as-float": "GK-sijainnin koordinaattia ei pystytä tallentamaan tällä tarkkuudella",
+        "gk-coordinate-in-finland": "Syötetty sijainti ei ole Suomen GK-koordinaatistojen määrittämällä alueella",
         "invalid-km-post-number": "Virheellinen tasakilometripistetunnus",
         "km-number-already-in-use": "Ratanumerolla ei voi olla kahta tasakilometripistettä samalla tunnuksella. Tunnus on jo käytössä valitulla ratanumerolla.",
         "insert-succeeded": "Uusi tasakilometripiste lisätty rekisteriin",
@@ -1686,7 +1794,24 @@
         "modify-failed": "Tasakilometripisteen muokkaus epäonnistui",
         "delete-successfully": "Tasakilometripiste poistettu",
         "cant-open-deleted": "Tietoja ei voitu avata, koska tasakilometripiste on poistettu",
-        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}."
+        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}.",
+        "gk-location": {
+            "title": "Sijaintitiedot",
+            "location-field": "Sijainti",
+            "coordinate-system-field": "Koordinaatisto",
+            "confirmed-field": "Sijainti vahvistettu",
+            "confirmed": "Vahvistettu",
+            "not-confirmed": "Ei vahvistettu",
+            "source": "Sijainnin lähde",
+            "source-from-geometry": "Linkitetty geometriasta",
+            "source-from-layout": "Konvertoitu paikannuspohjasta",
+            "source-manual": "Operaattorin asettama",
+            "source-none": "-",
+            "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)",
+            "out-of-bounds": "Sijainti ei ole laskettavissa",
+            "location-converted": "Sijainti muunnettu koordinaatistosta {{originalCrs}}",
+            "original-crs": "Alkuperäinen koordinaatisto {{originalCrs}}"
+        }
     },
     "km-post-delete-dialog": {
         "title": "Tasakilometripisteen poistaminen paikannuspohjasta",
@@ -1747,8 +1872,12 @@
         "delete-confirm": {
             "title": "Työtilan poistaminen",
             "guide": "Poistettua työtilaa ei voi palauttaa eikä sen sisältöä muokata.",
-            "confirm": "Haluatko poistaa työtilan?"
-        }
+            "confirm": "Haluatko poistaa työtilan <strong>{{name}}<strong>?"
+        },
+        "name-not-unique": "Nimi on jo käytössä",
+        "name-too-short": "Nimi on liian lyhyt",
+        "name-too-long": "Nimi on liian pitkä",
+        "name-invalid": "Nimi sisältää kiellettyjä merkkejä"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",

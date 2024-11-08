@@ -1,6 +1,6 @@
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { getNonNull, postNonNull, putNonNull } from 'api/api-fetch';
-import { LayoutDesignId, TimeStamp } from 'common/common-model';
+import { designBranch, DesignBranch, LayoutDesignId, TimeStamp } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
 
 const designCache = asyncCache<string, LayoutDesign[]>();
@@ -13,11 +13,31 @@ export type LayoutDesignSaveRequest = {
     designState: 'ACTIVE' | 'DELETED' | 'COMPLETED';
 };
 export type LayoutDesign = {
-    id: string;
+    id: LayoutDesignId;
 } & LayoutDesignSaveRequest;
 
 export const getLayoutDesigns = async (changeTime: TimeStamp) =>
     designCache.get(changeTime, '', () => getNonNull<LayoutDesign[]>(`${baseUri}/`));
+
+export async function getLayoutDesign(changeTime: TimeStamp, id: LayoutDesignId) {
+    return getLayoutDesignOrUndefined(changeTime, id).then((design) => {
+        if (!design) {
+            throw new Error(`Design does not exists by id: ${id}!`);
+        }
+        return design;
+    });
+}
+
+export async function getLayoutDesignByBranch(
+    changeTime: TimeStamp,
+    branch: DesignBranch,
+): Promise<LayoutDesign | undefined> {
+    const designs = await getLayoutDesigns(changeTime);
+    return designs.find((design) => designBranch(design.id) === branch);
+}
+
+export const getLayoutDesignOrUndefined = async (changeTime: TimeStamp, id: LayoutDesignId) =>
+    getLayoutDesigns(changeTime).then((designs) => designs.find((design) => design.id === id));
 
 export const updateLayoutDesign = async (
     layoutDesignId: string,

@@ -42,9 +42,9 @@ export function createKmPostFeatures(
     isLinked: ((kmPost: LayoutKmPost) => boolean) | undefined = undefined,
 ): Feature<OlPoint | Rectangle>[] {
     return kmPosts
-        .filter((kmPost) => kmPost.location)
+        .filter((kmPost) => kmPost.layoutLocation)
         .flatMap((kmPost) => {
-            const location = kmPost.location as Point;
+            const location = kmPost.layoutLocation as Point;
             const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
 
             const selected = isSelected(kmPost);
@@ -109,8 +109,8 @@ function getSelectedKmPostRenderer(
         kmPostType === 'layoutKmPost'
             ? mapStyles['selectedKmPostLabel']
             : isLinked
-            ? mapStyles['selectedLinkedKmPostLabel']
-            : mapStyles['selectedUnlinkedKmPostLabel'];
+              ? mapStyles['selectedLinkedKmPostLabel']
+              : mapStyles['selectedUnlinkedKmPostLabel'];
 
     const [paddingTb, paddingRl] = [6, 6];
     const textMargin = 4;

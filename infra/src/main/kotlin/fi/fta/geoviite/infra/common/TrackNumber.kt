@@ -3,16 +3,22 @@ package fi.fta.geoviite.infra.common
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.util.assertSanitized
+import fi.fta.geoviite.infra.util.StringSanitizer
 
-val trackNumberLength = 2..30
-val trackNumberRegex = Regex("^[äÄöÖåÅA-Za-z0-9 ]+\$")
+data class TrackNumber @JsonCreator(mode = DELEGATING) constructor(val value: String) :
+    Comparable<TrackNumber>, CharSequence by value {
 
-data class TrackNumber @JsonCreator(mode = DELEGATING) constructor(val value: String)
-    : Comparable<TrackNumber>, CharSequence by value {
-    init { assertSanitized<TrackNumber>(value, trackNumberRegex, trackNumberLength, allowBlank = false) }
+    companion object {
+        val allowedLength = 2..30
+        const val ALLOWED_CHARACTERS = "äÄöÖåÅA-Za-z0-9 "
+        val sanitizer = StringSanitizer(TrackNumber::class, ALLOWED_CHARACTERS, allowedLength)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    init {
+        sanitizer.assertSanitized(value)
+    }
+
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: TrackNumber): Int = value.compareTo(other.value)
 }

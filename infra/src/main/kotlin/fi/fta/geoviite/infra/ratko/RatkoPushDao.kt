@@ -22,10 +22,10 @@ import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -33,16 +33,16 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
 
     @Transactional
     fun startPushing(layoutPublicationIds: List<IntId<Publication>>): IntId<RatkoPush> {
-        val sql = """
+        val sql =
+            """
             insert into integrations.ratko_push(start_time, status)
             values (now(), 'IN_PROGRESS')
             returning id
-        """.trimIndent()
+        """
+                .trimIndent()
 
         jdbcTemplate.setUser()
-        val ratkoPushId = jdbcTemplate.query(sql) { rs, _ ->
-            rs.getIntId<RatkoPush>("id")
-        }.first()
+        val ratkoPushId = jdbcTemplate.query(sql) { rs, _ -> rs.getIntId<RatkoPush>("id") }.first()
 
         updatePushContent(ratkoPushId, publicationIds = layoutPublicationIds)
 
@@ -51,7 +51,8 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
 
     @Transactional
     fun finishStuckPushes() {
-        val sql = """
+        val sql =
+            """
             update integrations.ratko_push
             set 
                 end_time = now(),
@@ -62,28 +63,28 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 end
             where end_time is null
             returning id
-        """.trimIndent()
+        """
+                .trimIndent()
 
         jdbcTemplate.setUser()
-        jdbcTemplate.query(sql) { rs, _ -> rs.getIntId<RatkoPush>("id") }.also { updatedPushes ->
-            logger.daoAccess(AccessType.UPDATE, RatkoPush::class, updatedPushes)
-        }
+        jdbcTemplate
+            .query(sql) { rs, _ -> rs.getIntId<RatkoPush>("id") }
+            .also { updatedPushes -> logger.daoAccess(AccessType.UPDATE, RatkoPush::class, updatedPushes) }
     }
 
     @Transactional
     fun updatePushStatus(pushId: IntId<RatkoPush>, status: RatkoPushStatus) {
-        val sql = """
+        val sql =
+            """
             update integrations.ratko_push
             set 
               end_time = case when :status = 'IN_PROGRESS_M_VALUES' then null else now() end,
               status = :status::integrations.ratko_push_status
             where id = :push_id
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val params = mapOf(
-            "push_id" to pushId.intValue,
-            "status" to status.name,
-        )
+        val params = mapOf("push_id" to pushId.intValue, "status" to status.name)
 
         jdbcTemplate.setUser()
         check(jdbcTemplate.update(sql, params) == 1)
@@ -91,7 +92,8 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     }
 
     fun fetchPreviousPush(): RatkoPush {
-        val sql = """
+        val sql =
+            """
             select
               id,
               start_time,
@@ -100,39 +102,38 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             from integrations.ratko_push
             order by end_time desc
             limit 1
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        return jdbcTemplate.query(sql) { rs, _ ->
-            RatkoPush(
-                id = rs.getIntId("id"),
-                startTime = rs.getInstant("start_time"),
-                endTime = rs.getInstantOrNull("end_time"),
-                status = rs.getEnum("status"),
-            )
-        }.first().also {
-            logger.daoAccess(AccessType.FETCH, RatkoPush::class, it.id)
-        }
+        return jdbcTemplate
+            .query(sql) { rs, _ ->
+                RatkoPush(
+                    id = rs.getIntId("id"),
+                    startTime = rs.getInstant("start_time"),
+                    endTime = rs.getInstantOrNull("end_time"),
+                    status = rs.getEnum("status"),
+                )
+            }
+            .first()
+            .also { logger.daoAccess(AccessType.FETCH, RatkoPush::class, it.id) }
     }
 
-    private fun updatePushContent(
-        pushId: IntId<RatkoPush>,
-        publicationIds: List<IntId<Publication>>
-    ) {
+    private fun updatePushContent(pushId: IntId<RatkoPush>, publicationIds: List<IntId<Publication>>) {
         require(publicationIds.isNotEmpty())
 
-        val sql = """
+        val sql =
+            """
             insert into integrations.ratko_push_content
               values (:publication_id, :ratko_push_id)
             on conflict (publication_id) 
               do update set ratko_push_id = :ratko_push_id
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val params = publicationIds.map { id ->
-            mapOf(
-                "ratko_push_id" to pushId.intValue,
-                "publication_id" to id.intValue,
-            )
-        }.toTypedArray()
+        val params =
+            publicationIds
+                .map { id -> mapOf("ratko_push_id" to pushId.intValue, "publication_id" to id.intValue) }
+                .toTypedArray()
 
         check(jdbcTemplate.batchUpdate(sql, params).isNotEmpty())
 
@@ -146,18 +147,17 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         operation: RatkoOperation,
         assetType: RatkoAssetType,
         assetId: IntId<T>,
-        responseBody: String,
     ): IntId<RatkoPushError<T>> {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             insert into integrations.ratko_push_error(
               ratko_push_id,
               track_number_id,
               location_track_id,
               switch_id,
               error_type,
-              operation,
-              response_body
+              operation
             )
             values(
               :ratko_push_id, 
@@ -165,29 +165,30 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
               :location_track_id, 
               :switch_id,
               :error_type::integrations.ratko_push_error_type, 
-              :operation::integrations.ratko_push_error_operation,
-              :response_body
+              :operation::integrations.ratko_push_error_operation
             )
             returning id
-        """.trimIndent()
-        val params = mapOf(
-            "ratko_push_id" to ratkoPushId.intValue,
-            "error_type" to ratkoPushErrorType.name,
-            "operation" to operation.name,
-            "track_number_id" to if (assetType == RatkoAssetType.TRACK_NUMBER) assetId.intValue else null,
-            "location_track_id" to if (assetType == RatkoAssetType.LOCATION_TRACK) assetId.intValue else null,
-            "switch_id" to if (assetType == RatkoAssetType.SWITCH) assetId.intValue else null,
-            "response_body" to responseBody,
-        )
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "ratko_push_id" to ratkoPushId.intValue,
+                "error_type" to ratkoPushErrorType.name,
+                "operation" to operation.name,
+                "track_number_id" to if (assetType == RatkoAssetType.TRACK_NUMBER) assetId.intValue else null,
+                "location_track_id" to if (assetType == RatkoAssetType.LOCATION_TRACK) assetId.intValue else null,
+                "switch_id" to if (assetType == RatkoAssetType.SWITCH) assetId.intValue else null,
+            )
 
-        return jdbcTemplate.queryOne<IntId<RatkoPushError<T>>>(sql, params, ratkoPushId.toString()) { rs, _ ->
-            rs.getIntId("id")
-        }.also { errorId -> logger.daoAccess(AccessType.INSERT, RatkoPushError::class, errorId) }
+        return jdbcTemplate
+            .queryOne<IntId<RatkoPushError<T>>>(sql, params, ratkoPushId.toString()) { rs, _ -> rs.getIntId("id") }
+            .also { errorId -> logger.daoAccess(AccessType.INSERT, RatkoPushError::class, errorId) }
     }
 
     fun getLatestRatkoPushErrorFor(publicationId: IntId<Publication>): RatkoPushError<*>? {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             select 
               ratko_push_error.id, 
               error_type, 
@@ -203,57 +204,68 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             where ratko_push_content.publication_id = :id
             order by ratko_push_error.id desc
             limit 1;
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        return jdbcTemplate.queryOptional(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
-            val errorId = rs.getIntId<RatkoPushError<*>>("id")
-            val trackNumberId = rs.getIntIdOrNull<TrackLayoutTrackNumber>("track_number_id")
-            val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
-            val switchId = rs.getIntIdOrNull<TrackLayoutSwitch>("switch_id")
-            RatkoPushError(
-                id = errorId,
-                ratkoPushId = rs.getIntId("ratko_push_id"),
-                errorType = rs.getEnum("error_type"),
-                operation = rs.getEnum("operation"),
-                assetId = trackNumberId
-                    ?: locationTrackId
-                    ?: switchId
-                    ?: error("Encountered Ratko push error without asset! id: $errorId"),
-                assetType = trackNumberId?.let { RatkoAssetType.TRACK_NUMBER }
-                    ?: locationTrackId?.let { RatkoAssetType.LOCATION_TRACK }
-                    ?: switchId.let { RatkoAssetType.SWITCH },
-            )
-        }?.also { pushError -> logger.daoAccess(AccessType.FETCH, RatkoPushError::class, pushError) }
+        return jdbcTemplate
+            .queryOptional(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
+                val errorId = rs.getIntId<RatkoPushError<*>>("id")
+                val trackNumberId = rs.getIntIdOrNull<TrackLayoutTrackNumber>("track_number_id")
+                val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
+                val switchId = rs.getIntIdOrNull<TrackLayoutSwitch>("switch_id")
+                RatkoPushError(
+                    id = errorId,
+                    ratkoPushId = rs.getIntId("ratko_push_id"),
+                    errorType = rs.getEnum("error_type"),
+                    operation = rs.getEnum("operation"),
+                    assetId =
+                        trackNumberId
+                            ?: locationTrackId
+                            ?: switchId
+                            ?: error("Encountered Ratko push error without asset! id: $errorId"),
+                    assetType =
+                        trackNumberId?.let { RatkoAssetType.TRACK_NUMBER }
+                            ?: locationTrackId?.let { RatkoAssetType.LOCATION_TRACK }
+                            ?: switchId.let { RatkoAssetType.SWITCH },
+                )
+            }
+            ?.also { pushError -> logger.daoAccess(AccessType.FETCH, RatkoPushError::class, pushError) }
     }
 
     fun getLatestPushedPublicationMoment(): Instant {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             select 
               coalesce(max(publication.publication_time), '2000-01-01 00:00:00'::timestamptz) as latest_publication_time
             from integrations.ratko_push
             inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
             inner join publication.publication on publication.id = ratko_push_content.publication_id
             where ratko_push.status = 'SUCCESSFUL'
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        return jdbcTemplate.queryOne(sql) { rs, _ ->
-            rs.getInstant("latest_publication_time")
-        }.also { logger.daoAccess(AccessType.FETCH, "${Publication::class}.publicationTime") }
+        return jdbcTemplate
+            .queryOne(sql) { rs, _ -> rs.getInstant("latest_publication_time") }
+            .also { logger.daoAccess(AccessType.FETCH, "${Publication::class}.publicationTime") }
     }
 
     fun getLatestPublicationMoment(): Instant {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             select coalesce(max(publication.publication_time), now()) as latest_publication_time
             from publication.publication
-        """.trimIndent()
-        return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("latest_publication_time") }
+        """
+                .trimIndent()
+        return jdbcTemplate
+            .queryOne(sql) { rs, _ -> rs.getInstant("latest_publication_time") }
             .also { logger.daoAccess(AccessType.FETCH, "${Publication::class}.publicationTime") }
     }
 
     fun getRatkoPushChangeTime(): Instant {
-        val sql = """
+        val sql =
+            """
             select coalesce(
                 greatest(
                     max(ratko_push.end_time), 
@@ -262,13 +274,16 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 now()
             ) as latest_ratko_push_time
             from integrations.ratko_push
-        """.trimIndent()
-        return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("latest_ratko_push_time") }
+        """
+                .trimIndent()
+        return jdbcTemplate
+            .queryOne(sql) { rs, _ -> rs.getInstant("latest_ratko_push_time") }
             .also { logger.daoAccess(AccessType.FETCH, "${RatkoPush::class.simpleName}.changeTime") }
     }
 
     fun getRatkoStatus(publicationId: IntId<Publication>): List<RatkoPush> {
-        val sql = """
+        val sql =
+            """
             select
               ratko_push.id,
               ratko_push.start_time,
@@ -278,15 +293,18 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
             inner join publication.publication on publication.id = ratko_push_content.publication_id
             where publication.id = :publication_id
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-            RatkoPush(
-                id = rs.getIntId("id"),
-                startTime = rs.getInstant("start_time"),
-                endTime = rs.getInstantOrNull("end_time"),
-                status = rs.getEnum("status"),
-            )
-        }.onEach { push -> logger.daoAccess(AccessType.FETCH, RatkoPush::class, push.id) }
+        return jdbcTemplate
+            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+                RatkoPush(
+                    id = rs.getIntId("id"),
+                    startTime = rs.getInstant("start_time"),
+                    endTime = rs.getInstantOrNull("end_time"),
+                    status = rs.getEnum("status"),
+                )
+            }
+            .onEach { push -> logger.daoAccess(AccessType.FETCH, RatkoPush::class, push.id) }
     }
 }

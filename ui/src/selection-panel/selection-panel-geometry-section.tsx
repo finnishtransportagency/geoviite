@@ -12,6 +12,7 @@ import {
     wholePlanVisibility,
 } from 'selection/selection-store';
 import * as React from 'react';
+import { useMemo } from 'react';
 import {
     GeometryPlanHeader,
     GeometryPlanId,
@@ -19,15 +20,11 @@ import {
     GeometrySortOrder,
 } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
-import { useRateLimitedEffect, useMapState, useSetState } from 'utils/react-utils';
-import {
-    getGeometryPlanHeadersBySearchTerms,
-    getTrackLayoutPlan,
-    getTrackLayoutPlans,
-} from 'geometry/geometry-api';
+import { useMapState, useRateLimitedEffect, useSetState } from 'utils/react-utils';
+import { getGeometryPlanHeadersBySearchTerms, getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
-import { getPlanLinkStatus, getPlanLinkStatuses } from 'linking/linking-api';
+import { getPlanLinkStatuses } from 'linking/linking-api';
 import { MapViewport } from 'map/map-model';
 import {
     OnSelectOptions,
@@ -38,7 +35,7 @@ import {
 import { ChangeTimes } from 'common/common-slice';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { useMemo } from 'react';
+import { filterNotEmpty, first } from 'utils/array-utils';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
@@ -91,10 +88,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     >([]);
     const [planIdsInViewport, setPlanIdsInViewport] = React.useState<GeometryPlanId[]>([]);
     const [planHeaderCount, setPlanHeaderCount] = React.useState<number>(0);
-    const [fetchedPlans, setSingleFetchedPlan, _, setAllFetchedPlans] = useMapState<
-        GeometryPlanId,
-        FetchedGeometryPlan
-    >();
+    const [fetchedPlans, setSingleFetchedPlan] = useMapState<GeometryPlanId, FetchedGeometryPlan>();
     const [plansBeingFetched, startFetchingPlan, finishFetchingPlan] =
         useSetState<GeometryPlanId>();
     const trackNumbers = useTrackNumbers(
@@ -137,7 +131,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     );
 
     React.useEffect(
-        () => [...fetchedPlans.keys()].forEach(fetchPlanLayout),
+        () => void fetchPlanLayouts([...fetchedPlans.keys()]),
         [
             layoutContext,
             changeTimes.geometryPlan,
@@ -148,19 +142,27 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         ],
     );
 
-    const fetchPlanLayout = (id: GeometryPlanId) => {
-        startFetchingPlan(id);
-        const rv = Promise.all([
-            getTrackLayoutPlan(id, changeTimes.geometryPlan, false),
-            getPlanLinkStatus(id, layoutContext),
-        ]).then(([planLayout, linkStatus]) => {
-            if (planLayout) {
-                setSingleFetchedPlan(id, { planLayout, linkStatus });
-            }
-            return planLayout;
-        });
-        rv.finally(() => finishFetchingPlan(id));
-        return rv;
+    const fetchPlanLayouts = (
+        ids: GeometryPlanId[],
+    ): Promise<(GeometryPlanLayout | undefined)[]> => {
+        ids.forEach(startFetchingPlan);
+        return Promise.all([
+            Promise.all(ids.map((id) => getTrackLayoutPlan(id, changeTimes.geometryPlan))),
+            getPlanLinkStatuses(ids, layoutContext),
+        ])
+            .then(([planLayouts, linkStatuses]) =>
+                ids.map((id, index) => {
+                    const planLayout = planLayouts[index];
+                    const linkStatus = linkStatuses[index];
+                    if (planLayout && linkStatus) {
+                        setSingleFetchedPlan(id, { planLayout, linkStatus });
+                        return planLayout;
+                    } else {
+                        return undefined;
+                    }
+                }),
+            )
+            .finally(() => ids.forEach(finishFetchingPlan));
     };
 
     const visiblePlansInView = visiblePlans.filter((p) =>
@@ -171,34 +173,11 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         if (visiblePlansInView.length > 0) {
             visiblePlansInView.forEach(onTogglePlanVisibility);
         } else if (planHeadersDisplayableInPanel.length === planHeaderCount) {
-            planHeadersDisplayableInPanel.forEach((h) => startFetchingPlan(h.id));
-            getTrackLayoutPlans(
-                planHeadersDisplayableInPanel.map((h) => h.id),
-                changeTimes.geometryPlan,
-            )
-                .then((plans) =>
-                    getPlanLinkStatuses(
-                        plans.map((p) => p.id),
-                        layoutContext,
-                    ).then((statuses) => ({ plans: plans, statuses: statuses })),
-                )
-                .then(({ plans, statuses }) => {
-                    const map = new Map(fetchedPlans);
-                    plans.forEach((plan) => {
-                        const status = statuses.find((s) => s.id === plan.id);
-                        if (status) {
-                            map.set(plan.id, {
-                                planLayout: plan,
-                                linkStatus: status,
-                            });
-                            onTogglePlanVisibility(wholePlanVisibility(plan));
-                        }
-                    });
-                    setAllFetchedPlans(map);
-                })
-                .finally(() => {
-                    planHeadersDisplayableInPanel.forEach((h) => finishFetchingPlan(h.id));
-                });
+            fetchPlanLayouts(planHeadersDisplayableInPanel.map((h) => h.id)).then((plans) =>
+                plans
+                    .filter(filterNotEmpty)
+                    .forEach((plan) => onTogglePlanVisibility(wholePlanVisibility(plan))),
+            );
         }
     };
 
@@ -288,7 +267,9 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 planLayout={fetchedPlans.get(h.id)?.planLayout}
                                 linkStatus={fetchedPlans.get(h.id)?.linkStatus}
                                 planBeingLoaded={plansBeingFetched.has(h.id)}
-                                loadPlanLayout={() => fetchPlanLayout(h.id)}
+                                loadPlanLayout={() =>
+                                    fetchPlanLayouts([h.id]).then((ps) => first(ps))
+                                }
                                 disabled={disabled}
                             />
                         );

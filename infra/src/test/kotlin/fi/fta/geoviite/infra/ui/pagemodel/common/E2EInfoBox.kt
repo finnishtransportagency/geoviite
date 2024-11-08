@@ -8,7 +8,8 @@ import waitUntilTextIs
 
 abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
 
-    protected val title: String get() = childText(By.className("infobox__title"))
+    protected val title: String
+        get() = childText(By.className("infobox__title"))
 
     private fun getValueBy(fieldQaId: String) = ByChained(byQaId(fieldQaId), By.className("infobox__field-value"))
 
@@ -36,7 +37,7 @@ abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
     protected fun editFields(): E2EInfoBox = apply {
         logger.info("Enable editing")
 
-        clickChild(By.className("infobox__edit-icon"))
+        clickChild(byQaId("infobox-edit-button"))
     }
 
     protected fun waitUntilValueChangesForField(fieldQaId: String, targetValue: String): E2EInfoBox = apply {

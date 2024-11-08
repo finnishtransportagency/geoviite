@@ -1,10 +1,13 @@
 import * as React from 'react';
-import styles from './preview-view.scss';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { PublicationStage, LayoutValidationIssue } from 'publication/publication-model';
-import { createClassName } from 'vayla-design-lib/utils';
+import {
+    LayoutValidationIssue,
+    LayoutValidationIssueType,
+    PublicationStage,
+    PublicationValidationState,
+} from 'publication/publication-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
@@ -20,6 +23,9 @@ import { BoundingBox } from 'model/geometry';
 import { RevertRequestSource } from 'preview/preview-view-revert-request';
 import { PublicationGroupAmounts } from 'publication/publication-utils';
 
+import { ValidationStateCell } from './preview-table-validation-state-cell';
+import { ValidationStateRow } from './preview-table-validation-state-row';
+
 const conditionalMenuOption = (
     condition: unknown | undefined,
     menuOption: MenuSelectOption,
@@ -33,7 +39,8 @@ export type PreviewTableItemProps = {
     publicationGroupAmounts: PublicationGroupAmounts;
     displayedTotalPublicationAssetAmount: number;
     onShowOnMap: (bbox: BoundingBox) => void;
-    isValidating: (item: PreviewTableEntry) => boolean;
+    validationState: PublicationValidationState;
+    canRevertChanges: boolean;
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
@@ -44,23 +51,23 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     publicationGroupAmounts,
     displayedTotalPublicationAssetAmount,
     onShowOnMap,
-    isValidating,
+    validationState,
+    canRevertChanges,
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
     const [actionMenuVisible, setActionMenuVisible] = React.useState(false);
 
-    const issuesToStrings = (list: LayoutValidationIssue[], type: 'ERROR' | 'WARNING') => {
+    const issuesToStrings = (list: LayoutValidationIssue[], type: LayoutValidationIssueType) => {
         const filtered = list.filter((e) => e.type === type);
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
+
+    const fatalTexts = issuesToStrings(tableEntry.issues, 'FATAL');
     const errorTexts = issuesToStrings(tableEntry.issues, 'ERROR');
     const warningTexts = issuesToStrings(tableEntry.issues, 'WARNING');
-    const hasErrors = tableEntry.issues.length > 0;
 
-    const statusCellClassName = createClassName(
-        hasErrors && styles['preview-table-item__status-cell--expandable'],
-    );
+    const hasErrors = tableEntry.issues.length > 0;
 
     const actionMenuRef = React.useRef(null);
 
@@ -158,9 +165,19 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         menuDivider(),
         menuOptionShowOnMap,
         menuDivider(),
-        ...conditionalMenuOption(!tableEntry.publicationGroup, menuOptionRevertSingleChange),
-        ...conditionalMenuOption(tableEntry.publicationGroup, menuOptionPublicationGroupRevert),
-        menuOptionRevertAllShownChanges,
+        ...(canRevertChanges
+            ? [
+                  ...conditionalMenuOption(
+                      !tableEntry.publicationGroup,
+                      menuOptionRevertSingleChange,
+                  ),
+                  ...conditionalMenuOption(
+                      tableEntry.publicationGroup,
+                      menuOptionPublicationGroupRevert,
+                  ),
+                  menuOptionRevertAllShownChanges,
+              ]
+            : []),
     ];
 
     return (
@@ -175,38 +192,14 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                 </td>
                 <td>{formatDateFull(tableEntry.changeTime)}</td>
                 <td>{tableEntry.userName}</td>
-                {isValidating(tableEntry) ? (
-                    <td>
-                        <Spinner />
-                    </td>
-                ) : (
-                    <td
-                        className={statusCellClassName}
-                        onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
-                        {!hasErrors && (
-                            <span className={styles['preview-table-item__ok-status']}>
-                                <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL} />
-                            </span>
-                        )}
-                        <span>
-                            {errorTexts.length > 0 && (
-                                <span className={styles['preview-table-item__error-status']}>
-                                    {t('preview-table.errors-status-text', {
-                                        errors: errorTexts.length,
-                                    })}
-                                </span>
-                            )}
-                            {errorTexts.length > 0 && warningTexts.length > 0 && ' '}
-                            {warningTexts.length > 0 && (
-                                <span className={styles['preview-table-item__warning-status']}>
-                                    {t('preview-table.warnings-status-text', {
-                                        warnings: warningTexts.length,
-                                    })}
-                                </span>
-                            )}
-                        </span>
-                    </td>
-                )}
+                <ValidationStateCell
+                    validationState={validationState}
+                    hasErrors={hasErrors}
+                    errorTexts={errorTexts.concat(fatalTexts)}
+                    warningTexts={warningTexts}
+                    toggleRowExpansion={() => setIsErrorRowExpanded(!isErrorRowExpanded)}
+                />
+
                 <td className={'preview-table-item preview-table-item__actions--cell'}>
                     <Button
                         qa-id={'stage-change-button'}
@@ -237,36 +230,11 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                 </td>
             </tr>
             {isErrorRowExpanded && hasErrors && (
-                <tr className={'preview-table-item preview-table-item--error'}>
-                    <td colSpan={7}>
-                        {errorTexts.length > 0 && (
-                            <div className="preview-table-item__msg-group preview-table-item__msg-group--errors">
-                                <div className="preview-table-item__group-title">
-                                    {t('preview-table.errors-group-title')}
-                                </div>
-                                {errorTexts.map((errorText, index) => (
-                                    <div key={index} className="preview-table-item__msg">
-                                        {errorText}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {warningTexts.length > 0 && (
-                            <div className="preview-table-item__msg-group preview-table-item__msg-group--warnings">
-                                <div className="preview-table-item__group-title">
-                                    {t('preview-table.warnings-group-title')}
-                                </div>
-                                {warningTexts?.map((warningText, index) => (
-                                    <div key={index} className="preview-table-item__msg">
-                                        {warningText}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </td>
-                </tr>
+                <ValidationStateRow
+                    errorTexts={errorTexts.concat(fatalTexts)}
+                    warningTexts={warningTexts}
+                />
             )}
-
             {actionMenuVisible && (
                 <Menu
                     positionRef={actionMenuRef}

@@ -27,8 +27,9 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({ ...props
     const onValidate: () => void = async () => {
         if (planId && planId === initializedPlanId) {
             props.setLoading(true);
-            props.onValidation(await getValidationIssuesForGeometryPlan(planId, overrideParams));
-            props.setLoading(false);
+            await getValidationIssuesForGeometryPlan(planId, overrideParams)
+                .then(props.onValidation)
+                .finally(() => props.setLoading(false));
         }
     };
     // Automatically re-validate whenever the manually input data changes
@@ -38,15 +39,16 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({ ...props
 
     const onSave: () => Promise<boolean> = async () => {
         if (planId && planId === initializedPlanId) {
-            props.setLoading(true);
-            const response = await updateGeometryPlan(planId, extraParams, overrideParams);
-            props.setLoading(false);
-            return !!response;
+            props.setSaving(true);
+            return await updateGeometryPlan(planId, extraParams, overrideParams)
+                .then((res) => !!res)
+                .finally(() => props.setSaving(false));
         } else return false;
     };
 
     useEffect(() => {
         if (planId) {
+            props.clearInfraModelState();
             setIsLoading(true);
             getGeometryPlan(planId).then((plan: GeometryPlan | undefined) => {
                 props.setExistingInfraModel(plan);
@@ -56,5 +58,9 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({ ...props
         }
     }, [planId]);
 
-    return isLoading ? <Spinner /> : <InfraModelView {...props} onSave={onSave} />;
+    return isLoading ? (
+        <Spinner />
+    ) : (
+        <InfraModelView {...props} fileSource={'STORED'} onSave={onSave} />
+    );
 };

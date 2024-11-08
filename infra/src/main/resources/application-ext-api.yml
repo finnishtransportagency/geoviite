@@ -1,0 +1,53 @@
+geoviite:
+  scheduling:
+    enabled: true
+
+  cache:
+    enabled: true
+    tasks:
+      preload:
+        enabled: true
+        geocoding-contexts: true
+        plan-headers: false
+
+  data:
+    import: false
+
+  data-products:
+    tasks:
+      create-element-listing-csv:
+        enabled: false
+
+      create-vertical-geometry-listing-csv:
+        enabled: false
+
+      publication-geometry-remarks-update:
+        enabled: false
+
+  jwt:
+    validation:
+      enabled: false
+
+  ratko:
+    enabled: false
+
+  projektivelho:
+    enabled: false
+
+  ext-api:
+    enabled: true
+    max-batch-requests: 1000
+    static-url: '/rata-vkm/static/**'
+    static-resources: 'classpath:/static/frameconverter/'
+    url-path-prefixes:
+      - /rata-vkm
+
+springdoc:
+  api-docs:
+    path: /rata-vkm/v3/api-docs
+  swagger-ui:
+    enabled: true
+    url: /rata-vkm/static/openapi-rata-vkm-v1.yml
+    path: /rata-vkm/swagger-ui.html
+    config-url: /rata-vkm/v3/api-docs/swagger-config
+    defaultModelsExpandDepth: -1

@@ -2,6 +2,7 @@ import {
     AssetId,
     JointNumber,
     KmNumber,
+    LayoutBranch,
     Oid,
     Range,
     RowVersion,
@@ -21,12 +22,28 @@ import { RatkoPushStatus } from 'ratko/ratko-model';
 import { BoundingBox, Point } from 'model/geometry';
 import { LocalizationParams } from 'i18n/config';
 import { SplitTargetOperation } from 'tool-panel/location-track/split-store';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type LayoutValidationIssue = {
-    type: 'ERROR' | 'WARNING';
+    type: LayoutValidationIssueType;
     localizationKey: string;
     params: LocalizationParams;
 };
+
+export type LayoutValidationIssueType = 'FATAL' | 'ERROR' | 'WARNING';
+
+export const validationIssueIsAtLeastAsBadAs =
+    (base: LayoutValidationIssueType) =>
+    (issue: LayoutValidationIssueType): boolean =>
+        issue === 'FATAL'
+            ? true
+            : issue === 'ERROR'
+              ? base !== 'FATAL'
+              : issue === 'WARNING'
+                ? base === 'WARNING'
+                : exhaustiveMatchingGuard(issue);
+
+export const validationIssueIsError = validationIssueIsAtLeastAsBadAs('ERROR');
 
 export enum DraftChangeType {
     TRACK_NUMBER = 'TRACK_NUMBER',
@@ -63,9 +80,9 @@ export type BasePublicationCandidate = {
     operation: Operation;
     publicationGroup?: PublicationGroup;
     issues: LayoutValidationIssue[];
-    validated: boolean;
-    pendingValidation: boolean;
+    validationState: PublicationValidationState;
     stage: PublicationStage;
+    designRowReferrer: DesignRowReferrer;
 };
 
 export type PublicationCandidate =
@@ -165,6 +182,7 @@ export type PublicationDetails = {
     id: PublicationId;
     publicationTime: TimeStamp;
     publicationUser: string;
+    layoutBranch: LayoutBranch;
     trackNumbers: PublishedTrackNumber[];
     referenceLines: PublishedReferenceLine[];
     locationTracks: PublishedLocationTrack[];
@@ -239,6 +257,8 @@ export type PublicationChange = {
     remark?: string;
     enumKey?: string;
 };
+
+export type PublicationValidationState = 'IN_PROGRESS' | 'API_CALL_OK' | 'API_CALL_ERROR';
 
 export type ValidatedAsset<Id extends AssetId> = {
     id: Id;
@@ -352,3 +372,7 @@ export type SplitTargetInPublication = {
     endAddress: TrackMeter;
     operation: SplitTargetOperation;
 };
+
+export type DesignRowReferrer = 'MAIN_DRAFT' | 'DESIGN_DRAFT' | 'NONE';
+
+export type LayoutBranchType = 'MAIN' | 'DESIGN';

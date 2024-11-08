@@ -21,12 +21,18 @@ export enum ButtonSize {
     X_SMALL = 'button--size-x-small',
 }
 
+export enum ButtonIconPosition {
+    START,
+    END,
+}
+
 // Pick some properties from default button properties
 export type ButtonProps = {
     id?: string;
     variant?: ButtonVariant;
     size?: ButtonSize;
     icon?: IconComponent;
+    iconPosition?: ButtonIconPosition;
     isProcessing?: boolean;
     children?: React.ReactNode;
     isPressed?: boolean;
@@ -34,6 +40,7 @@ export type ButtonProps = {
     attachRight?: boolean;
     wide?: boolean;
     className?: string;
+    inheritTypography?: boolean;
 } & Pick<React.HTMLProps<HTMLButtonElement>, 'disabled' | 'onClick' | 'title'>;
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -41,6 +48,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
         id,
         variant = ButtonVariant.PRIMARY,
         icon: Icon,
+        iconPosition = ButtonIconPosition.START,
         size,
         isProcessing = false,
         isPressed = false,
@@ -48,6 +56,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
         attachRight,
         wide,
         className,
+        inheritTypography = false,
         ...props
     }: ButtonProps,
     ref,
@@ -57,6 +66,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
         styles[variant],
         className,
         Icon && styles['button--has-icon'],
+        iconPosition == ButtonIconPosition.END && styles['button--icon-at-end'],
         size && styles[size],
         !props.children && styles['button--no-label'],
         isProcessing && styles['button--has-animation'],
@@ -64,8 +74,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
         attachLeft && styles['button--attach-left'],
         attachRight && styles['button--attach-right'],
         wide && styles['button--wide'],
+        inheritTypography && styles['button--inherit-typography'],
     );
-
+    
     return (
         <button id={id} className={classes} ref={ref} {...props}>
             <span className={styles['button__icon-and-animation']}>

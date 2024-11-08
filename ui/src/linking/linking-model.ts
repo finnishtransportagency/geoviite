@@ -1,5 +1,6 @@
 import {
     AlignmentPoint,
+    LayoutKmPostGkLocation,
     LayoutKmPostId,
     LayoutState,
     LayoutStateCategory,
@@ -27,9 +28,8 @@ import {
     KmNumber,
     LocationAccuracy,
     LocationTrackOwnerId,
-    LocationTrackPointUpdateType,
     Range,
-    SwitchAlignmentId,
+    Srid,
     SwitchOwnerId,
     SwitchStructureId,
     TrackMeter,
@@ -79,6 +79,7 @@ export type LinkPoint = {
     isEndPoint: boolean;
     direction: number | undefined;
     address: TrackMeter | undefined;
+    isInterpolated?: boolean;
 };
 
 export type ClusterPoint = {
@@ -162,11 +163,25 @@ export type LinkingKmPost = LinkingBaseType & {
     geometryKmPostId: GeometryKmPostId;
 };
 
-export type KmPostSaveRequest = {
+export type KmPostSimpleFields = {
     kmNumber: KmNumber;
     state?: LayoutState;
     trackNumberId?: LayoutTrackNumberId;
 };
+
+export type KmPostGkFields = {
+    gkSrid: Srid | undefined;
+    gkLocationX: string;
+    gkLocationY: string;
+    gkLocationConfirmed: boolean;
+};
+
+export type KmPostSaveRequest = KmPostSimpleFields & {
+    gkLocation: LayoutKmPostGkLocation | undefined;
+    sourceId: GeometryKmPostId | undefined;
+};
+
+export type KmPostEditFields = KmPostSimpleFields & KmPostGkFields;
 
 export enum LinkingType {
     LinkingGeometryWithAlignment,
@@ -296,9 +311,19 @@ export type SuggestedSwitch = {
     trackLinks: Record<LocationTrackId, SwitchLinkingTrackLinks>;
     geometryPlanId?: GeometryPlanId;
     geometrySwitchId?: GeometrySwitchId;
-    alignmentEndPoint?: LocationTrackEndpoint;
     name: string;
 };
+
+export type GeometrySwitchSuggestionResult =
+    | { switch: SuggestedSwitch }
+    | { failure: GeometrySwitchSuggestionFailureReason; switch: undefined };
+
+export type GeometrySwitchSuggestionFailureReason =
+    | 'RELATED_TRACKS_NOT_LINKED'
+    | 'NO_SWITCH_STRUCTURE_ID_ON_SWITCH'
+    | 'NO_SRID_ON_PLAN'
+    | 'INVALID_JOINTS'
+    | 'LESS_THAN_TWO_JOINTS';
 
 export type KmPostLinkingParameters = {
     geometryPlanId?: GeometryPlanId;
@@ -312,26 +337,6 @@ export type TrackLayoutSwitchSaveRequest = {
     stateCategory: LayoutStateCategory;
     ownerId: SwitchOwnerId;
     trapPoint?: boolean;
-};
-
-export type LocationTrackEndpoint = {
-    // "id" generated at runtime and is for UI only
-    id: string;
-    locationTrackId: LocationTrackId;
-    location: Point;
-    updateType: LocationTrackPointUpdateType;
-};
-
-export type SuggestedSwitchCreateParamsAlignmentMapping = {
-    switchAlignmentId: SwitchAlignmentId;
-    locationTrackId: LocationTrackId;
-    ascending?: boolean;
-};
-
-export type SuggestedSwitchCreateParams = {
-    locationTrackEndpoint: LocationTrackEndpoint;
-    switchStructureId: SwitchStructureId;
-    alignmentMappings: SuggestedSwitchCreateParamsAlignmentMapping[];
 };
 
 export type SwitchRelinkingValidationResult = {

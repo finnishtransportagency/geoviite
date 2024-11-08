@@ -2,11 +2,11 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import java.util.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.util.*
 
 private const val SEED = 123321L
 
@@ -28,7 +28,10 @@ class TrackLayoutTest {
         val startSlice = original.slice(0, 2, startSliceStart)!!
         assertEquals(3, startSlice.alignmentPoints.size)
         assertApproximatelyEquals(original.alignmentPoints[0].copy(m = startSliceStart), startSlice.alignmentPoints[0])
-        assertApproximatelyEquals(original.alignmentPoints[2].copy(m = original.alignmentPoints[2].m + startSliceStart), startSlice.alignmentPoints[startSlice.alignmentPoints.lastIndex])
+        assertApproximatelyEquals(
+            original.alignmentPoints[2].copy(m = original.alignmentPoints[2].m + startSliceStart),
+            startSlice.alignmentPoints[startSlice.alignmentPoints.lastIndex],
+        )
         assertEquals(startSliceStart, startSlice.startM, 0.0001)
         assertEquals(original.alignmentPoints[2].m, startSlice.length, 0.0001)
 
@@ -48,8 +51,10 @@ class TrackLayoutTest {
         assertEquals(8, midSlice.alignmentPoints.size)
         assertApproximatelyEquals(original.alignmentPoints[1].copy(m = midSliceStart), midSlice.alignmentPoints[0])
         assertApproximatelyEquals(
-            original.alignmentPoints[8].copy(m = midSliceStart + original.alignmentPoints[8].m - original.alignmentPoints[1].m),
-            midSlice.alignmentPoints[midSlice.alignmentPoints.lastIndex]
+            original.alignmentPoints[8].copy(
+                m = midSliceStart + original.alignmentPoints[8].m - original.alignmentPoints[1].m
+            ),
+            midSlice.alignmentPoints[midSlice.alignmentPoints.lastIndex],
         )
         assertEquals(midSliceStart, midSlice.startM, 0.0001)
         assertEquals(original.alignmentPoints[8].m - original.alignmentPoints[1].m, midSlice.length, 0.0001)
@@ -59,18 +64,8 @@ class TrackLayoutTest {
     fun nonContinuousSegmentsAreNotAllowed() {
         assertThrows<IllegalArgumentException> {
             alignment(
-                segment(
-                    toSegmentPoints(
-                        Point(0.0, 0.0),
-                        Point(0.0, 100.0),
-                    )
-                ),
-                segment(
-                    toSegmentPoints(
-                        Point(1.0, 100.0),
-                        Point(1.0, 200.0),
-                    )
-                ),
+                segment(toSegmentPoints(Point(0.0, 0.0), Point(0.0, 100.0))),
+                segment(toSegmentPoints(Point(1.0, 100.0), Point(1.0, 200.0))),
             )
         }
     }

@@ -4,6 +4,8 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwnerDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.switchLibrary.data.EV_SJ43_5_9_1_9_H
+import fi.fta.geoviite.infra.switchLibrary.data.EV_SJ43_5_9_1_9_V
 import fi.fta.geoviite.infra.switchLibrary.data.KRV43_233_1_9
 import fi.fta.geoviite.infra.switchLibrary.data.KRV43_270_1_9_514
 import fi.fta.geoviite.infra.switchLibrary.data.KRV54_200_1_9
@@ -121,7 +123,6 @@ val switchStructures: List<SwitchStructure> by lazy {
         KRV43_233_1_9(),
         KRV43_270_1_9_514(),
         KRV54_200_1_9(),
-
         KV30_270_1_9_514_O(),
         KV30_270_1_9_514_V(),
         KV43_300_1_9_514_O(),
@@ -130,26 +131,21 @@ val switchStructures: List<SwitchStructure> by lazy {
         KV54_200_1_9_V(),
         KV54_200N_1_9_O(),
         KV54_200N_1_9_V(),
-
         RR43_1_9_514(),
         RR54_1_9(),
         RR54_2x1_9(),
         RR54_4x1_9(),
-
         SKV60_800_423_1_15_5_O(),
         SKV60_800_423_1_15_5_V(),
         SKV60_1000_474_1_15_5_O(),
         SKV60_1000_474_1_15_5_V(),
-
         SRR54_2x1_9_4_8(),
         SRR54_2x1_9_6_0(),
         SRR60_2x1_9_4_8(),
-
         TYV54_200_1_4_44(),
         TYV54_200_1_4_44TPE(),
         TYV54_225_1_6_46(),
         TYV54_225_1_6_46TPE(),
-
         UKV54_800_258_1_9_O(),
         UKV54_800_258_1_9_V(),
         UKV54_1000_244_1_9_O(),
@@ -160,14 +156,11 @@ val switchStructures: List<SwitchStructure> by lazy {
         UKV60_600_281_1_9_V(),
         UKV60_1000_244_1_9_O(),
         UKV60_1000_244_1_9_V(),
-
         YRV54_200_1_9(),
-
         YV30_270_1_7_O(),
         YV30_270_1_7_V(),
         YV30_270_1_9_514_O(),
         YV30_270_1_9_514_V(),
-
         YV43_205_1_9_O(),
         YV43_205_1_9_V(),
         YV43_205_1_9_514_O(),
@@ -182,7 +175,6 @@ val switchStructures: List<SwitchStructure> by lazy {
         YV43_300_1_9_514_1435_V(),
         YV43_530_1_15_O(),
         YV43_530_1_15_V(),
-
         YV54_165_1_7_O(),
         YV54_165_1_7_V(),
         YV54_190_1_7_O(),
@@ -199,7 +191,6 @@ val switchStructures: List<SwitchStructure> by lazy {
         YV54_200_1_9_1524_1435_V(),
         YV54_900_1_15_5_O(),
         YV54_900_1_15_5_V(),
-
         YV60_300_1_9_O(),
         YV60_300_1_9_V(),
         YV60_300A_1_9_O(),
@@ -234,33 +225,35 @@ val switchStructures: List<SwitchStructure> by lazy {
         YV60_5000_2500_1_26_V(),
         YV60_5000_3000_1_28_O(),
         YV60_5000_3000_1_28_V(),
+
+        // Otherworldly switches
+        EV_SJ43_5_9_1_9_V(),
+        EV_SJ43_5_9_1_9_H(),
     )
 }
 
-val inframodelAliases = mapOf(
-    "YV54-200(N)-1:9" to "YV54-200N-1:9",
-    "YV60-2500-1:26" to "YV60-5000/2500-1:26",
-    "YV60-3000-1:28" to "YV60-5000/3000-1:28",
-)
+val inframodelAliases =
+    mapOf(
+        "YV54-200(N)-1:9" to "YV54-200N-1:9",
+        "YV60-2500-1:26" to "YV60-5000/2500-1:26",
+        "YV60-3000-1:28" to "YV60-5000/3000-1:28",
+    )
 
 @Suppress("unused", "ClassName")
 class V10_03_06__SwitchLibraryDataMigration : BaseJavaMigration() {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    override fun migrate(context: Context?) = withImportUser(ImportUser.SWITCH_LIB_IMPORT) {
-        logger.info("Add switch structures into library")
+    override fun migrate(context: Context?) =
+        withImportUser(ImportUser.SWITCH_LIB_IMPORT) {
+            logger.info("Add switch structures into library")
 
-        val connection = context?.connection
-            ?: throw IllegalStateException("Can't run imports without DB connection")
-        val jdbcTemplate = NamedParameterJdbcTemplate(
-            SingleConnectionDataSource(connection, true)
-        )
-        val switchStructureDao = SwitchStructureDao(jdbcTemplate)
-        switchStructures.forEach(switchStructureDao::insertSwitchStructure)
-        inframodelAliases.forEach { (alias, type) ->
-            switchStructureDao.insertInframodelAlias(alias, type)
+            val connection =
+                context?.connection ?: throw IllegalStateException("Can't run imports without DB connection")
+            val jdbcTemplate = NamedParameterJdbcTemplate(SingleConnectionDataSource(connection, true))
+            val switchStructureDao = SwitchStructureDao(jdbcTemplate)
+            switchStructures.forEach(switchStructureDao::insertSwitchStructure)
+            inframodelAliases.forEach { (alias, type) -> switchStructureDao.insertInframodelAlias(alias, type) }
         }
-    }
 
     // Increase this manually when switch library data changes
     override fun getChecksum(): Int = 6
@@ -286,9 +279,7 @@ class R__10_01__update_all_switch_structures : BaseJavaMigration() {
             logger.info("Update all switch structures")
             val connection =
                 context?.connection ?: throw IllegalStateException("Can't run imports without DB connection")
-            val jdbcTemplate = NamedParameterJdbcTemplate(
-                SingleConnectionDataSource(connection, true)
-            )
+            val jdbcTemplate = NamedParameterJdbcTemplate(SingleConnectionDataSource(connection, true))
             val switchStructureDao = SwitchStructureDao(jdbcTemplate)
             val switchOwnerDao = SwitchOwnerDao(jdbcTemplate)
             val switchLibraryService = SwitchLibraryService(switchStructureDao, switchOwnerDao)

@@ -1,0 +1,198 @@
+services:
+  backend-dependencies-build:
+    image: ${IMAGE_BACKEND_DEPENDENCIES}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: geoviite-backend-dependencies
+      args:
+        - IMAGE_BASE_BACKEND_BUILD=${IMAGE_BASE_BACKEND_BUILD}
+
+  backend-build:
+    image: ${IMAGE_BACKEND}
+    depends_on:
+      backend-dependencies-build:
+        condition: service_completed_successfully
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: geoviite-backend-build
+      args:
+        - IMAGE_BASE_BACKEND_BUILD=${IMAGE_BASE_BACKEND_BUILD}
+        - IMAGE_BACKEND_DEPENDENCIES=${IMAGE_BACKEND_DEPENDENCIES}
+
+  frontend-build:
+    image: ${IMAGE_FRONTEND}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: geoviite-frontend-build
+      args:
+        - IMAGE_BASE_FRONTEND_BUILD=${IMAGE_BASE_FRONTEND_BUILD}
+
+  distribution-build:
+    image: ${IMAGE_DISTRIBUTION}
+    command: "echo Done" # We don't want the build container to start as a service.
+    depends_on:
+      backend-build:
+        condition: service_completed_successfully
+      frontend-build:
+        condition: service_completed_successfully
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: geoviite-distribution-build
+      args:
+        IMAGE_BASE_BACKEND_BUILD: ${IMAGE_BASE_BACKEND_BUILD} # Needed for the geoviite-distribution-build-combiner
+        IMAGE_BASE_DISTRIBUTION: ${IMAGE_BASE_DISTRIBUTION}
+        IMAGE_BACKEND: ${IMAGE_BACKEND}
+        IMAGE_FRONTEND: ${IMAGE_FRONTEND}
+
+  postgres-service:
+    image: ${IMAGE_DB}
+    build: docker-images/geoviite-postgres
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - ${HOST_PORT_DB}:5432
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+
+  test-postgres-service:
+    extends:
+      service: postgres-service
+    ports: !override
+      - ${HOST_PORT_DB_TEST}:5432
+
+  backend:
+    image: ${IMAGE_DISTRIBUTION}
+    depends_on:
+      distribution-build:
+        condition: service_completed_successfully
+      postgres-service:
+        condition: service_healthy
+    environment:
+      DB_URL: postgres-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: noauth,backend,static-fileserver
+    ports:
+      - ${HOST_PORT_GEOVIITE}:8080
+    healthcheck:
+      test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
+      interval: 5s
+      timeout: 1s
+      retries: 20
+
+  ext-api:
+    extends:
+      service: backend
+    environment:
+      SPRING_PROFILES_ACTIVE: noauth,ext-api
+    ports: !override
+      - ${HOST_PORT_GEOVIITE_EXT_API}:8080
+
+  backend-unit-tests:
+    image: ${IMAGE_BACKEND}
+    command: ./gradlew --no-daemon --offline test --tests *Test
+    depends_on:
+      backend-build:
+        condition: service_completed_successfully
+
+  backend-integration-tests:
+    image: ${IMAGE_BACKEND}
+    command: |
+      ./gradlew --no-daemon --offline integrationtest --tests *IT
+    depends_on:
+      backend-build:
+        condition: service_completed_successfully
+      test-postgres-service:
+        condition: service_healthy
+    environment:
+      DB_URL: test-postgres-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+  backend-integration-tests-without-cache:
+    extends:
+      service:
+        backend-integration-tests
+    command: |
+      ./gradlew --no-daemon --offline integrationtest-without-cache --tests "*DaoIT"
+
+  e2e-backend:
+    image: ${IMAGE_DISTRIBUTION}
+    depends_on:
+      distribution-build:
+        condition: service_completed_successfully
+      test-postgres-service:
+        condition: service_healthy
+      e2e-chrome-service:
+        condition: service_started
+    environment:
+      DB_URL: test-postgres-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: e2e,noauth,backend,static-fileserver
+      RATKO_ENABLED: true
+      RATKO_URL: ${E2E_URL_RATKO}
+      PROJEKTIVELHO_ENABLED: true
+      PROJEKTIVELHO_URL: ${E2E_URL_PROJEKTIVELHO}
+    ports:
+      - ${HOST_PORT_GEOVIITE_E2E}:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
+      interval: 5s
+      timeout: 1s
+      retries: 20
+
+  e2e-chrome-service:
+    image: ${IMAGE_E2E_SELENIUM_CHROME}
+    shm_size: "2gb"
+    privileged: true
+    environment:
+      - SCREEN_WIDTH=1920
+      - SCREEN_HEIGHT=1080
+      - SE_ENABLE_TRACING=false
+      - SE_NODE_SESSION_TIMEOUT=600
+      - SE_NODE_MAX_SESSIONS=8
+    ports:
+      - ${HOST_PORT_GEOVIITE_E2E_BROWSER_CHROME}:4444
+      - ${HOST_PORT_GEOVIITE_E2E_BROWSER_VNC}:7900
+      - ${HOST_PORT_GEOVIITE_E2E_BROWSER_VNC_SERVER}:5900
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  e2e-tests:
+    image: ${IMAGE_BACKEND}
+    command: |
+      ./gradlew --no-daemon --offline test --tests "*UI"
+    depends_on:
+      backend-build:
+        condition: service_completed_successfully
+      e2e-backend:
+        condition: service_healthy
+      e2e-chrome-service:
+        condition: service_started
+    environment:
+      DB_URL: test-postgres-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      E2E_REMOTE_SELENIUM_HUB_ENABLED: true
+      E2E_URL_REMOTE_SELENIUM_HUB: ${E2E_URL_REMOTE_SELENIUM_HUB}
+      E2E_URL_GEOVIITE: ${E2E_URL_GEOVIITE}
+      E2E_URL_RATKO: ${E2E_URL_RATKO}
+      E2E_URL_PROJEKTIVELHO: ${E2E_URL_PROJEKTIVELHO}
+      HOST_PORT_GEOVIITE_E2E_PROJEKTIVELHO: ${HOST_PORT_GEOVIITE_E2E_PROJEKTIVELHO}
+    ports:
+      - ${HOST_PORT_GEOVIITE_E2E_RATKO}:12345
+      - ${HOST_PORT_GEOVIITE_E2E_PROJEKTIVELHO}:12346
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

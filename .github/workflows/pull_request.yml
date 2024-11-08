@@ -4,7 +4,7 @@ run-name: ${{ github.actor }} wants to merge ${{ github.ref_name }}
 
 on:
   pull_request:
-    branches: [main]
+    branches: [ main ]
     paths-ignore:
       - 'README.md'
 
@@ -14,71 +14,76 @@ jobs:
     timeout-minutes: 60
 
     steps:
-    - name: Download repository on the runner
-      uses: actions/checkout@v3
+      - name: Download repository on the runner
+        uses: actions/checkout@v3
 
-    - name: Configure JDK 17
-      uses: actions/setup-java@v3
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      - name: Configure JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v2
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
 
-    - name: Create cache key for Postgres Docker image
-      id: hash-postgres-dockerfile
-      env:
-        DOCKERFILE_PATH: './docker-images/geoviite-postgres/Dockerfile'
-      run: echo "POSTGRES_DOCKERFILE_HASH=$(echo -n $DOCKERFILE_PATH | sha256sum | awk '{ print $1 }')" >> $GITHUB_ENV
+      - name: Create cache key for Postgres Docker image
+        id: hash-postgres-dockerfile
+        env:
+          DOCKERFILE_PATH: './docker-images/geoviite-postgres/Dockerfile'
+        run: echo "POSTGRES_DOCKERFILE_HASH=$(echo -n $DOCKERFILE_PATH | sha256sum | awk '{ print $1 }')" >> $GITHUB_ENV
 
-    - name: Use cache for Postgres Docker image
-      id: load-cached-postgres-image
-      uses: actions/cache@v3
-      with:
-        path: /tmp/.docker
-        key: geoviite-postgres-${{ env.POSTGRES_DOCKERFILE_HASH }}
+      - name: Use cache for Postgres Docker image
+        id: load-cached-postgres-image
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.docker
+          key: geoviite-postgres-${{ env.POSTGRES_DOCKERFILE_HASH }}
 
-    - name: Use cached Postgres Docker image if it exists
-      if: steps.load-cached-postgres-image.outputs.cache-hit == 'true'
-      run: |
-        docker image load -i /tmp/.docker/geoviite-postgres-image.tar
+      - name: Use cached Postgres Docker image if it exists
+        if: steps.load-cached-postgres-image.outputs.cache-hit == 'true'
+        run: |
+          docker image load -i /tmp/.docker/geoviite-postgres-image.tar
 
-    - name: Build Postgres Docker image if it was not found from the cache
-      if: steps.load-cached-postgres-image.outputs.cache-hit != 'true'
-      run: |
-        mkdir -p /tmp/.docker
-        docker image build -t gvt-postgres ./docker-images/geoviite-postgres
-        docker image save -o /tmp/.docker/geoviite-postgres-image.tar gvt-postgres
+      - name: Build Postgres Docker image if it was not found from the cache
+        if: steps.load-cached-postgres-image.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/.docker
+          docker image build -t gvt-postgres ./docker-images/geoviite-postgres
+          docker image save -o /tmp/.docker/geoviite-postgres-image.tar gvt-postgres
 
-    - name: Execute Gradle build
-      run: |
-        cd infra
-        ./gradlew build -x test
+      - name: Execute Gradle build
+        run: |
+          cd infra
+          ./build.sh
 
-    - name: Run unit tests in infra (backend)
-      run: |
-        cd infra
-        ./gradlew cleanTest test --tests "*Test"
+      - name: Run unit tests in infra (backend)
+        run: |
+          cd infra
+          ./run_unit_tests.sh
 
-    - name: Run integration tests in infra (backend)
-      env:
-        POSTGRES_DB: 'geoviite'
-        POSTGRES_USER: 'dev-geouser'
-        POSTGRES_PASSWORD: 'dev-geouser-password'
-      run: |
-        docker run -d -p 127.0.0.1:5436:5432 \
-        -e POSTGRES_DB=$POSTGRES_DB \
-        -e POSTGRES_USER=$POSTGRES_USER \
-        -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
-         --name geoviite-db-github gvt-postgres
+      - name: Run integration tests in infra (backend)
+        env:
+          POSTGRES_DB: 'geoviite'
+          POSTGRES_USER: 'dev-geouser'
+          POSTGRES_PASSWORD: 'dev-geouser-password'
+        run: |
+          docker run -d -p 127.0.0.1:5436:5432 \
+          -e POSTGRES_DB=$POSTGRES_DB \
+          -e POSTGRES_USER=$POSTGRES_USER \
+          -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+           --name geoviite-db-github gvt-postgres
+          
+          cd infra
+          ./run_it_tests.sh
 
-        cd infra
-        ./gradlew cleanTest test --tests "*IT"
+      - name: Run DAO integration tests without cache in infra (backend)
+        run: |
+          cd infra
+          ./run_it_tests_without_cache.sh
 
-    - name: Publish Test Report
-      uses: mikepenz/action-junit-report@75b84e78b3f0aaea7ed7cf8d1d100d7f97f963ec
-      if: success() || failure()
-      with:
-        report_paths: '**/build/test-results/test/TEST*.xml'
-        detailed_summary: true
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@db71d41eb79864e25ab0337e395c352e84523afe
+        if: success() || failure()
+        with:
+          report_paths: '**/build/test-results/*test*/TEST*.xml'
+          detailed_summary: true

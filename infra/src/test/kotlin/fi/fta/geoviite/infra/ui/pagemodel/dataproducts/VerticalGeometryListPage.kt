@@ -6,10 +6,10 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementIfExists
-import org.openqa.selenium.By
-import org.openqa.selenium.WebElement
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import org.openqa.selenium.By
+import org.openqa.selenium.WebElement
 
 abstract class E2EDataProductVerticalGeometryListPage : E2EViewFragment(By.className("data-product-view")) {
     fun layoutListPage(): E2EDataProductLayoutVerticalGeometryListPage {
@@ -60,7 +60,8 @@ class E2EDataProductLayoutVerticalGeometryListPage : E2EDataProductVerticalGeome
 
     val resultList: E2EDataProductLayoutVerticalGeometryList = E2EDataProductLayoutVerticalGeometryList()
 
-    val downloadUrl: String get() = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
+    val downloadUrl: String
+        get() = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
 
     fun selectLocationTrack(searchString: String) = apply {
         logger.info("Select location track $searchString")
@@ -70,13 +71,12 @@ class E2EDataProductLayoutVerticalGeometryListPage : E2EDataProductVerticalGeome
 }
 
 class E2EDataProductEntireNetworkVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {
-    val downloadUrl: String get() = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
+    val downloadUrl: String
+        get() = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
 }
 
-abstract class E2EDataProductVerticalGeometryList<Item : E2EDataProductVerticalGeometryListItem> : E2ETable<Item>(
-    tableBy = By.className("data-product-table__table-container"),
-    rowsBy = By.cssSelector("tbody tr"),
-) {
+abstract class E2EDataProductVerticalGeometryList<Item : E2EDataProductVerticalGeometryListItem> :
+    E2ETable<Item>(tableBy = By.className("data-product-table__table-container"), rowsBy = By.cssSelector("tbody tr")) {
     override val headersBy: By = By.cssSelector("thead tr:nth-child(2) th")
 }
 
@@ -97,14 +97,14 @@ abstract class E2EDataProductVerticalGeometryListItem(
     val pviPointHeight: String,
     val pviPointLocationE: String,
 ) {
-    constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
+    constructor(
+        columns: List<WebElement>,
+        headers: List<WebElement>,
+    ) : this(
         plan = getColumnContent("data-products.vertical-geometry.table.plan", columns, headers),
         pviPointHeight = getColumnContent("data-products.vertical-geometry.table.pvi-point-height", columns, headers),
-        pviPointLocationE = getColumnContent(
-            "data-products.vertical-geometry.table.pvi-point-location-e",
-            columns,
-            headers,
-        ),
+        pviPointLocationE =
+            getColumnContent("data-products.vertical-geometry.table.pvi-point-location-e", columns, headers),
     )
 }
 

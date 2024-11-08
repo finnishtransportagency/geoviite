@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { validationIssueIsError } from 'publication/publication-model';
 
 type LocationTrackValidationInfoboxProps = {
     id: LocationTrackId;
@@ -34,16 +35,11 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
 
     const [validation, validationLoaderStatus] = useLoaderWithStatus(
         () => getLocationTrackValidation(layoutContext, id),
-        [
-            id,
-            layoutContext.publicationState,
-            layoutContext.designId,
-            changeTimes.layoutLocationTrack,
-        ],
+        [id, layoutContext.publicationState, layoutContext.branch, changeTimes.layoutLocationTrack],
     );
 
-    const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];
-    const warnings = validation?.errors.filter((err) => err.type === 'WARNING') || [];
+    const errors = validation?.errors.filter((err) => validationIssueIsError(err.type)) || [];
+    const warnings = validation?.errors.filter((err) => !validationIssueIsError(err.type)) || [];
 
     return (
         <AssetValidationInfobox

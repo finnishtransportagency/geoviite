@@ -1,18 +1,25 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import browser
 import clickElementAtPoint
+import exists
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialogWithTextField
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.util.browser
 import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.ui.util.javaScriptExecutor
 import getElementIfExists
-import javaScriptExecutor
+import getElementWhenExists
+import java.time.Instant
+import kotlin.math.roundToInt
 import org.openqa.selenium.By
 import org.openqa.selenium.interactions.Actions
 import tryWait
+import waitUntilExists
 import waitUntilNotExist
-import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
@@ -41,7 +48,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         KM_50("50 km"),
         KM_100("100 km"),
         KM_200("200 km"),
-        KM_500("500 km")
+        KM_500("500 km"),
     }
 
     init {
@@ -60,11 +67,13 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     val switchToDesignModeButton = getElementIfExists(byQaId("design-mode-tab"))
 
     val mapScale: MapScale
-        get() = tryWait({
-            val scale = childText(By.className("ol-scale-line-inner"))
-            MapScale.entries.firstOrNull { it.value == scale }
-        }) { "Invalid map scale" }
-
+        get() =
+            tryWait({
+                val scale = childText(By.className("ol-scale-line-inner"))
+                MapScale.entries.firstOrNull { it.value == scale }
+            }) {
+                "Invalid map scale"
+            }
 
     companion object {
         fun finishLoading() {
@@ -93,8 +102,12 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     fun clickAtCoordinates(xPoint: Double, yPoint: Double, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
         finishLoading()
         val pxlCoordinates =
-            javaScriptExecutor().executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])").toString()
-                .replace("[^0-9.,]".toRegex(), "").split(",").map { doubleStr -> doubleStr.toDouble().roundToInt() }
+            javaScriptExecutor()
+                .executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])")
+                .toString()
+                .replace("[^0-9.,]".toRegex(), "")
+                .split(",")
+                .map { doubleStr -> doubleStr.toDouble().roundToInt() }
 
         logger.info("Map coordinates ($xPoint,$yPoint) are at $pxlCoordinates")
         clickAtCoordinates(pixelX = pxlCoordinates[0], pixelY = pxlCoordinates[1], doubleClick)
@@ -135,6 +148,28 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         }
 
         finishLoading()
+    }
+
+    fun addDesign(designName: String = "design-${Instant.now()}") {
+        val workspaceSelectionDropdownQaId = byQaId("workspace-selection")
+
+        if (!exists(workspaceSelectionDropdownQaId)) {
+            clickChild(byQaId("workspace-selection-dropdown-toggle"))
+        }
+
+        waitUntilExists(workspaceSelectionDropdownQaId)
+        E2EDropdown(workspaceSelectionDropdownQaId).new()
+
+        E2EDialogWithTextField()
+            .inputValues(listOf(designName))
+            .selectInput(byQaId("workspace-dialog-date"))
+            .also { getElementWhenExists(By.xpath("//*[contains(@class, 'react-datepicker__day--001')]")).click() }
+            .clickPrimaryButton()
+    }
+
+    fun removeActiveDesign() {
+        clickChild(byQaId("workspace-delete-button"))
+        E2EDialog().clickPrimaryWarningButton()
     }
 
     private fun zoomOut(oldResolution: Double) {

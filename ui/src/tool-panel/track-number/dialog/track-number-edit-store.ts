@@ -14,9 +14,9 @@ import {
 } from 'utils/validation-utils';
 import { ZERO_TRACK_METER } from 'common/common-model';
 import { formatTrackMeter } from 'utils/geography-utils';
+import { ALIGNMENT_DESCRIPTION_REGEX } from 'tool-panel/location-track/dialog/location-track-validation';
 
 const TRACK_NUMBER_REGEX = /^[äÄöÖåÅA-Za-z0-9 ]{2,20}$/g;
-const DESCRIPTION_REGEX = /^[A-ZÄÖÅa-zäöå0-9 _\-+().,'/*<>:!?&]{0,100}$/;
 const ADDRESS_REGEX = /^\d{1,4}[A-Z]{0,2}(\+\d{1,4}(\.\d{1,3})?)?$/g;
 type RegexValidation = {
     field: keyof TrackNumberSaveRequest;
@@ -24,7 +24,7 @@ type RegexValidation = {
 };
 const REGEX_VALIDATIONS: RegexValidation[] = [
     { field: 'number', regex: TRACK_NUMBER_REGEX },
-    { field: 'description', regex: DESCRIPTION_REGEX },
+    { field: 'description', regex: ALIGNMENT_DESCRIPTION_REGEX },
     { field: 'startAddress', regex: ADDRESS_REGEX },
 ];
 
@@ -72,15 +72,14 @@ function validateTrackNumberEdit(
     state: TrackNumberEditState,
 ): FieldValidationIssue<TrackNumberSaveRequest>[] {
     const mandatoryFieldErrors = ['number', 'description', 'state', 'startAddress'].map(
-        (prop: keyof TrackNumberSaveRequest) => {
-            if (isNilOrBlank(state.request[prop])) {
-                return {
-                    field: prop,
-                    reason: `mandatory-field-${prop}`,
-                    type: FieldValidationIssueType.ERROR,
-                };
-            }
-        },
+        (prop: keyof TrackNumberSaveRequest) =>
+            isNilOrBlank(state.request[prop])
+                ? {
+                      field: prop,
+                      reason: `mandatory-field-${prop}`,
+                      type: FieldValidationIssueType.ERROR,
+                  }
+                : undefined,
     );
     const regexErrors = REGEX_VALIDATIONS.map((validation) => {
         const value = state.request[validation.field];

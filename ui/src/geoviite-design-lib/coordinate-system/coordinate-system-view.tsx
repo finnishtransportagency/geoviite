@@ -1,17 +1,16 @@
 import React from 'react';
-import { CoordinateSystem as CoordinateSystemModel } from 'common/common-model';
+import { CoordinateSystem } from 'common/common-model';
+import { formatWithSrid } from 'utils/geography-utils';
 
-type CoordinateSystemProps = {
-    coordinateSystem: CoordinateSystemModel | undefined;
+type CoordinateSystemViewProps = {
+    coordinateSystem: CoordinateSystem | undefined;
 };
 
-const CoordinateSystemView: React.FC<CoordinateSystemProps> = ({
+const CoordinateSystemView: React.FC<CoordinateSystemViewProps> = ({
     coordinateSystem,
-}: CoordinateSystemProps) => {
+}: CoordinateSystemViewProps) => {
     return (
-        <React.Fragment>
-            {coordinateSystem?.name} {coordinateSystem?.srid}
-        </React.Fragment>
+        <React.Fragment>{coordinateSystem ? formatWithSrid(coordinateSystem) : '-'}</React.Fragment>
     );
 };
 

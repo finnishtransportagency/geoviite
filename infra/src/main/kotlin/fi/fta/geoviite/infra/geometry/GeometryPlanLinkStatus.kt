@@ -29,12 +29,6 @@ data class GeometryElementLinkStatus(
     val linkedReferenceLineIds: List<IntId<ReferenceLine>>,
 )
 
-data class GeometrySwitchLinkStatus(
-    val id: IntId<GeometrySwitch>,
-    val isLinked: Boolean,
-)
+data class GeometrySwitchLinkStatus(val id: IntId<GeometrySwitch>, val isLinked: Boolean)
 
-data class GeometryKmPostLinkStatus(
-    val id: IntId<GeometryKmPost>,
-    val linkedKmPosts: List<IntId<TrackLayoutKmPost>>,
-)
+data class GeometryKmPostLinkStatus(val id: IntId<GeometryKmPost>, val linkedKmPosts: List<IntId<TrackLayoutKmPost>>)

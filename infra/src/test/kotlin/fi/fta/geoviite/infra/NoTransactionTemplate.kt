@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.support.TransactionCallback
 import org.springframework.transaction.support.TransactionTemplate
 
-
 @Profile("nodb")
 @Component
 class NoTransactionTemplate : TransactionTemplate() {
@@ -13,6 +12,5 @@ class NoTransactionTemplate : TransactionTemplate() {
         throw Exception("No transaction template in nodb tests")
     }
 
-    override fun afterPropertiesSet() {
-    }
+    override fun afterPropertiesSet() {}
 }

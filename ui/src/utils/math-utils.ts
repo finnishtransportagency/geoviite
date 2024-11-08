@@ -105,7 +105,7 @@ export function interpolateXY(
     return [interpolate(point1.x, point2.x, portion), interpolate(point1.y, point2.y, portion)];
 }
 
-function interpolate(value1: number, value2: number, portion: number): number {
+export function interpolate(value1: number, value2: number, portion: number): number {
     return value1 + (value2 - value1) * portion;
 }
 
@@ -115,6 +115,10 @@ function square(x: number) {
 
 function distanceSquared(v: Point, w: Point) {
     return square(v.x - w.x) + square(v.y - w.y);
+}
+
+export function distance(p1: Point, p2: Point): number {
+    return Math.sqrt(distanceSquared(p1, p2));
 }
 
 export function distToSegmentSquared(p: Point, start: Point, end: Point) {
@@ -129,10 +133,77 @@ export function distToSegmentSquared(p: Point, start: Point, end: Point) {
 }
 
 export type Slope = number;
+
 export function slopeFromPoints({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point): Slope {
     return (y1 - y2) / (x1 - x2);
 }
 
 export function linearFunction(slope: Slope, intercept: number): (x: number) => number {
     return (x: number) => slope * x + intercept;
+}
+
+export function dot(p1: Point, p2: Point): number {
+    return p1.x * p2.x + p1.y * p2.y;
+}
+
+export function mul(p: Point, val: number): Point {
+    return {
+        x: p.x * val,
+        y: p.y * val,
+    };
+}
+
+export function div(p: Point, val: number): Point {
+    return {
+        x: p.x / val,
+        y: p.y / val,
+    };
+}
+
+export function plus(p1: Point, p2: Point): Point {
+    return {
+        x: p1.x + p2.x,
+        y: p1.y + p2.y,
+    };
+}
+
+export function minus(p1: Point, p2: Point): Point {
+    return {
+        x: p1.x - p2.x,
+        y: p1.y - p2.y,
+    };
+}
+
+export function magnitude(point: Point): number {
+    return distance({ x: 0, y: 0 }, point);
+}
+
+export function normalize(point: Point): Point {
+    const m = magnitude(point);
+    return div(point, m);
+}
+
+/**
+ * Calculates a projected location of the point on the line and returns a relative location on the line.
+ *
+ * Returns 0 if the projected location is at the line start.
+ * Returns 0.5 if the projected location is in the middle of the line.
+ * Returns 1 if the projected location is at the line end.
+ *
+ * Value is not clamped!
+ * Returns a negative value if the projected location is before the line start
+ * Returns a value greater than 1 if the projected location is after the line end
+ *
+ * @param start
+ * @param end
+ * @param point
+ */
+export function portion(start: Point, end: Point, point: Point) {
+    const lineVector = minus(end, start);
+    const relativePointVector = minus(point, start);
+    return dot(normalize(lineVector), relativePointVector) / magnitude(lineVector);
+}
+
+export function clamp(val: number, min: number, max: number): number {
+    return val < min ? min : val > max ? max : val;
 }

@@ -7,13 +7,15 @@ import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
+import { LayoutBranchType } from 'publication/publication-model';
 
 type RatkoPublishButtonProps = {
     size?: ButtonSize;
     disabled?: boolean;
+    branchType: LayoutBranchType;
 };
 
-const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled }) => {
+const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled, branchType }) => {
     const { t } = useTranslation();
     const [isPublishing, setIsPublishing] = React.useState(false);
     const [showingConfirmation, setShowingConfirmation] = React.useState(false);
@@ -21,7 +23,7 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled 
         setShowingConfirmation(false);
         setIsPublishing(true);
         // TODO Catch cases where RatkoAPI is not online
-        pushToRatko().finally(() => setIsPublishing(false));
+        pushToRatko(branchType).finally(() => setIsPublishing(false));
     };
 
     return (

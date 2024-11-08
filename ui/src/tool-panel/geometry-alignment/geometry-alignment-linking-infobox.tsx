@@ -162,7 +162,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             changeTimes.layoutLocationTrack,
             changeTimes.layoutReferenceLine,
             layoutContext.publicationState,
-            layoutContext.designId,
+            layoutContext.branch,
         ],
     );
 
@@ -209,7 +209,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     }, [
         planId,
         layoutContext.publicationState,
-        layoutContext.designId,
+        layoutContext.branch,
         changeTimes.layoutLocationTrack,
         changeTimes.layoutReferenceLine,
     ]);
@@ -265,8 +265,8 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     createLinkingGeometryWithAlignmentParameters(linkingState);
 
                 await (linkingState.layoutAlignment.type == 'LOCATION_TRACK'
-                    ? linkGeometryWithLocationTrack(linkingParameters)
-                    : linkGeometryWithReferenceLine(linkingParameters));
+                    ? linkGeometryWithLocationTrack(layoutContext.branch, linkingParameters)
+                    : linkGeometryWithReferenceLine(layoutContext.branch, linkingParameters));
 
                 Snackbar.success(
                     'tool-panel.alignment.geometry.linking-succeeded-and-previous-unlinked',
@@ -277,8 +277,8 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 const linkingParameters =
                     createLinkingGeometryWithEmptyAlignmentParameters(linkingState);
                 await (linkingState.layoutAlignment.type == 'LOCATION_TRACK'
-                    ? linkGeometryWithEmptyLocationTrack(linkingParameters)
-                    : linkGeometryWithEmptyReferenceLine(linkingParameters));
+                    ? linkGeometryWithEmptyLocationTrack(layoutContext.branch, linkingParameters)
+                    : linkGeometryWithEmptyReferenceLine(layoutContext.branch, linkingParameters));
 
                 Snackbar.success('tool-panel.alignment.geometry.linking-succeeded');
                 onStopLinking();
@@ -408,6 +408,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
+                                    disabled={layoutContext.publicationState !== 'DRAFT'}
                                     size={ButtonSize.SMALL}
                                     onClick={startLinking}
                                     qa-id="start-alignment-linking">

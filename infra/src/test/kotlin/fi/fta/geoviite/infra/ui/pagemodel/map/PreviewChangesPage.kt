@@ -1,12 +1,11 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import fi.fta.geoviite.infra.publication.PublicationGroup
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
-import org.openqa.selenium.By
 import java.time.Duration
+import org.openqa.selenium.By
 
 class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
 
@@ -44,9 +43,7 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
     fun revertStagedChange(name: String): E2EPreviewChangesPage = apply {
         logger.info("Revert staged change $name")
 
-        stagedChangesTable.rows
-            .filter { it.name == name }
-            .forEach { stagedChangesTable.revertChange(it) }
+        stagedChangesTable.rows.filter { it.name == name }.forEach { stagedChangesTable.revertChange(it) }
     }
 
     fun revertChange(name: String): E2EPreviewChangesPage = apply {
@@ -59,11 +56,10 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
     fun goToTrackLayout(): E2ETrackLayoutPage {
         logger.info("Return to draft view")
         clickChild(byQaId("go-to-track-layout-view"))
-        // utter hack: Somehow the map doesn't update the visible items when clicking that in tests; so let's force
+        // utter hack: Somehow the map doesn't update the visible items when clicking that in tests;
+        // so let's force
         // it to notice something changed by forcefully wiggling it
-        return E2ETrackLayoutPage()
-            .also { map -> map.scrollMap(1, 1) }
-            .also { map -> map.scrollMap(-1, -1) }
+        return E2ETrackLayoutPage().also { map -> map.scrollMap(1, 1) }.also { map -> map.scrollMap(-1, -1) }
     }
 
     fun waitForAllTableValidationsToComplete() = apply {

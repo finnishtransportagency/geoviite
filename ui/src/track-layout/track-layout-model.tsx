@@ -5,8 +5,9 @@ import {
     GeometryPlanLayoutId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { BoundingBox, Point } from 'model/geometry';
+import { BoundingBox, GeometryPoint, Point } from 'model/geometry';
 import {
+    CoordinateSystem,
     DataType,
     JointNumber,
     KmNumber,
@@ -26,9 +27,9 @@ import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { Brand } from 'common/brand';
 
-export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
-export type LocationTrackState = 'BUILT' | 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
-export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
+export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
+export type LocationTrackState = 'BUILT' | 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
+export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING';
 
 export const LAYOUT_SRID: Srid = 'EPSG:3067';
 
@@ -196,6 +197,7 @@ export type DuplicateStatus = {
     endPoint?: AlignmentPoint;
     startSplitPoint?: SplitPoint;
     endSplitPoint?: SplitPoint;
+    overlappingLength?: number;
 };
 
 export type LocationTrackDuplicate = {
@@ -203,7 +205,10 @@ export type LocationTrackDuplicate = {
     trackNumberId: LayoutTrackNumberId;
     name: string;
     externalId: Oid;
+    start: AlignmentPoint | undefined;
+    end: AlignmentPoint | undefined;
     duplicateStatus: DuplicateStatus;
+    length: number;
 };
 export type LayoutSwitchIdAndName = {
     id: LayoutSwitchId;
@@ -213,8 +218,8 @@ export type LayoutSwitchIdAndName = {
 export type LocationTrackInfoboxExtras = {
     duplicateOf?: LocationTrackDuplicate;
     duplicates: LocationTrackDuplicate[];
-    startSplitPoint: SplitPoint;
-    endSplitPoint: SplitPoint;
+    startSplitPoint?: SplitPoint;
+    endSplitPoint?: SplitPoint;
     switchAtStart?: LayoutSwitchIdAndName;
     switchAtEnd?: LayoutSwitchIdAndName;
     partOfUnfinishedSplit?: boolean;
@@ -274,16 +279,25 @@ export type LayoutSwitchJoint = {
     locationAccuracy: LocationAccuracy;
 };
 
+export type LayoutKmPostGkLocation = {
+    location: GeometryPoint;
+    source: GkLocationSource;
+    confirmed: boolean;
+};
+
 export type LayoutKmPostId = Brand<string, 'LayoutKmPostId'>;
 
 export type LayoutKmPost = {
     id: LayoutKmPostId;
     kmNumber: KmNumber;
-    location?: Point;
+    layoutLocation?: Point;
+    gkLocation: LayoutKmPostGkLocation | undefined;
     state: LayoutState;
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryKmPostId;
 } & LayoutAssetFields;
+
+export type GkLocationSource = 'FROM_GEOMETRY' | 'FROM_LAYOUT' | 'MANUAL';
 
 export type LayoutKmLengthDetails = {
     trackNumber: TrackNumber;
@@ -291,8 +305,11 @@ export type LayoutKmLengthDetails = {
     length: number;
     startM: number;
     endM: number;
-    locationSource: GeometrySource;
-    location?: Point;
+    coordinateSystem: CoordinateSystem;
+    layoutGeometrySource: GeometrySource;
+    layoutLocation?: Point;
+    gkLocation: LayoutKmPostGkLocation | undefined;
+    gkLocationLinkedFromGeometry: boolean;
 };
 
 export type PlanArea = {
@@ -339,10 +356,14 @@ export type AddressPoint = {
     address: TrackMeter;
 };
 
+export type AlignmentEndPoint = {
+    point: AlignmentPoint;
+    address?: TrackMeter;
+};
 export type AlignmentStartAndEnd = {
     id: AlignmentId;
-    start?: AddressPoint;
-    end?: AddressPoint;
+    start?: AlignmentEndPoint;
+    end?: AlignmentEndPoint;
 };
 
 export function getSwitchPresentationJoint(
@@ -385,6 +406,11 @@ export type OperatingPoint = {
     uicCode: string;
     type: OperationalPointType;
     location: Point;
+};
+
+export type KmPostInfoboxExtras = {
+    kmLength: number | undefined;
+    sourceGeometryPlanId: GeometryPlanId | undefined;
 };
 
 export function combineAlignmentPoints(points: AlignmentPoint[][]): AlignmentPoint[] {

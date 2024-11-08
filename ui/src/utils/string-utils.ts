@@ -16,3 +16,12 @@ export function isEmpty(str: string) {
 
 export const isEqualIgnoreCase = (str1: string, str2: string): boolean =>
     str1.localeCompare(str2, i18next.language, { sensitivity: 'accent' }) === 0;
+
+export function parseFloatOrUndefined(str: string): number | undefined {
+    if (!str) {
+        return undefined;
+    } else {
+        const parsed = parseFloat(str);
+        return isNaN(parsed) ? undefined : parsed;
+    }
+}

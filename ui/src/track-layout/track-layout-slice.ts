@@ -19,7 +19,11 @@ import {
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import {
+    draftDesignLayoutContext,
+    draftMainLayoutContext,
+    LayoutBranch,
     LayoutContext,
+    LayoutContextMode,
     LayoutDesignId,
     LayoutMode,
     officialMainLayoutContext,
@@ -184,11 +188,13 @@ export enum LocationTrackTaskListType {
 export type SwitchRelinkingValidationTaskList = {
     type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION;
     locationTrackId: LocationTrackId;
-    designId: LayoutDesignId | undefined;
+    branch: LayoutBranch;
 };
 
 export type TrackLayoutState = {
     layoutContext: LayoutContext;
+    layoutContextMode: LayoutContextMode;
+    designId: LayoutDesignId | undefined;
     layoutMode: LayoutMode;
     map: Map;
     selection: Selection;
@@ -205,6 +211,8 @@ export type TrackLayoutState = {
 
 export const initialTrackLayoutState: TrackLayoutState = {
     layoutContext: officialMainLayoutContext(),
+    layoutContextMode: 'MAIN-OFFICIAL',
+    designId: undefined,
     layoutMode: 'DEFAULT',
     map: initialMapState,
     selection: initialSelectionState,
@@ -468,19 +476,26 @@ const trackLayoutSlice = createSlice({
         ): void => {
             state.layoutContext = {
                 publicationState: publicationState,
-                designId: state.layoutContext.designId,
+                branch: state.layoutContext.branch,
             };
             if (publicationState === 'OFFICIAL') linkingReducers.stopLinking(state);
         },
-        onLayoutContextChange: (
+        onLayoutContextModeChange: function (
             state: TrackLayoutState,
-            { payload: layoutContext }: PayloadAction<LayoutContext>,
-        ): void => {
-            state.layoutContext = {
-                publicationState: layoutContext.publicationState,
-                designId: layoutContext.designId,
-            };
-            if (layoutContext.publicationState === 'OFFICIAL') linkingReducers.stopLinking(state);
+            { payload: layoutContextMode }: PayloadAction<LayoutContextMode>,
+        ) {
+            state.layoutContextMode = layoutContextMode;
+            state.layoutContext = getLayoutContext(state.layoutContextMode, state.designId);
+
+            if (state.layoutContext.publicationState === 'OFFICIAL')
+                linkingReducers.stopLinking(state);
+        },
+        onDesignIdChange: function (
+            state: TrackLayoutState,
+            { payload: designId }: PayloadAction<LayoutDesignId>,
+        ) {
+            state.designId = designId;
+            state.layoutContext = getLayoutContext(state.layoutContextMode, state.designId);
         },
         onLayoutModeChange: (
             state: TrackLayoutState,
@@ -527,3 +542,16 @@ const shouldHideMapLayer = <T>(
 ) => {
     return keepVisible || !state.selection.visiblePlans.some((p) => p[key].some((i) => i !== id));
 };
+
+function getLayoutContext(
+    layoutContextMode: LayoutContextMode,
+    designId: LayoutDesignId | undefined,
+): LayoutContext {
+    if (layoutContextMode === 'DESIGN' && designId) {
+        return draftDesignLayoutContext(designId);
+    } else if (layoutContextMode == 'MAIN-DRAFT') {
+        return draftMainLayoutContext();
+    } else {
+        return officialMainLayoutContext();
+    }
+}

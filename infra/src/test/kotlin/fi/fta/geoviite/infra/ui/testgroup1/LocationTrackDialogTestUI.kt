@@ -1,11 +1,11 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.ui.SeleniumTest
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -16,16 +16,10 @@ class LocationTrackDialogTestUI @Autowired constructor() : SeleniumTest() {
         startGeoviite()
         val page = goToMap().switchToDraftMode()
         val firstLoad = page.toolBar.createNewLocationTrack()
-        assertEquals(
-            "Väylävirasto",
-            firstLoad.ownerDropdown.value
-        )
+        assertEquals("Väylävirasto", firstLoad.ownerDropdown.value)
 
         firstLoad.cancel()
 
-        assertEquals(
-            "Väylävirasto",
-            page.toolBar.createNewLocationTrack().ownerDropdown.value
-        )
+        assertEquals("Väylävirasto", page.toolBar.createNewLocationTrack().ownerDropdown.value)
     }
 }

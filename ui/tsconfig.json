@@ -4,16 +4,17 @@
         "outDir": "./dist/",
         "sourceMap": true,
         "noImplicitAny": true,
+        "noImplicitReturns": true,
         "noUncheckedIndexedAccess": true,
         "module": "commonjs",
         "lib": [
             "DOM",
-            "ES6",
+            "ES2022",
             "DOM.Iterable",
             "ScriptHost",
-            "ES2019.array"
+            "ES2023.Array"
         ],
-        "target": "es5",
+        "target": "ES2022",
         "jsx": "react",
         "strictNullChecks": true,
         "esModuleInterop": true,

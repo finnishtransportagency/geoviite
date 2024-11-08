@@ -18,7 +18,7 @@ import {
 import { Dropdown, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 import {
     compareNamed,
-    CoordinateSystem as CoordinateSystemModel,
+    CoordinateSystem,
     draftMainLayoutContext,
     officialMainLayoutContext,
     TrackNumber,
@@ -55,13 +55,14 @@ import { EDIT_GEOMETRY_FILE, userHasPrivilege, VIEW_LAYOUT_DRAFT } from 'user/us
 import { useCommonDataAppSelector } from 'store/hooks';
 import { ManualTrackNumberDialog } from 'infra-model/view/dialogs/manual-track-number-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
+import { formatWithSrid } from 'utils/geography-utils';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
     validationIssues: FieldValidationIssue<
         ExtraInfraModelParameters & OverrideInfraModelParameters
     >[];
-    upLoading: boolean;
+    isSaving: boolean;
     geometryPlan: GeometryPlan;
     onInfraModelOverrideParametersChange: (
         overrideInfraModelParameters: OverrideInfraModelParameters,
@@ -107,7 +108,7 @@ function profileInformationAvailable(alignments: GeometryAlignment[]): boolean {
 const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     changeTimes,
     validationIssues,
-    upLoading,
+    isSaving,
     geometryPlan,
     onInfraModelOverrideParametersChange,
     onInfraModelExtraParametersChange,
@@ -120,11 +121,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         (p) => p.code,
     );
 
-    const [coordinateSystem, setCoordinateSystem] = React.useState<
-        CoordinateSystemModel | undefined
-    >();
+    const [coordinateSystem, setCoordinateSystem] = React.useState<CoordinateSystem | undefined>();
     const [planSource, setPlanSource] = React.useState<PlanSource | undefined>(geometryPlan.source);
-    const [sridList, setSridList] = React.useState<CoordinateSystemModel[] | undefined>();
+    const [crsList, setSridList] = React.useState<CoordinateSystem[] | undefined>();
     const [fieldInEdit, setFieldInEdit] = React.useState<EditablePlanField | undefined>();
     const [showNewAuthorDialog, setShowNewAuthorDialog] = React.useState<boolean>();
     const [showNewProjectDialog, setShowNewProjectDialog] = React.useState<boolean>();
@@ -254,7 +253,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
     return (
         <React.Fragment>
-            {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
+            {isSaving && <div> {t('im-form.uploading-file-msg')}</div>}
             <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
                 <Formgroup>
                     <FieldLayout
@@ -456,19 +455,15 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     <Dropdown
                                         placeholder={t('im-form.coordinate-system-dropdown')}
                                         value={coordinateSystem?.srid}
-                                        options={
-                                            sridList
-                                                ? sridList
-                                                      .map((srid) =>
-                                                          dropdownOption(
-                                                              srid.srid,
-                                                              `${srid.name} ${srid.srid}`,
-                                                              srid.srid,
-                                                          ),
-                                                      )
-                                                      .sort(compareNamed)
-                                                : []
-                                        }
+                                        options={(crsList ?? [])
+                                            .map((crs) =>
+                                                dropdownOption(
+                                                    crs.srid,
+                                                    formatWithSrid(crs),
+                                                    crs.srid,
+                                                ),
+                                            )
+                                            .sort(compareNamed)}
                                         canUnselect
                                         onChange={(srid) =>
                                             changeInOverrideParametersField(

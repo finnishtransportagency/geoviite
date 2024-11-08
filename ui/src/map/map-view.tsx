@@ -527,8 +527,6 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'switch-linking-layer':
                         return createSwitchLinkingLayer(
-                            mapTiles,
-                            resolution,
                             existingOlLayer as VectorLayer<Feature<OlPoint>>,
                             selection,
                             linkingState as LinkingSwitch | undefined,
@@ -693,6 +691,8 @@ const MapView: React.FC<MapViewProps> = ({
     React.useEffect(() => {
         if (measurementToolActive && olMap) {
             return measurementTool.activate(olMap);
+        } else {
+            return () => undefined;
         }
     }, [olMap, measurementToolActive]);
 

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.testgroup2
 
+import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -27,20 +28,21 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
+import java.math.BigDecimal
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.math.BigDecimal
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
 class VerticalGeometryElementListTestUI
-@Autowired constructor(
+@Autowired
+constructor(
     private val geometryDao: GeometryDao,
     private val geometryService: GeometryService,
     private val locationTrackDao: LocationTrackDao,
@@ -112,65 +114,68 @@ class VerticalGeometryElementListTestUI
         Assertions.assertTrue(csv.isNotEmpty())
     }
 
-    private fun someGeometryProfile() = GeometryProfile(
-        name = PlanElementName("test-profile"),
-        elements = listOf(
-            VIPoint(PlanElementName("startpoint"), Point(0.0, 5.3)),
-            VICircularCurve(
-                PlanElementName("one curve"), Point(30.0, 5.28), BigDecimal(2000), BigDecimal(4),
-            ),
-            VICircularCurve(
-                PlanElementName("another curve"),
-                Point(197.0, 5.24),
-                BigDecimal(-3000),
-                BigDecimal(22.5),
-            ),
-            VIPoint(PlanElementName("endpoint"), Point(216.386446, 5.094602)),
-        ),
-    )
+    private fun someGeometryProfile() =
+        GeometryProfile(
+            name = PlanElementName("test-profile"),
+            elements =
+                listOf(
+                    VIPoint(PlanElementName("startpoint"), Point(0.0, 5.3)),
+                    VICircularCurve(PlanElementName("one curve"), Point(30.0, 5.28), BigDecimal(2000), BigDecimal(4)),
+                    VICircularCurve(
+                        PlanElementName("another curve"),
+                        Point(197.0, 5.24),
+                        BigDecimal(-3000),
+                        BigDecimal(22.5),
+                    ),
+                    VIPoint(PlanElementName("endpoint"), Point(216.386446, 5.094602)),
+                ),
+        )
 
     // no km posts, no elements, profile only, final destination
     private fun insertMinimalPlan(trackNumber: TrackNumber): RowVersion<GeometryPlan> =
         geometryDao.insertPlan(
-            plan = plan(
-                trackNumber = trackNumber,
-                srid = LAYOUT_SRID,
-                alignments = listOf(
-                    geometryAlignment(
-                        name = "test-alignment-name",
-                        profile = someGeometryProfile(),
-                    )
+            plan =
+                plan(
+                    trackNumber = trackNumber,
+                    srid = LAYOUT_SRID,
+                    alignments =
+                        listOf(geometryAlignment(name = "test-alignment-name", profile = someGeometryProfile())),
+                    coordinateSystemName = CoordinateSystemName("testcrs"),
+                    verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
                 ),
-                coordinateSystemName = CoordinateSystemName("testcrs"),
-                verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
-            ),
             file = infraModelFile("minimalplan.xml"),
             boundingBoxInLayoutCoordinates = null,
         )
 
     private fun insertGoodPlan(trackNumber: TrackNumber): RowVersion<GeometryPlan> =
         geometryDao.insertPlan(
-            plan = plan(
-                trackNumber = trackNumber,
-                srid = LAYOUT_SRID,
-                kmPosts = listOf(
-                    createGeometryKmPost(
-                        staInternal = BigDecimal(-10), location = DEFAULT_BASE_POINT, kmNumber = "0045"
-                    )
-                ),
-                alignments = listOf(
-                    geometryAlignment(
-                        name = "test-alignment-name",
-                        elements = listOf(
-                            lineAtBasePoint(Point(1.0, 1.0), Point(150.0, 100.0)),
-                            lineAtBasePoint(Point(150.0, 100.0), Point(300.0, 300.0))
+            plan =
+                plan(
+                    trackNumber = trackNumber,
+                    srid = LAYOUT_SRID,
+                    kmPosts =
+                        listOf(
+                            createGeometryKmPost(
+                                staInternal = BigDecimal(-10),
+                                location = DEFAULT_BASE_POINT,
+                                kmNumber = "0045",
+                            )
                         ),
-                        profile = someGeometryProfile(),
-                    )
+                    alignments =
+                        listOf(
+                            geometryAlignment(
+                                name = "test-alignment-name",
+                                elements =
+                                    listOf(
+                                        lineAtBasePoint(Point(1.0, 1.0), Point(150.0, 100.0)),
+                                        lineAtBasePoint(Point(150.0, 100.0), Point(300.0, 300.0)),
+                                    ),
+                                profile = someGeometryProfile(),
+                            )
+                        ),
+                    coordinateSystemName = CoordinateSystemName("testcrs"),
+                    verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
                 ),
-                coordinateSystemName = CoordinateSystemName("testcrs"),
-                verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
-            ),
             file = infraModelFile("goodplan.xml"),
             boundingBoxInLayoutCoordinates = null,
         )
@@ -181,15 +186,20 @@ class VerticalGeometryElementListTestUI
     ) {
         val geometryPlan = geometryDao.fetchPlan(planVersion)
         val geoAlignmentA = geometryPlan.alignments[0]
-        val locationTrackAlignment = alignmentDao.insert(
-            alignment(
-                segment(Point(1.0, 1.0), Point(200.0, 200.0)).copy(sourceId = geoAlignmentA.elements[0].id),
-                segment(Point(200.0, 200.0), Point(300.0, 300.0)).copy(sourceId = geoAlignmentA.elements[0].id),
-                segment(Point(300.0, 300.0), Point(400.0, 400.0)),
-                segment(Point(400.0, 400.0), Point(500.0, 500.0)).copy(sourceId = geoAlignmentA.elements[1].id),
-                segment(Point(500.0, 500.0), Point(600.0, 600.0)).copy(sourceId = geoAlignmentA.elements[1].id),
+        val locationTrackAlignment =
+            alignmentDao.insert(
+                alignment(
+                    segment(Point(1.0, 1.0), Point(200.0, 200.0))
+                        .copy(sourceId = geoAlignmentA.elements[0].id as IndexedId),
+                    segment(Point(200.0, 200.0), Point(300.0, 300.0))
+                        .copy(sourceId = geoAlignmentA.elements[0].id as IndexedId),
+                    segment(Point(300.0, 300.0), Point(400.0, 400.0)),
+                    segment(Point(400.0, 400.0), Point(500.0, 500.0))
+                        .copy(sourceId = geoAlignmentA.elements[1].id as IndexedId),
+                    segment(Point(500.0, 500.0), Point(600.0, 600.0))
+                        .copy(sourceId = geoAlignmentA.elements[1].id as IndexedId),
+                )
             )
-        )
         locationTrackDao.insert(
             locationTrack(
                 trackNumberId = trackNumberId,
@@ -201,5 +211,4 @@ class VerticalGeometryElementListTestUI
     }
 }
 
-private fun lineAtBasePoint(start: Point, end: Point) =
-    line(start + DEFAULT_BASE_POINT, end + DEFAULT_BASE_POINT)
+private fun lineAtBasePoint(start: Point, end: Point) = line(start + DEFAULT_BASE_POINT, end + DEFAULT_BASE_POINT)

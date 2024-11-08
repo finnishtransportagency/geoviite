@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-api';
-import { updateLayoutDesignChangeTime } from 'common/change-time-api';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { LayoutDesignId } from 'common/common-model';
+import { updateLayoutDesignChangeTime } from 'common/change-time-api';
 
 type WorkspaceDeleteConfirmDialogProps = {
     closeDialog: () => void;
@@ -19,16 +19,16 @@ export const WorkspaceDeleteConfirmDialog: React.FC<WorkspaceDeleteConfirmDialog
     closeDialog,
 }) => {
     const { t } = useTranslation();
-    const onDelete = () => {
-        updateLayoutDesign(currentDesign.id, {
+
+    async function onDelete() {
+        await updateLayoutDesign(currentDesign.id, {
             ...currentDesign,
             designState: 'DELETED',
-        }).then(() => {
-            updateLayoutDesignChangeTime();
-            onDesignDeleted(currentDesign.id);
-            closeDialog();
         });
-    };
+        await updateLayoutDesignChangeTime();
+        onDesignDeleted(currentDesign.id);
+        closeDialog();
+    }
 
     return (
         <Dialog
@@ -49,7 +49,14 @@ export const WorkspaceDeleteConfirmDialog: React.FC<WorkspaceDeleteConfirmDialog
                 </div>
             }>
             <p>{t('workspace-dialog.delete-confirm.guide')}</p>
-            <p>{t('workspace-dialog.delete-confirm.confirm')}</p>
+            <p>
+                <Trans
+                    t={t}
+                    i18nKey={'workspace-dialog.delete-confirm.confirm'}
+                    values={{ name: currentDesign.name }}
+                    components={{ strong: <i /> }}
+                />
+            </p>
         </Dialog>
     );
 };

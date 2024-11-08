@@ -27,9 +27,15 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
 }: TrackNumberDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
 
+    const [isSaving, setIsSaving] = React.useState(false);
+
     const deleteDraftLocationTrack = () => {
-        revertPublicationCandidates(changesBeingReverted.changeIncludingDependencies).then(
-            (result) => {
+        setIsSaving(true);
+        revertPublicationCandidates(
+            layoutContext.branch,
+            changesBeingReverted.changeIncludingDependencies,
+        )
+            .then((result) => {
                 result
                     .map(() => {
                         Snackbar.success('tool-panel.track-number.delete-dialog.delete-succeeded');
@@ -40,8 +46,8 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
                     .mapErr(() => {
                         Snackbar.error('tool-panel.track-number.delete-dialog.delete-failed');
                     });
-            },
-        );
+            })
+            .finally(() => setIsSaving(false));
     };
 
     return (
@@ -51,10 +57,12 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
+                    <Button disabled={isSaving} variant={ButtonVariant.SECONDARY} onClick={onClose}>
                         {t('button.cancel')}
                     </Button>
                     <Button
+                        disabled={isSaving}
+                        isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
                         onClick={deleteDraftLocationTrack}>
                         {t('button.delete')}

@@ -28,22 +28,20 @@ data class GeometryAlignment(
     val cant: GeometryCant? = null,
     val id: DomainId<GeometryAlignment> = StringId(),
 ) : Loggable {
-    @get:JsonIgnore
-    val bounds by lazy { boundingBoxAroundPointsOrNull(elements.flatMap { e -> e.bounds }) }
+    @get:JsonIgnore val bounds by lazy { boundingBoxAroundPointsOrNull(elements.flatMap { e -> e.bounds }) }
 
     fun getElementAt(distance: Double) =
-        foldElementLengths(elements).findLast { element -> element.first <= distance }
+        foldElementLengths(elements)
+            .findLast { element -> element.first <= distance }
             ?.let { match ->
-                    val distanceLeft = distance - match.first
-                    if (distanceLeft <= match.second.calculatedLength) match
-                    else null
-                }
+                val distanceLeft = distance - match.first
+                if (distanceLeft <= match.second.calculatedLength) match else null
+            }
 
     fun getCoordinateAt(distance: Double) =
         getElementAt(distance)?.let { match -> match.second.getCoordinateAt(distance - match.first) }
 
-    fun stationValueNormalized(station: Double) =
-        station - (elements.firstOrNull()?.staStart?.toDouble() ?: 0.0)
+    fun stationValueNormalized(station: Double) = station - (elements.firstOrNull()?.staStart?.toDouble() ?: 0.0)
 
     fun getElementStationRangeWithinAlignment(elementId: DomainId<GeometryElement>) =
         foldElementLengths(elements)
