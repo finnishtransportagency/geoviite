@@ -442,7 +442,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         title={layoutContextTransferDisabledReason()}
                         disabled={!!splittingState || !!linkingState}
                         onClick={() => switchToMainOfficial()}>
-                        {t('tool-bar.current-mode')}
+                        <span>{t('tool-bar.current-mode')}</span>
                     </TabHeader>
                     <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
                         <TabHeader
@@ -452,7 +452,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             title={layoutContextTransferDisabledReason()}
                             disabled={!!splittingState || !!linkingState}
                             onClick={() => switchToMainDraft()}>
-                            {t('tool-bar.draft-mode')}
+                            <span>{t('tool-bar.draft-mode')}</span>
                         </TabHeader>
                     </PrivilegeRequired>
                     <EnvRestricted restrictTo={'test'}>
@@ -465,7 +465,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                     title={layoutContextTransferDisabledReason()}
                                     disabled={!!splittingState || !!linkingState}
                                     onClick={switchToDesign}>
-                                    <div className={styles['tool-bar__design-tab-content']}>
+                                    <span>
                                         {t('tool-bar.design-mode')}
                                         <span>{currentDesign && `:`}</span>
                                         <div className={styles['tool-bar__design-tab-actions']}>
@@ -519,7 +519,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                     )}
                                             </PrivilegeRequired>
                                         </div>
-                                    </div>
+                                    </span>
                                 </TabHeader>
 
                                 {showDesignIdSelector && (

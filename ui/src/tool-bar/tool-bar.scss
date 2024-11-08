@@ -61,14 +61,15 @@
         padding: 12px 8px;
         max-width: none;
 
+        > * {
+            min-height: 24px;
+            display: flex;
+            align-items: center;
+        }
+
         &:not(:last-child) {
             margin-right: 10px;
         }
-    }
-
-    &__design-tab-content {
-        display: flex;
-        align-items: center;
     }
 
     &__design-name {
