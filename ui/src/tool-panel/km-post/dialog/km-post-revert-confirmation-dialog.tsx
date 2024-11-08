@@ -54,7 +54,7 @@ const KmPostRevertConfirmationDialog: React.FC<KmPostRevertConfirmationDialogPro
                         disabled={isSaving}
                         isProcessing={isSaving}
                         onClick={() => revertDraft(id)}>
-                        {t('button.delete-draft')}
+                        {t('button.revert-draft')}
                     </Button>
                 </div>
             }>

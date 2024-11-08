@@ -386,7 +386,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         setDraftDeleteConfirmationVisible(true)
                                     }
                                     variant={ButtonVariant.WARNING}>
-                                    {t('button.delete-draft')}
+                                    {t('button.revert-draft')}
                                 </Button>
                             </div>
                         )}

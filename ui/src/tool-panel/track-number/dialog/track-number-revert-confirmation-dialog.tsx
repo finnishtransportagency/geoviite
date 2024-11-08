@@ -65,7 +65,7 @@ const TrackNumberRevertConfirmationDialog: React.FC<TrackNumberRevertConfirmatio
                         isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
                         onClick={revertLocationTrack}>
-                        {t('button.delete-draft')}
+                        {t('button.revert-draft')}
                     </Button>
                 </div>
             }>

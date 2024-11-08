@@ -53,7 +53,7 @@ const SwitchRevertConfirmationDialog: React.FC<SwitchRevertConfirmationDialogPro
                         isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
                         onClick={revertSwitch}>
-                        {t('button.delete-draft')}
+                        {t('button.revert-draft')}
                     </Button>
                 </div>
             }>

@@ -51,7 +51,7 @@ const LocationTrackRevertConfirmationDialog: React.FC<
                         isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
                         onClick={() => revertLocationTrack(id)}>
-                        {t('button.delete-draft')}
+                        {t('button.revert-draft')}
                     </Button>
                 </div>
             }>

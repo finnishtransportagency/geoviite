@@ -158,7 +158,7 @@
         "cancel": "Peruuta",
         "save": "Tallenna",
         "delete": "Poista",
-        "delete-draft": "Hylkää luonnos",
+        "revert-draft": "Hylkää luonnos",
         "ok": "OK",
         "continue": "Jatka",
         "yes": "Kyllä",
