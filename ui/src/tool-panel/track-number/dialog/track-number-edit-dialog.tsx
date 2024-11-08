@@ -34,7 +34,7 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
 import styles from 'geoviite-design-lib/dialog/dialog.scss';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
+import TrackNumberRevertConfirmationDialog from 'tool-panel/track-number/dialog/track-number-revert-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import { ChangesBeingReverted } from 'preview/preview-view';
@@ -393,7 +393,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                 </Dialog>
             )}
             {inEditTrackNumber && deletingDraft && (
-                <TrackNumberDeleteConfirmationDialog
+                <TrackNumberRevertConfirmationDialog
                     layoutContext={layoutContext}
                     changesBeingReverted={deletingDraft}
                     onClose={() => setDeletingDraft(undefined)}

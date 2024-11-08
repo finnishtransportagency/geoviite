@@ -29,7 +29,7 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { LayoutKmPost, LayoutKmPostId, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { useDebouncedState } from 'utils/react-utils';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
+import KmPostRevertConfirmationDialog from 'tool-panel/km-post/dialog/km-post-revert-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
 import {
     getSaveDisabledReasons,
@@ -404,7 +404,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                 </Dialog>
             )}
             {props.kmPostId && draftDeleteConfirmationVisible && (
-                <KmPostDeleteConfirmationDialog
+                <KmPostRevertConfirmationDialog
                     layoutContext={draftLayoutContext(props.layoutContext)}
                     id={props.kmPostId}
                     onClose={() => setDraftDeleteConfirmationVisible(false)}

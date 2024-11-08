@@ -46,7 +46,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
+import LocationTrackRevertConfirmationDialog from 'tool-panel/location-track/location-track-revert-confirmation-dialog';
 import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
@@ -740,7 +740,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 </Dialog>
             )}
             {state.existingLocationTrack && draftDeleteConfirmationVisible && (
-                <LocationTrackDeleteConfirmationDialog
+                <LocationTrackRevertConfirmationDialog
                     layoutContext={layoutContextDraft}
                     id={state.existingLocationTrack?.id}
                     onClose={() => setDraftDeleteConfirmationVisible(false)}

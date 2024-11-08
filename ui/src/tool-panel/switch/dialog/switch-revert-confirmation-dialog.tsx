@@ -8,14 +8,14 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { deleteDraftSwitch } from 'track-layout/layout-switch-api';
 import { LayoutContext } from 'common/common-model';
 
-type SwitchDeleteConfirmationDialogProps = {
+type SwitchRevertConfirmationDialogProps = {
     layoutContext: LayoutContext;
     switchId: LayoutSwitchId;
     onSave: (id: LayoutSwitchId) => void;
     onClose: () => void;
 };
 
-const SwitchDeleteConfirmationDialog: React.FC<SwitchDeleteConfirmationDialogProps> = ({
+const SwitchRevertConfirmationDialog: React.FC<SwitchRevertConfirmationDialogProps> = ({
     layoutContext,
     switchId,
     onSave,
@@ -25,12 +25,12 @@ const SwitchDeleteConfirmationDialog: React.FC<SwitchDeleteConfirmationDialogPro
 
     const [isSaving, setIsSaving] = React.useState(false);
 
-    const deleteSwitch = () => {
+    const revertSwitch = () => {
         setIsSaving(true);
         deleteDraftSwitch(layoutContext, switchId)
             .then((id) => {
                 if (id) {
-                    Snackbar.success('switch-delete-dialog.success');
+                    Snackbar.success('switch-revert-dialog.success');
                     onSave(id);
                     onClose();
                 }
@@ -40,7 +40,7 @@ const SwitchDeleteConfirmationDialog: React.FC<SwitchDeleteConfirmationDialogPro
 
     return (
         <Dialog
-            title={t('switch-delete-dialog.title')}
+            title={t('switch-revert-dialog.title')}
             variant={DialogVariant.DARK}
             allowClose={false}
             footerContent={
@@ -52,14 +52,14 @@ const SwitchDeleteConfirmationDialog: React.FC<SwitchDeleteConfirmationDialogPro
                         disabled={isSaving}
                         isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
-                        onClick={deleteSwitch}>
+                        onClick={revertSwitch}>
                         {t('button.delete-draft')}
                     </Button>
                 </div>
             }>
-            <p>{t('switch-delete-dialog.guide')}</p>
+            <p>{t('switch-revert-dialog.guide')}</p>
         </Dialog>
     );
 };
 
-export default SwitchDeleteConfirmationDialog;
+export default SwitchRevertConfirmationDialog;

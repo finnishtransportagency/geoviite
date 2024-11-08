@@ -457,11 +457,11 @@
             "description": "Ratanumeron kuvaus",
             "location-title": "Ratanumeron sijaintitiedot",
             "start-address": "Alkusijainti (km + m)",
-            "delete-dialog": {
-                "delete-draft-confirm": "Hylätäänkö luonnos?",
-                "can-be-deleted": "Luonnoksen hylkääminen palauttaa ratanumeron ja pituusmittauslinjan takaisin uusimpaan viralliseen tilaan. Ratanumero ja pituusmittauslinja poistetaan jos niitä ei ole vielä julkaistu Ratkoon.",
-                "delete-succeeded": "Ratanumeron ja pituusmittauslinjan luonnokset hylätty.",
-                "delete-failed": "Luonnosten hylkääminen epäonnistui."
+            "revert-dialog": {
+                "revert-draft-confirm": "Hylätäänkö luonnos?",
+                "can-be-reverted": "Luonnoksen hylkääminen palauttaa ratanumeron ja pituusmittauslinjan takaisin uusimpaan viralliseen tilaan. Ratanumero ja pituusmittauslinja poistetaan jos niitä ei ole vielä julkaistu Ratkoon.",
+                "revert-succeeded": "Ratanumeron ja pituusmittauslinjan luonnokset hylätty.",
+                "revert-failed": "Luonnosten hylkääminen epäonnistui."
             }
         },
         "km-post": {
@@ -677,11 +677,11 @@
             "true-length": "Todellinen pituus (m)",
             "owner": "Omistaja",
             "duplicate-on-different-track-number": "Raide on eri ratanumerolla ({{trackNumber}})",
-            "delete-dialog": {
-                "delete-draft-confirm": "Hylätäänkö luonnos?",
-                "can-be-deleted": "Luonnoksen hylkääminen palauttaa sijaintiraiteen takaisin uusimpaan viralliseen tilaan. Sijaintiraide poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
-                "delete-succeeded": "Sijaintiraiteen luonnos hylätty.",
-                "delete-failed": "Luonnoksen hylkääminen epäonnistui."
+            "revert-dialog": {
+                "revert-draft-confirm": "Hylätäänkö luonnos?",
+                "can-be-reverted": "Luonnoksen hylkääminen palauttaa sijaintiraiteen takaisin uusimpaan viralliseen tilaan. Sijaintiraide poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
+                "revert-succeeded": "Sijaintiraiteen luonnos hylätty.",
+                "revert-failed": "Luonnoksen hylkääminen epäonnistui."
             },
             "ratko-info-heading": "Ratko",
             "push-to-ratko": "Vie Ratkoon...",
@@ -1816,11 +1816,11 @@
         "deleted-km-posts-not-allowed": "Poistettu-tilainen tasakilometripiste ei voi olla osa paikannuspohjaa.",
         "confirm-km-post-delete": "Haluatko poistaa tasakilometripisteen paikannuspohjasta?"
     },
-    "km-post-delete-draft-dialog": {
-        "delete-draft-confirm": "Hylätäänkö luonnos?",
-        "can-be-deleted": "Luonnoksen hylkääminen palauttaa kilometripylvään takaisin uusimpaan viralliseen tilaan. Kilometripylväs poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
-        "delete-succeeded": "Tasakilometripisteen luonnos hylätty.",
-        "delete-failed": "Luonnoksen hylkääminen epäonnistui."
+    "km-post-revert-draft-dialog": {
+        "revert-draft-confirm": "Hylätäänkö luonnos?",
+        "can-be-reverted": "Luonnoksen hylkääminen palauttaa kilometripylvään takaisin uusimpaan viralliseen tilaan. Kilometripylväs poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
+        "revert-succeeded": "Tasakilometripisteen luonnos hylätty.",
+        "revert-failed": "Luonnoksen hylkääminen epäonnistui."
     },
     "switch-dialog": {
         "title-new": "Uusi vaihde",
@@ -1877,7 +1877,7 @@
         "name-too-long": "Nimi on liian pitkä",
         "name-invalid": "Nimi sisältää kiellettyjä merkkejä"
     },
-    "switch-delete-dialog": {
+    "switch-revert-dialog": {
         "title": "Hylätäänkö luonnos?",
         "guide": "Luonnoksen hylkääminen palauttaa vaihteen takaisin uusimpaan viralliseen tilaan. Vaihde poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
         "success": "Vaihteen luonnos hylätty."

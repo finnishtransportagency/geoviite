@@ -40,7 +40,7 @@ import styles from './switch-edit-dialog.scss';
 import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
 import { getSaveDisabledReasons } from 'track-layout/track-layout-react-utils';
-import SwitchDeleteConfirmationDialog from './switch-delete-confirmation-dialog';
+import SwitchRevertConfirmationDialog from './switch-revert-confirmation-dialog';
 import { first } from 'utils/array-utils';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 
@@ -503,7 +503,7 @@ export const SwitchEditDialog = ({
                 </Dialog>
             )}
             {showDeleteDraftConfirmDialog && switchId && (
-                <SwitchDeleteConfirmationDialog
+                <SwitchRevertConfirmationDialog
                     layoutContext={layoutContext}
                     switchId={switchId}
                     onSave={() => {

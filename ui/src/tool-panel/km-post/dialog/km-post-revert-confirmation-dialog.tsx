@@ -8,40 +8,40 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { deleteDraftKmPost } from 'track-layout/layout-km-post-api';
 import { LayoutContext } from 'common/common-model';
 
-type KmPostDeleteConfirmationDialogProps = {
+type KmPostRevertConfirmationDialogProps = {
     layoutContext: LayoutContext;
     id: LayoutKmPostId;
     onSave?: (id: LayoutKmPostId) => void;
     onClose: () => void;
 };
 
-const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogProps> = ({
+const KmPostRevertConfirmationDialog: React.FC<KmPostRevertConfirmationDialogProps> = ({
     layoutContext,
     id,
     onSave,
     onClose,
-}: KmPostDeleteConfirmationDialogProps) => {
+}: KmPostRevertConfirmationDialogProps) => {
     const { t } = useTranslation();
 
     const [isSaving, setIsSaving] = React.useState(false);
 
-    const deleteKmPost = (id: LayoutKmPostId) => {
+    const revertDraft = (id: LayoutKmPostId) => {
         setIsSaving(true);
         deleteDraftKmPost(layoutContext, id)
             .then(
                 (kmPostId) => {
-                    Snackbar.success('km-post-delete-draft-dialog.delete-succeeded');
+                    Snackbar.success('km-post-revert-draft-dialog.revert-succeeded');
                     onSave && onSave(kmPostId);
                     onClose();
                 },
-                () => Snackbar.error('km-post-delete-draft-dialog.delete-failed'),
+                () => Snackbar.error('km-post-revert-draft-dialog.revert-failed'),
             )
             .finally(() => setIsSaving(false));
     };
 
     return (
         <Dialog
-            title={t('km-post-delete-draft-dialog.delete-draft-confirm')}
+            title={t('km-post-revert-draft-dialog.revert-draft-confirm')}
             variant={DialogVariant.DARK}
             allowClose={false}
             footerContent={
@@ -53,14 +53,14 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
                         variant={ButtonVariant.PRIMARY_WARNING}
                         disabled={isSaving}
                         isProcessing={isSaving}
-                        onClick={() => deleteKmPost(id)}>
-                        {t('button.delete')}
+                        onClick={() => revertDraft(id)}>
+                        {t('button.delete-draft')}
                     </Button>
                 </div>
             }>
-            <div>{t('km-post-delete-draft-dialog.can-be-deleted')}</div>
+            <div>{t('km-post-revert-draft-dialog.can-be-reverted')}</div>
         </Dialog>
     );
 };
 
-export default KmPostDeleteConfirmationDialog;
+export default KmPostRevertConfirmationDialog;
