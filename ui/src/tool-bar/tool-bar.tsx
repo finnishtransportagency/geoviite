@@ -402,9 +402,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const handleSwitchSave = refreshSwitchSelection(layoutContextDraft, onSelect, onUnselect);
     const handleKmPostSave = refereshKmPostSelection(layoutContextDraft, onSelect, onUnselect);
 
-    const layoutContextTransferDisabledReason = splittingState
-        ? t('tool-bar.splitting-in-progress')
-        : undefined;
+    const layoutContextTransferDisabledReason = (): string | undefined => {
+        if (splittingState) return t('tool-bar.splitting-in-progress');
+        else if (linkingState) return t('tool-bar.linking-in-progress');
+        return undefined;
+    };
 
     const modeNavigationButtonsDisabledReason = () => {
         if (splittingState) {
@@ -437,7 +439,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         className={styles['tool-bar__tab-header']}
                         qaId="current-mode-tab"
                         selected={layoutContextMode === 'MAIN-OFFICIAL'}
-                        title={layoutContextTransferDisabledReason}
+                        title={layoutContextTransferDisabledReason()}
                         disabled={!!splittingState || !!linkingState}
                         onClick={() => switchToMainOfficial()}>
                         {t('tool-bar.current-mode')}
@@ -447,6 +449,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             className={styles['tool-bar__tab-header']}
                             qaId={'draft-mode-tab'}
                             selected={layoutContextMode === 'MAIN-DRAFT'}
+                            title={layoutContextTransferDisabledReason()}
                             disabled={!!splittingState || !!linkingState}
                             onClick={() => switchToMainDraft()}>
                             {t('tool-bar.draft-mode')}
@@ -459,9 +462,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                     className={styles['tool-bar__tab-header']}
                                     qaId={'design-mode-tab'}
                                     selected={layoutContextMode === 'DESIGN'}
-                                    onClick={switchToDesign}
-                                    title={layoutContextTransferDisabledReason}
-                                    disabled={!!splittingState || !!linkingState}>
+                                    title={layoutContextTransferDisabledReason()}
+                                    disabled={!!splittingState || !!linkingState}
+                                    onClick={switchToDesign}>
                                     <div className={styles['tool-bar__design-tab-content']}>
                                         {t('tool-bar.design-mode')}
                                         <span>{currentDesign && `:`}</span>

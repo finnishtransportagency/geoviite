@@ -11,7 +11,6 @@ function getTranslationKey(switchHand: SwitchHandModel) {
     switch (switchHand) {
         case 'LEFT':
         case 'RIGHT':
-        case 'SWEDISH_RIGHT':
         case 'NONE':
             return switchHand;
         default:

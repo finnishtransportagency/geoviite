@@ -192,6 +192,10 @@ class SwitchStructureTest {
             SwitchTypeParts(SwitchBaseType.EV, 43, listOf(), null, "1:9", SwitchHand.RIGHT),
             SwitchType("EV-SJ43-5,9-1:9-H").parts,
         )
+        assertEquals(
+            SwitchTypeParts(SwitchBaseType.EV, 43, listOf(), null, "1:9", SwitchHand.LEFT),
+            SwitchType("EV-SJ43-5,9-1:9-V").parts,
+        )
     }
 
     @Test
