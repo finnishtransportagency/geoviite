@@ -42,6 +42,7 @@ enum class SwitchNationality {
     SWEDISH,
 }
 
+// Enum values are Finnish abbreviations, as they are most common types Geoviite will encounter
 enum class SwitchHand(val abbreviation: String) {
     LEFT("V"),
     RIGHT("O"),
@@ -51,13 +52,9 @@ enum class SwitchHand(val abbreviation: String) {
 val SWITCH_BASE_TYPES_WITH_HANDEDNESS =
     setOf(SwitchBaseType.YV, SwitchBaseType.KV, SwitchBaseType.SKV, SwitchBaseType.UKV)
 
-val FINNISH_SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS =
+private fun switchTypeAbbreviationRegexOptions(nationality: SwitchNationality): String =
     enumValues<SwitchBaseType>()
-        .filter { it.nationality == SwitchNationality.FINNISH }
-        .joinToString(separator = "|", transform = { it.name })
-val SWEDISH_SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS =
-    enumValues<SwitchBaseType>()
-        .filter { it.nationality == SwitchNationality.SWEDISH }
+        .filter { it.nationality == nationality }
         .joinToString(separator = "|", transform = { it.name })
 
 val SWITCH_TYPE_HAND_REGEX_OPTIONS =
@@ -65,20 +62,21 @@ val SWITCH_TYPE_HAND_REGEX_OPTIONS =
         .filter { it.abbreviation.isNotEmpty() }
         .joinToString(separator = "|", transform = { it.abbreviation })
 
-private val FINNISH_SWITCH_TYPE_REGEX =
+private fun finnishSwitchTypeRegex(): Regex =
     Regex(
         "^" +
-            "($FINNISH_SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS)" + // simple type
+            "(${switchTypeAbbreviationRegexOptions(SwitchNationality.FINNISH)})" + // simple type
             "(\\d{2})" + // rail weight
             "(?:-([\\d/]+)([()A-Z]*))?" + // optional radius of the curve(s) + spread/tilted
             "-((?:\\dx)?1:[\\w\\d,.\\-/]+?)" + // ratio
             "(?:-($SWITCH_TYPE_HAND_REGEX_OPTIONS))?" + // optional hand
             "$"
     )
-private val SWEDISH_SWITCH_TYPE_REGEX =
+
+private fun swedishSwitchTypeRegex(): Regex =
     Regex(
         "^" +
-            "($SWEDISH_SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS)" + // simple type
+            "(${switchTypeAbbreviationRegexOptions(SwitchNationality.SWEDISH)})" + // simple type
             "-(SJ)" + // Additional switch type information not relevant to Geoviite
             "(\\d{2})" + // rail weight
             "-(5,9)" +
@@ -117,7 +115,7 @@ private fun findSwedishSwitchTypeHand(abbreviation: String): SwitchHand =
 
 /** Returns parsed switch type parts or null if parsing fails */
 fun parseFinnishSwitchType(typeName: String): SwitchTypeParts? {
-    val matchResult = FINNISH_SWITCH_TYPE_REGEX.find(typeName) ?: return null
+    val matchResult = finnishSwitchTypeRegex().find(typeName) ?: return null
     val captured = matchResult.destructured.toList()
     val hand =
         if (captured.count() <= 5 || captured[5] == "") SwitchHand.NONE else findFinnishSwitchTypeHand(captured[5])
@@ -133,7 +131,7 @@ fun parseFinnishSwitchType(typeName: String): SwitchTypeParts? {
 }
 
 fun parseSwedishSwitchType(typeName: String): SwitchTypeParts? {
-    val matchResult = SWEDISH_SWITCH_TYPE_REGEX.find(typeName) ?: return null
+    val matchResult = swedishSwitchTypeRegex().find(typeName) ?: return null
     val captured = matchResult.destructured.toList()
 
     return SwitchTypeParts(

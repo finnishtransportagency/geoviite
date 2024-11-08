@@ -152,7 +152,7 @@ export type LayoutAssetChangeInfo = {
 
 export type Message = string;
 
-export type SwitchHand = 'RIGHT' | 'SWEDISH_RIGHT' | 'LEFT' | 'NONE';
+export type SwitchHand = 'RIGHT' | 'LEFT' | 'NONE';
 export type SwitchBaseType =
     | 'YV'
     | 'KV'
