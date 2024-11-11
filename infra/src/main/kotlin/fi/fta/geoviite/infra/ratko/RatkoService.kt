@@ -250,6 +250,8 @@ constructor(
 
     private fun pushChanges(layoutBranch: LayoutBranch, publications: List<PublicationDetails>) {
         val ratkoPushId = ratkoPushDao.startPushing(publications.map { it.id })
+        logger.info("Starting ratko push id=$ratkoPushId")
+
         val lastPublicationTime = publications.maxOf { it.publicationTime }
         try {
             val pushedRouteNumberOids =

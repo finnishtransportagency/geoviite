@@ -11,7 +11,7 @@ Configuration:
       name: Console_Appender
       target: SYSTEM_OUT
       PatternLayout:
-        pattern: "%clr{%d{yyyy-MM-dd HH:mm:ss.SSS}}{faint} %clr{-%6p} %clr{---}{faint} %clr{[%15.15t]}{faint} %clr{%-40.40c{1.}}{cyan} %clr{:}{faint} %clr{%X{correlationId}}{yellow} %clr{%X{user}}{red} %clr{%X{role}}{red} %m%n%wEx"
+        pattern: "%clr{%d{yyyy-MM-dd HH:mm:ss.SSS}}{faint} %clr{-%6p} %clr{---}{faint} %clr{[%15.15t]}{faint} %clr{%-40.40c{1.}}{cyan} %clr{:}{faint} %clr{%notEmpty{%X{correlationId} }}{yellow}%clr{%notEmpty{span=%X{spanIds} }}{magenta}%clr{%notEmpty{%X{user} }}{red}%clr{%notEmpty{%X{role} }}{red}%m%n%wEx"
 
   Loggers:
     Root:

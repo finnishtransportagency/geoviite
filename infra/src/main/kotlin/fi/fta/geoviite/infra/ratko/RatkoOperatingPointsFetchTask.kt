@@ -20,7 +20,7 @@ class RatkoOperatingPointsFetchTask @Autowired constructor(private val ratkoServ
     }
 
     @Scheduled(cron = "\${geoviite.ratko.tasks.operating-points-fetch.cron}")
-    private fun scheduledRatkoOperatingPointsFetch() {
+    fun scheduledRatkoOperatingPointsFetch() {
         withUser(ratkoOperatingPointTaskUserName, ratkoService::updateOperatingPointsFromRatko)
     }
 }

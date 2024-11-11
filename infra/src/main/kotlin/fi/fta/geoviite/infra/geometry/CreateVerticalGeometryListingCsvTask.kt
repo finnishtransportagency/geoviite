@@ -16,8 +16,12 @@ class CreateVerticalGeometryListingCsvTask @Autowired constructor(private val ge
     @Scheduled(
         initialDelayString = "\${geoviite.data-products.tasks.create-vertical-geometry-listing-csv.initial-delay}"
     )
+    fun scheduledCreateVerticalGeometryListingCskTask() {
+        geometryService.makeEntireVerticalGeometryListingCsv()
+    }
+
     @Scheduled(cron = "\${geoviite.data-products.tasks.create-vertical-geometry-listing-csv.cron}")
-    private fun scheduledCreateVerticalGeometryListingCskTask() {
+    fun scheduledCreateVerticalGeometryListingCsvTaskCron() {
         geometryService.makeEntireVerticalGeometryListingCsv()
     }
 }
