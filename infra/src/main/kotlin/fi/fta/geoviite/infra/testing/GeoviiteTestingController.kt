@@ -15,6 +15,6 @@ class GeoviiteTestingController {
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/stack-trace")
     fun testStackTrace() {
-        error { "This is a stack trace logging test" }
+        error("This is a stack trace logging test")
     }
 }

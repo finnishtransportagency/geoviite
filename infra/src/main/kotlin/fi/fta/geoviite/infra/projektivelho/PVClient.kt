@@ -64,7 +64,7 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
             .body(BodyInserters.fromFormData("grant_type", "client_credentials"))
             .retrieve()
             .bodyToMono<PVAccessToken>()
-            .block(defaultBlockTimeout) ?: error { "ProjektiVelho login failed" }
+            .block(defaultBlockTimeout) ?: error("ProjektiVelho login failed")
     }
 
     fun postXmlFileSearch(fetchStartTime: Instant, startOid: Oid<PVDocument>?): PVApiSearchStatus {
@@ -209,7 +209,7 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
                     token
                 }
             }
-            ?.accessToken ?: error { "ProjektiVelho login token can't be null after login" }
+            ?.accessToken ?: error("ProjektiVelho login token can't be null after login")
 }
 
 fun encodingTypeDictionary(type: PVDictionaryType) = "${encodingGroupPath(type.group)}/${encodingTypePath(type)}"

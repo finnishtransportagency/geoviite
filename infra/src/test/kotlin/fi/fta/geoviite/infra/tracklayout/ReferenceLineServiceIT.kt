@@ -255,7 +255,7 @@ constructor(
     private fun alignmentExists(id: IntId<LayoutAlignment>): Boolean {
         val sql = "select exists(select 1 from layout.alignment where id = :id) as exists"
         val params = mapOf("id" to id.intValue)
-        return jdbc.queryForObject(sql, params) { rs, _ -> rs.getBoolean("exists") } ?: error { "Exists-check failed" }
+        return jdbc.queryForObject(sql, params) { rs, _ -> rs.getBoolean("exists") } ?: error("Exists-check failed")
     }
 
     private fun createAndPublishTrackNumber() =
