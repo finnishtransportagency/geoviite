@@ -113,9 +113,9 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
         contextIdHolder.let { current ->
             if (current is StoredContextIdHolder) current.version
             else
-                error {
+                error(
                     "Only $STORED rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
-                }
+                )
         }
 
     companion object {
