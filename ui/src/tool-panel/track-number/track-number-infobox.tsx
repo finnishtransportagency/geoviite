@@ -156,7 +156,9 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 contentVisible={visibilities.basic}
                 onContentVisibilityChange={() => visibilityChange('basic')}
                 title={t('tool-panel.track-number.general-title')}
-                qa-id="track-number-infobox">
+                qa-id="track-number-infobox"
+                onEdit={() => setShowEditDialog(true)}
+                iconDisabled={isOfficial}>
                 <InfoboxContent>
                     <InfoboxField
                         qaId="track-number-oid"
@@ -167,22 +169,16 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         qaId="track-number-name"
                         label={t('tool-panel.track-number.track-number')}
                         value={trackNumber.number}
-                        onEdit={() => setShowEditDialog(true)}
-                        iconDisabled={isOfficial}
                     />
                     <InfoboxField
                         qaId="track-number-state"
                         label={t('tool-panel.track-number.state')}
                         value={<LayoutState state={trackNumber.state} />}
-                        onEdit={() => setShowEditDialog(true)}
-                        iconDisabled={isOfficial}
                     />
                     <InfoboxField
                         qaId="track-number-description"
                         label={t('tool-panel.track-number.description')}
                         value={trackNumber.description}
-                        onEdit={() => setShowEditDialog(true)}
-                        iconDisabled={isOfficial}
                     />
                 </InfoboxContent>
             </Infobox>
@@ -191,7 +187,9 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     contentVisible={visibilities.referenceLine}
                     onContentVisibilityChange={() => visibilityChange('referenceLine')}
                     title={t('tool-panel.reference-line.basic-info-heading')}
-                    qa-id="reference-line-location-infobox">
+                    qa-id="reference-line-location-infobox"
+                    onEdit={() => setShowEditDialog(true)}
+                    iconDisabled={isOfficial}>
                     <InfoboxContent>
                         <InfoboxField
                             qaId="track-number-start-track-meter"
@@ -202,8 +200,6 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                     location={startAndEndPoints?.start?.point}
                                 />
                             }
-                            onEdit={() => setShowEditDialog(true)}
-                            iconDisabled={isOfficial}
                         />
                         <InfoboxField
                             qaId="track-number-end-track-meter"
