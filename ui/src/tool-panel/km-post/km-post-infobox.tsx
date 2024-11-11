@@ -161,25 +161,17 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
               ? t('tool-panel.km-post.layout.negative-kilometer-length')
               : `${roundToPrecision(infoboxExtras.kmLength, 3)} m`;
 
-    const InfoboxFieldWithEditLink: React.FC<
-        Omit<React.ComponentProps<typeof InfoboxField>, 'onEdit' | 'iconDisabled'>
-    > = (props) => (
-        <InfoboxField
-            {...props}
-            onEdit={openEditDialog}
-            iconDisabled={layoutContext.publicationState === 'OFFICIAL'}
-        />
-    );
-
     return (
         <React.Fragment>
             <Infobox
                 title={t('tool-panel.km-post.layout.general-title')}
                 qa-id="km-post-infobox"
                 contentVisible={visibilities.basic}
-                onContentVisibilityChange={() => visibilityChange('basic')}>
+                onContentVisibilityChange={() => visibilityChange('basic')}
+                onEdit={openEditDialog}
+                iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
                 <InfoboxContent>
-                    <InfoboxFieldWithEditLink
+                    <InfoboxField
                         qaId="km-post-km-number"
                         label={t('tool-panel.km-post.layout.km-post')}
                         value={updatedKmPost?.kmNumber}
@@ -193,7 +185,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         }
                     />
-                    <InfoboxFieldWithEditLink
+                    <InfoboxField
                         label={t('tool-panel.km-post.layout.state')}
                         value={<LayoutState state={kmPost.state} />}
                     />
@@ -228,9 +220,11 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 title={t('tool-panel.km-post.layout.location-title')}
                 qa-id="layout-km-post-location-infobox"
                 contentVisible={visibilities.location}
-                onContentVisibilityChange={() => visibilityChange('location')}>
+                onContentVisibilityChange={() => visibilityChange('location')}
+                onEdit={openEditDialog}
+                iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
                 <InfoboxContent>
-                    <InfoboxFieldWithEditLink
+                    <InfoboxField
                         qaId="km-post-gk-coordinate-system"
                         label={t('tool-panel.km-post.layout.gk-coordinates.coordinate-system')}
                         value={
@@ -240,7 +234,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         }
                     />
-                    <InfoboxFieldWithEditLink
+                    <InfoboxField
                         qaId="km-post-gk-coordinates"
                         label={
                             gkCoordinateSystem === undefined
@@ -255,7 +249,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                 : '-'
                         }
                     />
-                    <InfoboxFieldWithEditLink
+                    <InfoboxField
                         qaId="km-post-gk-coordinates-confirmed"
                         label={t(`tool-panel.km-post.layout.gk-coordinates.confirmed-title`)}
                         value={t(

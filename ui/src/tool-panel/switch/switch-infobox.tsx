@@ -216,7 +216,9 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     contentVisible={visibilities.basic}
                     onContentVisibilityChange={() => visibilityChange('basic')}
                     title={t('tool-panel.switch.layout.general-heading')}
-                    qa-id="switch-infobox">
+                    qa-id="switch-infobox"
+                    onEdit={openEditSwitchDialog}
+                    iconDisabled={isOfficial()}>
                     <InfoboxContent>
                         <InfoboxField
                             label={t('tool-panel.switch.layout.km-m')}
@@ -240,8 +242,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             qaId="switch-name"
                             label={t('tool-panel.switch.layout.name')}
                             value={layoutSwitch.name}
-                            onEdit={openEditSwitchDialog}
-                            iconDisabled={isOfficial()}
                         />
                         <InfoboxField
                             qaId="switch-state-category"
@@ -249,8 +249,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             value={
                                 <LayoutStateCategoryLabel category={layoutSwitch.stateCategory} />
                             }
-                            onEdit={openEditSwitchDialog}
-                            iconDisabled={isOfficial()}
                         />
                         <InfoboxButtons>
                             <Button

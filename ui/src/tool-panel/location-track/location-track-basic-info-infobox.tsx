@@ -125,6 +125,8 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
             contentVisible={visibilities.basic && extraInfoLoadingStatus != LoaderStatus.Loading}
             onContentVisibilityChange={() => visibilityChange('basic')}
             title={t('tool-panel.location-track.basic-info-heading')}
+            onEdit={openEditLocationTrackDialog}
+            iconDisabled={editingDisabled}
             qa-id="location-track-infobox">
             <InfoboxContent>
                 <InfoboxField
@@ -136,36 +138,26 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                     qaId="location-track-name"
                     label={t('tool-panel.location-track.track-name')}
                     value={locationTrack.name}
-                    onEdit={openEditLocationTrackDialog}
-                    iconDisabled={editingDisabled}
                 />
                 <InfoboxField
                     qaId="location-track-state"
                     label={t('tool-panel.location-track.state')}
                     value={<LocationTrackState state={locationTrack.state} />}
-                    onEdit={openEditLocationTrackDialog}
-                    iconDisabled={editingDisabled}
                 />
                 <InfoboxField
                     qaId="location-track-type"
                     label={t('tool-panel.location-track.type')}
                     value={<LocationTrackTypeLabel type={locationTrack.type} />}
-                    onEdit={openEditLocationTrackDialog}
-                    iconDisabled={editingDisabled}
                 />
                 <InfoboxField
                     qaId="location-track-description"
                     label={t('tool-panel.location-track.description')}
                     value={description}
-                    onEdit={openEditLocationTrackDialog}
-                    iconDisabled={editingDisabled}
                 />
                 <InfoboxField
                     qaId="location-track-track-number"
                     label={t('tool-panel.location-track.track-number')}
                     value={<TrackNumberLinkContainer trackNumberId={trackNumber?.id} />}
-                    onEdit={openEditLocationTrackDialog}
-                    iconDisabled={editingDisabled}
                 />
                 <InfoboxText value={trackNumber?.description} />
                 <InfoboxField
@@ -186,9 +178,6 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                             currentTrackNumberId={trackNumber?.id}
                         />
                     }
-                    onEdit={openEditLocationTrackDialog}
-                    iconDisabled={editingDisabled}
-                    iconHidden={!locationTrack.duplicateOf}
                 />
                 <InfoboxField
                     label={t('tool-panel.location-track.topological-connectivity')}
@@ -197,14 +186,10 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                             topologicalConnectivity={locationTrack.topologicalConnectivity}
                         />
                     }
-                    onEdit={openEditLocationTrackDialog}
-                    iconDisabled={editingDisabled}
                 />
                 <InfoboxField
                     label={t('tool-panel.location-track.owner')}
                     value={getLocationTrackOwnerName(locationTrack.ownerId)}
-                    onEdit={openEditLocationTrackDialog}
-                    iconDisabled={editingDisabled}
                 />
                 <InfoboxField
                     label={t('tool-panel.location-track.start-switch')}

@@ -13,16 +13,29 @@
         background-color: vayla-design.$color-white-dark;
         box-shadow: 0 1px 1px rgba(vayla-design.$color-black-default, 0.12);
         margin-bottom: 8px;
-        padding: 12px 0 8px 20px;
         user-select: none;
         cursor: pointer;
 
-        .icon {
+        &-accordion {
+            padding: 12px 0 8px 20px;
+            display: flex;
+            flex-grow: 1;
+        }
+
+        &-edit-icon {
+            margin-right: 2px;
+        }
+
+        &-content {
+            flex-grow: 1;
+        }
+
+        &-chevron .icon {
             margin-right: 12px;
             transition: transform 254ms;
         }
 
-        &--visible .icon {
+        &-chevron--visible .icon {
             transform: rotate(90deg);
         }
     }
