@@ -1405,6 +1405,26 @@ constructor(
         assertNotNull(splitDao.get(splitId))
     }
 
+    @Test
+    fun `switch_location_tracks records when a switch but not its linked location track was edited in design`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val switch = mainOfficialContext.insert(switch()).id
+        mainOfficialContext.insert(
+            locationTrack(trackNumber),
+            alignment(
+                segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(startJointNumber = JointNumber(1), switchId = switch)
+            ),
+        )
+        val designBranch = testDBService.createDesignBranch()
+        switchDao.insert(asDesignDraft(mainOfficialContext.fetch(switch)!!, designBranch.designId))
+        val publicationId =
+            publicationTestSupportService
+                .publishAndVerify(designBranch, publicationRequestIds(switches = listOf(switch)))
+                .publicationId!!
+        val changes = publicationDao.fetchPublishedSwitches(publicationId)
+        assertEquals(setOf(trackNumber), changes.directChanges[0].trackNumberIds)
+    }
+
     data class PublicationGroupTestData(
         val sourceLocationTrackId: IntId<LocationTrack>,
         val allLocationTrackIds: List<IntId<LocationTrack>>,

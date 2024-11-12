@@ -1534,19 +1534,15 @@ class PublicationDao(
                   location_track_version,
                   is_topology_switch
                 )
-                select distinct :publication_id, :switch_id, location_track.id, location_track.version, false
-                from publication, layout.location_track
+                select distinct :publication_id, :switch_id, location_track.row_id, location_track.row_version, false
+                from publication, layout.location_track_in_layout_context('OFFICIAL', publication.design_id) location_track
                  inner join layout.segment_version on segment_version.alignment_id = location_track.alignment_id
                    and location_track.alignment_version = segment_version.alignment_version
                 where segment_version.switch_id = :switch_id 
-                  and not location_track.draft
-                  and location_track.design_id is not distinct from publication.design_id
                 union all
-                select distinct :publication_id, :switch_id, location_track.id, location_track.version, true
-                from publication, layout.location_track
-                where not location_track.draft 
-                  and (location_track.topology_start_switch_id = :switch_id or location_track.topology_end_switch_id = :switch_id)
-                  and location_track.design_id is not distinct from publication.design_id
+                select distinct :publication_id, :switch_id, location_track.row_id, location_track.row_version, true
+                from publication, layout.location_track_in_layout_context('OFFICIAL', publication.design_id) location_track
+                where (location_track.topology_start_switch_id = :switch_id or location_track.topology_end_switch_id = :switch_id)
             """
                 .trimIndent(),
             (directChanges + indirectChanges)
