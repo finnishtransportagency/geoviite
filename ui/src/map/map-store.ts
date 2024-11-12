@@ -92,6 +92,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'orthographic-background-map': ['orthographic-background-map-layer'],
     'location-track': ['location-track-alignment-layer', 'location-track-badge-layer'],
     'reference-line': ['reference-line-alignment-layer', 'reference-line-badge-layer'],
+    'reference-line-hide-when-zoomed-close': [], // This is technically a setting, not a map layer by itself.
     'missing-vertical-geometry': ['missing-profile-highlight-layer'],
     'missing-linking': ['missing-linking-highlight-layer'],
     'duplicate-tracks': ['duplicate-tracks-highlight-layer'],
@@ -140,7 +141,18 @@ export const initialMapState: Map = {
                     },
                 ],
             },
-            { name: 'reference-line', visible: true, qaId: 'reference-line-layer' },
+            {
+                name: 'reference-line',
+                visible: true,
+                qaId: 'reference-line-layer',
+                subMenu: [
+                    {
+                        name: 'reference-line-hide-when-zoomed-close',
+                        visible: false,
+                        qaId: 'reference-line-hide-when-zoomed-close',
+                    },
+                ],
+            },
             {
                 name: 'location-track',
                 visible: true,
