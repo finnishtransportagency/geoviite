@@ -32,35 +32,30 @@ export const isLayerInProxyLayerCollection = (
     proxyLayerCollection: LayerCollection,
 ): boolean => {
     const layersFromMenuItem = layerMenuItemMapLayers[menuItemName];
-    const key = Object.keys(proxyLayerCollection).find((key) =>
+    const keys = Object.keys(proxyLayerCollection).filter((key) =>
         proxyLayerCollection[key as MapLayerName]?.find((layer) =>
             layersFromMenuItem.includes(layer),
         ),
     );
-    return visibleLayers.some((layer) => layer === key);
+    const retval = visibleLayers.some((layer) => keys.includes(layer));
+
+    return retval;
 };
 
 const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer'];
 
 type LayerCollection = { [key in MapLayerName]?: MapLayerName[] };
 
-export const relatedMapLayers: LayerCollection = {
+export const layersToShowByProxy: LayerCollection = {
     'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
     'switch-linking-layer': ['switch-layer', 'geometry-switch-layer'],
     'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
     'virtual-km-post-linking-layer': ['km-post-layer', 'geometry-km-post-layer'],
-    'location-track-alignment-layer': [
-        'location-track-background-layer',
-        'location-track-badge-layer',
-    ],
-    'reference-line-alignment-layer': [
-        'reference-line-background-layer',
-        'reference-line-badge-layer',
-    ],
     'location-track-split-location-layer': [
         'duplicate-split-section-highlight-layer',
         'location-track-duplicate-endpoint-address-layer',
         'location-track-split-badge-layer',
+        'switch-layer',
     ],
 };
 
@@ -78,6 +73,17 @@ export const layersToHideByProxy: LayerCollection = {
         'geometry-switch-layer',
         'geometry-km-post-layer',
         'plan-area-layer',
+    ],
+};
+
+export const relatedMapLayers: LayerCollection = {
+    'location-track-alignment-layer': [
+        'location-track-background-layer',
+        'location-track-badge-layer',
+    ],
+    'reference-line-alignment-layer': [
+        'reference-line-background-layer',
+        'reference-line-badge-layer',
     ],
 };
 
@@ -323,7 +329,8 @@ const collectLayersHiddenByProxy = (items: MapLayerName[]) =>
     deduplicate(items.flatMap((i) => layersToHideByProxy[i]).filter(filterNotEmpty));
 
 function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
-    const relatedLayers = layers.flatMap((l) => relatedMapLayers[l]).filter(filterNotEmpty);
+    const allRelatedMapLayers = { ...layersToShowByProxy, ...relatedMapLayers };
+    const relatedLayers = layers.flatMap((l) => allRelatedMapLayers[l]).filter(filterNotEmpty);
 
     return relatedLayers.length > 0
         ? [...relatedLayers, ...collectRelatedLayers(relatedLayers)]
