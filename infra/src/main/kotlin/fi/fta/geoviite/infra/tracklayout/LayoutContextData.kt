@@ -15,20 +15,12 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.logging.Loggable
 
-enum class EditState {
-    UNEDITED,
-    EDITED,
-    CREATED,
-}
-
 interface LayoutContextAware<T> {
     val id: DomainId<T>
     val version: LayoutRowVersion<T>?
     val dataType: DataType
-    val editState: EditState
     val branch: LayoutBranch
 
-    @get:JsonIgnore
     val isDraft: Boolean
         get() = false
 
@@ -72,12 +64,16 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
     LayoutContextAware<T> by contextData, Loggable {
     @get:JsonIgnore abstract val contextData: LayoutContextData<T>
 
+    val hasOfficial: Boolean
+        get() = contextData.hasOfficial
+
     abstract fun withContext(contextData: LayoutContextData<T>): T
 }
 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
 
     @get:JsonIgnore abstract val contextIdHolder: ContextIdHolder<T>
+    @get:JsonIgnore abstract val hasOfficial: Boolean
 
     @get:JsonIgnore
     open val officialRowId: LayoutRowId<T>?
@@ -165,9 +161,8 @@ sealed class DesignContextData<T> : LayoutContextData<T>() {
 }
 
 data class MainOfficialContextData<T>(override val contextIdHolder: ContextIdHolder<T>) : MainContextData<T>() {
-
-    override val editState: EditState
-        get() = EditState.UNEDITED
+    override val hasOfficial: Boolean
+        get() = true
 
     override val isOfficial: Boolean
         get() = true
@@ -198,8 +193,9 @@ data class MainDraftContextData<T>(
     override val officialRowId: LayoutRowId<T>?,
     override val designRowId: LayoutRowId<T>?,
 ) : MainContextData<T>() {
-    override val editState: EditState
-        get() = if (officialRowId != null) EditState.EDITED else EditState.CREATED
+
+    override val hasOfficial: Boolean
+        get() = officialRowId != null
 
     override val isDraft: Boolean
         get() = true
@@ -227,8 +223,8 @@ data class DesignOfficialContextData<T>(
     override val designId: IntId<LayoutDesign>,
     override val cancelled: Boolean,
 ) : DesignContextData<T>() {
-    override val editState: EditState
-        get() = EditState.UNEDITED
+    override val hasOfficial: Boolean
+        get() = true
 
     override val isOfficial: Boolean
         get() = true
@@ -278,8 +274,8 @@ data class DesignDraftContextData<T>(
     override val designId: IntId<LayoutDesign>,
     override val cancelled: Boolean,
 ) : DesignContextData<T>() {
-    override val editState: EditState
-        get() = if (designRowId != null) EditState.EDITED else EditState.CREATED
+    override val hasOfficial: Boolean
+        get() = officialRowId != null
 
     override val isDraft: Boolean
         get() = true

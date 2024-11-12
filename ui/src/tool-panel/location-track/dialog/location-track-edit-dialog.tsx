@@ -46,7 +46,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
+import LocationTrackRevertConfirmationDialog from 'tool-panel/location-track/location-track-revert-confirmation-dialog';
 import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
@@ -139,8 +139,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.changeTimes,
     );
 
-    const canSetDeleted =
-        !state.isNewLocationTrack && state.existingLocationTrack?.editState !== 'CREATED';
+    const canSetDeleted = !state.isNewLocationTrack && state.existingLocationTrack?.hasOfficial;
     const stateOptions = locationTrackStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
@@ -378,23 +377,19 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 width={DialogWidth.TWO_COLUMNS}
                 footerContent={
                     <React.Fragment>
-                        {state.existingLocationTrack?.editState === 'CREATED' &&
-                            !state.isNewLocationTrack && (
-                                <div
-                                    className={
-                                        dialogStyles['dialog__footer-content--left-aligned']
-                                    }>
-                                    <Button
-                                        onClick={() =>
-                                            state.existingLocationTrack &&
-                                            setDraftDeleteConfirmationVisible(true)
-                                        }
-                                        icon={Icons.Delete}
-                                        variant={ButtonVariant.WARNING}>
-                                        {t('button.delete-draft')}
-                                    </Button>
-                                </div>
-                            )}
+                        {!state.isNewLocationTrack && (
+                            <div className={dialogStyles['dialog__footer-content--left-aligned']}>
+                                <Button
+                                    disabled={!state.existingLocationTrack?.isDraft}
+                                    onClick={() =>
+                                        state.existingLocationTrack &&
+                                        setDraftDeleteConfirmationVisible(true)
+                                    }
+                                    variant={ButtonVariant.WARNING}>
+                                    {t('button.revert-draft')}
+                                </Button>
+                            </div>
+                        )}
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
@@ -745,7 +740,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 </Dialog>
             )}
             {state.existingLocationTrack && draftDeleteConfirmationVisible && (
-                <LocationTrackDeleteConfirmationDialog
+                <LocationTrackRevertConfirmationDialog
                     layoutContext={layoutContextDraft}
                     id={state.existingLocationTrack?.id}
                     onClose={() => setDraftDeleteConfirmationVisible(false)}

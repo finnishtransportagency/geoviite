@@ -209,29 +209,29 @@ constructor(
     }
 
     @Test
-    fun editStateOfNewDraftIsReturnedCorrectly() {
+    fun `hasOfficial is calculated to be false for unpublished drafts`() {
         val draft = kmPost(null, someKmNumber(), draft = true)
-        assertEquals(draft.editState, EditState.CREATED)
+        assertFalse(draft.hasOfficial)
         assertFalse(draft.isOfficial)
         assertTrue(draft.isDraft)
     }
 
     @Test
-    fun editStateOfOfficialIsReturnedCorrectly() {
+    fun `hasOfficial is calculated to be true for unedited officials`() {
         val official =
             insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
-        assertEquals(official.editState, EditState.UNEDITED)
+        assertTrue(official.hasOfficial)
         assertTrue(official.isOfficial)
         assertFalse(official.isDraft)
     }
 
     @Test
-    fun editStateOfChangedDraftIsReturnedCorrectly() {
+    fun `hasOfficial is calculated to be true for drafts with an official version`() {
         val edited =
             asMainDraft(
                 insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
             )
-        assertEquals(edited.editState, EditState.EDITED)
+        assertTrue(edited.hasOfficial)
         assertFalse(edited.isOfficial)
         assertTrue(edited.isDraft)
     }

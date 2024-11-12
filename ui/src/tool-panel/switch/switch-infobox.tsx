@@ -13,7 +13,7 @@ import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { makeSwitchImage } from 'geoviite-design-lib/switch/switch-icons';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { IconColor, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
 import SwitchHand from 'geoviite-design-lib/switch/switch-hand';
 import { formatToTM35FINString } from 'utils/geography-utils';
@@ -50,7 +50,6 @@ import {
     useSwitchChangeTimes,
 } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import SwitchDeleteConfirmationDialog from './dialog/switch-delete-confirmation-dialog';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
@@ -177,7 +176,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         getSwitchPresentationJoint(layoutSwitch, structure.presentationJointNumber)?.location;
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
-    const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
     const canStartPlacing = placingSwitchLinkingState == undefined && layoutSwitch != undefined;
 
     function isOfficial(): boolean {
@@ -387,27 +385,8 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             />
                         </React.Fragment>
                     )}
-                    {layoutSwitch?.editState === 'CREATED' && (
-                        <InfoboxButtons>
-                            <Button
-                                onClick={() => setShowDeleteDialog(true)}
-                                icon={Icons.Delete}
-                                variant={ButtonVariant.WARNING}
-                                size={ButtonSize.SMALL}>
-                                {t('button.delete-draft')}
-                            </Button>
-                        </InfoboxButtons>
-                    )}
                 </InfoboxContent>
             </Infobox>
-            {showDeleteDialog && (
-                <SwitchDeleteConfirmationDialog
-                    layoutContext={layoutContext}
-                    switchId={switchId}
-                    onClose={() => setShowDeleteDialog(false)}
-                    onSave={handleSwitchSave}
-                />
-            )}
 
             {showEditDialog && (
                 <SwitchEditDialogContainer

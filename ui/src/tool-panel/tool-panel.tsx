@@ -8,7 +8,6 @@ import {
     GeometrySwitchId,
 } from 'geometry/geometry-model';
 import {
-    EditState,
     LayoutKmPostId,
     LayoutLocationTrack,
     LayoutSwitchId,
@@ -188,8 +187,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     };
 
     // Draft-only entities should be hidden when viewing in official mode. Show everything in draft mode
-    const visibleByContextAndState = ({ editState }: { editState: EditState }) =>
-        layoutContext.publicationState === 'DRAFT' || editState !== 'CREATED';
+    const visibleByContextAndState = ({ hasOfficial }: { hasOfficial: boolean }) =>
+        layoutContext.publicationState === 'DRAFT' || hasOfficial;
 
     React.useEffect(() => {
         if (tracksSwitchesKmPostsPlans === undefined) {

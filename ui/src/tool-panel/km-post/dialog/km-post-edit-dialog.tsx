@@ -28,9 +28,8 @@ import {
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { LayoutKmPost, LayoutKmPostId, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { useDebouncedState } from 'utils/react-utils';
-import { Icons } from 'vayla-design-lib/icon/Icon';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
+import KmPostRevertConfirmationDialog from 'tool-panel/km-post/dialog/km-post-revert-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
 import {
     getSaveDisabledReasons,
@@ -95,7 +94,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         gkLocationEnabled: !!props.geometryKmPostGkLocation,
     });
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
-    const canSetDeleted = !state.isNewKmPost && state.existingKmPost?.editState !== 'CREATED';
+    const canSetDeleted = state.existingKmPost?.hasOfficial;
     const kmPostStateOptions = layoutStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
@@ -252,17 +251,17 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                 width={DialogWidth.TWO_COLUMNS}
                 footerContent={
                     <React.Fragment>
-                        {state.existingKmPost?.editState === 'CREATED' && !state.isNewKmPost && (
+                        {!state.isNewKmPost && (
                             <div className={dialogStyles['dialog__footer-content--left-aligned']}>
                                 <Button
+                                    disabled={!state.existingKmPost?.isDraft}
                                     onClick={() =>
                                         props.kmPostId
                                             ? setDraftDeleteConfirmationVisible(true)
                                             : undefined
                                     }
-                                    icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}>
-                                    {t('button.delete-draft')}
+                                    {t('button.revert-draft')}
                                 </Button>
                             </div>
                         )}
@@ -392,7 +391,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                 isProcessing={state.isSaving}
                                 variant={ButtonVariant.PRIMARY_WARNING}
                                 onClick={save}>
-                                {t('button.delete')}
+                                {t('button.revert-draft')}
                             </Button>
                         </div>
                     }>
@@ -405,7 +404,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                 </Dialog>
             )}
             {props.kmPostId && draftDeleteConfirmationVisible && (
-                <KmPostDeleteConfirmationDialog
+                <KmPostRevertConfirmationDialog
                     layoutContext={draftLayoutContext(props.layoutContext)}
                     id={props.kmPostId}
                     onClose={() => setDraftDeleteConfirmationVisible(false)}

@@ -137,7 +137,6 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
     const isDraft = layoutContext.publicationState === 'DRAFT';
     const isMainDraft = layoutContext.branch === 'MAIN' && isDraft;
-    const locationTrackIsDraft = locationTrack.editState !== 'UNEDITED';
     const duplicatesOnOtherTrackNumbers = extraInfo?.duplicates?.some(
         (duplicate) => duplicate.trackNumberId !== trackNumber?.id,
     );
@@ -168,7 +167,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.location-track.unsupported-state-for-splitting');
         }
 
-        if (locationTrackIsDraft) {
+        if (locationTrack.isDraft) {
             reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
         }
         if (duplicatesOnOtherTrackNumbers) {
@@ -354,7 +353,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const splittingDisabled =
         locationTrack.state !== 'IN_USE' ||
         !isDraft ||
-        locationTrackIsDraft ||
+        locationTrack.isDraft ||
         duplicatesOnOtherTrackNumbers ||
         duplicatesOnOtherLocationTracks ||
         extraInfo?.partOfUnfinishedSplit ||
@@ -467,7 +466,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
                                     {isMainDraft && (
                                         <React.Fragment>
-                                            {locationTrackIsDraft &&
+                                            {locationTrack.isDraft &&
                                                 !extraInfo?.partOfUnfinishedSplit && (
                                                     <InfoboxContentSpread>
                                                         <MessageBox>
