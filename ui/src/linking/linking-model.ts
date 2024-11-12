@@ -102,6 +102,7 @@ export type MapAlignmentEndPoints = {
 };
 
 export type LinkingPhase = 'preliminary' | 'setup' | 'allSet';
+export type LinkingAssetSource = 'USER_SELECTED' | 'PREDEFINED';
 
 type LinkingBaseType = {
     type: LinkingType;
@@ -150,6 +151,7 @@ export type LinkingSwitch = LinkingBaseType & {
     type: LinkingType.LinkingSwitch;
     suggestedSwitch: SuggestedSwitch;
     layoutSwitchId?: LayoutSwitchId;
+    switchSource: LinkingAssetSource;
 };
 
 export type PlacingSwitch = LinkingBaseType & {

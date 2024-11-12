@@ -31,7 +31,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
         delegates.onSelect({
             suggestedSwitches: [suggestedSwitch],
         });
-        delegates.startSwitchLinking(suggestedSwitch);
+        delegates.startSwitchLinking({ suggestedSwitch, source: 'PREDEFINED' });
         delegates.onSelect({
             switches: [layoutSwitch.id],
         });
