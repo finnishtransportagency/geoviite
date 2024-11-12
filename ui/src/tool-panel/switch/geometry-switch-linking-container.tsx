@@ -45,7 +45,7 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
             switchId={switchId}
             onLinkingStart={(suggestedSwitch) => {
                 delegates.showLayers(['switch-linking-layer']);
-                delegates.startSwitchLinking(suggestedSwitch);
+                delegates.startSwitchLinking({ suggestedSwitch, source: 'USER_SELECTED' });
             }}
             selectedSuggestedSwitch={suggestedSwitch}
             onSelect={delegates.onSelect}

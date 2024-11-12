@@ -77,7 +77,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     }
 
     function getLocationTrackBadges(locationTrackIds: LocationTrackId[]) {
-        return locationTrackIds
+        const badges = locationTrackIds
             .map((t) => locationTracks?.find((locationTrack) => locationTrack.id === t))
             .filter(filterNotEmpty)
             .map((t) => (
@@ -87,6 +87,14 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                     onClick={locationTrackBadgeOnClickHandler(t.id)}
                 />
             ));
+
+        return badges.length > 0 ? (
+            badges
+        ) : (
+            <span className={styles['switch-joint-infobox__no-alignments']}>
+                {t('tool-panel.switch.layout.no-alignments')}
+            </span>
+        );
     }
 
     return (

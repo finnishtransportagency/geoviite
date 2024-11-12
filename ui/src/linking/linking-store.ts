@@ -15,6 +15,7 @@ import {
     LinkInterval,
     LinkPoint,
     SuggestedSwitch,
+    LinkingAssetSource,
 } from 'linking/linking-model';
 import {
     AlignmentId,
@@ -207,12 +208,15 @@ export const linkingReducers = {
     },
     startSwitchLinking: (
         state: TrackLayoutState,
-        { payload }: PayloadAction<SuggestedSwitch>,
+        {
+            payload: { suggestedSwitch, source },
+        }: PayloadAction<{ suggestedSwitch: SuggestedSwitch; source: LinkingAssetSource }>,
     ): void => {
         state.layoutContext = draftLayoutContext(state.layoutContext);
         state.linkingState = {
             type: LinkingType.LinkingSwitch,
-            suggestedSwitch: payload,
+            suggestedSwitch: suggestedSwitch,
+            switchSource: source,
             state: 'preliminary',
             issues: [],
         };

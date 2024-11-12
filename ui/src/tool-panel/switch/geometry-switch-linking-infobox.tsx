@@ -34,6 +34,8 @@ import { GeometrySwitchLinkingErrors } from 'tool-panel/switch/geometry-switch-l
 import { SwitchTypeMatch } from 'linking/linking-utils';
 import { GeometrySwitchLinkingInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
+import InfoboxField from 'tool-panel/infobox/infobox-field';
+import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 
 type GeometrySwitchLinkingInfoboxProps = {
     geometrySwitchId?: GeometrySwitchId;
@@ -200,17 +202,38 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                     {linkingState && (
                         <React.Fragment>
                             <div className={styles['geometry-switch-infobox__linking-container']}>
-                                <span className={styles['geometry-switch-infobox__info-text']}>
-                                    {t('tool-panel.switch.geometry.select-switch-msg')}
-                                </span>
-                                <GeometrySwitchLinkingCandidates
-                                    layoutContext={layoutContext}
-                                    onSelectSwitch={(s) => onSelect({ switches: [s.id] })}
-                                    selectedSwitchId={layoutSwitch?.id}
-                                    switchChangeTime={switchChangeTime}
-                                    suggestedSwitch={suggestedSwitch}
-                                    onShowAddSwitchDialog={() => setShowAddSwitchDialog(true)}
-                                />
+                                {linkingState.switchSource === 'PREDEFINED' ? (
+                                    layoutSwitch && (
+                                        <InfoboxField
+                                            label={t(
+                                                'tool-panel.switch.geometry.predefined-switch',
+                                            )}>
+                                            <SwitchBadge
+                                                switchItem={layoutSwitch}
+                                                status={SwitchBadgeStatus.SELECTED}
+                                            />
+                                        </InfoboxField>
+                                    )
+                                ) : (
+                                    <React.Fragment>
+                                        <span
+                                            className={
+                                                styles['geometry-switch-infobox__info-text']
+                                            }>
+                                            {t('tool-panel.switch.geometry.select-switch-msg')}
+                                        </span>
+                                        <GeometrySwitchLinkingCandidates
+                                            layoutContext={layoutContext}
+                                            onSelectSwitch={(s) => onSelect({ switches: [s.id] })}
+                                            selectedSwitchId={layoutSwitch?.id}
+                                            switchChangeTime={switchChangeTime}
+                                            suggestedSwitch={suggestedSwitch}
+                                            onShowAddSwitchDialog={() =>
+                                                setShowAddSwitchDialog(true)
+                                            }
+                                        />
+                                    </React.Fragment>
+                                )}
                                 {suggestedSwitch && switchStructure && (
                                     <SwitchJointInfoboxContainer
                                         suggestedSwitch={suggestedSwitch}
