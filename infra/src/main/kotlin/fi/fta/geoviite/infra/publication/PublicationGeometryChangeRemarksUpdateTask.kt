@@ -1,9 +1,13 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.authorization.UserName
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import withUser
+
+val CHANGE_REMARKS = UserName.of("CHANGE_REMARKS")
 
 @Component
 @ConditionalOnProperty(
@@ -19,7 +23,9 @@ constructor(private val publicationGeometryChangeRemarksUpdateService: Publicati
         initialDelayString = "\${geoviite.data-products.tasks.publication-geometry-remarks-update.initial-delay}",
         fixedDelayString = "\${geoviite.data-products.tasks.publication-geometry-remarks-update.interval}",
     )
-    private fun scheduledUpdateUnprocessedGeometryChangeRemarks() {
-        publicationGeometryChangeRemarksUpdateService.updateUnprocessedGeometryChangeRemarks()
+    fun scheduledUpdateUnprocessedGeometryChangeRemarks() {
+        withUser(CHANGE_REMARKS) {
+            publicationGeometryChangeRemarksUpdateService.updateUnprocessedGeometryChangeRemarks()
+        }
     }
 }

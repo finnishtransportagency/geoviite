@@ -9,9 +9,12 @@ import jakarta.servlet.http.HttpServletResponse
 import java.time.Duration
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.apache.logging.log4j.ThreadContext
 import org.slf4j.Logger
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ClientResponse
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction
+import org.springframework.web.reactive.function.client.ExchangeFunction
 
 fun Logger.apiRequest(req: HttpServletRequest, requestIp: String) {
     if (isDebugEnabled) debug("Request: {}:{} ip={}", req.method, req.requestURL, requestIp)
@@ -129,4 +132,11 @@ fun Logger.integrationCall(request: ClientRequest) {
 
 fun Logger.integrationCall(response: ClientResponse) {
     info("External service responded: ${response.logPrefix()} status=${response.statusCode()}")
+}
+
+fun copyThreadContextToReactiveResponseThread(): ExchangeFilterFunction {
+    return ExchangeFilterFunction { request: ClientRequest, next: ExchangeFunction ->
+        val requestThreadContext = ThreadContext.getContext()
+        next.exchange(request).doOnNext { _ -> requestThreadContext?.let { ctx -> ThreadContext.putAll(ctx) } }
+    }
 }
