@@ -302,7 +302,6 @@ private fun commonElementListingCsvEntries(translation: Translation): List<CsvEn
             "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.remarks" to { remarks(it, translation) },
         )
         .map { (key, fn) -> CsvEntry(translation.t(key), fn) }
-        .map { (key, fn) -> CsvEntry(translation.t(key), fn) }
 
 fun translateTrackGeometryElementType(type: TrackGeometryElementType, translation: Translation) =
     when (type) {
