@@ -37,9 +37,7 @@ export const isLayerInProxyLayerCollection = (
             layersFromMenuItem.includes(layer),
         ),
     );
-    const retval = visibleLayers.some((layer) => keys.includes(layer));
-
-    return retval;
+    return visibleLayers.some((layer) => keys.includes(layer));
 };
 
 const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer'];
