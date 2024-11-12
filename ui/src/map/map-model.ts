@@ -96,6 +96,7 @@ export type MapLayerMenuItemName =
     | 'orthographic-background-map'
     | 'location-track'
     | 'reference-line'
+    | 'reference-line-hide-when-zoomed-close'
     | 'missing-vertical-geometry'
     | 'missing-linking'
     | 'duplicate-tracks'

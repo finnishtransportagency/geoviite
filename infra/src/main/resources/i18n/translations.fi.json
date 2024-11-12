@@ -1268,6 +1268,7 @@
         "orthographic-background-map": "Ilmakuva",
         "location-track": "Sijaintiraiteet",
         "reference-line": "Pituusmittauslinjat",
+        "reference-line-hide-when-zoomed-close": "Piilota läheltä katsottaessa",
         "track-number-diagram": "Pituusmittausraidekaavio",
         "missing-vertical-geometry": "Korosta puuttuva pystygeometria",
         "missing-linking": "Korosta puuttuva linkitys",

@@ -59,7 +59,7 @@ import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { filterNotEmpty, first, objectEntries } from 'utils/array-utils';
-import { mapLayerZIndexes } from 'map/layers/utils/layer-visibility-limits';
+import { ALL_ALIGNMENTS, mapLayerZIndexes } from 'map/layers/utils/layer-visibility-limits';
 import { createLocationTrackAlignmentLayer } from 'map/layers/alignment/location-track-alignment-layer';
 import { createReferenceLineAlignmentLayer } from 'map/layers/alignment/reference-line-alignment-layer';
 import { createLocationTrackBackgroundLayer } from 'map/layers/alignment/location-track-background-layer';
@@ -74,7 +74,7 @@ import { Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/location-track-split-location-layer';
 import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
@@ -158,6 +158,18 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
         },
         source: 'Map',
     };
+}
+
+function referenceLineHideWhenZoomedCloseSetting(mapLayerMenuGroups: MapLayerMenuGroups): boolean {
+    const referenceLineLayerMenu = mapLayerMenuGroups.layout.find(
+        (layerMenuItem) => layerMenuItem.name === 'reference-line',
+    );
+
+    const referenceLineHideWhenZoomedCloseMenu = referenceLineLayerMenu?.subMenu?.find(
+        (layerSubMenuItem) => layerSubMenuItem.name === 'reference-line-hide-when-zoomed-close',
+    );
+
+    return expectDefined(referenceLineHideWhenZoomedCloseMenu?.visible);
 }
 
 const MapView: React.FC<MapViewProps> = ({
@@ -320,6 +332,10 @@ const MapView: React.FC<MapViewProps> = ({
                     map.visibleLayers.includes(coveringLayer) && covers?.includes(layer),
             );
 
+        const hideReferenceLinesWhenZoomedClose =
+            referenceLineHideWhenZoomedCloseSetting(mapLayerMenuGroups) &&
+            resolution <= ALL_ALIGNMENTS;
+
         // Create OpenLayers objects by domain layers
         const updatedLayers = map.visibleLayers
             .filter((layer) => !layerIsCovered(layer))
@@ -357,36 +373,42 @@ const MapView: React.FC<MapViewProps> = ({
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'reference-line-alignment-layer':
-                        return createReferenceLineAlignmentLayer(
-                            mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
-                            selection,
-                            !!splittingState,
-                            layoutContext,
-                            changeTimes,
-                            onShownLayerItemsChange,
-                            (loading) => onLayerLoading(layerName, loading),
-                        );
+                        return hideReferenceLinesWhenZoomedClose
+                            ? undefined
+                            : createReferenceLineAlignmentLayer(
+                                  mapTiles,
+                                  existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
+                                  selection,
+                                  !!splittingState,
+                                  layoutContext,
+                                  changeTimes,
+                                  onShownLayerItemsChange,
+                                  (loading) => onLayerLoading(layerName, loading),
+                              );
                     case 'reference-line-background-layer':
-                        return createReferenceLineBackgroundLayer(
-                            mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
-                            !!splittingState,
-                            layoutContext,
-                            changeTimes,
-                            (loading) => onLayerLoading(layerName, loading),
-                        );
+                        return hideReferenceLinesWhenZoomedClose
+                            ? undefined
+                            : createReferenceLineBackgroundLayer(
+                                  mapTiles,
+                                  existingOlLayer as VectorLayer<Feature<LineString>>,
+                                  !!splittingState,
+                                  layoutContext,
+                                  changeTimes,
+                                  (loading) => onLayerLoading(layerName, loading),
+                              );
                     case 'reference-line-badge-layer':
-                        return createReferenceLineBadgeLayer(
-                            mapTiles,
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
-                            selection,
-                            layoutContext,
-                            linkingState,
-                            changeTimes,
-                            resolution,
-                            (loading) => onLayerLoading(layerName, loading),
-                        );
+                        return hideReferenceLinesWhenZoomedClose
+                            ? undefined
+                            : createReferenceLineBadgeLayer(
+                                  mapTiles,
+                                  existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                                  selection,
+                                  layoutContext,
+                                  linkingState,
+                                  changeTimes,
+                                  resolution,
+                                  (loading) => onLayerLoading(layerName, loading),
+                              );
                     case 'location-track-alignment-layer':
                         return createLocationTrackAlignmentLayer(
                             mapTiles,
@@ -655,6 +677,7 @@ const MapView: React.FC<MapViewProps> = ({
         map.layerSettings,
         hoveredOverPlanSection,
         manuallySetPlan,
+        mapLayerMenuGroups,
     ]);
 
     React.useEffect(() => {
