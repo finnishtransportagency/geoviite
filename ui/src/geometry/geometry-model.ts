@@ -279,6 +279,7 @@ export type ElementItem = {
     coordinateSystemName?: string;
     connectedSwitchName: string;
     isPartial: boolean;
+    planTime?: TimeStamp;
 };
 
 type LinearSection = {

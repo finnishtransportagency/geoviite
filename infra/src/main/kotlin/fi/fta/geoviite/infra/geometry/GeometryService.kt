@@ -75,10 +75,10 @@ constructor(
     private val localizationService: LocalizationService,
 ) {
 
-    private fun runElementListGeneration(op: () -> Unit) =
+    private fun runElementListGeneration(force: Boolean, op: () -> Unit) =
         runWithLock(elementListingGenerationUser, ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
             val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
-            if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) {
+            if (force || Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) {
                 op()
             }
         }
@@ -305,33 +305,36 @@ constructor(
         )
     }
 
-    fun makeElementListingCsv() = runElementListGeneration {
-        val translation = localizationService.getLocalization(LocalizationLanguage.FI)
-        val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
-        val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)
-        val elementListing =
-            locationTrackService
-                .listWithAlignments(MainLayoutContext.official, includeDeleted = false)
-                .map { (locationTrack, alignment) ->
-                    Triple(locationTrack, alignment, trackNumbers[locationTrack.trackNumberId]?.number)
-                }
-                .sortedWith(compareBy({ (_, _, tn) -> tn }, { (track, _, _) -> track.name }))
-                .flatMap { (track, alignment, trackNumber) ->
-                    getElementListing(track, alignment, trackNumber, geocodingContexts[track.trackNumberId])
-                }
-        val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
-        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
+    fun makeElementListingCsv() = makeElementListingCsv(false)
 
-        elementListingFileDao.upsertElementListingFile(
-            ElementListingFile(
-                name =
-                    FileName(
-                        "${translation.t("data-products.element-list.element-list-whole-network-title")} ${dateFormatter.format(Instant.now())}"
-                    ),
-                content = csvFileContent,
+    fun makeElementListingCsv(force: Boolean) =
+        runElementListGeneration(force) {
+            val translation = localizationService.getLocalization(LocalizationLanguage.FI)
+            val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
+            val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)
+            val elementListing =
+                locationTrackService
+                    .listWithAlignments(MainLayoutContext.official, includeDeleted = false)
+                    .map { (locationTrack, alignment) ->
+                        Triple(locationTrack, alignment, trackNumbers[locationTrack.trackNumberId]?.number)
+                    }
+                    .sortedWith(compareBy({ (_, _, tn) -> tn }, { (track, _, _) -> track.name }))
+                    .flatMap { (track, alignment, trackNumber) ->
+                        getElementListing(track, alignment, trackNumber, geocodingContexts[track.trackNumberId])
+                    }
+            val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
+            val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
+
+            elementListingFileDao.upsertElementListingFile(
+                ElementListingFile(
+                    name =
+                        FileName(
+                            "${translation.t("data-products.element-list.element-list-whole-network-title")} ${dateFormatter.format(Instant.now())}"
+                        ),
+                    content = csvFileContent,
+                )
             )
-        )
-    }
+        }
 
     fun getElementListingCsv() = elementListingFileDao.getElementListingFile()
 
