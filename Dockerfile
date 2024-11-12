@@ -1,7 +1,6 @@
-ARG IMAGE_BASE_BACKEND_BUILD=eclipse-temurin:17-jdk
-ARG IMAGE_BASE_FRONTEND_BUILD=node:20-alpine
-ARG IMAGE_BASE_BACKEND_BUILD=eclipse-temurin:17-jdk
-ARG IMAGE_BASE_DISTRIBUTION=eclipse-temurin:17-jre
+ARG IMAGE_BASE_BACKEND_BUILD=public.ecr.aws/docker/library/eclipse-temurin:17-jdk
+ARG IMAGE_BASE_FRONTEND_BUILD=public.ecr.aws/docker/library/node:20-alpine
+ARG IMAGE_BASE_DISTRIBUTION=public.ecr.aws/docker/library/eclipse-temurin:17-jre
 
 ARG IMAGE_BACKEND_DEPENDENCIES="geoviite-backend-dependencies"
 ARG IMAGE_BACKEND=geoviite-backend-build
