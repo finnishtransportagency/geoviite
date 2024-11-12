@@ -73,7 +73,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ratakilometri-param'
         - $ref: '#/components/parameters/ratametri-param'
-        - $ref: '#/components/parameters/ratanumero-param'
+        - $ref: '#/components/parameters/ratanumero-param-required'
         - $ref: '#/components/parameters/sijaintiraide-param'
         - $ref: '#/components/parameters/sijaintiraide_tyyppi-param'
         - $ref: '#/components/parameters/koordinaatisto-param'
@@ -232,6 +232,13 @@ components:
       name: ratanumero
       in: query
       required: false
+      description: 'Rajaa haun ratanumeron nimen perusteella.'
+      schema:
+        $ref: '#/components/schemas/ratanumero'
+    ratanumero-param-required:
+      name: ratanumero
+      in: query
+      required: true
       description: 'Rajaa haun ratanumeron nimen perusteella.'
       schema:
         $ref: '#/components/schemas/ratanumero'
