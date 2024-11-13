@@ -1,3 +1,8 @@
+-- do $$
+--   begin
+--       raise exception 'This migration is not yet implemented';
+--   end $$;
+
 drop table if exists node_point_version_temp;
 create temporary table node_point_version_temp as (
   with
@@ -6,7 +11,6 @@ create temporary table node_point_version_temp as (
       select
         lt.id as location_track_id,
         lt.version as location_track_version,
-        lt.change_time as location_track_change_time,
         s.switch_id,
         s.switch_start_joint_number,
         s.switch_end_joint_number,
@@ -33,7 +37,6 @@ create temporary table node_point_version_temp as (
         location_track_version,
         alignment_id,
         alignment_version,
-        location_track_change_time,
         switch_id,
         switch_start_joint_number as joint_number,
         segment_index as start_segment_index,
@@ -53,7 +56,6 @@ create temporary table node_point_version_temp as (
         location_track_version,
         alignment_id,
         alignment_version,
-        location_track_change_time,
         switch_id,
         switch_end_joint_number as joint_number,
         case when segment_index = segment_count - 1 then null else segment_index + 1 end as start_segment_index,
@@ -74,7 +76,6 @@ create temporary table node_point_version_temp as (
         lt.version as location_track_version,
         lt.alignment_id,
         lt.alignment_version,
-        lt.change_time as location_track_change_time,
         lt.topology_start_switch_id as switch_id,
         lt.topology_start_switch_joint_number as joint_number,
         0 as start_segment_index,
@@ -97,7 +98,6 @@ create temporary table node_point_version_temp as (
         lt.version as location_track_version,
         lt.alignment_id,
         lt.alignment_version,
-        lt.change_time as location_track_change_time,
         lt.topology_end_switch_id as switch_id,
         lt.topology_end_switch_joint_number as joint_number,
         null as start_segment_index,
@@ -122,7 +122,6 @@ create temporary table node_point_version_temp as (
         location_track_version,
         alignment_id,
         alignment_version,
-        location_track_change_time,
         case when switch_id is not null and joint_number is not null then array [ switch_id, joint_number ] end as switch_link,
         switch_id,
         joint_number,
@@ -139,10 +138,6 @@ create temporary table node_point_version_temp as (
         location_track_version,
         alignment_id,
         alignment_version,
-        max(location_track_change_time) change_time,
-        -- Node identity comes from alignment identity + location
---         dense_rank() over (order by alignment_id, location) node_id,
---         node_id,
         -- Node ordering within the alignment version
         row_number() over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by start_segment_index, end_segment_index) as node_index,
         -- The grouping contracts the duplicated locations to a single node which may have multiple switch links
@@ -154,8 +149,6 @@ create temporary table node_point_version_temp as (
         -- There can only be one or null of these per node
         min(start_track_link) as start_track_link,
         min(end_track_link) as end_track_link,
---         array_agg(distinct start_track_link order by start_track_link) filter (where start_track_link is not null) as start_track_links,
---         array_agg(distinct end_track_link order by end_track_link) filter (where end_track_link is not null) as end_track_links,
         -- The locations should all be approximately the same, but there might be minor variation due to floating point errors
 --         array_agg(distinct array [x::decimal(13, 6), y::decimal(13, 6)]) as locations,
         array_agg(distinct location) as locations,
@@ -163,7 +156,7 @@ create temporary table node_point_version_temp as (
         start_segment_index,
         end_segment_index
 --         from node_points
-          from track_node_point_unified
+        from track_node_point_unified
         group by location_track_id, location_track_version, alignment_id, alignment_version, start_segment_index, end_segment_index
     )
     select
@@ -197,34 +190,36 @@ drop table if exists track_edge_version_temp;
 create temp table track_edge_version_temp as (
   with edge_version_candidates as (
     select
-      location_track_id,
-      location_track_version,
-      alignment_id,
-      alignment_version,
-      node_index as start_node_index,
-      change_time,
-      lead(node_index) over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by node_index) as end_node_index,
-      node_key as start_node_key,
-      lead(node_key) over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by node_index) as end_node_key,
-      start_segment_index,
-      lead(end_segment_index) over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by node_index) as end_segment_index
-      from node_point_version_temp
+      node.location_track_id,
+      node.location_track_version,
+      node.alignment_id,
+      node.alignment_version,
+      node.node_index as start_node_index,
+      lead(node.node_index) over (partition by node.location_track_id, node.location_track_version, node.alignment_id, node.alignment_version order by node.node_index) as end_node_index,
+      node.node_key as start_node_key,
+      lead(node.node_key) over (partition by node.location_track_id, node.location_track_version, node.alignment_id, node.alignment_version order by node.node_index) as end_node_key,
+      node.start_segment_index,
+      lead(node.end_segment_index) over (partition by node.location_track_id, node.location_track_version, node.alignment_id, node.alignment_version order by node.node_index) as end_segment_index,
+      ltv.change_time,
+      ltv.change_user,
+      ltv.deleted
+      from node_point_version_temp node
+        left join layout.location_track_version ltv on ltv.id = node.location_track_id and ltv.version = node.location_track_version
   )
   select
     e.*,
     start_node.id start_node_id,
-    end_node.id end_node_id,
-    start_s.start as start_m,
-    end_s.start + postgis.st_m(postgis.st_endpoint(end_sg.geometry)) as end_m
+    end_node.id end_node_id
     from edge_version_candidates e
-      inner join layout.segment_version start_s on e.alignment_id = start_s.alignment_id and e.alignment_version = start_s.alignment_version and e.start_segment_index = start_s.segment_index
-      inner join layout.segment_version end_s on e.alignment_id = end_s.alignment_id and e.alignment_version = end_s.alignment_version and e.end_segment_index = end_s.segment_index
-      inner join layout.segment_geometry end_sg on end_s.geometry_id = end_sg.id
       inner join layout.node start_node on e.start_node_key = start_node.key
       inner join layout.node end_node on e.end_node_key = end_node.key
 );
 
--- delete from layout.edge where true;
+alter table track_edge_version_temp
+  add primary key (location_track_id, location_track_version, start_node_index);
+
+-- select * from track_edge_version_temp;
+
 -- Create the immutable edges
 insert into layout.edge(start_node, end_node)
 select distinct start_node_id, end_node_id
@@ -232,149 +227,218 @@ select distinct start_node_id, end_node_id
 
 drop table if exists location_track_edge_version_temp;
 create temporary table location_track_edge_version_temp as (
-  with edge_version_candidates as (
-    select
-      e.location_track_id,
-      e.location_track_version,
-      e.alignment_id,
-      e.alignment_version,
-      e.start_segment_index,
-      e.end_segment_index,
-      e.start_node_id,
-      e.end_node_id,
-      e.change_time,
---       array_agg(row (s.alignment_id, s.alignment_version, s.segment_index)) as old_segment_link,
-      array_agg(
-          row (s.geometry_alignment_id, s.geometry_element_index, s.start, s.source_start, s.source, s.geometry_id)
-          order by s.segment_index) as segment_data
-      from track_edge_version_temp e
-        left join layout.segment_version s
-                  on s.alignment_id = e.alignment_id
-                    and s.alignment_version = e.alignment_version
-                    and s.segment_index between e.start_segment_index and e.end_segment_index
-      -- TODO: all e-fields are singled out: this could be simplified if the temp table had a primary key
-      group by e.location_track_id, e.location_track_version, e.alignment_id, e.alignment_version, e.start_node_id,
-        e.end_node_id, e.change_time, start_segment_index, e.end_segment_index
-  ),
--- Generate a grouping number that will allow us to contract identical consecutive versions into one
+  with
+    edge_version_candidates as (
+      select
+        e.location_track_id,
+        e.location_track_version,
+        e.alignment_id,
+        e.alignment_version,
+        e.start_node_index as edge_index,
+        e.start_segment_index,
+        e.end_segment_index,
+        e.start_node_id,
+        e.end_node_id,
+        e.change_time,
+        e.change_user,
+        e.deleted,
+        array_agg(
+            row (s.geometry_alignment_id, s.geometry_element_index, s.start, s.source_start, s.source, s.geometry_id)
+            order by s.segment_index
+        ) as segment_data
+        from track_edge_version_temp e
+          left join layout.segment_version s
+                    on s.alignment_id = e.alignment_id
+                      and s.alignment_version = e.alignment_version
+                      and s.segment_index between e.start_segment_index and e.end_segment_index
+        group by e.location_track_id, e.location_track_version, e.start_node_index
+    ),
+    -- Generate a grouping number that will allow us to contract identical consecutive versions into one
     edge_version_candidates_grouped as (
       select
-        e.*,
-            row_number()
-            over (partition by e.alignment_id, e.start_node_id, e.end_node_id order by e.change_time, e.alignment_version, e.location_track_id, e.location_track_version) as full_version,
-            row_number()
-            over (partition by e.alignment_id, e.start_node_id, e.end_node_id, segment_data order by e.change_time, e.alignment_version, e.location_track_id, e.location_track_version) as group_version
+        *,
+        row_number() over (partition by alignment_id, start_node_id, end_node_id order by change_time, alignment_version, location_track_id, location_track_version) as full_version,
+        row_number() over (partition by alignment_id, start_node_id, end_node_id, deleted, segment_data order by change_time, alignment_version, location_track_id, location_track_version) as group_version
         from edge_version_candidates e
     ),
---       select
---         row (location_track_id, location_track_version) as location_track_links,
---         alignment_id,
---         change_time as change_time,
---         full_version as full_version,
---         start_node_id,
---         end_node_id,
---         segment_data, (full_version-group_version)
---         from edge_version_candidates_grouped
---         order by alignment_id, start_node_id, end_node_id, (full_version-group_version);
+    -- Contract the identical consecutive versions into one, leaving a new versioning for the edges
     location_track_edge_versions as (
       select
---         array_agg(row (location_track_id, location_track_version)) as location_track_links,
+        alignment_id,
+        -- These form the location-track -> edge linkings. Each array must have the same count of elements for unnest
+        -- Notably, the edge index for a particular linking may differ even when multiple location track versions share an edge
         array_agg(location_track_id order by location_track_id, location_track_version) as location_track_ids,
         array_agg(location_track_version order by location_track_id, location_track_version) as location_track_versions,
-        alignment_id,
-        min(alignment_version) as alignment_version,
-        min(start_segment_index) as start_segment_index,
-        max(end_segment_index) as end_segment_index,
-        min(change_time) as change_time,
+        array_agg(edge_index order by location_track_id, location_track_version) as edge_indexes,
+        -- The segment contents can be identical on multiple alignment versions. It doesn't matter which one we pick the data from, so long as it's the same one
+        -- The version & change time could be picked by min, but we use the same syntax as others for consistency
+        (array_agg(alignment_version order by alignment_version))[1] as alignment_version,
+        (array_agg(start_segment_index order by alignment_version))[1] as start_segment_index,
+        (array_agg(end_segment_index order by alignment_version))[1] as end_segment_index,
+        (array_agg(change_time order by alignment_version))[1] as change_time,
+        (array_agg(change_user order by alignment_version))[1] as change_user,
         min(full_version) as full_version,
---       row_number() over (partition by (full_version - group_version), alignment_id, start_node_id, end_node_id, segment_data order by full_version) as version,
         start_node_id,
         end_node_id,
-        segment_data
+        deleted
         from edge_version_candidates_grouped
-        group by (full_version - group_version), alignment_id, start_node_id, end_node_id, segment_data
+        group by (full_version - group_version), alignment_id, start_node_id, end_node_id, deleted, segment_data
+    ),
+    -- Generate ids for the edges, over the above versions
+    location_track_edge_ids as (
+      select
+        alignment_id,
+        start_node_id,
+        end_node_id,
+        row_number() over (order by min(change_time), alignment_id, start_node_id, end_node_id) as id
+        from location_track_edge_versions
+        group by alignment_id, start_node_id, end_node_id
     )
   select
     v.location_track_ids,
     v.location_track_versions,
     v.alignment_id,
     v.alignment_version,
+    v.edge_indexes,
     v.start_segment_index,
     v.end_segment_index,
-    v.change_time,
+    id.id as id,
     row_number() over (partition by v.alignment_id, edge.id order by full_version) as version,
-    edge.id as edge_id
+    edge.id as edge_id,
+    v.start_node_id,
+    v.end_node_id,
+    v.change_time,
+    v.change_user,
+    v.deleted
     from location_track_edge_versions v
+      inner join location_track_edge_ids id on v.alignment_id = id.alignment_id and v.start_node_id = id.start_node_id and v.end_node_id = id.end_node_id
       left join layout.edge on edge.start_node = v.start_node_id and edge.end_node = v.end_node_id
---   order by e.location_track_id, e.location_track_version, e.alignment_id, e.alignment_version, s.segment_index
+    order by id, version
 );
--- select * from location_track_edge_version_temp;
 
--- Generate a grouping number that will allow us to contract identical consecutive versions into one
--- Partitioning:
--- * Each alignment has their own nodes, and each location marks a node identity within it
--- * The index may vary without the node changing, so identity can't be based on that
--- * The varying data in a node is the switch links, so group numbering (marking that version differs from previous) is based on that
--- * Note: this does not create deleted versions or produce new nodes for the same location
-row_number()
-          over (partition by alignment_id, locations order by change_time, alignment_version, location_track_id, location_track_version)
-               - row_number()
-            over (partition by alignment_id, locations, switch_links order by change_time, alignment_version, location_track_id, location_track_version) as grp
---           ,
---         row_number() over (partition by alignment_id, node_index order by change_time, alignment_version)
---       - row_number() over (partition by alignment_id, node_index, switch_links, locations order by change_time, alignment_version) grp2
+alter table location_track_edge_version_temp add primary key (id, version);
 
+-- select (array_agg(distinct id))[1] from layout.location_track;
+-- select * from location_track_edge_version_temp
+-- --  where id=91185
+-- where id=30765
+--   order by id,version
+--  ;
 
--- alter table edge_version_temp add primary key (alignment_id, alignment_version, start_node_index);
-drop index if exists temp_edge_version_index;
-create index temp_edge_version_index
-  on edge_version_temp (alignment_id, alignment_version, start_segment_index, end_segment_index);
-drop index if exists temp_edge_version_node_index;
-create index temp_edge_version_node_index
-  on edge_version_temp (alignment_id, alignment_version, start_node_index);
-
-select * from edge_version_temp where alignment_id = 5246;
-
-insert into layout.edge_version(alignment_id, alignment_version, start_node_index, bounding_box, segment_count, length)
-  select
-   e.alignment_id,
-   e.alignment_version,
-   e.start_node_index,
---     array_agg(sg.bounding_box) as bounding_box,
-   postgis.st_extent(sg.bounding_box) as bounding_box,
-   e.end_segment_index - e.start_segment_index as segment_count,
---    sum(postgis.st_length(sg.geometry)) as length,
-   e.end_m - e.start_m as length
---    sum(postgis.st_m(postgis.st_endpoint(sg.geometry))) as length2
---    end_node_index,
---    start_segment_index,
---    end_segment_index
-   from edge_version_temp e
-     left join layout.segment_version sv on sv.alignment_id = e.alignment_id and sv.alignment_version = e.alignment_version and sv.segment_index between e.start_segment_index and e.end_segment_index
-     left join layout.segment_geometry sg on sg.id = sv.geometry_id
-   group by e.alignment_id, e.alignment_version, e.start_node_index, e.start_segment_index, e.end_segment_index, e.end_m, e.start_m
-;
-
+insert into layout.location_track_edge_version(
+  id,
+  version,
+  edge_id,
+  bounding_box,
+  segment_count,
+  length,
+  change_user,
+  change_time,
+  deleted
+)
 select
-  e.alignment_id,
-  e.alignment_version,
-  e.start_node_index,
-  sv.segment_index - e.start_segment_index as segment_index,
+  ev.id,
+  ev.version,
+  ev.edge_id,
+  postgis.st_extent(sg.geometry) as bounding_box,
+  ev.end_segment_index - ev.start_segment_index + 1 as segment_count,
+  sum(postgis.st_m(postgis.st_endpoint(sg.geometry))) as length,
+  ev.change_user,
+  ev.change_time,
+  ev.deleted
+  from location_track_edge_version_temp ev
+    left join layout.segment_version sv
+              on sv.alignment_id = ev.alignment_id
+                and sv.alignment_version = ev.alignment_version
+                and sv.segment_index between ev.start_segment_index and ev.end_segment_index
+    left join layout.segment_geometry sg on sg.id = sv.geometry_id
+  group by ev.id, ev.version
+  ;
+
+alter table layout.location_track_edge
+  disable trigger version_update_trigger,
+  disable trigger version_row_trigger;
+insert into layout.location_track_edge(
+  id,
+  edge_id,
+  bounding_box,
+  segment_count,
+  length,
+  version,
+  change_user,
+  change_time
+)
+  overriding system value
+with latest as (
+  select distinct on (id)
+    *
+    from layout.location_track_edge_version
+    order by id, version
+)
+select
+  id,
+  edge_id,
+  bounding_box,
+  segment_count,
+  length,
+  version,
+  change_user,
+  change_time
+  from latest
+  where deleted = false;
+;
+alter table layout.location_track_edge
+  enable trigger version_update_trigger,
+  enable trigger version_row_trigger;
+-- select * from layout.location_track_edge_id_seq;
+select setval(pg_get_serial_sequence('layout.location_track_edge', 'id'), (select max(id) from layout.location_track_edge));
+
+insert into layout.location_track_edge_segment_version
+  (
+    edge_id,
+    edge_version,
+    segment_index,
+    geometry_alignment_id,
+    geometry_element_index,
+    start,
+    source_start,
+    source,
+    geometry_id
+  )
+select
+  ev.id,
+  ev.version,
+  sv.segment_index - ev.start_segment_index as segment_index,
   sv.geometry_alignment_id,
   sv.geometry_element_index,
-  sv.start - e.start_m,
+  sv.start - first_sv.start,
   sv.source_start,
   sv.source,
   sv.geometry_id
---     array_agg(sg.bounding_box) as bounding_box,
---   postgis.st_extent(sg.bounding_box) as bounding_box,
---   count(*) as segment_count,
---    sum(postgis.st_length(sg.geometry)) as length,
---   sum(postgis.st_m(postgis.st_endpoint(sg.geometry))) as length2
---    end_node_index,
---    start_segment_index,
---    end_segment_index
-  from edge_version_temp e
-    left join layout.segment_version sv on sv.alignment_id = e.alignment_id and sv.alignment_version = e.alignment_version and sv.segment_index between e.start_segment_index and e.end_segment_index
+  from location_track_edge_version_temp ev
+    left join layout.segment_version first_sv
+              on first_sv.alignment_id = ev.alignment_id
+                and first_sv.alignment_version = ev.alignment_version
+                and first_sv.segment_index = ev.start_segment_index
+    left join layout.segment_version sv
+              on sv.alignment_id = ev.alignment_id
+                and sv.alignment_version = ev.alignment_version
+                and sv.segment_index between ev.start_segment_index and ev.end_segment_index
+;
 
--- select * from layout.edge_version where alignment_id = 261;
+insert into layout.location_track_edge_ref_version
+  (
+    location_track_id,
+    location_track_version,
+    edge_index,
+    edge_id,
+    edge_version
+  )
+select
+  unnest(ev.location_track_ids) as location_track_id,
+  unnest(ev.location_track_versions) as location_track_version,
+  unnest(ev.edge_indexes) as edge_index,
+  ev.id as edge_id,
+  ev.version as edge_version
+  from location_track_edge_version_temp ev
+;
