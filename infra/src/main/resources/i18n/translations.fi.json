@@ -316,6 +316,9 @@
         "logout": "Kirjaudu ulos",
         "logout-confirm": "Geoviitteen uloskirjautuminen kirjaa ulos myös muista auki olevista Väyläviraston tietojärjestelmistä."
     },
+    "app-bar-debug": {
+        "expired-token": "Debug: Vanhentunut tokeni"
+    },
     "projektivelho": {
         "file-list": {
             "header": {

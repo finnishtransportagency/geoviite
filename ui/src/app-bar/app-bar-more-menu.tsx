@@ -17,6 +17,8 @@ import { useCommonDataAppSelector } from 'store/hooks';
 import { postDesiredRole } from 'user/user-api';
 import { purgePersistentState } from 'index';
 import { Role } from 'user/user-model';
+import { Environment, useEnvironmentInfo } from 'environment/environment-info';
+import { createDebugActions } from 'app-bar/app-bar-more-menu-debug-actions';
 
 const AppBarMoreMenu: React.FC = () => {
     const { t } = useTranslation();
@@ -27,6 +29,8 @@ const AppBarMoreMenu: React.FC = () => {
 
     const user = useCommonDataAppSelector((state) => state.user);
     const availableRoles = user?.availableRoles ?? [];
+
+    const environmentInfo = useEnvironmentInfo();
 
     const createRoleSelectionOption = (role: Role): MenuSelectOption => {
         const roleSelectionDisabled = role.code === user?.role.code;
@@ -56,6 +60,12 @@ const AppBarMoreMenu: React.FC = () => {
             : [];
     };
 
+    const debugActionEnvironments: Environment[] = ['local', 'dev'];
+    const debugActions =
+        environmentInfo && debugActionEnvironments.includes(environmentInfo.environmentName)
+            ? createDebugActions(t)
+            : [];
+
     const moreActions: (MenuSelectOption | MenuDividerOption)[] = [
         menuOption(
             () => {
@@ -72,6 +82,7 @@ const AppBarMoreMenu: React.FC = () => {
             t('app-bar.logout'),
             'logout',
         ),
+        ...debugActions,
     ];
 
     return (

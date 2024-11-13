@@ -34,6 +34,7 @@ import { PublicationDetailsContainer } from 'publication/publication-details-con
 import { purgePersistentState } from 'index';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { VIEW_GEOMETRY } from 'user/user-model';
+import { createClassName } from 'vayla-design-lib/utils';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -128,6 +129,12 @@ export const MainContainer: React.FC = () => {
         }
     }, [versionFromBackend]);
 
+    React.useEffect(() => {
+        if (commonAppData.jwtTokenExpired) {
+            createDelegates(commonActionCreators).setJwtTokenExpired(false);
+        }
+    }, []);
+
     const props = {
         layoutMode: layoutMode,
         version: versionInStore || versionFromBackend,
@@ -153,6 +160,15 @@ export const MainContainer: React.FC = () => {
                     {t('version.cache-needs-clearing')}
                 </Dialog>
             )}
+
+            {
+                <div
+                    className={createClassName(
+                        styles['main-overlay'],
+                        commonAppData.jwtTokenExpired && styles['main-overlay-enabled'],
+                    )}
+                />
+            }
 
             {versionStatus == 'ok' && <Main {...props} />}
         </React.Fragment>
