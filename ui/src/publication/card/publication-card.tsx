@@ -125,6 +125,8 @@ const PublicationCard: React.FC<PublishListProps> = ({
         () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount, branchType),
         [publicationChangeTime, ratkoPushChangeTime, splitChangeTime, pageCount],
     );
+    const reachedLastPublication =
+        (publications?.length ?? 0) < MAX_LISTED_PUBLICATIONS * pageCount;
 
     const allPublications =
         publications
@@ -198,22 +200,27 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                 )}
                             </section>
                         )}
-                        <section>
-                            <h3 className={styles['publication-card__subsection-title']}>
-                                {t('publication-card.latest')}
-                            </h3>
-                            <PublicationList publications={successes} />
-                        </section>
-                        {successes.length == 0 && nonSuccesses.length == 0 && (
-                            <div className={styles['publication-card__no-publications']}>
-                                {t('publication-card.no-success-publications')}
+                        {(successes.length > 0 || reachedLastPublication) && (
+                            <section>
+                                <h3 className={styles['publication-card__subsection-title']}>
+                                    {t('publication-card.latest')}
+                                </h3>
+                                <PublicationList publications={successes} />
+                            </section>
+                        )}
+                        {successes.length === 0 &&
+                            (nonSuccesses.length === 0 || reachedLastPublication) && (
+                                <div className={styles['publication-card__no-publications']}>
+                                    {t('publication-card.no-publications')}
+                                </div>
+                            )}
+                        {!reachedLastPublication && (
+                            <div className={styles['publication-card__show-more']}>
+                                <Link onClick={() => setPageCount(pageCount + 1)}>
+                                    {t('publication-card.show-more')}
+                                </Link>
                             </div>
                         )}
-                        <div>
-                            <Link onClick={() => setPageCount(pageCount + 1)}>
-                                {t('publication-card.show-more')}
-                            </Link>
-                        </div>
                         <br />
                         {branchType === 'MAIN' && (
                             <div>

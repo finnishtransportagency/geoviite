@@ -26,6 +26,10 @@
         color: vayla-design.$color-red-dark;
     }
 
+    &__show-more {
+        margin-top: 12px;
+    }
+
     &__no-publications {
         @include vayla-design.typography-sub-heading;
         text-transform: none;
