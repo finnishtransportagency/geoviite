@@ -352,11 +352,15 @@ async function executeBodyRequestInternal<Output>(
 
         if (retryOnTokenExpired && errorIsTokenExpiry) {
             return executeBodyRequestInternal(fetchFunction, false);
+        } else if (!retryOnTokenExpired && errorIsTokenExpiry) {
+            Snackbar.sessionExpired();
+            createDelegates(commonActionCreators).setJwtTokenExpired(true);
+
+            return err(errorResponse.response);
         } else if (versionMismatch) {
             createDelegates(commonActionCreators).setVersionStatus('reload');
             return err(errorResponse.response);
         } else {
-            if (errorIsTokenExpiry) Snackbar.sessionExpired();
             return err(errorResponse.response);
         }
     }

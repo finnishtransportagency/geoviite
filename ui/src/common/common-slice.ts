@@ -46,6 +46,7 @@ export type CommonState = {
     versionStatus: VersionStatus;
     changeTimes: ChangeTimes;
     user: User | undefined;
+    jwtTokenExpired: boolean;
 };
 
 export const initialCommonState: CommonState = {
@@ -53,6 +54,7 @@ export const initialCommonState: CommonState = {
     versionStatus: 'loading',
     changeTimes: initialChangeTimes,
     user: undefined,
+    jwtTokenExpired: false,
 };
 
 const updateChangeTime = (changeTimes: ChangeTimes, key: keyof ChangeTimes, time: TimeStamp) => {
@@ -76,6 +78,12 @@ const commonSlice = createSlice({
             { payload: versionStatus }: PayloadAction<VersionStatus>,
         ): void => {
             state.versionStatus = versionStatus;
+        },
+        setJwtTokenExpired: (
+            state: CommonState,
+            { payload: jwtTokenExpired }: PayloadAction<boolean>,
+        ): void => {
+            state.jwtTokenExpired = jwtTokenExpired;
         },
         setChangeTimes: function (
             { changeTimes }: CommonState,
