@@ -39,8 +39,10 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
     const sortableTableHeader = (
         prop: PublicationDetailsTableSortField,
         translationKey: string,
+        className: string,
     ) => (
         <Th
+            className={className}
             qa-id={translationKey}
             onClick={() => sortByProp(prop)}
             icon={
@@ -83,7 +85,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
             <Table wide isLoading={isLoading}>
                 <thead className={styles['publication-table__table-header']}>
                     <tr>
-                        <Th>
+                        <Th className={styles['publication-table__header--accordion']}>
                             <AccordionToggle
                                 open={anyPublicationItemDetailsVisible}
                                 onToggle={() => toggleVisibilityOfAllDetails()}
@@ -92,34 +94,42 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                         {sortableTableHeader(
                             PublicationDetailsTableSortField.NAME,
                             'publication-table.name',
+                            styles['publication-table__header--name'],
                         )}
                         {sortableTableHeader(
                             PublicationDetailsTableSortField.TRACK_NUMBERS,
                             'publication-table.track-number',
+                            styles['publication-table__header--track-number'],
                         )}
                         {sortableTableHeader(
                             PublicationDetailsTableSortField.CHANGED_KM_NUMBERS,
                             'publication-table.km-number',
+                            styles['publication-table__header--km-number'],
                         )}
                         {sortableTableHeader(
                             PublicationDetailsTableSortField.OPERATION,
                             'publication-table.operation',
+                            styles['publication-table__header--operation'],
                         )}
                         {sortableTableHeader(
                             PublicationDetailsTableSortField.PUBLICATION_TIME,
                             'publication-table.publication-time',
+                            styles['publication-table__header--publication-time'],
                         )}
                         {sortableTableHeader(
                             PublicationDetailsTableSortField.PUBLICATION_USER,
                             'publication-table.publication-user',
+                            styles['publication-table__header--user'],
                         )}
                         {sortableTableHeader(
                             PublicationDetailsTableSortField.MESSAGE,
                             'publication-table.message',
+                            styles['publication-table__header--message'],
                         )}
                         {sortableTableHeader(
                             PublicationDetailsTableSortField.RATKO_PUSH_TIME,
                             'publication-table.pushed-to-ratko',
+                            styles['publication-table__header--pushed-to-ratko'],
                         )}
                     </tr>
                 </thead>
