@@ -15,7 +15,7 @@ import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal
 import {
     isLayerInProxyLayerCollection,
     layersToHideByProxy,
-    relatedMapLayers,
+    layersToShowByProxy,
 } from 'map/map-store';
 import { VIEW_GEOMETRY } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
@@ -82,7 +82,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
                 const enabledByProxy = isLayerInProxyLayerCollection(
                     setting.name,
                     mapLayerVisibilities,
-                    relatedMapLayers,
+                    layersToShowByProxy,
                 );
                 const disabledByProxy = isLayerInProxyLayerCollection(
                     setting.name,
@@ -107,7 +107,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
                         const enabledByProxy = isLayerInProxyLayerCollection(
                             subSetting.name,
                             mapLayerVisibilities,
-                            relatedMapLayers,
+                            layersToShowByProxy,
                         );
                         const disabledByProxy = isLayerInProxyLayerCollection(
                             setting.name,
