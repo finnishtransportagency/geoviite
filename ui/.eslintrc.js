@@ -29,6 +29,13 @@ module.exports = {
                 argsIgnorePattern: '^_',
             },
         ],
+        '@typescript-eslint/no-unused-expressions': [
+            'warn',
+            {
+                allowShortCircuit: true,
+                allowTernary: true,
+            },
+        ],
         'react/no-unknown-property': [1, { ignore: ['qa-id', 'qa-resolution'] }],
         'react/prop-types': 0,
     },

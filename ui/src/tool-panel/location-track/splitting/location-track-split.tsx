@@ -185,7 +185,6 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     const isShortNonOverlappingDuplicateLength =
         isPartialDuplicate &&
         nonOverlappingDuplicateLength != undefined &&
-        nonOverlappingDuplicateLength < nonOverlappingDuplicateLength != undefined &&
         nonOverlappingDuplicateLength <
             PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS;
 

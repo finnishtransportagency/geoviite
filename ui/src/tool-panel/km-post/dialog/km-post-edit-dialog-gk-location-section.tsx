@@ -71,6 +71,7 @@ function transformGkToLayout(point: GeometryPoint): Point | undefined {
             const res = proj4(projection, LAYOUT_SRID).forward({ x: point.x, y: point.y });
             return Number.isFinite(res.x) && Number.isFinite(res.y) ? res : undefined;
         } catch (e) {
+            console.log(`transformGkToLayout caught an exception: ${e}`);
             return undefined;
         }
     }

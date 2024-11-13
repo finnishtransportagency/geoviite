@@ -195,7 +195,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 <Button
                                     disabled={!inEditTrackNumber.isDraft}
                                     onClick={() => {
-                                        inEditTrackNumber ? confirmNewDraftDelete() : undefined;
+                                        inEditTrackNumber && confirmNewDraftDelete();
                                     }}
                                     variant={ButtonVariant.WARNING}>
                                     {t('button.revert-draft')}
