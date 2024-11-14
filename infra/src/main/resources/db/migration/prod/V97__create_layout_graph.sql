@@ -144,8 +144,8 @@ create temporary table node_point_version_temp as (
 --         array_agg(distinct array [switch_id, joint_number]) filter (where joint_number is not null) as switch_links,
         array_agg(distinct switch_link order by switch_link) filter (where switch_link is not null) as switch_links,
         -- Duplicate the data into separate arrays for easy unnesting in later processing
-        array_agg(switch_id order by switch_id, joint_number) switch_ids,
-        array_agg(joint_number order by switch_id, joint_number) switch_joints,
+        array_agg(switch_id order by switch_id, joint_number) filter (where switch_id is not null) switch_ids,
+        array_agg(joint_number order by switch_id, joint_number) filter (where switch_id is not null) switch_joints,
         -- There can only be one or null of these per node
         min(start_track_link) as start_track_link,
         min(end_track_link) as end_track_link,
@@ -165,18 +165,24 @@ create temporary table node_point_version_temp as (
     from track_node_version_candidate
 );
 
--- select * from node_point_version_temp;
+-- select * from node_point_version_temp where location_track_id=13 and location_track_version=1;
 
 -- Create immutable nodes
 insert into layout.node(key) select distinct node_key from node_point_version_temp;
 insert into layout.node_switch_joint (node_id, switch_id, switch_joint)
-select distinct on (np.node_key)
-  node.id as node_id,
-  unnest(np.switch_ids) as switch_switch_id,
-  unnest(np.switch_joints) as switch_joint
-  from node_point_version_temp np
-    inner join layout.node on np.node_key = node.key
-  where np.switch_links is not null;
+select distinct
+  id as node_id,
+  unnest(switch_ids) as switch_switch_id,
+  unnest(switch_joints) as switch_joint
+  from (
+    select distinct on (np.node_key)
+      node.id,
+      np.switch_ids,
+      np.switch_joints
+      from node_point_version_temp np
+        inner join layout.node on np.node_key = node.key
+      where np.switch_links is not null
+  ) tmp;
 insert into layout.node_track_end (node_id, starting_location_track_id, ending_location_track_id)
 select distinct on (np.node_key)
   node.id as node_id,
@@ -221,7 +227,7 @@ alter table track_edge_version_temp
 -- select * from track_edge_version_temp;
 
 -- Create the immutable edges
-insert into layout.edge(start_node, end_node)
+insert into layout.edge(start_node_id, end_node_id)
 select distinct start_node_id, end_node_id
   from track_edge_version_temp;
 
@@ -312,7 +318,7 @@ create temporary table location_track_edge_version_temp as (
     v.deleted
     from location_track_edge_versions v
       inner join location_track_edge_ids id on v.alignment_id = id.alignment_id and v.start_node_id = id.start_node_id and v.end_node_id = id.end_node_id
-      left join layout.edge on edge.start_node = v.start_node_id and edge.end_node = v.end_node_id
+      left join layout.edge on edge.start_node_id = v.start_node_id and edge.end_node_id = v.end_node_id
     order by id, version
 );
 
