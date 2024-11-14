@@ -1,14 +1,5 @@
 -- set session geoviite.edit_user to 'MANUAL';
 -- TODO: move constraints to V98 so they don't slow down the mass migration
--- TODO: This is now done by using alignment versioning throughout the layout graph. The other option is to give edges and nodes their own ids and versioning
--- drop table if exists layout.location_track_edge_ref_version;
--- drop table if exists layout.location_track_edge_segment_version;
--- drop table if exists layout.location_track_edge_version;
--- drop table if exists layout.location_track_edge;
--- drop table if exists layout.location_track_node_ref_version;
--- drop table if exists layout.location_track_node_switch_version;
--- drop table if exists layout.location_track_node_version;
--- drop table if exists layout.location_track_node;
 create or replace function layout.calculate_node_key(
   switch_links int[],
   start_track int,
@@ -29,7 +20,6 @@ create table layout.node
 );
 comment on table layout.node is 'Layout node: a connecting point in the layout graph. Immutable and un-versioned, this is really just an identity with no data.';
 
--- TODO: Do we want to normalize these as data as well? Really we're just using them for identity
 create table layout.node_switch_joint
 (
   node_id      int not null references layout.node (id),
@@ -40,7 +30,6 @@ create table layout.node_switch_joint
   constraint node_joint_unique unique (node_id, switch_id, switch_joint)
 );
 
--- TODO: Do we want to normalize these as data as well? Really we're just using them for identity
 create table layout.node_track_end
 (
   node_id      int not null references layout.node (id),
