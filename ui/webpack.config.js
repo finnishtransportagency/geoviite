@@ -215,6 +215,7 @@ module.exports = (env) => {
                 },
             ),
             new ESLintWebpackPlugin({
+                configType: 'flat',
                 extensions: ['js', 'jsx', 'ts', 'tsx'],
             }),
             new LicensePlugin({
