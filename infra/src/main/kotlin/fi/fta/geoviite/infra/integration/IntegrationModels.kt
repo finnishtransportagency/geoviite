@@ -55,4 +55,5 @@ enum class RatkoPushStatus {
     SUCCESSFUL,
     FAILED,
     CONNECTION_ISSUE,
+    MANUAL_RETRY,
 }

@@ -5,7 +5,7 @@ import { compareTimestamps } from 'utils/date-utils';
 import { PublicationList } from 'publication/card/publication-list';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
-import { ratkoPushFailed, ratkoPushSucceeded } from 'ratko/ratko-model';
+import { ratkoPushFailed, RatkoPushStatus, ratkoPushSucceeded } from 'ratko/ratko-model';
 import Card from 'geoviite-design-lib/card/card';
 import styles from './publication-card.scss';
 import { RatkoStatus } from 'ratko/ratko-api';
@@ -145,7 +145,11 @@ const PublicationCard: React.FC<PublishListProps> = ({
     const ratkoConnectionError =
         ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;
 
-    const allWaiting = nonSuccesses.every((publication) => !publication.ratkoPushStatus);
+    const allWaiting = nonSuccesses.every(
+        (publication) =>
+            !publication.ratkoPushStatus ||
+            publication.ratkoPushStatus === RatkoPushStatus.MANUAL_RETRY,
+    );
 
     const navigateToPublicationLog = () => {
         trackLayoutActionDelegates.setSelectedPublicationSearch(defaultPublicationSearch);

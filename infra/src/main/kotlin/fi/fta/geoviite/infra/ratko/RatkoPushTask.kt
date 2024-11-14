@@ -23,7 +23,7 @@ class RatkoPushTask @Autowired constructor(private val ratkoService: RatkoServic
     fun scheduledRatkoPush() {
         withUser(ratkoPushTaskUserName) {
             // Don't retry failed on auto-push
-            ratkoService.pushChangesToRatko(LayoutBranch.main, retryFailed = false)
+            ratkoService.pushChangesToRatko(LayoutBranch.main)
         }
     }
 }
