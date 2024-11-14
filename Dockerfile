@@ -42,7 +42,7 @@ RUN npm ci
 COPY \
     ui/index.d.ts \
     ui/tsconfig.json \
-    ui/.eslintrc.js \
+    ui/eslint.config.mjs \
     ui/webpack.config.js \
     ./
 
