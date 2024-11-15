@@ -10,6 +10,7 @@ export enum RatkoPushStatus {
     CONNECTION_ISSUE = 'CONNECTION_ISSUE',
     IN_PROGRESS = 'IN_PROGRESS',
     IN_PROGRESS_M_VALUES = 'IN_PROGRESS_M_VALUES',
+    MANUAL_RETRY = 'MANUAL_RETRY',
 }
 
 export function ratkoPushFailed(status: RatkoPushStatus | undefined) {

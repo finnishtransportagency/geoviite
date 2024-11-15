@@ -30,7 +30,7 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/push")
     fun pushChangesToRatko(): HttpStatus {
-        ratkoService.pushChangesToRatko(LayoutBranch.main)
+        ratkoService.retryLatestFailedPush()
 
         return HttpStatus.NO_CONTENT
     }

@@ -78,7 +78,7 @@ constructor(
         }
     }
 
-    fun pushChangesToRatko(layoutBranch: LayoutBranch, retryFailed: Boolean = true) {
+    fun pushChangesToRatko(layoutBranch: LayoutBranch) {
         assertMainBranch(layoutBranch)
 
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
@@ -87,7 +87,7 @@ constructor(
             // state is hanging in DB
             ratkoPushDao.finishStuckPushes()
 
-            if (!retryFailed && previousPushStateIn(RatkoPushStatus.FAILED)) {
+            if (previousPushStateIn(RatkoPushStatus.FAILED)) {
                 logger.info("Ratko push cancelled because previous push is failed")
             } else if (!ratkoClient.getRatkoOnlineStatus().isOnline) {
                 logger.info("Ratko push cancelled because ratko connection is offline")
@@ -162,6 +162,16 @@ constructor(
             )
         }
     }
+
+    fun retryLatestFailedPush(): Unit =
+        // TODO Make sure this works in a world where there are multiple branches
+        ratkoPushDao.fetchPreviousPush().let { previousPush ->
+            check(previousPush.status == RatkoPushStatus.FAILED) {
+                "Previous push is not in failed state, but in ${previousPush.status}"
+            }
+
+            ratkoPushDao.updatePushStatus(previousPush.id, RatkoPushStatus.MANUAL_RETRY)
+        }
 
     fun pushLocationTracksToRatko(branch: LayoutBranch, locationTrackChanges: Collection<LocationTrackChange>) {
         assertMainBranch(branch)
