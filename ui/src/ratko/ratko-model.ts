@@ -28,7 +28,7 @@ export const ratkoPushSucceeded = (status: RatkoPushStatus | undefined) =>
 
 export type RatkoPushErrorType = 'PROPERTIES' | 'GEOMETRY' | 'LOCATION' | 'STATE' | 'INTERNAL';
 
-export type RatkoPushErrorOperation = 'CREATE' | 'DELETE' | 'UPDATE';
+export type RatkoPushErrorOperation = 'CREATE' | 'DELETE' | 'UPDATE' | 'FETCH_EXISTING';
 
 export enum RatkoAssetType {
     TRACK_NUMBER = 'TRACK_NUMBER',

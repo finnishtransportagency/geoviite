@@ -85,6 +85,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
         return getSpec(combinePaths(LOCATION_TRACK_LOCATIONS_PATH, locationTrackOid))
             .bodyToMono<String>()
+            .onErrorResume(WebClientResponseException::class.java) {
+                Mono.error(RatkoPushException(RatkoPushErrorType.LOCATION, RatkoOperation.FETCH_EXISTING, it))
+            }
             .block(defaultBlockTimeout)
             ?.let { response ->
                 ratkoJsonMapper.readTree(response).firstOrNull()?.let { locationTrackJsonNode ->
@@ -238,7 +241,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         return getSpec(combinePaths(ASSET_PATH, assetOid))
             .bodyToMono<String>()
             .onErrorResume(WebClientResponseException::class.java) {
-                if (HttpStatus.NOT_FOUND == it.statusCode) Mono.empty() else Mono.error(it)
+                if (HttpStatus.NOT_FOUND == it.statusCode) Mono.empty()
+                else Mono.error(RatkoPushException(RatkoPushErrorType.PROPERTIES, RatkoOperation.FETCH_EXISTING, it))
             }
             .block(defaultBlockTimeout)
             ?.let { response ->
@@ -257,7 +261,13 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun <T : RatkoAsset> updateAssetState(assetOid: RatkoOid<T>, state: RatkoAssetState) {
         logger.integrationCall("updateAssetState", "assetOid" to assetOid, "state" to state)
 
-        val responseJson = getSpec(combinePaths(ASSET_PATH, assetOid)).bodyToMono<String>().block(defaultBlockTimeout)
+        val responseJson =
+            getSpec(combinePaths(ASSET_PATH, assetOid))
+                .bodyToMono<String>()
+                .onErrorResume(WebClientResponseException::class.java) {
+                    Mono.error(RatkoPushException(RatkoPushErrorType.PROPERTIES, RatkoOperation.FETCH_EXISTING, it))
+                }
+                .block(defaultBlockTimeout)
 
         val switchJsonObject = ObjectMapper().readTree(responseJson) as ObjectNode
         switchJsonObject.put("state", state.value)
@@ -344,7 +354,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         return getSpec(combinePaths(ROUTE_NUMBER_LOCATIONS_PATH, routeNumberOid))
             .bodyToMono<String>()
             .onErrorResume(WebClientResponseException::class.java) {
-                if (HttpStatus.NOT_FOUND == it.statusCode) Mono.empty() else Mono.error(it)
+                if (HttpStatus.NOT_FOUND == it.statusCode) Mono.empty()
+                else Mono.error(RatkoPushException(RatkoPushErrorType.PROPERTIES, RatkoOperation.FETCH_EXISTING, it))
             }
             .block(defaultBlockTimeout)
             ?.let { response ->
@@ -422,6 +433,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
         return getSpec(url = "$BULK_TRANSFER_PATH/$bulkTransferId/state") // Should be changed when the URL is known
             .bodyToMono<String>()
+            .onErrorResume(WebClientResponseException::class.java) {
+                // TODO Figure out bulk transfer error handling
+                Mono.error(it)
+            }
             .block(defaultBlockTimeout)
             .let { response ->
                 val bulkTransferState =

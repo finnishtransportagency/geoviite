@@ -271,7 +271,8 @@
         "ratko-push-error-operation": {
             "CREATE": "luonti",
             "UPDATE": "päivitys",
-            "DELETE": "poisto"
+            "DELETE": "poisto",
+            "FETCH_EXISTING": "pohjatietojen hakeminen Ratkosta"
         },
         "trap-point": {
             "Yes": "Kyllä",
@@ -1672,7 +1673,8 @@
             "switch": "Vaihteen",
             "connection-issue": "Yhteysvirhe Ratko-viennissä",
             "internal-error": "SISÄINEN VIRHE: {{assetType}} ({{name}}) {{operation}} epäonnistui. Ota yhteyttä {{geoviiteSupportEmail}}",
-            "ratko-error": "{{assetType}} ({{name}}) {{errorType}} {{operation}} epäonnistui"
+            "ratko-error": "{{assetType}} ({{name}}) {{errorType}} {{operation}} epäonnistui",
+            "ratko-fetch-error": "{{assetType}} ({{name}}) {{operation}} epäonnistui"
         }
     },
     "split-details-dialog": {
