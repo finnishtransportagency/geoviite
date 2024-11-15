@@ -75,7 +75,7 @@ export const ratkoPushErrorTypes: LocalizedEnum<RatkoPushErrorType>[] = values(
 
 export const ratkoPushErrorOperations: LocalizedEnum<RatkoPushErrorOperation>[] = values(
     'ratko-push-error-operation',
-    ['CREATE', 'UPDATE', 'DELETE'],
+    ['CREATE', 'UPDATE', 'DELETE', 'FETCH_EXISTING'],
 );
 
 export const topologicalConnectivityTypes: LocalizedEnum<TopologicalConnectivityType>[] = values(

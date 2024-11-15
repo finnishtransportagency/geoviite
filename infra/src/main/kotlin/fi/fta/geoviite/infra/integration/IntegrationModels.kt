@@ -16,6 +16,7 @@ enum class RatkoOperation {
     CREATE,
     UPDATE,
     DELETE,
+    FETCH_EXISTING,
 }
 
 enum class RatkoAssetType {

@@ -55,6 +55,13 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
     }
 
     const isInternalError = error.errorType === 'INTERNAL';
+    const isFetchError = error.operation === 'FETCH_EXISTING';
+
+    const ratkoFetchErrorString = t('publication-card.push-error.ratko-fetch-error', {
+        assetType: t(assetTranslationKeyByType(error)),
+        name: assetNameByType(error),
+        operation: t(`enum.ratko-push-error-operation.${error.operation}`),
+    });
 
     const ratkoErrorString = t('publication-card.push-error.ratko-error', {
         assetType: t(assetTranslationKeyByType(error)),
@@ -78,7 +85,9 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
                 ? t('publication-card.push-error.connection-issue')
                 : isInternalError
                   ? internalErrorString
-                  : ratkoErrorString}
+                  : isFetchError
+                    ? ratkoFetchErrorString
+                    : ratkoErrorString}
         </div>
     );
 };
