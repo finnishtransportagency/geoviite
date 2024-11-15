@@ -698,7 +698,9 @@
                 "km-range": "Ratakilometriväli",
                 "start-km": "Alkukilometri",
                 "end-km": "Loppukilometri",
-                "push": "Vie Ratkoon"
+                "push": "Vie Ratkoon",
+                "pushing-started": "Sijaintiraiteen tietojen vienti käynnistetty",
+                "follow-in-ratko": "Seuraa raidetta Ratkosta"
             },
             "vertical-geometry": {
                 "heading": "Raiteen pystygeometria",
