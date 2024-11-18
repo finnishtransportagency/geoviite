@@ -108,7 +108,10 @@ constructor(
         // to 15 seconds,
         // so we're not going to bother checking that; we'll just poll Ratko to see that the change
         // went through instead
-        val maxWaitUntil = Instant.now().plusSeconds(15)
+        //
+        // Ratko push is started once every minute (so should be completed by the e2e-backend after
+        // 65 seconds)
+        val maxWaitUntil = Instant.now().plusSeconds(65)
         while (Instant.now().isBefore(maxWaitUntil) && fakeRatko.getPushedRouteNumber(Oid("1.2.3.4.5")).isEmpty()) {
             Thread.sleep(100)
         }
