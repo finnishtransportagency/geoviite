@@ -18,8 +18,8 @@ class GeoviiteScheduledTaskWrapper {
         return withLogSpan {
             try {
                 joinPoint?.proceed()
-            } catch (throwable: Throwable) {
-                logger.error("caught a throwable: ${throwable.message}", throwable)
+            } catch (exception: Exception) {
+                logger.error("caught an exception: ${exception.message}", exception)
             }
         }
     }
