@@ -191,7 +191,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         newest_official.change_time as official_change_time, 
         newest_draft.change_time as draft_change_time, 
         newest_draft.deleted as draft_deleted 
-      from newest_draft, newest_official 
+      from (select) table_dee left join newest_draft on (true) left join newest_official on (true)
     """
             .trimIndent()
 
