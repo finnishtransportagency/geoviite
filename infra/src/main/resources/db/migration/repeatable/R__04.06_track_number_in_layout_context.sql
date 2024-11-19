@@ -42,35 +42,12 @@ select
 $$;
 
 create function layout.track_number_in_layout_context(publication_state_in layout.publication_state, design_id_in int)
-  returns table
-          (
-            layout_context_id text,
-            id integer,
-            design_id   integer,
-            draft   boolean,
-            version integer,
-            external_id varchar(50),
-            number      varchar(30),
-            description varchar(100),
-            state       layout.state,
-            change_user varchar(30),
-            change_time timestamptz
-          )
+  returns setof layout.track_number
   language sql
   stable
 as
 $$
-select
-  row.layout_context_id,
-  row.id,
-  design_id,
-  row.draft,
-  row.version,
-  row.external_id,
-  row.number,
-  row.description,
-  row.state,
-  row.change_user,
-  row.change_time
-  from layout.track_number row, layout.track_number_is_in_layout_context(publication_state_in, design_id_in, row)
+select *
+from layout.track_number,
+  layout.track_number_is_in_layout_context(publication_state_in, design_id_in, track_number)
 $$;
