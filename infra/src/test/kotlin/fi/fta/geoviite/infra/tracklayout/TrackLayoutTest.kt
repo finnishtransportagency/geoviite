@@ -90,7 +90,7 @@ class TrackLayoutTest {
         val text = version.toString()
         val versionAgain = LayoutRowVersion<T>(text)
         val textAgain = versionAgain.toString()
-        kotlin.test.assertEquals(version, versionAgain)
-        kotlin.test.assertEquals(text, textAgain)
+        assertEquals(version, versionAgain)
+        assertEquals(text, textAgain)
     }
 }
