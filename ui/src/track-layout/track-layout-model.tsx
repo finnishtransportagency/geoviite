@@ -78,7 +78,6 @@ export type LocationTrackId = Brand<string, 'LocationTrackId'>;
 export type LocationTrackType = 'MAIN' | 'SIDE' | 'TRAP' | 'CHORD';
 export type MapAlignmentSource = 'LAYOUT' | 'GEOMETRY';
 export type MapAlignmentType = 'LOCATION_TRACK' | 'REFERENCE_LINE';
-export type EditState = 'UNEDITED' | 'EDITED' | 'CREATED';
 export type TopologicalConnectivityType = 'NONE' | 'START' | 'END' | 'START_AND_END';
 export type LocationTrackDescriptionSuffixMode =
     | 'NONE'
@@ -89,7 +88,8 @@ export type LocationTrackDescriptionSuffixMode =
 export type LayoutAssetFields = {
     version?: RowVersion;
     dataType: DataType;
-    editState: EditState;
+    isDraft: boolean;
+    hasOfficial: boolean;
 };
 
 export type LayoutAsset =
@@ -279,15 +279,19 @@ export type LayoutSwitchJoint = {
     locationAccuracy: LocationAccuracy;
 };
 
+export type LayoutKmPostGkLocation = {
+    location: GeometryPoint;
+    source: GkLocationSource;
+    confirmed: boolean;
+};
+
 export type LayoutKmPostId = Brand<string, 'LayoutKmPostId'>;
 
 export type LayoutKmPost = {
     id: LayoutKmPostId;
     kmNumber: KmNumber;
     layoutLocation?: Point;
-    gkLocation?: GeometryPoint;
-    gkLocationSource?: GkLocationSource;
-    gkLocationConfirmed: boolean;
+    gkLocation: LayoutKmPostGkLocation | undefined;
     state: LayoutState;
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryKmPostId;
@@ -304,9 +308,7 @@ export type LayoutKmLengthDetails = {
     coordinateSystem: CoordinateSystem;
     layoutGeometrySource: GeometrySource;
     layoutLocation?: Point;
-    gkLocation?: GeometryPoint;
-    gkLocationSource?: GkLocationSource;
-    gkLocationConfirmed: boolean;
+    gkLocation: LayoutKmPostGkLocation | undefined;
     gkLocationLinkedFromGeometry: boolean;
 };
 

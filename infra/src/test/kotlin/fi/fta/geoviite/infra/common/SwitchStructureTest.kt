@@ -106,6 +106,10 @@ class SwitchStructureTest {
             "YV60-900P-1:18",
             "YV60-900P-1:18-O",
             "YV60-900P-1:18-V",
+
+            // Non-Finnish types
+            "EV-SJ43-5,9-1:9-H",
+            "EV-SJ43-5,9-1:9-V",
         )
 
     private val validSwitchStructure by lazy {
@@ -183,6 +187,14 @@ class SwitchStructureTest {
         assertEquals(
             SwitchTypeParts(SwitchBaseType.SRR, 54, listOf(), null, "2x1:9-6,0", SwitchHand.NONE),
             SwitchType("SRR54-2x1:9-6,0").parts,
+        )
+        assertEquals(
+            SwitchTypeParts(SwitchBaseType.EV, 43, listOf(), null, "1:9", SwitchHand.RIGHT),
+            SwitchType("EV-SJ43-5,9-1:9-H").parts,
+        )
+        assertEquals(
+            SwitchTypeParts(SwitchBaseType.EV, 43, listOf(), null, "1:9", SwitchHand.LEFT),
+            SwitchType("EV-SJ43-5,9-1:9-V").parts,
         )
     }
 

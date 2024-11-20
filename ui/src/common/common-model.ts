@@ -153,7 +153,17 @@ export type LayoutAssetChangeInfo = {
 export type Message = string;
 
 export type SwitchHand = 'RIGHT' | 'LEFT' | 'NONE';
-export type SwitchBaseType = 'YV' | 'KV' | 'KRV' | 'YRV' | 'RR' | 'SRR' | 'TYV' | 'UKV' | 'SKV';
+export type SwitchBaseType =
+    | 'YV'
+    | 'KV'
+    | 'KRV'
+    | 'YRV'
+    | 'RR'
+    | 'SRR'
+    | 'TYV'
+    | 'UKV'
+    | 'SKV'
+    | 'EV';
 export type JointNumber = string;
 
 export type Oid = string;

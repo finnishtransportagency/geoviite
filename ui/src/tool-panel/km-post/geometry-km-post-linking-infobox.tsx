@@ -167,6 +167,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
+                                    disabled={layoutContext.publicationState !== 'DRAFT'}
                                     size={ButtonSize.SMALL}
                                     qa-id="start-geometry-km-post-linking"
                                     onClick={() =>
@@ -275,7 +276,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                     onClose={() => setShowAddDialog(false)}
                     onSave={handleKmPostSave}
                     prefilledTrackNumberId={geometryKmPost.trackNumberId}
-                    geometryKmPostGkLocation={geometryKmPost.gkLocation}
+                    geometryKmPostGkLocation={geometryKmPost.gkLocation?.location}
                     editType={'LINKING'}
                     geometryPlanSrid={geometryPlan?.units?.coordinateSystemSrid}
                 />

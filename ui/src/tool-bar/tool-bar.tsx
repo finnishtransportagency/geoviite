@@ -402,9 +402,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const handleSwitchSave = refreshSwitchSelection(layoutContextDraft, onSelect, onUnselect);
     const handleKmPostSave = refereshKmPostSelection(layoutContextDraft, onSelect, onUnselect);
 
-    const layoutContextTransferDisabledReason = splittingState
-        ? t('tool-bar.splitting-in-progress')
-        : undefined;
+    const layoutContextTransferDisabledReason = (): string | undefined => {
+        if (splittingState) return t('tool-bar.splitting-in-progress');
+        else if (linkingState) return t('tool-bar.linking-in-progress');
+        return undefined;
+    };
 
     const modeNavigationButtonsDisabledReason = () => {
         if (splittingState) {
@@ -437,18 +439,20 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         className={styles['tool-bar__tab-header']}
                         qaId="current-mode-tab"
                         selected={layoutContextMode === 'MAIN-OFFICIAL'}
-                        title={layoutContextTransferDisabledReason}
-                        disabled={!!splittingState}
+                        title={layoutContextTransferDisabledReason()}
+                        disabled={!!splittingState || !!linkingState}
                         onClick={() => switchToMainOfficial()}>
-                        {t('tool-bar.current-mode')}
+                        <span>{t('tool-bar.current-mode')}</span>
                     </TabHeader>
                     <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
                         <TabHeader
                             className={styles['tool-bar__tab-header']}
                             qaId={'draft-mode-tab'}
                             selected={layoutContextMode === 'MAIN-DRAFT'}
+                            title={layoutContextTransferDisabledReason()}
+                            disabled={!!splittingState || !!linkingState}
                             onClick={() => switchToMainDraft()}>
-                            {t('tool-bar.draft-mode')}
+                            <span>{t('tool-bar.draft-mode')}</span>
                         </TabHeader>
                     </PrivilegeRequired>
                     <EnvRestricted restrictTo={'test'}>
@@ -458,10 +462,10 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                     className={styles['tool-bar__tab-header']}
                                     qaId={'design-mode-tab'}
                                     selected={layoutContextMode === 'DESIGN'}
-                                    onClick={switchToDesign}
-                                    title={layoutContextTransferDisabledReason}
-                                    disabled={!!splittingState}>
-                                    <div className={styles['tool-bar__design-tab-content']}>
+                                    title={layoutContextTransferDisabledReason()}
+                                    disabled={!!splittingState || !!linkingState}
+                                    onClick={switchToDesign}>
+                                    <span>
                                         {t('tool-bar.design-mode')}
                                         <span>{currentDesign && `:`}</span>
                                         <div className={styles['tool-bar__design-tab-actions']}>
@@ -470,7 +474,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                 size={ButtonSize.SMALL}
                                                 icon={Icons.Down}
                                                 iconPosition={ButtonIconPosition.END}
-                                                disabled={!!splittingState}
+                                                disabled={!!splittingState || !!linkingState}
                                                 inheritTypography={true}
                                                 ref={designIdButtonRef}
                                                 onClick={() => {
@@ -515,7 +519,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                     )}
                                             </PrivilegeRequired>
                                         </div>
-                                    </div>
+                                    </span>
                                 </TabHeader>
 
                                 {showDesignIdSelector && (
@@ -543,20 +547,23 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 </span>
             </div>
             <div className={styles['tool-bar__right-section']}>
-                {layoutContext.publicationState === 'DRAFT' && (
-                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                        <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
-                            <Button
-                                ref={menuRef}
-                                title={newMenuTooltip}
-                                variant={ButtonVariant.GHOST}
-                                icon={Icons.Append}
-                                disabled={disableNewAssetMenu}
-                                onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
-                            />
-                        </div>
-                    </PrivilegeRequired>
-                )}
+                <div ref={menuRef}>
+                    {layoutContext.publicationState === 'DRAFT' && (
+                        <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                            <div
+                                className={styles['tool-bar__new-menu-button']}
+                                qa-id={'tool-bar.new'}>
+                                <Button
+                                    title={newMenuTooltip}
+                                    variant={ButtonVariant.GHOST}
+                                    icon={Icons.Append}
+                                    disabled={disableNewAssetMenu}
+                                    onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
+                                />
+                            </div>
+                        </PrivilegeRequired>
+                    )}
+                </div>
                 {layoutContext.publicationState == 'DRAFT' && (
                     <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button

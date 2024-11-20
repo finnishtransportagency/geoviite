@@ -30,7 +30,7 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/push")
     fun pushChangesToRatko(): HttpStatus {
-        ratkoService.pushChangesToRatko(LayoutBranch.main)
+        ratkoService.retryLatestFailedPush()
 
         return HttpStatus.NO_CONTENT
     }
@@ -44,9 +44,9 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)
     @PostMapping("/push-location-tracks")
-    fun pushLocationTracksToRatko(@RequestBody changes: List<LocationTrackChange>): ResponseEntity<String> {
+    fun pushLocationTracksToRatko(@RequestBody changes: List<LocationTrackChange>): ResponseEntity<Unit> {
         ratkoService.pushLocationTracksToRatko(LayoutBranch.main, changes)
-        return ResponseEntity(HttpStatus.OK)
+        return ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

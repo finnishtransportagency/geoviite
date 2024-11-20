@@ -29,7 +29,7 @@ constructor(
     }
 
     @Scheduled(initialDelayString = CONFIG_INITIAL_DELAY, fixedDelayString = CONFIG_INTERVAL)
-    private fun scheduleReload() {
+    fun scheduleReload() {
         val startTime = System.currentTimeMillis()
         logger.info("Preloading caches: geocodingContexts=$preloadGeocodingContexts planHeaders=$preloadPlanHeaders")
         // First stage caches that can be loaded in parallel

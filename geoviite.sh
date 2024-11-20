@@ -22,14 +22,14 @@ up() {
             echo "E2E Frontend available at $E2E_URL_GEOVIITE"
             echo "E2E Runner VNC available at $E2E_URL_REMOTE_SELENIUM_HUB_VNC"
             ;;
-        db)
+        postgres)
            echo "Starting Geoviite database..."
-           docker compose up -d --build --wait db-service
+           docker compose up -d --build --wait postgres-service
            echo "Geoviite Postgres available at :$HOST_PORT_DB"
             ;;
-        db-test)
+        postgres-test)
            echo "Starting Geoviite database (test)..."
-           docker compose up -d --build --wait test-db-service
+           docker compose up -d --build --wait test-postgres-service
            echo "Geoviite Postgres (test) available at :$HOST_PORT_DB_TEST"
             ;;
         *)

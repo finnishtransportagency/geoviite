@@ -16,6 +16,7 @@ enum class RatkoOperation {
     CREATE,
     UPDATE,
     DELETE,
+    FETCH_EXISTING,
 }
 
 enum class RatkoAssetType {
@@ -55,4 +56,5 @@ enum class RatkoPushStatus {
     SUCCESSFUL,
     FAILED,
     CONNECTION_ISSUE,
+    MANUAL_RETRY,
 }

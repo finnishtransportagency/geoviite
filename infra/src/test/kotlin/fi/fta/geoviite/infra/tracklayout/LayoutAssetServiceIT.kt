@@ -267,4 +267,97 @@ constructor(
         assertEquals("edited in design", mainDraftContext.fetch(switchId)!!.name.toString())
         assertEquals(321, mainDraftContext.fetch(kmPostId)!!.kmNumber.number)
     }
+
+    @Test
+    fun `draft cancellation of an item created in a plan hides it`() {
+        val someDesignBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(someDesignBranch, PublicationState.OFFICIAL)
+        val designDraftContext = testDBService.testContext(someDesignBranch, PublicationState.DRAFT)
+
+        val trackNumber = designOfficialContext.insert(trackNumber())
+        val referenceLine = designOfficialContext.insert(referenceLineAndAlignment(trackNumber.id))
+        val locationTrack = designOfficialContext.insert(locationTrackAndAlignment(trackNumber.id))
+        val switch = designOfficialContext.insert(switch())
+        val kmPost = designOfficialContext.insert(kmPost(trackNumber.id, KmNumber(123)))
+
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(trackNumber.id)!!))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(referenceLine.id)!!))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(locationTrack.id)!!))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(switch.id)!!))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(kmPost.id)!!))
+
+        assertEquals(trackNumber.rowVersion, designOfficialContext.fetchVersion(trackNumber.id))
+        assertEquals(referenceLine.rowVersion, designOfficialContext.fetchVersion(referenceLine.id))
+        assertEquals(locationTrack.rowVersion, designOfficialContext.fetchVersion(locationTrack.id))
+        assertEquals(switch.rowVersion, designOfficialContext.fetchVersion(switch.id))
+        assertEquals(kmPost.rowVersion, designOfficialContext.fetchVersion(kmPost.id))
+
+        assertNull(designDraftContext.fetch(trackNumber.id))
+        assertNull(designDraftContext.fetch(referenceLine.id))
+        assertNull(designDraftContext.fetch(locationTrack.id))
+        assertNull(designDraftContext.fetch(switch.id))
+        assertNull(designDraftContext.fetch(kmPost.id))
+    }
+
+    @Test
+    fun `draft cancellation of an item edited in a plan reveals the main-official version in design-draft context`() {
+        val someDesignBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(someDesignBranch, PublicationState.OFFICIAL)
+        val designDraftContext = testDBService.testContext(someDesignBranch, PublicationState.DRAFT)
+
+        val trackNumber = mainOfficialContext.insert(trackNumber())
+        val referenceLine = mainOfficialContext.insert(referenceLineAndAlignment(trackNumber.id))
+        val locationTrack = mainOfficialContext.insert(locationTrackAndAlignment(trackNumber.id))
+        val switch = mainOfficialContext.insert(switch())
+        val kmPost = mainOfficialContext.insert(kmPost(trackNumber.id, KmNumber(123)))
+
+        val designOfficialTrackNumber =
+            designOfficialContext.moveFrom(
+                designDraftContext
+                    .insert(asDesignDraft(mainOfficialContext.fetch(trackNumber.id)!!, someDesignBranch.designId))
+                    .rowVersion
+            )
+        val designOfficialReferenceLine =
+            designOfficialContext.moveFrom(
+                designDraftContext
+                    .insert(asDesignDraft(mainOfficialContext.fetch(referenceLine.id)!!, someDesignBranch.designId))
+                    .rowVersion
+            )
+        val designOfficialLocationTrack =
+            designOfficialContext.moveFrom(
+                designDraftContext
+                    .insert(asDesignDraft(mainOfficialContext.fetch(locationTrack.id)!!, someDesignBranch.designId))
+                    .rowVersion
+            )
+        val designOfficialSwitch =
+            designOfficialContext.moveFrom(
+                designDraftContext
+                    .insert(asDesignDraft(mainOfficialContext.fetch(switch.id)!!, someDesignBranch.designId))
+                    .rowVersion
+            )
+        val designOfficialKmPost =
+            designOfficialContext.moveFrom(
+                designDraftContext
+                    .insert(asDesignDraft(mainOfficialContext.fetch(kmPost.id)!!, someDesignBranch.designId))
+                    .rowVersion
+            )
+
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(trackNumber.id)!!))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(referenceLine.id)!!))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(locationTrack.id)!!))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(switch.id)!!))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(kmPost.id)!!))
+
+        assertEquals(designOfficialTrackNumber.rowVersion, designOfficialContext.fetchVersion(trackNumber.id))
+        assertEquals(designOfficialReferenceLine.rowVersion, designOfficialContext.fetchVersion(referenceLine.id))
+        assertEquals(designOfficialLocationTrack.rowVersion, designOfficialContext.fetchVersion(locationTrack.id))
+        assertEquals(designOfficialSwitch.rowVersion, designOfficialContext.fetchVersion(switch.id))
+        assertEquals(designOfficialKmPost.rowVersion, designOfficialContext.fetchVersion(kmPost.id))
+
+        assertEquals(trackNumber.rowVersion, designDraftContext.fetchVersion(trackNumber.id))
+        assertEquals(referenceLine.rowVersion, designDraftContext.fetchVersion(referenceLine.id))
+        assertEquals(locationTrack.rowVersion, designDraftContext.fetchVersion(locationTrack.id))
+        assertEquals(switch.rowVersion, designDraftContext.fetchVersion(switch.id))
+        assertEquals(kmPost.rowVersion, designDraftContext.fetchVersion(kmPost.id))
+    }
 }

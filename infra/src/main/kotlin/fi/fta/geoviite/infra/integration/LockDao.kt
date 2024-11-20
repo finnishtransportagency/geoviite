@@ -34,6 +34,7 @@ class LockDao @Autowired constructor(jdbcTemplateParam: NamedParameterJdbcTempla
                 fn()
             } finally {
                 releaseLock(lockName)
+                logger.info("Released lock: name=$lockName")
             }
         }
     }

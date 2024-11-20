@@ -77,6 +77,7 @@ class LayoutTrackNumberDao(
               tn.design_row_id,
               tn.design_id,
               tn.draft,
+              tn.cancelled,
               tn.external_id,
               tn.number,
               tn.description,
@@ -112,6 +113,7 @@ class LayoutTrackNumberDao(
               tn.number, 
               tn.description,
               tn.state,
+              tn.cancelled,
               rl.official_id as reference_line_id
             from layout.track_number tn
               left join layout.reference_line rl on rl.track_number_id = tn.official_id
@@ -142,6 +144,7 @@ class LayoutTrackNumberDao(
                     "row_id",
                     "row_version",
                     "draft",
+                    "cancelled",
                 ),
         )
 
@@ -155,6 +158,7 @@ class LayoutTrackNumberDao(
               description, 
               state, 
               draft, 
+              cancelled,
               official_row_id,
               design_row_id,
               design_id
@@ -165,6 +169,7 @@ class LayoutTrackNumberDao(
               :description, 
               :state::layout.state,
               :draft, 
+              :cancelled,
               :official_row_id,
               :design_row_id,
               :design_id
@@ -182,6 +187,7 @@ class LayoutTrackNumberDao(
                 "description" to newItem.description,
                 "state" to newItem.state.name,
                 "draft" to newItem.isDraft,
+                "cancelled" to newItem.isCancelled,
                 "official_row_id" to newItem.contextData.officialRowId?.intValue,
                 "design_row_id" to newItem.contextData.designRowId?.intValue,
                 "design_id" to newItem.contextData.designId?.intValue,
@@ -210,6 +216,7 @@ class LayoutTrackNumberDao(
               description = :description,
               state = :state::layout.state,
               draft = :draft,
+              cancelled = :cancelled,
               official_row_id = :official_row_id,
               design_row_id = :design_row_id,
               design_id = :design_id
@@ -228,6 +235,7 @@ class LayoutTrackNumberDao(
                 "description" to updatedItem.description,
                 "state" to updatedItem.state.name,
                 "draft" to updatedItem.isDraft,
+                "cancelled" to updatedItem.isCancelled,
                 "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
                 "design_row_id" to updatedItem.contextData.designRowId?.intValue,
                 "design_id" to updatedItem.contextData.designId?.intValue,

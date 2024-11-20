@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DeletingFailureException
@@ -144,8 +145,6 @@ constructor(
                 layoutGeometrySource = GeometrySource.GENERATED,
                 layoutLocation = Point(0.0, 0.0),
                 gkLocation = null,
-                gkLocationConfirmed = false,
-                gkLocationSource = null,
                 gkLocationLinkedFromGeometry = false,
             ),
             kmLengths.first(),
@@ -161,13 +160,15 @@ constructor(
                 layoutGeometrySource = GeometrySource.IMPORTED,
                 layoutLocation = kmPostLocation1,
                 gkLocation = null,
-                gkLocationConfirmed = false,
-                gkLocationSource = null,
                 gkLocationLinkedFromGeometry = false,
             ),
             kmLengths[1].copy(gkLocation = null),
         )
-        assertApproximatelyEquals(transformFromLayoutToGKCoordinate(kmPostLocation1!!), kmLengths[1].gkLocation!!, 0.01)
+        assertApproximatelyEquals(
+            transformFromLayoutToGKCoordinate(kmPostLocation1!!),
+            kmLengths[1].gkLocation!!.location,
+            0.01,
+        )
 
         val kmPostLocation2 = kmPostDao.fetch(kmPostVersions[1]).layoutLocation
         assertEquals(
@@ -179,13 +180,15 @@ constructor(
                 layoutGeometrySource = GeometrySource.IMPORTED,
                 layoutLocation = kmPostLocation2,
                 gkLocation = null,
-                gkLocationConfirmed = false,
-                gkLocationSource = null,
                 gkLocationLinkedFromGeometry = false,
             ),
             kmLengths[2].copy(gkLocation = null),
         )
-        assertApproximatelyEquals(transformFromLayoutToGKCoordinate(kmPostLocation2!!), kmLengths[2].gkLocation!!, 0.01)
+        assertApproximatelyEquals(
+            transformFromLayoutToGKCoordinate(kmPostLocation2!!),
+            kmLengths[2].gkLocation!!.location,
+            0.01,
+        )
     }
 
     @Test
@@ -242,8 +245,6 @@ constructor(
                 layoutGeometrySource = GeometrySource.GENERATED,
                 layoutLocation = Point(0.0, 0.0),
                 gkLocation = null,
-                gkLocationConfirmed = false,
-                gkLocationSource = null,
                 gkLocationLinkedFromGeometry = false,
             ),
             kmLengths.first(),
@@ -259,15 +260,13 @@ constructor(
                 layoutGeometrySource = GeometrySource.IMPORTED,
                 layoutLocation = kmPostLocation,
                 gkLocation = null,
-                gkLocationConfirmed = false,
-                gkLocationSource = null,
                 gkLocationLinkedFromGeometry = false,
             ),
             kmLengths.last().copy(gkLocation = null),
         )
         assertApproximatelyEquals(
             transformFromLayoutToGKCoordinate(kmPostLocation!!),
-            kmLengths.last().gkLocation!!,
+            kmLengths.last().gkLocation!!.location,
             0.01,
         )
     }
@@ -376,6 +375,41 @@ constructor(
             // draft version is updated by the publication, fixing references
             designDraft = designDraft2.rowVersion.next(),
         )
+    }
+
+    @Test
+    fun `cancelling a track number cancels its reference line as well`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val trackNumber = mainOfficialContext.insert(trackNumber())
+        val referenceLine = mainOfficialContext.insert(referenceLineAndAlignment(trackNumber.id))
+
+        val firstTrackNumberDraft =
+            trackNumberService.saveDraft(designBranch, mainOfficialContext.fetch(trackNumber.id)!!)
+        val firstReferenceLineDraft =
+            referenceLineService.saveDraft(designBranch, mainOfficialContext.fetch(referenceLine.id)!!)
+        val designOfficialTrackNumber =
+            trackNumberService.publish(
+                designBranch,
+                ValidationVersion(trackNumber.id, firstTrackNumberDraft.rowVersion),
+            )
+        val designOfficialReferenceLine =
+            referenceLineService.publish(
+                designBranch,
+                ValidationVersion(referenceLine.id, firstReferenceLineDraft.rowVersion),
+            )
+
+        // before cancelling the design change: design-official version is visible in draft context
+        assertEquals(designOfficialTrackNumber.rowVersion, designDraftContext.fetchVersion(trackNumber.id))
+        assertEquals(designOfficialReferenceLine.rowVersion, designDraftContext.fetchVersion(referenceLine.id))
+
+        trackNumberService.cancel(designBranch, trackNumber.id)
+
+        // after cancelling the design change: cancellation hides design-official version in draft
+        // context, leaving main-official version visible
+        assertEquals(trackNumber.rowVersion, designDraftContext.fetchVersion(trackNumber.id))
+        assertEquals(referenceLine.rowVersion, designDraftContext.fetchVersion(referenceLine.id))
     }
 
     private fun assertVersionReferences(

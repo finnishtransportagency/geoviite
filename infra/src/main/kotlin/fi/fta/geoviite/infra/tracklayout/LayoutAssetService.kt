@@ -54,6 +54,10 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             list.filter { item -> idMatches(term, item) || contentMatches(term, item) }
         } ?: listOf()
 
+    @Transactional
+    fun cancel(branch: DesignBranch, id: IntId<ObjectType>): LayoutDaoResponse<ObjectType>? =
+        dao.fetchVersion(branch.official, id)?.let { version -> saveDraft(branch, cancelled(dao.fetch(version))) }
+
     protected open fun idMatches(term: String, item: ObjectType): Boolean = false
 
     protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
@@ -123,6 +127,10 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
                 // If the design row didn't become the main-row, it's redundant
                 if (designRowId != publishedRowId) dao.deleteRow(designRowId)
             }
+
+        if (published.isCancelled) {
+            dao.deleteRow(publicationResponse.rowVersion.rowId)
+        }
 
         return publicationResponse
     }

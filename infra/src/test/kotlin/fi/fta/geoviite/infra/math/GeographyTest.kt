@@ -50,7 +50,7 @@ class GeographyTest {
     }
 
     @Test
-    fun tm35finToGKWorksInEast() {
+    fun `TM35FIN to GK works in east`() {
         val pointTM35FINInJoensuu = Point(642482.58, 6943848.538)
         // Expected result coordinates are converted using:
         // https://kartta.paikkatietoikkuna.fi converter tool, TM35FIN -> GK30
@@ -62,7 +62,7 @@ class GeographyTest {
     }
 
     @Test
-    fun tm35finToGKWorksInWest() {
+    fun `TM35FIN to GK works in west`() {
         val pointTM35FINInPori = Point(204562.392, 6845986.967)
         // Expected result coordinates are converted using:
         // https://kartta.paikkatietoikkuna.fi converter tool, TM35FIN -> GK21
@@ -74,7 +74,7 @@ class GeographyTest {
     }
 
     @Test
-    fun outOfGKBoundsTransformationThrowsException() {
+    fun `Out of Finnish GK bounds transformation throws exception`() {
         val pointTM35FINInTooFarEast = Point(735000.0, 6983000.0)
         val pointTM35FINInTooFarWest = Point(1000.0, 6765000.0)
 

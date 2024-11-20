@@ -31,7 +31,7 @@
     padding: 3px 0;
 }
 
-.field-layout__errors {
+.field-layout__notices {
     display: flex;
     flex-direction: column;
 }
@@ -39,4 +39,9 @@
 .field-layout__error {
     @include typography.typography-caption;
     color: colors.$color-red-dark;
+}
+
+.field-layout__warning {
+    @include typography.typography-caption;
+    color: colors.$color-lemon-dark;
 }

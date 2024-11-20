@@ -29,5 +29,9 @@ type LocationTrackChange = {
 };
 
 export function pushLocationTracksToRatko(locationTrackChanges: LocationTrackChange[]) {
-    return postNullable(`${RATKO_URI}/push-location-tracks`, locationTrackChanges);
+    return postNullable<LocationTrackChange[], undefined>(
+        `${RATKO_URI}/push-location-tracks`,
+        locationTrackChanges,
+        false,
+    );
 }

@@ -999,7 +999,7 @@ fun kmPost(
     draft: Boolean = false,
     state: LayoutState = LayoutState.IN_USE,
     gkLocationConfirmed: Boolean = false,
-    gkLocationSource: KmPostGkLocationSource? = null,
+    gkLocationSource: KmPostGkLocationSource = KmPostGkLocationSource.MANUAL,
     sourceId: IntId<GeometryKmPost>? = null,
     contextData: LayoutContextData<TrackLayoutKmPost> = createMainContext(null, null, draft),
 ): TrackLayoutKmPost {
@@ -1011,11 +1011,16 @@ fun kmPost(
         sourceId = sourceId,
         contextData = contextData,
         gkLocation =
-            if (gkLocation == null && roughLayoutLocation != null) {
-                transformFromLayoutToGKCoordinate(roughLayoutLocation)
-            } else gkLocation,
-        gkLocationConfirmed = gkLocationConfirmed,
-        gkLocationSource = gkLocationSource,
+            if (gkLocation != null || roughLayoutLocation != null)
+                TrackLayoutKmPostGkLocation(
+                    location =
+                        if (gkLocation == null && roughLayoutLocation != null) {
+                            transformFromLayoutToGKCoordinate(roughLayoutLocation)
+                        } else gkLocation!!,
+                    confirmed = gkLocationConfirmed,
+                    source = gkLocationSource,
+                )
+            else null,
     )
 }
 

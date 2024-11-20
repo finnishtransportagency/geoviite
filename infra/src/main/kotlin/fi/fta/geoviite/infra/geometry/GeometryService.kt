@@ -27,10 +27,8 @@ import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.ElementListingFile
 import fi.fta.geoviite.infra.tracklayout.ElementListingFileDao
-import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -45,12 +43,10 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
-import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 import withUser
@@ -79,10 +75,10 @@ constructor(
     private val localizationService: LocalizationService,
 ) {
 
-    private fun runElementListGeneration(op: () -> Unit) =
+    private fun runElementListGeneration(force: Boolean, op: () -> Unit) =
         runWithLock(elementListingGenerationUser, ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
             val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
-            if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) {
+            if (force || Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) {
                 op()
             }
         }
@@ -309,33 +305,36 @@ constructor(
         )
     }
 
-    fun makeElementListingCsv() = runElementListGeneration {
-        val translation = localizationService.getLocalization(LocalizationLanguage.FI)
-        val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
-        val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)
-        val elementListing =
-            locationTrackService
-                .listWithAlignments(MainLayoutContext.official, includeDeleted = false)
-                .map { (locationTrack, alignment) ->
-                    Triple(locationTrack, alignment, trackNumbers[locationTrack.trackNumberId]?.number)
-                }
-                .sortedWith(compareBy({ (_, _, tn) -> tn }, { (track, _, _) -> track.name }))
-                .flatMap { (track, alignment, trackNumber) ->
-                    getElementListing(track, alignment, trackNumber, geocodingContexts[track.trackNumberId])
-                }
-        val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
-        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
+    fun makeElementListingCsv() = makeElementListingCsv(false)
 
-        elementListingFileDao.upsertElementListingFile(
-            ElementListingFile(
-                name =
-                    FileName(
-                        "${translation.t("data-products.element-list.element-list-whole-network-title")} ${dateFormatter.format(Instant.now())}"
-                    ),
-                content = csvFileContent,
+    fun makeElementListingCsv(force: Boolean) =
+        runElementListGeneration(force) {
+            val translation = localizationService.getLocalization(LocalizationLanguage.FI)
+            val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
+            val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)
+            val elementListing =
+                locationTrackService
+                    .listWithAlignments(MainLayoutContext.official, includeDeleted = false)
+                    .map { (locationTrack, alignment) ->
+                        Triple(locationTrack, alignment, trackNumbers[locationTrack.trackNumberId]?.number)
+                    }
+                    .sortedWith(compareBy({ (_, _, tn) -> tn }, { (track, _, _) -> track.name }))
+                    .flatMap { (track, alignment, trackNumber) ->
+                        getElementListing(track, alignment, trackNumber, geocodingContexts[track.trackNumberId])
+                    }
+            val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
+            val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
+
+            elementListingFileDao.upsertElementListingFile(
+                ElementListingFile(
+                    name =
+                        FileName(
+                            "${translation.t("data-products.element-list.element-list-whole-network-title")} ${dateFormatter.format(Instant.now())}"
+                        ),
+                    content = csvFileContent,
+                )
             )
-        )
-    }
+        }
 
     fun getElementListingCsv() = elementListingFileDao.getElementListingFile()
 
@@ -579,8 +578,8 @@ constructor(
         val alignmentBoundaryAddresses =
             alignmentLinkEndSegmentIndices.flatMap { i ->
                 listOf(
-                    PlanBoundaryPoint(alignment.segments[i].endM, i),
-                    PlanBoundaryPoint(alignment.segments[i + 1].startM, i + 1),
+                    GeometryAlignmentBoundaryPoint(alignment.segments[i].endM, i),
+                    GeometryAlignmentBoundaryPoint(alignment.segments[i + 1].startM, i + 1),
                 )
             }
 
@@ -592,7 +591,7 @@ constructor(
             geocodingContext,
             alignment,
             tickLength,
-            alignmentBoundaryAddresses = alignmentBoundaryAddresses,
+            geometryAlignmentBoundaryPoints = alignmentBoundaryAddresses,
         ) { point, givenSegmentIndex ->
             val segmentIndex = givenSegmentIndex ?: alignment.getSegmentIndexAtM(point.m)
             val segment = alignment.segments[segmentIndex]
@@ -656,120 +655,6 @@ constructor(
         }
     }
 
-    private fun collectTrackMeterHeights(
-        startDistance: Double,
-        endDistance: Double,
-        geocodingContext: GeocodingContext,
-        alignment: IAlignment,
-        tickLength: Int,
-        alignmentBoundaryAddresses: List<PlanBoundaryPoint> = listOf(),
-        getHeightAt: (point: AlignmentPoint, segmentIndex: Int?) -> Double?,
-    ): List<KmHeights>? {
-        val addressOfStartDistance =
-            geocodingContext.getAddress(alignment.getPointAtM(startDistance) ?: return null)?.first ?: return null
-        val addressOfEndDistance =
-            geocodingContext.getAddress(alignment.getPointAtM(endDistance) ?: return null)?.first ?: return null
-        val (alignmentStart, alignmentEnd) = geocodingContext.getStartAndEnd(alignment)
-        if (alignmentStart == null || alignmentEnd == null) return null
-
-        val referencePointIndices =
-            geocodingContext.referencePoints.indexOfFirst { referencePoint ->
-                referencePoint.kmNumber == addressOfStartDistance.kmNumber
-            }..geocodingContext.referencePoints.indexOfFirst { referencePoint ->
-                    referencePoint.kmNumber == addressOfEndDistance.kmNumber
-                }
-
-        val alignmentBoundaryAddressesByKm =
-            alignmentBoundaryAddresses
-                .mapNotNull { boundary ->
-                    alignment.getPointAtM(boundary.distanceOnAlignment)?.let { point ->
-                        geocodingContext.getAddress(point)?.let { address -> address.first to boundary.segmentIndex }
-                    }
-                }
-                .groupBy(
-                    { (trackMeter) -> trackMeter.kmNumber },
-                    { (trackMeter, segmentIndex) -> trackMeter.meters to segmentIndex },
-                )
-
-        return referencePointIndices
-            .toList()
-            .parallelStream()
-            .map { referencePointIndex ->
-                val referencePoint = geocodingContext.referencePoints[referencePointIndex]
-                val kmNumber = referencePoint.kmNumber
-                // The choice of a half-tick-length minimum is totally arbitrary
-                val minTickSpace = BigDecimal(tickLength).setScale(1) / BigDecimal(2)
-                val lastPoint =
-                    (referencePoint.meters.toDouble() +
-                            getKmLengthAtReferencePointIndex(referencePointIndex, geocodingContext) -
-                            minTickSpace.toDouble())
-                        .toInt()
-                        .coerceAtLeast(0)
-
-                // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices
-                // because they clearly
-                // hit a specific segment; but points on different sides of a segment boundary are
-                // often the exact same
-                // point, but potentially have different heights (or more often null/not-null
-                // heights).
-                val allTicks =
-                    ((alignmentBoundaryAddressesByKm[kmNumber] ?: listOf()) +
-                            ((0..lastPoint step tickLength).map { distance -> distance.toBigDecimal() to null }))
-                        .sortedBy { (trackMeterInKm) -> trackMeterInKm }
-
-                val ticksToSend =
-                    (allTicks.filterIndexed { i, (trackMeterInKm, segmentIndex) ->
-                            segmentIndex != null ||
-                                i == 0 ||
-                                ((trackMeterInKm - allTicks[i - 1].first >= minTickSpace) &&
-                                    (i == allTicks.lastIndex || allTicks[i + 1].first - trackMeterInKm >= minTickSpace))
-                        }
-                        // Special-case first and last points so we get as close as possible to the
-                        // track ends
-                        +
-                            (if (kmNumber == alignmentStart.address.kmNumber)
-                                listOf(alignmentStart.address.meters to null)
-                            else listOf()) +
-                            (if (kmNumber == alignmentEnd.address.kmNumber) listOf(alignmentEnd.address.meters to null)
-                            else listOf()))
-                        .sortedBy { (trackMeterInKm) -> trackMeterInKm }
-
-                val endM =
-                    if (kmNumber == alignmentEnd.address.kmNumber) {
-                        alignmentEnd.point.m
-                    } else {
-                        geocodingContext
-                            .getTrackLocation(
-                                alignment,
-                                TrackMeter(geocodingContext.referencePoints[referencePointIndex + 1].kmNumber, 0),
-                            )
-                            ?.point
-                            ?.m!!
-                    }
-
-                KmHeights(
-                    referencePoint.kmNumber,
-                    ticksToSend
-                        .mapNotNull { (trackMeterInKm, segmentIndex) ->
-                            val trackMeter = TrackMeter(kmNumber, trackMeterInKm)
-                            geocodingContext.getTrackLocation(alignment, trackMeter)?.let { address ->
-                                TrackMeterHeight(
-                                    address.point.m,
-                                    address.address.meters.toDouble(),
-                                    getHeightAt(address.point, segmentIndex),
-                                    address.point.toPoint(),
-                                )
-                            }
-                        }
-                        .distinct(), // don't bother sending segment boundary sides with the same
-                    // location and height
-                    endM,
-                )
-            }
-            .collect(Collectors.toList())
-            .filter { km -> km.trackMeterHeights.isNotEmpty() }
-    }
-
     @Transactional
     fun setPlanHidden(planId: IntId<GeometryPlan>, hidden: Boolean): RowVersion<GeometryPlan> {
         if (hidden && !geometryDao.getPlanLinking(planId).isEmpty) {
@@ -791,14 +676,6 @@ constructor(
             ?.let { number -> trackNumberService.find(MainLayoutContext.official, number).firstOrNull()?.id }
             ?.let { trackNumberId -> geocodingService.getGeocodingContext(MainLayoutContext.official, trackNumberId) }
 }
-
-private fun getKmLengthAtReferencePointIndex(referencePointIndex: Int, geocodingContext: GeocodingContext) =
-    if (referencePointIndex == geocodingContext.referencePoints.size - 1) {
-        geocodingContext.referenceLineGeometry.length - geocodingContext.referencePoints[referencePointIndex].distance
-    } else {
-        geocodingContext.referencePoints[referencePointIndex + 1].distance -
-            geocodingContext.referencePoints[referencePointIndex].distance
-    }
 
 private fun trackNumbersMatch(header: GeometryPlanHeader, trackNumbers: List<TrackNumber>) =
     (trackNumbers.isEmpty() || (header.trackNumber?.let(trackNumbers::contains) ?: false))
@@ -833,5 +710,3 @@ private data class SegmentSource(
     val alignment: GeometryAlignment?,
     val plan: GeometryPlan?,
 )
-
-private data class PlanBoundaryPoint(val distanceOnAlignment: Double, val segmentIndex: Int)

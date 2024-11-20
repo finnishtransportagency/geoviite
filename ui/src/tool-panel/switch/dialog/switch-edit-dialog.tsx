@@ -40,7 +40,7 @@ import styles from './switch-edit-dialog.scss';
 import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
 import { getSaveDisabledReasons } from 'track-layout/track-layout-react-utils';
-import SwitchDeleteConfirmationDialog from './switch-delete-confirmation-dialog';
+import SwitchRevertConfirmationDialog from './switch-revert-confirmation-dialog';
 import { first } from 'utils/array-utils';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 
@@ -116,7 +116,7 @@ export const SwitchEditDialog = ({
     const switchStructureChanged =
         isExistingSwitch && switchStructureId != existingSwitch?.switchStructureId;
 
-    const canSetDeleted = isExistingSwitch && existingSwitch?.editState !== 'CREATED';
+    const canSetDeleted = isExistingSwitch && !!existingSwitch?.hasOfficial;
     const stateCategoryOptions = layoutStateCategories
         .map((s) => (s.value !== 'NOT_EXISTING' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((sc) => ({ ...sc, qaId: sc.value }));
@@ -298,17 +298,17 @@ export const SwitchEditDialog = ({
                 onClose={onClose}
                 footerContent={
                     <React.Fragment>
-                        {existingSwitch?.editState === 'CREATED' && isExistingSwitch && (
+                        {isExistingSwitch && (
                             <Button
+                                disabled={!existingSwitch?.isDraft}
                                 onClick={() => setShowDeleteDraftConfirmDialog(true)}
-                                icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}>
-                                {t('button.delete-draft')}
+                                {t('button.revert-draft')}
                             </Button>
                         )}
                         <div
                             className={
-                                existingSwitch?.editState === 'CREATED'
+                                isExistingSwitch
                                     ? dialogStyles['dialog__footer-content--right-aligned']
                                     : dialogStyles['dialog__footer-content--centered']
                             }>
@@ -503,7 +503,7 @@ export const SwitchEditDialog = ({
                 </Dialog>
             )}
             {showDeleteDraftConfirmDialog && switchId && (
-                <SwitchDeleteConfirmationDialog
+                <SwitchRevertConfirmationDialog
                     layoutContext={layoutContext}
                     switchId={switchId}
                     onSave={() => {

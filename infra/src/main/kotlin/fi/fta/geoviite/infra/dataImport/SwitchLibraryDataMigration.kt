@@ -4,6 +4,8 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwnerDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.switchLibrary.data.EV_SJ43_5_9_1_9_H
+import fi.fta.geoviite.infra.switchLibrary.data.EV_SJ43_5_9_1_9_V
 import fi.fta.geoviite.infra.switchLibrary.data.KRV43_233_1_9
 import fi.fta.geoviite.infra.switchLibrary.data.KRV43_270_1_9_514
 import fi.fta.geoviite.infra.switchLibrary.data.KRV54_200_1_9
@@ -223,6 +225,10 @@ val switchStructures: List<SwitchStructure> by lazy {
         YV60_5000_2500_1_26_V(),
         YV60_5000_3000_1_28_O(),
         YV60_5000_3000_1_28_V(),
+
+        // Otherworldly switches
+        EV_SJ43_5_9_1_9_V(),
+        EV_SJ43_5_9_1_9_H(),
     )
 }
 

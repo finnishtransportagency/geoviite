@@ -12,24 +12,24 @@ import { ChangesBeingReverted } from 'preview/preview-view';
 import { LayoutContext } from 'common/common-model';
 import { brand } from 'common/brand';
 
-type TrackNumberDeleteConfirmationDialogProps = {
+type TrackNumberRevertConfirmationDialogProps = {
     layoutContext: LayoutContext;
     changesBeingReverted: ChangesBeingReverted;
     onSave?: (trackNumberId: LayoutTrackNumberId) => void;
     onClose: () => void;
 };
 
-const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmationDialogProps> = ({
+const TrackNumberRevertConfirmationDialog: React.FC<TrackNumberRevertConfirmationDialogProps> = ({
     layoutContext,
     changesBeingReverted,
     onSave,
     onClose,
-}: TrackNumberDeleteConfirmationDialogProps) => {
+}: TrackNumberRevertConfirmationDialogProps) => {
     const { t } = useTranslation();
 
     const [isSaving, setIsSaving] = React.useState(false);
 
-    const deleteDraftLocationTrack = () => {
+    const revertLocationTrack = () => {
         setIsSaving(true);
         revertPublicationCandidates(
             layoutContext.branch,
@@ -38,13 +38,13 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
             .then((result) => {
                 result
                     .map(() => {
-                        Snackbar.success('tool-panel.track-number.delete-dialog.delete-succeeded');
+                        Snackbar.success('tool-panel.track-number.revert-dialog.revert-succeeded');
                         onSave &&
                             onSave(brand(changesBeingReverted.requestedRevertChange.source.id));
                         onClose();
                     })
                     .mapErr(() => {
-                        Snackbar.error('tool-panel.track-number.delete-dialog.delete-failed');
+                        Snackbar.error('tool-panel.track-number.revert-dialog.revert-failed');
                     });
             })
             .finally(() => setIsSaving(false));
@@ -52,7 +52,7 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
 
     return (
         <Dialog
-            title={t('tool-panel.track-number.delete-dialog.delete-draft-confirm')}
+            title={t('tool-panel.track-number.revert-dialog.revert-draft-confirm')}
             variant={DialogVariant.DARK}
             allowClose={false}
             footerContent={
@@ -64,12 +64,12 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
                         disabled={isSaving}
                         isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
-                        onClick={deleteDraftLocationTrack}>
-                        {t('button.delete')}
+                        onClick={revertLocationTrack}>
+                        {t('button.revert-draft')}
                     </Button>
                 </div>
             }>
-            <p>{t('tool-panel.track-number.delete-dialog.can-be-deleted')}</p>
+            <p>{t('tool-panel.track-number.revert-dialog.can-be-reverted')}</p>
             <PublicationRequestDependencyList
                 layoutContext={layoutContext}
                 changeTimes={getChangeTimes()}
@@ -79,4 +79,4 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
     );
 };
 
-export default TrackNumberDeleteConfirmationDialog;
+export default TrackNumberRevertConfirmationDialog;

@@ -84,7 +84,7 @@ module.exports = (env) => {
                     target: process.env.PROJEKTIVELHO_REDIRECT_URL,
                     logLevel: 'debug',
                     changeOrigin: true,
-                    pathRewrite: (_path, req) => {
+                    router: function (req) {
                         const documentOid = req.query['document'];
                         const assignmentOid = req.query['assignment'];
                         const projectOid = req.query['project'];
@@ -215,6 +215,7 @@ module.exports = (env) => {
                 },
             ),
             new ESLintWebpackPlugin({
+                configType: 'flat',
                 extensions: ['js', 'jsx', 'ts', 'tsx'],
             }),
             new LicensePlugin({

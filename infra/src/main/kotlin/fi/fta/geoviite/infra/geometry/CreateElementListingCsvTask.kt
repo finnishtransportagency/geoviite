@@ -14,8 +14,12 @@ import org.springframework.stereotype.Component
 class CreateElementListingCsvTask @Autowired constructor(private val geometryService: GeometryService) {
 
     @Scheduled(initialDelayString = "\${geoviite.data-products.tasks.create-element-listing-csv.initial-delay}")
+    fun scheduledCreateElementListingCskTaskInitial() {
+        geometryService.makeElementListingCsv()
+    }
+
     @Scheduled(cron = "\${geoviite.data-products.tasks.create-element-listing-csv.cron}")
-    private fun scheduledCreateElementListingCskTask() {
+    fun scheduledCreateElementListingCsvTaskCron() {
         geometryService.makeElementListingCsv()
     }
 }

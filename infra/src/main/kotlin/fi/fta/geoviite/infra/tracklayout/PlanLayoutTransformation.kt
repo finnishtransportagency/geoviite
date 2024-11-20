@@ -84,15 +84,20 @@ fun toTrackLayoutKmPosts(
     planToGkTransformation: ToGkFinTransformation,
 ): List<TrackLayoutKmPost> {
     return kmPosts.mapIndexedNotNull { _, kmPost ->
-        if (kmPost.location != null && kmPost.kmNumber != null) {
+        if (
+            kmPost.location != null && kmPost.kmNumber != null && (kmPost.location.x != 0.0 || kmPost.location.y != 0.0)
+        ) {
             TrackLayoutKmPost(
                 kmNumber = kmPost.kmNumber,
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
                 trackNumberId = trackNumberId,
-                gkLocation = planToGkTransformation.transform(kmPost.location),
-                gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
-                gkLocationConfirmed = true,
+                gkLocation =
+                    TrackLayoutKmPostGkLocation(
+                        location = planToGkTransformation.transform(kmPost.location),
+                        source = KmPostGkLocationSource.FROM_GEOMETRY,
+                        confirmed = true,
+                    ),
                 contextData = LayoutContextData.newDraft(LayoutBranch.main),
             )
         } else {

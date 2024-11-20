@@ -14,7 +14,6 @@ import {
     TimeStamp,
 } from 'common/common-model';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
-import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getKmPost, getKmPostInfoboxExtras } from 'track-layout/layout-km-post-api';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
@@ -104,7 +103,6 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id, layoutContext);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
-    const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState(false);
     const updatedKmPost = useLoader(
         () => getKmPost(kmPost.id, layoutContext),
         [kmPost.id, kmPostChangeTime, layoutContext.publicationState, layoutContext.branch],
@@ -130,7 +128,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     );
     const geometryPlanCrs = useCoordinateSystem(geometryPlan?.units?.coordinateSystemSrid);
 
-    const gkCoordinateSystem = useCoordinateSystem(kmPost.gkLocation?.srid);
+    const gkCoordinateSystem = useCoordinateSystem(kmPost.gkLocation?.location?.srid);
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
 
@@ -161,25 +159,17 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
               ? t('tool-panel.km-post.layout.negative-kilometer-length')
               : `${roundToPrecision(infoboxExtras.kmLength, 3)} m`;
 
-    const InfoboxFieldWithEditLink: React.FC<
-        Omit<React.ComponentProps<typeof InfoboxField>, 'onEdit' | 'iconDisabled'>
-    > = (props) => (
-        <InfoboxField
-            {...props}
-            onEdit={openEditDialog}
-            iconDisabled={layoutContext.publicationState === 'OFFICIAL'}
-        />
-    );
-
     return (
         <React.Fragment>
             <Infobox
                 title={t('tool-panel.km-post.layout.general-title')}
                 qa-id="km-post-infobox"
                 contentVisible={visibilities.basic}
-                onContentVisibilityChange={() => visibilityChange('basic')}>
+                onContentVisibilityChange={() => visibilityChange('basic')}
+                onEdit={openEditDialog}
+                iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
                 <InfoboxContent>
-                    <InfoboxFieldWithEditLink
+                    <InfoboxField
                         qaId="km-post-km-number"
                         label={t('tool-panel.km-post.layout.km-post')}
                         value={updatedKmPost?.kmNumber}
@@ -193,7 +183,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         }
                     />
-                    <InfoboxFieldWithEditLink
+                    <InfoboxField
                         label={t('tool-panel.km-post.layout.state')}
                         value={<LayoutState state={kmPost.state} />}
                     />
@@ -228,9 +218,11 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 title={t('tool-panel.km-post.layout.location-title')}
                 qa-id="layout-km-post-location-infobox"
                 contentVisible={visibilities.location}
-                onContentVisibilityChange={() => visibilityChange('location')}>
+                onContentVisibilityChange={() => visibilityChange('location')}
+                onEdit={openEditDialog}
+                iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
                 <InfoboxContent>
-                    <InfoboxFieldWithEditLink
+                    <InfoboxField
                         qaId="km-post-gk-coordinate-system"
                         label={t('tool-panel.km-post.layout.gk-coordinates.coordinate-system')}
                         value={
@@ -240,7 +232,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         }
                     />
-                    <InfoboxFieldWithEditLink
+                    <InfoboxField
                         qaId="km-post-gk-coordinates"
                         label={
                             gkCoordinateSystem === undefined
@@ -251,22 +243,22 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                         }
                         value={
                             updatedKmPost?.gkLocation
-                                ? formatToGkFinString(updatedKmPost.gkLocation)
+                                ? formatToGkFinString(updatedKmPost.gkLocation.location)
                                 : '-'
                         }
                     />
-                    <InfoboxFieldWithEditLink
+                    <InfoboxField
                         qaId="km-post-gk-coordinates-confirmed"
                         label={t(`tool-panel.km-post.layout.gk-coordinates.confirmed-title`)}
                         value={t(
-                            `tool-panel.km-post.layout.gk-coordinates.${updatedKmPost?.gkLocationConfirmed ? '' : 'not-'}confirmed`,
+                            `tool-panel.km-post.layout.gk-coordinates.${updatedKmPost?.gkLocation?.confirmed ? '' : 'not-'}confirmed`,
                         )}
                     />
                     <InfoboxField
                         qaId="km-post-gk-coordinates-source"
                         label={t('tool-panel.km-post.layout.gk-coordinates.source')}
                         value={
-                            updatedKmPost?.gkLocationSource === 'FROM_GEOMETRY' ? (
+                            updatedKmPost?.gkLocation?.source === 'FROM_GEOMETRY' ? (
                                 <span>
                                     {t(
                                         'tool-panel.km-post.layout.gk-coordinates.source-from-geometry',
@@ -289,9 +281,9 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                         {geometryPlan?.fileName}
                                     </Link>
                                 </span>
-                            ) : updatedKmPost?.gkLocationSource === 'FROM_LAYOUT' ? (
+                            ) : updatedKmPost?.gkLocation?.source === 'FROM_LAYOUT' ? (
                                 t('tool-panel.km-post.layout.gk-coordinates.source-from-layout')
-                            ) : updatedKmPost?.gkLocationSource === 'MANUAL' ? (
+                            ) : updatedKmPost?.gkLocation?.source === 'MANUAL' ? (
                                 t('tool-panel.km-post.layout.gk-coordinates.source-manual')
                             ) : (
                                 '-'
@@ -336,34 +328,15 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         </React.Fragment>
                     )}
-                    {kmPost?.editState === 'CREATED' && (
-                        <InfoboxButtons>
-                            <Button
-                                onClick={() => setConfirmingDraftDelete(true)}
-                                icon={Icons.Delete}
-                                variant={ButtonVariant.WARNING}
-                                size={ButtonSize.SMALL}>
-                                {t('button.delete-draft')}
-                            </Button>
-                        </InfoboxButtons>
-                    )}
                 </InfoboxContent>
             </Infobox>
-            {confirmingDraftDelete && (
-                <KmPostDeleteConfirmationDialog
-                    layoutContext={layoutContext}
-                    id={kmPost.id}
-                    onSave={() => handleKmPostSave(kmPost.id)}
-                    onClose={() => setConfirmingDraftDelete(false)}
-                />
-            )}
 
             {showEditDialog && (
                 <KmPostEditDialogContainer
                     kmPostId={kmPost.id}
                     onClose={closeEditDialog}
                     onSave={handleKmPostSave}
-                    geometryKmPostGkLocation={kmPost.gkLocation}
+                    geometryKmPostGkLocation={kmPost.gkLocation?.location}
                     editType={'MODIFY'}
                 />
             )}

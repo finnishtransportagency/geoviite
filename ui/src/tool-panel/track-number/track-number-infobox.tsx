@@ -18,7 +18,6 @@ import {
     useReferenceLineChangeTimes,
     useReferenceLineStartAndEnd,
     useTrackNumberChangeTimes,
-    useTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
@@ -28,8 +27,6 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { formatDateShort, getMaxTimestamp, getMinTimestamp } from 'utils/date-utils';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
-import { Icons } from 'vayla-design-lib/icon/Icon';
-import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
@@ -38,12 +35,10 @@ import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { ChangeTimes } from 'common/common-slice';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import { ChangesBeingReverted } from 'preview/preview-view';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
-import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -102,14 +97,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
-    const [deleting, setDeleting] = React.useState<ChangesBeingReverted>();
     const isOfficial = layoutContext.publicationState === 'OFFICIAL';
-    const officialTrackNumbers = useTrackNumbers(officialLayoutContext(layoutContext));
-    const isDeletable =
-        officialTrackNumbers &&
-        !officialTrackNumbers.find(
-            (officialTrackNumber) => officialTrackNumber.id === trackNumber.id,
-        );
 
     React.useEffect(() => {
         setCanUpdate(
@@ -147,16 +135,15 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         onUnselect,
     );
 
-    const onRequestDelete = () =>
-        onRequestDeleteTrackNumber(layoutContext.branch, trackNumber, setDeleting);
-
     return (
         <React.Fragment>
             <Infobox
                 contentVisible={visibilities.basic}
                 onContentVisibilityChange={() => visibilityChange('basic')}
                 title={t('tool-panel.track-number.general-title')}
-                qa-id="track-number-infobox">
+                qa-id="track-number-infobox"
+                onEdit={() => setShowEditDialog(true)}
+                iconDisabled={isOfficial}>
                 <InfoboxContent>
                     <InfoboxField
                         qaId="track-number-oid"
@@ -167,22 +154,16 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         qaId="track-number-name"
                         label={t('tool-panel.track-number.track-number')}
                         value={trackNumber.number}
-                        onEdit={() => setShowEditDialog(true)}
-                        iconDisabled={isOfficial}
                     />
                     <InfoboxField
                         qaId="track-number-state"
                         label={t('tool-panel.track-number.state')}
                         value={<LayoutState state={trackNumber.state} />}
-                        onEdit={() => setShowEditDialog(true)}
-                        iconDisabled={isOfficial}
                     />
                     <InfoboxField
                         qaId="track-number-description"
                         label={t('tool-panel.track-number.description')}
                         value={trackNumber.description}
-                        onEdit={() => setShowEditDialog(true)}
-                        iconDisabled={isOfficial}
                     />
                 </InfoboxContent>
             </Infobox>
@@ -191,7 +172,9 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     contentVisible={visibilities.referenceLine}
                     onContentVisibilityChange={() => visibilityChange('referenceLine')}
                     title={t('tool-panel.reference-line.basic-info-heading')}
-                    qa-id="reference-line-location-infobox">
+                    qa-id="reference-line-location-infobox"
+                    onEdit={() => setShowEditDialog(true)}
+                    iconDisabled={isOfficial}>
                     <InfoboxContent>
                         <InfoboxField
                             qaId="track-number-start-track-meter"
@@ -202,8 +185,6 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                     location={startAndEndPoints?.start?.point}
                                 />
                             }
-                            onEdit={() => setShowEditDialog(true)}
-                            iconDisabled={isOfficial}
                         />
                         <InfoboxField
                             qaId="track-number-end-track-meter"
@@ -353,27 +334,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             label={t('tool-panel.changed')}
                             value={formatDateShort(changedTime)}
                         />
-                        {isDeletable && (
-                            <InfoboxButtons>
-                                <Button
-                                    onClick={onRequestDelete}
-                                    icon={Icons.Delete}
-                                    variant={ButtonVariant.WARNING}
-                                    size={ButtonSize.SMALL}>
-                                    {t('button.delete-draft')}
-                                </Button>
-                            </InfoboxButtons>
-                        )}
                     </InfoboxContent>
                 </Infobox>
-            )}
-            {deleting !== undefined && (
-                <TrackNumberDeleteConfirmationDialog
-                    layoutContext={layoutContext}
-                    changesBeingReverted={deleting}
-                    onClose={() => setDeleting(undefined)}
-                    onSave={handleTrackNumberSave}
-                />
             )}
             {showEditDialog && (
                 <TrackNumberEditDialogContainer

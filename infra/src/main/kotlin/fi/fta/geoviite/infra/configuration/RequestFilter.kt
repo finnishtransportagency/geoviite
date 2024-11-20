@@ -73,6 +73,7 @@ constructor(
     @Value("\${geoviite.jwt.validation.jwks-url:}") private val jwksUrl: String,
     @Value("\${geoviite.jwt.validation.elb-jwt-key-url:}") private val elbJwtUrl: String,
     @Value("\${geoviite.api-root:}") private val apiRoot: String,
+    @Value("\${geoviite.app-root:}") private val appRoot: String,
     private val extApi: ExtApiConfiguration,
     private val environmentInfo: EnvironmentInfo,
 ) : OncePerRequestFilter() {
@@ -180,6 +181,17 @@ constructor(
             if (path.startsWith(apiRoot)) {
                 val newPath = path.replace(apiRoot, "")
                 request.getRequestDispatcher(newPath).forward(request, response)
+                return
+            } else if (path == "/" && appRoot.isNotBlank()) {
+                // Redirect browser from server root to <url>/$appRoot/
+                // (So that Geoviite UI can open without specifying the /app/ path in the bowser).
+                response.status = HttpServletResponse.SC_FOUND
+                response.setHeader("Location", "$appRoot/")
+                return
+            } else if (path == "$appRoot/" && appRoot.isNotBlank()) {
+                // Serve index.html directly from the appRoot.
+                // (So that index.html is not displayed in the browser url bar).
+                request.getRequestDispatcher("$appRoot/index.html").forward(request, response)
                 return
             } else {
                 checkUiRequestVersion(request)

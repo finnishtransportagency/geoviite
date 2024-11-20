@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.logging.copyThreadContextToReactiveResponseThread
 import fi.fta.geoviite.infra.logging.integrationCall
 import java.time.Duration
 import org.slf4j.Logger
@@ -45,6 +46,7 @@ constructor(
                 .baseUrl(ratkoBaseUrl)
                 .filter(logRequest())
                 .filter(logResponse())
+                .filter(copyThreadContextToReactiveResponseThread())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .codecs { it.defaultCodecs().maxInMemorySize(10 * 1024 * 1024) }
 

@@ -8,7 +8,6 @@ import {
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { BoundingBox } from 'model/geometry';
 import 'i18n/config';
-import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
 import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location-track-geometry-infobox';
@@ -67,7 +66,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const trackNumber = useTrackNumber(locationTrack.trackNumberId, layoutContext);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
-    const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
     const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
     const [confirmingSwitchRelinking, setConfirmingSwitchRelinking] = React.useState(false);
 
@@ -155,7 +153,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 layoutContext={layoutContext}
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}
-                setConfirmingDraftDelete={setConfirmingDraftDelete}
             />
             {layoutContext.branch === 'MAIN' && layoutContext.publicationState === 'OFFICIAL' && (
                 <LocationTrackRatkoSyncInfobox
@@ -173,15 +170,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     locationTrackId={locationTrack.id}
                     onClose={() => setShowRatkoPushDialog(false)}
                     changeTimes={changeTimes}
-                />
-            )}
-
-            {confirmingDraftDelete && (
-                <LocationTrackDeleteConfirmationDialog
-                    layoutContext={layoutContext}
-                    id={locationTrack.id}
-                    onSave={handleLocationTrackSave}
-                    onClose={() => setConfirmingDraftDelete(false)}
                 />
             )}
 

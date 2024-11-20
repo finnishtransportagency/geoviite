@@ -41,6 +41,8 @@ spring:
 
 geoviite:
   api-root: "/api"
+  app-root: "/app"
+
   cookies:
     secure: true
 

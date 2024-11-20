@@ -1,6 +1,6 @@
 import {
     AlignmentPoint,
-    GkLocationSource,
+    LayoutKmPostGkLocation,
     LayoutKmPostId,
     LayoutState,
     LayoutStateCategory,
@@ -22,7 +22,7 @@ import {
     GeometryPlanId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { GeometryPoint, Point } from 'model/geometry';
+import { Point } from 'model/geometry';
 import {
     JointNumber,
     KmNumber,
@@ -102,6 +102,7 @@ export type MapAlignmentEndPoints = {
 };
 
 export type LinkingPhase = 'preliminary' | 'setup' | 'allSet';
+export type LinkingAssetSource = 'USER_SELECTED' | 'PREDEFINED';
 
 type LinkingBaseType = {
     type: LinkingType;
@@ -150,6 +151,7 @@ export type LinkingSwitch = LinkingBaseType & {
     type: LinkingType.LinkingSwitch;
     suggestedSwitch: SuggestedSwitch;
     layoutSwitchId?: LayoutSwitchId;
+    switchSource: LinkingAssetSource;
 };
 
 export type PlacingSwitch = LinkingBaseType & {
@@ -173,13 +175,11 @@ export type KmPostGkFields = {
     gkSrid: Srid | undefined;
     gkLocationX: string;
     gkLocationY: string;
-    gkLocationConfirmed?: boolean;
+    gkLocationConfirmed: boolean;
 };
 
 export type KmPostSaveRequest = KmPostSimpleFields & {
-    gkLocation: GeometryPoint | undefined;
-    gkLocationSource: GkLocationSource | undefined;
-    gkLocationConfirmed: boolean | undefined;
+    gkLocation: LayoutKmPostGkLocation | undefined;
     sourceId: GeometryKmPostId | undefined;
 };
 

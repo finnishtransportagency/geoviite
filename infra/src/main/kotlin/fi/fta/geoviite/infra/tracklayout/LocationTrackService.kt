@@ -346,14 +346,6 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun listAroundWithAlignments(
-        layoutContext: LayoutContext,
-        point: IPoint,
-        maxDistance: Double,
-    ): List<Pair<LocationTrack, LayoutAlignment>> =
-        dao.fetchVersionsAround(layoutContext, point, maxDistance).map(dao::fetch).let(::associateWithAlignments)
-
-    @Transactional(readOnly = true)
     fun listNearWithAlignments(
         layoutContext: LayoutContext,
         bbox: BoundingBox,

@@ -17,7 +17,8 @@ import { brand } from 'common/brand';
 const layoutAssetFields: LayoutAssetFields = {
     version: 'version',
     dataType: 'TEMP',
-    editState: 'CREATED',
+    isDraft: true,
+    hasOfficial: false,
 };
 
 const layoutLocationTrack: LayoutLocationTrack = {
@@ -46,7 +47,7 @@ const kmPost: LayoutKmPost = {
     layoutLocation: { x: 0, y: 0 },
     state: 'IN_USE' as LayoutState,
     trackNumberId: brand(''),
-    gkLocationConfirmed: false,
+    gkLocation: undefined,
 };
 const layoutSwitch: LayoutSwitch = {
     ...layoutAssetFields,

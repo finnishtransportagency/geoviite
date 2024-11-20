@@ -32,6 +32,9 @@ import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
 const val COORDINATE_DECIMALS = 3
@@ -43,6 +46,8 @@ const val CANT_DECIMALS = 6
 const val SEGMENT_AND_ELEMENT_LENGTH_MAX_DELTA = 1.0
 
 const val ELEMENT_LIST_CSV_TRANSLATION_PREFIX = "data-products.element-list.csv"
+
+val elementListShortDateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
 data class ElementListing(
     val id: StringId<ElementListing>,
@@ -63,6 +68,7 @@ data class ElementListing(
     val end: ElementLocation,
     val connectedSwitchName: SwitchName?,
     val isPartial: Boolean,
+    val planTime: Instant? = null,
 )
 
 data class ElementLocation(
@@ -223,6 +229,7 @@ private fun toElementListing(
         locationTrack = locationTrack,
         segment = segment,
         getSwitchName = getSwitchName,
+        planTime = planHeader.planTime,
     )
 
 private fun toElementListing(
@@ -247,6 +254,7 @@ private fun toElementListing(
         locationTrack = null,
         segment = null,
         getSwitchName = getSwitchName,
+        planTime = plan.planTime,
     )
 
 fun planElementListingToCsv(elementListing: List<ElementListing>, translation: Translation) =
@@ -287,6 +295,10 @@ private fun commonElementListingCsvEntries(translation: Translation): List<CsvEn
             "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.direction-end" to { it.end.directionGrads.toPlainString() },
             "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-name" to { it.fileName },
             "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-source" to { it.planSource },
+            "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-time" to
+                {
+                    it.planTime?.let { planTime -> elementListShortDateFormatter.format(planTime) } ?: ""
+                },
             "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.remarks" to { remarks(it, translation) },
         )
         .map { (key, fn) -> CsvEntry(translation.t(key), fn) }
@@ -336,6 +348,7 @@ private fun elementListing(
     element: GeometryElement,
     segment: LayoutSegment?,
     getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
+    planTime: Instant?,
 ) =
     units.coordinateSystemSrid?.let(getTransformation).let { transformation ->
         val start = getStartLocation(context, transformation, alignment, element)
@@ -359,6 +372,7 @@ private fun elementListing(
             end = end,
             connectedSwitchName = segment?.switchId?.let { id -> getSwitchName(id) },
             isPartial = false,
+            planTime = planTime,
         )
     }
 

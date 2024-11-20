@@ -1,10 +1,25 @@
 services:
+  backend-dependencies-build:
+    image: ${IMAGE_BACKEND_DEPENDENCIES}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: geoviite-backend-dependencies
+      args:
+        - IMAGE_BASE_BACKEND_BUILD=${IMAGE_BASE_BACKEND_BUILD}
+
   backend-build:
     image: ${IMAGE_BACKEND}
+    depends_on:
+      backend-dependencies-build:
+        condition: service_completed_successfully
     build:
       context: .
       dockerfile: Dockerfile
       target: geoviite-backend-build
+      args:
+        - IMAGE_BASE_BACKEND_BUILD=${IMAGE_BASE_BACKEND_BUILD}
+        - IMAGE_BACKEND_DEPENDENCIES=${IMAGE_BACKEND_DEPENDENCIES}
 
   frontend-build:
     image: ${IMAGE_FRONTEND}
@@ -12,6 +27,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: geoviite-frontend-build
+      args:
+        - IMAGE_BASE_FRONTEND_BUILD=${IMAGE_BASE_FRONTEND_BUILD}
 
   distribution-build:
     image: ${IMAGE_DISTRIBUTION}
@@ -26,10 +43,12 @@ services:
       dockerfile: Dockerfile
       target: geoviite-distribution-build
       args:
+        IMAGE_BASE_BACKEND_BUILD: ${IMAGE_BASE_BACKEND_BUILD} # Needed for the geoviite-distribution-build-combiner
+        IMAGE_BASE_DISTRIBUTION: ${IMAGE_BASE_DISTRIBUTION}
         IMAGE_BACKEND: ${IMAGE_BACKEND}
         IMAGE_FRONTEND: ${IMAGE_FRONTEND}
 
-  db-service:
+  postgres-service:
     image: ${IMAGE_DB}
     build: docker-images/geoviite-postgres
     environment:
@@ -44,9 +63,9 @@ services:
       timeout: 2s
       retries: 5
 
-  test-db-service:
+  test-postgres-service:
     extends:
-      service: db-service
+      service: postgres-service
     ports: !override
       - ${HOST_PORT_DB_TEST}:5432
 
@@ -55,10 +74,10 @@ services:
     depends_on:
       distribution-build:
         condition: service_completed_successfully
-      db-service:
+      postgres-service:
         condition: service_healthy
     environment:
-      DB_URL: db-service/${DB_NAME}
+      DB_URL: postgres-service/${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: noauth,backend,static-fileserver
@@ -92,10 +111,10 @@ services:
     depends_on:
       backend-build:
         condition: service_completed_successfully
-      test-db-service:
+      test-postgres-service:
         condition: service_healthy
     environment:
-      DB_URL: test-db-service/${DB_NAME}
+      DB_URL: test-postgres-service/${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
 
@@ -111,12 +130,12 @@ services:
     depends_on:
       distribution-build:
         condition: service_completed_successfully
-      test-db-service:
+      test-postgres-service:
         condition: service_healthy
       e2e-chrome-service:
         condition: service_started
     environment:
-      DB_URL: test-db-service/${DB_NAME}
+      DB_URL: test-postgres-service/${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: e2e,noauth,backend,static-fileserver
@@ -126,6 +145,8 @@ services:
       PROJEKTIVELHO_URL: ${E2E_URL_PROJEKTIVELHO}
     ports:
       - ${HOST_PORT_GEOVIITE_E2E}:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
       interval: 5s
@@ -133,7 +154,7 @@ services:
       retries: 20
 
   e2e-chrome-service:
-    image: selenium/standalone-chromium:4.25.0-20241010
+    image: ${IMAGE_E2E_SELENIUM_CHROME}
     shm_size: "2gb"
     privileged: true
     environment:
@@ -146,6 +167,8 @@ services:
       - ${HOST_PORT_GEOVIITE_E2E_BROWSER_CHROME}:4444
       - ${HOST_PORT_GEOVIITE_E2E_BROWSER_VNC}:7900
       - ${HOST_PORT_GEOVIITE_E2E_BROWSER_VNC_SERVER}:5900
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   e2e-tests:
     image: ${IMAGE_BACKEND}
@@ -159,7 +182,7 @@ services:
       e2e-chrome-service:
         condition: service_started
     environment:
-      DB_URL: test-db-service/${DB_NAME}
+      DB_URL: test-postgres-service/${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       E2E_REMOTE_SELENIUM_HUB_ENABLED: true
@@ -171,3 +194,5 @@ services:
     ports:
       - ${HOST_PORT_GEOVIITE_E2E_RATKO}:12345
       - ${HOST_PORT_GEOVIITE_E2E_PROJEKTIVELHO}:12346
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

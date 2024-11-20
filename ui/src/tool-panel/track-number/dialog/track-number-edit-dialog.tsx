@@ -34,8 +34,7 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
 import styles from 'geoviite-design-lib/dialog/dialog.scss';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { Icons } from 'vayla-design-lib/icon/Icon';
-import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
+import TrackNumberRevertConfirmationDialog from 'tool-panel/track-number/dialog/track-number-revert-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import { ChangesBeingReverted } from 'preview/preview-view';
@@ -73,7 +72,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
         editTrackNumberId,
     );
     const editReferenceLine = useTrackNumberReferenceLine(trackNumberId, layoutContext);
-    const isDeletable = editReferenceLine?.editState === 'CREATED';
+    const isNewDraft = !!editReferenceLine && !editReferenceLine.hasOfficial;
 
     if (trackNumbers !== undefined && trackNumberId == editReferenceLine?.trackNumberId) {
         return (
@@ -82,7 +81,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
                 inEditTrackNumber={trackNumbers.find((tn) => tn.id == trackNumberId)}
                 inEditReferenceLine={editReferenceLine}
                 trackNumbers={trackNumbers}
-                isNewDraft={isDeletable}
+                isNewDraft={isNewDraft}
                 onClose={onClose}
                 onSave={onSave}
                 onEditTrackNumber={setTrackNumberId}
@@ -191,15 +190,15 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                 width={DialogWidth.TWO_COLUMNS}
                 footerContent={
                     <React.Fragment>
-                        {isNewDraft && inEditTrackNumber && (
+                        {inEditTrackNumber && (
                             <div className={styles['dialog__footer-content--left-aligned']}>
                                 <Button
+                                    disabled={!inEditTrackNumber.isDraft}
                                     onClick={() => {
-                                        inEditTrackNumber ? confirmNewDraftDelete() : undefined;
+                                        inEditTrackNumber && confirmNewDraftDelete();
                                     }}
-                                    icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}>
-                                    {t('button.delete-draft')}
+                                    {t('button.revert-draft')}
                                 </Button>
                             </div>
                         )}
@@ -393,7 +392,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                 </Dialog>
             )}
             {inEditTrackNumber && deletingDraft && (
-                <TrackNumberDeleteConfirmationDialog
+                <TrackNumberRevertConfirmationDialog
                     layoutContext={layoutContext}
                     changesBeingReverted={deletingDraft}
                     onClose={() => setDeletingDraft(undefined)}

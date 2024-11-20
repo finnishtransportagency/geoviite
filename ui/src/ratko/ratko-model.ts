@@ -10,6 +10,7 @@ export enum RatkoPushStatus {
     CONNECTION_ISSUE = 'CONNECTION_ISSUE',
     IN_PROGRESS = 'IN_PROGRESS',
     IN_PROGRESS_M_VALUES = 'IN_PROGRESS_M_VALUES',
+    MANUAL_RETRY = 'MANUAL_RETRY',
 }
 
 export function ratkoPushFailed(status: RatkoPushStatus | undefined) {
@@ -27,7 +28,7 @@ export const ratkoPushSucceeded = (status: RatkoPushStatus | undefined) =>
 
 export type RatkoPushErrorType = 'PROPERTIES' | 'GEOMETRY' | 'LOCATION' | 'STATE' | 'INTERNAL';
 
-export type RatkoPushErrorOperation = 'CREATE' | 'DELETE' | 'UPDATE';
+export type RatkoPushErrorOperation = 'CREATE' | 'DELETE' | 'UPDATE' | 'FETCH_EXISTING';
 
 export enum RatkoAssetType {
     TRACK_NUMBER = 'TRACK_NUMBER',

@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationException
-import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.isGkFinSrid
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -28,7 +27,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
-import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
@@ -39,6 +37,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
@@ -168,13 +167,11 @@ data class TrackLayoutKmPostSaveRequest(
     val kmNumber: KmNumber,
     val state: LayoutState,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    val gkLocationConfirmed: Boolean,
-    val gkLocationSource: KmPostGkLocationSource?,
-    val gkLocation: GeometryPoint?,
+    val gkLocation: TrackLayoutKmPostGkLocation?,
     val sourceId: IntId<GeometryKmPost>?,
 ) {
     init {
-        gkLocation?.let { location ->
+        gkLocation?.let { (location) ->
             try {
                 if (!isGkFinSrid(location.srid)) {
                     throw LinkingFailureException(

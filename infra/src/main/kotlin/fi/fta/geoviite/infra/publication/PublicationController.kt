@@ -44,6 +44,8 @@ class PublicationController
 constructor(
     private val lockDao: LockDao,
     private val publicationService: PublicationService,
+    private val publicationValidationService: PublicationValidationService,
+    private val publicationLogService: PublicationLogService,
     private val calculatedChangesService: CalculatedChangesService,
     private val localizationService: LocalizationService,
 ) {
@@ -63,7 +65,7 @@ constructor(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody request: PublicationRequestIds,
     ): ValidatedPublicationCandidates {
-        return publicationService.validatePublicationCandidates(
+        return publicationValidationService.validatePublicationCandidates(
             publicationService.collectPublicationCandidates(LayoutContextTransition.publicationIn(branch)),
             request,
         )
@@ -75,7 +77,7 @@ constructor(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody request: PublicationRequestIds,
     ): ValidatedPublicationCandidates {
-        return publicationService.validatePublicationCandidates(
+        return publicationValidationService.validatePublicationCandidates(
             publicationService.collectPublicationCandidates(LayoutContextTransition.mergeToMainFrom(branch)),
             request,
         )
@@ -123,7 +125,7 @@ constructor(
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.updateExternalId(branch, request.content)
             val versions = publicationService.getValidationVersions(branch, request.content)
-            publicationService.validatePublicationRequest(versions)
+            publicationValidationService.validatePublicationRequest(versions)
             val calculatedChanges = publicationService.getCalculatedChanges(versions)
             publicationService.publishChanges(branch, versions, calculatedChanges, request.message)
         }
@@ -150,7 +152,7 @@ constructor(
         @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
     ): Page<PublicationDetails> {
         val publications =
-            publicationService.fetchPublicationDetailsBetweenInstants(layoutBranch ?: LayoutBranch.main, from, to)
+            publicationLogService.fetchPublicationDetailsBetweenInstants(layoutBranch ?: LayoutBranch.main, from, to)
 
         return Page(
             totalCount = publications.size,
@@ -165,7 +167,7 @@ constructor(
         @PathVariable("branchType") branchType: LayoutBranchType,
         @RequestParam("count") count: Int,
     ): Page<PublicationDetails> {
-        val publications = publicationService.fetchLatestPublicationDetails(branchType, count)
+        val publications = publicationLogService.fetchLatestPublicationDetails(branchType, count)
 
         return Page(totalCount = publications.size, start = 0, items = publications)
     }
@@ -182,7 +184,7 @@ constructor(
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         val publicationsAsCsv =
-            publicationService.fetchPublicationsAsCsv(
+            publicationLogService.fetchPublicationsAsCsv(
                 layoutBranch ?: LayoutBranch.main,
                 from,
                 to,
@@ -209,7 +211,7 @@ constructor(
         @RequestParam("lang") lang: LocalizationLanguage,
     ): Page<PublicationTableItem> {
         val publications =
-            publicationService.fetchPublicationDetails(
+            publicationLogService.fetchPublicationDetails(
                 layoutBranch = layoutBranch ?: LayoutBranch.main,
                 from = from,
                 to = to,
@@ -231,19 +233,19 @@ constructor(
         @PathVariable("id") id: IntId<Publication>,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): List<PublicationTableItem> {
-        return publicationService.getPublicationDetailsAsTableItems(id, localizationService.getLocalization(lang))
+        return publicationLogService.getPublicationDetailsAsTableItems(id, localizationService.getLocalization(lang))
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
     @GetMapping("/{id}")
     fun getPublicationDetails(@PathVariable("id") id: IntId<Publication>): PublicationDetails {
-        return publicationService.getPublicationDetails(id)
+        return publicationLogService.getPublicationDetails(id)
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
     @GetMapping("/{id}/split-details")
     fun getSplitDetails(@PathVariable("id") id: IntId<Publication>): ResponseEntity<SplitInPublication> {
-        return publicationService.getSplitInPublication(id).let(::toResponse)
+        return publicationLogService.getSplitInPublication(id).let(::toResponse)
     }
 
     @PreAuthorize(AUTH_DOWNLOAD_PUBLICATION)
@@ -252,7 +254,7 @@ constructor(
         @PathVariable("id") id: IntId<Publication>,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
-        return publicationService.getSplitInPublicationCsv(id, lang).let { (csv, ltName) ->
+        return publicationLogService.getSplitInPublicationCsv(id, lang).let { (csv, ltName) ->
             getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv"))
         }
     }

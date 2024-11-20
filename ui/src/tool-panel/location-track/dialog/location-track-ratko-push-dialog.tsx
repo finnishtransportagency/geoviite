@@ -8,13 +8,14 @@ import {
     useLocationTrackStartAndEnd,
 } from 'track-layout/track-layout-react-utils';
 import styles from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog.scss';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
 import { KmNumber, LayoutContext, officialLayoutContext } from 'common/common-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { pushLocationTracksToRatko } from 'ratko/ratko-api';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { ChangeTimes } from 'common/common-slice';
+import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 
 export type LocationTrackRatkoPushDialogProps = {
     layoutContext: LayoutContext;
@@ -65,107 +66,84 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
     const [startKm, setStartKm] = React.useState<KmNumber>();
     const [endKm, setEndKm] = React.useState<KmNumber>();
     const kmOptions = startAndEndPoints && getKmOptions(startAndEndPoints);
-    const [pushing, setPushing] = React.useState(false);
-    const canPush = startKm && endKm && !pushing;
-    const [pushDone, setPushDone] = React.useState(false);
+    const canPush = !!startKm && !!endKm;
 
     async function pushToRatko() {
-        if (locationTrack && startKm && endKm && !pushing) {
+        if (locationTrack && startKm && endKm) {
             try {
-                setPushing(true);
                 const kms = getKmsInRange(Number.parseInt(startKm), Number.parseInt(endKm));
 
-                await pushLocationTracksToRatko([
+                pushLocationTracksToRatko([
                     {
                         locationTrackId: locationTrack.id,
                         changedKmNumbers: kms,
                     },
                 ]);
-
-                setPushDone(true);
+                Snackbar.success(
+                    t('tool-panel.location-track.ratko-push-dialog.pushing-started'),
+                    t('tool-panel.location-track.ratko-push-dialog.follow-in-ratko'),
+                );
             } finally {
-                setPushing(false);
+                props.onClose();
             }
         }
     }
 
     return (
         <Dialog
-            title={
-                pushDone
-                    ? t('tool-panel.location-track.ratko-push-dialog.title-done')
-                    : t('tool-panel.location-track.ratko-push-dialog.title')
-            }
+            title={t('tool-panel.location-track.ratko-push-dialog.title')}
             variant={DialogVariant.DARK}
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    {!pushDone && (
-                        <>
-                            <Button onClick={props.onClose} variant={ButtonVariant.SECONDARY}>
-                                {t('button.cancel')}
-                            </Button>
-                            <Button
-                                onClick={pushToRatko}
-                                disabled={!canPush}
-                                isProcessing={pushing}>
-                                {t('tool-panel.location-track.ratko-push-dialog.push')}
-                            </Button>
-                        </>
-                    )}
-                    {pushDone && <Button onClick={props.onClose}>{t('button.ok')}</Button>}
+                    <>
+                        <Button onClick={props.onClose} variant={ButtonVariant.SECONDARY}>
+                            {t('button.cancel')}
+                        </Button>
+                        <Button onClick={pushToRatko} disabled={!canPush}>
+                            {t('tool-panel.location-track.ratko-push-dialog.push')}
+                        </Button>
+                    </>
                 </div>
             }>
             <div className={styles['location-track-ratko-push-dialog']}>
-                {!pushDone && (
-                    <React.Fragment>
-                        <div className={styles['location-track-ratko-push-dialog__warning-msg']}>
-                            <span
-                                className={
-                                    styles['location-track-ratko-push-dialog__warning-icon']
-                                }>
-                                <Icons.StatusError color={IconColor.INHERIT} />
-                            </span>
-                            {t('tool-panel.location-track.ratko-push-dialog.warning-msg')}
-                        </div>
-                        <FieldLayout
-                            label={t('tool-panel.location-track.track-name')}
-                            value={locationTrack?.name}
-                        />
-                        <FieldLayout
-                            label={t('tool-panel.location-track.ratko-push-dialog.km-range')}
-                            value={
-                                <React.Fragment>
-                                    <Dropdown
-                                        value={startKm}
-                                        options={kmOptions}
-                                        onChange={(value) => value && setStartKm(value)}
-                                        size={DropdownSize.SMALL}
-                                    />
-                                    <span
-                                        className={
-                                            styles[
-                                                'location-track-ratko-push-dialog__field-separator'
-                                            ]
-                                        }>
-                                        -
-                                    </span>
-                                    <Dropdown
-                                        value={endKm}
-                                        options={kmOptions}
-                                        onChange={(value) => value && setEndKm(value)}
-                                        size={DropdownSize.SMALL}
-                                    />
-                                </React.Fragment>
-                            }
-                        />
-                    </React.Fragment>
-                )}
-                {pushDone && (
-                    <span className={styles['location-track-ratko-push-dialog__done']}>
-                        <Icons.Tick size={IconSize.LARGE} color={IconColor.INHERIT} />
-                    </span>
-                )}
+                <React.Fragment>
+                    <div className={styles['location-track-ratko-push-dialog__warning-msg']}>
+                        <span className={styles['location-track-ratko-push-dialog__warning-icon']}>
+                            <Icons.StatusError color={IconColor.INHERIT} />
+                        </span>
+                        {t('tool-panel.location-track.ratko-push-dialog.warning-msg')}
+                    </div>
+                    <FieldLayout
+                        label={t('tool-panel.location-track.track-name')}
+                        value={locationTrack?.name}
+                    />
+                    <FieldLayout
+                        label={t('tool-panel.location-track.ratko-push-dialog.km-range')}
+                        value={
+                            <React.Fragment>
+                                <Dropdown
+                                    value={startKm}
+                                    options={kmOptions}
+                                    onChange={(value) => value && setStartKm(value)}
+                                    size={DropdownSize.SMALL}
+                                />
+                                <span
+                                    className={
+                                        styles['location-track-ratko-push-dialog__field-separator']
+                                    }>
+                                    -
+                                </span>
+                                <Dropdown
+                                    value={endKm}
+                                    options={kmOptions}
+                                    onChange={(value) => value && setEndKm(value)}
+                                    size={DropdownSize.SMALL}
+                                />
+                            </React.Fragment>
+                        }
+                    />
+                </React.Fragment>
             </div>
         </Dialog>
     );

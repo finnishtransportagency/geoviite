@@ -3,15 +3,15 @@
 .publication-table {
     position: relative;
 
+    table {
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
     &__table-header {
         position: sticky;
         top: 0;
         z-index: 1;
-    }
-
-    &__accordion-column {
-        width: 0%;
-        padding-right: 0px;
     }
 
     &__message-column {
@@ -60,5 +60,35 @@
         left: 24px;
         height: 100%;
         background-color: vayla-design.$color-blue-default;
+    }
+
+    &__header--accordion {
+        width: 16px;
+    }
+
+    &__header--name {
+        width: 15%;
+    }
+
+    &__header--track-number,
+    &__header--km-number {
+        width: 10%;
+    }
+
+    &__header--operation {
+        width: 155px;
+    }
+
+    &__header--publication-time,
+    &__header--pushed-to-ratko {
+        width: 115px;
+    }
+
+    &__header--user {
+        width: 70px;
+    }
+
+    &__header--message {
+        width: auto;
     }
 }

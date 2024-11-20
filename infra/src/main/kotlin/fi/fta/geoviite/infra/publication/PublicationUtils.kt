@@ -375,6 +375,7 @@ fun switchBaseTypeToProp(translation: Translation, switchBaseType: SwitchBaseTyp
         SwitchBaseType.SKV,
         SwitchBaseType.TYV,
         SwitchBaseType.UKV,
+        SwitchBaseType.EV,
         SwitchBaseType.YV -> translation.t("publication-details-table.joint.math-point")
     }
 

@@ -10,7 +10,8 @@ create function layout.location_track_is_in_layout_context(publication_state_in 
   stable as
 $$
 select
-  where case publication_state_in
+  where not location_track.cancelled
+    and case publication_state_in
           when 'OFFICIAL' then not location_track.draft
           else location_track.draft
             or case
@@ -19,6 +20,7 @@ select
                                 from layout.location_track overriding_draft
                                 where overriding_draft.design_id is not distinct from design_id_in
                                   and overriding_draft.draft
+                                  and not overriding_draft.cancelled
                                   and overriding_draft.official_row_id = location_track.id)
                  else not exists(select *
                                    from layout.location_track overriding_draft
@@ -36,7 +38,14 @@ select
                                from layout.location_track overriding_design_official
                                where overriding_design_official.design_id = design_id_in
                                  and not overriding_design_official.draft
-                                 and overriding_design_official.official_row_id = location_track.id))
+                                 and overriding_design_official.official_row_id = location_track.id
+                                   and (publication_state_in = 'OFFICIAL' or not exists (
+                                     select *
+                                       from layout.location_track design_cancellation
+                                       where design_cancellation.design_id = design_id_in
+                                         and design_cancellation.draft
+                                         and design_cancellation.cancelled
+                                         and design_cancellation.official_row_id = location_track.id))))
         end
 $$;
 

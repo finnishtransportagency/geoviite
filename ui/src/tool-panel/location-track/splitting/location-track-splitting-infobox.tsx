@@ -170,7 +170,8 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     React.useEffect(() => {
         locationTrack &&
             delegates.setDisabled(
-                locationTrack?.editState !== 'UNEDITED' ||
+                !locationTrack ||
+                    (locationTrack.isDraft && !locationTrack.hasOfficial) ||
                     hasUnrelinkableSwitches(switchRelinkingErrors || []),
             );
     }, [
@@ -376,7 +377,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         .some(otherError);
     const isPostingSplit = splittingState.state === 'POSTING';
     const firstChangedDuplicateInSplits = duplicateTracksInCurrentSplits.find(
-        (dupe) => dupe.editState !== 'UNEDITED',
+        (dupe) => dupe.isDraft,
     );
     const unusedNonOverlappingDuplicates = splittingState.duplicateTracks.filter(
         (duplicateTrack) => {
@@ -476,7 +477,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             showArea(getShowSwitchOnMapBoundingBox(sourceEnd.point))
                         }
                     />
-                    {splittingState.disabled && locationTrack.editState !== 'UNEDITED' && (
+                    {splittingState.disabled && locationTrack.isDraft && (
                         <LocationTrackSplittingDraftExistsErrorNotice />
                     )}
                     {anyNonOverlappingDuplicates && (

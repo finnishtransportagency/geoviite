@@ -677,29 +677,6 @@ constructor(
         )
     }
 
-    @Test
-    fun `fetchVersionsAround() fetches by radius`() {
-        testDBService.clearLayoutTables()
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
-        val horizontalTrack =
-            mainOfficialContext
-                .insert(locationTrack(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
-                .rowVersion
-        val diagonalTrack =
-            mainOfficialContext
-                .insert(locationTrack(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
-                .rowVersion
-        assertEquals(0, locationTrackDao.fetchVersionsAround(MainLayoutContext.official, Point(0.0, 10.0), 3.0).size)
-        assertEquals(
-            listOf(diagonalTrack),
-            locationTrackDao.fetchVersionsAround(MainLayoutContext.official, Point(0.0, 10.0), 8.0),
-        )
-        assertEquals(
-            setOf(diagonalTrack, horizontalTrack),
-            locationTrackDao.fetchVersionsAround(MainLayoutContext.official, Point(0.0, 10.0), 11.0).toSet(),
-        )
-    }
-
     private fun assertChangeInfo(
         originalVersion: LayoutRowVersion<LocationTrack>,
         contextVersion: LayoutRowVersion<LocationTrack>?,

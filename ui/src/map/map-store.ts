@@ -32,35 +32,28 @@ export const isLayerInProxyLayerCollection = (
     proxyLayerCollection: LayerCollection,
 ): boolean => {
     const layersFromMenuItem = layerMenuItemMapLayers[menuItemName];
-    const key = Object.keys(proxyLayerCollection).find((key) =>
+    const keys = Object.keys(proxyLayerCollection).filter((key) =>
         proxyLayerCollection[key as MapLayerName]?.find((layer) =>
             layersFromMenuItem.includes(layer),
         ),
     );
-    return visibleLayers.some((layer) => layer === key);
+    return visibleLayers.some((layer) => keys.includes(layer));
 };
 
 const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer'];
 
 type LayerCollection = { [key in MapLayerName]?: MapLayerName[] };
 
-export const relatedMapLayers: LayerCollection = {
+export const layersToShowByProxy: LayerCollection = {
     'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
     'switch-linking-layer': ['switch-layer', 'geometry-switch-layer'],
     'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
     'virtual-km-post-linking-layer': ['km-post-layer', 'geometry-km-post-layer'],
-    'location-track-alignment-layer': [
-        'location-track-background-layer',
-        'location-track-badge-layer',
-    ],
-    'reference-line-alignment-layer': [
-        'reference-line-background-layer',
-        'reference-line-badge-layer',
-    ],
     'location-track-split-location-layer': [
         'duplicate-split-section-highlight-layer',
         'location-track-duplicate-endpoint-address-layer',
         'location-track-split-badge-layer',
+        'switch-layer',
     ],
 };
 
@@ -81,6 +74,17 @@ export const layersToHideByProxy: LayerCollection = {
     ],
 };
 
+export const relatedMapLayers: LayerCollection = {
+    'location-track-alignment-layer': [
+        'location-track-background-layer',
+        'location-track-badge-layer',
+    ],
+    'reference-line-alignment-layer': [
+        'reference-line-background-layer',
+        'reference-line-badge-layer',
+    ],
+};
+
 // like hiding by proxy, except with no effect on the displayed layer list, only covering the given layers right at
 // the end
 export const layersCoveringLayers: LayerCollection = {
@@ -92,6 +96,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'orthographic-background-map': ['orthographic-background-map-layer'],
     'location-track': ['location-track-alignment-layer', 'location-track-badge-layer'],
     'reference-line': ['reference-line-alignment-layer', 'reference-line-badge-layer'],
+    'reference-line-hide-when-zoomed-close': [], // This is technically a setting, not a map layer by itself.
     'missing-vertical-geometry': ['missing-profile-highlight-layer'],
     'missing-linking': ['missing-linking-highlight-layer'],
     'duplicate-tracks': ['duplicate-tracks-highlight-layer'],
@@ -141,7 +146,18 @@ export const initialMapState: Map = {
                     },
                 ],
             },
-            { name: 'reference-line', visible: true, qaId: 'reference-line-layer' },
+            {
+                name: 'reference-line',
+                visible: true,
+                qaId: 'reference-line-layer',
+                subMenu: [
+                    {
+                        name: 'reference-line-hide-when-zoomed-close',
+                        visible: false,
+                        qaId: 'reference-line-hide-when-zoomed-close',
+                    },
+                ],
+            },
             {
                 name: 'location-track',
                 visible: true,
@@ -324,7 +340,8 @@ const collectLayersHiddenByProxy = (items: MapLayerName[]) =>
     deduplicate(items.flatMap((i) => layersToHideByProxy[i]).filter(filterNotEmpty));
 
 function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
-    const relatedLayers = layers.flatMap((l) => relatedMapLayers[l]).filter(filterNotEmpty);
+    const allRelatedMapLayers = { ...layersToShowByProxy, ...relatedMapLayers };
+    const relatedLayers = layers.flatMap((l) => allRelatedMapLayers[l]).filter(filterNotEmpty);
 
     return relatedLayers.length > 0
         ? [...relatedLayers, ...collectRelatedLayers(relatedLayers)]

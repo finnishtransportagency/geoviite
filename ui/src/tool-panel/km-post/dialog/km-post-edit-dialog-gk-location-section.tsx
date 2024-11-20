@@ -37,6 +37,7 @@ type KmPostEditDialogGkLocationSectionProps = {
     ) => void;
     hasErrors: (prop: keyof KmPostEditFields) => boolean;
     getVisibleErrorsByProp: (prop: keyof KmPostEditFields) => string[];
+    getVisibleWarningsByProp: (prop: keyof KmPostEditFields) => string[];
     geometryKmPostGkLocation?: GeometryPoint;
     editType: KmPostEditDialogType;
     geometryPlanSrid?: Srid;
@@ -70,6 +71,7 @@ function transformGkToLayout(point: GeometryPoint): Point | undefined {
             const res = proj4(projection, LAYOUT_SRID).forward({ x: point.x, y: point.y });
             return Number.isFinite(res.x) && Number.isFinite(res.y) ? res : undefined;
         } catch (e) {
+            console.log(`transformGkToLayout caught an exception: ${e}`);
             return undefined;
         }
     }
@@ -137,7 +139,7 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     updateProp,
     hasErrors,
     getVisibleErrorsByProp,
-    geometryKmPostGkLocation,
+    getVisibleWarningsByProp,
     editType,
     geometryPlanSrid,
 }) => {
@@ -149,7 +151,6 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     const layoutLocation = gkLocation ? transformGkToLayout(gkLocation) : undefined;
     const gkLocationEnabled = state.gkLocationEnabled;
     const fieldsEnabled = !isLinking && gkLocationEnabled;
-    const gkLocationEntered = geometryKmPostGkLocation !== undefined || layoutLocation != undefined;
 
     const coordinateSystems = useCoordinateSystems(GK_FIN_COORDINATE_SYSTEMS.map(([srid]) => srid));
     const isFromNonGkPlan =
@@ -259,6 +260,10 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                     ...getVisibleErrorsByProp('gkLocationY'),
                     ...getVisibleErrorsByProp('gkLocationX'),
                 ].filter(filterUnique)}
+                warnings={[
+                    ...getVisibleWarningsByProp('gkLocationY'),
+                    ...getVisibleWarningsByProp('gkLocationX'),
+                ].filter(filterUnique)}
             />
             <FieldLayout
                 label={`${t('km-post-dialog.gk-location.confirmed-field')} *`}
@@ -266,19 +271,13 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                 value={
                     <div className={styles['km-post-edit-dialog__confirmed']}>
                         <Radio
-                            checked={
-                                (state.kmPost.gkLocationConfirmed === true || !gkLocationEntered) &&
-                                gkLocationEnabled
-                            }
+                            checked={gkLocationEnabled && state.kmPost.gkLocationConfirmed}
                             onChange={() => updateProp('gkLocationConfirmed', true)}
                             disabled={!fieldsEnabled}>
                             {t('km-post-dialog.gk-location.confirmed')}
                         </Radio>
                         <Radio
-                            checked={
-                                (state.kmPost.gkLocationConfirmed === false && gkLocationEntered) ||
-                                !gkLocationEnabled
-                            }
+                            checked={!gkLocationEnabled || !state.kmPost.gkLocationConfirmed}
                             onChange={() => updateProp('gkLocationConfirmed', false)}
                             disabled={!fieldsEnabled}>
                             {t('km-post-dialog.gk-location.not-confirmed')}
