@@ -269,9 +269,9 @@
             "FETCH_EXISTING": "pohjatietojen hakeminen Ratkosta"
         },
         "TrapPoint": {
-            "Yes": "Kyllä",
-            "No": "Ei",
-            "Unknown": "Ei tiedossa"
+            "YES": "Kyllä",
+            "NO": "Ei",
+            "UNKNOWN": "Ei tiedossa"
         },
         "LocationTrackDescriptionSuffix": {
             "SWITCH_TO_SWITCH": "Vaihde alussa - vaihde lopussa",

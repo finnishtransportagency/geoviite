@@ -1328,7 +1328,7 @@ class PublicationDao(
                         trapPoint =
                             rs.getChange("trap_point") {
                                 rs.getBooleanOrNull(it).let { value ->
-                                    if (value == null) TrapPoint.Unknown else if (value) TrapPoint.Yes else TrapPoint.No
+                                    if (value == null) TrapPoint.UNKNOWN else if (value) TrapPoint.YES else TrapPoint.NO
                                 }
                             },
                         owner = rs.getChange("owner") { rs.getString(it)?.let(::MetaDataName) },

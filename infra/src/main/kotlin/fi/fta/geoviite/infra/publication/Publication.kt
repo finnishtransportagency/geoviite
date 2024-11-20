@@ -429,9 +429,9 @@ data class LocationTrackChanges(
 
 // Todo: Consider making TrackLayoutSwitch use this for trapPoint as well
 enum class TrapPoint {
-    Yes,
-    No,
-    Unknown,
+    YES,
+    NO,
+    UNKNOWN,
 }
 
 data class SwitchChanges(

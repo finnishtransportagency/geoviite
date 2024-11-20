@@ -133,23 +133,23 @@ export const verticalCoordinateSystems: {
 
 export const switchTrapPoints: LocalizedEnum<TrapPoint>[] = [
     {
-        value: TrapPoint.Yes,
+        value: TrapPoint.YES,
         get name() {
-            return i18n.t('enum.TrapPoint.Yes');
+            return i18n.t('enum.TrapPoint.YES');
         },
         qaId: `trap-point-yes`,
     },
     {
-        value: TrapPoint.No,
+        value: TrapPoint.NO,
         get name() {
-            return i18n.t('enum.TrapPoint.No');
+            return i18n.t('enum.TrapPoint.NO');
         },
         qaId: `trap-point-no`,
     },
     {
-        value: TrapPoint.Unknown,
+        value: TrapPoint.UNKNOWN,
         get name() {
-            return i18n.t('enum.TrapPoint.Unknown');
+            return i18n.t('enum.TrapPoint.UNKNOWN');
         },
         qaId: `trap-point-unknown`,
     },

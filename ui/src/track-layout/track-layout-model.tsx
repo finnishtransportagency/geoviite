@@ -228,19 +228,19 @@ export type LocationTrackInfoboxExtras = {
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
 
 export enum TrapPoint {
-    Yes = 1,
-    No,
-    Unknown,
+    YES = 1,
+    NO,
+    UNKNOWN,
 }
 
 export function booleanToTrapPoint(trapPoint: boolean | undefined): TrapPoint {
     switch (trapPoint) {
         case true:
-            return TrapPoint.Yes;
+            return TrapPoint.YES;
         case false:
-            return TrapPoint.No;
+            return TrapPoint.NO;
         case undefined:
-            return TrapPoint.Unknown;
+            return TrapPoint.UNKNOWN;
         default:
             return exhaustiveMatchingGuard(trapPoint);
     }
@@ -248,11 +248,11 @@ export function booleanToTrapPoint(trapPoint: boolean | undefined): TrapPoint {
 
 export function trapPointToBoolean(trapPoint: TrapPoint): boolean | undefined {
     switch (trapPoint) {
-        case TrapPoint.Yes:
+        case TrapPoint.YES:
             return true;
-        case TrapPoint.No:
+        case TrapPoint.NO:
             return false;
-        case TrapPoint.Unknown:
+        case TrapPoint.UNKNOWN:
             return undefined;
         default:
             return exhaustiveMatchingGuard(trapPoint);
