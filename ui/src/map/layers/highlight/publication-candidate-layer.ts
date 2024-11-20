@@ -8,7 +8,7 @@ import {
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { LayoutContext, Range } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
-import { filterNotEmpty, first, last } from 'utils/array-utils';
+import { filterNotEmpty, first, last, lastIndex } from 'utils/array-utils';
 import Feature from 'ol/Feature';
 import {
     createLayer,
@@ -47,12 +47,10 @@ function colorByStage(stage: PublicationStage, changeType: ChangeType): string {
     return stage === PublicationStage.STAGED
         ? changeType === ChangeType.EXPLICIT
             ? '#0066cc'
-            : '#0066cc' + '66'
+            : '#99c2ea'
         : changeType === ChangeType.EXPLICIT
           ? '#ffc300'
-          : //          : '#555555' + '88';
-            //:  '#927f3d' + '44';
-            '#' + '82764f' + '66';
+          : '#cdc8b9';
 }
 
 const zIndexOrder = [
@@ -80,20 +78,19 @@ function getZIndexByStage(stage: PublicationStage, changeType: ChangeType): numb
     );
 }
 
-// const getColorForTrackNumber = (
-//     id: LayoutTrackNumberId,
-//     layerSettings: TrackNumberDiagramLayerSetting,
-// ) => {
-//     //Track numbers with transparent color are already filtered out
-//     const selectedColor = layerSettings[id]?.color ?? getDefaultColorKey(id);
-//     return getColor(selectedColor) + '55'; //~33 % opacity in hex
-// };
-
 type PointRange = {
     indexRange: Range<number>;
     changeType: ChangeType;
 };
 
+/**
+ * Divides points into groups by given m-value ranges and spaces between ranges.
+ * Each group created by m-value range is marked as an explicit change, groups between
+ * m-value ranges are marked as implicit changes.
+ *
+ * Each returned group (or index range) contains at least two points and ranges are inclusive,
+ * e.g. 1..3, 3..10, 10..12 etc.
+ */
 function splitByRanges(points: AlignmentPoint[], mRanges: Range<number>[]): PointRange[] {
     const pointIndexRanges: Range<number>[] = mRanges
         .sort((range1, range2) => range1.min - range2.min)
@@ -101,13 +98,16 @@ function splitByRanges(points: AlignmentPoint[], mRanges: Range<number>[]): Poin
             const min = points.findIndex((p) => p.m >= mRange.min);
             const max = points.findLastIndex((p) => p.m <= mRange.max);
             if (min == -1 || max == -1) {
+                // m-value range is not in "range"
                 return undefined;
             } else if (min > max) {
+                // m-value range is between two points, select both points
                 return {
                     min: max,
                     max: min,
                 };
             } else if (min == max) {
+                // m-value range contains a single point, expand range
                 if (min == 0) {
                     return {
                         min: 0,
@@ -151,7 +151,7 @@ function splitByRanges(points: AlignmentPoint[], mRanges: Range<number>[]): Poin
             {
                 indexRange: {
                     min: 0,
-                    max: points.length - 1,
+                    max: lastIndex(points),
                 },
                 changeType: ChangeType.IMPLICIT,
             },
@@ -179,11 +179,11 @@ function splitByRanges(points: AlignmentPoint[], mRanges: Range<number>[]): Poin
                 };
 
                 const rangeAfter =
-                    index == indexRanges.length - 1 && indexRange.max < points.length - 1
+                    index == lastIndex(indexRanges) && indexRange.max < lastIndex(points)
                         ? {
                               indexRange: {
                                   min: indexRange.max,
-                                  max: points.length - 1,
+                                  max: lastIndex(points),
                               },
                               changeType: ChangeType.IMPLICIT,
                           }
@@ -209,10 +209,11 @@ function createLocationTrackCandidateFeatures(
             candidate.publishCandidate.geometryChanges,
         );
         return pointRanges.map((pointRange) => {
-            //const color = pointRange.isChanged ? '#ff0000' : '#ff000088';
+            const start = pointRange.indexRange.min;
+            const end = pointRange.indexRange.max;
             const points = candidate.alignment.points.slice(
-                pointRange.indexRange.min,
-                pointRange.indexRange.max + 1,
+                start,
+                end + 1, // +1 for inclusive slicing
             );
             const rangeLengthInMeters =
                 expectDefined(last(points)).m - expectDefined(first(points)).m;

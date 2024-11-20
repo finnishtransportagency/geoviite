@@ -146,6 +146,7 @@ export type IconProps = {
     rotation?: IconRotation;
     color?: IconColor;
     ref?: React.RefObject<SVGSVGElement>;
+    extraClassName?: string;
 } & Pick<React.HTMLProps<HTMLOrSVGElement>, 'onClick'>;
 
 export type IconComponent = React.FC<IconProps>;
@@ -160,6 +161,7 @@ const SvgIcon: SvgIconComponent = ({
     svg,
     size = IconSize.MEDIUM,
     color,
+    extraClassName,
     ...props
 }: SvgIconProps) => {
     let svgContent = svg
@@ -176,6 +178,7 @@ const SvgIcon: SvgIconComponent = ({
         size && styles[size],
         props.rotation && styles[props.rotation],
         color && styles[color],
+        extraClassName,
     );
 
     const parsedSize = parseSize(svg) || [24, 24];
@@ -260,9 +263,24 @@ function makeIconsMap(glyphs: IconGlyph[], props?: IconProps): IconsMap {
     }, {} as IconsMap);
 }
 
+function makeMultiIcon(Icon: IconComponent): IconComponent {
+    const IconHoc: React.FC<IconProps> = (iconProps: IconProps) => {
+        return (
+            <div>
+                <Icon {...iconProps} extraClassName={'icon--multi-first'} />
+                <Icon {...iconProps} extraClassName={'icon--multi-second'} />
+            </div>
+        );
+    };
+    return IconHoc;
+}
+
 export const Icons = {
     ...makeIconsMap(Object.keys(iconNameToSvgMap) as IconGlyph[]),
     ...makeIconsMap(Object.keys(iconNameToSvgMapStaticColor) as IconGlyph[], {
         color: IconColor.ORIGINAL,
     }),
+    UpMultiple: makeMultiIcon(makeHigherOrderIcon('Ascending')),
+    DownMultiple: makeMultiIcon(makeHigherOrderIcon('Descending')),
+    DeleteMultiple: makeMultiIcon(makeHigherOrderIcon('Delete')),
 };

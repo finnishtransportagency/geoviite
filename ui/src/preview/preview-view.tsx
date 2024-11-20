@@ -64,6 +64,8 @@ import { debounceAsync } from 'utils/async-utils';
 import { DesignDraftsExistError } from 'preview/preview-view-design-drafts-exist-error';
 import { createClassName } from 'vayla-design-lib/utils';
 import { createAreaSelectTool, SelectMode } from 'map/tools/area-select-tool';
+import { filterNotEmpty, filterUniqueById, first } from 'utils/array-utils';
+import { expectDefined } from 'utils/type-utils';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -436,17 +438,39 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const publishCandidateSelectTool = React.useMemo(
         () =>
             createAreaSelectTool((items, mode) => {
+                const newStage =
+                    mode === SelectMode.Add ? PublicationStage.STAGED : PublicationStage.UNSTAGED;
+
                 const selectedCandidates = [
                     ...(items.locationTrackPublicationCandidates || []),
                     ...(items.switchPublicationCandidates || []),
                 ].flat();
-                if (selectedCandidates.length) {
-                    setStageForSpecificChanges(
-                        selectedCandidates,
-                        mode == SelectMode.Add
-                            ? PublicationStage.STAGED
-                            : PublicationStage.UNSTAGED,
+
+                const groups = selectedCandidates
+                    .map((candidate) => candidate.publicationGroup)
+                    .filter(filterNotEmpty)
+                    .filter(filterUniqueById((group) => group.id));
+                const refinedCandidateCollection =
+                    groups.length === 1
+                        ? publicationCandidates.filter(
+                              (candidate) =>
+                                  candidate.publicationGroup?.id == expectDefined(first(groups)).id,
+                          )
+                        : selectedCandidates;
+                if (
+                    newStage == PublicationStage.STAGED &&
+                    groups.length == 1 &&
+                    selectedCandidates.length !== refinedCandidateCollection.length
+                ) {
+                    Snackbar.info(
+                        'Valittu kaikki samaan kokonaisuuteen kuuluvat muutokset ' +
+                            refinedCandidateCollection.length +
+                            ' kpl',
                     );
+                }
+
+                if (refinedCandidateCollection.length) {
+                    setStageForSpecificChanges(refinedCandidateCollection, newStage);
                 }
             }),
         [publicationCandidates],
