@@ -409,7 +409,7 @@ interface ISegmentFields {
     val sourceId: DomainId<GeometryElement>?
     val sourceStart: Double?
     val source: GeometrySource
-    val id: DomainId<LayoutSegment>
+    val id: DomainId<*>
 }
 
 interface ISegment : ISegmentGeometry, ISegmentFields {

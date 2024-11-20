@@ -18,7 +18,6 @@ create temporary table node_point_version_temp as (
         s.alignment_version,
         a.segment_count,
         s.segment_index,
-        sg.geometry,
         s.start as start_m,
         postgis.st_m(postgis.st_endpoint(sg.geometry)) as length
         from layout.segment_version s
@@ -41,10 +40,6 @@ create temporary table node_point_version_temp as (
         switch_start_joint_number as joint_number,
         segment_index as start_segment_index,
         case when segment_index = 0 then null else segment_index - 1 end as end_segment_index,
-        segment_count,
-        postgis.st_x(postgis.st_startpoint(geometry)) as x,
-        postgis.st_y(postgis.st_startpoint(geometry)) as y,
-        start_m as m,
         null::int as start_track_link,
         null::int as end_track_link
         from node_switch_segments
@@ -60,10 +55,6 @@ create temporary table node_point_version_temp as (
         switch_end_joint_number as joint_number,
         case when segment_index = segment_count - 1 then null else segment_index + 1 end as start_segment_index,
         segment_index as end_segment_index,
-        segment_count,
-        postgis.st_x(postgis.st_endpoint(geometry)) as x,
-        postgis.st_y(postgis.st_endpoint(geometry)) as y,
-        start_m + length as m,
         null::int as start_track_link,
         null::int as end_track_link
         from node_switch_segments
@@ -80,10 +71,6 @@ create temporary table node_point_version_temp as (
         lt.topology_start_switch_joint_number as joint_number,
         0 as start_segment_index,
         null as end_segment_index,
-        a.segment_count,
-        postgis.st_x(postgis.st_startpoint(geometry)) as x,
-        postgis.st_y(postgis.st_startpoint(geometry)) as y,
-        0 as m,
         lt.official_id as start_track_link,
         null::int as end_track_link
         from layout.location_track_version lt
@@ -102,10 +89,6 @@ create temporary table node_point_version_temp as (
         lt.topology_end_switch_joint_number as joint_number,
         null as start_segment_index,
         a.segment_count - 1 as end_segment_index,
-        a.segment_count,
-        postgis.st_x(postgis.st_endpoint(geometry)) as x,
-        postgis.st_y(postgis.st_endpoint(geometry)) as y,
-        a.length as m,
         null::int as start_track_link,
         lt.official_id end_track_link
         from layout.location_track_version lt
@@ -114,23 +97,6 @@ create temporary table node_point_version_temp as (
                                                  s.segment_index = a.segment_count - 1
           inner join layout.segment_geometry sg on sg.id = s.geometry_id
 
-    ),
-    -- Potential node versions: each locationtrack_version + alignment_version combo can produce new versions for nodes
-    track_node_point_unified as (
-      select
-        location_track_id,
-        location_track_version,
-        alignment_id,
-        alignment_version,
-        case when switch_id is not null and joint_number is not null then array [ switch_id, joint_number ] end as switch_link,
-        switch_id,
-        joint_number,
-        start_track_link,
-        end_track_link,
-        array [ x::decimal(13, 6), y::decimal(13, 6) ] as location,
-        start_segment_index,
-        end_segment_index
-        from node_points
     ),
     track_node_version_candidate as (
       select
@@ -141,8 +107,6 @@ create temporary table node_point_version_temp as (
         -- Node ordering within the alignment version
         row_number() over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by start_segment_index, end_segment_index) as node_index,
         -- The grouping contracts the duplicated locations to a single node which may have multiple switch links
---         array_agg(distinct array [switch_id, joint_number]) filter (where joint_number is not null) as switch_links,
-        array_agg(distinct switch_link order by switch_link) filter (where switch_link is not null) as switch_links,
         -- Duplicate the data into separate arrays for easy unnesting in later processing
         array_agg(switch_id order by switch_id, joint_number) filter (where switch_id is not null) switch_ids,
         array_agg(joint_number order by switch_id, joint_number) filter (where switch_id is not null) switch_joints,
@@ -150,25 +114,37 @@ create temporary table node_point_version_temp as (
         min(start_track_link) as start_track_link,
         min(end_track_link) as end_track_link,
         -- The locations should all be approximately the same, but there might be minor variation due to floating point errors
---         array_agg(distinct array [x::decimal(13, 6), y::decimal(13, 6)]) as locations,
-        array_agg(distinct location) as locations,
---         array_agg(distinct array[location_track_id, location_track_version]) as location_track_links,
         start_segment_index,
         end_segment_index
---         from node_points
-        from track_node_point_unified
+        from node_points
         group by location_track_id, location_track_version, alignment_id, alignment_version, start_segment_index, end_segment_index
     )
     select
-      *,
-      layout.calculate_node_key(switch_links, start_track_link, end_track_link) as node_key
+      location_track_id,
+      location_track_version,
+      alignment_id,
+      alignment_version,
+      node_index,
+      switch_ids,
+      switch_joints,
+      case when switch_ids is null then start_track_link end as start_track_link,
+      case when switch_ids is null then end_track_link end as end_track_link,
+      start_segment_index,
+      end_segment_index,
+      layout.calculate_node_key(switch_ids, switch_joints, start_track_link, end_track_link) as node_key
     from track_node_version_candidate
 );
 
--- select * from node_point_version_temp where location_track_id=13 and location_track_version=1;
+-- select * from node_point_version_temp where start_track_link=1790;
 
 -- Create immutable nodes
-insert into layout.node(key) select distinct node_key from node_point_version_temp;
+-- insert into layout.node(key) select distinct node_key from node_point_version_temp;
+insert into layout.node (key, starting_location_track_id, ending_location_track_id)
+select distinct on (node_key)
+  node_key as key,
+  start_track_link,
+  end_track_link
+  from node_point_version_temp;
 insert into layout.node_switch_joint (node_id, switch_id, switch_joint)
 select distinct
   id as node_id,
@@ -181,16 +157,16 @@ select distinct
       np.switch_joints
       from node_point_version_temp np
         inner join layout.node on np.node_key = node.key
-      where np.switch_links is not null
+      where np.switch_ids is not null
   ) tmp;
-insert into layout.node_track_end (node_id, starting_location_track_id, ending_location_track_id)
-select distinct on (np.node_key)
-  node.id as node_id,
-  np.start_track_link,
-  np.end_track_link
-  from node_point_version_temp np
-    inner join layout.node on np.node_key = node.key
-  where np.switch_links is null;
+-- insert into layout.node_track_end (node_id, starting_location_track_id, ending_location_track_id)
+-- select distinct on (np.node_key)
+--   node.id as node_id,
+--   np.start_track_link,
+--   np.end_track_link
+--   from node_point_version_temp np
+--     inner join layout.node on np.node_key = node.key
+--   where np.switch_links is null;
 
 drop table if exists track_edge_version_temp;
 create temp table track_edge_version_temp as (
@@ -225,11 +201,6 @@ alter table track_edge_version_temp
   add primary key (location_track_id, location_track_version, start_node_index);
 
 -- select * from track_edge_version_temp;
-
--- Create the immutable edges
-insert into layout.edge(start_node_id, end_node_id)
-select distinct start_node_id, end_node_id
-  from track_edge_version_temp;
 
 drop table if exists location_track_edge_version_temp;
 create temporary table location_track_edge_version_temp as (
@@ -309,8 +280,7 @@ create temporary table location_track_edge_version_temp as (
     v.start_segment_index,
     v.end_segment_index,
     id.id as id,
-    row_number() over (partition by v.alignment_id, edge.id order by full_version) as version,
-    edge.id as edge_id,
+    row_number() over (partition by v.alignment_id, v.start_node_id, v.end_node_id order by full_version) as version,
     v.start_node_id,
     v.end_node_id,
     v.change_time,
@@ -318,7 +288,6 @@ create temporary table location_track_edge_version_temp as (
     v.deleted
     from location_track_edge_versions v
       inner join location_track_edge_ids id on v.alignment_id = id.alignment_id and v.start_node_id = id.start_node_id and v.end_node_id = id.end_node_id
-      left join layout.edge on edge.start_node_id = v.start_node_id and edge.end_node_id = v.end_node_id
     order by id, version
 );
 
@@ -334,7 +303,8 @@ alter table location_track_edge_version_temp add primary key (id, version);
 insert into layout.location_track_edge_version(
   id,
   version,
-  edge_id,
+  start_node_id,
+  end_node_id,
   bounding_box,
   segment_count,
   length,
@@ -345,7 +315,8 @@ insert into layout.location_track_edge_version(
 select
   ev.id,
   ev.version,
-  ev.edge_id,
+  ev.start_node_id,
+  ev.end_node_id,
   postgis.st_extent(sg.geometry) as bounding_box,
   ev.end_segment_index - ev.start_segment_index + 1 as segment_count,
   sum(postgis.st_m(postgis.st_endpoint(sg.geometry))) as length,
@@ -366,7 +337,8 @@ alter table layout.location_track_edge
   disable trigger version_row_trigger;
 insert into layout.location_track_edge(
   id,
-  edge_id,
+  start_node_id,
+  end_node_id,
   bounding_box,
   segment_count,
   length,
@@ -383,7 +355,8 @@ with latest as (
 )
 select
   id,
-  edge_id,
+  start_node_id,
+  end_node_id,
   bounding_box,
   segment_count,
   length,
