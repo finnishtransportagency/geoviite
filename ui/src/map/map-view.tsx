@@ -742,16 +742,17 @@ const MapView: React.FC<MapViewProps> = ({
         }
     }, [olMap, activeTool, visibleLayers]);
 
-    // React.useEffect(() => {
-    //     if (measurementToolActive && olMap) {
-    //         return measurementTool.activate(olMap);
-    //     } else {
-    //         return () => undefined;
-    //     }
-    // }, [olMap, measurementToolActive]);
+    const mapClassNames = createClassName(
+        styles.map,
+        //activeTool?.hideDefaultCursor && styles['map--hide-cursor'],
+    );
+
+    const cssProperties = {
+        ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
+    };
 
     return (
-        <div className={styles.map}>
+        <div className={mapClassNames} style={cssProperties}>
             <ol className="map__map-tools">
                 <li
                     onClick={() => _setActiveTool(undefined)}

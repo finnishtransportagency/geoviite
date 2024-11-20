@@ -6,9 +6,9 @@ import {
     LocationTrackAlignmentDataHolder,
 } from 'track-layout/layout-map-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { LayoutContext } from 'common/common-model';
+import { LayoutContext, Range } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first, last } from 'utils/array-utils';
 import Feature from 'ol/Feature';
 import {
     createLayer,
@@ -24,20 +24,60 @@ import {
     PublicationStage,
     SwitchPublicationCandidate,
 } from 'publication/publication-model';
-import { Rectangle } from 'model/geometry';
+import { rangesIntersectInclusive, Rectangle } from 'model/geometry';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
+import { expectDefined } from 'utils/type-utils';
 
 export const LOCATION_TRACK_CANDIDATE_DATA_PROPERTY = 'location-track-candidate-data';
 export const SWITCH_CANDIDATE_DATA_PROPERTY = 'switch-candidate-data';
 
+enum ChangeType {
+    EXPLICIT,
+    IMPLICIT,
+}
+
 type PublicationCandidateFeatureTypes = LineString | OlPoint;
 
 type LocationTrackCandidateWithAlignment = {
-    publishCandidate: PublicationCandidate;
+    publishCandidate: LocationTrackPublicationCandidate;
     alignment: LocationTrackAlignmentDataHolder;
 };
 
-function colorByStage(stage: PublicationStage): string {
-    return stage === PublicationStage.STAGED ? '#0066ccaa' : '#ffc300aa';
+function colorByStage(stage: PublicationStage, changeType: ChangeType): string {
+    return stage === PublicationStage.STAGED
+        ? changeType === ChangeType.EXPLICIT
+            ? '#0066cc'
+            : '#0066cc' + '66'
+        : changeType === ChangeType.EXPLICIT
+          ? '#ffc300'
+          : //          : '#555555' + '88';
+            //:  '#927f3d' + '44';
+            '#' + '82764f' + '66';
+}
+
+const zIndexOrder = [
+    {
+        stage: PublicationStage.UNSTAGED,
+        changeType: ChangeType.IMPLICIT,
+    },
+    {
+        stage: PublicationStage.STAGED,
+        changeType: ChangeType.IMPLICIT,
+    },
+    {
+        stage: PublicationStage.UNSTAGED,
+        changeType: ChangeType.EXPLICIT,
+    },
+    {
+        stage: PublicationStage.STAGED,
+        changeType: ChangeType.EXPLICIT,
+    },
+];
+
+function getZIndexByStage(stage: PublicationStage, changeType: ChangeType): number {
+    return zIndexOrder.findIndex(
+        (sample) => sample.stage == stage && sample.changeType == changeType,
+    );
 }
 
 // const getColorForTrackNumber = (
@@ -49,53 +89,182 @@ function colorByStage(stage: PublicationStage): string {
 //     return getColor(selectedColor) + '55'; //~33 % opacity in hex
 // };
 
+type PointRange = {
+    indexRange: Range<number>;
+    changeType: ChangeType;
+};
+
+function splitByRanges(points: AlignmentPoint[], mRanges: Range<number>[]): PointRange[] {
+    const pointIndexRanges: Range<number>[] = mRanges
+        .sort((range1, range2) => range1.min - range2.min)
+        .map((mRange) => {
+            const min = points.findIndex((p) => p.m >= mRange.min);
+            const max = points.findLastIndex((p) => p.m <= mRange.max);
+            if (min == -1 || max == -1) {
+                return undefined;
+            } else if (min > max) {
+                return {
+                    min: max,
+                    max: min,
+                };
+            } else if (min == max) {
+                if (min == 0) {
+                    return {
+                        min: 0,
+                        max: 1,
+                    };
+                } else {
+                    return {
+                        min: min - 1,
+                        max: max,
+                    };
+                }
+            } else {
+                return {
+                    min: min,
+                    max: max,
+                };
+            }
+        })
+        .filter(filterNotEmpty);
+
+    const pointIndexRangesWithoutOverlapping = pointIndexRanges.reduce(
+        (combinedRanges: Range<number>[], range) => {
+            const prevRange = last(combinedRanges);
+            if (prevRange !== undefined && rangesIntersectInclusive(prevRange, range)) {
+                return [
+                    ...combinedRanges.slice(0, -1),
+                    {
+                        min: Math.min(prevRange.min, range.min),
+                        max: Math.max(prevRange.max, range.max),
+                    },
+                ];
+            } else {
+                return [...combinedRanges, range];
+            }
+        },
+        [],
+    );
+
+    if (pointIndexRangesWithoutOverlapping.length == 0) {
+        return [
+            {
+                indexRange: {
+                    min: 0,
+                    max: points.length - 1,
+                },
+                changeType: ChangeType.IMPLICIT,
+            },
+        ];
+    } else {
+        return pointIndexRangesWithoutOverlapping.reduce(
+            (pointRanges: PointRange[], indexRange, index, indexRanges) => {
+                const prevPointRange = last(pointRanges);
+                const prevIndexMax = prevPointRange?.indexRange.max || 0;
+
+                const rangeBefore =
+                    indexRange.min > 0
+                        ? {
+                              indexRange: {
+                                  min: prevIndexMax,
+                                  max: indexRange.min,
+                              },
+                              changeType: ChangeType.IMPLICIT,
+                          }
+                        : undefined;
+
+                const changedRange = {
+                    indexRange: indexRange,
+                    changeType: ChangeType.EXPLICIT,
+                };
+
+                const rangeAfter =
+                    index == indexRanges.length - 1 && indexRange.max < points.length - 1
+                        ? {
+                              indexRange: {
+                                  min: indexRange.max,
+                                  max: points.length - 1,
+                              },
+                              changeType: ChangeType.IMPLICIT,
+                          }
+                        : undefined;
+
+                return [
+                    ...pointRanges,
+                    ...[rangeBefore, changedRange, rangeAfter].filter(filterNotEmpty),
+                ];
+            },
+            [],
+        );
+    }
+}
+
 function createLocationTrackCandidateFeatures(
     candidates: LocationTrackCandidateWithAlignment[],
+    metersPerPixel: number,
 ): Feature<LineString>[] {
-    return candidates.map((c) => {
-        const style = new Style({
-            stroke: new Stroke({
-                color: colorByStage(c.publishCandidate.stage),
-                width: 15,
-                lineCap: 'butt',
-            }),
+    return candidates.flatMap((candidate) => {
+        const pointRanges = splitByRanges(
+            candidate.alignment.points,
+            candidate.publishCandidate.geometryChanges,
+        );
+        return pointRanges.map((pointRange) => {
+            //const color = pointRange.isChanged ? '#ff0000' : '#ff000088';
+            const points = candidate.alignment.points.slice(
+                pointRange.indexRange.min,
+                pointRange.indexRange.max + 1,
+            );
+            const rangeLengthInMeters =
+                expectDefined(last(points)).m - expectDefined(first(points)).m;
+            const rangeLengthInPixels = rangeLengthInMeters / metersPerPixel;
+            const style = new Style({
+                stroke: new Stroke({
+                    color: colorByStage(candidate.publishCandidate.stage, pointRange.changeType),
+                    width: 15,
+                    lineCap: rangeLengthInPixels < 15 ? 'square' : 'butt',
+                }),
+                zIndex: getZIndexByStage(candidate.publishCandidate.stage, pointRange.changeType),
+            });
+            const feature = new Feature({
+                geometry: new LineString(points.map(pointToCoords)),
+            });
+            feature.setStyle(style);
+            //if (pointRange.isChanged) {
+            feature.set(LOCATION_TRACK_CANDIDATE_DATA_PROPERTY, candidate.publishCandidate);
+            //}
+            return feature;
         });
-        const feature = new Feature({
-            geometry: new LineString(c.alignment.points.map(pointToCoords)),
-        });
-        feature.setStyle(style);
-        feature.set(LOCATION_TRACK_CANDIDATE_DATA_PROPERTY, c.publishCandidate);
-        return feature;
     });
 }
 
 function createSwitchCandidateFeatures(
     switchCandidates: SwitchPublicationCandidate[],
 ): Feature<OlPoint>[] {
-    const x = switchCandidates
-        .map((c) => {
-            if (!c.location) {
+    const features = switchCandidates
+        .map((candidate) => {
+            if (!candidate.location) {
                 return undefined;
             }
 
-            const color = colorByStage(c.stage);
+            const color = colorByStage(candidate.stage, ChangeType.EXPLICIT);
             const style = new Style({
                 image: new Circle({
-                    radius: 20,
+                    radius: candidate.stage == PublicationStage.STAGED ? 18 : 22,
                     stroke: new Stroke({ color: color }),
                     fill: new Fill({ color: color }),
                 }),
+                zIndex: getZIndexByStage(candidate.stage, ChangeType.EXPLICIT),
             });
 
             const feature = new Feature({
-                geometry: new OlPoint(pointToCoords(c.location)),
+                geometry: new OlPoint(pointToCoords(candidate.location)),
             });
             feature.setStyle(style);
-            feature.set(SWITCH_CANDIDATE_DATA_PROPERTY, c);
+            feature.set(SWITCH_CANDIDATE_DATA_PROPERTY, candidate);
             return feature;
         })
         .filter(filterNotEmpty);
-    return x;
+    return features;
 }
 
 const layerName: MapLayerName = 'publication-candidate-layer';
@@ -105,7 +274,7 @@ export function createPublicationCandidateLayer(
     existingOlLayer: VectorLayer<Feature<PublicationCandidateFeatureTypes>> | undefined,
     changeTimes: ChangeTimes,
     layoutContext: LayoutContext,
-    _resolution: number,
+    metersPerPixel: number,
     onLoadingData: (loading: boolean) => void,
     publicationCandidates: PublicationCandidate[],
 ): MapLayer {
@@ -155,8 +324,10 @@ export function createPublicationCandidateLayer(
         // const alignmentsWithColor = filteredAlignments.filter((a) => {
         //     return true;
         // });
-        const locationTrackAlignmentFeatures =
-            createLocationTrackCandidateFeatures(filteredAlignments);
+        const locationTrackAlignmentFeatures = createLocationTrackCandidateFeatures(
+            filteredAlignments,
+            metersPerPixel,
+        );
         const switchFeatures = createSwitchCandidateFeatures(switchCandidates);
 
         return [...locationTrackAlignmentFeatures, ...switchFeatures];

@@ -13,24 +13,13 @@ import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
-import fi.fta.geoviite.infra.geocoding.*
-import fi.fta.geoviite.infra.geography.GeographyService
-import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.integration.*
-import fi.fta.geoviite.infra.linking.*
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
-import fi.fta.geoviite.infra.localization.LocalizationService
-import fi.fta.geoviite.infra.localization.Translation
-import fi.fta.geoviite.infra.localization.localizationParams
-import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.math.roundTo1Decimal
-import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -44,19 +33,12 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import fi.fta.geoviite.infra.util.SortOrder
-import fi.fta.geoviite.infra.util.nullsFirstComparator
-import fi.fta.geoviite.infra.util.printCsv
 import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
-import java.time.ZoneId
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 
 @GeoviiteService
 class PublicationService
@@ -92,6 +74,37 @@ constructor(
             referenceLines = publicationDao.fetchReferenceLinePublicationCandidates(transition),
             switches = publicationDao.fetchSwitchPublicationCandidates(transition),
             kmPosts = publicationDao.fetchKmPostPublicationCandidates(transition),
+        )
+    }
+
+    fun getChangedGeometryRanges(segments: List<LayoutSegment>, segments2: List<LayoutSegment>): List<Range<Double>> {
+        val added = segments.filter { s -> segments2.none { s2 -> s.geometry.id == s2.geometry.id } }
+        val removed = segments2.filter { s -> segments.none { s2 -> s.geometry.id == s2.geometry.id } }
+        val ranges = (added + removed).map { s -> Range(s.startM, s.endM) }
+        //        return ranges.reduce{acc, range ->
+        //            if (acc.overlaps(range))
+        //                acc.copy(max = range.max)
+        //            else
+        //                range
+        //        }
+        return ranges.fold(listOf<Range<Double>>()) { list, r ->
+            val previous = list.lastOrNull()
+            if (previous?.overlaps(r) == true) {
+                list.take(list.size - 1) + previous.copy(max = r.max)
+            } else {
+                list + r
+            }
+        }
+        // ranges.reduce(mutableListOf<Range<Double>>()) {(list,r) -> }
+        //        return (added + removed).map { s -> Range(s.startM, s.endM) }
+    }
+
+    fun fetchChangedGeometryRanges(id: IntId<LocationTrack>, transition: LayoutContextTransition): List<Range<Double>> {
+        val trackWithAlignment1 = locationTrackService.getWithAlignment(transition.candidateContext, id)
+        val trackWithAlignment2 = locationTrackService.getWithAlignment(transition.baseContext, id)
+        return getChangedGeometryRanges(
+            trackWithAlignment1?.second?.segments ?: emptyList(),
+            trackWithAlignment2?.second?.segments ?: emptyList(),
         )
     }
 

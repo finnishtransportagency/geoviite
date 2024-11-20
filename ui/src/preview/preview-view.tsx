@@ -63,7 +63,7 @@ import {
 import { debounceAsync } from 'utils/async-utils';
 import { DesignDraftsExistError } from 'preview/preview-view-design-drafts-exist-error';
 import { createClassName } from 'vayla-design-lib/utils';
-import { createAreaSelectTool } from 'map/tools/area-select-tool';
+import { createAreaSelectTool, SelectMode } from 'map/tools/area-select-tool';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -256,6 +256,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             ? filterByUser(unstagedPublicationCandidates, user)
             : unstagedPublicationCandidates;
 
+    const diplayedOnMapPublicationCandidates =
+        user && props.showOnlyOwnUnstagedChanges
+            ? filterByUser(publicationCandidates, user)
+            : publicationCandidates;
+
     const [changesBeingReverted, setChangesBeingReverted] = React.useState<ChangesBeingReverted>();
 
     const publicationAssetChangeAmounts: PublicationAssetChangeAmounts = {
@@ -430,14 +435,19 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
     const publishCandidateSelectTool = React.useMemo(
         () =>
-            createAreaSelectTool((items) => {
-                setStageForSpecificChanges(
-                    [
-                        ...(items.locationTrackPublicationCandidates || []),
-                        ...(items.switchPublicationCandidates || []),
-                    ].flat(),
-                    PublicationStage.STAGED,
-                );
+            createAreaSelectTool((items, mode) => {
+                const selectedCandidates = [
+                    ...(items.locationTrackPublicationCandidates || []),
+                    ...(items.switchPublicationCandidates || []),
+                ].flat();
+                if (selectedCandidates.length) {
+                    setStageForSpecificChanges(
+                        selectedCandidates,
+                        mode == SelectMode.Add
+                            ? PublicationStage.STAGED
+                            : PublicationStage.UNSTAGED,
+                    );
+                }
             }),
         [publicationCandidates],
     );
@@ -571,7 +581,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                   ? draftLayoutContext(props.layoutContext)
                                   : officialLayoutContext(props.layoutContext)
                         }
-                        publicationCandidates={publicationCandidates}
+                        publicationCandidates={diplayedOnMapPublicationCandidates}
                         customActiveMapTool={publishCandidateSelectTool}
                     />
                 </MapContext.Provider>

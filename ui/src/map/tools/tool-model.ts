@@ -6,6 +6,7 @@ import {
     OnSelectFunction,
 } from 'selection/selection-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
+import type * as CssType from 'csstype';
 
 export type DeactivateToolFn = () => void;
 
@@ -22,4 +23,5 @@ export type MapTool = {
         layers?: MapLayer[],
         options?: MapToolActivateOptions,
     ) => DeactivateToolFn;
+    customCursor?: CssType.Property.Cursor;
 };

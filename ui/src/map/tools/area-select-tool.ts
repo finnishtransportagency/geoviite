@@ -2,18 +2,23 @@ import { LineString, Polygon } from 'ol/geom';
 import { MapTool } from 'map/tools/tool-model';
 import { Draw } from 'ol/interaction';
 import { createBox } from 'ol/interaction/Draw.js';
-import { noModifierKeys, primaryAction } from 'ol/events/condition';
+import { altKeyOnly, noModifierKeys, primaryAction } from 'ol/events/condition';
 import OlMap from 'ol/Map';
 import { Fill, Stroke, Style } from 'ol/style';
 import Overlay from 'ol/Overlay';
 import mapStyles from '../map.module.scss';
-import CircleStyle from 'ol/style/Circle';
+import RegularShape from 'ol/style/RegularShape';
 import MapBrowserEvent from 'ol/MapBrowserEvent';
 import { Coordinate } from 'ol/coordinate';
 import { LayerItemSearchResult, MapLayer } from 'map/layers/utils/layer-model';
 import { BoundingBox, boundingBoxAroundPoints, coordsToPoint } from 'model/geometry';
 import { expectDefined } from 'utils/type-utils';
 import { searchItemsFromLayers } from 'map/tools/tool-utils';
+
+export enum SelectMode {
+    Add,
+    Subtract,
+}
 
 function getPolygon(bbox: BoundingBox): Polygon {
     return new Polygon([
@@ -32,8 +37,11 @@ function getItemsFromLayers(bbox: BoundingBox, layers: MapLayer[]): LayerItemSea
     return searchItemsFromLayers(polygon, layers, {});
 }
 
-export function createAreaSelectTool(onSelect?: (items: LayerItemSearchResult) => void) {
+export function createAreaSelectTool(
+    onSelect?: (items: LayerItemSearchResult, mode: SelectMode) => void,
+) {
     return {
+        customCursor: 'crosshair',
         activate: (map: OlMap, layers: MapLayer[]) => {
             const tooltipElement = document.createElement('div');
             tooltipElement.className = 'ol-tooltip-measure';
@@ -48,42 +56,52 @@ export function createAreaSelectTool(onSelect?: (items: LayerItemSearchResult) =
 
             const f = createBox();
             let currentBoundingBox: BoundingBox | undefined = undefined;
+            let mode: SelectMode = SelectMode.Add;
 
             const tooltipDraw = new Draw({
                 type: 'Circle',
-                //freehand: true,
-                // condition: (e: MapBrowserEvent<UIEvent>) => {
-                //     console.log('zzzz');
-                //     return noModifierKeys(e) && primaryAction(e);
-                // },
                 freehandCondition: (e: MapBrowserEvent<UIEvent>) => {
-                    console.log('yyyy');
-                    return noModifierKeys(e) && primaryAction(e);
+                    mode = altKeyOnly(e) ? SelectMode.Subtract : SelectMode.Add;
+                    return (noModifierKeys(e) || altKeyOnly(e)) && primaryAction(e);
                 },
-                //maxPoints: 2,
-                style: new Style({
-                    stroke: new Stroke({
-                        color: '#0066cc', //mapStyles.measurementTooltipLine,
-                        lineDash: [8, 8],
-                        width: 1,
-                    }),
-                    fill: new Fill({
-                        color: '#0066cc22',
-                    }),
-                    image: new CircleStyle({
-                        radius: 6,
+                style: () => [
+                    new Style({
                         stroke: new Stroke({
-                            color: mapStyles.measurementTooltipCircle,
+                            color: '#0066cc', //mapStyles.measurementTooltipLine,
+                            lineDash: [8, 8],
+                            width: 1,
+                        }),
+                        fill: new Fill({
+                            color: '#0066cc22',
+                        }),
+                        // image: new RegularShape({
+                        //     stroke: new Stroke({
+                        //         color: mapStyles.measurementTooltipCircle,
+                        //     }),
+                        //     points: 4,
+                        //     radius: 10,
+                        //     radius2: 0,
+                        //     angle: 0,
+                        // }),
+                    }),
+                    new Style({
+                        image: new RegularShape({
+                            stroke: new Stroke({
+                                color: mapStyles.measurementTooltipCircle,
+                            }),
+                            points: mode == SelectMode.Add ? 4 : 2,
+                            radius: 4,
+                            radius2: 0,
+                            angle: mode == SelectMode.Add ? 0 : Math.PI / 2,
+                            displacement: [12, -12],
                         }),
                     }),
-                }),
+                ],
                 geometryFunction: function (
                     coordinates: Coordinate[],
                     existingGeom: LineString,
                     projection,
                 ) {
-                    // tooltipElement.innerHTML = 'xxx';
-                    // tooltip.setPosition(existingGeom.getLastCoordinate());
                     const boxGeom = f(coordinates, existingGeom, projection);
                     currentBoundingBox =
                         coordinates.length >= 2
@@ -92,29 +110,7 @@ export function createAreaSelectTool(onSelect?: (items: LayerItemSearchResult) =
                                   coordsToPoint(expectDefined(coordinates[1])),
                               ])
                             : undefined;
-                    //console.log(currentBoundingBox);
                     return boxGeom;
-                    // const cursorCoordinate = last(coordinates);
-                    // if (!cursorCoordinate) return existingGeom;
-                    //
-                    // const _cursorPixel = map.getPixelFromCoordinate(cursorCoordinate) as [
-                    //     number,
-                    //     number,
-                    // ];
-                    //
-                    // const newCoordinates = cursorCoordinate;
-                    //
-                    // if (existingGeom) {
-                    //     existingGeom.setCoordinates([
-                    //         existingGeom.getFirstCoordinate(),
-                    //         newCoordinates,
-                    //     ]);
-                    // } else {
-                    //     existingGeom = new LineString([newCoordinates]);
-                    // }
-                    //
-                    //
-                    // return existingGeom;
                 },
             });
 
@@ -122,7 +118,7 @@ export function createAreaSelectTool(onSelect?: (items: LayerItemSearchResult) =
                 if (currentBoundingBox !== undefined && onSelect != undefined) {
                     const items = getItemsFromLayers(currentBoundingBox, layers);
                     console.log(items);
-                    onSelect(items);
+                    onSelect(items, mode);
                 }
                 tooltip.setPosition(undefined);
             });
