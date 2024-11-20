@@ -11,9 +11,8 @@ alter table layout.km_post_version
 alter table publication.km_post
   add column layout_context_id text;
 update publication.km_post
-set layout_context_id = tnv.layout_context_id
-  from layout.km_post_version tnv
-  where km_post.km_post_id = tnv.id and km_post.km_post_version = tnv.version;
+set layout_context_id = 'main_official';
+alter table publication.km_post alter column layout_context_id set not null;
 
 create temporary table km_post_version_change on commit drop as
   (

@@ -14,18 +14,12 @@ alter table publication.location_track
   add column layout_context_id text;
 alter table publication.switch_location_tracks
   add column location_track_layout_context_id text;
-
 update publication.location_track
-set layout_context_id = tnv.layout_context_id
-  from layout.location_track_version tnv
-  where location_track.location_track_id = tnv.id and location_track.location_track_version = tnv.version;
-
-alter table publication.location_track alter column layout_context_id set not null;
-
+set layout_context_id = 'main_official';
 update publication.switch_location_tracks
-set location_track_layout_context_id = tnv.layout_context_id
-  from layout.location_track_version tnv
-  where switch_location_tracks.location_track_id = tnv.id and switch_location_tracks.location_track_version = tnv.version;
+set location_track_layout_context_id = 'main_official';
+alter table publication.location_track alter column layout_context_id set not null;
+alter table publication.switch_location_tracks alter column location_track_layout_context_id set not null;
 
 create temporary table location_track_version_change on commit drop as
   (

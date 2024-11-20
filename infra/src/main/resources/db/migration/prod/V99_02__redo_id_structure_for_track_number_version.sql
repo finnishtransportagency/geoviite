@@ -11,10 +11,7 @@ alter table layout.track_number_version
 alter table publication.track_number
   add column layout_context_id text;
 update publication.track_number
-set layout_context_id = tnv.layout_context_id
-  from layout.track_number_version tnv
-  where track_number.track_number_id = tnv.id and track_number.track_number_version = tnv.version;
-
+set layout_context_id = 'main_official';
 alter table publication.track_number alter column layout_context_id set not null;
 
 -- pattern for all foo_version_change tables: The partitioning is over the version table's

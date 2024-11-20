@@ -11,9 +11,8 @@ alter table layout.switch_version
 alter table publication.switch
   add column layout_context_id text;
 update publication.switch
-set layout_context_id = tnv.layout_context_id
-  from layout.switch_version tnv
-  where switch.switch_id = tnv.id and switch.switch_version = tnv.version;
+set layout_context_id = 'main_official';
+alter table publication.switch alter column layout_context_id set not null;
 
 create temporary table switch_version_change on commit drop as
   (

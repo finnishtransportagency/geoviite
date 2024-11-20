@@ -11,9 +11,7 @@ alter table layout.reference_line_version
 alter table publication.reference_line
   add column layout_context_id text;
 update publication.reference_line
-set layout_context_id = tnv.layout_context_id
-  from layout.reference_line_version tnv
-  where reference_line.reference_line_id = tnv.id and reference_line.reference_line_version = tnv.version;
+set layout_context_id = 'main_official';
 
 alter table publication.reference_line alter column layout_context_id set not null;
 
