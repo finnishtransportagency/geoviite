@@ -3,7 +3,7 @@
 Tietokanta on jaettu useisiin skemoihin, jotka kuvataan tässä erikseen. Kuvissa (generoitu per skema) ei näy viivoina
 viitteet toisiin skemoihin, mutta niitä vastaavat kentät näkyy kuitenkin tauluissa.
 
-Datan merkitystä on helpompi ymmärtää katsomalla yleiskuvausta: [Geoviite tietomalli](geoviite%20tietomalli.md)
+Datan merkitystä on helpompi ymmärtää katsomalla yleiskuvausta: [Geoviite tietomalli](tietomalli.md)
 
 ## Audit ja versiointi
 
