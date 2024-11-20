@@ -210,7 +210,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
 
     const subHeader =
         planHeader.source == 'PAIKANNUSPALVELU'
-            ? t(`enum.plan-source.${planHeader.source}`)
+            ? t(`enum.PlanSource.${planHeader.source}`)
             : undefined;
     return (
         <div className={styles['geometry-plan-panel']}>

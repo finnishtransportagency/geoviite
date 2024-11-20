@@ -211,7 +211,7 @@ export type TrackLayoutState = {
 
 export const initialTrackLayoutState: TrackLayoutState = {
     layoutContext: officialMainLayoutContext(),
-    layoutContextMode: 'MAIN-OFFICIAL',
+    layoutContextMode: 'MAIN_OFFICIAL',
     designId: undefined,
     layoutMode: 'DEFAULT',
     map: initialMapState,
@@ -549,7 +549,7 @@ function getLayoutContext(
 ): LayoutContext {
     if (layoutContextMode === 'DESIGN' && designId) {
         return draftDesignLayoutContext(designId);
-    } else if (layoutContextMode == 'MAIN-DRAFT') {
+    } else if (layoutContextMode == 'MAIN_DRAFT') {
         return draftMainLayoutContext();
     } else {
         return officialMainLayoutContext();

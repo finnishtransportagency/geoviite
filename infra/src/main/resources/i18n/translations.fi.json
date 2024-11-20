@@ -182,7 +182,7 @@
         "duplicate-name": "Nimi {{name}} on jo käytössä"
     },
     "enum": {
-        "plan-phase": {
+        "PlanPhase": {
             "RAILWAY_PLAN": "Ratasuunnitelma, RaS",
             "RAILWAY_CONSTRUCTION_PLAN": "Rakentamissuunnitelma, RS",
             "RENOVATION_PLAN": "Peruskorjaus",
@@ -192,17 +192,17 @@
             "REMOVED_FROM_USE": "Poistettu käytöstä",
             "UNKNOWN": "Ei tiedossa"
         },
-        "plan-decision": {
+        "PlanDecisionPhase": {
             "APPROVED_PLAN": "Suunniteltu",
             "UNDER_CONSTRUCTION": "Toteutuksessa",
             "IN_USE": "Valmis",
             "UNKNOWN": "Ei tiedossa"
         },
-        "plan-source": {
+        "PlanSource": {
             "GEOMETRIAPALVELU": "Geometriapalvelu",
             "PAIKANNUSPALVELU": "Paikannuspalvelu"
         },
-        "measurement-method": {
+        "MeasurementMethod": {
             "VERIFIED_DESIGNED_GEOMETRY": "Suunnitelma",
             "OFFICIALLY_MEASURED_GEODETICALLY": "Geodeettisesti mitattu",
             "TRACK_INSPECTION": "Radantarkastusvaunu",
@@ -210,85 +210,103 @@
             "UNVERIFIED_DESIGNED_GEOMETRY": "Epäluotettava suunnitelma",
             "UNKNOWN": "Ei tiedossa"
         },
-        "elevation-measurement-method": {
+        "ElevationMeasurementMethod": {
             "TOP_OF_SLEEPER": "Korkeusviiva",
             "TOP_OF_RAIL": "Kiskon selkä",
             "UNKNOWN": "Ei tiedossa",
-            "UNKNOWN-WITH-TERM-CONTEXT": "Korkeusasema ei tiedossa"
+            "UNKNOWN_WITH_TERM_CONTEXT": "Korkeusasema ei tiedossa"
         },
-        "switch-hand": {
+        "SwitchHand": {
             "LEFT": "Vasen",
             "RIGHT": "Oikea",
             "NONE": "Ei kätisyyttä"
         },
-        "location-track-type": {
+        "LocationTrackType": {
             "MAIN": "Pääraide",
             "SIDE": "Sivuraide",
             "TRAP": "Turvaraide",
             "CHORD": "Kujaraide",
             "UNKNOWN": "Ei tiedossa"
         },
-        "publish-operation": {
+        "Operation": {
             "CREATE": "Luonti",
             "DELETE": "Poisto",
             "MODIFY": "Muokkaus",
             "RESTORE": "Palautus",
             "CALCULATED": "Laskennallinen muutos"
         },
-        "topological-connectivity-type": {
+        "TopologicalConnectivityType": {
             "NONE": "Ei kytketty",
             "START": "Raiteen alku",
             "END": "Raiteen loppu",
             "START_AND_END": "Raiteen alku ja loppu"
         },
-        "alignment-end-type": {
-            "SWITCH": "Vaihde",
-            "LOCATION_TRACK": "Jatkuu toisena raiteena",
-            "ENDPOINT": "Raide päättyy",
-            "UNKNOWN": "Ei asetettu"
-        },
-        "location-track-state": {
+        "LocationTrackState": {
             "BUILT": "Rakennettu",
             "IN_USE": "Käytössä",
             "NOT_IN_USE": "Käytöstä poistettu",
             "DELETED": "Poistettu"
         },
-        "layout-state": {
+        "LayoutState": {
             "IN_USE": "Käytössä",
             "NOT_IN_USE": "Käytöstä poistettu",
             "DELETED": "Poistettu"
         },
-        "layout-state-category": {
+        "LayoutStateCategory": {
             "EXISTING": "Olemassa oleva kohde",
             "NOT_EXISTING": "Poistunut kohde"
         },
-        "ratko-push-error-type": {
+        "RatkoPushErrorType": {
             "PROPERTIES": "ominaisuustietojen",
             "LOCATION": "sijainnin",
             "GEOMETRY": "geometrian",
             "STATE": "tilan"
         },
-        "ratko-push-error-operation": {
+        "RatkoPushErrorOperation": {
             "CREATE": "luonti",
             "UPDATE": "päivitys",
             "DELETE": "poisto",
             "FETCH_EXISTING": "pohjatietojen hakeminen Ratkosta"
         },
-        "trap-point": {
+        "TrapPoint": {
             "Yes": "Kyllä",
             "No": "Ei",
             "Unknown": "Ei tiedossa"
         },
-        "location-track-description-suffix": {
+        "LocationTrackDescriptionSuffix": {
             "SWITCH_TO_SWITCH": "Vaihde alussa - vaihde lopussa",
             "SWITCH_TO_BUFFER": "Vaihde - Puskin",
             "SWITCH_TO_OWNERSHIP_BOUNDARY": "Vaihde - Omistusraja",
             "NONE": "Ei lisäosaa"
         },
-        "gk-location-source": {
+        "KmPostGkLocationSource": {
             "FROM_GEOMETRY": "Linkitetty geometriasta",
             "FROM_LAYOUT": "Konvertoitu paikannuspohjasta",
             "MANUAL": "Operaattorin asettama"
+        },
+        "TrackGeometryElementType": {
+            "LINE": "Suora",
+            "CURVE": "Kaari",
+            "CLOTHOID": "Siirtymäkaari",
+            "BIQUADRATIC_PARABOLA": "Helmert",
+            "MISSING_SECTION": "Linkitys puuttuu"
+        },
+        "GeometrySwitchSuggestionFailureReason": {
+            "RELATED_TRACKS_NOT_LINKED": "Vaihdetta ei voi linkittää, koska vaihteeseen liittyvää raidegeometriaa ei ole linkitetty.",
+            "LESS_THAN_TWO_JOINTS": "Vaihteen geometrialla ei ole vähintään kahta vaihdepistettä, joten sitä ei voi linkittää.",
+            "NO_SWITCH_STRUCTURE_ID_ON_SWITCH": "Linkitettävältä vaihteelta puuttuu vaihdetyyppitieto, joten sitä ei voi linkittää.",
+            "NO_SRID_ON_PLAN": "Linkitettävän vaihteen suunnitelmalta puuttuu koordinaatistotieto.",
+            "INVALID_JOINTS": "Linkitettävän vaihteen vaihdepisteet eivät vastaa vaihdetyypin vaihdepisteitä."
+        },
+        "SplitTargetOperation": {
+            "CREATE": "Uusi kohde",
+            "OVERWRITE": "Duplikaatti korvattu",
+            "TRANSFER": "Kohteet siirretty"
+        },
+        "LayoutContextMode": {
+            "MAIN_OFFICIAL": "Nykytila",
+            "MAIN_DRAFT": "Luonnostila",
+            "DESIGN": "Suunnitelmatila"
         }
     },
     "environment": {
@@ -546,13 +564,6 @@
                 "trap-point": "Turvavaihde",
                 "linking-header": "Linkitys",
                 "is-linked": "Linkitetty",
-                "cannot-start-switch-linking": {
-                    "RELATED_TRACKS_NOT_LINKED": "Vaihdetta ei voi linkittää, koska vaihteeseen liittyvää raidegeometriaa ei ole linkitetty.",
-                    "LESS_THAN_TWO_JOINTS": "Vaihteen geometrialla ei ole vähintään kahta vaihdepistettä, joten sitä ei voi linkittää.",
-                    "NO_SWITCH_STRUCTURE_ID_ON_SWITCH": "Linkitettävältä vaihteelta puuttuu vaihdetyyppitieto, joten sitä ei voi linkittää.",
-                    "NO_SRID_ON_PLAN": "Linkitettävän vaihteen suunnitelmalta puuttuu koordinaatistotieto.",
-                    "INVALID_JOINTS": "Linkitettävän vaihteen vaihdepisteet eivät vastaa vaihdetyypin vaihdepisteitä."
-                },
                 "start-setup": "Aloita linkitys",
                 "select-switch-msg": "Valitse vaihde, johon linkitetään",
                 "cannot-link-invalid-switch-type": "Valitun vaihteen tyyppi:\n{{selectedType}}\n\neroaa liikaa oletetusta vaihteen tyyppistä:\n{{suggestedType}}\n\nVaihdetta ei voi linkittää.",
@@ -904,12 +915,7 @@
                 "plan-source": "Lähde",
                 "plan-time": "Laadittu",
                 "crs": "Koordinaatisto",
-                "remarks": "Huomiot",
-                "line": "suora",
-                "curve": "kaari",
-                "clothoid": "siirtymäkaari",
-                "biquadratic-parabola": "helmert",
-                "missing-section": "linkitys puuttuu"
+                "remarks": "Huomiot"
             }
         },
         "vertical-geometry": {
@@ -985,10 +991,7 @@
                 "location-e-end": "Pyöristyksen loppupisteen sijainti E",
                 "location-n-end": "Pyöristyksen loppupisteen sijainti N",
                 "location-e-point": "Taitepisteen sijainti E",
-                "location-n-point": "Taitepisteen sijainti N",
-                "top-of-sleeper": "Korkeusviiva",
-                "top-of-rail": "Kiskon selkä",
-                "unknown": "Ei tiedossa"
+                "location-n-point": "Taitepisteen sijainti N"
             }
         },
         "km-lengths": {
@@ -1687,10 +1690,7 @@
         "target-oid": "Raiteen OID",
         "operation": "Toimenpide",
         "start-address": "Rataosoite alku",
-        "end-address": "Rataosoite loppu",
-        "newly-created": "Uusi kohde",
-        "replaces-duplicate": "Duplikaatti korvattu",
-        "transfers-assets": "Kohteet siirretty"
+        "end-address": "Rataosoite loppu"
     },
     "split-details-csv": {
         "source-name": "Alkuperäinen raide",
@@ -1699,10 +1699,7 @@
         "target-oid": "Kohderaiteen OID",
         "operation": "Toimenpide",
         "start-address": "Alkuosoite",
-        "end-address": "Loppuosoite",
-        "newly-created": "Uusi kohde",
-        "replaces-duplicate": "Duplikaatti korvattu",
-        "transfers-assets": "Kohteet siirretty"
+        "end-address": "Loppuosoite"
     },
     "error-in-ratko-connection": {
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{code}}). ",
@@ -1738,9 +1735,6 @@
         }
     },
     "tool-bar": {
-        "current-mode": "Nykytila",
-        "draft-mode": "Luonnostila",
-        "design-mode": "Suunnitelmatila",
         "search-from-whole-network": "Hae koko rataverkolta...",
         "search-from-track": "Hae raiteelta {{track}}...",
         "new": "Luo uusi",

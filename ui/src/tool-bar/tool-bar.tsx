@@ -372,11 +372,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     }
 
     function switchToMainOfficial() {
-        onLayoutContextModeChange('MAIN-OFFICIAL');
+        onLayoutContextModeChange('MAIN_OFFICIAL');
     }
 
     const switchToMainDraft = () => {
-        onLayoutContextModeChange('MAIN-DRAFT');
+        onLayoutContextModeChange('MAIN_DRAFT');
     };
 
     function switchToDesign() {
@@ -422,8 +422,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
     const className = createClassName(
         'tool-bar',
-        layoutContextMode === 'MAIN-OFFICIAL' && 'tool-bar--official',
-        layoutContextMode === 'MAIN-DRAFT' && 'tool-bar--draft',
+        layoutContextMode === 'MAIN_OFFICIAL' && 'tool-bar--official',
+        layoutContextMode === 'MAIN_DRAFT' && 'tool-bar--draft',
         layoutContextMode === 'DESIGN' && 'tool-bar--design',
     );
 
@@ -438,21 +438,21 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     <TabHeader
                         className={styles['tool-bar__tab-header']}
                         qaId="current-mode-tab"
-                        selected={layoutContextMode === 'MAIN-OFFICIAL'}
+                        selected={layoutContextMode === 'MAIN_OFFICIAL'}
                         title={layoutContextTransferDisabledReason()}
                         disabled={!!splittingState || !!linkingState}
                         onClick={() => switchToMainOfficial()}>
-                        <span>{t('tool-bar.current-mode')}</span>
+                        <span>{t(`enum.LayoutContextMode.MAIN_OFFICIAL`)}</span>
                     </TabHeader>
                     <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
                         <TabHeader
                             className={styles['tool-bar__tab-header']}
                             qaId={'draft-mode-tab'}
-                            selected={layoutContextMode === 'MAIN-DRAFT'}
+                            selected={layoutContextMode === 'MAIN_DRAFT'}
                             title={layoutContextTransferDisabledReason()}
                             disabled={!!splittingState || !!linkingState}
                             onClick={() => switchToMainDraft()}>
-                            <span>{t('tool-bar.draft-mode')}</span>
+                            <span>{t(`enum.LayoutContextMode.MAIN_DRAFT`)}</span>
                         </TabHeader>
                     </PrivilegeRequired>
                     <EnvRestricted restrictTo={'test'}>
@@ -466,7 +466,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                     disabled={!!splittingState || !!linkingState}
                                     onClick={switchToDesign}>
                                     <span>
-                                        {t('tool-bar.design-mode')}
+                                        {t(`enum.LayoutContextMode.DESIGN`)}
                                         <span>{currentDesign && `:`}</span>
                                         <div className={styles['tool-bar__design-tab-actions']}>
                                             <Button

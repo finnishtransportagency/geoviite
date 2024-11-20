@@ -24,7 +24,7 @@ const LayoutStateCategoryLabel: React.FC<LayoutStateCategoryLabelProps> = ({
 
     return (
         <React.Fragment>
-            {t(`enum.layout-state-category.${getTranslationKey(category)}`)}
+            {t(`enum.LayoutStateCategory.${getTranslationKey(category)}`)}
         </React.Fragment>
     );
 };

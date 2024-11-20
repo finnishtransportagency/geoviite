@@ -58,7 +58,7 @@ export type KmNumberRange = {
     max: KmNumber;
 };
 
-export type DecisionPhase = 'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE';
+export type PlanDecisionPhase = 'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE';
 
 export type PlanPhase =
     | 'RAILWAY_PLAN'
@@ -79,7 +79,7 @@ export type GeometryPlanHeader = {
     measurementMethod: MeasurementMethod;
     elevationMeasurementMethod?: ElevationMeasurementMethod;
     planPhase: PlanPhase;
-    decisionPhase: DecisionPhase;
+    decisionPhase: PlanDecisionPhase;
     planTime: TimeStamp;
     message?: string;
     linkedAsPlanId?: GeometryPlanId;
@@ -108,7 +108,7 @@ export type GeometryPlan = {
     kmPosts: GeometryKmPost[];
     pvDocumentId?: PVDocumentId;
     planPhase?: PlanPhase;
-    decisionPhase?: DecisionPhase;
+    decisionPhase?: PlanDecisionPhase;
     measurementMethod?: MeasurementMethod;
     elevationMeasurementMethod?: ElevationMeasurementMethod;
     message?: string;

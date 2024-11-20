@@ -26,12 +26,12 @@ import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -66,7 +66,7 @@ data class EmptyAlignmentLinkingParameters<T>(
 data class LocationTrackSaveRequest(
     val name: AlignmentName,
     val descriptionBase: LocationTrackDescriptionBase,
-    val descriptionSuffix: DescriptionSuffixType,
+    val descriptionSuffix: LocationTrackDescriptionSuffix,
     val type: LocationTrackType,
     val state: LocationTrackState,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,

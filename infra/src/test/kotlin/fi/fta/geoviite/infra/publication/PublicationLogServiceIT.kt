@@ -27,7 +27,6 @@ import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
@@ -41,6 +40,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -299,7 +299,7 @@ constructor(
                         LocationTrackSaveRequest(
                             AlignmentName("TEST duplicate"),
                             LocationTrackDescriptionBase("Test"),
-                            DescriptionSuffixType.NONE,
+                            LocationTrackDescriptionSuffix.NONE,
                             LocationTrackType.MAIN,
                             LocationTrackState.IN_USE,
                             mainDraftContext.createLayoutTrackNumber().id,
@@ -319,7 +319,7 @@ constructor(
                         LocationTrackSaveRequest(
                             AlignmentName("TEST duplicate 2"),
                             LocationTrackDescriptionBase("Test"),
-                            DescriptionSuffixType.NONE,
+                            LocationTrackDescriptionSuffix.NONE,
                             LocationTrackType.MAIN,
                             LocationTrackState.IN_USE,
                             mainDraftContext.createLayoutTrackNumber().id,
@@ -339,7 +339,7 @@ constructor(
                         LocationTrackSaveRequest(
                             AlignmentName("TEST"),
                             LocationTrackDescriptionBase("Test"),
-                            DescriptionSuffixType.NONE,
+                            LocationTrackDescriptionSuffix.NONE,
                             LocationTrackType.MAIN,
                             LocationTrackState.IN_USE,
                             mainDraftContext.createLayoutTrackNumber().id,
@@ -371,7 +371,7 @@ constructor(
                         LocationTrackSaveRequest(
                             name = AlignmentName("TEST2"),
                             descriptionBase = LocationTrackDescriptionBase("Test2"),
-                            descriptionSuffix = DescriptionSuffixType.SWITCH_TO_BUFFER,
+                            descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
                             type = LocationTrackType.SIDE,
                             state = LocationTrackState.NOT_IN_USE,
                             trackNumberId = locationTrack.trackNumberId,
@@ -416,7 +416,7 @@ constructor(
             LocationTrackSaveRequest(
                 AlignmentName("TEST"),
                 LocationTrackDescriptionBase("Test"),
-                DescriptionSuffixType.NONE,
+                LocationTrackDescriptionSuffix.NONE,
                 LocationTrackType.MAIN,
                 LocationTrackState.IN_USE,
                 mainOfficialContext.createLayoutTrackNumber().id,

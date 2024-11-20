@@ -24,5 +24,5 @@ export const LocationTrackState: React.FC<LocationTrackStateProps> = ({
 }: LocationTrackStateProps) => {
     const { t } = useTranslation();
 
-    return <span qa-id={state}>{t(`enum.location-track-state.${getTranslationKey(state)}`)}</span>;
+    return <span qa-id={state}>{t(`enum.LocationTrackState.${getTranslationKey(state)}`)}</span>;
 };

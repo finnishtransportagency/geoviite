@@ -21,7 +21,7 @@ function getTranslationKey(layoutState: LayoutStateModel) {
 const LayoutState: React.FC<LayoutStateProps> = ({ state }: LayoutStateProps) => {
     const { t } = useTranslation();
 
-    return <span qa-id={state}>{t(`enum.layout-state.${getTranslationKey(state)}`)}</span>;
+    return <span qa-id={state}>{t(`enum.LayoutState.${getTranslationKey(state)}`)}</span>;
 };
 
 export default LayoutState;

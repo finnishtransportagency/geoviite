@@ -5,9 +5,9 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 
 fun splitRequest(trackId: IntId<LocationTrack>, vararg targets: SplitRequestTarget): SplitRequest =
@@ -17,7 +17,7 @@ fun targetRequest(
     startAtSwitchId: IntId<TrackLayoutSwitch>?,
     name: String,
     descriptionBase: String = "Split desc $name",
-    descriptionSuffix: DescriptionSuffixType = DescriptionSuffixType.SWITCH_TO_SWITCH,
+    descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
     duplicateTrackId: IntId<LocationTrack>? = null,
     operation: SplitTargetDuplicateOperation = SplitTargetDuplicateOperation.OVERWRITE,
 ): SplitRequestTarget =
@@ -34,7 +34,7 @@ fun targetParams(
     switchJoint: JointNumber?,
     name: String,
     descriptionBase: String = "split desc $name $switchId $switchJoint",
-    descriptionSuffixType: DescriptionSuffixType = DescriptionSuffixType.NONE,
+    descriptionSuffixType: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
     duplicate: Pair<LocationTrack, LayoutAlignment>? = null,
 ): SplitTargetParams {
     return SplitTargetParams(

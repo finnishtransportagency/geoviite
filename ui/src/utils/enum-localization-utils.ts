@@ -1,4 +1,4 @@
-import { DecisionPhase, PlanPhase, PlanSource } from 'geometry/geometry-model';
+import { PlanDecisionPhase, PlanPhase, PlanSource } from 'geometry/geometry-model';
 import {
     LayoutState,
     LayoutStateCategory,
@@ -20,7 +20,9 @@ import { Operation } from 'publication/publication-model';
 
 export interface LocalizedEnum<T> {
     value: T;
+
     get name(): string;
+
     qaId: string;
 }
 
@@ -34,33 +36,35 @@ function values<T>(keyBase: string, enumValues: T[]): LocalizedEnum<T>[] {
     }));
 }
 
-export const planSources: LocalizedEnum<PlanSource>[] = values('plan-source', [
+export const planSources: LocalizedEnum<PlanSource>[] = values('PlanSource', [
     'GEOMETRIAPALVELU',
     'PAIKANNUSPALVELU',
 ]);
 
-export const layoutStates: LocalizedEnum<LayoutState>[] = values('layout-state', [
+export const layoutStates: LocalizedEnum<LayoutState>[] = values('LayoutState', [
     'IN_USE',
     'NOT_IN_USE',
     'DELETED',
 ]);
 
 export const locationTrackStates: LocalizedEnum<LocationTrackState>[] = values(
-    'location-track-state',
+    'LocationTrackState',
     ['BUILT', 'IN_USE', 'NOT_IN_USE', 'DELETED'],
 );
 
 export const layoutStateCategories: LocalizedEnum<LayoutStateCategory>[] = values(
-    'layout-state-category',
+    'LayoutStateCategory',
     ['EXISTING', 'NOT_EXISTING'],
 );
 
-export const locationTrackTypes: LocalizedEnum<LocationTrackType>[] = values(
-    'location-track-type',
-    ['MAIN', 'SIDE', 'TRAP', 'CHORD'],
-);
+export const locationTrackTypes: LocalizedEnum<LocationTrackType>[] = values('LocationTrackType', [
+    'MAIN',
+    'SIDE',
+    'TRAP',
+    'CHORD',
+]);
 
-export const publishOperationTypes: LocalizedEnum<Operation>[] = values('publish-operation', [
+export const publishOperationTypes: LocalizedEnum<Operation>[] = values('Operation', [
     'CREATE',
     'DELETE',
     'MODIFY',
@@ -69,7 +73,7 @@ export const publishOperationTypes: LocalizedEnum<Operation>[] = values('publish
 ]);
 
 export const ratkoPushErrorTypes: LocalizedEnum<RatkoPushErrorType>[] = values(
-    'ratko-push-error-type',
+    'RatkoPushErrorType',
     ['PROPERTIES', 'LOCATION', 'GEOMETRY', 'STATE'],
 );
 
@@ -79,16 +83,16 @@ export const ratkoPushErrorOperations: LocalizedEnum<RatkoPushErrorOperation>[] 
 );
 
 export const topologicalConnectivityTypes: LocalizedEnum<TopologicalConnectivityType>[] = values(
-    'topological-connectivity-type',
+    'TopologicalConnectivityType',
     ['NONE', 'START', 'END', 'START_AND_END'],
 );
 
 export const descriptionSuffixModes: LocalizedEnum<LocationTrackDescriptionSuffixMode>[] = values(
-    'location-track-description-suffix',
+    'LocationTrackDescriptionSuffix',
     ['NONE', 'SWITCH_TO_SWITCH', 'SWITCH_TO_BUFFER', 'SWITCH_TO_OWNERSHIP_BOUNDARY'],
 );
 
-export const planPhases: LocalizedEnum<PlanPhase>[] = values('plan-phase', [
+export const planPhases: LocalizedEnum<PlanPhase>[] = values('PlanPhase', [
     'RAILWAY_PLAN',
     'RAILWAY_CONSTRUCTION_PLAN',
     'RENOVATION_PLAN',
@@ -98,13 +102,13 @@ export const planPhases: LocalizedEnum<PlanPhase>[] = values('plan-phase', [
     'REMOVED_FROM_USE',
 ]);
 
-export const planDecisionPhases: LocalizedEnum<DecisionPhase>[] = values('plan-decision', [
+export const planDecisionPhases: LocalizedEnum<PlanDecisionPhase>[] = values('PlanDecisionPhase', [
     'APPROVED_PLAN',
     'UNDER_CONSTRUCTION',
     'IN_USE',
 ]);
 
-export const measurementMethods: LocalizedEnum<MeasurementMethod>[] = values('measurement-method', [
+export const measurementMethods: LocalizedEnum<MeasurementMethod>[] = values('MeasurementMethod', [
     'VERIFIED_DESIGNED_GEOMETRY',
     'OFFICIALLY_MEASURED_GEODETICALLY',
     'TRACK_INSPECTION',
@@ -113,7 +117,7 @@ export const measurementMethods: LocalizedEnum<MeasurementMethod>[] = values('me
 ]);
 
 export const elevationMeasurementMethods: LocalizedEnum<ElevationMeasurementMethod>[] = values(
-    'elevation-measurement-method',
+    'ElevationMeasurementMethod',
     ['TOP_OF_SLEEPER', 'TOP_OF_RAIL'],
 );
 
@@ -131,21 +135,21 @@ export const switchTrapPoints: LocalizedEnum<TrapPoint>[] = [
     {
         value: TrapPoint.Yes,
         get name() {
-            return i18n.t('enum.trap-point.Yes');
+            return i18n.t('enum.TrapPoint.Yes');
         },
         qaId: `trap-point-yes`,
     },
     {
         value: TrapPoint.No,
         get name() {
-            return i18n.t('enum.trap-point.No');
+            return i18n.t('enum.TrapPoint.No');
         },
         qaId: `trap-point-no`,
     },
     {
         value: TrapPoint.Unknown,
         get name() {
-            return i18n.t('enum.trap-point.Unknown');
+            return i18n.t('enum.TrapPoint.Unknown');
         },
         qaId: `trap-point-unknown`,
     },

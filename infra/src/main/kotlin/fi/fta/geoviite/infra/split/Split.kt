@@ -7,9 +7,9 @@ import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
@@ -129,7 +129,7 @@ data class SplitRequestTarget(
     val startAtSwitchId: IntId<TrackLayoutSwitch>?,
     val name: AlignmentName,
     val descriptionBase: LocationTrackDescriptionBase,
-    val descriptionSuffix: DescriptionSuffixType,
+    val descriptionSuffix: LocationTrackDescriptionSuffix,
 ) {
     fun getOperation(): SplitTargetOperation =
         duplicateTrack?.operation?.toSplitTargetOperation() ?: SplitTargetOperation.CREATE

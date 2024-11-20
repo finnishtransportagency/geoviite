@@ -862,7 +862,7 @@ class PublicationDao(
                         descriptionBase =
                             rs.getChange("description_base") { rs.getString(it)?.let(::LocationTrackDescriptionBase) },
                         descriptionSuffix =
-                            rs.getChange("description_suffix") { rs.getEnumOrNull<DescriptionSuffixType>(it) },
+                            rs.getChange("description_suffix") { rs.getEnumOrNull<LocationTrackDescriptionSuffix>(it) },
                         endPoint = rs.getChangePoint("end_x", "end_y"),
                         startPoint = rs.getChangePoint("start_x", "start_y"),
                         state = rs.getChange("state") { rs.getEnumOrNull<LocationTrackState>(it) },

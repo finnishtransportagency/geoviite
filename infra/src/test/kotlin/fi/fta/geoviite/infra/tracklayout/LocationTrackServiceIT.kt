@@ -677,7 +677,7 @@ constructor(
                         trackNumberId,
                         topologyStartSwitch = TopologyLocationTrackSwitch(switch1.id, JointNumber(1)),
                         description = "track 1",
-                        descriptionSuffix = DescriptionSuffixType.SWITCH_TO_SWITCH,
+                        descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
                     ),
                     alignment(
                         segment(Point(0.0, 0.0), Point(1.0, 1.0)),
@@ -696,7 +696,7 @@ constructor(
                     locationTrack(
                         trackNumberId,
                         description = "track 2",
-                        descriptionSuffix = DescriptionSuffixType.SWITCH_TO_BUFFER,
+                        descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
                     ),
                     alignment(
                         segment(
@@ -801,7 +801,7 @@ constructor(
         LocationTrackSaveRequest(
             name = AlignmentName("TST-TRACK$seed"),
             descriptionBase = LocationTrackDescriptionBase("Description - $seed"),
-            descriptionSuffix = DescriptionSuffixType.NONE,
+            descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
             type = getSomeValue(seed),
             state = getSomeValue(seed),
             trackNumberId = trackNumberId,

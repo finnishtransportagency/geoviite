@@ -281,7 +281,7 @@ export type LayoutSwitchJoint = {
 
 export type LayoutKmPostGkLocation = {
     location: GeometryPoint;
-    source: GkLocationSource;
+    source: KmPostGkLocationSource;
     confirmed: boolean;
 };
 
@@ -297,7 +297,7 @@ export type LayoutKmPost = {
     sourceId?: GeometryKmPostId;
 } & LayoutAssetFields;
 
-export type GkLocationSource = 'FROM_GEOMETRY' | 'FROM_LAYOUT' | 'MANUAL';
+export type KmPostGkLocationSource = 'FROM_GEOMETRY' | 'FROM_LAYOUT' | 'MANUAL';
 
 export type LayoutKmLengthDetails = {
     trackNumber: TrackNumber;

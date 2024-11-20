@@ -16,7 +16,7 @@ import {
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { KmPostEditFields } from 'linking/linking-model';
 import { useCoordinateSystem, useCoordinateSystems } from 'track-layout/track-layout-react-utils';
-import { GkLocationSource, LAYOUT_SRID } from 'track-layout/track-layout-model';
+import { KmPostGkLocationSource, LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { GeometryPoint, Point } from 'model/geometry';
@@ -43,7 +43,7 @@ type KmPostEditDialogGkLocationSectionProps = {
     geometryPlanSrid?: Srid;
 };
 
-function gkLocationSourceI18nKey(source: GkLocationSource) {
+function gkLocationSourceI18nKey(source: KmPostGkLocationSource) {
     const end = (() => {
         switch (source) {
             case 'FROM_GEOMETRY':
@@ -78,7 +78,7 @@ function transformGkToLayout(point: GeometryPoint): Point | undefined {
 }
 
 const gkLocationSourceTranslationKey = (
-    source: GkLocationSource | undefined,
+    source: KmPostGkLocationSource | undefined,
     gkLocationEnabled: boolean,
     dialogRole: KmPostEditDialogType,
 ) => {

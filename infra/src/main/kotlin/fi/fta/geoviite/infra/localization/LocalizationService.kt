@@ -27,6 +27,16 @@ data class Translation(val lang: LocalizationLanguage, val localization: String)
             params.get(propKey)
         }
     }
+
+    inline fun <reified T : Enum<*>> enum(variant: T, branch: String = "enum", lowercase: Boolean = false): String {
+        val translatedVariant = t("$branch.${T::class.simpleName}.$variant")
+
+        return if (lowercase) {
+            translatedVariant.lowercase()
+        } else {
+            translatedVariant
+        }
+    }
 }
 
 class TranslationCache {
