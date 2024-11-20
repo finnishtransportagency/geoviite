@@ -488,9 +488,15 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     private fun deletePoints(url: String) {
         deleteSpec(url)
             .toBodilessEntity()
-            .onErrorResume(WebClientResponseException::class.java) {
-                if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it))
+            .onErrorResume(WebClientResponseException::class.java) { response ->
+                if (HttpStatus.NOT_FOUND == response.statusCode || HttpStatus.BAD_REQUEST == response.statusCode)
+                    Mono.empty()
+                else {
+                    logger.error(
+                        "Error during Ratko push! HTTP Status code: ${response.statusCode}, body: ${response.responseBodyAsString}"
+                    )
+                    Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, response))
+                }
             }
             .block(defaultBlockTimeout)
     }
