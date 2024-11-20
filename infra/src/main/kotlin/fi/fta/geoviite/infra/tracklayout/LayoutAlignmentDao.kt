@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
 import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
@@ -20,6 +21,8 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
+const val NODE_CACHE_SIZE = 10000L
+const val EDGE_CACHE_SIZE = 10000L
 const val ALIGNMENT_CACHE_SIZE = 10000L
 const val GEOMETRY_CACHE_SIZE = 500000L
 
@@ -38,6 +41,16 @@ class LayoutAlignmentDao(
     @Value("\${geoviite.cache.enabled}") val cacheEnabled: Boolean,
 ) : DaoBase(jdbcTemplateParam) {
 
+    private val nodeIdsByHash: ConcurrentHashMap<Int, IntId<LayoutNode>> = ConcurrentHashMap()
+    private val nodesCache: Cache<IntId<LayoutNode>, LayoutNode> =
+        Caffeine.newBuilder().maximumSize(NODE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
+
+    private val edgesCache: Cache<RowVersion<LayoutEdge>, LayoutEdge> =
+        Caffeine.newBuilder().maximumSize(NODE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
+
+    private val locationTrackGeometryCache: Cache<LayoutRowVersion<LocationTrack>, LocationTrackGeometry> =
+        Caffeine.newBuilder().maximumSize(NODE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
+
     private val alignmentsCache: Cache<RowVersion<LayoutAlignment>, LayoutAlignment> =
         Caffeine.newBuilder().maximumSize(ALIGNMENT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
@@ -45,6 +58,87 @@ class LayoutAlignmentDao(
         Caffeine.newBuilder().maximumSize(GEOMETRY_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
+
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+    fun getNode(id: IntId<LayoutNode>): LayoutNode =
+        nodesCache.get(id) {
+            val node = fetchNode(id)
+            nodeIdsByHash[node.content.hashCode()] = id
+            node
+        }
+
+    private fun fetchNode(id: IntId<LayoutNode>): LayoutNode {
+        val sql =
+            """
+            select 
+              node.id,
+              node.type,
+              array_agg(joint.switch_id) as switch_ids,
+              array_agg(joint.switch_joint) as switch_joints,
+              node.starting_location_track_id,
+              node.ending_location_track_id
+            from layout.node left join layout.node_switch_joint joint on node.id = joint.node_id
+            where node.id = :id
+            group by node.id 
+        """
+                .trimIndent()
+        val params = mapOf("id" to id.intValue)
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val type = rs.getEnum<NodeType>("type")
+                val content =
+                    when (type) {
+                        NodeType.TRACK_START -> LayoutNodeStartTrack(rs.getIntId("starting_location_track_id"))
+                        NodeType.TRACK_END -> LayoutNodeEndTrack(rs.getIntId("ending_location_track_id"))
+                        NodeType.SWITCH -> {
+                            val switchIds = rs.getIntArray("switch_ids")
+                            val jointNumbers = rs.getIntArray("switch_joints")
+                            LayoutNodeSwitches(
+                                switchIds.zip(jointNumbers).map { (sId, j) -> SwitchLink(IntId(sId), JointNumber(j)) }
+                            )
+                        }
+                    }
+                LayoutNode(rs.getIntId("id"), content)
+            }
+            .single()
+    }
+
+    @Transactional
+    fun getOrCreateNode(content: LayoutNodeContent): LayoutNode =
+        getNode(nodeIdsByHash[content.hashCode()] ?: getOrInsertNode(content))
+
+    private fun getOrInsertNode(content: LayoutNodeContent): IntId<LayoutNode> {
+        val sql = "select layout.get_or_insert_node(:switch_ids, :switch_joints, :start_track_id, :end_track_id)"
+        val switchIds = content.switches.takeIf { l -> l.isNotEmpty() }?.map { s -> s.id.intValue }?.toTypedArray()
+        val switchJoints =
+            content.switches.takeIf { l -> l.isNotEmpty() }?.map { s -> s.jointNumber.intValue }?.toTypedArray()
+        val params =
+            mapOf(
+                "switch_ids" to switchIds,
+                "switch_joints" to switchJoints,
+                "start_track_id" to content.startingTrackId?.intValue,
+                "end_track_id" to content.endingTrack?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutNode>("id") }.single()
+    }
+
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+    fun getEdge(id: IntId<LayoutEdge>): LayoutEdge {
+        TODO("Not implemented yet")
+    }
+
+    @Transactional
+    fun getOrCreateEdge(startNodeId: IntId<LayoutNode>, endNodeId: IntId<LayoutNode>): LayoutEdge {
+        TODO("Not implemented yet")
+    }
+
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+    fun get(trackVersion: LayoutRowVersion<LocationTrack>): LocationTrackGeometry =
+        locationTrackGeometryCache.get(trackVersion, ::fetchLocationTrackGeometry)
+
+    fun fetchLocationTrackGeometry(trackVersion: LayoutRowVersion<LocationTrack>): LocationTrackGeometry {
+        TODO("Not implemented yet")
+    }
 
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment =
