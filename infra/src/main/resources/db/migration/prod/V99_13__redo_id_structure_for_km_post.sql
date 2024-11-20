@@ -14,11 +14,14 @@ insert into layout.km_post_id (
     from layout.km_post_version
 );
 select
-  nextval('layout.km_post_id_id_seq'),
-  generate_series(1, (
-    select max(id)
-      from layout.km_post_id
-  ));
+  from (
+    select
+      nextval('layout.km_post_id_id_seq'),
+      generate_series(1, (
+        select max(id)
+          from layout.km_post_id
+      ))
+  ) forward_ids;
 
 alter table layout.km_post
   alter column layout_context_id drop expression, -- turn generated column into an ordinary column

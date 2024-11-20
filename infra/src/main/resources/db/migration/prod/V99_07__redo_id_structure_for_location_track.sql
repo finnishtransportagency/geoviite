@@ -14,11 +14,14 @@ insert into layout.location_track_id (
     from layout.location_track_version
 );
 select
-  nextval('layout.location_track_id_id_seq'),
-  generate_series(1, (
-    select max(id)
-      from layout.location_track_id
-  ));
+  from (
+    select
+      nextval('layout.location_track_id_id_seq'),
+      generate_series(1, (
+        select max(id)
+          from layout.location_track_id
+      ))
+  ) forward_ids;
 
 alter table layout.location_track
   alter column layout_context_id drop expression, -- turn generated column into an ordinary column
@@ -57,20 +60,24 @@ alter table publication.split
   disable trigger version_row_trigger;
 
 alter table publication.split
-  add column source_location_track_layout_context_id text;
+  add column layout_context_id text;
 update publication.split
-set source_location_track_layout_context_id = lt.layout_context_id
+set layout_context_id = lt.layout_context_id
   from layout.location_track lt
   where split.source_location_track_row_id = lt.id and split.source_location_track_row_version = lt.version;
+alter table publication.split
+  alter column layout_context_id set not null;
 
 alter table publication.split_version
-  add column source_location_track_layout_context_id text;
+  add column layout_context_id text;
 update publication.split_version
-set source_location_track_layout_context_id = lt.layout_context_id
+set layout_context_id = lt.layout_context_id
   from layout.location_track lt
   where split_version.source_location_track_row_id = lt.id
     and split_version.source_location_track_row_version = lt.version;
 
+alter table publication.split_version
+  alter column layout_context_id set not null;
 
 alter table publication.split
   enable trigger version_update_trigger;
@@ -137,7 +144,7 @@ alter table publication.split_version
 alter table publication.split
   add constraint split_source_location_track_fkey
     foreign key (source_location_track_id,
-                 source_location_track_layout_context_id,
+                 layout_context_id,
                  source_location_track_version)
       references layout.location_track (id, layout_context_id, version)
       deferrable initially deferred;

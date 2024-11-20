@@ -136,7 +136,7 @@ class PublicationDao(
                 from publication.split
                     inner join layout.location_track_version source 
                         on source.id = split.source_location_track_id
-                          and source.layout_context_id = split.source_location_track_layout_context_id
+                          and source.layout_context_id = split.layout_context_id
                           and source.version = split.source_location_track_version
                     inner join publication.split_target_location_track stlt on stlt.split_id = split.id
                     left join publication.split_updated_duplicate split_updated_duplicates 

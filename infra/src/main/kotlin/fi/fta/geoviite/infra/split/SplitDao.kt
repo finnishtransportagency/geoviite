@@ -63,7 +63,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             """
             insert into publication.split(
               source_location_track_id,
-              source_location_track_layout_context_id,
+              layout_context_id,
               source_location_track_version,
               bulk_transfer_state,
               bulk_transfer_id,
@@ -71,7 +71,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             ) 
             values (
               :source_location_track_id,
-              :source_location_track_layout_context_id,
+              :layout_context_id,
               :source_location_track_version,
               'PENDING',
               null,
@@ -85,7 +85,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         val params =
             mapOf(
                 "source_location_track_id" to sourceLocationTrackVersion.id.intValue,
-                "source_location_track_layout_context_id" to sourceLocationTrackVersion.context.toSqlString(),
+                "layout_context_id" to sourceLocationTrackVersion.context.toSqlString(),
                 "source_location_track_version" to sourceLocationTrackVersion.version,
             )
         val splitId =
@@ -200,7 +200,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
           from publication.split 
               inner join layout.location_track_version source_track 
                   on split.source_location_track_id = source_track.id
-                   and split.source_location_track_layout_context_id = source_track.layout_context_id
+                   and split.layout_context_id = source_track.layout_context_id
                    and split.source_location_track_version = source_track.version
               left join publication.publication on split.publication_id = publication.id
           where split.id = :id
@@ -227,7 +227,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
           from publication.split 
               inner join layout.location_track_version ltv 
                   on split.source_location_track_id = ltv.id
-                   and split.source_location_track_layout_context_id = ltv.layout_context_id
+                   and split.layout_context_id = ltv.layout_context_id
                    and split.source_location_track_version = ltv.version
           where split.id = :id
         """
@@ -263,8 +263,8 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 bulk_transfer_id = coalesce(:bulk_transfer_id, bulk_transfer_id),
                 publication_id = coalesce(:publication_id, publication_id),
                 source_location_track_id = coalesce(:source_track_id, source_location_track_id),
-                source_location_track_layout_context_id =
-                  coalesce(:source_track_layout_context_id, source_location_track_layout_context_id),
+                layout_context_id =
+                  coalesce(:source_track_layout_context_id, layout_context_id),
                 source_location_track_version = coalesce(:source_track_version, source_location_track_version)
             where id = :split_id
             returning id, version
@@ -332,7 +332,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
               left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
               inner join layout.location_track_version ltv 
                   on split.source_location_track_id = ltv.id
-                   and split.source_location_track_layout_context_id = ltv.layout_context_id
+                   and split.layout_context_id = ltv.layout_context_id
                    and split.source_location_track_version = ltv.version
           where split.bulk_transfer_state != 'DONE'
             and (ltv.design_id is null or ltv.design_id = :design_id)
