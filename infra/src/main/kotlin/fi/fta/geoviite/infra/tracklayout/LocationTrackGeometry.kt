@@ -19,27 +19,38 @@ data class LocationTrackGeometry(val trackRowVersion: LayoutRowVersion<LocationT
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(edges.mapNotNull(LayoutEdge::boundingBox)) }
 }
 
-data class LocationTrackEdge(val startM: Double, val edge: LayoutEdge)
+data class LocationTrackEdge(val startM: Double, @JsonIgnore private val edge: LayoutEdge) : IEdgeAlignment by edge
 
-data class LayoutEdge(
-    override val id: DomainId<LayoutEdge> = StringId(),
-    val startNode: LayoutNode,
-    val endNode: LayoutNode,
+interface IEdgeContent {
+    val startNodeId: IntId<LayoutNode>
+    val endNodeId: IntId<LayoutNode>
+    val segments: List<LayoutEdgeSegment>
+}
+
+interface IEdgeAlignment : IEdgeContent, IAlignment
+
+data class EdgeContent(
+    override val startNodeId: IntId<LayoutNode>,
+    override val endNodeId: IntId<LayoutNode>,
     override val segments: List<LayoutEdgeSegment>,
-) : IAlignment {
+) : IEdgeContent {
+    init {
+        require(startNodeId != endNodeId) { "Start and end node must be different" }
+        require(segments.isNotEmpty()) { "LayoutEdge must have at least one segment" }
+    }
+}
+
+data class LayoutEdge(override val id: DomainId<LayoutEdge> = StringId(), @JsonIgnore val content: EdgeContent) :
+    IEdgeContent by content, IEdgeAlignment {
     override val boundingBox: BoundingBox? by lazy {
         boundingBoxCombining(segments.mapNotNull(LayoutEdgeSegment::boundingBox))
-    }
-
-    init {
-        require(startNode.id != endNode.id) { "Start and end node must be different" }
-        require(segments.isNotEmpty()) { "LayoutEdge must have at least one segment" }
     }
 }
 
 data class LayoutEdgeSegment(
     @JsonIgnore override val geometry: SegmentGeometry,
     override val sourceId: IndexedId<GeometryElement>?,
+    // TODO: GVT-1727 these should be BigDecimals with a limited precision
     override val sourceStart: Double?,
     override val startM: Double,
     override val source: GeometrySource,

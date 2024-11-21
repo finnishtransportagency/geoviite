@@ -504,6 +504,7 @@ data class PointSeekResult<T : IPoint3DM>(val point: T, val index: Int, val isSn
 data class LayoutSegment(
     @JsonIgnore override val geometry: SegmentGeometry,
     override val sourceId: IndexedId<GeometryElement>?,
+    // TODO: GVT-1727 these should be BigDecimals with a limited precision
     override val sourceStart: Double?,
     override val startM: Double,
     val switchId: IntId<TrackLayoutSwitch>?,
