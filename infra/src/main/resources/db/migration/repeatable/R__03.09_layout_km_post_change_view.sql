@@ -4,6 +4,7 @@ create view layout.km_post_change_view as
 (
 select
   km_post_version.id,
+  km_post_version.layout_context_id,
   km_post_version.change_time,
   km_post_version.track_number_id,
   km_post_version.change_user,

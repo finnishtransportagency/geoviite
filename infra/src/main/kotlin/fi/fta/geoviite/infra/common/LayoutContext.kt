@@ -111,6 +111,17 @@ sealed class LayoutContext {
                 is DesignBranch -> DesignLayoutContext.of(branch.designId, state)
             }
     }
+
+    fun toSqlString() = "${branch.designId?.intValue ?: "main"}_${state.name.lowercase()}"
+}
+
+fun parseLayoutContextSqlString(text: String): LayoutContext {
+    val split = text.split("_")
+    require(split.size == 2) { "LayoutContext string must contain two parts separated by _" }
+    val branch = if (split[0] == "main") LayoutBranch.main else DesignBranch.of(IntId(split[0].toInt()))
+    val state = PublicationState.entries.find { state -> state.name.lowercase() == split[1] }
+    requireNotNull(state) { "Did not recognize ${split[1]} as a publication state" }
+    return LayoutContext.of(branch, state)
 }
 
 @Suppress("DataClassPrivateConstructor")

@@ -241,20 +241,20 @@ constructor(
             with
               location_tracks as (
                 select
-                  distinct ga.plan_id, track.official_id as id
+                  distinct ga.plan_id, track.id
                   from layout.location_track track
                     left join layout.segment_version sv on sv.alignment_id = track.alignment_id and sv.alignment_version = track.alignment_version
                     left join geometry.alignment ga on ga.id = sv.geometry_alignment_id
               ),
               switches as (
                 select
-                  distinct gs.plan_id, switch.official_id as id
+                  distinct gs.plan_id, switch.id
                   from layout.switch
                     left join geometry.switch gs on gs.id = switch.geometry_switch_id
               ),
               km_posts as (
                 select
-                  distinct gp.plan_id, km_post.official_id as id
+                  distinct gp.plan_id, km_post.id
                   from layout.km_post
                     left join geometry.km_post gp on gp.id = km_post.geometry_km_post_id
               )
@@ -1879,8 +1879,8 @@ constructor(
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
-            select location_track.id, location_track.version
-              from layout.location_track, layout.location_track_is_in_layout_context('DRAFT', :design_id, location_track)
+            select id, design_id, draft, version
+              from layout.location_track_in_layout_context('DRAFT', :design_id) location_track
               where exists(select *
                              from layout.segment_version
                              where segment_version.alignment_id = location_track.alignment_id
@@ -1898,7 +1898,7 @@ constructor(
             sql,
             mapOf("design_id" to layoutBranch.designId?.intValue, "switch_id" to geometrySwitchId.intValue),
         ) { rs, _ ->
-            rs.getLayoutRowVersion("id", "version")
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
         }
     }
 }

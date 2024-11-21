@@ -163,7 +163,7 @@ constructor(
                     segment(Point(5.0, 5.0), Point(6.0, 6.0)).copy(sourceId = geoAlignmentA.elements[3].id as IndexedId),
                 )
             )
-        locationTrackDao.insert(
+        locationTrackDao.save(
             locationTrack(
                 trackNumberId = trackNumberId,
                 name = "foo test track",

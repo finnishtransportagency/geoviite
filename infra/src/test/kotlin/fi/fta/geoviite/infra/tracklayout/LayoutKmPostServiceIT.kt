@@ -31,45 +31,34 @@ constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val kmPost1 =
             kmPostDao.fetch(
-                kmPostDao
-                    .insert(
-                        kmPost(
-                            trackNumberId = trackNumberId,
-                            km = KmNumber(1),
-                            roughLayoutLocation = Point(1.0, 1.0),
-                            draft = false,
-                        )
+                kmPostDao.save(
+                    kmPost(
+                        trackNumberId = trackNumberId,
+                        km = KmNumber(1),
+                        roughLayoutLocation = Point(1.0, 1.0),
+                        draft = false,
                     )
-                    .rowVersion
+                )
             )
         val kmPost2 =
             kmPostDao.fetch(
-                kmPostDao
-                    .insert(
-                        kmPost(
-                            trackNumberId = trackNumberId,
-                            km = KmNumber(2),
-                            roughLayoutLocation = Point(2.0, 1.0),
-                            draft = false,
-                        )
+                kmPostDao.save(
+                    kmPost(
+                        trackNumberId = trackNumberId,
+                        km = KmNumber(2),
+                        roughLayoutLocation = Point(2.0, 1.0),
+                        draft = false,
                     )
-                    .rowVersion
+                )
             )
         val kmPost3 =
             kmPostDao.fetch(
-                kmPostDao
-                    .insert(
-                        kmPost(
-                            trackNumberId = trackNumberId,
-                            km = KmNumber(3),
-                            roughLayoutLocation = null,
-                            draft = false,
-                        )
-                    )
-                    .rowVersion
+                kmPostDao.save(
+                    kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = null, draft = false)
+                )
             )
 
-        kmPostDao.insert(
+        kmPostDao.save(
             kmPost(
                 trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
                 km = KmNumber(4),
@@ -89,16 +78,14 @@ constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val kmPost =
             kmPostDao.fetch(
-                kmPostDao
-                    .insert(
-                        kmPost(
-                            trackNumberId = trackNumberId,
-                            km = KmNumber(1),
-                            roughLayoutLocation = Point(1.0, 1.0),
-                            draft = false,
-                        )
+                kmPostDao.save(
+                    kmPost(
+                        trackNumberId = trackNumberId,
+                        km = KmNumber(1),
+                        roughLayoutLocation = Point(1.0, 1.0),
+                        draft = false,
                     )
-                    .rowVersion
+                )
             )
 
         val result = kmPostService.getByKmNumber(MainLayoutContext.official, trackNumberId, kmPost.kmNumber, true)
@@ -109,7 +96,7 @@ constructor(
     @Test
     fun doesntFindKmPostAtWrongKmNumber() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        kmPostDao.insert(
+        kmPostDao.save(
             kmPost(
                 trackNumberId = trackNumberId,
                 km = KmNumber(1),
@@ -127,16 +114,14 @@ constructor(
         val trackNumber2Id = mainOfficialContext.createLayoutTrackNumber().id
         val kmPost =
             kmPostDao.fetch(
-                kmPostDao
-                    .insert(
-                        kmPost(
-                            trackNumberId = trackNumber1Id,
-                            km = KmNumber(1),
-                            roughLayoutLocation = Point(1.0, 1.0),
-                            draft = false,
-                        )
+                kmPostDao.save(
+                    kmPost(
+                        trackNumberId = trackNumber1Id,
+                        km = KmNumber(1),
+                        roughLayoutLocation = Point(1.0, 1.0),
+                        draft = false,
                     )
-                    .rowVersion
+                )
             )
 
         assertNull(kmPostService.getByKmNumber(MainLayoutContext.official, trackNumber2Id, kmPost.kmNumber, true))
@@ -196,10 +181,7 @@ constructor(
                 kmPost(trackNumberId, KmNumber(5, "A"), Point(3.0, 14.0), draft = true),
                 kmPost(trackNumberId, KmNumber(5, "AA"), Point(6.0, 18.0), draft = true),
             )
-        val kmPostSaveResults =
-            kmPosts
-                .map { d -> kmPostService.saveDraft(LayoutBranch.main, d) }
-                .map(LayoutDaoResponse<TrackLayoutKmPost>::id)
+        val kmPostSaveResults = kmPosts.map { d -> kmPostService.saveDraft(LayoutBranch.main, d) }.map { it.id }
 
         // drop(1) because the track number km lengths include the section before the first km post
         val expected = trackNumberService.getKmLengths(MainLayoutContext.draft, trackNumberId)!!.drop(1)

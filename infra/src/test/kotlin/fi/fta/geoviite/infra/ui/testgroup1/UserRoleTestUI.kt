@@ -52,10 +52,10 @@ constructor(
     @Test
     fun `Page navigation test`() {
         val trackNumber = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
-        val trackNumberId = trackNumberDao.insert(trackNumber)
+        val trackNumberId = trackNumberDao.save(trackNumber)
         val referenceLineAndAlignment = westReferenceLine(trackNumberId.id)
         val alignmentVersion = alignmentDao.insert(referenceLineAndAlignment.second)
-        referenceLineDao.insert(referenceLineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
+        referenceLineDao.save(referenceLineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
 
         val designName = "test design"
         layoutDesignDao.insert(

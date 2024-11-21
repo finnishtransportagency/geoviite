@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.TRANSFER
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -272,14 +272,14 @@ constructor(
     }
 
     private fun assertTargetTrack(
-        sourceResponse: LayoutDaoResponse<LocationTrack>,
+        sourceResponse: LayoutRowVersion<LocationTrack>,
         request: SplitRequestTarget,
         response: SplitTarget,
     ) {
         // This assert is not for TRANSFER operation: use assertTransferTargetTrack for that
         assertNotEquals(SplitTargetOperation.TRANSFER, request.getOperation())
 
-        val (_, source) = locationTrackService.getWithAlignment(sourceResponse.rowVersion)
+        val (_, source) = locationTrackService.getWithAlignment(sourceResponse)
         val (track, alignment) =
             locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, response.locationTrackId)
 
@@ -453,7 +453,7 @@ constructor(
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
         return splitDao.saveSplit(
-            sourceTrack.rowVersion,
+            sourceTrack,
             listOf(SplitTarget(endTrack.id, 0..0, SplitTargetOperation.CREATE)),
             listOf(relinkedSwitchId),
             updatedDuplicates = emptyList(),

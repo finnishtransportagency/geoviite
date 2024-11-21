@@ -74,7 +74,7 @@ constructor(
     @Test
     fun getLocationTrackHeightsCoversTrackStartsAndEnds() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
+        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(
@@ -149,7 +149,7 @@ constructor(
     @Test
     fun getLocationTrackHeightsReturnsBothOrdinaryTicksAndPlanBoundaries() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
+        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, draft = true),
@@ -230,7 +230,7 @@ constructor(
     @Test
     fun getLocationTrackHeightsHandlesSegmentChangeAtRightBeforeKilometerStart() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
+        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, startAddress = TrackMeter("0154", 400), draft = true),
@@ -281,7 +281,7 @@ constructor(
     @Test
     fun getLocationTrackHeightsHandlesKmShorterThanTickLength() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
+        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, startAddress = TrackMeter("0154", 0), draft = true),

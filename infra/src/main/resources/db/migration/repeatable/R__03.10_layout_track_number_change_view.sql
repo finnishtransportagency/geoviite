@@ -4,6 +4,7 @@ create view layout.track_number_change_view as
 (
 select
   track_number_version.id,
+  track_number_version.layout_context_id,
   track_number_version.change_time,
   track_number_version.number,
   track_number_version.change_user,

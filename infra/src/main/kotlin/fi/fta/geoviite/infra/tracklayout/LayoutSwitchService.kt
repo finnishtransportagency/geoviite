@@ -40,7 +40,7 @@ constructor(
                 trapPoint = request.trapPoint,
                 ownerId = request.ownerId,
                 source = GeometrySource.GENERATED,
-                contextData = LayoutContextData.newDraft(branch),
+                contextData = LayoutContextData.newDraft(branch, id = null),
             )
 
         return saveDraftInternal(branch, switch).id
@@ -73,10 +73,10 @@ constructor(
     }
 
     @Transactional
-    override fun deleteDraft(branch: LayoutBranch, id: IntId<TrackLayoutSwitch>): LayoutDaoResponse<TrackLayoutSwitch> {
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<TrackLayoutSwitch>): LayoutRowVersion<TrackLayoutSwitch> {
         val draft = dao.getOrThrow(branch.draft, id)
         // If removal also breaks references, clear them out first
-        if (draft.contextData.officialRowId == null) {
+        if (!draft.contextData.hasOfficial) {
             clearSwitchInformationFromSegments(branch, id)
         }
         return super.deleteDraft(branch, id)
@@ -126,7 +126,7 @@ constructor(
         branch: LayoutBranch,
         id: IntId<TrackLayoutSwitch>,
         oid: Oid<TrackLayoutSwitch>,
-    ): LayoutDaoResponse<TrackLayoutSwitch> {
+    ): LayoutRowVersion<TrackLayoutSwitch> {
         val original = dao.getOrThrow(branch.draft, id)
         return saveDraft(branch, original.copy(externalId = oid))
     }

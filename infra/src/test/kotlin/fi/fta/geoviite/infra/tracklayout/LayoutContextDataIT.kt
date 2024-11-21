@@ -14,10 +14,8 @@ import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
@@ -51,7 +49,6 @@ constructor(
         assertEquals(dbAlignment.first.id, dbDraft.id)
         assertFalse(dbAlignment.first.isDraft)
         assertTrue(dbDraft.isDraft)
-        assertNotEquals(dbDraft.contextData.rowId, dbDraft.id)
     }
 
     @Test
@@ -63,7 +60,6 @@ constructor(
         assertEquals(dbAlignment.first.id, dbDraft.id)
         assertFalse(dbAlignment.first.isDraft)
         assertTrue(dbDraft.isDraft)
-        assertNotEquals(dbDraft.contextData.rowId, dbDraft.id)
     }
 
     @Test
@@ -75,7 +71,6 @@ constructor(
         assertEquals(dbSwitch.id, dbDraft.id)
         assertFalse(dbSwitch.isDraft)
         assertTrue(dbDraft.isDraft)
-        assertNotEquals(dbDraft.contextData.rowId, dbDraft.id)
     }
 
     @Test
@@ -88,7 +83,6 @@ constructor(
         assertEquals(dbKmPost.id, dbDraft.id)
         assertFalse(dbKmPost.isDraft)
         assertTrue(dbDraft.isDraft)
-        assertNotEquals(dbDraft.contextData.rowId, dbDraft.id)
     }
 
     @Test
@@ -153,59 +147,54 @@ constructor(
     }
 
     @Test
-    fun referenceLineCanOnlyHaveOneDraft() {
+    fun `reference line save is an upsert`() {
         val (line, _) = insertAndVerifyLine(createReferenceLineAndAlignment(false))
 
-        val draft1 = asMainDraft(line)
-        val draft2 = asMainDraft(line)
+        val draft1 = referenceLineDao.save(asMainDraft(line))
+        val draft2 = referenceLineDao.save(asMainDraft(line))
 
-        referenceLineDao.insert(draft1)
-        assertThrows<DuplicateKeyException> { referenceLineDao.insert(draft2) }
+        assertEquals(draft2, referenceLineDao.fetchVersion(MainLayoutContext.draft, draft1.id))
     }
 
     @Test
-    fun locationTrackCanOnlyHaveOneDraft() {
+    fun `location track save is an upsert`() {
         val (track, _) = insertAndVerifyTrack(createLocationTrackAndAlignment(false))
 
-        val draft1 = asMainDraft(track)
-        val draft2 = asMainDraft(track)
+        val draft1 = locationTrackDao.save(asMainDraft(track))
+        val draft2 = locationTrackDao.save(asMainDraft(track))
 
-        locationTrackDao.insert(draft1)
-        assertThrows<DuplicateKeyException> { locationTrackDao.insert(draft2) }
+        assertEquals(draft2, locationTrackDao.fetchVersion(MainLayoutContext.draft, draft1.id))
     }
 
     @Test
-    fun switchCanOnlyHaveOneDraft() {
+    fun `switch save is an upsert`() {
         val switch = insertAndVerify(switch(draft = false))
 
-        val draft1 = asMainDraft(switch)
-        val draft2 = asMainDraft(switch)
+        val draft1 = switchDao.save(asMainDraft(switch))
+        val draft2 = switchDao.save(asMainDraft(switch))
 
-        switchDao.insert(draft1)
-        assertThrows<DuplicateKeyException> { switchDao.insert(draft2) }
+        assertEquals(draft2, switchDao.fetchVersion(MainLayoutContext.draft, draft1.id))
     }
 
     @Test
-    fun kmPostCanOnlyHaveOneDraft() {
+    fun `km post save is an upsert`() {
         val kmPost =
             insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
 
-        val draft1 = asMainDraft(kmPost)
-        val draft2 = asMainDraft(kmPost)
+        val draft1 = kmPostDao.save(asMainDraft(kmPost))
+        val draft2 = kmPostDao.save(asMainDraft(kmPost))
 
-        kmPostDao.insert(draft1)
-        assertThrows<DuplicateKeyException> { kmPostDao.insert(draft2) }
+        assertEquals(draft2, kmPostDao.fetchVersion(MainLayoutContext.draft, draft1.id))
     }
 
     @Test
-    fun trackNumberCanOnlyHaveOneDraft() {
+    fun `track number save is an upsert`() {
         val trackNumber = insertAndVerify(trackNumber(testDBService.getUnusedTrackNumber(), draft = false))
 
-        val draft1 = asMainDraft(trackNumber)
-        val draft2 = asMainDraft(trackNumber)
+        val draft1 = trackNumberDao.save(asMainDraft(trackNumber))
+        val draft2 = trackNumberDao.save(asMainDraft(trackNumber))
 
-        trackNumberDao.insert(draft1)
-        assertThrows<DuplicateKeyException> { trackNumberDao.insert(draft2) }
+        assertEquals(draft2, trackNumberDao.fetchVersion(MainLayoutContext.draft, draft1.id))
     }
 
     @Test
@@ -261,7 +250,6 @@ constructor(
         val draft = asMainDraft(dbLine)
         assertTrue(draft.isDraft)
         assertEquals(dbLine.id, draft.id)
-        assertNotEquals(dbLine.id, draft.contextData.rowId)
         assertMatches(dbLine, draft, contextMatch = false)
         return draft to dbAlignment
     }
@@ -277,7 +265,6 @@ constructor(
         val draft = asMainDraft(dbTrack)
         assertTrue(draft.isDraft)
         assertEquals(dbTrack.id, draft.id)
-        assertNotEquals(dbTrack.id, draft.contextData.rowId)
         assertMatches(dbTrack, draft, contextMatch = false)
         return draft to dbAlignment
     }
@@ -288,7 +275,6 @@ constructor(
         val draft = asMainDraft(dbSwitch)
         assertTrue(draft.isDraft)
         assertEquals(dbSwitch.id, draft.id)
-        assertNotEquals(dbSwitch.id, draft.contextData.rowId)
         assertMatches(dbSwitch, draft, contextMatch = false)
         return draft
     }
@@ -299,7 +285,6 @@ constructor(
         val draft = asMainDraft(dbKmPost)
         assertTrue(draft.isDraft)
         assertEquals(dbKmPost.id, draft.id)
-        assertNotEquals(dbKmPost.id, draft.contextData.rowId)
         assertMatches(dbKmPost, draft, contextMatch = false)
         return draft
     }
@@ -324,10 +309,10 @@ constructor(
         assertEquals(DataType.TEMP, line.dataType)
         val alignmentVersion = alignmentDao.insert(alignment)
         val lineWithAlignment = line.copy(alignmentVersion = alignmentVersion)
-        val lineResponse = referenceLineDao.insert(lineWithAlignment)
+        val lineResponse = referenceLineDao.save(lineWithAlignment)
         val alignmentFromDb = alignmentDao.fetch(alignmentVersion)
         assertMatches(alignment, alignmentFromDb)
-        val lineFromDb = referenceLineDao.fetch(lineResponse.rowVersion)
+        val lineFromDb = referenceLineDao.fetch(lineResponse)
         assertEquals(DataType.STORED, lineFromDb.dataType)
         assertEquals(lineResponse.id, lineFromDb.id)
         assertMatches(lineWithAlignment, lineFromDb, contextMatch = false)
@@ -341,10 +326,10 @@ constructor(
         assertEquals(DataType.TEMP, track.dataType)
         val alignmentVersion = alignmentDao.insert(alignment)
         val trackWithAlignment = track.copy(alignmentVersion = alignmentVersion)
-        val trackResponse = locationTrackDao.insert(trackWithAlignment)
+        val trackResponse = locationTrackDao.save(trackWithAlignment)
         val alignmentFromDb = alignmentDao.fetch(alignmentVersion)
         assertMatches(alignment, alignmentFromDb)
-        val trackFromDb = locationTrackDao.fetch(trackResponse.rowVersion)
+        val trackFromDb = locationTrackDao.fetch(trackResponse)
         assertEquals(DataType.STORED, trackFromDb.dataType)
         assertEquals(trackResponse.id, trackFromDb.id)
         assertMatches(trackWithAlignment, trackFromDb, contextMatch = false)
@@ -353,8 +338,8 @@ constructor(
 
     private fun insertAndVerify(switch: TrackLayoutSwitch): TrackLayoutSwitch {
         assertEquals(DataType.TEMP, switch.dataType)
-        val response = switchDao.insert(switch)
-        val fromDb = switchDao.fetch(response.rowVersion)
+        val response = switchDao.save(switch)
+        val fromDb = switchDao.fetch(response)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(switch, fromDb, contextMatch = false)
         assertEquals(response.id, fromDb.id)
@@ -363,8 +348,8 @@ constructor(
 
     private fun insertAndVerify(kmPost: TrackLayoutKmPost): TrackLayoutKmPost {
         assertEquals(DataType.TEMP, kmPost.dataType)
-        val response = kmPostDao.insert(kmPost)
-        val fromDb = kmPostDao.fetch(response.rowVersion)
+        val response = kmPostDao.save(kmPost)
+        val fromDb = kmPostDao.fetch(response)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(kmPost, fromDb, contextMatch = false)
         assertEquals(response.id, fromDb.id)
@@ -373,8 +358,8 @@ constructor(
 
     private fun insertAndVerify(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber {
         assertEquals(DataType.TEMP, trackNumber.dataType)
-        val response = trackNumberDao.insert(trackNumber)
-        val fromDb = trackNumberDao.fetch(response.rowVersion)
+        val response = trackNumberDao.save(trackNumber)
+        val fromDb = trackNumberDao.fetch(response)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(trackNumber, fromDb, contextMatch = false)
         assertEquals(response.id, fromDb.id)

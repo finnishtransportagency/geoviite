@@ -565,7 +565,7 @@ constructor(
                     draft = false,
                 )
             }
-            .forEach(layoutKmPostDao::insert)
+            .forEach(layoutKmPostDao::save)
 
         val request =
             TestCoordinateToTrackAddressRequest(x = xPositionOnTrack, y = yPositionOnTrack + yRequestDifference)
@@ -680,8 +680,9 @@ constructor(
     @Test
     fun `Reverse geocoded address should match the returned coordinate`() {
         val referenceLineSegments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
-        val (trackNumberId, trackNumberVersion) =
+        val trackNumberVersion =
             mainOfficialContext.createLayoutTrackNumberAndReferenceLine(alignment(referenceLineSegments))
+        val trackNumberId = trackNumberVersion.id
         val trackNumber = trackNumberDao.fetch(trackNumberVersion)
 
         // Track is offset from the reference line and with a slightly different angle

@@ -31,8 +31,6 @@ import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
-import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -1045,18 +1043,6 @@ private fun collectTopologyEndLinks(
                 )
         }
         .filter { (_, ends) -> ends.isNotEmpty() }
-
-fun <T> combineVersions(
-    officials: List<LayoutDaoResponse<T>>,
-    validations: List<ValidationVersion<T>>,
-): Collection<LayoutRowVersion<T>> {
-    val officialVersions =
-        officials
-            .filterNot { official -> validations.any { v -> v.officialId == official.id } }
-            .map { official -> official.rowVersion }
-    val validationVersions = validations.map { it.validatedAssetVersion }
-    return (officialVersions + validationVersions).distinct()
-}
 
 fun validationFatal(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
     LayoutValidationIssue(FATAL, key, params.associate { it })

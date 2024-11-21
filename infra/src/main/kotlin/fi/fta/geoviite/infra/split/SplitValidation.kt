@@ -6,9 +6,9 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.VALIDATION
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.validate
 import fi.fta.geoviite.infra.publication.validationError
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.produceIf
@@ -38,8 +38,8 @@ internal fun validateSourceGeometry(
 }
 
 internal fun validateSplitContent(
-    trackVersions: List<ValidationVersion<LocationTrack>>,
-    switchVersions: List<ValidationVersion<TrackLayoutSwitch>>,
+    trackVersions: List<LayoutRowVersion<LocationTrack>>,
+    switchVersions: List<LayoutRowVersion<TrackLayoutSwitch>>,
     publicationSplits: Collection<Split>,
     allowMultipleSplits: Boolean,
 ): List<Pair<Split, LayoutValidationIssue>> {
@@ -54,10 +54,10 @@ internal fun validateSplitContent(
 
     val contentErrors =
         publicationSplits.flatMap { split ->
-            val containsSource = trackVersions.any { it.officialId == split.sourceLocationTrackId }
+            val containsSource = trackVersions.any { it.id == split.sourceLocationTrackId }
             val containsTargets =
-                split.targetLocationTracks.all { tlt -> trackVersions.any { it.officialId == tlt.locationTrackId } }
-            val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.officialId == s } }
+                split.targetLocationTracks.all { tlt -> trackVersions.any { it.id == tlt.locationTrackId } }
+            val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.id == s } }
             listOfNotNull(
                     validate(containsSource && containsTargets, ERROR) {
                         "$VALIDATION_SPLIT.split-missing-location-tracks"

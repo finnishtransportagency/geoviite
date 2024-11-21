@@ -4,10 +4,8 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -33,7 +31,7 @@ class ChangeContext(
     val geocodingKeysBefore: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     val geocodingKeysAfter: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     val getTrackNumberTracksBefore:
-        (trackNumberId: IntId<TrackLayoutTrackNumber>) -> List<LayoutDaoResponse<LocationTrack>>,
+        (trackNumberId: IntId<TrackLayoutTrackNumber>) -> List<LayoutRowVersion<LocationTrack>>,
 ) {
 
     fun getGeocodingContextBefore(id: IntId<TrackLayoutTrackNumber>) =
@@ -46,12 +44,12 @@ class ChangeContext(
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
     baseContext: LayoutContext,
     dao: LayoutAssetDao<T>,
-    versions: List<ValidationVersion<T>>,
+    versions: List<LayoutRowVersion<T>>,
 ): TypedChangeContext<T> =
     createTypedContext(
         dao,
         { id -> dao.fetchVersion(baseContext, id) },
-        { id -> versions.find { v -> v.officialId == id }?.validatedAssetVersion ?: dao.fetchVersion(baseContext, id) },
+        { id -> versions.find { v -> v.id == id } ?: dao.fetchVersion(baseContext, id) },
     )
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(

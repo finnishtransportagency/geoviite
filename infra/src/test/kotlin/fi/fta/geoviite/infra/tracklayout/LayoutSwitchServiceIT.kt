@@ -50,7 +50,7 @@ constructor(
     fun switchOwnerIsReturned() {
         val owner = SwitchOwner(id = IntId(4), name = MetaDataName("Cinia"))
 
-        switchDao.insert(switch(ownerId = owner.id, draft = false))
+        switchDao.save(switch(ownerId = owner.id, draft = false))
 
         assertEquals(owner, switchLibraryService.getSwitchOwners().first { o -> o.id == owner.id })
     }
@@ -58,7 +58,7 @@ constructor(
     @Test
     fun whenAddingSwitchShouldReturnIt() {
         val switch = switch(draft = false, stateCategory = EXISTING)
-        val id = switchDao.insert(switch).id
+        val id = switchDao.save(switch).id
 
         val fetched = switchService.get(MainLayoutContext.official, id)!!
         assertMatches(switch, fetched, contextMatch = false)
@@ -67,7 +67,7 @@ constructor(
 
     @Test
     fun someSwitchesAreReturnedEvenWithoutParameters() {
-        switchDao.insert(switch(draft = false, stateCategory = EXISTING))
+        switchDao.save(switch(draft = false, stateCategory = EXISTING))
         assertTrue(switchService.list(MainLayoutContext.official).isNotEmpty())
     }
 
@@ -83,7 +83,7 @@ constructor(
                 draft = false,
                 stateCategory = EXISTING,
             )
-        val id = switchDao.insert(switch).id
+        val id = switchDao.save(switch).id
 
         val bbox = BoundingBox(428125.0..428906.25, 7210156.25..7210937.5)
         val switches = getSwitches(switchFilter(bbox = bbox))
@@ -104,7 +104,7 @@ constructor(
                 draft = false,
             )
 
-        val id = switchDao.insert(switchOutsideBoundingBox).id
+        val id = switchDao.save(switchOutsideBoundingBox).id
 
         val bbox = BoundingBox(428125.0..431250.0, 7196875.0..7200000.0)
         val switches = getSwitches(switchFilter(bbox = bbox))
@@ -117,7 +117,7 @@ constructor(
         val name = testDBService.getUnusedSwitchName()
         val switch = switch(name = name.toString(), draft = false, stateCategory = EXISTING)
 
-        val id = switchDao.insert(switch).id
+        val id = switchDao.save(switch).id
 
         val switchesCompleteName = getSwitches(switchFilter(namePart = name.toString()))
         val switchesPartialName = getSwitches(switchFilter(namePart = name.substring(2)))
@@ -143,8 +143,8 @@ constructor(
                 stateCategory = LayoutStateCategory.NOT_EXISTING,
                 draft = false,
             )
-        val inUseSwitchId = switchDao.insert(inUseSwitch)
-        val deletedSwitchId = switchDao.insert(deletedSwitch)
+        val inUseSwitchId = switchDao.save(inUseSwitch)
+        val deletedSwitchId = switchDao.save(deletedSwitch)
 
         val switches = switchService.list(MainLayoutContext.official)
 
@@ -265,7 +265,7 @@ constructor(
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
         val typeName = structure.type.typeName
 
-        switchDao.insert(switch)
+        switchDao.save(switch)
 
         val switchesCompleteTypeName = getSwitches(switchFilter(switchType = typeName))
         val switchesPartialTypeName = getSwitches(switchFilter(switchType = typeName.substring(2)))
@@ -330,10 +330,7 @@ constructor(
             switchDao.findLocationTracksLinkedToSwitch(MainLayoutContext.official, switch.id as IntId),
         )
         val result = switchDao.findLocationTracksLinkedToSwitch(MainLayoutContext.draft, switch.id as IntId)
-        assertEquals(
-            listOf(withStartLink, withEndLink, withSegmentLink),
-            result.sortedBy { ids -> ids.rowVersion.rowId.intValue },
-        )
+        assertEquals(listOf(withStartLink, withEndLink, withSegmentLink), result.sortedBy { ids -> ids.id.intValue })
     }
 
     @Test
@@ -394,31 +391,23 @@ constructor(
 
         assertTrue(
             linkedLocationTracks.contains(
-                LocationTrackIdentifiers(
-                    id = locationTrack1.id,
-                    rowVersion = locationTrack1.rowVersion,
-                    externalId = locationTrack1Oid,
-                )
+                LocationTrackIdentifiers(rowVersion = locationTrack1, externalId = locationTrack1Oid)
             )
         )
 
         assertTrue(
             linkedLocationTracks.contains(
-                LocationTrackIdentifiers(
-                    id = locationTrack3.id,
-                    rowVersion = locationTrack3.rowVersion,
-                    externalId = locationTrack3Oid,
-                )
+                LocationTrackIdentifiers(rowVersion = locationTrack3, externalId = locationTrack3Oid)
             )
         )
 
-        assertTrue(linkedLocationTracks.none { lt -> lt.rowVersion == locationTrack2.rowVersion })
+        assertTrue(linkedLocationTracks.none { lt -> lt.rowVersion == locationTrack2 })
     }
 
     @Test
     fun getSwitchLinksTopologicalConnections() {
         val switch = switch(IntId(1), joints = listOf(switchJoint(1, Point(1.0, 1.0))), draft = false)
-        val switchVersion = switchDao.insert(switch)
+        val switchVersion = switchDao.save(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
         val (locationTrack, alignment) =
             locationTrackAndAlignment(
@@ -464,9 +453,9 @@ constructor(
         locationTrack: LocationTrack,
         alignment: LayoutAlignment,
     ): Pair<LocationTrack, LocationTrackIdentifiers> {
-        val (id, version) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
-        val track = locationTrackService.getOrThrow(MainLayoutContext.draft, id)
-        val identifiers = LocationTrackIdentifiers(id, version, locationTrack.externalId)
+        val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        val track = locationTrackService.getOrThrow(MainLayoutContext.draft, version.id)
+        val identifiers = LocationTrackIdentifiers(version, locationTrack.externalId)
         return track to identifiers
     }
 

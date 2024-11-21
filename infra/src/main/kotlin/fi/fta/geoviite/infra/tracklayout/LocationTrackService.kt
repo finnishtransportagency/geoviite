@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.split.SplitDao
@@ -58,7 +57,7 @@ class LocationTrackService(
 ) : LayoutAssetService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
-    fun insert(branch: LayoutBranch, request: LocationTrackSaveRequest): LayoutDaoResponse<LocationTrack> {
+    fun insert(branch: LayoutBranch, request: LocationTrackSaveRequest): LayoutRowVersion<LocationTrack> {
         val (alignment, alignmentVersion) = alignmentService.newEmpty()
         val locationTrack =
             LocationTrack(
@@ -79,7 +78,7 @@ class LocationTrackService(
                 topologyStartSwitch = null,
                 topologyEndSwitch = null,
                 ownerId = request.ownerId,
-                contextData = LayoutContextData.newDraft(branch),
+                contextData = LayoutContextData.newDraft(branch, dao.createId()),
             )
         return saveDraftInternal(branch, locationTrack)
     }
@@ -88,7 +87,7 @@ class LocationTrackService(
         branch: LayoutBranch,
         id: IntId<LocationTrack>,
         request: LocationTrackSaveRequest,
-    ): LayoutDaoResponse<LocationTrack> {
+    ): LayoutRowVersion<LocationTrack> {
         try {
             return requireNotNull(transactionTemplate.execute { updateLocationTrackTransaction(branch, id, request) })
         } catch (dataIntegrityException: DataIntegrityViolationException) {
@@ -104,7 +103,7 @@ class LocationTrackService(
         branch: LayoutBranch,
         id: IntId<LocationTrack>,
         request: LocationTrackSaveRequest,
-    ): LayoutDaoResponse<LocationTrack> {
+    ): LayoutRowVersion<LocationTrack> {
         val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack =
             originalTrack.copy(
@@ -138,7 +137,7 @@ class LocationTrackService(
         branch: LayoutBranch,
         id: IntId<LocationTrack>,
         state: LocationTrackState,
-    ): LayoutDaoResponse<LocationTrack> {
+    ): LayoutRowVersion<LocationTrack> {
         val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack = originalTrack.copy(state = state)
 
@@ -166,7 +165,7 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun saveDraft(branch: LayoutBranch, draftAsset: LocationTrack): LayoutDaoResponse<LocationTrack> =
+    override fun saveDraft(branch: LayoutBranch, draftAsset: LocationTrack): LayoutRowVersion<LocationTrack> =
         super.saveDraft(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)))
 
     private fun updatedAlignmentVersion(track: LocationTrack): RowVersion<LayoutAlignment>? =
@@ -180,7 +179,7 @@ class LocationTrackService(
         branch: LayoutBranch,
         draftAsset: LocationTrack,
         alignment: LayoutAlignment,
-    ): LayoutDaoResponse<LocationTrack> {
+    ): LayoutRowVersion<LocationTrack> {
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not
             // edit any original
@@ -203,7 +202,7 @@ class LocationTrackService(
         branch: LayoutBranch,
         id: IntId<LocationTrack>,
         oid: Oid<LocationTrack>,
-    ): LayoutDaoResponse<LocationTrack> {
+    ): LayoutRowVersion<LocationTrack> {
         val original = dao.getOrThrow(branch.draft, id)
         return saveDraftInternal(
             branch,
@@ -214,9 +213,9 @@ class LocationTrackService(
     @Transactional
     override fun publish(
         branch: LayoutBranch,
-        version: ValidationVersion<LocationTrack>,
-    ): LayoutDaoResponse<LocationTrack> {
-        val publishedVersion = publishInternal(branch, version.validatedAssetVersion)
+        version: LayoutRowVersion<LocationTrack>,
+    ): LayoutRowVersion<LocationTrack> {
+        val publishedVersion = publishInternal(branch, version)
         // Some of the versions may get deleted in publication -> delete any alignments they left
         // behind
         alignmentDao.deleteOrphanedAlignments()
@@ -224,10 +223,10 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun deleteDraft(branch: LayoutBranch, id: IntId<LocationTrack>): LayoutDaoResponse<LocationTrack> {
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<LocationTrack>): LayoutRowVersion<LocationTrack> {
         val draft = dao.getOrThrow(branch.draft, id)
         // If removal also breaks references, clear them out first
-        if (draft.contextData.officialRowId == null) {
+        if (!draft.contextData.hasOfficial) {
             clearDuplicateReferences(branch, id)
         }
         val deletedVersion = super.deleteDraft(branch, id)
@@ -333,11 +332,6 @@ class LocationTrackService(
         moment: Instant,
     ): Pair<LocationTrack, LayoutAlignment>? {
         return dao.fetchOfficialVersionAtMoment(branch, id, moment)?.let(::getWithAlignmentInternal)
-    }
-
-    @Transactional(readOnly = true)
-    fun getWithAlignment(version: LayoutDaoResponse<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
-        return getWithAlignmentInternal(version.rowVersion)
     }
 
     @Transactional(readOnly = true)
@@ -750,11 +744,10 @@ class LocationTrackService(
     override fun mergeToMainBranch(
         fromBranch: DesignBranch,
         id: IntId<LocationTrack>,
-    ): LayoutDaoResponse<LocationTrack> {
-        val (versions, track) = fetchAndCheckVersionsForMerging(fromBranch, id)
-        return mergeToMainBranchInternal(
-            versions,
-            track.copy(alignmentVersion = alignmentService.duplicate(track.getAlignmentVersionOrThrow())),
+    ): LayoutRowVersion<LocationTrack> {
+        val track = fetchAndCheckForMerging(fromBranch, id)
+        return dao.save(
+            asMainDraft(track.copy(alignmentVersion = alignmentService.duplicate(track.getAlignmentVersionOrThrow())))
         )
     }
 }

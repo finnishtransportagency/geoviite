@@ -116,44 +116,39 @@ constructor(
         val topologyStartSwitchId =
             switchDao
                 .fetch(
-                    switchService
-                        .saveDraft(
-                            LayoutBranch.main,
-                            switch(name = "blaa V0001", draft = true, stateCategory = EXISTING),
-                        )
-                        .rowVersion
+                    switchService.saveDraft(
+                        LayoutBranch.main,
+                        switch(name = "blaa V0001", draft = true, stateCategory = EXISTING),
+                    )
                 )
                 .id as IntId
         // Search scope origin track's end switch, should be included
         val topologyEndSwitchId =
             switchDao
                 .fetch(
-                    switchService
-                        .saveDraft(
-                            LayoutBranch.main,
-                            switch(name = "blee V0002", draft = true, stateCategory = EXISTING),
-                        )
-                        .rowVersion
+                    switchService.saveDraft(
+                        LayoutBranch.main,
+                        switch(name = "blee V0002", draft = true, stateCategory = EXISTING),
+                    )
                 )
                 .id as IntId
         // Related to duplicate but not in search scope, should be left out of search results
         val duplicateStartSwitchId =
             switchDao
                 .fetch(
-                    switchService
-                        .saveDraft(
-                            LayoutBranch.main,
-                            switch(name = "bluu V0003", draft = true, stateCategory = EXISTING),
-                        )
-                        .rowVersion
+                    switchService.saveDraft(
+                        LayoutBranch.main,
+                        switch(name = "bluu V0003", draft = true, stateCategory = EXISTING),
+                    )
                 )
                 .id as IntId
         // Entirely unrelated, should be left out of search results
         switchDao
             .fetch(
-                switchService
-                    .saveDraft(LayoutBranch.main, switch(name = "bluu V0003", draft = true, stateCategory = EXISTING))
-                    .rowVersion
+                switchService.saveDraft(
+                    LayoutBranch.main,
+                    switch(name = "bluu V0003", draft = true, stateCategory = EXISTING),
+                )
             )
             .id as IntId
 

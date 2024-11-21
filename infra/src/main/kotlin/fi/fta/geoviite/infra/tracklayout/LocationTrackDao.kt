@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
-import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
@@ -53,7 +52,7 @@ class LocationTrackDao(
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
-            select row_id, row_version
+            select id, design_id, draft, version
             from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
             where duplicate_of_location_track_id = :id
               and (:include_deleted or state != 'DELETED')
@@ -67,7 +66,9 @@ class LocationTrackDao(
                 "include_deleted" to includeDeleted,
             )
         val versions =
-            jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion<LocationTrack>("row_id", "row_version") }
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
+            }
         logger.daoAccess(AccessType.FETCH, LocationTrack::class, id)
         return versions
     }
@@ -75,13 +76,13 @@ class LocationTrackDao(
     fun findNameDuplicates(
         context: LayoutContext,
         names: List<AlignmentName>,
-    ): Map<AlignmentName, List<LayoutDaoResponse<LocationTrack>>> {
+    ): Map<AlignmentName, List<LayoutRowVersion<LocationTrack>>> {
         return if (names.isEmpty()) {
             emptyMap()
         } else {
             val sql =
                 """
-                select official_id, row_id, row_version, name
+                select id, design_id, draft, version, name
                 from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
                 where name in (:names)
                   and state != 'DELETED'
@@ -94,8 +95,8 @@ class LocationTrackDao(
                     "design_id" to context.branch.designId?.intValue,
                 )
             val found =
-                jdbcTemplate.query<Pair<AlignmentName, LayoutDaoResponse<LocationTrack>>>(sql, params) { rs, _ ->
-                    val daoResponse = rs.getDaoResponse<LocationTrack>("official_id", "row_id", "row_version")
+                jdbcTemplate.query<Pair<AlignmentName, LayoutRowVersion<LocationTrack>>>(sql, params) { rs, _ ->
+                    val daoResponse = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
                     val name = rs.getString("name").let(::AlignmentName)
                     name to daoResponse
                 }
@@ -108,10 +109,8 @@ class LocationTrackDao(
         val sql =
             """
             select 
-              ltv.id as row_id,
-              ltv.version as row_version,
-              ltv.official_row_id,
-              ltv.design_row_id,
+              ltv.id,
+              ltv.version,
               ltv.design_id,
               ltv.draft,
               ltv.cancelled,
@@ -141,16 +140,27 @@ class LocationTrackDao(
                   where sv.alignment_id = ltv.alignment_id
                     and sv.alignment_version = ltv.alignment_version
                     and sv.switch_id is not null
-              ) as segment_switch_ids
+              ) as segment_switch_ids,
+              exists(select * from layout.location_track official_lt
+                     where official_lt.id = ltv.id
+                       and (official_lt.design_id is null or official_lt.design_id = ltv.design_id)
+                       and not official_lt.draft) as has_official,
+              ltv.origin_design_id
             from layout.location_track_version ltv
               left join layout.alignment_version av on ltv.alignment_id = av.id and ltv.alignment_version = av.version
             where ltv.id = :id
+              and ltv.layout_context_id = :layout_context_id
               and ltv.version = :version
               and ltv.deleted = false
         """
                 .trimIndent()
 
-        val params = mapOf("id" to version.rowId.intValue, "version" to version.version)
+        val params =
+            mapOf(
+                "id" to version.id.intValue,
+                "layout_context_id" to version.context.toSqlString(),
+                "version" to version.version,
+            )
         return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLocationTrack(rs) }).also {
             logger.daoAccess(AccessType.FETCH, LocationTrack::class, version)
         }
@@ -160,10 +170,8 @@ class LocationTrackDao(
         val sql =
             """
             select 
-              lt.id as row_id,
-              lt.version as row_version,
-              lt.official_row_id, 
-              lt.design_row_id,
+              lt.id,
+              lt.version,
               lt.design_id,
               lt.draft,
               lt.cancelled,
@@ -193,9 +201,14 @@ class LocationTrackDao(
                   where sv.alignment_id = lt.alignment_id
                     and sv.alignment_version = lt.alignment_version
                     and sv.switch_id is not null
-              ) as segment_switch_ids
+              ) as segment_switch_ids,
+              official_lt.id is not null as has_official,
+              lt.origin_design_id
             from layout.location_track lt
               left join layout.alignment_version av on lt.alignment_id = av.id and lt.alignment_version = av.version
+              left join layout.location_track official_lt on lt.id = official_lt.id
+                 and (official_lt.design_id is null or official_lt.design_id = lt.design_id)
+                 and not official_lt.draft
         """
                 .trimIndent()
 
@@ -233,21 +246,25 @@ class LocationTrackDao(
             segmentSwitchIds = rs.getIntIdArray("segment_switch_ids"),
             contextData =
                 rs.getLayoutContextData(
-                    "official_row_id",
-                    "design_row_id",
+                    "id",
                     "design_id",
-                    "row_id",
-                    "row_version",
                     "draft",
+                    "version",
                     "cancelled",
+                    "has_official",
+                    "origin_design_id",
                 ),
         )
 
     @Transactional
-    override fun insert(newItem: LocationTrack): LayoutDaoResponse<LocationTrack> {
+    override fun save(item: LocationTrack): LayoutRowVersion<LocationTrack> {
+        val id = item.id as? IntId ?: createId()
+
         val sql =
             """
             insert into layout.location_track(
+              layout_context_id,
+              id,
               track_number_id,
               external_id,
               alignment_id,
@@ -259,8 +276,6 @@ class LocationTrackDao(
               state,
               draft, 
               cancelled,
-              official_row_id,
-              design_row_id,
               design_id,
               duplicate_of_location_track_id,
               topological_connectivity,
@@ -271,6 +286,8 @@ class LocationTrackDao(
               owner_id
             ) 
             values (
+              :layout_context_id,
+              :id,
               :track_number_id,
               :external_id,
               :alignment_id,
@@ -282,8 +299,6 @@ class LocationTrackDao(
               :state::layout.location_track_state,
               :draft, 
               :cancelled,
-              :official_row_id,
-              :design_row_id,
               :design_id,
               :duplicate_of_location_track_id,
               :topological_connectivity::layout.track_topological_connectivity_type,
@@ -292,117 +307,58 @@ class LocationTrackDao(
               :topology_end_switch_id,
               :topology_end_switch_joint_number,
               :owner_id
-            ) 
-            returning 
-              official_id,
-              id as row_id,
-              version as row_version
+            ) on conflict (id, layout_context_id) do update set
+              track_number_id = excluded.track_number_id,
+              external_id = excluded.external_id ,
+              alignment_id = excluded.alignment_id,
+              alignment_version = excluded.alignment_version,
+              name = excluded.name,
+              description_base = excluded.description_base,
+              description_suffix = excluded.description_suffix,
+              type = excluded.type,
+              state = excluded.state,
+              cancelled = excluded.cancelled,
+              duplicate_of_location_track_id = excluded.duplicate_of_location_track_id,
+              topological_connectivity = excluded.topological_connectivity,
+              topology_start_switch_id = excluded.topology_start_switch_id,
+              topology_start_switch_joint_number = excluded.topology_start_switch_joint_number,
+              topology_end_switch_id = excluded.topology_end_switch_id,
+              topology_end_switch_joint_number = excluded.topology_end_switch_joint_number,
+              owner_id = excluded.owner_id
+            returning id, design_id, draft, version
         """
                 .trimIndent()
         val params =
             mapOf(
-                "track_number_id" to newItem.trackNumberId.intValue,
-                "external_id" to newItem.externalId,
-                "alignment_id" to newItem.getAlignmentVersionOrThrow().id.intValue,
-                "alignment_version" to newItem.getAlignmentVersionOrThrow().version,
-                "name" to newItem.name,
-                "description_base" to newItem.descriptionBase,
-                "description_suffix" to newItem.descriptionSuffix.name,
-                "type" to newItem.type.name,
-                "state" to newItem.state.name,
-                "draft" to newItem.isDraft,
-                "cancelled" to newItem.isCancelled,
-                "official_row_id" to newItem.contextData.officialRowId?.intValue,
-                "design_row_id" to newItem.contextData.designRowId?.intValue,
-                "design_id" to newItem.contextData.designId?.intValue,
-                "duplicate_of_location_track_id" to newItem.duplicateOf?.intValue,
-                "topological_connectivity" to newItem.topologicalConnectivity.name,
-                "topology_start_switch_id" to newItem.topologyStartSwitch?.switchId?.intValue,
-                "topology_start_switch_joint_number" to newItem.topologyStartSwitch?.jointNumber?.intValue,
-                "topology_end_switch_id" to newItem.topologyEndSwitch?.switchId?.intValue,
-                "topology_end_switch_joint_number" to newItem.topologyEndSwitch?.jointNumber?.intValue,
-                "owner_id" to newItem.ownerId.intValue,
+                "layout_context_id" to item.layoutContext.toSqlString(),
+                "id" to id.intValue,
+                "track_number_id" to item.trackNumberId.intValue,
+                "external_id" to item.externalId,
+                "alignment_id" to item.getAlignmentVersionOrThrow().id.intValue,
+                "alignment_version" to item.getAlignmentVersionOrThrow().version,
+                "name" to item.name,
+                "description_base" to item.descriptionBase,
+                "description_suffix" to item.descriptionSuffix.name,
+                "type" to item.type.name,
+                "state" to item.state.name,
+                "draft" to item.isDraft,
+                "cancelled" to item.isCancelled,
+                "design_id" to item.contextData.designId?.intValue,
+                "duplicate_of_location_track_id" to item.duplicateOf?.intValue,
+                "topological_connectivity" to item.topologicalConnectivity.name,
+                "topology_start_switch_id" to item.topologyStartSwitch?.switchId?.intValue,
+                "topology_start_switch_joint_number" to item.topologyStartSwitch?.jointNumber?.intValue,
+                "topology_end_switch_id" to item.topologyEndSwitch?.switchId?.intValue,
+                "topology_end_switch_joint_number" to item.topologyEndSwitch?.jointNumber?.intValue,
+                "owner_id" to item.ownerId.intValue,
             )
 
         jdbcTemplate.setUser()
-        val response: LayoutDaoResponse<LocationTrack> =
+        val response: LayoutRowVersion<LocationTrack> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-                rs.getDaoResponse("official_id", "row_id", "row_version")
-            } ?: throw IllegalStateException("Failed to generate ID for new Location Track")
+                rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+            } ?: throw IllegalStateException("Failed to save Location Track")
         logger.daoAccess(AccessType.INSERT, LocationTrack::class, response)
-        return response
-    }
-
-    @Transactional
-    override fun update(updatedItem: LocationTrack): LayoutDaoResponse<LocationTrack> {
-        val rowId =
-            requireNotNull(updatedItem.contextData.rowId) {
-                "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
-            }
-        val sql =
-            """
-            update layout.location_track
-            set
-              track_number_id = :track_number_id,
-              external_id = :external_id,
-              alignment_id = :alignment_id,
-              alignment_version = :alignment_version,
-              name = :name,
-              description_base = :description_base,
-              description_suffix = :description_suffix::layout.location_track_description_suffix,
-              type = :type::layout.track_type,
-              state = :state::layout.location_track_state,
-              draft = :draft,
-              cancelled = :cancelled,
-              official_row_id = :official_row_id,
-              design_row_id = :design_row_id,
-              design_id = :design_id,
-              duplicate_of_location_track_id = :duplicate_of_location_track_id,
-              topological_connectivity = :topological_connectivity::layout.track_topological_connectivity_type,
-              topology_start_switch_id = :topology_start_switch_id,
-              topology_start_switch_joint_number = :topology_start_switch_joint_number,
-              topology_end_switch_id = :topology_end_switch_id,
-              topology_end_switch_joint_number = :topology_end_switch_joint_number,
-              owner_id = :owner_id
-            where id = :id
-            returning 
-              official_id,
-              id as row_id,
-              version as row_version
-        """
-                .trimIndent()
-        val alignmentVersion = updatedItem.getAlignmentVersionOrThrow()
-        val params =
-            mapOf(
-                "id" to rowId.intValue,
-                "track_number_id" to updatedItem.trackNumberId.intValue,
-                "external_id" to updatedItem.externalId,
-                "alignment_id" to alignmentVersion.id.intValue,
-                "alignment_version" to alignmentVersion.version,
-                "name" to updatedItem.name,
-                "description_base" to updatedItem.descriptionBase,
-                "description_suffix" to updatedItem.descriptionSuffix.name,
-                "type" to updatedItem.type.name,
-                "state" to updatedItem.state.name,
-                "draft" to updatedItem.isDraft,
-                "cancelled" to updatedItem.isCancelled,
-                "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
-                "design_row_id" to updatedItem.contextData.designRowId?.intValue,
-                "design_id" to updatedItem.contextData.designId?.intValue,
-                "duplicate_of_location_track_id" to updatedItem.duplicateOf?.intValue,
-                "topological_connectivity" to updatedItem.topologicalConnectivity.name,
-                "topology_start_switch_id" to updatedItem.topologyStartSwitch?.switchId?.intValue,
-                "topology_start_switch_joint_number" to updatedItem.topologyStartSwitch?.jointNumber?.intValue,
-                "topology_end_switch_id" to updatedItem.topologyEndSwitch?.switchId?.intValue,
-                "topology_end_switch_joint_number" to updatedItem.topologyEndSwitch?.jointNumber?.intValue,
-                "owner_id" to updatedItem.ownerId.intValue,
-            )
-        jdbcTemplate.setUser()
-        val response: LayoutDaoResponse<LocationTrack> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-                rs.getDaoResponse("official_id", "row_id", "row_version")
-            } ?: throw IllegalStateException("Failed to get new version for Location Track")
-        logger.daoAccess(AccessType.UPDATE, LocationTrack::class, response)
         return response
     }
 
@@ -414,18 +370,17 @@ class LocationTrackDao(
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
-    ): List<LocationTrack> =
-        fetchVersions(layoutContext, includeDeleted, trackNumberId, names).map { r -> fetch(r.rowVersion) }
+    ): List<LocationTrack> = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).map(::fetch)
 
     fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
-    ): List<LayoutDaoResponse<LocationTrack>> {
+    ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
-            select lt.official_id, lt.row_id, lt.row_version 
+            select id, design_id, draft, version 
             from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
             where 
               (cast(:track_number_id as int) is null or lt.track_number_id = :track_number_id) 
@@ -441,7 +396,9 @@ class LocationTrackDao(
                 "include_deleted" to includeDeleted,
                 "names" to names.map { name -> name.toString().lowercase() }.joinToString(","),
             )
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
     }
 
     fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
@@ -455,13 +412,9 @@ class LocationTrackDao(
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
-            select id as row_id, version as row_version
-              from (
-                select *
-                  from layout.location_track, layout.location_track_is_in_layout_context(
-                      :publication_state::layout.publication_state,
-                      :design_id, location_track)
-              ) location_track
+            select id, design_id, draft, version
+              from layout.location_track_in_layout_context(
+                      :publication_state::layout.publication_state, :design_id) location_track
               where (:track_number_id::int is null or track_number_id = :track_number_id)
                 and (:include_deleted or state != 'DELETED')
                 and exists(
@@ -499,7 +452,9 @@ class LocationTrackDao(
                 "track_number_id" to trackNumberId?.intValue,
             )
 
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("row_id", "row_version") }
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
     }
 
     @Cacheable(CACHE_COMMON_LOCATION_TRACK_OWNER, sync = true)
@@ -529,7 +484,7 @@ class LocationTrackDao(
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
-            select id, version
+            select id, design_id, draft, version
             from layout.location_track
             where draft
               and (:includeDeleted or state != 'DELETED')
@@ -544,7 +499,9 @@ class LocationTrackDao(
                 "design_id" to branch.designId?.intValue,
             )
         return jdbcTemplate
-            .query(sql, params) { rs, _ -> rs.getLayoutRowVersion<LocationTrack>("id", "version") }
+            .query(sql, params) { rs, _ ->
+                rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
+            }
             .also { ids -> logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids) }
     }
 
@@ -552,24 +509,24 @@ class LocationTrackDao(
         target: ValidationTarget,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         trackIdsToPublish: List<IntId<LocationTrack>>,
-    ): Map<IntId<TrackLayoutTrackNumber>, List<LayoutDaoResponse<LocationTrack>>> {
+    ): Map<IntId<TrackLayoutTrackNumber>, List<LayoutRowVersion<LocationTrack>>> {
         if (trackNumberIds.isEmpty()) return emptyMap()
 
         val sql =
             """
-            select track.track_number_id, track.official_id, track.row_id, track.row_version
+            select track_number_id, id, design_id, draft, version
             from (
-            select state, track_number_id, official_id, row_id, row_version
+            select state, track_number_id, id, design_id, draft, version
               from layout.location_track_in_layout_context(:base_state::layout.publication_state, :base_design_id) official
-              where (official_id in (:track_ids_to_publish)) is distinct from true 
+              where (id in (:track_ids_to_publish)) is distinct from true
             union all
-            select state, track_number_id, official_id, row_id, row_version
+            select state, track_number_id, id, design_id, draft, version
               from layout.location_track_in_layout_context(:candidate_state::layout.publication_state, :candidate_design_id) draft
-              where official_id in (:track_ids_to_publish)
+              where id in (:track_ids_to_publish)
             ) track
             where track_number_id in (:track_number_ids)
               and track.state != 'DELETED'
-            order by track.track_number_id, track.row_id
+            order by track.track_number_id, track.id
         """
                 .trimIndent()
         val params =
@@ -583,7 +540,7 @@ class LocationTrackDao(
         val versions =
             jdbcTemplate.query(sql, params) { rs, _ ->
                 val trackNumberId = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
-                val daoResponse = rs.getDaoResponse<LocationTrack>("official_id", "row_id", "row_version")
+                val daoResponse = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
                 trackNumberId to daoResponse
             }
         return trackNumberIds.associateWith { trackNumberId ->

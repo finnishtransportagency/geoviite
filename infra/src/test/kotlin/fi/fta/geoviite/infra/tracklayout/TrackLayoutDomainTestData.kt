@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.Oid
@@ -279,8 +280,7 @@ fun trackNumber(
     externalId: Oid<TrackLayoutTrackNumber>? = someOid(),
     state: LayoutState = LayoutState.IN_USE,
     id: IntId<TrackLayoutTrackNumber>? = null,
-    draftOfId: IntId<TrackLayoutTrackNumber>? = null,
-    contextData: LayoutContextData<TrackLayoutTrackNumber> = createMainContext(id, draftOfId, draft),
+    contextData: LayoutContextData<TrackLayoutTrackNumber> = createMainContext(id, draft),
 ) =
     TrackLayoutTrackNumber(
         number = number,
@@ -330,7 +330,7 @@ fun referenceLine(
     id: IntId<ReferenceLine>? = null,
     alignmentVersion: RowVersion<LayoutAlignment>? = if (id != null) someRowVersion() else null,
     draft: Boolean = false,
-    contextData: LayoutContextData<ReferenceLine> = createMainContext(id, null, draft),
+    contextData: LayoutContextData<ReferenceLine> = createMainContext(id, draft),
 ) =
     ReferenceLine(
         trackNumberId = trackNumberId,
@@ -437,7 +437,7 @@ fun locationTrack(
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
-    contextData: LayoutContextData<LocationTrack> = createMainContext(id, null, draft),
+    contextData: LayoutContextData<LocationTrack> = createMainContext(id, draft),
     descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
 ) =
     locationTrack(
@@ -947,9 +947,8 @@ fun switch(
     stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
     id: IntId<TrackLayoutSwitch>? = null,
     draft: Boolean = false,
-    draftOfId: IntId<TrackLayoutSwitch>? = null,
     ownerId: IntId<SwitchOwner>? = switchOwnerVayla().id,
-    contextData: LayoutContextData<TrackLayoutSwitch> = createMainContext(id, draftOfId, draft),
+    contextData: LayoutContextData<TrackLayoutSwitch> = createMainContext(id, draft),
 ) =
     TrackLayoutSwitch(
         externalId = if (externalId != null) Oid(externalId) else null,
@@ -964,19 +963,15 @@ fun switch(
         contextData = contextData,
     )
 
-fun <T> createMainContext(id: IntId<T>?, draftOfId: IntId<T>?, draft: Boolean): LayoutContextData<T> =
+fun <T> createMainContext(id: IntId<T>?, draft: Boolean): LayoutContextData<T> =
     if (draft) {
         MainDraftContextData(
-            if (id != null) StoredContextIdHolder(LayoutRowVersion(id.intValue.let(::LayoutRowId), 1))
-            else UnstoredContextIdHolder(null),
-            officialRowId = draftOfId?.intValue?.let(::LayoutRowId),
-            designRowId = null,
+            if (id != null) IdentifiedAssetId(id) else TemporaryAssetId(),
+            hasOfficial = false,
+            originBranch = LayoutBranch.main,
         )
     } else {
-        MainOfficialContextData(
-            if (id != null) StoredContextIdHolder(LayoutRowVersion(id.intValue.let(::LayoutRowId), 1))
-            else UnstoredContextIdHolder(null)
-        )
+        MainOfficialContextData(if (id != null) IdentifiedAssetId(id) else TemporaryAssetId())
     }
 
 fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
@@ -1001,7 +996,7 @@ fun kmPost(
     gkLocationConfirmed: Boolean = false,
     gkLocationSource: KmPostGkLocationSource = KmPostGkLocationSource.MANUAL,
     sourceId: IntId<GeometryKmPost>? = null,
-    contextData: LayoutContextData<TrackLayoutKmPost> = createMainContext(null, null, draft),
+    contextData: LayoutContextData<TrackLayoutKmPost> = createMainContext(null, draft),
 ): TrackLayoutKmPost {
 
     return TrackLayoutKmPost(
@@ -1169,5 +1164,5 @@ fun geocodingContextCacheKey(
         trackNumberId = trackNumberId,
         trackNumberVersion = trackNumberVersion,
         referenceLineVersion = referenceLineVersion,
-        kmPostVersions = kmPostVersions.toList().sortedBy { rv -> rv.rowId.intValue },
+        kmPostVersions = kmPostVersions.toList().sortedBy { rv -> rv.id.intValue },
     )

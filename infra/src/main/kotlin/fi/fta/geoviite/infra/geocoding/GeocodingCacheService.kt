@@ -38,7 +38,7 @@ data class LayoutGeocodingContextCacheKey(
     init {
         kmPostVersions.forEachIndexed { index, version ->
             kmPostVersions.getOrNull(index + 1)?.also { next ->
-                require(next.rowId.intValue > version.rowId.intValue) {
+                require(next.id.intValue > version.id.intValue) {
                     "Cache key km-posts must be in order: " +
                         "index=$index " +
                         "trackNumberVersion=$trackNumberVersion " +

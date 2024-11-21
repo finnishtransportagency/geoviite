@@ -4,6 +4,7 @@ create view layout.switch_change_view as
 (
 select
   switch_version.id,
+  switch_version.layout_context_id,
   switch_version.change_time,
   switch_version.name,
   switch_version.state_category,
