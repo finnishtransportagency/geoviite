@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.localization.LocalizationKey
-import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.IPoint
@@ -75,7 +74,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, translation: 
                             "${range.min}${if (range.min != range.max) "-${range.max}" else ""}"
                         }
                     },
-                "publication-table.operation" to { formatOperation(translation, it.operation) },
+                "publication-table.operation" to { translation.enum(it.operation) },
                 "publication-table.publication-time" to { formatInstant(it.publicationTime, timeZone) },
                 "publication-table.publication-user" to { "${it.publicationUser}" },
                 "publication-table.message" to { it.message.escapeNewLines() },
@@ -119,27 +118,6 @@ private fun <T> formatChangeValue(translation: Translation, value: ChangeValue<T
 
 private fun formatInstant(time: Instant, timeZone: ZoneId) =
     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(timeZone).format(time)
-
-private fun formatOperation(translation: Translation, operation: Operation) =
-    when (operation) {
-        Operation.CREATE ->
-            translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"), LocalizationParams.empty)
-
-        Operation.MODIFY ->
-            translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"), LocalizationParams.empty)
-
-        Operation.DELETE ->
-            translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"), LocalizationParams.empty)
-
-        Operation.RESTORE ->
-            translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"), LocalizationParams.empty)
-
-        Operation.CALCULATED ->
-            translation.t(
-                enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"),
-                LocalizationParams.empty,
-            )
-    }
 
 fun groupChangedKmNumbers(kmNumbers: List<KmNumber>) =
     kmNumbers

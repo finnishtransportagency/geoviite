@@ -18,7 +18,7 @@ function getTranslationKey(
         case 'TOP_OF_RAIL':
             return method;
         case undefined:
-            return includeTermContextForUnknownMethod ? 'UNKNOWN-WITH-TERM-CONTEXT' : 'UNKNOWN';
+            return includeTermContextForUnknownMethod ? 'UNKNOWN_WITH_TERM_CONTEXT' : 'UNKNOWN';
         default:
             return exhaustiveMatchingGuard(method);
     }
@@ -37,8 +37,8 @@ const ElevationMeasurementMethod: React.FC<ElevationMeasurementMethodProps> = ({
     );
 
     const text = lowerCase
-        ? t(`enum.elevation-measurement-method.${measurementMethodTranslationKey}`).toLowerCase()
-        : t(`enum.elevation-measurement-method.${measurementMethodTranslationKey}`);
+        ? t(`enum.ElevationMeasurementMethod.${measurementMethodTranslationKey}`).toLowerCase()
+        : t(`enum.ElevationMeasurementMethod.${measurementMethodTranslationKey}`);
 
     return <React.Fragment>{text}</React.Fragment>;
 };

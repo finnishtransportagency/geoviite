@@ -1,13 +1,13 @@
 import React from 'react';
-import { DecisionPhase as DecisionPhaseModel } from 'geometry/geometry-model';
+import { PlanDecisionPhase } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type DecisionPhaseProps = {
-    decision: DecisionPhaseModel | undefined;
+    decision: PlanDecisionPhase | undefined;
 };
 
-function getTranslationKey(decision: DecisionPhaseModel | undefined) {
+function getTranslationKey(decision: PlanDecisionPhase | undefined) {
     switch (decision) {
         case 'APPROVED_PLAN':
         case 'UNDER_CONSTRUCTION':
@@ -24,7 +24,9 @@ const DecisionPhase: React.FC<DecisionPhaseProps> = ({ decision }: DecisionPhase
     const { t } = useTranslation();
 
     return (
-        <React.Fragment>{t(`enum.plan-decision.${getTranslationKey(decision)}`)}</React.Fragment>
+        <React.Fragment>
+            {t(`enum.PlanDecisionPhase.${getTranslationKey(decision)}`)}
+        </React.Fragment>
     );
 };
 

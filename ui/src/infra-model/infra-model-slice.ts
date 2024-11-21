@@ -11,7 +11,7 @@ import { wrapReducers } from 'store/store-utils';
 import { initialSelectionState, selectionReducers } from 'selection/selection-store';
 import {
     AuthorId,
-    DecisionPhase,
+    PlanDecisionPhase,
     GeometryPlan,
     PlanPhase,
     PlanSource,
@@ -59,7 +59,7 @@ export type InfraModelState = {
 
 export type ExtraInfraModelParameters = {
     planPhase?: PlanPhase;
-    decisionPhase?: DecisionPhase;
+    decisionPhase?: PlanDecisionPhase;
     measurementMethod?: MeasurementMethod;
     elevationMeasurementMethod?: ElevationMeasurementMethod;
     message?: Message;

@@ -32,7 +32,7 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
                     <InfoboxContentSpread>
                         <MessageBox>
                             {t(
-                                `tool-panel.switch.geometry.cannot-start-switch-linking.${geometrySwitchInvalidityReason}`,
+                                `enum.GeometrySwitchSuggestionFailureReason.${geometrySwitchInvalidityReason}`,
                             )}
                         </MessageBox>
                     </InfoboxContentSpread>

@@ -413,7 +413,7 @@ data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
     val name: Change<AlignmentName>,
     val descriptionBase: Change<LocationTrackDescriptionBase>,
-    val descriptionSuffix: Change<DescriptionSuffixType>,
+    val descriptionSuffix: Change<LocationTrackDescriptionSuffix>,
     val state: Change<LocationTrackState>,
     val duplicateOf: Change<IntId<LocationTrack>>,
     val type: Change<LocationTrackType>,
@@ -428,9 +428,9 @@ data class LocationTrackChanges(
 
 // Todo: Consider making TrackLayoutSwitch use this for trapPoint as well
 enum class TrapPoint {
-    Yes,
-    No,
-    Unknown,
+    YES,
+    NO,
+    UNKNOWN,
 }
 
 data class SwitchChanges(

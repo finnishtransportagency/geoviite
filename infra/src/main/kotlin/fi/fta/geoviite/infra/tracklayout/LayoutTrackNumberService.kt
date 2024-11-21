@@ -291,7 +291,7 @@ private fun locationSourceTranslationKey(
         null
     } else
         if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
-                kmPost.gkLocation?.source?.let { source -> "enum.gk-location-source.$source" }
+                kmPost.gkLocation?.source?.let { source -> "enum.KmPostGkLocationSource.$source" }
             } else {
                 when (kmPost.gkLocationLinkedFromGeometry) {
                     true -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-geometry"

@@ -56,7 +56,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     let locationSourceString = '';
     if (!generatedRow) {
         const gkLocationSourceString = hasGkLocation
-            ? t(`enum.gk-location-source.${gkLocation.source}`)
+            ? t(`enum.KmPostGkLocationSource.${gkLocation.source}`)
             : '';
         const layoutLocationSourceString = linkedFromGeometry
             ? t('data-products.km-lengths.table.from-geometry')

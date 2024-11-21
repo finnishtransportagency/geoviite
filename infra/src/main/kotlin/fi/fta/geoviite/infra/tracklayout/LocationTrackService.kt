@@ -414,17 +414,17 @@ class LocationTrackService(
             val endSwitchName = startAndEndSwitch.second?.let(::getSwitchShortName)
 
             when (locationTrack.descriptionSuffix) {
-                DescriptionSuffixType.NONE -> FreeText(locationTrack.descriptionBase.toString())
+                LocationTrackDescriptionSuffix.NONE -> FreeText(locationTrack.descriptionBase.toString())
 
-                DescriptionSuffixType.SWITCH_TO_BUFFER ->
+                LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER ->
                     FreeText(
                         "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
                     )
 
-                DescriptionSuffixType.SWITCH_TO_SWITCH ->
+                LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ->
                     FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
 
-                DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY ->
+                LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ->
                     FreeText(
                         "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
                     )

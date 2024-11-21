@@ -15,7 +15,7 @@ import {
     InfraModelParametersProp,
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
-import { Dropdown, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
+import { Dropdown, DropdownOption, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 import {
     compareNamed,
     CoordinateSystem,
@@ -134,15 +134,15 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
     const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || [];
 
-    const planSourceOptions = [
+    const planSourceOptions: DropdownOption<PlanSource>[] = [
         dropdownOption(
-            'GEOMETRIAPALVELU' as PlanSource,
-            t('enum.plan-source.GEOMETRIAPALVELU'),
+            'GEOMETRIAPALVELU',
+            t('enum.PlanSource.GEOMETRIAPALVELU'),
             'GEOMETRIAPALVELU',
         ),
         dropdownOption(
-            'PAIKANNUSPALVELU' as PlanSource,
-            t('enum.plan-source.PAIKANNUSPALVELU'),
+            'PAIKANNUSPALVELU',
+            t('enum.PlanSource.PAIKANNUSPALVELU'),
             'PAIKANNUSPALVELU',
         ),
     ];
@@ -528,7 +528,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         onClose={() => setFieldInEdit(undefined)}>
                         {fieldInEdit !== 'source' ? (
                             planSource ? (
-                                t(`enum.plan-source.${planSource}`)
+                                t(`enum.PlanSource.${planSource}`)
                             ) : (
                                 t('im-form.information-missing')
                             )
@@ -541,10 +541,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                         options={planSourceOptions}
                                         onChange={(planSource) => {
                                             setPlanSource(planSource);
-                                            changeInOverrideParametersField(
-                                                planSource as PlanSource,
-                                                'source',
-                                            );
+                                            changeInOverrideParametersField(planSource, 'source');
                                         }}
                                     />
                                 }

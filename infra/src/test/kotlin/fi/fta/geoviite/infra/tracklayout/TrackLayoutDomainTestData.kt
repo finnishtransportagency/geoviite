@@ -438,7 +438,7 @@ fun locationTrack(
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
     contextData: LayoutContextData<LocationTrack> = createMainContext(id, draft),
-    descriptionSuffix: DescriptionSuffixType = DescriptionSuffixType.NONE,
+    descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
 ) =
     locationTrack(
         trackNumberId = trackNumberId,
@@ -473,7 +473,7 @@ fun locationTrack(
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
-    descriptionSuffix: DescriptionSuffixType = DescriptionSuffixType.NONE,
+    descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
 ) =
     LocationTrack(
         name = AlignmentName(name),

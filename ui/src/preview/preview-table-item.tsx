@@ -185,11 +185,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             <tr className={'preview-table-item'}>
                 <td>{tableEntry.uiName}</td>
                 <td>{tableEntry.trackNumber ? tableEntry.trackNumber : ''}</td>
-                <td>
-                    {tableEntry.operation
-                        ? t(`enum.publish-operation.${tableEntry.operation}`)
-                        : ''}
-                </td>
+                <td>{tableEntry.operation ? t(`enum.Operation.${tableEntry.operation}`) : ''}</td>
                 <td>{formatDateFull(tableEntry.changeTime)}</td>
                 <td>{tableEntry.userName}</td>
                 <ValidationStateCell
