@@ -10,6 +10,7 @@ create temporary table node_point_version_temp as (
     node_switch_segments as (
       select
         lt.id as location_track_id,
+        lt.layout_context_id as location_track_layout_context_id,
         lt.version as location_track_version,
         s.switch_id,
         s.switch_start_joint_number,
@@ -33,6 +34,7 @@ create temporary table node_point_version_temp as (
       -- Segments that have a joint-point in the beginning
       select
         location_track_id,
+        location_track_layout_context_id,
         location_track_version,
         alignment_id,
         alignment_version,
@@ -48,6 +50,7 @@ create temporary table node_point_version_temp as (
       -- Segments that have a joint-point in the end
       select
         location_track_id,
+        location_track_layout_context_id,
         location_track_version,
         alignment_id,
         alignment_version,
@@ -64,6 +67,7 @@ create temporary table node_point_version_temp as (
       -- Location track topology starts
       select
         lt.id as location_track_id,
+        lt.layout_context_id as location_track_layout_context_id,
         lt.version as location_track_version,
         lt.alignment_id,
         lt.alignment_version,
@@ -71,7 +75,7 @@ create temporary table node_point_version_temp as (
         lt.topology_start_switch_joint_number as joint_number,
         0 as start_segment_index,
         null as end_segment_index,
-        lt.official_id as start_track_link,
+        lt.id as start_track_link,
         null::int as end_track_link
         from layout.location_track_version lt
           inner join layout.alignment_version a on a.id = lt.alignment_id and a.version = lt.alignment_version
@@ -82,6 +86,7 @@ create temporary table node_point_version_temp as (
       -- Location track topology ends
       select
         lt.id as location_track_id,
+        lt.layout_context_id as location_track_layout_context_id,
         lt.version as location_track_version,
         lt.alignment_id,
         lt.alignment_version,
@@ -90,7 +95,7 @@ create temporary table node_point_version_temp as (
         null as start_segment_index,
         a.segment_count - 1 as end_segment_index,
         null::int as start_track_link,
-        lt.official_id end_track_link
+        lt.id end_track_link
         from layout.location_track_version lt
           inner join layout.alignment_version a on a.id = lt.alignment_id and a.version = lt.alignment_version
           inner join layout.segment_version s on s.alignment_id = a.id and s.alignment_version = a.version and
@@ -101,6 +106,7 @@ create temporary table node_point_version_temp as (
     track_node_version_candidate as (
       select
         location_track_id,
+        location_track_layout_context_id,
         location_track_version,
         alignment_id,
         alignment_version,
@@ -117,10 +123,11 @@ create temporary table node_point_version_temp as (
         start_segment_index,
         end_segment_index
         from node_points
-        group by location_track_id, location_track_version, alignment_id, alignment_version, start_segment_index, end_segment_index
+        group by location_track_id, location_track_layout_context_id, location_track_version, alignment_id, alignment_version, start_segment_index, end_segment_index
     )
     select
       location_track_id,
+      location_track_layout_context_id,
       location_track_version,
       alignment_id,
       alignment_version,
@@ -165,20 +172,33 @@ create temp table track_edge_version_temp as (
   with edge_version_candidates as (
     select
       node.location_track_id,
+      node.location_track_layout_context_id,
       node.location_track_version,
       node.alignment_id,
       node.alignment_version,
       node.node_index as start_node_index,
-      lead(node.node_index) over (partition by node.location_track_id, node.location_track_version, node.alignment_id, node.alignment_version order by node.node_index) as end_node_index,
+      lead(node.node_index) over (
+        partition by node.location_track_id, node.location_track_layout_context_id, node.location_track_version--, node.alignment_id, node.alignment_version
+        order by node.node_index
+      ) as end_node_index,
       node.node_key as start_node_key,
-      lead(node.node_key) over (partition by node.location_track_id, node.location_track_version, node.alignment_id, node.alignment_version order by node.node_index) as end_node_key,
+      lead(node.node_key) over (
+        partition by node.location_track_id, node.location_track_layout_context_id, node.location_track_version--, node.alignment_id, node.alignment_version
+        order by node.node_index
+      ) as end_node_key,
       node.start_segment_index,
-      lead(node.end_segment_index) over (partition by node.location_track_id, node.location_track_version, node.alignment_id, node.alignment_version order by node.node_index) as end_segment_index,
+      lead(node.end_segment_index) over (
+        partition by node.location_track_id, node.location_track_layout_context_id, node.location_track_version--, node.alignment_id, node.alignment_version
+        order by node.node_index
+      ) as end_segment_index,
       ltv.change_time,
       ltv.change_user,
       ltv.deleted
       from node_point_version_temp node
-        left join layout.location_track_version ltv on ltv.id = node.location_track_id and ltv.version = node.location_track_version
+        left join layout.location_track_version ltv
+                  on ltv.id = node.location_track_id
+                    and ltv.layout_context_id = node.location_track_layout_context_id
+                    and ltv.version = node.location_track_version
   )
   select
     e.*,
@@ -189,13 +209,14 @@ create temp table track_edge_version_temp as (
       inner join layout.node end_node on e.end_node_key = end_node.key
 );
 alter table track_edge_version_temp
-  add primary key (location_track_id, location_track_version, start_node_index);
+  add primary key (location_track_id, location_track_layout_context_id, location_track_version, start_node_index);
 
 drop table if exists edge_temp;
 create temporary table edge_temp as (
   with edge_candidates as (
     select
       e.location_track_id,
+      e.location_track_layout_context_id,
       e.location_track_version,
       e.alignment_id,
       e.alignment_version,
@@ -216,7 +237,7 @@ create temporary table edge_temp as (
                   on s.alignment_id = e.alignment_id
                     and s.alignment_version = e.alignment_version
                     and s.segment_index between e.start_segment_index and e.end_segment_index
-      group by e.location_track_id, e.location_track_version, e.start_node_index
+      group by e.location_track_id, e.location_track_layout_context_id, e.location_track_version, e.start_node_index
   ),
     edge_candidates_with_hash as (
       select *,
@@ -227,9 +248,10 @@ create temporary table edge_temp as (
       select
         -- These form the location-track -> edge linkings. Each array must have the same count of elements for unnest
         -- Notably, the edge index for a particular linking may differ even when multiple location track versions share an edge
-        array_agg(location_track_id order by location_track_id, location_track_version) as location_track_ids,
-        array_agg(location_track_version order by location_track_id, location_track_version) as location_track_versions,
-        array_agg(edge_index order by location_track_id, location_track_version) as edge_indexes,
+        array_agg(location_track_id order by location_track_id, location_track_layout_context_id, location_track_version) as location_track_ids,
+        array_agg(location_track_layout_context_id order by location_track_id, location_track_layout_context_id, location_track_version) as location_track_layout_context_ids,
+        array_agg(location_track_version order by location_track_id, location_track_layout_context_id, location_track_version) as location_track_versions,
+        array_agg(edge_index order by location_track_id, location_track_layout_context_id, location_track_version) as edge_indexes,
         -- The segment contents can be identical on multiple alignment versions. It doesn't matter which one we pick the data from, so long as it's the same one
         -- The version & change time could be picked by min, but we use the same syntax as others for consistency
         (array_agg(alignment_id order by alignment_id, alignment_version))[1] as alignment_id,
@@ -528,6 +550,7 @@ select
 insert into layout.location_track_version_edge
   (
     location_track_id,
+    location_track_layout_context_id,
     location_track_version,
     edge_index,
     edge_id,
@@ -535,6 +558,7 @@ insert into layout.location_track_version_edge
   )
 select
   unnest(e.location_track_ids) as location_track_id,
+  unnest(e.location_track_layout_context_ids) as location_track_layout_context_id,
   unnest(e.location_track_versions) as location_track_version,
   unnest(e.edge_indexes) as edge_index,
   edge.id as edge_id,

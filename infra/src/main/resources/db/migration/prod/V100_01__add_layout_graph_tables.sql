@@ -1,6 +1,3 @@
--- set session geoviite.edit_user to 'MANUAL';
--- TODO: move constraints to V98 so they don't slow down the mass migration
-
 create type layout.node_type as enum ('SWITCH', 'TRACK_START', 'TRACK_END');
 create table layout.node
 (
@@ -13,6 +10,7 @@ create table layout.node
     end
     ) stored,
   key                        uuid             not null unique,
+  -- This cannot be an actual foreign key reference, as tracks are sometimes deleted and this table is immutable, like version tables
   starting_location_track_id int              null unique,
   ending_location_track_id   int              null unique,
   -- Unique constraint for enforcing type through foreign key references
@@ -28,8 +26,7 @@ create table layout.node_switch_joint
   node_id      int not null references layout.node (id),
   -- Dummy column for enforcing node type via foreign key
   node_type    layout.node_type not null generated always as ('SWITCH'::layout.node_type) stored,
-  -- TODO: could reference the official ID table, but not the current one since draft-only rows are deleted permanently
-  -- TODO: could contain index (easy enough to produce) to maintain logical order of joints. Note, the hash is order-sensitive, so this should also maintain it
+  -- This cannot be an actual foreign key reference, as switches and joints are sometimes deleted and this table is immutable, like version tables
   switch_id    int not null,
   switch_joint int not null, -- cannot reference joint-table as a current version of the switch might not exist
   constraint node_joint_unique unique (node_id, switch_id, switch_joint),
@@ -118,9 +115,12 @@ comment on table layout.edge_segment is 'A geometry segment (length with a unifi
 create table layout.location_track_version_edge
 (
   location_track_id      int not null,
+  location_track_layout_context_id varchar not null,
   location_track_version int not null,
   edge_index             int not null,
   edge_id                int not null references layout.edge (id),
-  start_m                decimal(13, 6) not null
+  start_m                decimal(13, 6) not null,
+  constraint location_track_edge_version_location_track_fkey foreign key (location_track_id, location_track_layout_context_id, location_track_version)
+    references layout.location_track_version (id, layout_context_id, version)
 );
 comment on table layout.location_track_version_edge is 'Versioned 1-to-many linking for edges composing a location track version';
