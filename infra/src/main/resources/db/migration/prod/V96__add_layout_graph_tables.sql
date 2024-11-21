@@ -54,26 +54,43 @@ select
   end
 $$ immutable;
 
--- TODO: This could be an immutable table where we just write new rows (new ids), instead of updating the existing ones
--- That way we need one less table, can have stronger references, writing becomes faster and reusing the edges (unique by combined segment data hash) is possible
-create table layout.location_track_edge
+create table layout.edge
 (
   id            int primary key generated always as identity,
   start_node_id int                             not null references layout.node (id),
   end_node_id   int                             not null references layout.node (id),
   bounding_box  postgis.geometry(polygon, 3067) null,
   segment_count int                             not null,
-  length        decimal(13, 6)                  not null
+  length        decimal(13, 6)                  not null,
+  hash          uuid                            not null unique
 );
-select common.add_table_metadata('layout', 'location_track_edge');
-comment on table layout.location_track_edge is 'Location track edge: a geometry connecting two location track nodes';
+comment on table layout.edge is 'Layout edge: an immutable geometry connecting two location track nodes';
 
--- This is a direct version-table under edge versioning
--- Hence it cannot reference main tables directly as rows in those can be deleted
-create table layout.location_track_edge_segment_version
+create or replace function layout.calculate_segment_hash(
+  geometry_alignment_id int,
+  geometry_element_index int,
+  source_start decimal(13, 6),
+  source layout.geometry_source,
+  geometry_id int
+) returns uuid
+  language sql as
+$$
+select md5(row(geometry_alignment_id, geometry_element_index, source_start, source, geometry_id)::text)::uuid
+$$ immutable;
+
+create or replace function layout.calculate_edge_hash(
+  start_node_id int,
+  end_node_id   int,
+  segment_hashes uuid[]
+) returns uuid
+  language sql as
+$$
+select md5(row(start_node_id, end_node_id, segment_hashes)::text)::uuid
+$$ immutable;
+
+create table layout.edge_segment
 (
-  edge_id                int                    not null,
-  edge_version           int                    not null,
+  edge_id                int                    not null references layout.edge (id),
   segment_index          int                    not null,
   geometry_alignment_id  int                    null,
   geometry_element_index int                    null,
@@ -81,27 +98,29 @@ create table layout.location_track_edge_segment_version
   source_start           decimal(13, 6)         null,
   source                 layout.geometry_source not null,
   geometry_id            int                    not null references layout.segment_geometry (id),
-  primary key (edge_id, edge_version, segment_index),
-  constraint location_track_edge_segment_version_edge_version_fkey
-    foreign key (edge_id, edge_version) references layout.location_track_edge_version (id, version),
+  hash                   uuid                   not null generated always as (
+    layout.calculate_segment_hash(
+        geometry_alignment_id,
+        geometry_element_index,
+        source_start,
+        source,
+        geometry_id
+    )) stored,
+  primary key (edge_id, segment_index),
   constraint edge_segment_version_geometry_alignment_fkey
     foreign key (geometry_alignment_id) references geometry.alignment (id),
   constraint edge_segment_version_geometry_element_fkey
     foreign key (geometry_alignment_id, geometry_element_index) references geometry.element (alignment_id, element_index)
 );
-comment on table layout.location_track_edge_segment_version is 'A versioned geometry segment in an alignment edge';
+comment on table layout.edge_segment is 'A geometry segment (length with a unified metadata) in a layout edge';
 
 -- This is a direct version-table under location_track versioning. It maintains a 1-many list of edges
-create table layout.location_track_edge_ref_version
+create table layout.location_track_version_edge
 (
   location_track_id      int not null,
   location_track_version int not null,
   edge_index             int not null,
-  edge_id                int not null,
-  edge_version           int not null,
--- Versioned ref: if the edge is updated, these refs need to be updated as well
-  constraint location_track_edge_ref_edge_fkey
-    foreign key (edge_id, edge_version) references layout.location_track_edge_version (id, version)
-      deferrable initially deferred
+  edge_id                int not null references layout.edge (id),
+  start_m                decimal(13, 6) not null
 );
-comment on table layout.location_track_edge_ref_version is 'Versioned 1-to-many linking for locationtrack edges';
+comment on table layout.location_track_version_edge is 'Versioned 1-to-many linking for edges composing a location track version';
