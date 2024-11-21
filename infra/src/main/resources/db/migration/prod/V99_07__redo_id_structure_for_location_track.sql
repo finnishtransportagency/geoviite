@@ -128,6 +128,7 @@ set id = official_id, version = last_version.version
 
 alter table layout.location_track
   add constraint layout_location_track_pkey primary key (id, layout_context_id),
+  add constraint location_track_id_fkey foreign key (id) references layout.location_track_id (id),
   -- excess constraint just for publication.split to have something to point to, as before
   add constraint location_track_id_version_unique unique (id, layout_context_id, version);
 
@@ -162,9 +163,6 @@ alter table layout.location_track
   drop column design_row_id;
 alter table layout.location_track
   drop column official_row_id;
-
-alter table layout.location_track
-  add constraint location_track_id_fkey foreign key (id) references layout.location_track_id (id);
 
 alter table layout.location_track
   enable trigger version_update_trigger;
