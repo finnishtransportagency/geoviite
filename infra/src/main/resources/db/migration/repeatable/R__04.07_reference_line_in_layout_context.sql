@@ -42,43 +42,12 @@ select
 $$;
 
 create function layout.reference_line_in_layout_context(publication_state_in layout.publication_state, design_id_in int)
-  returns table
-          (
-            layout_context_id text,
-            id                integer,
-            design_id         integer,
-            draft             boolean,
-            version           integer,
-            track_number_id   int,
-            alignment_id      int,
-            alignment_version int,
-            start_address     varchar(20),
-            change_user       varchar(30),
-            change_time       timestamptz,
-            bounding_box      postgis.geometry(Polygon, 3067),
-            length            numeric(13, 6),
-            segment_count     int
-          )
+  returns setof layout.reference_line
   language sql
   stable
 as
 $$
-select
-  row.layout_context_id,
-  row.id,
-  design_id,
-  row.draft,
-  row.version,
-  row.track_number_id,
-  row.alignment_id,
-  row.alignment_version,
-  row.start_address,
-  row.change_user,
-  row.change_time,
-  alignment.bounding_box,
-  alignment.length,
-  alignment.segment_count
-  from layout.reference_line row
-    left join layout.alignment on row.alignment_id = alignment.id,
-    layout.reference_line_is_in_layout_context(publication_state_in, design_id_in, row)
+select *
+from layout.reference_line,
+     layout.reference_line_is_in_layout_context(publication_state_in, design_id_in, reference_line)
 $$

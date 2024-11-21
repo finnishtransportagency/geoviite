@@ -42,40 +42,12 @@ select
 $$;
 
 create function layout.km_post_in_layout_context(publication_state_in layout.publication_state, design_id_in int)
-  returns table
-          (
-            layout_context_id   text,
-            id                  integer,
-            design_id           integer,
-            draft               boolean,
-            version             integer,
-            track_number_id     integer,
-            geometry_km_post_id integer,
-            km_number           varchar(6),
-            layout_location     postgis.geometry(Point, 3067),
-            gk_location         postgis.geometry(Point),
-            state               layout.state,
-            change_user         varchar(30),
-            change_time         timestamptz
-          )
+  returns setof layout.km_post
   language sql
   stable
 as
 $$
-select
-  layout_context_id,
-  id,
-  design_id,
-  draft,
-  version,
-  row.track_number_id,
-  row.geometry_km_post_id,
-  row.km_number,
-  row.layout_location,
-  row.gk_location,
-  row.state,
-  row.change_user,
-  row.change_time
-  from layout.km_post row,
-    layout.km_post_is_in_layout_context(publication_state_in, design_id_in, row)
+select *
+from layout.km_post,
+  layout.km_post_is_in_layout_context(publication_state_in, design_id_in, km_post)
 $$;

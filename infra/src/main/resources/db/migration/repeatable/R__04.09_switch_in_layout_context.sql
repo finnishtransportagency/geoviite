@@ -41,44 +41,12 @@ select
 $$;
 
 create function layout.switch_in_layout_context(publication_state_in layout.publication_state, design_id_in int)
-  returns table
-          (
-            layout_context_id   text,
-            id                  integer,
-            design_id           integer,
-            draft               boolean,
-            version             integer,
-            external_id         varchar(50),
-            geometry_switch_id  integer,
-            name                varchar(50),
-            switch_structure_id integer,
-            state_category      layout.state_category,
-            trap_point          boolean,
-            owner_id            integer,
-            change_user         varchar(30),
-            change_time         timestamptz,
-            source              layout.geometry_source
-          )
+  returns setof layout.switch
   language sql
   stable
 as
 $$
-select
-  layout_context_id,
-  id,
-  design_id,
-  draft,
-  version,
-  row.external_id,
-  row.geometry_switch_id,
-  row.name,
-  row.switch_structure_id,
-  row.state_category,
-  row.trap_point,
-  row.owner_id,
-  row.change_user,
-  row.change_time,
-  row.source
-  from layout.switch row,
-    layout.switch_is_in_layout_context(publication_state_in, design_id_in, row)
+select *
+from layout.switch,
+  layout.switch_is_in_layout_context(publication_state_in, design_id_in, switch)
 $$;
