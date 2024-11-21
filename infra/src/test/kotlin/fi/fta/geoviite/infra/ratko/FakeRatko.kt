@@ -146,6 +146,10 @@ class FakeRatko(port: Int) {
         put("/api/infra/v1.0/locationtracks", mapOf("id" to locationTrackAsset.id)).respond(ok())
         get("/api/locations/v1.1/locationtracks/${locationTrackAsset.id}").respond(okJson(listOf(locationTrackAsset)))
         patch("/api/infra/v1.0/points/${locationTrackAsset.id}").respond(ok())
+        locationTrackAsset.nodecollection.nodes
+            .map { node -> node.point.km }
+            .distinct()
+            .forEach { km -> delete("/api/infra/v1.0/points/${locationTrackAsset.id}/${km}").respond(ok()) }
     }
 
     fun hasSwitch(switchAsset: InterfaceRatkoSwitch) {
@@ -324,6 +328,13 @@ class FakeRatko(port: Int) {
         bodyMatchType: MatchType? = null,
         times: Times? = null,
     ): ForwardChainExpectation = expectation(url, "PATCH", body, bodyMatchType, times)
+
+    private fun delete(
+        url: String,
+        body: Any? = null,
+        bodyMatchType: MatchType? = null,
+        times: Times? = null,
+    ): ForwardChainExpectation = expectation(url, "DELETE", body, bodyMatchType, times)
 
     private fun expectation(
         url: String,
