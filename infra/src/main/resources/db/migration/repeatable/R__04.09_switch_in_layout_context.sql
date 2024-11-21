@@ -29,6 +29,7 @@ select
                                from layout.switch overriding_design_official
                                where overriding_design_official.design_id = design_id_in
                                  and not overriding_design_official.draft
+                                 and not overriding_design_official.cancelled
                                  and overriding_design_official.id = switch.id
                                  and (publication_state_in = 'OFFICIAL' or not exists (
                                    select *

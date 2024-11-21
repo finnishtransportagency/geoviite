@@ -1327,6 +1327,7 @@
         "warnings-status-text": "varoituksia ({{warnings}} kpl)",
         "errors-group-title": "Virheitä",
         "warnings-group-title": "Varoituksia",
+        "cancellation": "Suunnitellun muutoksen ({{operation}}) peruminen",
         "api-error-icon-hover-text": "Validointipyynnössä tapahtui virhe"
     },
     "preview-footer": {
@@ -1389,6 +1390,7 @@
         "revert-change": "Hylkää muutos",
         "show-on-map": "Kohdista kartalla",
         "publish-success": "Muutokset julkaistu paikannuspohjaan",
+        "cancellation-success": "Muutoksen peruminen on kirjattu julkaistavaksi suunnitelman muutokseksi",
         "revert-success": "Luonnosmuutokset peruttu",
         "track-numbers": "Ratanumeroita",
         "km-posts": "Tasakilometripisteitä",
@@ -1398,7 +1400,8 @@
         "move-publication-group": "Siirrä kokonaisuus ({{amount}} kpl)",
         "revert-publication-group": "Hylkää kokonaisuus  ({{amount}} kpl)",
         "move-all-shown-changes": "Siirrä kaikki listan muutokset ({{amount}} kpl)",
-        "revert-all-shown-changes": "Hylkää kaikki listan muutokset ({{amount}} kpl)"
+        "revert-all-shown-changes": "Hylkää kaikki listan muutokset ({{amount}} kpl)",
+        "cancel-change": "Peru muutos suunnitelmasta"
     },
     "validation": {
         "layout": {
@@ -1406,7 +1409,8 @@
                 "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava ratanumero ei ole luonnos",
                 "reference-line": {
-                    "not-published": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa"
+                    "not-published": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa",
+                    "cancelled": "Ratanumeron pituusmittauslinja on peruttu suunnitelmasta"
                 },
                 "location-track": {
                     "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen raiteita: {{locationTracks}}"
@@ -1426,6 +1430,7 @@
                     "null": "Tasakilometripisteeltä puuttuu ratanumero tai se ei ole mukana julkaisussa",
                     "not-official": "Tasakilometripiste viittaa ratanumeron {{trackNumber}} luonnosriviin",
                     "not-published": "Tasakilometripiste viittaa julkaisemattomaan ratanumeroon {{trackNumber}}",
+                    "cancelled": "Tasakilometripiste viittaa suunnitelmasta peruttuun ratanumeroon {{trackNumber}}",
                     "state": {
                         "DELETED": "Tasakilometripiste viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Poistettu\""
                     }
@@ -1440,7 +1445,8 @@
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava pituusmittauslinja ei ole luonnos",
                 "track-number": {
                     "not-official": "Pituusmittauslinja viittaa ratanumeron {{trackNumber}} luonnosriviin",
-                    "not-published": "Pituusmittauslinja viittaa julkaisemattomaan ratanumeroon {{trackNumber}}"
+                    "not-published": "Pituusmittauslinja viittaa julkaisemattomaan ratanumeroon {{trackNumber}}",
+                    "cancelled": "Pituusmittauslinja viittaa suunnitelmasta peruttuun ratanumeroon {{trackNumber}}"
                 },
                 "empty-segments": "Pituusmittauslinjalla ei ole geometriaa",
                 "points": {
@@ -1455,6 +1461,7 @@
                     },
                     "not-official": "Raide viittaa duplikaattiraiteen {{duplicateTrack}} luonnosriviin",
                     "not-published": "Raide viittaa julkaisemattomaan duplikaattiraiteeseen {{duplicateTrack}}",
+                    "cancelled": "Raide viittaa suunnitelmasta peruttuun duplikaattiraiteeseen {{duplicateTrack}}",
                     "publishing-duplicate-of-duplicated": "Raide on merkitty duplikaatiksi raiteelle {{duplicateTrack}}, joka itse on myös duplikaatti",
                     "publishing-duplicate-while-duplicated": "Raide on merkitty duplikaatiksi, mutta raide {{otherDuplicates}} on tämän raiteen duplikaatti",
                     "publishing-duplicate-while-duplicated-multiple": "Raide on merkitty duplikaatiksi, mutta raiteet {{otherDuplicates}} ovat tämän raiteen duplikaatteja"
@@ -1468,6 +1475,7 @@
                 "track-number": {
                     "not-official": "Sijaintiraide viittaa ratanumeron {{trackNumber}} luonnosriviin",
                     "not-published": "Sijaintiraide viittaa ratanumeroon {{trackNumber}}, joka ei ole mukana julkaisussa",
+                    "cancelled": "Sijaintiraide viittaa suunnitelmasta peruttuun ratanumeroon {{trackNumber}}",
                     "state": {
                         "DELETED": "Sijaintiraide viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Poistettu\""
                     }
@@ -1475,6 +1483,7 @@
                 "switch": {
                     "not-official": "Sijaintiraide viittaa vaihteen {{switch}} luonnosriviin",
                     "not-published": "Sijaintiraide viittaa julkaisemattomaan luonnosvaihteeseen {{switch}}",
+                    "cancelled": "Sijaintiraide viittaa suunnitelmasta peruttuun vaihteeseen {{switch}}",
                     "state-category": {
                         "NOT_EXISTING": "Sijaintiraide viittaa vaihteeseen {{switch}}, joka on tilakategoriassa \"Poistunut kohde\""
                     },
@@ -1557,7 +1566,8 @@
                 "no-geometry": "Raiteella ei ole geometriaa",
                 "affected-split-in-progress": "Muutos voi vaikuttaa osoitteistoon raiteella {{sourceName}}, jonka jakamista ei ole vielä viety Ratkoon",
                 "track-split-in-progress": "Raiteen {{sourceName}} jakamista ei ole vielä viety Ratkoon, joten muita muutoksia ei voi vielä tehdä",
-                "track-links-missing-after-relinking": "Vaihteen {{switchName}} kaikki linjat eivät enää kulje vaihteen kautta uudelleenlinkityksen jälkeen"
+                "track-links-missing-after-relinking": "Vaihteen {{switchName}} kaikki linjat eivät enää kulje vaihteen kautta uudelleenlinkityksen jälkeen",
+                "track-is-cancelled": "Jakamisessa mukanaa olevaa raidetta {{name}} ei voi perua julkaisusta"
             }
         }
     },

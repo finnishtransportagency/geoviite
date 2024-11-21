@@ -71,6 +71,7 @@ type PreviewTableProps = {
     tableValidationState: PublicationValidationState;
     tableEntryValidationState: (tableEntry: PreviewTableEntry) => PublicationValidationState;
     canRevertChanges: boolean;
+    canCancelChanges: boolean;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
@@ -86,6 +87,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     tableValidationState,
     tableEntryValidationState,
     canRevertChanges,
+    canCancelChanges,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -217,6 +219,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     }
                                     validationState={tableEntryValidationState(entry)}
                                     canRevertChanges={canRevertChanges}
+                                    canCancelChanges={canCancelChanges}
                                 />
                             }
                         </React.Fragment>

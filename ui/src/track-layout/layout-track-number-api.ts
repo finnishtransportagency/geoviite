@@ -1,6 +1,7 @@
 import { asyncCache } from 'cache/cache';
 import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import {
+    DesignBranch,
     draftLayoutContext,
     LayoutAssetChangeInfo,
     LayoutContext,
@@ -14,7 +15,7 @@ import {
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri, layoutUriByBranch } from 'track-layout/track-layout-api';
 import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-number-edit-store';
 import {
     getChangeTimes,
@@ -111,3 +112,10 @@ export const getTrackNumberChangeTimes = (
 ): Promise<LayoutAssetChangeInfo | undefined> => {
     return getNullable<LayoutAssetChangeInfo>(changeInfoUri('track-numbers', id, layoutContext));
 };
+
+export async function cancelTrackNumber(
+    design: DesignBranch,
+    id: LayoutTrackNumberId,
+): Promise<void> {
+    return postNonNull(`${layoutUriByBranch('track-numbers', design)}/${id}/cancel`, '');
+}

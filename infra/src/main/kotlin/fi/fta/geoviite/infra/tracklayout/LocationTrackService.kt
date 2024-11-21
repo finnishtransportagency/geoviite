@@ -224,13 +224,15 @@ class LocationTrackService(
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<LocationTrack>): LayoutRowVersion<LocationTrack> {
-        val draft = dao.getOrThrow(branch.draft, id)
+        // cancellations are hidden, so if we're deleting a cancellation, this will return
+        // main-official or null
+        val draft = dao.get(branch.draft, id)
         // If removal also breaks references, clear them out first
-        if (!draft.contextData.hasOfficial) {
+        if (draft?.contextData?.hasOfficial != true) {
             clearDuplicateReferences(branch, id)
         }
         val deletedVersion = super.deleteDraft(branch, id)
-        draft.alignmentVersion?.id?.let(alignmentDao::delete)
+        dao.fetch(deletedVersion).alignmentVersion?.id?.let(alignmentDao::delete)
         return deletedVersion
     }
 
@@ -750,6 +752,9 @@ class LocationTrackService(
             asMainDraft(track.copy(alignmentVersion = alignmentService.duplicate(track.getAlignmentVersionOrThrow())))
         )
     }
+
+    override fun cancelInternal(asset: LocationTrack) =
+        cancelled(asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())))
 }
 
 fun collectAllSwitches(locationTrack: LocationTrack, alignment: LayoutAlignment): List<IntId<TrackLayoutSwitch>> {

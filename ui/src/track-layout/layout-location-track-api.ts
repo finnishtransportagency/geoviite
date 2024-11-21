@@ -9,6 +9,7 @@ import {
     LocationTrackInfoboxExtras,
 } from 'track-layout/track-layout-model';
 import {
+    DesignBranch,
     draftLayoutContext,
     LayoutAssetChangeInfo,
     LayoutContext,
@@ -23,7 +24,7 @@ import {
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri, layoutUriByBranch } from 'track-layout/track-layout-api';
 import { asyncCache } from 'cache/cache';
 import { BoundingBox } from 'model/geometry';
 import { bboxString } from 'common/common-api';
@@ -312,4 +313,11 @@ export async function getLocationTrackValidation(
     return getNullable<ValidatedLocationTrack>(
         `${layoutUri('location-tracks', layoutContext, id)}/validation`,
     );
+}
+
+export async function cancelLocationTrack(
+    design: DesignBranch,
+    id: LocationTrackId,
+): Promise<void> {
+    return postNonNull(`${layoutUriByBranch('location-tracks', design)}/${id}/cancel`, '');
 }

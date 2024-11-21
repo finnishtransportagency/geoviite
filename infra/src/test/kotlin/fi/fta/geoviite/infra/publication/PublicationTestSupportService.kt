@@ -119,6 +119,14 @@ constructor(
     fun getCalculatedChangesInRequest(versions: ValidationVersions): CalculatedChanges =
         calculatedChangesService.getCalculatedChanges(versions)
 
+    fun publish(layoutBranch: LayoutBranch, request: PublicationRequestIds): PublicationResult {
+        val versions = publicationService.getValidationVersions(layoutBranch, request)
+        verifyVersions(request, versions)
+        verifyVersionsAreDrafts(layoutBranch, versions)
+        val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
+        return testPublish(layoutBranch, versions, draftCalculatedChanges)
+    }
+
     fun publishAndVerify(layoutBranch: LayoutBranch, request: PublicationRequestIds): PublicationResult {
         val versions = publicationService.getValidationVersions(layoutBranch, request)
         verifyVersions(request, versions)

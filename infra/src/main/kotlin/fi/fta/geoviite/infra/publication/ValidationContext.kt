@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
@@ -221,6 +222,19 @@ class ValidationContext(
             geocodingService.getAddressPoints(key, track.getAlignmentVersionOrThrow())
         }
 
+    fun trackNumberIsCancelled(id: IntId<TrackLayoutTrackNumber>) =
+        objectIsCancelled(id, publicationSet.trackNumbers, trackNumberDao)
+
+    fun referenceLineIsCancelled(id: IntId<ReferenceLine>) =
+        objectIsCancelled(id, publicationSet.referenceLines, referenceLineDao)
+
+    fun locationTrackIsCancelled(id: IntId<LocationTrack>) =
+        objectIsCancelled(id, publicationSet.locationTracks, locationTrackDao)
+
+    fun switchIsCancelled(id: IntId<TrackLayoutSwitch>) = objectIsCancelled(id, publicationSet.switches, switchDao)
+
+    fun kmPostIsCancelled(id: IntId<TrackLayoutKmPost>) = objectIsCancelled(id, publicationSet.kmPosts, kmPostDao)
+
     fun preloadByPublicationSet() {
         preloadAssociatedTrackNumberAndReferenceLineVersions(publicationSet)
 
@@ -412,6 +426,12 @@ class ValidationContext(
     }
 }
 
+private fun <T : LayoutAsset<T>> objectIsCancelled(
+    itemId: IntId<T>,
+    publicationVersions: List<LayoutRowVersion<T>>,
+    dao: ILayoutAssetDao<T>,
+): Boolean = publicationVersions.find { v -> v.id == itemId }?.let(dao::fetch)?.isCancelled ?: false
+
 private fun <T : LayoutAsset<T>> getObject(
     baseContext: LayoutContext,
     itemId: IntId<T>,
@@ -419,10 +439,13 @@ private fun <T : LayoutAsset<T>> getObject(
     dao: ILayoutAssetDao<T>,
     versionCache: RowVersionCache<T>,
 ): T? {
-    val version =
-        publicationVersions.find { v -> v.id == itemId }
-            ?: versionCache.get(itemId) { id -> dao.fetchVersion(baseContext, id) }
-    return version?.let(dao::fetch)
+    val publicationVersion = publicationVersions.find { v -> v.id == itemId }
+    return if (publicationVersion != null) {
+        val publicationObject = dao.fetch(publicationVersion)
+        if (publicationObject.isCancelled) {
+            dao.fetchVersion(MainLayoutContext.official, itemId)?.let(dao::fetch)
+        } else publicationObject
+    } else versionCache.get(itemId) { id -> dao.fetchVersion(baseContext, id) }?.let(dao::fetch)
 }
 
 private fun <T : LayoutAsset<T>> preloadBaseVersions(

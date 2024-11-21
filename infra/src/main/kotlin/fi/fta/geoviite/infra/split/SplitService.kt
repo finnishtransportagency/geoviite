@@ -212,16 +212,45 @@ class SplitService(
         trackId: IntId<LocationTrack>,
         context: ValidationContext,
     ): List<LayoutValidationIssue> {
-        val splits =
-            context
-                .getUnfinishedSplits()
-                .filter { split -> split.locationTracks.contains(trackId) }
-                .map { split -> split to locationTrackDao.fetch(split.sourceLocationTrackVersion) }
-        val track =
-            requireNotNull(context.getLocationTrack(trackId)) {
-                "The track to validate must exist in the validation context: id=$trackId"
-            }
+        val splits = context.getUnfinishedSplits().filter { split -> split.locationTracks.contains(trackId) }
+        val track = context.getLocationTrack(trackId)
 
+        return if (track == null) validateLocationTrackAbsence(trackId, context, splits)
+        else
+            validateSplitForFoundLocationTrack(
+                trackId,
+                context,
+                splits.map { split -> split to locationTrackDao.fetch(split.sourceLocationTrackVersion) },
+                track,
+            )
+    }
+
+    private fun validateLocationTrackAbsence(
+        trackId: IntId<LocationTrack>,
+        context: ValidationContext,
+        splits: List<Split>,
+    ): List<LayoutValidationIssue> {
+        if (!context.locationTrackIsCancelled(trackId)) {
+            throw IllegalArgumentException("The track to validate must exist in the validation context: id=$trackId")
+        }
+        return splits.flatMap { split ->
+            if (trackId == split.sourceLocationTrackId || split.locationTracks.contains(trackId)) {
+                listOf(
+                    validationError(
+                        "$VALIDATION_SPLIT.track-is-cancelled",
+                        "name" to context.getDraftLocationTrack(trackId)?.name,
+                    )
+                )
+            } else listOf()
+        }
+    }
+
+    private fun validateSplitForFoundLocationTrack(
+        trackId: IntId<LocationTrack>,
+        context: ValidationContext,
+        splits: List<Pair<Split, LocationTrack>>,
+        track: LocationTrack,
+    ): List<LayoutValidationIssue> {
         val splitSourceLocationTrackErrors =
             splits.flatMap { (split, _) ->
                 if (split.sourceLocationTrackId == trackId) validateSplitSourceLocationTrack(track, split)

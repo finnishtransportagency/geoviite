@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
@@ -1420,6 +1421,150 @@ constructor(
                 .publicationId!!
         val changes = publicationDao.fetchPublishedSwitches(publicationId)
         assertEquals(setOf(trackNumber), changes.directChanges[0].trackNumberIds)
+    }
+
+    @Test
+    fun `publishing a cancellation of an asset creation in a design removes the asset from design-official context`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val trackNumber = designDraftContext.createLayoutTrackNumber().id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        val referenceLine = designDraftContext.insert(referenceLine(trackNumber), alignment).id
+        val locationTrack = designDraftContext.insert(locationTrack(trackNumber), alignment).id
+        val switch = designDraftContext.insert(switch()).id
+        val kmPost = designDraftContext.insert(kmPost(trackNumber, KmNumber(1))).id
+
+        publicationTestSupportService.publishAndVerify(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber),
+                referenceLines = listOf(referenceLine),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
+            ),
+        )
+
+        trackNumberService.cancel(designBranch, trackNumber)
+        referenceLineService.cancel(designBranch, referenceLine)
+        locationTrackService.cancel(designBranch, locationTrack)
+        switchService.cancel(designBranch, switch)
+        kmPostService.cancel(designBranch, kmPost)
+
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber),
+                referenceLines = listOf(referenceLine),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
+            ),
+        )
+
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        assertNull(designOfficialContext.fetchVersion(trackNumber))
+        assertNull(designOfficialContext.fetchVersion(referenceLine))
+        assertNull(designOfficialContext.fetchVersion(locationTrack))
+        assertNull(designOfficialContext.fetchVersion(switch))
+        assertNull(designOfficialContext.fetchVersion(kmPost))
+    }
+
+    @Test
+    fun `publishing a cancellation of an asset edit brings out the main-official row in the design context`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        val referenceLine = mainOfficialContext.insert(referenceLine(trackNumber), alignment).id
+        val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber), alignment).id
+        val switch = mainOfficialContext.insert(switch()).id
+        val kmPost = mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1))).id
+
+        designDraftContext.insert(mainOfficialContext.fetch(trackNumber)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(referenceLine)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(locationTrack)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(switch)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(kmPost)!!)
+
+        publicationTestSupportService.publishAndVerify(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber),
+                referenceLines = listOf(referenceLine),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
+            ),
+        )
+
+        trackNumberService.cancel(designBranch, trackNumber)
+        referenceLineService.cancel(designBranch, referenceLine)
+        locationTrackService.cancel(designBranch, locationTrack)
+        switchService.cancel(designBranch, switch)
+        kmPostService.cancel(designBranch, kmPost)
+
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber),
+                referenceLines = listOf(referenceLine),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
+            ),
+        )
+
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        assertEquals(MainLayoutContext.official, designOfficialContext.fetch(trackNumber)?.layoutContext)
+        assertEquals(MainLayoutContext.official, designOfficialContext.fetch(referenceLine)?.layoutContext)
+        assertEquals(MainLayoutContext.official, designOfficialContext.fetch(locationTrack)?.layoutContext)
+        assertEquals(MainLayoutContext.official, designOfficialContext.fetch(switch)?.layoutContext)
+        assertEquals(MainLayoutContext.official, designOfficialContext.fetch(kmPost)?.layoutContext)
+    }
+
+    @Test
+    fun `cancelled items are not merge-to-main candidates`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
+
+        val trackNumber = designOfficialContext.insert(trackNumber()).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
+        val referenceLine = designOfficialContext.insert(referenceLine(trackNumber), alignment).id
+        val locationTrack = designOfficialContext.insert(locationTrack(trackNumber), alignment).id
+        val switch = designOfficialContext.insert(switch()).id
+        val kmPost = designOfficialContext.insert(kmPost(trackNumber, KmNumber(1))).id
+
+        val trackNumberToBeCancelled = designOfficialContext.insert(trackNumber(TrackNumber("aoeu"))).id
+        val referenceLineToBeCancelled =
+            designOfficialContext.insert(referenceLine(trackNumberToBeCancelled), alignment).id
+        val locationTrackToBeCancelled = designOfficialContext.insert(locationTrack(trackNumber), alignment).id
+        val switchToBeCancelled = designOfficialContext.insert(switch()).id
+        val kmPostToBeCancelled = designOfficialContext.insert(kmPost(trackNumberToBeCancelled, KmNumber(1))).id
+
+        trackNumberService.cancel(designBranch, trackNumberToBeCancelled)
+        referenceLineService.cancel(designBranch, referenceLineToBeCancelled)
+        locationTrackService.cancel(designBranch, locationTrackToBeCancelled)
+        switchService.cancel(designBranch, switchToBeCancelled)
+        kmPostService.cancel(designBranch, kmPostToBeCancelled)
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumberToBeCancelled),
+                referenceLines = listOf(referenceLineToBeCancelled),
+                locationTracks = listOf(locationTrackToBeCancelled),
+                switches = listOf(switchToBeCancelled),
+                kmPosts = listOf(kmPostToBeCancelled),
+            ),
+        )
+
+        val candidates =
+            publicationService.collectPublicationCandidates(LayoutContextTransition.mergeToMainFrom(designBranch))
+        assertEquals(listOf(trackNumber), candidates.trackNumbers.map { it.id })
+        assertEquals(listOf(referenceLine), candidates.referenceLines.map { it.id })
+        assertEquals(listOf(locationTrack), candidates.locationTracks.map { it.id })
+        assertEquals(listOf(switch), candidates.switches.map { it.id })
+        assertEquals(listOf(kmPost), candidates.kmPosts.map { it.id })
     }
 
     data class PublicationGroupTestData(

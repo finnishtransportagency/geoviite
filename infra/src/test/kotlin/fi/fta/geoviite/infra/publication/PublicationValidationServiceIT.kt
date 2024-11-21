@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -1550,6 +1551,160 @@ constructor(
         assertEquals(0, validateSplitContent(splitSetup.trackResponses, listOf(switch), listOf(split), false).size)
     }
 
+    @Test
+    fun `validation reports references to cancelled track number`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val trackNumber = designOfficialContext.insert(trackNumber()).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val referenceLine = designDraftContext.insert(referenceLine(trackNumber), alignment).id
+        val locationTrack = designDraftContext.insert(locationTrack(trackNumber), alignment).id
+        trackNumberService.cancel(designBranch, trackNumber)
+        val validated =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(
+                    trackNumbers = listOf(trackNumber),
+                    referenceLines = listOf(referenceLine),
+                    locationTracks = listOf(locationTrack),
+                ),
+            )
+        assertEquals(
+            listOf("validation.layout.reference-line.track-number.cancelled"),
+            validated.validatedAsPublicationUnit.referenceLines[0].issues.map { it.localizationKey.toString() },
+        )
+        assertEquals(
+            listOf("validation.layout.location-track.track-number.cancelled"),
+            validated.validatedAsPublicationUnit.locationTracks[0].issues.map { it.localizationKey.toString() },
+        )
+    }
+
+    @Test
+    fun `validation reports references to cancelled duplicate location track`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val trackNumber = designOfficialContext.insert(trackNumber()).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        designOfficialContext.insert(referenceLine(trackNumber), alignment).id
+        val mainLocationTrack = designOfficialContext.insert(locationTrack(trackNumber), alignment).id
+        val duplicatingLocationTrack =
+            designDraftContext.insert(locationTrack(trackNumber, duplicateOf = mainLocationTrack), alignment).id
+        locationTrackService.cancel(designBranch, mainLocationTrack)
+
+        val validatedWithoutCancellationPublication =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(locationTracks = listOf(duplicatingLocationTrack)),
+            )
+        assertEquals(
+            listOf(),
+            validatedWithoutCancellationPublication.validatedAsPublicationUnit.locationTracks[0].issues,
+        )
+
+        val validatedIncludingCancellation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(locationTracks = listOf(duplicatingLocationTrack, mainLocationTrack)),
+            )
+        assertEquals(
+            listOf("validation.layout.location-track.duplicate-of.cancelled"),
+            validatedIncludingCancellation.validatedAsPublicationUnit.locationTracks
+                .find { it.id == duplicatingLocationTrack }
+                ?.issues
+                ?.map { it.localizationKey.toString() },
+        )
+    }
+
+    @Test
+    fun `validation notices a switch linking going bad due to the correctly linked location track being cancelled`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val trackNumber = designOfficialContext.insert(trackNumber()).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(40.0, 0.0)))
+        designOfficialContext.insert(referenceLine(trackNumber), alignment).id
+        val switch =
+            designOfficialContext
+                .insert(
+                    switch(
+                        name = "some switch",
+                        joints =
+                            listOf(
+                                TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null),
+                                TrackLayoutSwitchJoint(JointNumber(2), Point(34.4, 0.0), null),
+                                TrackLayoutSwitchJoint(JointNumber(3), Point(34.3, 2.0), null),
+                            ),
+                    )
+                )
+                .id
+        val throughTrackAlignment =
+            alignment(
+                segment(Point(-1.0, 0.0), Point(0.0, 0.0)),
+                segment(Point(0.0, 0.0), Point(34.4, 0.0))
+                    .copy(switchId = switch, startJointNumber = JointNumber(1), endJointNumber = JointNumber(2)),
+            )
+        val mainOfficialBranchingTrackAlignment = alignment(segment(Point(0.0, 0.0), Point(34.4, 2.0)))
+        val linkedBranchingTrackAlignment =
+            alignment(
+                segment(Point(0.0, 0.0), Point(34.4, 2.0))
+                    .copy(switchId = switch, startJointNumber = JointNumber(1), endJointNumber = JointNumber(3))
+            )
+        val throughTrack =
+            mainOfficialContext
+                .insert(
+                    locationTrack(trackNumber, topologicalConnectivity = TopologicalConnectivityType.END),
+                    throughTrackAlignment,
+                )
+                .id
+        val branchingTrack =
+            mainOfficialContext
+                .insert(
+                    locationTrack(trackNumber, topologicalConnectivity = TopologicalConnectivityType.START_AND_END),
+                    mainOfficialBranchingTrackAlignment,
+                )
+                .id
+        designDraftContext.insert(mainOfficialContext.fetch(throughTrack)!!, throughTrackAlignment)
+        designDraftContext.insert(mainOfficialContext.fetch(branchingTrack)!!, linkedBranchingTrackAlignment)
+        designDraftContext.insert(designOfficialContext.fetch(switch)!!)
+
+        // Tl;dr we created some tracks in the main-official context, then in design-draft we
+        // created and linked a switch to them. The current situation is OK, we can publish
+        // everything with no problem
+        val okayValidation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(locationTracks = listOf(throughTrack, branchingTrack), switches = listOf(switch)),
+            )
+        assertEquals(listOf(), okayValidation.validatedAsPublicationUnit.locationTracks.flatMap { it.issues })
+        assertEquals(listOf(), okayValidation.validatedAsPublicationUnit.switches.flatMap { it.issues })
+
+        designOfficialContext.insert(designDraftContext.fetch(throughTrack)!!, throughTrackAlignment)
+        designOfficialContext.insert(designDraftContext.fetch(branchingTrack)!!, linkedBranchingTrackAlignment)
+        locationTrackService.cancel(designBranch, throughTrack)
+        locationTrackService.cancel(designBranch, branchingTrack)
+
+        // .. but if the location tracks are cancelled, then the switch will see the branching
+        // alignment is no longer connected
+        val validateCancellation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(locationTracks = listOf(throughTrack, branchingTrack), switches = listOf(switch)),
+            )
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    localizationKey =
+                        LocalizationKey("validation.layout.switch.track-linkage.switch-alignment-not-connected"),
+                    type = LayoutValidationIssueType.WARNING,
+                    params = LocalizationParams(mapOf("switch" to "some switch", "alignments" to "1-3")),
+                )
+            ),
+            validateCancellation.validatedAsPublicationUnit.switches[0].issues,
+        )
+    }
+
     private fun getTopologicalSwitchConnectionTestCases(
         trackNumberGenerator: () -> IntId<TrackLayoutTrackNumber>,
         topologyStartSwitch: TopologyLocationTrackSwitch,
@@ -1622,11 +1777,14 @@ constructor(
     private fun validateLocationTracks(vararg locationTracks: IntId<LocationTrack>): List<LayoutValidationIssue> =
         validateLocationTracks(locationTracks.toList())
 
-    private fun validateLocationTracks(locationTracks: List<IntId<LocationTrack>>): List<LayoutValidationIssue> {
+    private fun validateLocationTracks(
+        locationTracks: List<IntId<LocationTrack>>,
+        transition: LayoutContextTransition = PublicationInMain,
+    ): List<LayoutValidationIssue> {
         val publicationRequest = publicationRequestIds(locationTracks = locationTracks)
         val validation =
             publicationValidationService.validatePublicationCandidates(
-                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationService.collectPublicationCandidates(transition),
                 publicationRequest,
             )
 

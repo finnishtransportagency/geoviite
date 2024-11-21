@@ -324,6 +324,7 @@ interface PublicationCandidate<T> {
     val issues: List<LayoutValidationIssue>
     val operation: Operation?
     val publicationGroup: PublicationGroup?
+    val cancelled: Boolean
 
     val id: IntId<T>
         get() = rowVersion.id
@@ -339,6 +340,7 @@ data class TrackNumberPublicationCandidate(
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
+    override val cancelled: Boolean,
     val boundingBox: BoundingBox?,
 ) : PublicationCandidate<TrackLayoutTrackNumber> {
     override val type = DraftChangeType.TRACK_NUMBER
@@ -353,6 +355,7 @@ data class ReferenceLinePublicationCandidate(
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation?,
     override val publicationGroup: PublicationGroup? = null,
+    override val cancelled: Boolean,
     val boundingBox: BoundingBox?,
 ) : PublicationCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
@@ -368,6 +371,7 @@ data class LocationTrackPublicationCandidate(
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
+    override val cancelled: Boolean,
     val boundingBox: BoundingBox?,
 ) : PublicationCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
@@ -382,6 +386,7 @@ data class SwitchPublicationCandidate(
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
+    override val cancelled: Boolean,
     val location: Point?,
 ) : PublicationCandidate<TrackLayoutSwitch> {
     override val type = DraftChangeType.SWITCH
@@ -396,6 +401,7 @@ data class KmPostPublicationCandidate(
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
+    override val cancelled: Boolean,
     val location: Point?,
 ) : PublicationCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST
