@@ -290,8 +290,9 @@ class ReferenceLineDao(
             from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
               left join layout.track_number_in_layout_context(:publication_state::layout.publication_state,
                                                               :design_id) tn on rl.track_number_id = tn.id
+              left join layout.alignment on rl.alignment_id = alignment.id
             where tn.state != 'DELETED'
-              and rl.segment_count = 0
+              and alignment.segment_count = 0
         """
                 .trimIndent()
         val params = mapOf("publication_state" to context.state.name, "design_id" to context.branch.designId?.intValue)
