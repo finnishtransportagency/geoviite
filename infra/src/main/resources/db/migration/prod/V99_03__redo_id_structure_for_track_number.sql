@@ -53,10 +53,9 @@ alter table integrations.ratko_push_error
   add constraint ratko_push_error_track_number_id_fkey
     foreign key (track_number_id) references layout.track_number_id (id);
 
+-- will be recreated after table rewrite
 alter table layout.track_number
-  drop constraint track_number_official_id_fkey,
-  add constraint track_number_official_id_fkey
-    foreign key (id) references layout.track_number_id (id);
+  drop constraint track_number_official_id_fkey;
 
 alter table publication.track_number
   drop constraint publication_track_number_track_number_fk,
@@ -93,7 +92,8 @@ set id = official_id, version = last_version.version
   );
 
 alter table layout.track_number
-  add constraint layout_track_number_pkey primary key (id, layout_context_id);
+  add constraint layout_track_number_pkey primary key (id, layout_context_id),
+  add constraint track_number_id_fkey foreign key (id) references layout.track_number_id (id);
 
 alter table layout.track_number
   add column origin_design_id int;
