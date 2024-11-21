@@ -13,7 +13,7 @@ const TopologicalConnectivityLabel: React.FC<TopologicalConnectivityLabelProps> 
 
     return (
         <React.Fragment>
-            {t(`enum.topological-connectivity-type.${topologicalConnectivity}`)}
+            {t(`enum.TopologicalConnectivityType.${topologicalConnectivity}`)}
         </React.Fragment>
     );
 };

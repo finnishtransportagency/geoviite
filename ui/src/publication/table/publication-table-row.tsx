@@ -67,7 +67,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
                         )
                         .join(', ')}
                 </td>
-                <td>{t(`enum.publish-operation.${operation}`)}</td>
+                <td>{t(`enum.Operation.${operation}`)}</td>
                 <td>{formatDateFull(publicationTime)}</td>
                 <td>{publicationUser}</td>
                 <td className={styles['publication-table__message-column']} title={message}>

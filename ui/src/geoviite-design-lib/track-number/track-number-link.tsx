@@ -65,7 +65,7 @@ export const TrackNumberLink: React.FC<TrackNumberLinkProps> = ({
         <React.Fragment>
             <Link onClick={() => clickAction(trackNumber.id)}>{trackNumber.number}</Link>
             {trackNumber.state === 'DELETED' ? (
-                <span>&nbsp;({t('enum.layout-state.DELETED')})</span>
+                <span>&nbsp;({t('enum.LayoutState.DELETED')})</span>
             ) : (
                 ''
             )}

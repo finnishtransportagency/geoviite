@@ -347,8 +347,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             (tn) => tn.id === state.existingLocationTrack?.trackNumberId || tn.state !== 'DELETED',
         )
         .map((tn) => {
-            const note =
-                tn.state === 'DELETED' ? ` (${t('enum.location-track-state.DELETED')})` : '';
+            const note = tn.state === 'DELETED' ? ` (${t('enum.LocationTrackState.DELETED')})` : '';
             return { name: tn.number + note, value: tn.id, qaId: `track-number-${tn.id}` };
         });
 

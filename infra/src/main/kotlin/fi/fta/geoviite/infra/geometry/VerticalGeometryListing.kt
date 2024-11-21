@@ -388,7 +388,10 @@ private fun commonVerticalGeometryListingCsvEntries(translation: Translation): L
             "$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.vertical-coordinate-system" to { it.verticalCoordinateSystem },
             "$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.elevation-measurement-method" to
                 {
-                    translateElevationMeasurementMethod(it.elevationMeasurementMethod, translation)
+                    when (it.elevationMeasurementMethod) {
+                        null -> translation.t("enum.ElevationMeasurementMethod.UNKNOWN")
+                        else -> translation.enum(it.elevationMeasurementMethod)
+                    }
                 },
             "$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.remarks" to
                 {
@@ -396,17 +399,6 @@ private fun commonVerticalGeometryListingCsvEntries(translation: Translation): L
                 },
         )
         .map { (key, fn) -> CsvEntry(translation.t(key), fn) }
-
-fun translateElevationMeasurementMethod(
-    elevationMeasurementMethod: ElevationMeasurementMethod?,
-    translation: Translation,
-) =
-    when (elevationMeasurementMethod) {
-        ElevationMeasurementMethod.TOP_OF_SLEEPER ->
-            translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.top-of-sleeper")
-        ElevationMeasurementMethod.TOP_OF_RAIL -> translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.top-of-rail")
-        null -> translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.unknown")
-    }
 
 fun previousLinearSection(
     currentSegment: CurvedProfileSegment,

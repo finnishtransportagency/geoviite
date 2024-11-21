@@ -862,7 +862,7 @@ class PublicationDao(
                         descriptionBase =
                             rs.getChange("description_base") { rs.getString(it)?.let(::LocationTrackDescriptionBase) },
                         descriptionSuffix =
-                            rs.getChange("description_suffix") { rs.getEnumOrNull<DescriptionSuffixType>(it) },
+                            rs.getChange("description_suffix") { rs.getEnumOrNull<LocationTrackDescriptionSuffix>(it) },
                         endPoint = rs.getChangePoint("end_x", "end_y"),
                         startPoint = rs.getChangePoint("start_x", "start_y"),
                         state = rs.getChange("state") { rs.getEnumOrNull<LocationTrackState>(it) },
@@ -1328,7 +1328,7 @@ class PublicationDao(
                         trapPoint =
                             rs.getChange("trap_point") {
                                 rs.getBooleanOrNull(it).let { value ->
-                                    if (value == null) TrapPoint.Unknown else if (value) TrapPoint.Yes else TrapPoint.No
+                                    if (value == null) TrapPoint.UNKNOWN else if (value) TrapPoint.YES else TrapPoint.NO
                                 }
                             },
                         owner = rs.getChange("owner") { rs.getString(it)?.let(::MetaDataName) },

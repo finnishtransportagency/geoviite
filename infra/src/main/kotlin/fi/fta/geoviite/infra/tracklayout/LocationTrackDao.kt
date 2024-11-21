@@ -213,7 +213,7 @@ class LocationTrackDao(
             trackNumberId = rs.getIntId("track_number_id"),
             name = rs.getString("name").let(::AlignmentName),
             descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),
-            descriptionSuffix = rs.getEnum<DescriptionSuffixType>("description_suffix"),
+            descriptionSuffix = rs.getEnum<LocationTrackDescriptionSuffix>("description_suffix"),
             type = rs.getEnum("type"),
             state = rs.getEnum("state"),
             boundingBox = rs.getBboxOrNull("bounding_box"),

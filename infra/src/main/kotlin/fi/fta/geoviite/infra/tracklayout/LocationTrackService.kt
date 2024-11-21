@@ -34,11 +34,11 @@ import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -420,17 +420,17 @@ class LocationTrackService(
             val endSwitchName = startAndEndSwitch.second?.let(::getSwitchShortName)
 
             when (locationTrack.descriptionSuffix) {
-                DescriptionSuffixType.NONE -> FreeText(locationTrack.descriptionBase.toString())
+                LocationTrackDescriptionSuffix.NONE -> FreeText(locationTrack.descriptionBase.toString())
 
-                DescriptionSuffixType.SWITCH_TO_BUFFER ->
+                LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER ->
                     FreeText(
                         "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
                     )
 
-                DescriptionSuffixType.SWITCH_TO_SWITCH ->
+                LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ->
                     FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
 
-                DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY ->
+                LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ->
                     FreeText(
                         "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
                     )

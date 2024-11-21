@@ -269,10 +269,7 @@ private fun trackNumberCsvEntry(translation: Translation) =
 private fun commonElementListingCsvEntries(translation: Translation): List<CsvEntry<ElementListing>> =
     mapOf<String, (item: ElementListing) -> Any?>(
             "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-track" to { it.alignmentName },
-            "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.element-type" to
-                {
-                    translateTrackGeometryElementType(it.elementType, translation)
-                },
+            "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.element-type" to { translation.enum(it.elementType) },
             "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-address-start" to
                 {
                     it.start.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) }
@@ -302,16 +299,6 @@ private fun commonElementListingCsvEntries(translation: Translation): List<CsvEn
             "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.remarks" to { remarks(it, translation) },
         )
         .map { (key, fn) -> CsvEntry(translation.t(key), fn) }
-
-fun translateTrackGeometryElementType(type: TrackGeometryElementType, translation: Translation) =
-    when (type) {
-        TrackGeometryElementType.LINE -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.line")
-        TrackGeometryElementType.CURVE -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.curve")
-        TrackGeometryElementType.CLOTHOID -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.clothoid")
-        TrackGeometryElementType.BIQUADRATIC_PARABOLA ->
-            translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.biquadratic-parabola")
-        MISSING_SECTION -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.missing-section")
-    }
 
 fun locationTrackCsvEntries(translation: Translation) =
     listOf(

@@ -435,10 +435,6 @@ constructor(
         )
     }
 
-    private fun translateLocationTrackType(locationTrack: LocationTrack): String {
-        return translation.t("enum.location-track-type.${locationTrack.type}")
-    }
-
     private fun createCoordinateToTrackAddressResponse(
         request: ValidCoordinateToTrackAddressRequestV1,
         params: FrameConverterQueryParamsV1,
@@ -516,7 +512,7 @@ constructor(
     ): FeatureMatchDetailsV1? {
         return if (locationTrackDescription != null) {
             val (trackMeterIntegers, trackMeterDecimals) = splitBigDecimal(trackMeter.meters)
-            val translatedLocationTrackType = translateLocationTrackType(locationTrack).lowercase()
+            val translatedLocationTrackType = translation.enum(locationTrack.type, lowercase = true)
 
             FeatureMatchDetailsV1(
                 trackNumber = trackNumber.number,

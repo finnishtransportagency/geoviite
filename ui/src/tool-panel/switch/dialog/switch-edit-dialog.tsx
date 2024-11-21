@@ -100,7 +100,7 @@ export const SwitchEditDialog = ({
     const [showDeleteDraftConfirmDialog, setShowDeleteDraftConfirmDialog] = React.useState(false);
     const [switchStateCategory, setSwitchStateCategory] = React.useState<LayoutStateCategory>();
     const [switchName, setSwitchName] = React.useState<string>('');
-    const [trapPoint, setTrapPoint] = React.useState<TrapPoint>(TrapPoint.Unknown);
+    const [trapPoint, setTrapPoint] = React.useState<TrapPoint>(TrapPoint.UNKNOWN);
     const [switchStructureId, setSwitchStructureId] = React.useState<SwitchStructureId | undefined>(
         prefilledSwitchStructureId,
     );

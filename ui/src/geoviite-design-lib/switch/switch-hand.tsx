@@ -23,7 +23,7 @@ const SwitchHand: React.FC<SwitchHandProps> = ({ hand }: SwitchHandProps) => {
 
     return (
         <React.Fragment>
-            {hand === undefined ? '' : t(`enum.switch-hand.${getTranslationKey(hand)}`)}
+            {hand === undefined ? '' : t(`enum.SwitchHand.${getTranslationKey(hand)}`)}
         </React.Fragment>
     );
 };

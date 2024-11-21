@@ -30,7 +30,7 @@ export type LayoutContext = {
 
 export const designBranch = (designId: LayoutDesignId): DesignBranch => brand(`DESIGN_${designId}`);
 
-export type LayoutContextMode = 'MAIN-OFFICIAL' | 'MAIN-DRAFT' | 'DESIGN';
+export type LayoutContextMode = 'MAIN_OFFICIAL' | 'MAIN_DRAFT' | 'DESIGN';
 
 export const officialLayoutContext = (layoutContext: LayoutContext): LayoutContext =>
     layoutContext.publicationState === 'OFFICIAL'
