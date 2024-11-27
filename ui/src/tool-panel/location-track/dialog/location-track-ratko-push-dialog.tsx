@@ -83,6 +83,8 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
                         );
                         return;
                     } else {
+                        // Manual location track push is synchronous, but we don't want to wait for it to finish,
+                        // so this is intentionally fired-and-forgotten
                         pushLocationTracksToRatko([
                             {
                                 locationTrackId: locationTrack.id,
