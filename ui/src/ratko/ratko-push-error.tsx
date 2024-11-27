@@ -84,10 +84,10 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
             {failedPublication.ratkoPushStatus === 'CONNECTION_ISSUE'
                 ? t('publication-card.push-error.connection-issue')
                 : isInternalError
-                ? internalErrorString
-                : isFetchError
-                ? ratkoFetchErrorString
-                : ratkoErrorString}
+                  ? internalErrorString
+                  : isFetchError
+                    ? ratkoFetchErrorString
+                    : ratkoErrorString}
         </div>
     );
 };

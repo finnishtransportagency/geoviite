@@ -49,10 +49,10 @@ constructor(
     @Test
     fun checkOnlineStatus() {
         fakeRatko.isOnline()
-        assertEquals(RatkoClient.RatkoStatus(true), ratkoClient.getRatkoOnlineStatus())
+        assertEquals(RatkoClient.RatkoStatus(true, 200), ratkoClient.getRatkoOnlineStatus())
 
         fakeRatko.isOffline()
-        assertEquals(RatkoClient.RatkoStatus(false), ratkoClient.getRatkoOnlineStatus())
+        assertEquals(RatkoClient.RatkoStatus(false, 500), ratkoClient.getRatkoOnlineStatus())
     }
 
     @Test

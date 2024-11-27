@@ -49,33 +49,39 @@ const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, c
     );
 };
 
-const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }): JSX.Element => {
-    if (ratkoStatus.statusCode >= 500) {
-        return ratkoStatus.statusCode === 503
+const parseRatkoOfflineStatus = (ratkoStatus: number | undefined): JSX.Element => {
+    if (!ratkoStatus) {
+        return <React.Fragment />;
+    } else if (ratkoStatus >= 500) {
+        return ratkoStatus === 503
             ? parseRatkoConnectionError(
                   'temporary-error-status-code',
-                  ratkoStatus.statusCode,
+                  ratkoStatus,
                   'contact-ratko-support-if-needed',
               )
             : parseRatkoConnectionError(
                   'connection-error-status-code',
-                  ratkoStatus.statusCode,
+                  ratkoStatus,
                   'contact-ratko-support',
               );
-    } else if (ratkoStatus.statusCode >= 400) {
+    } else if (ratkoStatus >= 400) {
         return parseRatkoConnectionError(
             'connection-error-status-code',
-            ratkoStatus.statusCode,
+            ratkoStatus,
             'contact-geoviite-support',
         );
-    } else if (ratkoStatus.statusCode >= 300) {
+    } else if (ratkoStatus >= 300) {
         return parseRatkoConnectionError(
             'integration-error-status-code',
-            ratkoStatus.statusCode,
+            ratkoStatus,
             'contact-geoviite-support',
         );
     } else {
-        return <React.Fragment />;
+        return parseRatkoConnectionError(
+            'connection-error-without-status-code',
+            ratkoStatus,
+            'contact-geoviite-support-if-needed',
+        );
     }
 };
 
@@ -143,13 +149,17 @@ const PublicationCard: React.FC<PublishListProps> = ({
 
     const latestFailures = latestFailureByLayoutBranch(allPublications);
     const ratkoConnectionError =
-        ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;
+        ratkoStatus &&
+        !ratkoStatus.isOnline &&
+        (!ratkoStatus.ratkoStatusCode || ratkoStatus.ratkoStatusCode >= 300);
 
-    const allWaiting = nonSuccesses.every(
-        (publication) =>
-            !publication.ratkoPushStatus ||
-            publication.ratkoPushStatus === RatkoPushStatus.MANUAL_RETRY,
-    );
+    const allWaiting =
+        nonSuccesses.length > 0 &&
+        nonSuccesses.every(
+            (publication) =>
+                !publication.ratkoPushStatus ||
+                publication.ratkoPushStatus === RatkoPushStatus.MANUAL_RETRY,
+        );
 
     const navigateToPublicationLog = () => {
         trackLayoutActionDelegates.setSelectedPublicationSearch(defaultPublicationSearch);
@@ -171,16 +181,16 @@ const PublicationCard: React.FC<PublishListProps> = ({
                     <ProgressIndicatorWrapper
                         indicator={ProgressIndicatorType.Area}
                         inProgress={publicationFetchStatus !== LoaderStatus.Ready}>
-                        {(nonSuccesses.length > 0 || ratkoConnectionError) && (
+                        {ratkoConnectionError && (
+                            <p className={styles['publication-card__title-errors']}>
+                                {parseRatkoOfflineStatus(ratkoStatus?.ratkoStatusCode)}
+                            </p>
+                        )}
+                        {nonSuccesses.length > 0 && (
                             <section>
                                 <h3 className={styles['publication-card__subsection-title']}>
                                     {t('publication-card.waiting')}
                                 </h3>
-                                {ratkoConnectionError && (
-                                    <p className={styles['publication-card__title-errors']}>
-                                        {parseRatkoOfflineStatus(ratkoStatus)}
-                                    </p>
-                                )}
                                 {latestFailures.map((fail) => (
                                     <RatkoPushErrorDetails key={fail.id} failedPublication={fail} />
                                 ))}
@@ -191,7 +201,13 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                             size={IconSize.SMALL}
                                             color={IconColor.INHERIT}
                                         />
-                                        <span>{t('publication-card.transfer-starts-shortly')}</span>
+                                        <span>
+                                            {ratkoConnectionError
+                                                ? t(
+                                                      'publication-card.transfer-starts-after-reconnect',
+                                                  )
+                                                : t('publication-card.transfer-starts-shortly')}
+                                        </span>
                                     </div>
                                 )}
                                 {latestFailures.length > 0 && (

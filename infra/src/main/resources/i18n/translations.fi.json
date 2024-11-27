@@ -712,7 +712,9 @@
                 "end-km": "Loppukilometri",
                 "push": "Vie Ratkoon",
                 "pushing-started": "Sijaintiraiteen tietojen vienti käynnistetty",
-                "follow-in-ratko": "Seuraa raidetta Ratkosta"
+                "follow-in-ratko": "Seuraa raidetta Ratkosta",
+                "pushing-failed": "Sijaintiraiteen tietojen vienti epäonnistui",
+                "connection-failed": "Geoviite ei saanut yhteyttä Ratkoon, yritä myöhemmin uudelleen. Ongelman jatkuessa ota yhteyttä Geoviite-tiimiin"
             },
             "vertical-geometry": {
                 "heading": "Raiteen pystygeometria",
@@ -1669,6 +1671,7 @@
         "show-split-info": "Näytä raiteen jakamisen tiedot",
         "mark-as-successful": "Merkitse kohteiden siirto onnistuneeksi",
         "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
+        "transfer-starts-after-reconnect": "Vienti käynnistyy automaattisesti Ratko-yhteyden palautumisen jälkeen",
         "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
         "push-error": {
             "location-track": "Sijaintiraiteen",
