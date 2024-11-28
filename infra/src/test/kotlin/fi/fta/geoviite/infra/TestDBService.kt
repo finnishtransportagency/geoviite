@@ -202,6 +202,11 @@ class TestDBService(
             schema = "publication",
             tables = arrayOf("split", "split_version", "split_relinked_switch", "split_target_location_track"),
         )
+
+        deleteFromTables(
+            schema = "integrations",
+            tables = arrayOf("ratko_bulk_transfer", "ratko_bulk_transfer_version"),
+        )
     }
 
     fun clearProjektivelhoTables() {
@@ -227,7 +232,10 @@ class TestDBService(
     }
 
     fun clearRatkoTables() {
-        deleteFromTables(schema = "integrations", tables = arrayOf("ratko_push_content"))
+        deleteFromTables(
+            schema = "integrations",
+            tables = arrayOf("ratko_push", "ratko_push_content", "ratko_bulk_transfer", "ratko_push_error"),
+        )
     }
 
     fun getUnusedTrackNumber(): TrackNumber {
@@ -244,8 +252,8 @@ class TestDBService(
 
     fun getUnusedAuthorCompanyName(): CompanyName = CompanyName(getUniqueName(DbTable.GEOMETRY_PLAN_AUTHOR, 100))
 
-    fun getUnusedBulkTransferId(): IntId<BulkTransfer> {
-        return getUniqueId(DbTable.PUBLICATION_SPLIT, "bulk_transfer_id")
+    fun getUnusedRatkoBulkTransferId(): IntId<BulkTransfer> {
+        return getUniqueId(DbTable.BULK_TRANSFER, "ratko_bulk_transfer_id")
     }
 
     private fun getUniqueName(table: DbTable, maxLength: Int): String {

@@ -16,6 +16,7 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { TrackMeter } from 'common/common-model';
+import { BulkTransferInfo } from 'publication/split/bulk-transfer-info';
 
 export type SplitDetailsViewProps = {
     publicationId: PublicationId;
@@ -94,6 +95,9 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
                             </Table>
                         </div>
                     </FieldLayout>
+                    {splitDetails?.bulkTransfer && (
+                        <BulkTransferInfo bulkTransfer={splitDetails.bulkTransfer} />
+                    )}
                 </div>
             </ProgressIndicatorWrapper>
         </Dialog>

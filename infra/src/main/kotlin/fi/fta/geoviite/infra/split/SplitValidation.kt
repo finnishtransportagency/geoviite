@@ -114,10 +114,17 @@ internal fun validateSplitStatus(
     track: LocationTrack,
     sourceTrack: LocationTrack,
     split: Split,
-): LayoutValidationIssue? =
-    produceIf(track.isDraft && split.isPublishedAndWaitingTransfer) {
+): LayoutValidationIssue? {
+    val isPublishedAndWaitingTransfer =
+        when (split) {
+            is PublishedSplit -> split.bulkTransfer.state != BulkTransferState.DONE
+            is UnpublishedSplit -> false
+        }
+
+    return produceIf(track.isDraft && isPublishedAndWaitingTransfer) {
         validationError("$VALIDATION_SPLIT.track-split-in-progress", "sourceName" to sourceTrack.name)
     }
+}
 
 internal fun validateSplitSourceLocationTrack(locationTrack: LocationTrack, split: Split): List<LayoutValidationIssue> =
     listOfNotNull(

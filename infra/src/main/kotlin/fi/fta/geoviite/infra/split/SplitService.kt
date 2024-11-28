@@ -54,7 +54,9 @@ class SplitService(
     private val switchLibraryService: SwitchLibraryService,
     private val switchService: LayoutSwitchService,
     private val alignmentDao: LayoutAlignmentDao,
+    private val bulkTransferDao: BulkTransferDao,
 ) {
+
     fun getChangeTime(): Instant {
         return splitDao.fetchChangeTime()
     }
@@ -67,8 +69,7 @@ class SplitService(
         branch: LayoutBranch,
         locationTrackIds: List<IntId<LocationTrack>>? = null,
         switchIds: List<IntId<LayoutSwitch>>? = null,
-    ): List<Split> =
-        findUnfinishedSplits(branch, locationTrackIds, switchIds).filter { split -> split.publicationId == null }
+    ): List<Split> = findUnfinishedSplits(branch, locationTrackIds, switchIds).filter { split -> split.isUnpublished }
 
     /**
      * Fetches all splits that are not marked as DONE. Can be filtered by location tracks or switches. If both filters
@@ -109,18 +110,20 @@ class SplitService(
                 requireNotNull(locationTracks.find { t -> t.id == split.sourceLocationTrackId }) {
                     "Source track must be part of the same publication as the split: split=$split"
                 }
-            splitDao.updateSplit(splitId = split.id, publicationId = publicationId, sourceTrackVersion = track).also {
-                updatedVersion ->
-                // Sanity-check the version for conflicting update, though this should not be
-                // possible
-                if (updatedVersion != splitVersion.next()) {
-                    throw PublicationFailureException(
-                        message = "Split version has changed between validation and publication: split=${split.id}",
-                        localizedMessageKey = "split-version-changed",
-                        status = HttpStatus.CONFLICT,
-                    )
+            splitDao
+                .updateSplit(splitId = split.id, publicationId = publicationId, sourceTrackVersion = track)
+                .also { updatedVersion ->
+                    // Sanity-check the version for conflicting update, though this should not be
+                    // possible
+                    if (updatedVersion != splitVersion.next()) {
+                        throw PublicationFailureException(
+                            message = "Split version has changed between validation and publication: split=${split.id}",
+                            localizedMessageKey = "split-version-changed",
+                            status = HttpStatus.CONFLICT,
+                        )
+                    }
                 }
-            }
+                .also { bulkTransferDao.create(split.id) }
         }
     }
 
@@ -266,7 +269,7 @@ class SplitService(
         // splits
         // - Published DONE splits don't matter and shouldn't affect future changes
         // - Changes to the geocoding context are blocked for any tracks associated with a split
-        val draftSplits = splits.filter { (split, _) -> split.publicationId == null }
+        val draftSplits = splits.filter { (split, _) -> split.isUnpublished }
 
         val trackNumberMismatchErrors =
             draftSplits.mapNotNull { (split, sourceTrack) ->
@@ -387,18 +390,9 @@ class SplitService(
     }
 
     @Transactional
-    fun updateSplit(
-        splitId: IntId<Split>,
-        bulkTransferState: BulkTransferState,
-        bulkTransferId: IntId<BulkTransfer>? = null,
-    ): RowVersion<Split> {
-        return splitDao.getOrThrow(splitId).let { split ->
-            splitDao.updateSplit(
-                splitId = split.id,
-                bulkTransferState = bulkTransferState,
-                bulkTransferId = bulkTransferId,
-            )
-        }
+    fun updateSplit(splitId: IntId<Split>): RowVersion<Split> {
+
+        return splitDao.getOrThrow(splitId).let { split -> splitDao.updateSplit(splitId = split.id) }
     }
 
     @Transactional

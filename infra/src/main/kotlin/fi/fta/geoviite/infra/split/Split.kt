@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.split
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
@@ -18,65 +20,41 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SwitchOnLocationTrack
 import java.time.Instant
 
-class BulkTransfer
-
-enum class BulkTransferState {
-    PENDING,
-    IN_PROGRESS,
-    DONE,
-    FAILED,
-    TEMPORARY_FAILURE,
-}
-
 data class SplitHeader(
     val id: IntId<Split>,
     val locationTrackId: IntId<LocationTrack>,
-    val bulkTransferState: BulkTransferState,
+    val bulkTransferState: BulkTransferState?,
+    val bulkTransferExpeditedStart: Boolean?,
     val publicationId: IntId<Publication>?,
 ) {
     constructor(
-        split: Split
+        split: PublishedSplit
     ) : this(
         id = split.id,
         locationTrackId = split.sourceLocationTrackId,
-        bulkTransferState = split.bulkTransferState,
+        bulkTransferState = requireNotNull(split.bulkTransfer).state,
+        bulkTransferExpeditedStart = requireNotNull(split.bulkTransfer).expeditedStart,
         publicationId = split.publicationId,
     )
 }
 
-data class Split(
-    val id: IntId<Split>,
-    val rowVersion: RowVersion<Split>,
-    val sourceLocationTrackId: IntId<LocationTrack>,
-    val sourceLocationTrackVersion: LayoutRowVersion<LocationTrack>,
-    val bulkTransferState: BulkTransferState,
-    val bulkTransferId: IntId<BulkTransfer>?,
-    val publicationId: IntId<Publication>?,
-    val publicationTime: Instant?,
-    val targetLocationTracks: List<SplitTarget>,
-    val relinkedSwitches: List<IntId<LayoutSwitch>>,
-    val updatedDuplicates: List<IntId<LocationTrack>>,
-) {
-    init {
-        if (publicationId != null) {
-            require(id == rowVersion.id) { "Split source row version must refer to official row, once published" }
-        }
-        if (publicationId == null) {
-            require(bulkTransferState == BulkTransferState.PENDING) { "Split must be pending if not published" }
-        }
-
-        if (bulkTransferState == BulkTransferState.IN_PROGRESS) {
-            requireNotNull(bulkTransferId) {
-                "Split must have a non-null bulk transfer id when bulk transfer state is set to be in progress"
-            }
-        }
-    }
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonSubTypes(
+    JsonSubTypes.Type(value = UnpublishedSplit::class, name = "UnpublishedSplit"),
+    JsonSubTypes.Type(value = PublishedSplit::class, name = "PublishedSplit"),
+)
+sealed class Split {
+    abstract val id: IntId<Split>
+    abstract val rowVersion: RowVersion<Split>
+    abstract val sourceLocationTrackId: IntId<LocationTrack>
+    abstract val sourceLocationTrackVersion: LayoutRowVersion<LocationTrack>
+    abstract val targetLocationTracks: List<SplitTarget>
+    abstract val relinkedSwitches: List<IntId<LayoutSwitch>>
+    abstract val updatedDuplicates: List<IntId<LocationTrack>>
+    abstract val isPublished: Boolean
 
     @get:JsonIgnore
     val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + sourceLocationTrackId }
-
-    @JsonIgnore
-    val isPublishedAndWaitingTransfer: Boolean = bulkTransferState != BulkTransferState.DONE && publicationId != null
 
     fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean =
         targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId }
@@ -87,6 +65,44 @@ data class Split(
         targetLocationTracks.find { track -> track.locationTrackId == trackId }
 
     fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
+
+    val isUnpublished: Boolean
+        get() = !isPublished
+}
+
+data class UnpublishedSplit(
+    override val id: IntId<Split>,
+    override val rowVersion: RowVersion<Split>,
+    override val sourceLocationTrackId: IntId<LocationTrack>,
+    override val sourceLocationTrackVersion: LayoutRowVersion<LocationTrack>,
+    override val targetLocationTracks: List<SplitTarget>,
+    override val relinkedSwitches: List<IntId<LayoutSwitch>>,
+    override val updatedDuplicates: List<IntId<LocationTrack>>,
+    override val isPublished: Boolean = false,
+) : Split()
+
+data class PublishedSplit(
+    override val id: IntId<Split>,
+    override val rowVersion: RowVersion<Split>,
+    override val sourceLocationTrackId: IntId<LocationTrack>,
+    override val sourceLocationTrackVersion: LayoutRowVersion<LocationTrack>,
+    override val targetLocationTracks: List<SplitTarget>,
+    override val relinkedSwitches: List<IntId<LayoutSwitch>>,
+    override val updatedDuplicates: List<IntId<LocationTrack>>,
+    override val isPublished: Boolean = true,
+    val publicationId: IntId<Publication>,
+    val publicationTime: Instant,
+    val bulkTransfer: BulkTransfer,
+) : Split() {
+    init {
+        require(id == rowVersion.id) { "Split source row version must refer to official row, once published" }
+
+        if (bulkTransfer.state == BulkTransferState.IN_PROGRESS) {
+            requireNotNull(bulkTransfer.ratkoBulkTransferId) {
+                "Split must have a non-null bulk transfer id when bulk transfer state is set to be in progress"
+            }
+        }
+    }
 }
 
 enum class SplitTargetOperation {

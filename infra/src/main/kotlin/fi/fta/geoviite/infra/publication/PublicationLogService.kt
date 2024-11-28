@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
@@ -20,6 +21,8 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
+import fi.fta.geoviite.infra.split.BulkTransferDao
+import fi.fta.geoviite.infra.split.PublishedSplit
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
@@ -58,6 +61,7 @@ constructor(
     private val splitService: SplitService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
+    private val bulkTransferDao: BulkTransferDao,
 ) {
     @Transactional(readOnly = true)
     fun fetchPublications(layoutBranch: LayoutBranch, from: Instant? = null, to: Instant? = null): List<Publication> {
@@ -74,7 +78,7 @@ constructor(
         val (publishedDirectTrackNumbers, publishedIndirectTrackNumbers) = publicationDao.fetchPublishedTrackNumbers(id)
         val (publishedDirectTracks, publishedIndirectTracks) = publicationDao.fetchPublishedLocationTracks(id)
         val (publishedDirectSwitches, publishedIndirectSwitches) = publicationDao.fetchPublishedSwitches(id)
-        val split = splitService.getSplitIdByPublicationId(id)?.let(splitService::get)
+        val split = splitService.getSplitIdByPublicationId(id)?.let(splitService::get) as? PublishedSplit
 
         return PublicationDetails(
             id = publication.id,
@@ -223,6 +227,7 @@ constructor(
                 SplitInPublication(
                     id = publication.id,
                     splitId = split.id,
+                    bulkTransfer = bulkTransferDao.getBySplitId(split.id).let(::requireNotNull),
                     locationTrack = sourceLocationTrack,
                     locationTrackOid = oid,
                     targetLocationTracks = targetLocationTracks,
@@ -240,25 +245,13 @@ constructor(
     ): SplitTargetInPublication? {
         val (track, alignment) = locationTrackService.getWithAlignment(rowVersion)
         return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
-            val ctx =
-                geocodingService.getGeocodingContextAtMoment(publicationBranch, track.trackNumberId, publicationTime)
+            val geocodingContext =
+                geocodingService
+                    .getGeocodingContextAtMoment(publicationBranch, track.trackNumberId, publicationTime)
+                    .let(::requireNotNull)
 
-            val startBySegments =
-                requireNotNull(
-                    sourceAlignment.segments[target.segmentIndices.first].segmentStart.let { point ->
-                        ctx?.getAddress(point)?.first
-                    }
-                )
-            val endBySegments =
-                requireNotNull(
-                    sourceAlignment.segments[target.segmentIndices.last].segmentEnd.let { point ->
-                        ctx?.getAddress(point)?.first
-                    }
-                )
-            val startByTargetAlignment = requireNotNull(alignment.start?.let { point -> ctx?.getAddress(point)?.first })
-            val endByTargetAlignment = requireNotNull(alignment.end?.let { point -> ctx?.getAddress(point)?.first })
-            val startAddress = listOf(startBySegments, startByTargetAlignment).maxOrNull()
-            val endAddress = listOf(endBySegments, endByTargetAlignment).minOrNull()
+            val (startAddress, endAddress) =
+                getSplitTargetTrackStartAndEndAddresses(geocodingContext, sourceAlignment, target, alignment)
 
             return SplitTargetInPublication(
                 id = track.id,

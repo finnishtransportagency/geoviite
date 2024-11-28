@@ -33,9 +33,6 @@ import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.ratko.model.existingRatkoPlan
 import fi.fta.geoviite.infra.ratko.model.newRatkoPlan
-import fi.fta.geoviite.infra.split.BulkTransferState
-import fi.fta.geoviite.infra.split.Split
-import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -68,20 +65,20 @@ class RatkoService
 @Autowired
 constructor(
     private val ratkoClient: RatkoClient,
+    private val ratkoClientConfiguration: RatkoClientConfiguration,
     private val ratkoLocationTrackService: RatkoLocationTrackService,
     private val ratkoRouteNumberService: RatkoRouteNumberService,
     private val ratkoAssetService: RatkoAssetService,
     private val ratkoPushDao: RatkoPushDao,
-    private val ratkoClientConfiguration: RatkoClientConfiguration,
     private val publicationLogService: PublicationLogService,
     private val calculatedChangesService: CalculatedChangesService,
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val lockDao: LockDao,
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
-    private val splitService: SplitService,
     private val publicationDao: PublicationDao,
     private val layoutDesignDao: LayoutDesignDao,
+    private val ratkoBulkTransferService: RatkoBulkTransferService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(120)
@@ -130,60 +127,11 @@ constructor(
                 }
 
                 if (ratkoClientConfiguration.bulkTransfersEnabled) {
-                    manageRatkoBulkTransfers(layoutBranch)
+                    if (layoutBranch == LayoutBranch.main) {
+                        ratkoBulkTransferService.manageRatkoBulkTransfers(layoutBranch)
+                    }
                 }
             }
-        }
-    }
-
-    fun manageRatkoBulkTransfers(branch: LayoutBranch) {
-        assertMainBranch(branch)
-
-        splitService
-            .findUnfinishedSplits(branch)
-            .filter { split -> split.publicationId != null && split.publicationTime != null }
-            .sortedWith(compareBy { split -> split.publicationTime ?: Instant.MAX })
-            .firstOrNull()
-            ?.let { split -> pollBulkTransferStateUpdate(branch, split) }
-            .takeIf { split ->
-                split?.bulkTransferState in listOf(BulkTransferState.PENDING, BulkTransferState.TEMPORARY_FAILURE)
-            }
-            ?.let { split -> beginNewBulkTransfer(branch, split) }
-    }
-
-    fun pollBulkTransferStateUpdate(branch: LayoutBranch, split: Split): Split {
-        if (split.bulkTransferState != BulkTransferState.IN_PROGRESS) {
-            logger.info(
-                "Skipping bulk transfer state poll: split is not in progress (current state=${split.bulkTransferState})"
-            )
-
-            return split
-        }
-
-        checkNotNull(split.bulkTransferId) {
-            error("Was about to poll bulk transfer state for split=${split.id}, but bulkTransferId was null!")
-        }
-
-        val oldState = split.bulkTransferState
-        val newState = ratkoClient.pollBulkTransferState(split.bulkTransferId)
-
-        return if (newState != oldState) {
-            logger.info("Updating split=${split.id} bulkTransferState from $oldState to $newState")
-            splitService.updateSplit(split.id, newState)
-            splitService.getOrThrow(split.id)
-        } else {
-            logger.info("Split=${split.id} still has the same bulkTransferState=$oldState")
-            split
-        }
-    }
-
-    fun beginNewBulkTransfer(branch: LayoutBranch, split: Split) {
-        ratkoClient.startNewBulkTransfer(split).let { (bulkTransferId, bulkTransferState) ->
-            splitService.updateSplit(
-                splitId = split.id,
-                bulkTransferState = bulkTransferState,
-                bulkTransferId = bulkTransferId,
-            )
         }
     }
 

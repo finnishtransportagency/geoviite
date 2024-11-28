@@ -7,8 +7,12 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationCause
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -24,6 +28,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertEquals
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -41,8 +46,10 @@ constructor(
     private val switchStructureDao: SwitchStructureDao,
     private val locationTrackService: LocationTrackService,
     private val splitDao: SplitDao,
+    private val bulkTransferDao: BulkTransferDao,
     private val splitService: SplitService,
     private val switchDao: LayoutSwitchDao,
+    private val publicationDao: PublicationDao,
 ) : DBTestBase() {
 
     fun clearSplits() {
@@ -56,6 +63,8 @@ constructor(
         truncate publication.split_target_location_track_version cascade;
         truncate publication.split_updated_duplicate cascade;
         truncate publication.split_updated_duplicate_version cascade;
+        truncate integrations.ratko_bulk_transfer cascade;
+        truncate integrations.ratko_bulk_transfer_version cascade;
     """
                 .trimIndent()
         jdbc.execute(sql) { it.execute() }
@@ -67,11 +76,11 @@ constructor(
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
         val sourceTrack =
-            mainDraftContext.insert(
+            mainOfficialContext.insert(
                 locationTrack(trackNumberId = trackNumberId, state = LocationTrackState.DELETED),
                 alignment,
             )
-        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
 
         return splitDao.saveSplit(
             sourceLocationTrackVersion = sourceTrack,
@@ -79,6 +88,75 @@ constructor(
             relinkedSwitches = listOf(mainOfficialContext.createSwitch().id),
             updatedDuplicates = emptyList(),
         )
+    }
+
+    fun insertPublishedSplit(
+        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        publicationId: IntId<Publication> =
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of("some published split"),
+                PublicationCause.MANUAL,
+            ),
+    ): IntId<Split> {
+        return insertSplit(trackNumberId)
+            .let { splitId -> splitDao.updateSplit(splitId = splitId, publicationId = publicationId).id }
+            .also { splitId -> bulkTransferDao.create(splitId) }
+    }
+
+    fun insertGeocodableSplit(
+        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        alignment: LayoutAlignment = alignment(segment(Point(0.0, 0.0), Point(1000.0, 0.0))),
+    ): IntId<Split> {
+
+        val trackStartPoint = requireNotNull(alignment.start).toPoint()
+        val preSegments = createSegments(trackStartPoint, 2)
+
+        val switchStartPoint1 = lastPoint(preSegments)
+        val (_, switchSegments1, _) = createSwitchAndGeometry(switchStartPoint1, externalId = someOid())
+
+        val segments1To2 = createSegments(lastPoint(switchSegments1), 2)
+
+        val switchStartPoint2 = lastPoint(segments1To2)
+        val (_, switchSegments2, _) = createSwitchAndGeometry(switchStartPoint2, externalId = someOid())
+
+        val postSegments = createSegments(lastPoint(switchSegments2), 4)
+
+        val sourceTrackId =
+            createAsMainTrack(
+                trackNumberId = trackNumberId,
+                segments = preSegments + switchSegments1 + segments1To2 + switchSegments2 + postSegments,
+            )
+
+        val destinationTrackId1 =
+            insertAsTrack(trackNumberId = trackNumberId, segments = switchSegments1 + segments1To2)
+
+        val destinationTrackId2 =
+            insertAsTrack(trackNumberId = trackNumberId, segments = switchSegments2 + postSegments)
+
+        return splitDao.saveSplit(
+            sourceLocationTrackVersion = sourceTrackId,
+            splitTargets =
+                listOf(destinationTrackId1, destinationTrackId2).map { destinationTrack ->
+                    SplitTarget(destinationTrack, 0..0, SplitTargetOperation.CREATE)
+                },
+            relinkedSwitches = listOf(mainOfficialContext.createSwitch().id),
+            updatedDuplicates = emptyList(),
+        )
+    }
+
+    fun insertPublishedGeocodableSplit(
+        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        publicationId: IntId<Publication> =
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of("some published geocodable split"),
+                PublicationCause.MANUAL,
+            ),
+    ): IntId<Split> {
+        return insertGeocodableSplit(trackNumberId)
+            .let { splitId -> splitDao.updateSplit(splitId = splitId, publicationId = publicationId).id }
+            .also { splitId -> bulkTransferDao.create(splitId) }
     }
 
     fun createSwitchAndGeometry(
@@ -112,11 +190,13 @@ constructor(
         segments: List<LayoutSegment>,
         duplicateOf: IntId<LocationTrack>? = null,
         trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        oid: Oid<LocationTrack> = someOid(),
     ): IntId<LocationTrack> {
         val alignment = alignment(segments)
         return mainOfficialContext
             .insert(locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf), alignment)
             .id
+            .also { locationTrackId -> locationTrackService.insertExternalId(LayoutBranch.main, locationTrackId, oid) }
     }
 
     fun createAsMainTrack(
@@ -142,7 +222,9 @@ constructor(
         assertMainBranch(branch)
 
         splitService.findUnfinishedSplits(branch).forEach { split ->
-            splitService.updateSplit(splitId = split.id, bulkTransferState = BulkTransferState.DONE)
+            bulkTransferDao.upsert(splitId = split.id, state = BulkTransferState.DONE)
         }
     }
 }
+
+private fun lastPoint(segments: List<LayoutSegment>): IPoint = segments.last().segmentPoints.last()

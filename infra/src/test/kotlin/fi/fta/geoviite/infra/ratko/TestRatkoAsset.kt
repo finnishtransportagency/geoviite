@@ -1,6 +1,13 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.ratko.model.*
+import fi.fta.geoviite.infra.split.BulkTransfer
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.someOid
+import java.time.Instant
 
 /*
 Shadow clones of the parts of Ratko's API that we actually use, in the specific form that Ratko sends them, which can
@@ -116,3 +123,76 @@ fun ratkoSwitch(
         planItemIds = planItemIds,
         isPlanContext = !planItemIds.isNullOrEmpty(),
     )
+
+fun bulkTransferStartRequest(
+    sourceLocationTrackOid: Oid<LocationTrack> = someOid(),
+    destinationLocationTracks: List<RatkoBulkTransferDestinationTrack> = emptyList(),
+): RatkoBulkTransferCreateRequest {
+    return RatkoBulkTransferCreateRequest(
+        sourceLocationTrack = sourceLocationTrackOid,
+        destinationLocationTracks = destinationLocationTracks,
+    )
+}
+
+fun ratkoBulkTransferDestinationTrack(
+    oid: Oid<LocationTrack> = someOid(),
+    startKmM: RatkoTrackMeter = RatkoTrackMeter.create("0000+0000"),
+    endKmM: RatkoTrackMeter = RatkoTrackMeter.create("0001+1000"),
+): RatkoBulkTransferDestinationTrack {
+    return RatkoBulkTransferDestinationTrack(oid = oid, startKmM = startKmM, endKmM = endKmM)
+}
+
+fun bulkTransferPollResponse(
+    bulkTransferId: IntId<BulkTransfer>,
+    sourceLocationTrackOid: Oid<LocationTrack> = someOid(),
+    destinationLocationTracks: List<RatkoBulkTransferDestinationTrack> =
+        listOf(ratkoBulkTransferDestinationTrack(), ratkoBulkTransferDestinationTrack()),
+    startKmM: TrackMeter = TrackMeter("0000+0000"),
+    endKmM: TrackMeter = TrackMeter("0001+1000"),
+    startTime: Instant? = null,
+    endTime: Instant? = null,
+    assetsToMove: Int? = null,
+    locationTrackChangeAssetsAmount: Int? = null,
+    trexAssets: Int? = null,
+    remainingTrexAssets: Int? = null,
+): RatkoBulkTransferPollResponse {
+    return RatkoBulkTransferPollResponse(
+        locationTrackChangeAssetsAmount = locationTrackChangeAssetsAmount,
+        remainingTrexAssets = remainingTrexAssets,
+        locationTrackChange =
+            RatkoBulkTransferPollResponseLocationTrackChange(
+                id = bulkTransferId,
+                sourceLocationTrackOid = sourceLocationTrackOid,
+                destinationLocationTracks = destinationLocationTracks,
+                startKmM = startKmM,
+                endKmM = endKmM,
+                assetsToMove = assetsToMove,
+                trexAssets = trexAssets,
+                startTime = startTime,
+                endTime = endTime,
+            ),
+    )
+}
+
+fun bulkTransferPollResponseInProgress(bulkTransferId: IntId<BulkTransfer>): RatkoBulkTransferPollResponse {
+    return bulkTransferPollResponse(
+        bulkTransferId = bulkTransferId,
+        startTime = Instant.now(),
+        assetsToMove = 1,
+        trexAssets = 1,
+        locationTrackChangeAssetsAmount = 0,
+        remainingTrexAssets = 0,
+    )
+}
+
+fun bulkTransferPollResponseCreated(bulkTransferId: IntId<BulkTransfer>): RatkoBulkTransferPollResponse {
+    return bulkTransferPollResponse(bulkTransferId = bulkTransferId)
+}
+
+fun bulkTransferPollResponseFinished(
+    bulkTransferId: IntId<BulkTransfer>,
+    endTime: Instant = Instant.now(),
+): RatkoBulkTransferPollResponse {
+    val inProgress = bulkTransferPollResponseInProgress(bulkTransferId)
+    return inProgress.copy(locationTrackChange = inProgress.locationTrackChange.copy(endTime = endTime))
+}

@@ -2,13 +2,12 @@ import * as React from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import { PublicationChange } from 'publication/publication-model';
+import { enumTranslation } from 'utils/translation-utils';
 
 type PublicationTableDetailsProps = {
     id: string;
     changes: PublicationChange[];
 };
-
-const enumTranslationKey = (enumKey: string, value: string) => `enum.${enumKey}.${value}`;
 
 export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = ({
     id,
@@ -23,7 +22,7 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
         if (typeof value === 'boolean') {
             return value ? t('yes') : t('no');
         } else if (enumKey && value) {
-            return t(enumTranslationKey(enumKey, value));
+            return enumTranslation(t, enumKey, value);
         } else {
             return value;
         }
