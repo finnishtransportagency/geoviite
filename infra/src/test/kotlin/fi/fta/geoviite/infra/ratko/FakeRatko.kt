@@ -34,6 +34,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import java.util.concurrent.TimeUnit
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.configuration.Configuration
 import org.mockserver.integration.ClientAndServer
@@ -56,7 +57,9 @@ class FakeRatkoService @Autowired constructor(@Value("\${geoviite.ratko.test-por
 
 class FakeRatko(port: Int) {
     private val mockServer: ClientAndServer =
-        ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port)
+        ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port).also {
+            it.hasStarted(100, 100, TimeUnit.MILLISECONDS)
+        }
 
     private val jsonMapper =
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
