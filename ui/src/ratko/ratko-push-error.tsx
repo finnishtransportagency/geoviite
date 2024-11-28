@@ -54,6 +54,7 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
         return <React.Fragment />;
     }
 
+    const isConnectionIssue = failedPublication.ratkoPushStatus === 'CONNECTION_ISSUE';
     const isInternalError = error.errorType === 'INTERNAL';
     const isFetchError = error.operation === 'FETCH_EXISTING';
 
@@ -78,16 +79,17 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
         geoviiteSupportEmail: GEOVIITE_SUPPORT_EMAIL,
     });
 
+    const pushErrorString = (): string => {
+        if (isConnectionIssue) return 'publication-card.push-error.connection-issue';
+        else if (isInternalError) return internalErrorString;
+        else if (isFetchError) return ratkoFetchErrorString;
+        else return ratkoErrorString;
+    };
+
     return (
         <div className={styles['ratko-push-error']}>
             {design && <span className={styles['ratko-push-error__design-name']}>{design}: </span>}
-            {failedPublication.ratkoPushStatus === 'CONNECTION_ISSUE'
-                ? t('publication-card.push-error.connection-issue')
-                : isInternalError
-                ? internalErrorString
-                : isFetchError
-                ? ratkoFetchErrorString
-                : ratkoErrorString}
+            {pushErrorString()}
         </div>
     );
 };

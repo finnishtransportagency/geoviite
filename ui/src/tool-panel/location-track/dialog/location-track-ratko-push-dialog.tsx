@@ -12,7 +12,7 @@ import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
 import { KmNumber, LayoutContext, officialLayoutContext } from 'common/common-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
-import { pushLocationTracksToRatko } from 'ratko/ratko-api';
+import { getRatkoStatus, pushLocationTracksToRatko } from 'ratko/ratko-api';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { ChangeTimes } from 'common/common-slice';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
@@ -65,27 +65,40 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
     );
     const [startKm, setStartKm] = React.useState<KmNumber>();
     const [endKm, setEndKm] = React.useState<KmNumber>();
+    const [startingPush, setStartingPush] = React.useState(false);
     const kmOptions = startAndEndPoints && getKmOptions(startAndEndPoints);
     const canPush = !!startKm && !!endKm;
 
     async function pushToRatko() {
         if (locationTrack && startKm && endKm) {
-            try {
-                const kms = getKmsInRange(Number.parseInt(startKm), Number.parseInt(endKm));
+            const kms = getKmsInRange(Number.parseInt(startKm), Number.parseInt(endKm));
+            setStartingPush(true);
 
-                pushLocationTracksToRatko([
-                    {
-                        locationTrackId: locationTrack.id,
-                        changedKmNumbers: kms,
-                    },
-                ]);
-                Snackbar.success(
-                    t('tool-panel.location-track.ratko-push-dialog.pushing-started'),
-                    t('tool-panel.location-track.ratko-push-dialog.follow-in-ratko'),
-                );
-            } finally {
-                props.onClose();
-            }
+            await getRatkoStatus()
+                .then((status) => {
+                    if (!status.isOnline) {
+                        Snackbar.error(
+                            t('tool-panel.location-track.ratko-push-dialog.pushing-failed'),
+                            t('tool-panel.location-track.ratko-push-dialog.connection-failed'),
+                        );
+                        return;
+                    } else {
+                        // Manual location track push is synchronous, but we don't want to wait for it to finish,
+                        // so this is intentionally fired-and-forgotten
+                        pushLocationTracksToRatko([
+                            {
+                                locationTrackId: locationTrack.id,
+                                changedKmNumbers: kms,
+                            },
+                        ]);
+                        Snackbar.success(
+                            t('tool-panel.location-track.ratko-push-dialog.pushing-started'),
+                            t('tool-panel.location-track.ratko-push-dialog.follow-in-ratko'),
+                        );
+                        props.onClose();
+                    }
+                })
+                .finally(() => setStartingPush(false));
         }
     }
 
@@ -97,10 +110,16 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
                     <>
-                        <Button onClick={props.onClose} variant={ButtonVariant.SECONDARY}>
+                        <Button
+                            onClick={props.onClose}
+                            variant={ButtonVariant.SECONDARY}
+                            disabled={startingPush}>
                             {t('button.cancel')}
                         </Button>
-                        <Button onClick={pushToRatko} disabled={!canPush}>
+                        <Button
+                            onClick={pushToRatko}
+                            disabled={!canPush || startingPush}
+                            isProcessing={startingPush}>
                             {t('tool-panel.location-track.ratko-push-dialog.push')}
                         </Button>
                     </>
