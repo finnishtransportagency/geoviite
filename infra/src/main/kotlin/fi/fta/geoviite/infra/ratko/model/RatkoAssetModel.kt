@@ -3,9 +3,12 @@ package fi.fta.geoviite.infra.ratko.model
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.split.BulkTransfer
-import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import java.time.Instant
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 abstract class RatkoAsset(
@@ -142,4 +145,35 @@ data class IncomingRatkoPoint(val geometry: IncomingRatkoGeometry, val routenumb
 
 data class IncomingRatkoGeometry(val type: RatkoGeometryType, val coordinates: List<Double>, val crs: RatkoCrs)
 
-data class RatkoBulkTransferResponse(val id: IntId<BulkTransfer>, val state: BulkTransferState)
+data class RatkoBulkTransferStartRequest(
+    val sourceLocationTrack: Oid<LocationTrack>,
+    val destinationLocationTracks: List<RatkoBulkTransferStartRequestDestinationTrack>,
+)
+
+data class RatkoBulkTransferStartRequestDestinationTrack(
+    val oid: Oid<LocationTrack>,
+    val startKmM: TrackMeter,
+    val endKmM: TrackMeter,
+)
+
+data class RatkoBulkTransferStartResponse(val locationtrackChangeId: IntId<BulkTransfer>)
+
+data class RatkoBulkTransferPollResponse(
+    val locationtrackChangeAssetsAmount: Int,
+    val remainingTrexAssets: Int,
+    val locationTrackChange: RatkoBulkTransferPollResponseLocationTrackChange,
+)
+
+// TODO oletus: locationtrackChange.endtime on null kun pollaus on aktiivinen.
+//  Siirron tilanseurausta voi katsoa locationTrackChangeAssetsAmountin avulla
+data class RatkoBulkTransferPollResponseLocationTrackChange(
+    val id: IntId<BulkTransfer>,
+    val sourceLocationTrackOid: Oid<LocationTrack>,
+    val destinationLocationtrackOids: List<Oid<LocationTrack>>,
+    val startKmM: TrackMeter,
+    val endKmM: TrackMeter,
+    val assetsToMove: Int,
+    val trexAssets: Int,
+    val startTime: Instant,
+    val endTime: Instant?,
+)

@@ -2,7 +2,11 @@ package fi.fta.geoviite.infra.ratko
 
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
@@ -11,6 +15,7 @@ import com.fasterxml.jackson.module.kotlin.treeToValue
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoGeometry
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoNode
@@ -20,6 +25,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometry
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetProperty
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetType
+import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferStartResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoCrs
 import fi.fta.geoviite.infra.ratko.model.RatkoGeometryType
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
@@ -59,8 +65,21 @@ class FakeRatko(port: Int) {
         ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port)
 
     private val jsonMapper =
-        jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
+        jsonMapper {
+                addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) })
+                addModule(JavaTimeModule())
+
+                // Serialize track meters as AAAA+BBBB instead of
+                // {"kmNumber": "AAAA", "meters": BBBB}
+                SimpleModule()
+                    .addSerializer(TrackMeter::class.java, ToStringSerializer(TrackMeter::class.java))
+                    .let(::addModule)
+            }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+
+            // Serialize Instants as timestamp strings (such as 2024-11-15T22:00Z) instead of UNIX
+            // integer timestamps.
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     fun stop() {
         mockServer.stop()
@@ -168,19 +187,24 @@ class FakeRatko(port: Int) {
             }
 
     fun acceptsNewBulkTransferGivingItId(bulkTransferId: IntId<BulkTransfer>) {
-        val responseStarted = BulkTransferResponse(id = bulkTransferId, state = BulkTransferState.IN_PROGRESS)
-        val responseFinished = BulkTransferResponse(id = bulkTransferId, state = BulkTransferState.DONE)
+        val responseStarted = RatkoBulkTransferStartResponse(locationtrackChangeId = bulkTransferId)
+        val responseFinished = bulkTransferPollResponseFinished(bulkTransferId = bulkTransferId)
 
-        post("/api/split/bulk-transfer/start", times = Times.once()).respond(okJson(responseStarted))
-        get("/api/split/bulk-transfer/$bulkTransferId/state").respond(okJson(responseFinished))
+        post("/api/assets/v1.3/locationtrackChanges", times = Times.once()).respond(okJson(responseStarted))
+        get("/api/assets/v1.2/pollLocationtrackChange/${bulkTransferId.intValue}").respond(okJson(responseFinished))
     }
 
     fun allowsBulkTransferStatePollingAndAnswersWithState(
         bulkTransferId: IntId<BulkTransfer>,
         bulkTransferState: BulkTransferState,
     ) {
-        val response = BulkTransferResponse(id = bulkTransferId, state = bulkTransferState)
-        get("/api/split/bulk-transfer/$bulkTransferId/state").respond(okJson(response))
+        assert(bulkTransferState == BulkTransferState.IN_PROGRESS) {
+            "This FakeRatko api currently only supports IN_PROGRESS bulkTransferState"
+        }
+
+        val response = bulkTransferPollResponseInProgress(bulkTransferId = bulkTransferId)
+
+        get("/api/assets/v1.2/pollLocationtrackChange/${bulkTransferId.intValue}").respond(okJson(response))
     }
 
     // return deleted route number kms, or an empty string if all of a route number points were
@@ -395,5 +419,3 @@ private fun marshallOperatingPoint(point: RatkoOperatingPointParse): RatkoOperat
                 )
             ),
     )
-
-data class BulkTransferResponse(val id: IntId<BulkTransfer>, val state: BulkTransferState)

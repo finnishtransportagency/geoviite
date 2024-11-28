@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -67,15 +68,56 @@ constructor(
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
         val sourceTrack =
-            mainDraftContext.insert(
+            mainOfficialContext.insert(
                 locationTrack(trackNumberId = trackNumberId, state = LocationTrackState.DELETED),
                 alignment,
             )
-        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
 
         return splitDao.saveSplit(
             sourceLocationTrackVersion = sourceTrack,
             splitTargets = listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
+            relinkedSwitches = listOf(mainOfficialContext.createSwitch().id),
+            updatedDuplicates = emptyList(),
+        )
+    }
+
+    fun insertGeocodableSplit(
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        alignment: LayoutAlignment = alignment(segment(Point(0.0, 0.0), Point(1000.0, 0.0))),
+    ): IntId<Split> {
+
+        val trackStartPoint = requireNotNull(alignment.start).toPoint()
+        val preSegments = createSegments(trackStartPoint, 2)
+
+        val switchStartPoint1 = lastPoint(preSegments)
+        val (_, switchSegments1, _) = createSwitchAndGeometry(switchStartPoint1, externalId = someOid())
+
+        val segments1To2 = createSegments(lastPoint(switchSegments1), 2)
+
+        val switchStartPoint2 = lastPoint(segments1To2)
+        val (_, switchSegments2, _) = createSwitchAndGeometry(switchStartPoint2, externalId = someOid())
+
+        val postSegments = createSegments(lastPoint(switchSegments2), 4)
+
+        val sourceTrackId =
+            createAsMainTrack(
+                trackNumberId = trackNumberId,
+                segments = preSegments + switchSegments1 + segments1To2 + switchSegments2 + postSegments,
+            )
+
+        val destinationTrackId1 =
+            insertAsTrack(trackNumberId = trackNumberId, segments = switchSegments1 + segments1To2)
+
+        val destinationTrackId2 =
+            insertAsTrack(trackNumberId = trackNumberId, segments = switchSegments2 + postSegments)
+
+        return splitDao.saveSplit(
+            sourceLocationTrackVersion = sourceTrackId,
+            splitTargets =
+                listOf(destinationTrackId1, destinationTrackId2).map { destinationTrack ->
+                    SplitTarget(destinationTrack, 0..0, SplitTargetOperation.CREATE)
+                },
             relinkedSwitches = listOf(mainOfficialContext.createSwitch().id),
             updatedDuplicates = emptyList(),
         )
@@ -146,3 +188,5 @@ constructor(
         }
     }
 }
+
+private fun lastPoint(segments: List<LayoutSegment>): IPoint = segments.last().segmentPoints.last()

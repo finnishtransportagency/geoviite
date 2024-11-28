@@ -1,6 +1,13 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.ratko.model.*
+import fi.fta.geoviite.infra.split.BulkTransfer
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.someOid
+import java.time.Instant
 
 /*
 Shadow clones of the parts of Ratko's API that we actually use, in the specific form that Ratko sends them, which can
@@ -106,3 +113,55 @@ fun ratkoSwitch(
         locations = locations,
         assetGeoms = assetGeoms,
     )
+
+fun bulkTransferStartRequest(
+    sourceLocationTrackOid: Oid<LocationTrack> = someOid(),
+    destinationLocationTracks: List<RatkoBulkTransferStartRequestDestinationTrack> = emptyList(),
+): RatkoBulkTransferStartRequest {
+    return RatkoBulkTransferStartRequest(
+        sourceLocationTrack = sourceLocationTrackOid,
+        destinationLocationTracks = destinationLocationTracks,
+    )
+}
+
+fun bulkTransferPollResponse(
+    bulkTransferId: IntId<BulkTransfer>,
+    sourceLocationTrackOid: Oid<LocationTrack> = someOid(),
+    destinationLocationtrackOids: List<Oid<LocationTrack>> = listOf(someOid(), someOid()),
+    startKmM: TrackMeter = TrackMeter("0000+0000"),
+    endKmM: TrackMeter = TrackMeter("0001+1000"),
+    assetsToMove: Int = 1,
+    trexAssets: Int = 0,
+    startTime: Instant = Instant.now(),
+    endTime: Instant? = null,
+    locationtrackChangeAssetsAmount: Int = 1,
+    remainingTrexAssets: Int = 0,
+): RatkoBulkTransferPollResponse {
+    return RatkoBulkTransferPollResponse(
+        locationtrackChangeAssetsAmount = locationtrackChangeAssetsAmount,
+        remainingTrexAssets = remainingTrexAssets,
+        locationTrackChange =
+            RatkoBulkTransferPollResponseLocationTrackChange(
+                id = bulkTransferId,
+                sourceLocationTrackOid = sourceLocationTrackOid,
+                destinationLocationtrackOids = destinationLocationtrackOids,
+                startKmM = startKmM,
+                endKmM = endKmM,
+                assetsToMove = assetsToMove,
+                trexAssets = trexAssets,
+                startTime = startTime,
+                endTime = endTime,
+            ),
+    )
+}
+
+fun bulkTransferPollResponseInProgress(bulkTransferId: IntId<BulkTransfer>): RatkoBulkTransferPollResponse {
+    return bulkTransferPollResponse(bulkTransferId = bulkTransferId)
+}
+
+fun bulkTransferPollResponseFinished(
+    bulkTransferId: IntId<BulkTransfer>,
+    endTime: Instant = Instant.now(),
+): RatkoBulkTransferPollResponse {
+    return bulkTransferPollResponse(bulkTransferId = bulkTransferId, endTime = endTime)
+}

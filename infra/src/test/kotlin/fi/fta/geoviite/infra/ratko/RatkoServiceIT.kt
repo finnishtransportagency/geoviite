@@ -1221,7 +1221,7 @@ constructor(
     fun `Bulk transfer manager should start and poll bulk transfers for pending & published splits`() {
         splitTestDataService.forcefullyFinishAllCurrentlyUnfinishedSplits(LayoutBranch.main)
 
-        val splitId = splitTestDataService.insertSplit()
+        val splitId = splitTestDataService.insertGeocodableSplit()
         val publicationId =
             publicationDao.createPublication(
                 LayoutBranch.main,
@@ -1287,11 +1287,11 @@ constructor(
     }
 
     @Test
-    fun `Temporary failed bulk transfer should be retried`() {
+    fun `Temporarily failed bulk transfer should be retried`() {
         splitTestDataService.forcefullyFinishAllCurrentlyUnfinishedSplits(LayoutBranch.main)
 
         val splitId =
-            splitTestDataService.insertSplit().let { splitId ->
+            splitTestDataService.insertGeocodableSplit().let { splitId ->
                 splitDao
                     .updateSplit(
                         splitId = splitId,
@@ -1329,7 +1329,7 @@ constructor(
 
         val splitIds =
             (0..2).map { index ->
-                splitTestDataService.insertSplit().let { splitId ->
+                splitTestDataService.insertGeocodableSplit().let { splitId ->
                     splitDao
                         .updateSplit(
                             splitId = splitId,

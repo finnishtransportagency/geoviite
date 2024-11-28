@@ -100,7 +100,8 @@ constructor(
         val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
-        val (receivedBulkTransferId, receivedBulkTransferState) = ratkoClient.startNewBulkTransfer(split)
+        val (receivedBulkTransferId, receivedBulkTransferState) =
+            ratkoClient.startNewBulkTransfer(bulkTransferStartRequest())
 
         assertEquals(expectedBulkTransferId, receivedBulkTransferId)
         assertEquals(BulkTransferState.IN_PROGRESS, receivedBulkTransferState)
@@ -113,7 +114,7 @@ constructor(
         val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
-        val (receivedBulkTransferId, _) = ratkoClient.startNewBulkTransfer(split)
+        val (receivedBulkTransferId, _) = ratkoClient.startNewBulkTransfer(bulkTransferStartRequest())
 
         assertEquals(BulkTransferState.DONE, ratkoClient.pollBulkTransferState(receivedBulkTransferId))
     }
