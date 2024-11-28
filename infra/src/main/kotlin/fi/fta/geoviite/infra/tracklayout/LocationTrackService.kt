@@ -38,8 +38,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import java.time.Instant
-import org.postgresql.util.PSQLException
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 
@@ -86,28 +84,19 @@ class LocationTrackService(
         return saveDraftInternal(branch, locationTrack)
     }
 
+    @Transactional
     fun update(
         branch: LayoutBranch,
         id: IntId<LocationTrack>,
         request: LocationTrackSaveRequest,
     ): LayoutRowVersion<LocationTrack> {
-        try {
-            return requireNotNull(transactionTemplate.execute { updateLocationTrackTransaction(branch, id, request) })
-        } catch (dataIntegrityException: DataIntegrityViolationException) {
-            throw if (isSplitSourceReferenceError(dataIntegrityException)) {
-                SplitSourceLocationTrackUpdateException(request.name, dataIntegrityException)
-            } else {
-                dataIntegrityException
-            }
-        }
-    }
-
-    private fun updateLocationTrackTransaction(
-        branch: LayoutBranch,
-        id: IntId<LocationTrack>,
-        request: LocationTrackSaveRequest,
-    ): LayoutRowVersion<LocationTrack> {
         val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
+
+        val partOfUnfinishedSplit = splitDao.locationTracksPartOfAnyUnfinishedSplit(branch, listOf(id)).isNotEmpty()
+        if (partOfUnfinishedSplit) {
+            throw SplitSourceLocationTrackUpdateException(alignmentName = originalTrack.name)
+        }
+
         val locationTrack =
             originalTrack.copy(
                 name = request.name,
@@ -916,17 +905,3 @@ fun locationTrackWithAlignment(
 
 fun filterByBoundingBox(list: List<LocationTrack>, boundingBox: BoundingBox?): List<LocationTrack> =
     if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) } else list
-
-fun isSplitSourceReferenceError(exception: DataIntegrityViolationException): Boolean {
-    val constraint = "split_source_location_track_fkey"
-    val trackIsSplitSourceTrackError = "is still referenced from table \"split\""
-
-    return (exception.cause as? PSQLException)?.serverErrorMessage.let { msg ->
-        when {
-            msg == null -> false
-            msg.constraint == constraint && msg.detail?.contains(trackIsSplitSourceTrackError) == true -> true
-
-            else -> false
-        }
-    }
-}

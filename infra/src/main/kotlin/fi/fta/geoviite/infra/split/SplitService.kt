@@ -109,18 +109,20 @@ class SplitService(
                 requireNotNull(locationTracks.find { t -> t.id == split.sourceLocationTrackId }) {
                     "Source track must be part of the same publication as the split: split=$split"
                 }
-            splitDao.updateSplit(splitId = split.id, publicationId = publicationId, sourceTrackVersion = track).also {
-                updatedVersion ->
-                // Sanity-check the version for conflicting update, though this should not be
-                // possible
-                if (updatedVersion != splitVersion.next()) {
-                    throw PublicationFailureException(
-                        message = "Split version has changed between validation and publication: split=${split.id}",
-                        localizedMessageKey = "split-version-changed",
-                        status = HttpStatus.CONFLICT,
-                    )
+            splitDao
+                .updateSplit(splitId = split.id, publicationId = publicationId, sourceTrackVersion = track)
+                .also { updatedVersion ->
+                    // Sanity-check the version for conflicting update, though this should not be
+                    // possible
+                    if (updatedVersion != splitVersion.next()) {
+                        throw PublicationFailureException(
+                            message = "Split version has changed between validation and publication: split=${split.id}",
+                            localizedMessageKey = "split-version-changed",
+                            status = HttpStatus.CONFLICT,
+                        )
+                    }
                 }
-            }
+                .also { splitDao.insertBulkTransfer(split.id) }
         }
     }
 
@@ -387,18 +389,9 @@ class SplitService(
     }
 
     @Transactional
-    fun updateSplit(
-        splitId: IntId<Split>,
-        bulkTransferState: BulkTransferState,
-        bulkTransferId: IntId<BulkTransfer>? = null,
-    ): RowVersion<Split> {
-        return splitDao.getOrThrow(splitId).let { split ->
-            splitDao.updateSplit(
-                splitId = split.id,
-                bulkTransferState = bulkTransferState,
-                bulkTransferId = bulkTransferId,
-            )
-        }
+    fun updateSplit(splitId: IntId<Split>): RowVersion<Split> {
+
+        return splitDao.getOrThrow(splitId).let { split -> splitDao.updateSplit(splitId = split.id) }
     }
 
     @Transactional

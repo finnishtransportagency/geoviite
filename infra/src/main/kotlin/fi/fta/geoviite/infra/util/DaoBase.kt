@@ -70,7 +70,8 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     GEOMETRY_KM_POST("geometry", "km_post", listOf("track_number_id", "km_number")),
     GEOMETRY_TRACK_NUMBER("geometry", "track_number"),
     PROJEKTIVELHO_DOCUMENT("projektivelho", "document"),
-    PUBLICATION_SPLIT("publication", "split");
+    PUBLICATION_SPLIT("publication", "split"),
+    BULK_TRANSFER("integrations", "ratko_bulk_transfer");
 
     val fullName: String = "$schema.$table"
     val versionTable = "$schema.${table}_version"
