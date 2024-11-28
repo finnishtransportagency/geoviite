@@ -1710,6 +1710,7 @@
         "integration-error-status-code": "Vika Ratko-integraatiossa ({{code}}) ",
         "temporary-error-status-code": "Tilapäinen vika Ratko-integraatiossa ({{code}}). Yritä myöhemmin uudelleen.",
         "contact-geoviite-support": "Ota yhteyttä {{geoviiteSupportEmail}}",
+        "contact-geoviite-support-if-needed": "Tilanteen jatkuessa ota yhteyttä {{geoviiteSupportEmail}}",
         "contact-ratko-support": "Ota yhteyttä {{ratkoSupportEmail}}",
         "contact-ratko-support-if-needed": "Tilanteen jatkuessa ota yhteyttä {{ratkoSupportEmail}}"
     },

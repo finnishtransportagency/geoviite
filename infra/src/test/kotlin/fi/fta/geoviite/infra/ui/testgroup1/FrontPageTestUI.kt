@@ -74,6 +74,9 @@ constructor(
         val failedRatkoPushId = ratkoPushDao.startPushing(listOf(failingPublicationId))
         ratkoPushDao.updatePushStatus(failedRatkoPushId, RatkoPushStatus.FAILED)
 
+        val fakeRatko = fakeRatkoService.start()
+        fakeRatko.isOnline()
+
         startGeoviite()
 
         // two publications; an original one that succeeded (with the original name), then a new one
@@ -92,9 +95,6 @@ constructor(
             }
             .returnToFrontPage()
 
-        val fakeRatko = fakeRatkoService.start()
-
-        fakeRatko.isOnline()
         fakeRatko.hasRouteNumber(ratkoRouteNumber("1.2.3.4.5"))
 
         E2EFrontPage().pushToRatko()

@@ -166,11 +166,7 @@ constructor(
     fun getLatestPublications(
         @PathVariable("branchType") branchType: LayoutBranchType,
         @RequestParam("count") count: Int,
-    ): Page<PublicationDetails> {
-        val publications = publicationLogService.fetchLatestPublicationDetails(branchType, count)
-
-        return Page(totalCount = publications.size, start = 0, items = publications)
-    }
+    ): Page<PublicationDetails> = publicationLogService.fetchLatestPublicationDetails(branchType, count)
 
     @PreAuthorize(AUTH_DOWNLOAD_PUBLICATION)
     @GetMapping("csv")

@@ -140,10 +140,10 @@ const PublicationCard: React.FC<PublishListProps> = ({
         [publicationChangeTime, ratkoPushChangeTime, splitChangeTime, pageCount],
     );
     const reachedLastPublication =
-        (publications?.length ?? 0) < MAX_LISTED_PUBLICATIONS * pageCount;
+        !publications || publications?.items?.length === publications?.totalCount;
 
     const allPublications =
-        publications
+        publications?.items
             ?.sort((i1, i2) => compareTimestamps(i1.publicationTime, i2.publicationTime))
             ?.reverse() ?? [];
 
@@ -158,8 +158,8 @@ const PublicationCard: React.FC<PublishListProps> = ({
     const latestFailures = latestFailureByLayoutBranch(allPublications);
     const ratkoConnectionError =
         ratkoStatus &&
-        !ratkoStatus.isOnline &&
-        (!ratkoStatus.ratkoStatusCode || ratkoStatus.ratkoStatusCode >= 300);
+        (ratkoStatus.connectionStatus === 'ONLINE_ERROR' ||
+            ratkoStatus.connectionStatus === 'OFFLINE');
 
     const allWaiting =
         nonSuccesses.length > 0 &&

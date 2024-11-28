@@ -76,7 +76,7 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
 
             await getRatkoStatus()
                 .then((status) => {
-                    if (!status.isOnline) {
+                    if (status.connectionStatus !== 'ONLINE') {
                         Snackbar.error(
                             t('tool-panel.location-track.ratko-push-dialog.pushing-failed'),
                             t('tool-panel.location-track.ratko-push-dialog.connection-failed'),
