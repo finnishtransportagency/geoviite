@@ -1706,6 +1706,7 @@
     },
     "error-in-ratko-connection": {
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{code}}). ",
+        "connection-error-without-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä. ",
         "integration-error-status-code": "Vika Ratko-integraatiossa ({{code}}) ",
         "temporary-error-status-code": "Tilapäinen vika Ratko-integraatiossa ({{code}}). Yritä myöhemmin uudelleen.",
         "contact-geoviite-support": "Ota yhteyttä {{geoviiteSupportEmail}}",

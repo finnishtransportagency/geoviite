@@ -36,7 +36,11 @@ type PublishListProps = {
 const RATKO_SUPPORT_EMAIL = 'vayla.asiakkaat.fi@cgi.com';
 export const GEOVIITE_SUPPORT_EMAIL = 'geoviite.support@solita.fi';
 
-const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, contact: string) => {
+const parseRatkoConnectionError = (
+    errorType: string,
+    ratkoStatusCode: number | undefined,
+    contact: string,
+) => {
     return (
         <span>
             {i18n.t(`error-in-ratko-connection.${errorType}`, { code: ratkoStatusCode })}
@@ -50,8 +54,12 @@ const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, c
 };
 
 const parseRatkoOfflineStatus = (ratkoStatus: number | undefined): JSX.Element => {
-    if (!ratkoStatus) {
-        return <React.Fragment />;
+    if (ratkoStatus === undefined) {
+        return parseRatkoConnectionError(
+            'connection-error-without-status-code',
+            ratkoStatus,
+            'contact-geoviite-support-if-needed',
+        );
     } else if (ratkoStatus >= 500) {
         return ratkoStatus === 503
             ? parseRatkoConnectionError(
