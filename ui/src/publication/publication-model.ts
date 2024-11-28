@@ -40,10 +40,10 @@ export const validationIssueIsAtLeastAsBadAs =
         issue === 'FATAL'
             ? true
             : issue === 'ERROR'
-              ? base !== 'FATAL'
-              : issue === 'WARNING'
-                ? base === 'WARNING'
-                : exhaustiveMatchingGuard(issue);
+            ? base !== 'FATAL'
+            : issue === 'WARNING'
+            ? base === 'WARNING'
+            : exhaustiveMatchingGuard(issue);
 
 export const validationIssueIsError = validationIssueIsAtLeastAsBadAs('ERROR');
 
@@ -166,12 +166,13 @@ export const emptyValidatedPublicationCandidates = (): ValidatedPublicationCandi
     allChangesValidated: [],
 });
 
-export type BulkTransferState = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'FAILED' | 'TEMPORARY_FAILURE';
+export type BulkTransferState = 'PENDING' | 'CREATED' | 'IN_PROGRESS' | 'DONE' | 'FAILED';
+export type SplitId = string;
 
 export type SplitHeader = {
-    id: string;
+    id: SplitId;
     locationTrackId: LocationTrackId;
-    bulkTransferState: BulkTransferState;
+    bulkTransferState?: BulkTransferState;
     publicationId?: PublicationId;
 };
 
@@ -179,7 +180,11 @@ export type SplitTarget = {
     locationTrackId: LocationTrackId;
 };
 
-export type Split = SplitHeader & {
+export type Split = UnpublishedSplit | PublishedSplit;
+
+export type UnpublishedSplit = {
+    id: SplitId;
+    locationTrackId: LocationTrackId;
     targetLocationTracks: SplitTarget[];
     relinkedSwitches: LayoutSwitchId[];
 };
@@ -197,6 +202,24 @@ type PublishedInDesign = {
 };
 
 export type PublishedInBranch = PublishedInMain | PublishedInDesign;
+
+export type PublishedSplit = UnpublishedSplit & {
+    publicationId: PublicationId;
+    bulkTransfer: BulkTransfer;
+};
+
+export type BulkTransfer = {
+    splitId: SplitId;
+    expeditedStart: boolean;
+    temporaryFailure: boolean;
+    state: BulkTransferState;
+    ratkoStartTime?: TimeStamp;
+    ratkoEndTime?: TimeStamp;
+    assetsTotal?: number;
+    assetsMoved?: number;
+    trexAssetsTotal?: number;
+    trexAssetsRemaining?: number;
+};
 
 export type PublicationDetails = {
     id: PublicationId;

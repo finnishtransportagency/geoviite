@@ -1186,7 +1186,7 @@ constructor(
         val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
         publish(publicationService, locationTracks = splitSetup.trackIds)
 
-        splitDao.updateSplit(splitId, bulkTransferState = BulkTransferState.DONE)
+        splitDao.updateBulkTransfer(splitId = splitId, bulkTransferState = BulkTransferState.DONE)
 
         val draft =
             locationTrackService.saveDraft(
@@ -1228,7 +1228,7 @@ constructor(
         val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
         publish(publicationService, locationTracks = splitSetup.trackIds)
 
-        splitDao.updateSplit(splitId, bulkTransferState = BulkTransferState.DONE)
+        splitDao.updateBulkTransfer(splitId = splitId, bulkTransferState = BulkTransferState.DONE)
 
         val draft =
             locationTrackService.saveDraft(
@@ -1348,8 +1348,9 @@ constructor(
         referenceLineDao.fetch(referenceLine).also { d -> referenceLineService.saveDraft(LayoutBranch.main, d) }
 
         publicationTestSupportService.saveSplit(locationTrackResponse).also { splitId ->
-            val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
+            splitDao.getOrThrow(splitId)
+            splitDao.insertBulkTransfer(splitId = splitId)
+            splitDao.updateBulkTransfer(splitId = splitId, bulkTransferState = BulkTransferState.DONE)
         }
 
         val validation =

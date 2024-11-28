@@ -18,20 +18,32 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SwitchOnLocationTrack
 import java.time.Instant
 
-class BulkTransfer
-
 enum class BulkTransferState {
     PENDING,
+    CREATED,
     IN_PROGRESS,
     DONE,
     FAILED,
-    TEMPORARY_FAILURE,
 }
+
+data class BulkTransfer(
+    val splitId: IntId<Split>,
+    val state: BulkTransferState,
+    val expeditedStart: Boolean,
+    val temporaryFailure: Boolean,
+    val ratkoBulkTransferId: IntId<BulkTransfer>?,
+    val ratkoStartTime: Instant?,
+    val ratkoEndTime: Instant?,
+    val assetsTotal: Int?,
+    val assetsMoved: Int?,
+    val trexAssetsTotal: Int?,
+    val trexAssetsRemaining: Int?,
+)
 
 data class SplitHeader(
     val id: IntId<Split>,
     val locationTrackId: IntId<LocationTrack>,
-    val bulkTransferState: BulkTransferState,
+    val bulkTransferState: BulkTransferState?,
     val publicationId: IntId<Publication>?,
 ) {
     constructor(
@@ -39,7 +51,7 @@ data class SplitHeader(
     ) : this(
         id = split.id,
         locationTrackId = split.sourceLocationTrackId,
-        bulkTransferState = split.bulkTransferState,
+        bulkTransferState = requireNotNull(split.bulkTransfer).state,
         publicationId = split.publicationId,
     )
 }
@@ -49,24 +61,24 @@ data class Split(
     val rowVersion: RowVersion<Split>,
     val sourceLocationTrackId: IntId<LocationTrack>,
     val sourceLocationTrackVersion: LayoutRowVersion<LocationTrack>,
-    val bulkTransferState: BulkTransferState,
-    val bulkTransferId: IntId<BulkTransfer>?,
     val publicationId: IntId<Publication>?,
     val publicationTime: Instant?,
     val targetLocationTracks: List<SplitTarget>,
     val relinkedSwitches: List<IntId<LayoutSwitch>>,
     val updatedDuplicates: List<IntId<LocationTrack>>,
+    val bulkTransfer: BulkTransfer?,
 ) {
     init {
         if (publicationId != null) {
             require(id == rowVersion.id) { "Split source row version must refer to official row, once published" }
+            requireNotNull(bulkTransfer) { "Split=$id must have a non-null bulk transfer state when published" }
         }
         if (publicationId == null) {
-            require(bulkTransferState == BulkTransferState.PENDING) { "Split must be pending if not published" }
+            require(bulkTransfer == null) { "Split bulk transfer must be null if the split is not published" }
         }
 
-        if (bulkTransferState == BulkTransferState.IN_PROGRESS) {
-            requireNotNull(bulkTransferId) {
+        if (bulkTransfer != null && bulkTransfer.state == BulkTransferState.IN_PROGRESS) {
+            requireNotNull(bulkTransfer.ratkoBulkTransferId) {
                 "Split must have a non-null bulk transfer id when bulk transfer state is set to be in progress"
             }
         }
@@ -76,7 +88,8 @@ data class Split(
     val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + sourceLocationTrackId }
 
     @JsonIgnore
-    val isPublishedAndWaitingTransfer: Boolean = bulkTransferState != BulkTransferState.DONE && publicationId != null
+    val isPublishedAndWaitingTransfer: Boolean =
+        publicationId != null && (requireNotNull(bulkTransfer?.state) != BulkTransferState.DONE)
 
     fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean =
         targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId }

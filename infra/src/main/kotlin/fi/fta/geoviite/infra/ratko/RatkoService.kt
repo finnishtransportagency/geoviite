@@ -5,8 +5,11 @@ import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.assertMainBranch
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.AllOids
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock
@@ -27,14 +30,18 @@ import fi.fta.geoviite.infra.publication.PublishedSwitch
 import fi.fta.geoviite.infra.ratko.model.PushableDesignBranch
 import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
 import fi.fta.geoviite.infra.ratko.model.PushableMainBranch
+import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferCreateRequest
+import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferDestinationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
+import fi.fta.geoviite.infra.ratko.model.RatkoTrackMeter
 import fi.fta.geoviite.infra.ratko.model.existingRatkoPlan
 import fi.fta.geoviite.infra.ratko.model.newRatkoPlan
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
@@ -42,6 +49,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import java.time.Duration
 import java.time.Instant
@@ -49,6 +57,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import org.springframework.http.HttpStatus
+import org.springframework.web.reactive.function.client.WebClientResponseException
 
 open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
     RuntimeException(cause)
@@ -82,6 +92,9 @@ constructor(
     private val splitService: SplitService,
     private val publicationDao: PublicationDao,
     private val layoutDesignDao: LayoutDesignDao,
+    private val splitDao: SplitDao, // TODO use service level instead?
+    private val geocodingService: GeocodingService,
+    private val locationTrackDao: LocationTrackDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(120)
@@ -125,14 +138,15 @@ constructor(
                     pushChanges(layoutBranch, publications, calculatedChangesService.getAllOids(layoutBranch))
                 }
 
-                if (ratkoClientConfiguration.bulkTransfersEnabled) {
-                    manageRatkoBulkTransfers(layoutBranch)
-                }
+                //                if (ratkoClientConfiguration.bulkTransfersEnabled) { // TODO
+                // Enable this
+                manageRatkoBulkTransfers(layoutBranch)
+                //                }
             }
         }
     }
 
-    fun manageRatkoBulkTransfers(branch: LayoutBranch) {
+    fun manageRatkoBulkTransfers(branch: LayoutBranch, timeout: Duration = defaultBlockTimeout) {
         assertMainBranch(branch)
 
         splitService
@@ -140,47 +154,205 @@ constructor(
             .filter { split -> split.publicationId != null && split.publicationTime != null }
             .sortedWith(compareBy { split -> split.publicationTime ?: Instant.MAX })
             .firstOrNull()
-            ?.let { split -> pollBulkTransferStateUpdate(branch, split) }
-            .takeIf { split ->
-                split?.bulkTransferState in listOf(BulkTransferState.PENDING, BulkTransferState.TEMPORARY_FAILURE)
+            ?.let { split ->
+                if (split.bulkTransfer?.state == BulkTransferState.CREATED && split.bulkTransfer.expeditedStart) {
+                    expediteBulkTransferStart(split, timeout)
+                } else {
+                    split
+                }
             }
-            ?.let { split -> beginNewBulkTransfer(branch, split) }
+            ?.let { split -> pollBulkTransferStateUpdate(split, timeout) }
+            .takeIf { split -> split?.bulkTransfer?.state == BulkTransferState.PENDING }
+            ?.let { split -> beginNewBulkTransfer(branch, split, timeout) }
     }
 
-    fun pollBulkTransferStateUpdate(branch: LayoutBranch, split: Split): Split {
-        if (split.bulkTransferState != BulkTransferState.IN_PROGRESS) {
-            logger.info(
-                "Skipping bulk transfer state poll: split is not in progress (current state=${split.bulkTransferState})"
-            )
+    fun expediteBulkTransferStart(split: Split, timeout: Duration): Split {
+        requireNotNull(split.bulkTransfer) {
+            "Bulk transfer expedited start was ran for a split which had bulkTransfer=null, splitId=${split.id}"
+        }
 
+        requireNotNull(split.bulkTransfer.ratkoBulkTransferId) {
+            "Was about to expedite bulk transfer starting, but ratkoBulkTransferId was null for splitId=${split.id}!"
+        }
+
+        require(split.bulkTransfer.state == BulkTransferState.CREATED) {
+            "Bulk transfer expedited start can only be accomplished to bulk transfers with CREATED status, splitId=${split.id} has bulkTransferState=${split.bulkTransfer.state}"
+        }
+
+        // TODO This repeats in all 3 different HTTP calls
+        try {
+            ratkoClient.forceStartBulkTransfer(split.bulkTransfer.ratkoBulkTransferId, timeout)
+            splitDao.updateBulkTransfer(
+                splitId = split.id,
+                temporaryFailure = false,
+                bulkTransferState = BulkTransferState.IN_PROGRESS,
+            )
+        } catch (ex: IllegalStateException) {
+            if (ex.cause is java.util.concurrent.TimeoutException) {
+                logger.info("Bulk transfer expedited start request timed out: $ex")
+                handleTimeoutException(split)
+            } else {
+                throw ex
+            }
+        } catch (ex: WebClientResponseException) {
+            logger.info("Bulk transfer expedited start request web client exception: $ex")
+            handleWebClientBulkTransferResponseException(split, ex)
+        } catch (ex: Exception) {
+            logger.info("Unhandled bulk transfer expedited start request exception")
+            throw ex
+        }
+
+        return splitService.getOrThrow(split.id)
+    }
+
+    fun pollBulkTransferStateUpdate(split: Split, timeout: Duration): Split {
+        val statesToPollDuring = listOf(BulkTransferState.CREATED, BulkTransferState.IN_PROGRESS)
+
+        requireNotNull(split.bulkTransfer) {
+            "Bulk transfer poll was ran for a split which had bulkTransfer=null, splitId=${split.id}"
+        }
+
+        if (!statesToPollDuring.contains(split.bulkTransfer.state)) {
+            logger.info(
+                "Skipping bulk transfer state poll: split is not in a state that should be polled, splitId=${split.id}, bulkTransferState=${split.bulkTransfer.state})"
+            )
             return split
         }
 
-        checkNotNull(split.bulkTransferId) {
-            error("Was about to poll bulk transfer state for split=${split.id}, but bulkTransferId was null!")
+        checkNotNull(split.bulkTransfer.ratkoBulkTransferId) {
+            "Was about to poll bulk transfer state for split, but ratkoBulkTransferId was null for splitId=${split.id}!"
         }
 
-        val oldState = split.bulkTransferState
-        val newState = ratkoClient.pollBulkTransferState(split.bulkTransferId)
+        try {
+            ratkoClient.pollBulkTransferState(split.bulkTransfer.ratkoBulkTransferId, timeout).let {
+                (polledState, response) ->
+                splitDao.updateBulkTransfer(
+                    splitId = split.id,
+                    temporaryFailure = false,
+                    bulkTransferState = polledState,
+                    assetsTotal = response.locationTrackChange.assetsToMove,
+                    assetsMoved = response.locationTrackChangeAssetsAmount,
+                    trexAssetsTotal = response.locationTrackChange.trexAssets,
+                    trexAssetsRemaining = response.remainingTrexAssets,
+                )
+            }
+        } catch (ex: IllegalStateException) {
+            if (ex.cause is java.util.concurrent.TimeoutException) {
+                logger.info("Bulk transfer poll request timed out: $ex")
+                handleTimeoutException(split)
+            } else {
+                throw ex
+            }
+        } catch (ex: WebClientResponseException) {
+            logger.info("Bulk transfer poll request web client exception: $ex")
+            handleWebClientBulkTransferResponseException(split, ex)
+        } catch (ex: Exception) {
+            logger.info("Unhandled bulk transfer poll request exception")
+            throw ex
+        }
 
-        return if (newState != oldState) {
-            logger.info("Updating split=${split.id} bulkTransferState from $oldState to $newState")
-            splitService.updateSplit(split.id, newState)
-            splitService.getOrThrow(split.id)
-        } else {
-            logger.info("Split=${split.id} still has the same bulkTransferState=$oldState")
-            split
+        return splitService.getOrThrow(split.id)
+    }
+
+    fun beginNewBulkTransfer(branch: LayoutBranch, split: Split, timeout: Duration) {
+        val request = newBulkTransferCreateRequest(branch, split)
+
+        try {
+            ratkoClient.sendBulkTransferCreateRequest(request, timeout).let { (bulkTransferId, bulkTransferState) ->
+                logger.info(
+                    "Bulk transfer create request completed for splitId=${split.id}, bulkTransferId=$bulkTransferId"
+                )
+
+                splitDao.updateBulkTransfer(
+                    splitId = split.id,
+                    bulkTransferState = bulkTransferState,
+                    ratkoBulkTransferId = bulkTransferId,
+                    temporaryFailure = false,
+                )
+            }
+        } catch (ex: IllegalStateException) {
+            if (ex.cause is java.util.concurrent.TimeoutException) {
+                logger.info("Bulk transfer create request timed out: $ex")
+                handleTimeoutException(split)
+            } else {
+                throw ex
+            }
+        } catch (ex: WebClientResponseException) {
+            logger.info("Bulk transfer create request web client exception: $ex")
+            handleWebClientBulkTransferResponseException(split, ex)
+        } catch (ex: Exception) {
+            logger.info("Unhandled bulk transfer create request exception")
+            throw ex
         }
     }
 
-    fun beginNewBulkTransfer(branch: LayoutBranch, split: Split) {
-        ratkoClient.startNewBulkTransfer(split).let { (bulkTransferId, bulkTransferState) ->
-            splitService.updateSplit(
-                splitId = split.id,
-                bulkTransferState = bulkTransferState,
-                bulkTransferId = bulkTransferId,
-            )
+    fun handleTimeoutException(split: Split) {
+        if (!requireNotNull(split.bulkTransfer).temporaryFailure) {
+            logger.info("Setting bulk transfer to temporarily failed for splitId=${split.id}")
+            splitDao.updateBulkTransfer(splitId = split.id, temporaryFailure = true)
+        } else {
+            logger.info("Bulk transfer was already set to temporarily failed for splitId=${split.id}")
         }
+    }
+
+    fun handleWebClientBulkTransferResponseException(split: Split, ex: WebClientResponseException) {
+        when (ex.statusCode) {
+            HttpStatus.BAD_GATEWAY,
+            HttpStatus.SERVICE_UNAVAILABLE,
+            HttpStatus.GATEWAY_TIMEOUT -> {
+                logger.info("Received HTTP temporary failure status, statusCode=${ex.statusCode}, splitId=${split.id}")
+                logger.info("Response body: ${ex.responseBodyAsString}")
+                logger.info("Setting split bulk transfer temporary failure status to true")
+                splitDao.updateBulkTransfer(splitId = split.id, temporaryFailure = true)
+            }
+            else -> {
+                logger.info("Unhandled or fatal HTTP error, statusCode=${ex.statusCode}")
+                logger.info("Response body: ${ex.responseBodyAsString}")
+                logger.info("Setting split bulk transfer state to ${BulkTransferState.FAILED}, splitId=${split.id}")
+                splitDao.updateBulkTransfer(splitId = split.id, bulkTransferState = BulkTransferState.FAILED)
+            }
+        }
+    }
+
+    fun newBulkTransferCreateRequest(branch: LayoutBranch, split: Split): RatkoBulkTransferCreateRequest {
+        val layoutContext = LayoutContext.of(branch, PublicationState.OFFICIAL)
+
+        val splitSourceLocationTrack = locationTrackService.getOrThrow(layoutContext, split.sourceLocationTrackId)
+
+        val splitLocationTrackOidMap =
+            locationTrackDao.fetchExternalIds(
+                layoutContext.branch,
+                listOf(
+                        split.sourceLocationTrackId.let(::listOf),
+                        split.targetLocationTracks.map { locationTrack -> locationTrack.locationTrackId },
+                    )
+                    .flatten(),
+            )
+
+        val geocodingContext =
+            geocodingService.getGeocodingContext(layoutContext, splitSourceLocationTrack.trackNumberId).let { ctx ->
+                requireNotNull(ctx) {
+                    "Geocoding context creating failed for layoutContext=$layoutContext, trackNumberId=${splitSourceLocationTrack.trackNumberId}"
+                }
+            }
+
+        val ratkoDestinationTracks =
+            locationTrackService
+                .getManyWithAlignments(layoutContext, split.targetLocationTracks.map { lt -> lt.locationTrackId })
+                .map { (locationTrack, alignment) ->
+                    val (start, end) = geocodingContext.getStartAndEnd(alignment)
+
+                    RatkoBulkTransferDestinationTrack(
+                        oid = requireNotNull(splitLocationTrackOidMap[locationTrack.id]),
+                        startKmM = requireNotNull(start).address.let(::RatkoTrackMeter),
+                        endKmM = requireNotNull(end).address.let(::RatkoTrackMeter),
+                    )
+                }
+
+        return RatkoBulkTransferCreateRequest(
+            sourceLocationTrack = requireNotNull(splitLocationTrackOidMap[splitSourceLocationTrack.id]),
+            destinationLocationTracks = ratkoDestinationTracks,
+        )
     }
 
     fun retryLatestFailedPush(): Unit =

@@ -2,7 +2,11 @@ package fi.fta.geoviite.infra.ratko
 
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
@@ -11,6 +15,7 @@ import com.fasterxml.jackson.module.kotlin.treeToValue
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoGeometry
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoNode
@@ -20,6 +25,8 @@ import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometry
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetProperty
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetType
+import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferPollResponse
+import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferStartResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoCrs
 import fi.fta.geoviite.infra.ratko.model.RatkoGeometryType
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
@@ -35,11 +42,13 @@ import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import java.time.Duration
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.configuration.Configuration
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
 import org.mockserver.matchers.Times
+import org.mockserver.model.Delay
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
@@ -61,8 +70,21 @@ class FakeRatko(port: Int) {
         ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port)
 
     private val jsonMapper =
-        jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
+        jsonMapper {
+                addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) })
+                addModule(JavaTimeModule())
+
+                // Serialize track meters as AAAA+BBBB instead of
+                // {"kmNumber": "AAAA", "meters": BBBB}
+                SimpleModule()
+                    .addSerializer(TrackMeter::class.java, ToStringSerializer(TrackMeter::class.java))
+                    .let(::addModule)
+            }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+
+            // Serialize Instants as timestamp strings (such as 2024-11-15T22:00Z) instead of UNIX
+            // integer timestamps.
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     fun stop() {
         mockServer.stop()
@@ -171,19 +193,53 @@ class FakeRatko(port: Int) {
             }
 
     fun acceptsNewBulkTransferGivingItId(bulkTransferId: IntId<BulkTransfer>) {
-        val responseStarted = BulkTransferResponse(id = bulkTransferId, state = BulkTransferState.IN_PROGRESS)
-        val responseFinished = BulkTransferResponse(id = bulkTransferId, state = BulkTransferState.DONE)
+        val responseStarted = RatkoBulkTransferStartResponse(locationTrackChangeId = bulkTransferId)
+        //        val responseFinished = bulkTransferPollResponseInProgress(bulkTransferId =
+        // bulkTransferId)
 
-        post("/api/split/bulk-transfer/start", times = Times.once()).respond(okJson(responseStarted))
-        get("/api/split/bulk-transfer/$bulkTransferId/state").respond(okJson(responseFinished))
+        post(BULK_TRANSFER_CREATE_PATH, times = Times.once()).respond(okJson(responseStarted))
+        //        get(bulkTransferPollPath(bulkTransferId)).respond(okJson(responseFinished))
     }
 
     fun allowsBulkTransferStatePollingAndAnswersWithState(
         bulkTransferId: IntId<BulkTransfer>,
         bulkTransferState: BulkTransferState,
+        times: Times = Times.once(),
     ) {
-        val response = BulkTransferResponse(id = bulkTransferId, state = bulkTransferState)
-        get("/api/split/bulk-transfer/$bulkTransferId/state").respond(okJson(response))
+        val response =
+            when (bulkTransferState) {
+                BulkTransferState.IN_PROGRESS -> bulkTransferPollResponseInProgress(bulkTransferId)
+                BulkTransferState.CREATED -> bulkTransferPollResponseCreated(bulkTransferId)
+                BulkTransferState.DONE -> bulkTransferPollResponseFinished(bulkTransferId)
+
+                else -> error { "This FakeRatko api does not support bulkTransferState=${bulkTransferState}" }
+            }
+
+        get(bulkTransferPollPath(bulkTransferId), times).respond(okJson(response))
+    }
+
+    fun acceptsBulkTransferExpeditedStart(bulkTransferId: IntId<BulkTransfer>, times: Times = Times.once()) {
+        put(bulkTransferExpeditedStartPath(bulkTransferId), times = times).respond(statusCodeResponse(200))
+    }
+
+    fun respondsToBulkTransferPoll(
+        bulkTransferId: IntId<BulkTransfer>,
+        response: RatkoBulkTransferPollResponse,
+        times: Times = Times.once(),
+    ) {
+        get(bulkTransferPollPath(bulkTransferId), times = times).respond(okJson(response))
+    }
+
+    fun respondsToBulkTransferCreateWithHttpStatus(httpStatusCode: Int, times: Times = Times.once()) {
+        post(BULK_TRANSFER_CREATE_PATH, times = times).respond(statusCodeResponse(httpStatusCode))
+    }
+
+    fun respondsToBulkTransferPollWithHttpStatus(
+        bulkTransferId: IntId<BulkTransfer>,
+        httpStatusCode: Int,
+        times: Times = Times.once(),
+    ) {
+        get(bulkTransferPollPath(bulkTransferId), times = times).respond(statusCodeResponse(httpStatusCode))
     }
 
     fun acceptsNewDesignGivingItId(id: Int) {
@@ -311,6 +367,14 @@ class FakeRatko(port: Int) {
         post("/api/assets/v1.2/search", mapOf("assetType" to "railway_traffic_operating_point"), times = Times.once())
             .respond(okJson(RatkoOperatingPointAssetsResponse(points.map(::marshallOperatingPoint))))
 
+    fun delayedOkGetResponse(url: String, delay: Duration, times: Times = Times.once()) {
+        get(url, times = times).respond(HttpResponse().withDelay(Delay.milliseconds(delay.toMillis())))
+    }
+
+    fun delayedOkPostResponse(url: String, delay: Duration, times: Times = Times.once()) {
+        post(url, times = times).respond(HttpResponse().withDelay(Delay.milliseconds(delay.toMillis())))
+    }
+
     private fun getPointUpdates(oid: String, urlInfix: String, method: String): List<List<RatkoPoint>> =
         mockServer
             .retrieveRecordedRequests(request("/api/$urlInfix/$oid").withMethod(method))
@@ -379,6 +443,8 @@ class FakeRatko(port: Int) {
 
     private fun ok() = HttpResponse.response().withStatusCode(200)
 
+    private fun statusCodeResponse(httpStatusCode: Int) = HttpResponse.response().withStatusCode(httpStatusCode)
+
     private fun okJson(body: Any) =
         HttpResponse.response(jsonMapper.writeValueAsString(body))
             .withStatusCode(200)
@@ -421,4 +487,7 @@ private fun marshallOperatingPoint(point: RatkoOperatingPointParse): RatkoOperat
             ),
     )
 
-data class BulkTransferResponse(val id: IntId<BulkTransfer>, val state: BulkTransferState)
+fun bulkTransferPollPath(bulkTransferId: IntId<BulkTransfer>) = "$BULK_TRANSFER_POLL_PATH/${bulkTransferId.intValue}"
+
+fun bulkTransferExpeditedStartPath(bulkTransferId: IntId<BulkTransfer>) =
+    "${BULK_TRANSFER_EXPEDITED_START_PATH}/${bulkTransferId.intValue}"
