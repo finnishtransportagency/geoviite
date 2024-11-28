@@ -525,7 +525,31 @@ class PublicationDao(
             .also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
     }
 
-    // Inclusive from/start time, but exclusive to/end time
+    fun list(branchType: LayoutBranchType): List<Publication> {
+        val sql =
+            """
+            select id, publication_user, publication_time, message, design_id
+            from publication.publication
+            where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
+            order by id desc
+        """
+                .trimIndent()
+
+        val params = mapOf("branch_type" to branchType.name)
+
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                Publication(
+                    id = rs.getIntId("id"),
+                    publicationUser = rs.getString("publication_user").let(UserName::of),
+                    publicationTime = rs.getInstant("publication_time"),
+                    message = rs.getFreeTextWithNewLines("message"),
+                    layoutBranch = rs.getLayoutBranch("design_id"),
+                )
+            }
+            .also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
+    }
+
     fun fetchLatestPublications(branchType: LayoutBranchType, count: Int): List<Publication> {
         val sql =
             """

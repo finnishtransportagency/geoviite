@@ -89,7 +89,7 @@ constructor(
 
             if (previousPushStateIn(RatkoPushStatus.FAILED)) {
                 logger.info("Ratko push cancelled because previous push is failed")
-            } else if (!ratkoClient.getRatkoOnlineStatus().isOnline) {
+            } else if (ratkoClient.getRatkoOnlineStatus().connectionStatus != RatkoConnectionStatus.ONLINE) {
                 logger.info("Ratko push cancelled because ratko connection is offline")
             } else {
                 val lastPublicationMoment = ratkoPushDao.getLatestPushedPublicationMoment()
@@ -182,7 +182,9 @@ constructor(
                 "Push all publications before pushing location track point manually"
             }
 
-            check(ratkoClient.getRatkoOnlineStatus().isOnline) { "Ratko is offline" }
+            check(ratkoClient.getRatkoOnlineStatus().connectionStatus == RatkoConnectionStatus.ONLINE) {
+                "Ratko is offline"
+            }
 
             // Here, we only care about current moment, but fix it to the latest publication DB
             // time, pushed or not
@@ -335,7 +337,8 @@ constructor(
 
             // dummy check if Ratko is online
             val pushStatus =
-                if (ratkoClient.getRatkoOnlineStatus().isOnline) RatkoPushStatus.FAILED
+                if (ratkoClient.getRatkoOnlineStatus().connectionStatus == RatkoConnectionStatus.ONLINE)
+                    RatkoPushStatus.FAILED
                 else RatkoPushStatus.CONNECTION_ISSUE
 
             ratkoPushDao.updatePushStatus(ratkoPushId, pushStatus)

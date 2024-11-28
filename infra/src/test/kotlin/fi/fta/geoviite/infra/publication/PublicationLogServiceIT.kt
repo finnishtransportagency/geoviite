@@ -207,7 +207,8 @@ constructor(
             LayoutBranch.main,
             publicationRequest(trackNumbers = listOf(trackNumber.id as IntId)),
         )
-        val thisAndPreviousPublication = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val thisAndPreviousPublication =
+            publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val changes =
             publicationDao.fetchPublicationTrackNumberChanges(
                 LayoutBranch.main,
@@ -265,7 +266,8 @@ constructor(
             LayoutBranch.main,
             publicationRequest(trackNumbers = listOf(trackNumber.id as IntId)),
         )
-        val thisAndPreviousPublication = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val thisAndPreviousPublication =
+            publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val changes =
             publicationDao.fetchPublicationTrackNumberChanges(
                 LayoutBranch.main,
@@ -375,7 +377,7 @@ constructor(
                 )
             )
         publish(publicationService, locationTracks = listOf(updatedLocationTrack.id as IntId<LocationTrack>))
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
@@ -429,7 +431,7 @@ constructor(
                 )
             )
         publish(publicationService, locationTracks = listOf(updatedLocationTrack.id as IntId<LocationTrack>))
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
@@ -506,7 +508,7 @@ constructor(
             )
         publish(publicationService, kmPosts = listOf(updatedKmPost.id as IntId))
 
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
@@ -546,7 +548,7 @@ constructor(
     private fun getLatestPublicationDiffForKmPost(
         id: IntId<TrackLayoutKmPost>
     ): List<PublicationChange<out Comparable<Nothing>?>> {
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
         return publicationLogService.diffKmPost(
@@ -580,7 +582,7 @@ constructor(
                 kmPostService.updateKmPost(LayoutBranch.main, kmPost.id as IntId, saveReq.copy(kmNumber = KmNumber(1))),
             )
         publish(publicationService, kmPosts = listOf(updatedKmPost.id as IntId))
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
@@ -650,7 +652,7 @@ constructor(
             )
         publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
 
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
@@ -693,7 +695,7 @@ constructor(
             )
         publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
 
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
@@ -946,7 +948,7 @@ constructor(
                     newSwitchReplacingOldWithSameName.id,
                 ),
         )
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs[0]
         val previousPub = latestPubs[1]
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
@@ -1082,7 +1084,7 @@ constructor(
                     newSwitchReplacingOldWithSameName.id,
                 ),
         )
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs[0]
         val previousPub = latestPubs[1]
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
@@ -1142,7 +1144,7 @@ constructor(
             newAlignment,
         )
         publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
-        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1)[0]
+        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0]
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff =
@@ -1258,19 +1260,19 @@ constructor(
 
         assertEquals(2, publicationLogService.fetchPublications(LayoutBranch.main).size)
 
-        assertEquals(1, publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).size)
+        assertEquals(1, publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items.size)
         assertEquals(
             publish2.publicationId,
-            publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1)[0].id,
+            publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0].id,
         )
 
-        assertEquals(2, publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).size)
+        assertEquals(2, publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items.size)
         assertEquals(
             publish1.publicationId,
-            publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 10)[1].id,
+            publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 10).items[1].id,
         )
 
-        assertTrue { publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 0).isEmpty() }
+        assertTrue { publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 0).items.isEmpty() }
     }
 
     @Test
@@ -1362,7 +1364,7 @@ constructor(
 
         publish(publicationService, switches = listOf(switch.id), locationTracks = listOf(locationTrack.id))
 
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
@@ -1432,7 +1434,7 @@ constructor(
         switchService.mergeToMainBranch(testBranch, switch.id)
         publish(publicationService, switches = listOf(switch.id), locationTracks = listOf(locationTrack.id))
 
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
+        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
@@ -1596,8 +1598,8 @@ constructor(
         publish(publicationService, testBranch, trackNumbers = listOf(trackNumber))
         trackNumberService.mergeToMainBranch(testBranch, trackNumber)
         publish(publicationService, trackNumbers = listOf(trackNumber))
-        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1)
-        assertEquals(Operation.CREATE, latestPub[0].trackNumbers[0].operation)
+        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0]
+        assertEquals(Operation.CREATE, latestPub.trackNumbers[0].operation)
     }
 
     @Test
@@ -1609,8 +1611,8 @@ constructor(
         publish(publicationService, testBranch, locationTracks = listOf(locationTrack))
         locationTrackService.mergeToMainBranch(testBranch, locationTrack)
         publish(publicationService, locationTracks = listOf(locationTrack))
-        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1)
-        assertEquals(Operation.CREATE, latestPub[0].locationTracks[0].operation)
+        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0]
+        assertEquals(Operation.CREATE, latestPub.locationTracks[0].operation)
     }
 
     @Test
@@ -1620,8 +1622,8 @@ constructor(
         publish(publicationService, testBranch, switches = listOf(switch))
         switchService.mergeToMainBranch(testBranch, switch)
         publish(publicationService, switches = listOf(switch))
-        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1)
-        assertEquals(Operation.CREATE, latestPub[0].switches[0].operation)
+        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0]
+        assertEquals(Operation.CREATE, latestPub.switches[0].operation)
     }
 
     @Test
@@ -1632,8 +1634,8 @@ constructor(
         publish(publicationService, testBranch, kmPosts = listOf(kmPost))
         kmPostService.mergeToMainBranch(testBranch, kmPost)
         publish(publicationService, kmPosts = listOf(kmPost))
-        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1)
-        assertEquals(Operation.CREATE, latestPub[0].kmPosts[0].operation)
+        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0]
+        assertEquals(Operation.CREATE, latestPub.kmPosts[0].operation)
     }
 
     private fun setPublicationTime(publicationId: IntId<Publication>, time: Instant) =

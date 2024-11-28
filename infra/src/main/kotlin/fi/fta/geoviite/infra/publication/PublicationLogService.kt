@@ -33,6 +33,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.TrackNumberAndChangeTime
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
@@ -132,9 +133,10 @@ constructor(
     }
 
     @Transactional(readOnly = true)
-    fun fetchLatestPublicationDetails(branchType: LayoutBranchType, count: Int): List<PublicationDetails> {
-        return publicationDao.fetchLatestPublications(branchType, count).map { getPublicationDetails(it.id) }
-    }
+    fun fetchLatestPublicationDetails(branchType: LayoutBranchType, count: Int): Page<PublicationDetails> =
+        publicationDao.list(branchType).let {
+            Page(it.size, it.take(count), 0).map { item -> getPublicationDetails(item.id) }
+        }
 
     @Transactional(readOnly = true)
     fun fetchPublicationDetails(

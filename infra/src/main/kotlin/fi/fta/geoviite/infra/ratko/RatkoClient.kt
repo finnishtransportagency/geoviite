@@ -62,6 +62,13 @@ private const val ASSET_PATH = "/api/assets/v1.2"
 private const val VERSION_PATH = "/api/versions/v1.0/version"
 private const val BULK_TRANSFER_PATH = "/api/split/bulk-transfer"
 
+enum class RatkoConnectionStatus {
+    ONLINE,
+    ONLINE_ERROR,
+    OFFLINE,
+    NOT_CONFIGURED,
+}
+
 @Component
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
@@ -71,19 +78,21 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-    data class RatkoStatus(val isOnline: Boolean, val ratkoStatusCode: Int?)
+    data class RatkoStatus(val connectionStatus: RatkoConnectionStatus, val ratkoStatusCode: Int?)
 
     fun getRatkoOnlineStatus(): RatkoStatus {
         return getSpec(VERSION_PATH)
             .toBodilessEntity()
-            .map { response -> RatkoStatus(response.statusCode.is2xxSuccessful, response.statusCode.value()) }
+            .map { response -> RatkoStatus(RatkoConnectionStatus.ONLINE, response.statusCode.value()) }
             // Handle non-2xx responses from Ratko
             .onErrorResume(WebClientResponseException::class.java) { ex ->
-                Mono.just(RatkoStatus(false, ex.statusCode.value()))
+                Mono.just(RatkoStatus(RatkoConnectionStatus.ONLINE_ERROR, ex.statusCode.value()))
             }
             // Handle exceptions thrown by the WebClient (e.g. timeouts)
-            .onErrorResume(WebClientRequestException::class.java) { Mono.just(RatkoStatus(false, null)) }
-            .block(defaultBlockTimeout) ?: RatkoStatus(false, null)
+            .onErrorResume(WebClientRequestException::class.java) {
+                Mono.just(RatkoStatus(RatkoConnectionStatus.OFFLINE, null))
+            }
+            .block(defaultBlockTimeout) ?: RatkoStatus(RatkoConnectionStatus.OFFLINE, null)
     }
 
     fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {
