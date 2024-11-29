@@ -72,8 +72,7 @@ class LayoutTrackNumberDao(
     override fun fetchInternal(version: LayoutRowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
         val sql =
             """
-            -- Draft vs Official reference line might duplicate the row, but results will be the same. Just pick one.
-            select distinct on (tn.id, tn.version)
+            select
               tn.id,
               tn.version,
               tn.design_id,
@@ -84,12 +83,10 @@ class LayoutTrackNumberDao(
               tn.description,
               tn.state,
               tn.origin_design_id,
-              rl.id reference_line_id,
+              -- Track number reference line identity never changes, so any instance whatsoever is fine
+              (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
               official_tn.id is not null as has_official
             from layout.track_number_version tn
-              -- TrackNumber reference line identity should never change, so we can join version 1
-              left join layout.reference_line_version rl on rl.track_number_id = tn.id and rl.version = 1
-                and rl.layout_context_id = tn.layout_context_id
               left join layout.track_number official_tn on official_tn.id = tn.id
                 and (official_tn.design_id is null or official_tn.design_id = tn.design_id)
                 and not official_tn.draft
@@ -97,7 +94,7 @@ class LayoutTrackNumberDao(
               and tn.layout_context_id = :layout_context_id
               and tn.version = :version
               and tn.deleted = false
-            order by tn.id, tn.version, rl.id
+            order by tn.id, tn.version
         """
                 .trimIndent()
         val params =
@@ -114,8 +111,7 @@ class LayoutTrackNumberDao(
     override fun preloadCache(): Int {
         val sql =
             """
-            -- Draft vs Official reference line might duplicate the row, but results will be the same. Just pick one.
-            select distinct on (tn.id)
+            select
               tn.id,
               tn.version,
               tn.design_id,
@@ -125,16 +121,15 @@ class LayoutTrackNumberDao(
               tn.description,
               tn.state,
               tn.cancelled,
-              rl.id as reference_line_id,
+              -- Track number reference line identity never changes, so any instance whatsoever is fine
+              (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
               official_tn.id is not null as has_official,
               tn.origin_design_id
             from layout.track_number tn
-              left join layout.reference_line rl on rl.track_number_id = tn.id
-                and rl.layout_context_id = tn.layout_context_id
               left join layout.track_number official_tn on official_tn.id = tn.id
                 and (official_tn.design_id is null or official_tn.design_id = tn.design_id)
                 and not official_tn.draft
-            order by tn.id, rl.id
+            order by tn.id
         """
                 .trimIndent()
         val trackNumbers =
