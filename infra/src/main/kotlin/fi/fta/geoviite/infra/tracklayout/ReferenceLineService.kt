@@ -118,9 +118,8 @@ class ReferenceLineService(
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<ReferenceLine>): LayoutRowVersion<ReferenceLine> {
-        val draft = dao.getOrThrow(branch.draft, id)
         val deletedVersion = super.deleteDraft(branch, id)
-        draft.alignmentVersion?.id?.let(alignmentDao::delete)
+        dao.fetch(deletedVersion).alignmentVersion?.id?.let(alignmentDao::delete)
         return deletedVersion
     }
 
@@ -245,6 +244,9 @@ class ReferenceLineService(
             asMainDraft(line.copy(alignmentVersion = alignmentService.duplicate(line.getAlignmentVersionOrThrow())))
         )
     }
+
+    override fun cancelInternal(asset: ReferenceLine) =
+        cancelled(asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())))
 }
 
 fun referenceLineWithAlignment(

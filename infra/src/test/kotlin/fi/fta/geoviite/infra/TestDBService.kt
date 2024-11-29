@@ -295,9 +295,8 @@ class TestDBService(
         TestLayoutContext(LayoutContext.of(branch, state), this)
 
     fun <T : LayoutAsset<T>> updateContext(original: T, context: LayoutContext): T =
-        original.takeIf { o ->
-            o.contextData.designId == context.branch.designId && o.isDraft == (context.state == DRAFT)
-        } ?: original.withContext(LayoutContextData.new(context))
+        original.takeIf { o -> o.layoutContext == context }
+            ?: original.withContext(LayoutContextData.new(context, original.id as? IntId))
 
     fun insertProject(): RowVersion<Project> = geometryDao.insertProject(project(getUnusedProjectName().toString()))
 

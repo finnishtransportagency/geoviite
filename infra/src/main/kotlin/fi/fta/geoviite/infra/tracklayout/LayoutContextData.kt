@@ -107,10 +107,10 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
         }
 
     companion object {
-        fun <T : LayoutAsset<T>> new(context: LayoutContext): LayoutContextData<T> =
+        fun <T : LayoutAsset<T>> new(context: LayoutContext, id: IntId<T>?): LayoutContextData<T> =
             when (context.state) {
-                DRAFT -> newDraft(context.branch, id = null)
-                OFFICIAL -> newOfficial(context.branch)
+                DRAFT -> newDraft(context.branch, id = id)
+                OFFICIAL -> newOfficial(context.branch, id = id)
             }
 
         fun <T : LayoutAsset<T>> newDraft(branch: LayoutBranch, id: IntId<T>?): LayoutContextData<T> =
@@ -130,12 +130,13 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
                     )
             }
 
-        fun <T : LayoutAsset<T>> newOfficial(branch: LayoutBranch): LayoutContextData<T> =
+        fun <T : LayoutAsset<T>> newOfficial(branch: LayoutBranch, id: IntId<T>? = null): LayoutContextData<T> =
             when (branch) {
-                is MainBranch -> MainOfficialContextData(layoutAssetId = TemporaryAssetId())
+                is MainBranch ->
+                    MainOfficialContextData(layoutAssetId = id?.let { IdentifiedAssetId(id) } ?: TemporaryAssetId())
                 is DesignBranch ->
                     DesignOfficialContextData(
-                        layoutAssetId = TemporaryAssetId(),
+                        layoutAssetId = id?.let { IdentifiedAssetId(id) } ?: TemporaryAssetId(),
                         designId = branch.designId,
                         cancelled = false,
                     )
@@ -324,5 +325,5 @@ fun <T : LayoutAsset<T>> asDesignDraft(item: T, designId: IntId<LayoutDesign>): 
 fun <T : LayoutAsset<T>> cancelled(item: T): T =
     item.withContext(
         (item.contextData as? DesignOfficialContextData)?.cancelled()
-            ?: error("Only design-official items can be cancelled")
+            ?: error("The cancellation operation is only allowed for design-official items")
     )

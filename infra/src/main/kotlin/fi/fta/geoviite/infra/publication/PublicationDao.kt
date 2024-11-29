@@ -33,15 +33,20 @@ class PublicationDao(
     ): List<TrackNumberPublicationCandidate> {
         val sql =
             """
-            select id, design_id, draft, version, number, change_time, change_user,
+            select id, design_id, draft, version, number, change_time, change_user, cancelled,
               layout.infer_operation_from_state_transition(
                 (select state
-                 from layout.track_number_in_layout_context('OFFICIAL', :base_design_id) tilc
+                 from layout.track_number_in_layout_context('OFFICIAL', null) tilc
                  where tilc.id = candidate_track_number.id),
                 candidate_track_number.state
               ) as operation
             from layout.track_number candidate_track_number
             where draft = (:candidate_state = 'DRAFT') and design_id is not distinct from :candidate_design_id
+              and not (design_id is not null and not draft and (cancelled or exists (
+                select * from layout.track_number drafted_cancellation
+                where drafted_cancellation.draft
+                  and drafted_cancellation.design_id = candidate_track_number.design_id
+                  and drafted_cancellation.id = candidate_track_number.id)))
         """
                 .trimIndent()
         val candidates =
@@ -52,6 +57,7 @@ class PublicationDao(
                     draftChangeTime = rs.getInstant("change_time"),
                     operation = rs.getEnum("operation"),
                     userName = UserName.of(rs.getString("change_user")),
+                    cancelled = rs.getBoolean("cancelled"),
                     boundingBox =
                         referenceLineDao
                             .fetchVersionByTrackNumberId(transition.baseContext, rs.getIntId("id"))
@@ -81,25 +87,41 @@ class PublicationDao(
               candidate_reference_line.change_time,
               candidate_reference_line.change_user,
               candidate_track_number.number as name,
+              candidate_reference_line.cancelled,
               layout.infer_operation_from_state_transition(
                 (select state
-                 from layout.track_number_in_layout_context('OFFICIAL', :base_design_id)
+                 from layout.track_number_in_layout_context('OFFICIAL', null)
                  where id = track_number_id),
                 candidate_track_number.state
               ) as operation,
               postgis.st_astext(alignment_version.bounding_box) as bounding_box
             from layout.reference_line candidate_reference_line
-              left join layout.track_number_in_layout_context(:candidate_state::layout.publication_state,
-                                                              :candidate_design_id::int) candidate_track_number
-                on candidate_reference_line.track_number_id = candidate_track_number.id
-              left join layout.track_number_in_layout_context('OFFICIAL',
-                                                              :base_design_id::int) base_track_number
-                on candidate_reference_line.track_number_id = base_track_number.id
+              left join lateral
+                (
+                select *
+                from (
+                  select * from layout.track_number same_context_tn
+                  where same_context_tn.draft = (:candidate_state = 'DRAFT')
+                    and same_context_tn.design_id is not distinct from :candidate_design_id
+                    and same_context_tn.id = candidate_reference_line.track_number_id
+                  union all
+                  select *
+                  from layout.track_number_in_layout_context(:candidate_state::layout.publication_state,
+                                                             :candidate_design_id)) visible_tn
+                  where visible_tn.id = candidate_reference_line.track_number_id
+                limit 1
+                ) candidate_track_number on (true)
               left join layout.alignment_version alignment_version
                 on candidate_reference_line.alignment_id = alignment_version.id
                   and candidate_reference_line.alignment_version = alignment_version.version
             where candidate_reference_line.draft = (:candidate_state = 'DRAFT')
               and candidate_reference_line.design_id is not distinct from :candidate_design_id
+              and not (candidate_reference_line.design_id is not null and not candidate_reference_line.draft
+                         and (candidate_reference_line.cancelled or exists (
+                           select * from layout.reference_line drafted_cancellation
+                           where drafted_cancellation.draft
+                             and drafted_cancellation.design_id = candidate_reference_line.design_id
+                             and drafted_cancellation.id = candidate_reference_line.id)))
         """
                 .trimIndent()
         val candidates =
@@ -111,6 +133,7 @@ class PublicationDao(
                     draftChangeTime = rs.getInstant("change_time"),
                     userName = UserName.of(rs.getString("change_user")),
                     operation = rs.getEnum<Operation>("operation"),
+                    cancelled = rs.getBoolean("cancelled"),
                     boundingBox = rs.getBboxOrNull("bounding_box"),
                 )
             }
@@ -154,19 +177,16 @@ class PublicationDao(
               candidate_location_track.change_time,
               candidate_location_track.duplicate_of_location_track_id,
               candidate_location_track.change_user,
+              candidate_location_track.cancelled,
               layout.infer_operation_from_location_track_state_transition(
                 (select state
-                 from layout.location_track_in_layout_context('OFFICIAL',
-                                                              :base_design_id) base_lt
+                 from layout.location_track_in_layout_context('OFFICIAL', null) base_lt
                  where base_lt.id = candidate_location_track.id),
                 candidate_location_track.state
               ) as operation,
               postgis.st_astext(alignment_version.bounding_box) as bounding_box,
               splits.split_id
-            from (select *
-                  from layout.location_track
-                  where draft = (:candidate_state = 'DRAFT')
-                    and design_id is not distinct from :candidate_design_id) candidate_location_track
+            from layout.location_track candidate_location_track
                 left join layout.alignment_version alignment_version
                     on candidate_location_track.alignment_id = alignment_version.id
                         and candidate_location_track.alignment_version = alignment_version.version
@@ -174,6 +194,14 @@ class PublicationDao(
                     on splits.source_track_id = candidate_location_track.id
                         or candidate_location_track.id = any(splits.target_track_ids)
                         or candidate_location_track.id = any(splits.split_updated_duplicate_ids)
+            where candidate_location_track.draft = (:candidate_state = 'DRAFT')
+              and candidate_location_track.design_id is not distinct from :candidate_design_id and
+              not (candidate_location_track.design_id is not null and not candidate_location_track.draft
+                   and (cancelled or exists (
+                     select * from layout.location_track drafted_cancellation
+                     where drafted_cancellation.draft
+                       and drafted_cancellation.design_id = candidate_location_track.design_id
+                       and drafted_cancellation.id = candidate_location_track.id)))
         """
                 .trimIndent()
         val candidates =
@@ -187,6 +215,7 @@ class PublicationDao(
                     userName = UserName.of(rs.getString("change_user")),
                     operation = rs.getEnum("operation"),
                     boundingBox = rs.getBboxOrNull("bounding_box"),
+                    cancelled = rs.getBoolean("cancelled"),
                     publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
                 )
             }
@@ -226,20 +255,16 @@ class PublicationDao(
                                                          :candidate_design_id) sltn
               ) as track_numbers,
               layout.infer_operation_from_state_category_transition(
-                base_switch.state_category,
+                (select state_category
+                 from layout.switch_in_layout_context('OFFICIAL', null) official_switch
+                 where official_switch.id = candidate_switch.id),
                 candidate_switch.state_category
               ) as operation,
               postgis.st_x(switch_joint_version.location) as point_x, 
               postgis.st_y(switch_joint_version.location) as point_y,
+              candidate_switch.cancelled,
               splits.split_id
-            from (select *
-                  from layout.switch_in_layout_context(:candidate_state::layout.publication_state,
-                                                       :candidate_design_id)
-                  where draft = (:candidate_state = 'DRAFT')
-                    and design_id is not distinct from :candidate_design_id) candidate_switch
-              left join
-                layout.switch_in_layout_context('OFFICIAL', :base_design_id) base_switch
-                  on candidate_switch.id = base_switch.id
+            from layout.switch candidate_switch
               left join common.switch_structure on candidate_switch.switch_structure_id = switch_structure.id
               left join layout.switch_joint_version
                 on switch_joint_version.switch_id = candidate_switch.id
@@ -247,6 +272,14 @@ class PublicationDao(
                   and switch_joint_version.switch_version = candidate_switch.version
                   and switch_joint_version.number = switch_structure.presentation_joint_number
              left join splits on candidate_switch.id = any(splits.split_relinked_switch_ids)
+            where candidate_switch.draft = (:candidate_state = 'DRAFT')
+              and candidate_switch.design_id is not distinct from :candidate_design_id
+              and not (candidate_switch.design_id is not null and not candidate_switch.draft
+                       and (cancelled or exists (
+                         select * from layout.track_number drafted_cancellation
+                         where drafted_cancellation.draft
+                           and drafted_cancellation.design_id = design_id
+                           and drafted_cancellation.id = candidate_switch.id)))
         """
                 .trimIndent()
         val candidates =
@@ -259,6 +292,7 @@ class PublicationDao(
                     operation = rs.getEnum("operation"),
                     trackNumberIds = rs.getIntIdArray("track_numbers"),
                     location = rs.getPointOrNull("point_x", "point_y"),
+                    cancelled = rs.getBoolean("cancelled"),
                     publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
                 )
             }
@@ -281,17 +315,21 @@ class PublicationDao(
               candidate_km_post.change_user,
               layout.infer_operation_from_state_transition(
                 (select state
-                 from layout.km_post_in_layout_context('OFFICIAL', :base_design_id)
+                 from layout.km_post_in_layout_context('OFFICIAL', null)
                  where id = candidate_km_post.id),
                 candidate_km_post.state
               ) as operation,
+              candidate_km_post.cancelled,
               postgis.st_x(candidate_km_post.layout_location) as point_x,
               postgis.st_y(candidate_km_post.layout_location) as point_y
-            from (select *
-                  from layout.km_post_in_layout_context(:candidate_state::layout.publication_state,
-                                                        :candidate_design_id)
-                  where draft = (:candidate_state = 'DRAFT')
-                    and design_id is not distinct from :candidate_design_id) candidate_km_post
+            from layout.km_post candidate_km_post
+            where draft = (:candidate_state = 'DRAFT')
+              and design_id is not distinct from :candidate_design_id
+              and not (design_id is not null and not draft and (cancelled or exists (
+                select * from layout.km_post drafted_cancellation
+                where drafted_cancellation.draft
+                  and drafted_cancellation.design_id = design_id
+                  and drafted_cancellation.id = candidate_km_post.id)))
             order by km_number
         """
                 .trimIndent()
@@ -304,6 +342,7 @@ class PublicationDao(
                     draftChangeTime = rs.getInstant("change_time"),
                     userName = UserName.of(rs.getString("change_user")),
                     operation = rs.getEnum("operation"),
+                    cancelled = rs.getBoolean("cancelled"),
                     location = rs.getPointOrNull("point_x", "point_y"),
                 )
             }

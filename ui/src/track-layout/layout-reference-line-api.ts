@@ -5,13 +5,14 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
-    LayoutAssetChangeInfo,
+    DesignBranch,
     draftLayoutContext,
+    LayoutAssetChangeInfo,
     LayoutContext,
     TimeStamp,
 } from 'common/common-model';
-import { getNonNull, getNullable, queryParams } from 'api/api-fetch';
-import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
+import { getNonNull, getNullable, postNonNull, queryParams } from 'api/api-fetch';
+import { changeInfoUri, layoutUri, layoutUriByBranch } from 'track-layout/track-layout-api';
 import { BoundingBox } from 'model/geometry';
 import { bboxString } from 'common/common-api';
 import { asyncCache } from 'cache/cache';
@@ -101,3 +102,10 @@ export const getReferenceLineChangeTimes = (
 ): Promise<LayoutAssetChangeInfo | undefined> => {
     return getNullable<LayoutAssetChangeInfo>(changeInfoUri('reference-lines', id, layoutContext));
 };
+
+export async function cancelReferenceLine(
+    design: DesignBranch,
+    id: ReferenceLineId,
+): Promise<void> {
+    return postNonNull(`${layoutUriByBranch('reference-lines', design)}/${id}/cancel`, '');
+}

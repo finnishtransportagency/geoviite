@@ -41,6 +41,7 @@ export type PreviewTableItemProps = {
     onShowOnMap: (bbox: BoundingBox) => void;
     validationState: PublicationValidationState;
     canRevertChanges: boolean;
+    canCancelChanges: boolean;
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
@@ -53,6 +54,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     onShowOnMap,
     validationState,
     canRevertChanges,
+    canCancelChanges,
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
@@ -150,6 +152,12 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         'preview-revert-publication-group',
     );
 
+    const menuOptionCancelSingleChange: MenuSelectOption = menuOption(
+        () => previewOperations.cancel(tableEntry.publishCandidate),
+        t('publish.cancel-change'),
+        'preview-cancel-change',
+    );
+
     const menuOptionShowOnMap: MenuSelectOption = menuOption(
         () => {
             tableEntry.boundingBox && onShowOnMap(tableEntry.boundingBox);
@@ -178,14 +186,23 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                   menuOptionRevertAllShownChanges,
               ]
             : []),
+        ...conditionalMenuOption(canCancelChanges, menuOptionCancelSingleChange),
     ];
+
+    const operation = tableEntry.operation
+        ? tableEntry.publishCandidate.cancelled
+            ? t('preview-table.cancellation', {
+                  operation: t(`enum.Operation.${tableEntry.operation}`),
+              })
+            : t(`enum.Operation.${tableEntry.operation}`)
+        : '';
 
     return (
         <React.Fragment>
             <tr className={'preview-table-item'}>
                 <td>{tableEntry.uiName}</td>
                 <td>{tableEntry.trackNumber ? tableEntry.trackNumber : ''}</td>
-                <td>{tableEntry.operation ? t(`enum.Operation.${tableEntry.operation}`) : ''}</td>
+                <td>{operation}</td>
                 <td>{formatDateFull(tableEntry.changeTime)}</td>
                 <td>{tableEntry.userName}</td>
                 <ValidationStateCell

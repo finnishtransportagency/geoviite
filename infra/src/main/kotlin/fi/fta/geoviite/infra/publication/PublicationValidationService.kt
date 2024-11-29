@@ -273,19 +273,29 @@ constructor(
         splitService.validateSplit(versions, validationContext, allowMultipleSplits = false).also(::assertNoSplitErrors)
 
         versions.trackNumbers.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateTrackNumber(version.id, validationContext)))
+            if (!validationContext.trackNumberIsCancelled(version.id)) {
+                assertNoErrors(version, requireNotNull(validateTrackNumber(version.id, validationContext)))
+            }
         }
         versions.kmPosts.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateKmPost(version.id, validationContext)))
+            if (!validationContext.kmPostIsCancelled(version.id)) {
+                assertNoErrors(version, requireNotNull(validateKmPost(version.id, validationContext)))
+            }
         }
         versions.referenceLines.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateReferenceLine(version.id, validationContext)))
+            if (!validationContext.referenceLineIsCancelled(version.id)) {
+                assertNoErrors(version, requireNotNull(validateReferenceLine(version.id, validationContext)))
+            }
         }
         versions.locationTracks.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateLocationTrack(version.id, validationContext)))
+            if (!validationContext.locationTrackIsCancelled(version.id)) {
+                assertNoErrors(version, requireNotNull(validateLocationTrack(version.id, validationContext)))
+            }
         }
         versions.switches.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateSwitch(version.id, validationContext)))
+            if (!validationContext.switchIsCancelled(version.id)) {
+                assertNoErrors(version, requireNotNull(validateSwitch(version.id, validationContext)))
+            }
         }
     }
 
@@ -396,6 +406,7 @@ constructor(
                     referenceLine = referenceLine,
                     trackNumber = trackNumber,
                     trackNumberNumber = validationContext.getCandidateTrackNumber(referenceLine.trackNumberId)?.number,
+                    trackNumberIsCancelled = validationContext.trackNumberIsCancelled(referenceLine.trackNumberId),
                 )
             val alignmentIssues =
                 if (trackNumber?.exists == true) {
@@ -433,7 +444,13 @@ constructor(
             val trackNumberName =
                 (trackNumber ?: validationContext.getCandidateTrackNumber(track.trackNumberId))?.number
 
-            val referenceIssues = validateLocationTrackReference(track, trackNumber, trackNumberName)
+            val referenceIssues =
+                validateLocationTrackReference(
+                    track,
+                    trackNumber,
+                    trackNumberName,
+                    trackNumberIsCancelled = validationContext.trackNumberIsCancelled(track.trackNumberId),
+                )
             val segmentSwitches = validationContext.getSegmentSwitches(alignment)
             val switchSegmentIssues = validateSegmentSwitchReferences(track, segmentSwitches)
             val topologicallyConnectedSwitchIssues =
@@ -461,7 +478,14 @@ constructor(
             // for validation issue
             val duplicateOfName = track.duplicateOf?.let(validationContext::getDraftLocationTrack)?.name
             val duplicateIssues =
-                validateDuplicateOfState(track, duplicateOf, duplicateOfName, duplicatesAfterPublication)
+                validateDuplicateOfState(
+                    track,
+                    duplicateOf,
+                    duplicateOfName,
+                    duplicateOfLocationTrackIsCancelled =
+                        track.duplicateOf?.let(validationContext::locationTrackIsCancelled) ?: false,
+                    duplicatesAfterPublication,
+                )
 
             val alignmentIssues = if (track.exists) validateLocationTrackAlignment(alignment) else listOf()
             val geocodingIssues =
