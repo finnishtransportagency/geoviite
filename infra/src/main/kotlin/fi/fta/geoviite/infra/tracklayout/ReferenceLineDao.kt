@@ -53,7 +53,7 @@ class ReferenceLineDao(
               rlv.start_address,
               exists(select * from layout.reference_line official_rl
                      where rlv.id = official_rl.id
-                       and (official_rl.design_id is not null or official_rl.design_id = rlv.design_id)
+                       and (official_rl.design_id is null or official_rl.design_id = rlv.design_id)
                        and not official_rl.draft) as has_official,
               origin_design_id
             from layout.reference_line_version rlv
