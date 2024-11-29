@@ -82,14 +82,14 @@ class LayoutTrackNumberDao(
               tn.number,
               tn.description,
               tn.state,
-              tn.origin_design_id,
               -- Track number reference line identity never changes, so any instance whatsoever is fine
               (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
-              official_tn.id is not null as has_official
+              exists (select * from layout.track_number official_tn
+                      where official_tn.id = tn.id
+                        and (official_tn.design_id is null or official_tn.design_id = tn.design_id)
+                        and not official_tn.draft) has_official,
+              tn.origin_design_id
             from layout.track_number_version tn
-              left join layout.track_number official_tn on official_tn.id = tn.id
-                and (official_tn.design_id is null or official_tn.design_id = tn.design_id)
-                and not official_tn.draft
             where tn.id = :id
               and tn.layout_context_id = :layout_context_id
               and tn.version = :version
@@ -123,12 +123,12 @@ class LayoutTrackNumberDao(
               tn.cancelled,
               -- Track number reference line identity never changes, so any instance whatsoever is fine
               (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
-              official_tn.id is not null as has_official,
+              exists (select * from layout.track_number official_tn
+                      where official_tn.id = tn.id
+                        and (official_tn.design_id is null or official_tn.design_id = tn.design_id)
+                        and not official_tn.draft) has_official,
               tn.origin_design_id
             from layout.track_number tn
-              left join layout.track_number official_tn on official_tn.id = tn.id
-                and (official_tn.design_id is null or official_tn.design_id = tn.design_id)
-                and not official_tn.draft
             order by tn.id
         """
                 .trimIndent()

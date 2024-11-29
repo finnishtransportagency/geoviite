@@ -202,13 +202,13 @@ class LocationTrackDao(
                     and sv.alignment_version = lt.alignment_version
                     and sv.switch_id is not null
               ) as segment_switch_ids,
-              official_lt.id is not null as has_official,
+              exists(select * from layout.location_track official_lt
+                     where official_lt.id = lt.id
+                       and (official_lt.design_id is null or official_lt.design_id = lt.design_id)
+                       and not official_lt.draft) as has_official,
               lt.origin_design_id
             from layout.location_track lt
               left join layout.alignment_version av on lt.alignment_id = av.id and lt.alignment_version = av.version
-              left join layout.location_track official_lt on lt.id = official_lt.id
-                 and (official_lt.design_id is null or official_lt.design_id = lt.design_id)
-                 and not official_lt.draft
         """
                 .trimIndent()
 

@@ -225,12 +225,12 @@ class LayoutKmPostDao(
               kp.gk_location_source,
               kp.gk_location_confirmed,
               kp.state,
-              kp.origin_design_id,
-              official_kp.id is not null as has_official
+              exists(select * from layout.km_post official_kp
+                     where kp.id = official_kp.id
+                       and (official_kp.design_id is null or official_kp.design_id = kp.design_id)
+                       and not official_kp.draft) as has_official,
+              kp.origin_design_id
             from layout.km_post kp
-              left join layout.km_post official_kp on kp.id = official_kp.id
-                and (official_kp.design_id is null or official_kp.design_id = kp.design_id)
-                and not official_kp.draft
         """
                 .trimIndent()
 
