@@ -11,15 +11,15 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 10000L
 const val EDGE_CACHE_SIZE = 10000L
@@ -131,19 +131,22 @@ class LayoutAlignmentDao(
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun getEdge(id: IntId<LayoutEdge>): LayoutEdge =
         edgesCache.get(id) {
-            val edge = fetchEdges(id = id, active = false).single()
+            val edge = fetchEdges(ids = listOf(id), active = false).values.single()
             edgeIdsByHash[edge.content.lazyHash] = id
             edge
         }
 
+    fun getEdges(ids: List<IntId<LayoutEdge>>) = edgesCache.getAll(ids) { missing -> fetchEdges(missing, false) }
+
     fun preloadEdges(): Int {
-        val edges = fetchEdges(id = null, active = true) // only preload edges that are currently in use
-        edgesCache.putAll(edges.associateBy(LayoutEdge::id))
-        edgeIdsByHash.putAll(edges.associate { n -> n.content.lazyHash to n.id })
+        val edges = fetchEdges(ids = null, active = true)
+        edgesCache.putAll(edges)
+        edgeIdsByHash.putAll(edges.values.associate { n -> n.content.lazyHash to n.id })
         return edges.size
     }
 
-    private fun fetchEdges(id: IntId<LayoutEdge>?, active: Boolean): List<LayoutEdge> {
+    private fun fetchEdges(ids: Iterable<IntId<LayoutEdge>>?, active: Boolean): Map<IntId<LayoutEdge>, LayoutEdge> {
+        logger.info("Fetching edges: ids=$ids active=$active")
         val sql =
             """
             select
@@ -159,7 +162,7 @@ class LayoutAlignmentDao(
               array_agg(s.geometry_id order by s.segment_index) as geometry_ids
               from layout.edge e
                 left join layout.edge_segment s on e.id = s.edge_id
-              where (:id::int is null or e.id = :id)
+              where (:ids::int[] is null or e.id = any(:ids))
                 and (not :active or exists(
                   select 1 
                   from layout.location_track_version_edge te 
@@ -172,50 +175,56 @@ class LayoutAlignmentDao(
               group by e.id
         """
                 .trimIndent()
-        val params = mapOf("id" to id?.intValue, "active" to active)
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            val edgeId = rs.getIntId<LayoutEdge>("id")
-            val segmentIndices = rs.getIntArray("indices")
-            val geometryAlignmentIds =
-                rs.getNullableIntArray("geometry_alignment_ids").also { require(it.size == segmentIndices.size) }
-            val geometryElmentIndices =
-                rs.getNullableIntArray("geometry_element_indices").also { require(it.size == segmentIndices.size) }
-            val startMValues = rs.getBigDecimalArray("start_m_values").also { require(it.size == segmentIndices.size) }
-            val sourceStartMValues =
-                rs.getNullableBigDecimalArray("source_start_m_values").also { require(it.size == segmentIndices.size) }
-            val sources = rs.getEnumArray<GeometrySource>("sources").also { require(it.size == segmentIndices.size) }
-            val geometryIds =
-                rs.getIntIdArray<SegmentGeometry>("geometry_ids").also { require(it.size == segmentIndices.size) }
-            val segmentGeometries = fetchSegmentGeometries(geometryIds)
-            val segments =
-                segmentIndices.mapIndexed { i, segmentIndex ->
-                    val geometryAlignmentId = geometryAlignmentIds[i]
-                    val geometryElementIndex = geometryElmentIndices[i]
-                    val sourceId: IndexedId<GeometryElement>? =
-                        if (geometryAlignmentId != null) {
-                            IndexedId(geometryAlignmentId, requireNotNull(geometryElementIndex))
-                        } else {
-                            null
-                        }
-                    LayoutEdgeSegment(
-                        id = IndexedId(edgeId.intValue, segmentIndex),
-                        sourceId = sourceId,
-                        startM = startMValues[i].toDouble(),
-                        sourceStart = sourceStartMValues[i]?.toDouble(),
-                        source = sources[i],
-                        geometry = requireNotNull(segmentGeometries[geometryIds[i]]),
-                    )
-                }
-            LayoutEdge(
-                id = edgeId,
-                content =
-                    EdgeContent(
-                        startNodeId = rs.getIntId("start_node_id"),
-                        endNodeId = rs.getIntId("end_node_id"),
-                        segments = segments,
-                    ),
-            )
-        }
+        val params = mapOf("ids" to ids?.map { id -> id.intValue }?.toTypedArray(), "active" to active)
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val edgeId = rs.getIntId<LayoutEdge>("id")
+                val segmentIndices = rs.getIntArray("indices")
+                val geometryAlignmentIds =
+                    rs.getNullableIntArray("geometry_alignment_ids").also { require(it.size == segmentIndices.size) }
+                val geometryElementIndices =
+                    rs.getNullableIntArray("geometry_element_indices").also { require(it.size == segmentIndices.size) }
+                val startMValues =
+                    rs.getBigDecimalArray("start_m_values").also { require(it.size == segmentIndices.size) }
+                val sourceStartMValues =
+                    rs.getNullableBigDecimalArray("source_start_m_values").also {
+                        require(it.size == segmentIndices.size)
+                    }
+                val sources =
+                    rs.getEnumArray<GeometrySource>("sources").also { require(it.size == segmentIndices.size) }
+                val geometryIds =
+                    rs.getIntIdArray<SegmentGeometry>("geometry_ids").also { require(it.size == segmentIndices.size) }
+                val segmentGeometries = fetchSegmentGeometries(geometryIds)
+                val segments =
+                    segmentIndices.mapIndexed { i, segmentIndex ->
+                        val geometryAlignmentId = geometryAlignmentIds[i]
+                        val geometryElementIndex = geometryElementIndices[i]
+                        val sourceId: IndexedId<GeometryElement>? =
+                            if (geometryAlignmentId != null) {
+                                IndexedId(geometryAlignmentId, requireNotNull(geometryElementIndex))
+                            } else {
+                                null
+                            }
+                        LayoutEdgeSegment(
+                            id = IndexedId(edgeId.intValue, segmentIndex),
+                            sourceId = sourceId,
+                            startM = startMValues[i].toDouble(),
+                            sourceStart = sourceStartMValues[i]?.toDouble(),
+                            source = sources[i],
+                            geometry = requireNotNull(segmentGeometries[geometryIds[i]]),
+                        )
+                    }
+                LayoutEdge(
+                    id = edgeId,
+                    content =
+                        EdgeContent(
+                            startNodeId = rs.getIntId("start_node_id"),
+                            endNodeId = rs.getIntId("end_node_id"),
+                            segments = segments,
+                        ),
+                )
+            }
+            .associateBy(LayoutEdge::id)
     }
 
     @Transactional
@@ -276,10 +285,56 @@ class LayoutAlignmentDao(
 
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun get(trackVersion: LayoutRowVersion<LocationTrack>): LocationTrackGeometry =
-        locationTrackGeometryCache.get(trackVersion, ::fetchLocationTrackGeometry)
+        locationTrackGeometryCache.get(trackVersion) { version ->
+            fetchLocationTrackGeometry(version, false).values.single()
+        }
 
-    fun fetchLocationTrackGeometry(trackVersion: LayoutRowVersion<LocationTrack>): LocationTrackGeometry {
-        TODO("Not implemented yet")
+    private fun fetchLocationTrackGeometry(
+        trackVersion: LayoutRowVersion<LocationTrack>?,
+        active: Boolean,
+    ): Map<LayoutRowVersion<LocationTrack>, LocationTrackGeometry> {
+        val sql =
+            """
+            select
+              location_track_id as id,
+              location_track_layout_context_id as layout_context_id,
+              location_track_version as version,
+              array_agg(edge_id order by edge_index) as edge_ids
+            from layout.location_track_version_edge
+            where (:id::int is null or (
+                location_track_id = :id and location_track_layout_context_id = :layout_context_id and location_track_version = :version
+              ))
+              and (:active = false or exists(
+                select 1
+                from layout.location_track t
+                where t.id = location_track_id and t.layout_context_id = location_track_layout_context_id and t.version = location_track_version
+              ))
+            group by location_track_id, location_track_layout_context_id, location_track_version
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "id" to trackVersion?.id?.intValue,
+                "layout_context_id" to trackVersion?.context?.toSqlString(),
+                "version" to trackVersion?.version,
+                "active" to active,
+            )
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val edgeIds = rs.getIntIdArray<LayoutEdge>("edge_ids")
+                val edges = getEdges(edgeIds)
+                LocationTrackGeometry(
+                    trackRowVersion = rs.getLayoutRowVersion("id", "layout_context_id", "version"),
+                    edges = edgeIds.map { id -> requireNotNull(edges[id]) },
+                )
+            }
+            .associateBy(LocationTrackGeometry::trackRowVersion)
+    }
+
+    fun preloadLocationTrackGeometries(): Int {
+        val geoms = fetchLocationTrackGeometry(trackVersion = null, active = true)
+        locationTrackGeometryCache.putAll(geoms)
+        return geoms.size
     }
 
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
