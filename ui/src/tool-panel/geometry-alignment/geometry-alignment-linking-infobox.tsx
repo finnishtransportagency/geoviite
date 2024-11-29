@@ -409,6 +409,13 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             <InfoboxButtons>
                                 <Button
                                     disabled={layoutContext.publicationState !== 'DRAFT'}
+                                    title={
+                                        layoutContext.publicationState === 'OFFICIAL'
+                                            ? t(
+                                                  'tool-panel.disabled.activity-disabled-in-official-mode',
+                                              )
+                                            : ''
+                                    }
                                     size={ButtonSize.SMALL}
                                     onClick={startLinking}
                                     qa-id="start-alignment-linking">
