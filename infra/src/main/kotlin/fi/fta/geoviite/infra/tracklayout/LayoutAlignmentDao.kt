@@ -63,12 +63,19 @@ class LayoutAlignmentDao(
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun getNode(id: IntId<LayoutNode>): LayoutNode =
         nodesCache.get(id) {
-            val node = fetchNode(id)
-            nodeIdsByHash[node.content.hashCode()] = id
+            val node = fetchNodes(id).single()
+            nodeIdsByHash[node.content.lazyHash] = id
             node
         }
 
-    private fun fetchNode(id: IntId<LayoutNode>): LayoutNode {
+    fun preloadNodes(): Int {
+        val nodes = fetchNodes(id = null)
+        nodesCache.putAll(nodes.associateBy(LayoutNode::id))
+        nodeIdsByHash.putAll(nodes.associate { n -> n.content.lazyHash to n.id })
+        return nodes.size
+    }
+
+    private fun fetchNodes(id: IntId<LayoutNode>?): List<LayoutNode> {
         val sql =
             """
             select 
@@ -79,34 +86,32 @@ class LayoutAlignmentDao(
               node.starting_location_track_id,
               node.ending_location_track_id
             from layout.node left join layout.node_switch_joint joint on node.id = joint.node_id
-            where node.id = :id
+            where (:id::int is null or node.id = :id)
             group by node.id 
         """
                 .trimIndent()
-        val params = mapOf("id" to id.intValue)
-        return jdbcTemplate
-            .query(sql, params) { rs, _ ->
-                val type = rs.getEnum<NodeType>("type")
-                val content =
-                    when (type) {
-                        NodeType.TRACK_START -> LayoutNodeStartTrack(rs.getIntId("starting_location_track_id"))
-                        NodeType.TRACK_END -> LayoutNodeEndTrack(rs.getIntId("ending_location_track_id"))
-                        NodeType.SWITCH -> {
-                            val switchIds = rs.getIntArray("switch_ids")
-                            val jointNumbers = rs.getIntArray("switch_joints")
-                            LayoutNodeSwitches(
-                                switchIds.zip(jointNumbers).map { (sId, j) -> SwitchLink(IntId(sId), JointNumber(j)) }
-                            )
-                        }
+        val params = mapOf("id" to id?.intValue)
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            val type = rs.getEnum<NodeType>("type")
+            val content =
+                when (type) {
+                    NodeType.TRACK_START -> LayoutNodeStartTrack(rs.getIntId("starting_location_track_id"))
+                    NodeType.TRACK_END -> LayoutNodeEndTrack(rs.getIntId("ending_location_track_id"))
+                    NodeType.SWITCH -> {
+                        val switchIds = rs.getIntArray("switch_ids")
+                        val jointNumbers = rs.getIntArray("switch_joints")
+                        LayoutNodeSwitches(
+                            switchIds.zip(jointNumbers).map { (sId, j) -> SwitchLink(IntId(sId), JointNumber(j)) }
+                        )
                     }
-                LayoutNode(rs.getIntId("id"), content)
-            }
-            .single()
+                }
+            LayoutNode(rs.getIntId("id"), content)
+        }
     }
 
     @Transactional
     fun getOrCreateNode(content: LayoutNodeContent): LayoutNode =
-        getNode(nodeIdsByHash[content.hashCode()] ?: saveNode(content))
+        getNode(nodeIdsByHash[content.lazyHash] ?: saveNode(content))
 
     private fun saveNode(content: LayoutNodeContent): IntId<LayoutNode> {
         val sql = "select layout.get_or_insert_node(:switch_ids, :switch_joints, :start_track_id, :end_track_id)"
@@ -126,12 +131,19 @@ class LayoutAlignmentDao(
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun getEdge(id: IntId<LayoutEdge>): LayoutEdge =
         edgesCache.get(id) {
-            val edge = fetchEdge(id)
-            edgeIdsByHash[edge.content.hashCode()] = id
+            val edge = fetchEdges(id = id, active = false).single()
+            edgeIdsByHash[edge.content.lazyHash] = id
             edge
         }
 
-    private fun fetchEdge(id: IntId<LayoutEdge>): LayoutEdge {
+    fun preloadEdges(): Int {
+        val edges = fetchEdges(id = null, active = true) // only preload edges that are currently in use
+        edgesCache.putAll(edges.associateBy(LayoutEdge::id))
+        edgeIdsByHash.putAll(edges.associate { n -> n.content.lazyHash to n.id })
+        return edges.size
+    }
+
+    private fun fetchEdges(id: IntId<LayoutEdge>?, active: Boolean): List<LayoutEdge> {
         val sql =
             """
             select
@@ -147,57 +159,69 @@ class LayoutAlignmentDao(
               array_agg(s.geometry_id order by s.segment_index) as geometry_ids
               from layout.edge e
                 left join layout.edge_segment s on e.id = s.edge_id
-              where e.id = :id
+              where (:id::int is null or e.id = :id)
+                and (not :active or exists(
+                  select 1 
+                  from layout.location_track_version_edge te 
+                    inner join layout.location_track t 
+                      on te.location_track_id = t.id 
+                        and te.location_track_layout_context_id = t.layout_context_id 
+                        and te.location_track_version = t.version
+                  where e.id = te.edge_id
+                ))
               group by e.id
         """
                 .trimIndent()
-        val params = mapOf("id" to id.intValue)
-        return jdbcTemplate
-            .query(sql, params) { rs, _ ->
-                val segmentIndices = rs.getIntArray("indices")
-                val geometryAlignmentIds = rs.getIntArray("geometry_alignment_ids")
-                val geometryElmentIndices = rs.getIntArray("geometry_element_indices")
-                val startMValues = rs.getDoubleArray("start_m_values")
-                val sourceStartMValues = rs.getDoubleArray("source_start_m_values")
-                val sources = rs.getEnumArray<GeometrySource>("sources")
-                val geometryIds = rs.getIntIdArray<SegmentGeometry>("geometry_ids")
-                val segmentGeometries = fetchSegmentGeometries(geometryIds)
-                val segments =
-                    segmentIndices.mapIndexed { i, segmentIndex ->
-                        LayoutEdgeSegment(
-                            id = IndexedId(id.intValue, segmentIndex),
-                            sourceId = IndexedId(geometryAlignmentIds[i], geometryElmentIndices[i]),
-                            startM = startMValues[i],
-                            sourceStart = sourceStartMValues[i],
-                            source = sources[i],
-                            geometry = requireNotNull(segmentGeometries[geometryIds[i]]),
-                        )
-                    }
-                LayoutEdge(
-                    id = rs.getIntId("id"),
-                    content =
-                        EdgeContent(
-                            startNodeId = rs.getIntId("start_node_id"),
-                            endNodeId = rs.getIntId("end_node_id"),
-                            segments = segments,
-                        ),
-                )
-            }
-            .single()
+        val params = mapOf("id" to id?.intValue, "active" to active)
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            val edgeId = rs.getIntId<LayoutEdge>("id")
+            val segmentIndices = rs.getIntArray("indices")
+            val geometryAlignmentIds =
+                rs.getNullableIntArray("geometry_alignment_ids").also { require(it.size == segmentIndices.size) }
+            val geometryElmentIndices =
+                rs.getNullableIntArray("geometry_element_indices").also { require(it.size == segmentIndices.size) }
+            val startMValues = rs.getBigDecimalArray("start_m_values").also { require(it.size == segmentIndices.size) }
+            val sourceStartMValues =
+                rs.getNullableBigDecimalArray("source_start_m_values").also { require(it.size == segmentIndices.size) }
+            val sources = rs.getEnumArray<GeometrySource>("sources").also { require(it.size == segmentIndices.size) }
+            val geometryIds =
+                rs.getIntIdArray<SegmentGeometry>("geometry_ids").also { require(it.size == segmentIndices.size) }
+            val segmentGeometries = fetchSegmentGeometries(geometryIds)
+            val segments =
+                segmentIndices.mapIndexed { i, segmentIndex ->
+                    val geometryAlignmentId = geometryAlignmentIds[i]
+                    val geometryElementIndex = geometryElmentIndices[i]
+                    val sourceId: IndexedId<GeometryElement>? =
+                        if (geometryAlignmentId != null) {
+                            IndexedId(geometryAlignmentId, requireNotNull(geometryElementIndex))
+                        } else {
+                            null
+                        }
+                    LayoutEdgeSegment(
+                        id = IndexedId(edgeId.intValue, segmentIndex),
+                        sourceId = sourceId,
+                        startM = startMValues[i].toDouble(),
+                        sourceStart = sourceStartMValues[i]?.toDouble(),
+                        source = sources[i],
+                        geometry = requireNotNull(segmentGeometries[geometryIds[i]]),
+                    )
+                }
+            LayoutEdge(
+                id = edgeId,
+                content =
+                    EdgeContent(
+                        startNodeId = rs.getIntId("start_node_id"),
+                        endNodeId = rs.getIntId("end_node_id"),
+                        segments = segments,
+                    ),
+            )
+        }
     }
 
     @Transactional
     fun getOrCreateEdge(content: EdgeContent): LayoutEdge {
         val updatedContent = saveContentGeometry(content)
         return getEdge(edgeIdsByHash[updatedContent.hashCode()] ?: saveEdge(updatedContent))
-    }
-
-    fun preloadNodes(): Int {
-        TODO()
-    }
-
-    fun preloadEdges(): Int {
-        TODO()
     }
 
     private fun saveEdge(content: EdgeContent): IntId<LayoutEdge> {
@@ -907,6 +931,7 @@ class LayoutAlignmentDao(
         ids: Set<IntId<SegmentGeometry>>
     ): Map<IntId<SegmentGeometry>, SegmentGeometry> {
         return if (ids.isNotEmpty()) {
+            logger.info("Fetching segment geometries from DB: ${ids.size}")
             val sql =
                 """
                   select 
