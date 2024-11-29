@@ -50,6 +50,7 @@ class CachePreloadService(
         refreshCache("Alignment", alignmentDao::preloadAlignmentCache)
         refreshCache("Node", alignmentDao::preloadNodes)
         refreshCache("Edge", alignmentDao::preloadEdges)
+        refreshCache("LocationTrackGeometry", alignmentDao::preloadLocationTrackGeometries)
     }
 
     fun loadGeocodingContextCache() {

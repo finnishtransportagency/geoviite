@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.parseLayoutContextSqlString
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -74,6 +75,14 @@ fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T
         null
     }
 }
+
+fun <T> ResultSet.getLayoutRowId(idName: String, contextIdName: String) =
+    LayoutRowId(getIntId<T>(idName), getLayoutContext(contextIdName))
+
+fun <T> ResultSet.getLayoutRowIdOrNull(idName: String, contextIdName: String) =
+    getIntIdOrNull<T>(idName)?.let { id ->
+        getLayoutContextOrNull(contextIdName)?.let { layoutContext -> LayoutRowId(id, layoutContext) }
+    }
 
 fun <T> ResultSet.getLayoutRowId(idName: String, designIdName: String, draftFlagName: String) =
     LayoutRowId(getIntId<T>(idName), getLayoutContext(designIdName, draftFlagName))
@@ -233,6 +242,19 @@ fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowV
     return if (rowId != null && version != null) RowVersion(rowId, version) else null
 }
 
+fun <T> ResultSet.getLayoutRowVersion(idName: String, contextIdName: String, versionName: String): LayoutRowVersion<T> =
+    LayoutRowVersion(getLayoutRowId(idName, contextIdName), getIntNonNull(versionName))
+
+fun <T> ResultSet.getLayoutRowVersionOrNull(
+    idName: String,
+    contextIdName: String,
+    versionName: String,
+): LayoutRowVersion<T>? {
+    val rowId = getLayoutRowIdOrNull<T>(idName, contextIdName)
+    val version = getIntOrNull(versionName)
+    return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
+}
+
 fun <T> ResultSet.getLayoutRowVersion(
     idName: String,
     layoutBranchName: String,
@@ -333,6 +355,12 @@ fun ResultSet.getChangeGeometryPoint(nameX: String, nameY: String, sridName: Str
 
 fun <T> ResultSet.getChangeRowVersion(idName: String, versionName: String): Change<RowVersion<T>> =
     Change(getRowVersionOrNull("old_$idName", "old_$versionName"), getRowVersionOrNull(idName, versionName))
+
+fun ResultSet.getLayoutContext(contextIdName: String): LayoutContext =
+    verifyNotNull(contextIdName, ::getLayoutContextOrNull)
+
+fun ResultSet.getLayoutContextOrNull(contextIdName: String): LayoutContext? =
+    getString(contextIdName)?.let(::parseLayoutContextSqlString)
 
 fun ResultSet.getLayoutContext(designIdName: String, draftFlagName: String): LayoutContext =
     toLayoutContext(getPublicationState(draftFlagName), getIntIdOrNull(designIdName))

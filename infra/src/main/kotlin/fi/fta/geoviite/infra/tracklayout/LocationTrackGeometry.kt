@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.boundingBoxCombining
@@ -14,7 +13,8 @@ import kotlin.math.abs
 
 data class LocationTrackGeometry(val trackRowVersion: LayoutRowVersion<LocationTrack>, val edges: List<LayoutEdge>) :
     IAlignment {
-    override val id: DomainId<LocationTrack> = StringId(trackRowVersion.toString())
+    // TODO: Do we need an id like this? Can we just be rid of it? Should it be unique by version?
+    override val id: IntId<LocationTrack> = trackRowVersion.id
     // TODO: GVT-1727 segment start value conversions?
     override val segments: List<LayoutEdgeSegment> by lazy { edges.flatMap(LayoutEdge::segments) }
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(edges.mapNotNull(LayoutEdge::boundingBox)) }
