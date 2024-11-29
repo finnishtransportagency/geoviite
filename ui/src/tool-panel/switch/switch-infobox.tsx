@@ -327,7 +327,16 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             <Button
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
-                                disabled={!canStartPlacing}
+                                title={
+                                    layoutContext.publicationState !== 'DRAFT'
+                                        ? t(
+                                              'tool-panel.disabled.activity-disabled-in-official-mode',
+                                          )
+                                        : ''
+                                }
+                                disabled={
+                                    !canStartPlacing || layoutContext.publicationState !== 'DRAFT'
+                                }
                                 onClick={tryToStartSwitchPlacing}>
                                 {t('tool-panel.switch.layout.start-switch-placing')}
                             </Button>

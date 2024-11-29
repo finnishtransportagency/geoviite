@@ -479,6 +479,8 @@
             "description": "Ratanumeron kuvaus",
             "location-title": "Ratanumeron sijaintitiedot",
             "start-address": "Alkusijainti (km + m)",
+            "cannot-shorten-deleted-track-number": "Poistettua ratanumeroa ei voi lyhentää",
+            "no-geometry": "Ratanumerolla ei ole geometriaa",
             "revert-dialog": {
                 "revert-draft-confirm": "Hylätäänkö luonnos?",
                 "can-be-reverted": "Luonnoksen hylkääminen palauttaa ratanumeron ja pituusmittauslinjan takaisin uusimpaan viralliseen tilaan. Ratanumero ja pituusmittauslinja poistetaan jos niitä ei ole vielä julkaistu Ratkoon.",

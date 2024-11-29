@@ -168,6 +168,13 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                             <InfoboxButtons>
                                 <Button
                                     disabled={layoutContext.publicationState !== 'DRAFT'}
+                                    title={
+                                        layoutContext.publicationState !== 'DRAFT'
+                                            ? t(
+                                                  'tool-panel.disabled.activity-disabled-in-official-mode',
+                                              )
+                                            : ''
+                                    }
                                     size={ButtonSize.SMALL}
                                     qa-id="start-geometry-km-post-linking"
                                     onClick={() =>

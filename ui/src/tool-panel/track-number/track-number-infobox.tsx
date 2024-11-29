@@ -135,6 +135,24 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         onUnselect,
     );
 
+    const canModifyStartOrEnd =
+        layoutContext.publicationState === 'DRAFT' &&
+        trackNumber.state !== 'DELETED' &&
+        !!startAndEndPoints?.start?.point &&
+        !!startAndEndPoints?.end?.point;
+
+    const getModifyStartOrEndDisabledReasonTranslated = () => {
+        if (layoutContext.publicationState !== 'DRAFT') {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        } else if (trackNumber.state === 'DELETED') {
+            return t('tool-panel.track-number.cannot-shorten-deleted-track-number');
+        } else if (!startAndEndPoints?.start?.point || !startAndEndPoints?.end?.point) {
+            return t('tool-panel.location-track.no-geometry');
+        } else {
+            return undefined;
+        }
+    };
+
     return (
         <React.Fragment>
             <Infobox
@@ -202,6 +220,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                     <Button
                                         variant={ButtonVariant.SECONDARY}
                                         size={ButtonSize.SMALL}
+                                        title={getModifyStartOrEndDisabledReasonTranslated()}
+                                        disabled={!canModifyStartOrEnd}
                                         onClick={() => {
                                             getEndLinkPoints(
                                                 referenceLine.id,

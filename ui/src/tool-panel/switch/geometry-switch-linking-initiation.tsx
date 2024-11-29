@@ -25,30 +25,35 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
     layoutContext,
 }) => {
     const { t } = useTranslation();
+    const warningVisible =
+        linkingState === undefined && geometrySwitchInvalidityReason !== undefined;
+
+    const disabledReason =
+        layoutContext.publicationState === 'OFFICIAL' && !warningVisible
+            ? t('tool-panel.disabled.activity-disabled-in-official-mode')
+            : '';
+
     return (
         <PrivilegeRequired privilege={EDIT_LAYOUT}>
-            {linkingState === undefined &&
-                (geometrySwitchInvalidityReason !== undefined ? (
-                    <InfoboxContentSpread>
-                        <MessageBox>
-                            {t(
-                                `enum.GeometrySwitchSuggestionFailureReason.${geometrySwitchInvalidityReason}`,
-                            )}
-                        </MessageBox>
-                    </InfoboxContentSpread>
-                ) : (
-                    hasSuggestedSwitch && (
-                        <InfoboxButtons>
-                            <Button
-                                disabled={layoutContext.publicationState !== 'DRAFT'}
-                                size={ButtonSize.SMALL}
-                                qa-id="start-geometry-switch-linking"
-                                onClick={onStartLinking}>
-                                {t('tool-panel.switch.geometry.start-setup')}
-                            </Button>
-                        </InfoboxButtons>
-                    )
-                ))}
+            {warningVisible && (
+                <InfoboxContentSpread>
+                    <MessageBox>
+                        {t(
+                            `enum.GeometrySwitchSuggestionFailureReason.${geometrySwitchInvalidityReason}`,
+                        )}
+                    </MessageBox>
+                </InfoboxContentSpread>
+            )}
+            <InfoboxButtons>
+                <Button
+                    disabled={layoutContext.publicationState !== 'DRAFT' || !hasSuggestedSwitch}
+                    size={ButtonSize.SMALL}
+                    qa-id="start-geometry-switch-linking"
+                    title={disabledReason}
+                    onClick={onStartLinking}>
+                    {t('tool-panel.switch.geometry.start-setup')}
+                </Button>
+            </InfoboxButtons>
         </PrivilegeRequired>
     );
 };
