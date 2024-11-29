@@ -37,6 +37,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.StoredAssetId
+import java.math.BigDecimal
 import java.sql.ResultSet
 import java.time.Instant
 import java.time.LocalDate
@@ -166,6 +167,15 @@ fun <T> ResultSet.getIntIdArray(name: String): List<IntId<T>> = getListOrNull<In
 fun ResultSet.getIntArray(name: String): List<Int> = verifyNotNull(name, ::getIntArrayOrNull)
 
 fun ResultSet.getIntArrayOrNull(name: String): List<Int>? = getListOrNull(name)
+
+fun ResultSet.getBigDecimalArray(name: String): List<BigDecimal> = verifyNotNull(name, ::getBigDecimalArrayOrNull)
+
+fun ResultSet.getBigDecimalArrayOrNull(name: String): List<BigDecimal>? = getListOrNull(name)
+
+fun ResultSet.getNullableBigDecimalArray(name: String): List<BigDecimal?> =
+    verifyNotNull(name, ::getNullableBigDecimalArrayOrNull)
+
+fun ResultSet.getNullableBigDecimalArrayOrNull(name: String): List<BigDecimal?>? = getNullableListOrNull(name)
 
 fun ResultSet.getDoubleArray(name: String): List<Double> = verifyNotNull(name, ::getDoubleArrayOrNull)
 
@@ -372,7 +382,9 @@ inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: Strin
 
 inline fun <reified T> verifyType(value: Any?): T =
     value.let { v ->
-        require(v is T) { "Value is of unexpected type: expected=${T::class.simpleName} value=${v}" }
+        require(v is T) {
+            "Value is of unexpected type: expected=${T::class.simpleName} actual=${v?.javaClass?.simpleName} value=${v}"
+        }
         v
     }
 

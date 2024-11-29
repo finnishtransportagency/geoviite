@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
+import kotlin.math.abs
 
 data class LocationTrackGeometry(val trackRowVersion: LayoutRowVersion<LocationTrack>, val edges: List<LayoutEdge>) :
     IAlignment {
@@ -19,7 +20,10 @@ data class LocationTrackGeometry(val trackRowVersion: LayoutRowVersion<LocationT
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(edges.mapNotNull(LayoutEdge::boundingBox)) }
 }
 
-data class LocationTrackEdge(val startM: Double, @JsonIgnore private val edge: LayoutEdge) : IEdgeAlignment by edge
+data class LocationTrackEdge(val startM: Double, @JsonIgnore private val edge: LayoutEdge) : IEdgeAlignment by edge {
+    val endM: Double
+        get() = startM + edge.length
+}
 
 interface IEdgeContent {
     val startNodeId: IntId<LayoutNode>
@@ -35,12 +39,25 @@ data class EdgeContent(
     override val segments: List<LayoutEdgeSegment>,
 ) : IEdgeContent {
     init {
-        require(startNodeId != endNodeId) { "Start and end node must be different" }
+        // TODO: GVT-1727 fix data?
+        // Our base data is broken so that there's bad edges like this. It's the same in original segments as well.
+        //        require(startNodeId != endNodeId) { "Start and end node must be different: start=$startNodeId
+        // end=$endNodeId" }
         require(segments.isNotEmpty()) { "LayoutEdge must have at least one segment" }
+        segments.zipWithNext().map { (prev, next) ->
+            require(abs(prev.endM - next.startM) < 0.001) {
+                "Edge segment m-values should be continuous: prev=${prev.endM} next=${next.startM}"
+            }
+            require(prev.segmentEnd.isSame(next.segmentStart, 0.001)) {
+                "Edge segments should begin where the previous one ends: prev=${prev.segmentEnd} next=${next.segmentStart}"
+            }
+        }
     }
+
+    val lazyHash: Int by lazy { hashCode() }
 }
 
-data class LayoutEdge(override val id: DomainId<LayoutEdge> = StringId(), @JsonIgnore val content: EdgeContent) :
+data class LayoutEdge(override val id: IntId<LayoutEdge>, @JsonIgnore val content: EdgeContent) :
     IEdgeContent by content, IEdgeAlignment {
     override val boundingBox: BoundingBox? by lazy {
         boundingBoxCombining(segments.mapNotNull(LayoutEdgeSegment::boundingBox))
@@ -58,6 +75,10 @@ data class LayoutEdgeSegment(
 ) : ISegmentGeometry by geometry, ISegment {
     init {
         require(source != GENERATED || segmentPoints.size == 2) { "Generated segment can't have more than 2 points" }
+        // These could be combined into a sub-object to enforce this via the type
+        require((sourceId == null) == (sourceStart == null)) {
+            "Source id and start must be either both null or both non-null"
+        }
         require(sourceStart?.isFinite() != false) { "Invalid source start length: $sourceStart" }
         require(startM.isFinite() && startM >= 0.0) { "Invalid start m: $startM" }
         require(endM.isFinite() && endM >= startM) { "Invalid end m: $endM" }
@@ -85,18 +106,23 @@ interface LayoutNodeContent {
         get() = null
 
     val nodeType: NodeType
+
+    val lazyHash: Int
 }
 
 data class LayoutNodeStartTrack(override val startingTrackId: IntId<LocationTrack>) : LayoutNodeContent {
     override val nodeType: NodeType = NodeType.TRACK_START
+    override val lazyHash: Int by lazy { hashCode() }
 }
 
 data class LayoutNodeEndTrack(override val endingTrack: IntId<LocationTrack>) : LayoutNodeContent {
     override val nodeType: NodeType = NodeType.TRACK_END
+    override val lazyHash: Int by lazy { hashCode() }
 }
 
 data class LayoutNodeSwitches(override val switches: List<SwitchLink>) : LayoutNodeContent {
     override val nodeType: NodeType = NodeType.SWITCH
+    override val lazyHash: Int by lazy { hashCode() }
 }
 
 data class SwitchLink(val id: IntId<TrackLayoutSwitch>, val jointNumber: JointNumber)
