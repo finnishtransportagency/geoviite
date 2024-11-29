@@ -294,6 +294,55 @@ constructor(
     }
 
     @Test
+    fun `fetchLinkedLocationTracks does not confuse official rows with drafts`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val switch = mainOfficialContext.insert(switch()).id
+        val track1Main =
+            mainOfficialContext.insert(
+                locationTrack(trackNumber),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(1.0, 0.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
+                ),
+            )
+        val track2Main =
+            mainOfficialContext.insert(
+                locationTrack(trackNumber),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(1.0, 0.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
+                ),
+            )
+        mainDraftContext.insert(
+            locationTrackDao.fetch(track1Main),
+            alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+        )
+        mainDraftContext.insert(
+            locationTrackDao.fetch(track2Main),
+            alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+        )
+
+        assertEquals(
+            // null locationTrackIdsInPublicationUnit = everything in publication unit = nothing
+            // linked
+            mapOf(),
+            publicationDao.fetchLinkedLocationTracks(ValidateTransition(PublicationInMain), listOf(switch), null),
+        )
+        assertEquals(
+            // nothing in publication unit = everything linked
+            mapOf(switch to setOf(track1Main, track2Main)),
+            publicationDao.fetchLinkedLocationTracks(ValidateTransition(PublicationInMain), listOf(switch), listOf()),
+        )
+        assertEquals(
+            // just one track in publication unit = only the track not in publication unit is linked
+            mapOf(switch to setOf(track2Main)),
+            publicationDao.fetchLinkedLocationTracks(
+                ValidateTransition(PublicationInMain),
+                listOf(switch),
+                listOf(track1Main.id),
+            ),
+        )
+    }
+
+    @Test
     fun `fetchLinkedLocationTracks works on publication units`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val switchByAlignment = switchDao.save(switch(draft = false)).id

@@ -117,7 +117,7 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
             when (branch) {
                 is MainBranch ->
                     MainDraftContextData(
-                        layoutAssetId = TemporaryAssetId(),
+                        layoutAssetId = id?.let(::IdentifiedAssetId) ?: TemporaryAssetId(),
                         hasOfficial = false,
                         originBranch = LayoutBranch.main,
                     )
