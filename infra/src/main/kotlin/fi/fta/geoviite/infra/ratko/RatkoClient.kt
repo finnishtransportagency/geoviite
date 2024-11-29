@@ -86,10 +86,12 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             .map { response -> RatkoStatus(RatkoConnectionStatus.ONLINE, response.statusCode.value()) }
             // Handle non-2xx responses from Ratko
             .onErrorResume(WebClientResponseException::class.java) { ex ->
+                logger.error("Ratko health check returned an error! Error: ${ex.message}")
                 Mono.just(RatkoStatus(RatkoConnectionStatus.ONLINE_ERROR, ex.statusCode.value()))
             }
             // Handle exceptions thrown by the WebClient (e.g. timeouts)
-            .onErrorResume(WebClientRequestException::class.java) {
+            .onErrorResume(WebClientRequestException::class.java) { ex ->
+                logger.error("Ratko is offline! Cause: ${ex.cause}")
                 Mono.just(RatkoStatus(RatkoConnectionStatus.OFFLINE, null))
             }
             .block(defaultBlockTimeout) ?: RatkoStatus(RatkoConnectionStatus.OFFLINE, null)

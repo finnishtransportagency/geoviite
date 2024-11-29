@@ -67,6 +67,11 @@ class FakeRatko(port: Int) {
 
     fun stop() {
         mockServer.stop()
+
+        // https://github.com/mock-server/mockserver/issues/498#issuecomment-801255001
+        if (!mockServer.hasStopped(30, 100L, TimeUnit.MILLISECONDS)) {
+            throw IllegalStateException("Mock server did not stop within 3 seconds!")
+        }
     }
 
     fun isOnline() {
