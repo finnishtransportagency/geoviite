@@ -29,7 +29,7 @@ import {
 import { GeometryKmPostId } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints } from 'utils/math-utils';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
-import { draftLayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, LayoutContextMode } from 'common/common-model';
 import { brand } from 'common/brand';
 
 export const linkingReducers = {
@@ -37,7 +37,10 @@ export const linkingReducers = {
         state: TrackLayoutState,
         { payload }: PayloadAction<GeometryPreliminaryLinkingParameters>,
     ): void => {
-        state.layoutContext = draftLayoutContext(state.layoutContext);
+        const newLayoutContext = draftLayoutContext(state.layoutContext);
+        state.layoutContext = newLayoutContext;
+        state.layoutContextMode = inferLayoutContextMode(newLayoutContext);
+
         state.selection.selectedItems.clusterPoints = [];
         state.linkingState = {
             type: LinkingType.UnknownAlignment,
@@ -181,7 +184,10 @@ export const linkingReducers = {
         const alignmentType = interval.start?.alignmentType || interval.end?.alignmentType;
 
         if (alignmentId && alignmentType) {
-            state.layoutContext = draftLayoutContext(state.layoutContext);
+            const newLayoutContext = draftLayoutContext(state.layoutContext);
+            state.layoutContext = newLayoutContext;
+            state.layoutContextMode = inferLayoutContextMode(newLayoutContext);
+
             state.linkingState = validateLinkingState({
                 layoutAlignment: {
                     id: brand<LocationTrackId & ReferenceLineId>(alignmentId),
@@ -212,7 +218,10 @@ export const linkingReducers = {
             payload: { suggestedSwitch, source },
         }: PayloadAction<{ suggestedSwitch: SuggestedSwitch; source: LinkingAssetSource }>,
     ): void => {
-        state.layoutContext = draftLayoutContext(state.layoutContext);
+        const newLayoutContext = draftLayoutContext(state.layoutContext);
+        state.layoutContext = newLayoutContext;
+        state.layoutContextMode = inferLayoutContextMode(newLayoutContext);
+
         state.linkingState = {
             type: LinkingType.LinkingSwitch,
             suggestedSwitch: suggestedSwitch,
@@ -240,7 +249,10 @@ export const linkingReducers = {
         state: TrackLayoutState,
         { payload: geometryKmPostId }: PayloadAction<GeometryKmPostId>,
     ) => {
-        state.layoutContext = draftLayoutContext(state.layoutContext);
+        const newLayoutContext = draftLayoutContext(state.layoutContext);
+        state.layoutContext = newLayoutContext;
+        state.layoutContextMode = inferLayoutContextMode(newLayoutContext);
+
         state.linkingState = {
             type: LinkingType.LinkingKmPost,
             geometryKmPostId: geometryKmPostId,
@@ -249,6 +261,9 @@ export const linkingReducers = {
         };
     },
 };
+
+export const inferLayoutContextMode = (layoutContext: LayoutContext): LayoutContextMode =>
+    layoutContext.branch === 'MAIN' ? 'MAIN_DRAFT' : 'MAIN_DRAFT';
 
 export function createUpdatedIntervalRemovePoint(
     interval: LinkInterval,
