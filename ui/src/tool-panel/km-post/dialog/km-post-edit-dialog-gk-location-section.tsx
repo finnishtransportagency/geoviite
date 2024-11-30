@@ -38,7 +38,6 @@ type KmPostEditDialogGkLocationSectionProps = {
     hasErrors: (prop: keyof KmPostEditFields) => boolean;
     getVisibleErrorsByProp: (prop: keyof KmPostEditFields) => string[];
     getVisibleWarningsByProp: (prop: keyof KmPostEditFields) => string[];
-    geometryKmPostGkLocation?: GeometryPoint;
     editType: KmPostEditDialogType;
     geometryPlanSrid?: Srid;
 };
@@ -80,12 +79,9 @@ function transformGkToLayout(point: GeometryPoint): Point | undefined {
 const gkLocationSourceTranslationKey = (
     source: KmPostGkLocationSource | undefined,
     gkLocationEnabled: boolean,
-    dialogRole: KmPostEditDialogType,
 ) => {
     if (!gkLocationEnabled || source === undefined) {
         return 'km-post-dialog.gk-location.source-none';
-    } else if (dialogRole === 'LINKING') {
-        return gkLocationSourceI18nKey('FROM_GEOMETRY');
     } else {
         return gkLocationSourceI18nKey(source);
     }
@@ -151,12 +147,15 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     const layoutLocation = gkLocation ? transformGkToLayout(gkLocation) : undefined;
     const gkLocationEnabled = state.gkLocationEnabled;
     const fieldsEnabled = !isLinking && gkLocationEnabled;
+    const gkSource = isLinking ? 'FROM_GEOMETRY' : gkLocationSource(state);
 
     const coordinateSystems = useCoordinateSystems(GK_FIN_COORDINATE_SYSTEMS.map(([srid]) => srid));
     const isFromNonGkPlan =
+        gkSource === 'FROM_GEOMETRY' &&
         geometryPlanSrid !== undefined &&
         !GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === geometryPlanSrid);
     const isFromDifferentGk =
+        gkSource === 'FROM_GEOMETRY' &&
         geometryPlanSrid !== undefined &&
         geometryPlanSrid !== state.kmPost.gkSrid &&
         !!GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === geometryPlanSrid);
@@ -210,9 +209,9 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                 label={`${t('km-post-dialog.gk-location.location-field')} *`}
                 disabled={!fieldsEnabled}
                 help={
-                    isLinking && isFromNonGkPlan ? (
+                    isFromNonGkPlan ? (
                         <TransformedFromNonGkWarning originalSrid={geometryPlanSrid} />
-                    ) : isLinking && isFromDifferentGk ? (
+                    ) : isFromDifferentGk ? (
                         <TransformedGkWarning originalSrid={geometryPlanSrid} />
                     ) : (
                         <React.Fragment />
@@ -288,13 +287,7 @@ export const KmPostEditDialogGkLocationSection: React.FC<
             <FieldLayout
                 label={t('km-post-dialog.gk-location.source')}
                 disabled={!fieldsEnabled}
-                value={t(
-                    gkLocationSourceTranslationKey(
-                        gkLocationSource(state),
-                        gkLocationEnabled,
-                        editType,
-                    ),
-                )}
+                value={t(gkLocationSourceTranslationKey(gkSource, gkLocationEnabled))}
             />
             <FieldLayout
                 label={t('km-post-dialog.gk-location.location-in-layout')}

@@ -367,7 +367,6 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             state={state}
                             stateActions={stateActions}
                             updateProp={updateProp}
-                            geometryKmPostGkLocation={props.geometryKmPostGkLocation}
                             editType={props.editType}
                             geometryPlanSrid={props.geometryPlanSrid}
                         />

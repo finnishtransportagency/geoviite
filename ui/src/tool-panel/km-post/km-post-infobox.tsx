@@ -338,6 +338,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     onSave={handleKmPostSave}
                     geometryKmPostGkLocation={kmPost.gkLocation?.location}
                     editType={'MODIFY'}
+                    geometryPlanSrid={geometryPlan?.units?.coordinateSystemSrid}
                 />
             )}
         </React.Fragment>
