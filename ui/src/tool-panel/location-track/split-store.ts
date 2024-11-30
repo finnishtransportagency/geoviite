@@ -19,6 +19,7 @@ import { getOperation } from './splitting/split-utils';
 import { mapReducers } from 'map/map-store';
 import { expectDefined } from 'utils/type-utils';
 import { filterNotEmpty } from 'utils/array-utils';
+import { inferLayoutContextMode } from 'linking/linking-store';
 
 export const PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS = 10;
 
@@ -234,7 +235,10 @@ export const splitReducers = {
                 payload.trackSwitches,
             );
 
-            state.layoutContext = draftLayoutContext(state.layoutContext);
+            const newLayoutContext = draftLayoutContext(state.layoutContext);
+            state.layoutContext = newLayoutContext;
+            state.layoutContextMode = inferLayoutContextMode(newLayoutContext);
+
             state.splittingState = {
                 state: 'SETUP',
                 originLocationTrack: payload.locationTrack,
