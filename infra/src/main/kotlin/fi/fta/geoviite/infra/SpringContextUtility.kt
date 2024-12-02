@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra
 
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Component
 
 /**
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component
  * used only if normal @Autowire isn't usable.
  */
 @Component
+@Lazy(false) // we use lazy init in tests by default, but this bean can't be lazy-init'd
 class SpringContextUtility : ApplicationContextAware {
     companion object {
         var applicationContext: ApplicationContext? = null
