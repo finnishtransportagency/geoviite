@@ -390,46 +390,54 @@ class PublicationDao(
             if (locationTrackIdsInPublicationUnit == null) "true"
             else if (locationTrackIdsInPublicationUnit.isEmpty()) "false" else "lt.id in (:location_track_ids)"
 
+        // language="sql"
         val sql =
             """
-            select
-              lt.id,
-              lt.design_id,
-              lt.draft,
-              lt.version,
-              array_agg(distinct switch_id) as switch_ids
-              from (select *
+                with lt as not materialized (
+                  select *
                     from layout.location_track_in_layout_context(:base_state::layout.publication_state,
                                                                  :base_design_id) lt
-                     where not ($candidateTrackIncludedCondition)
-                    union all
-                    select *
+                    where not ($candidateTrackIncludedCondition)
+                  union all
+                  select *
                     from layout.location_track_in_layout_context(:candidate_state::layout.publication_state,
                                                                  :candidate_design_id) lt
-                     where ($candidateTrackIncludedCondition)
-                    ) lt
-              join (
-                select location_track.id, sv_switch.switch_id
+                    where ($candidateTrackIncludedCondition)
+                )
+                select
+                  lt.id,
+                  lt.design_id,
+                  lt.draft,
+                  lt.version,
+                  array_agg(distinct switch_id) as switch_ids
                   from (
-                    select distinct alignment_id, alignment_version, switch_id
-                      from layout.segment_version
-                      where switch_id in (:switch_ids)
-                  ) sv_switch
-                    join layout.location_track using (alignment_id, alignment_version)
-                union all
-                select id, topology_start_switch_id
-                  from layout.location_track
-                  where topology_start_switch_id in (:switch_ids)
-                union all
-                select id, topology_end_switch_id
-                  from layout.location_track
-                  where topology_end_switch_id in (:switch_ids)
-              ) sid
-                using (id)
-              where (:include_deleted or lt.state != 'DELETED')
-              group by lt.id, lt.design_id, lt.draft, lt.version
-        """
+                    select
+                      lt.id,
+                      lt.design_id,
+                      lt.draft,
+                      lt.version,
+                      lt.state,
+                      sv_switch.switch_id
+                      from (
+                        select distinct alignment_id, alignment_version, switch_id
+                          from layout.segment_version
+                          where switch_id in (:switch_ids)
+                      ) sv_switch
+                        join lt using (alignment_id, alignment_version)
+                    union all
+                    select id, design_id, draft, version, state, topology_start_switch_id
+                      from lt
+                      where topology_start_switch_id in (:switch_ids)
+                    union all
+                    select id, design_id, draft, version, state, topology_end_switch_id
+                      from lt
+                      where topology_end_switch_id in (:switch_ids)
+                  ) lt
+                  where (:include_deleted or lt.state != 'DELETED')
+                  group by lt.id, lt.design_id, lt.draft, lt.version
+            """
                 .trimIndent()
+
         val params =
             mapOf(
                 "switch_ids" to switchIds.map(IntId<TrackLayoutSwitch>::intValue),
