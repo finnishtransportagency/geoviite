@@ -21,8 +21,8 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
-const val NODE_CACHE_SIZE = 10000L
-const val EDGE_CACHE_SIZE = 10000L
+const val NODE_CACHE_SIZE = 50000L
+const val EDGE_CACHE_SIZE = 100000L
 const val ALIGNMENT_CACHE_SIZE = 10000L
 const val GEOMETRY_CACHE_SIZE = 500000L
 
@@ -140,6 +140,7 @@ class LayoutAlignmentDao(
 
     fun preloadEdges(): Int {
         val edges = fetchEdges(ids = null, active = true)
+        //        logger.info("Preloaded: ${edges.keys.toList()}")
         edgesCache.putAll(edges)
         edgeIdsByHash.putAll(edges.values.associate { n -> n.content.lazyHash to n.id })
         return edges.size
