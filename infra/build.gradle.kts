@@ -11,14 +11,14 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "31.3"
-val kotlinVersion = "1.9.25"
+val kotlinVersion = "2.0.20"
 
 plugins {
     id("org.springframework.boot") version "3.3.3"
     id("io.spring.dependency-management") version "1.1.6"
     id("com.github.jk1.dependency-license-report") version "2.9"
-    kotlin("jvm") version "1.9.25"
-    kotlin("plugin.spring") version "1.9.25"
+    kotlin("jvm") version "2.0.20"
+    kotlin("plugin.spring") version "2.0.20"
     id("com.ncorti.ktfmt.gradle") version "0.20.1"
 }
 
@@ -120,7 +120,7 @@ licenseReport {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
-        freeCompilerArgs = listOf("-Xjsr305=strict")
+        freeCompilerArgs = listOf("-Xjsr305=strict", "-Xconsistent-data-class-copy-visibility")
         jvmTarget = "17"
     }
 }
