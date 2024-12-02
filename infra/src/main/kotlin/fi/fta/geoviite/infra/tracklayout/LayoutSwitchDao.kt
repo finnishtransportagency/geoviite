@@ -358,12 +358,12 @@ class LayoutSwitchDao(
               joint_x_values,
               joint_y_values,
               joint_location_accuracies,
-              official_s.id is not null as has_official,
+              exists(select * from layout.switch official_sv
+                     where official_sv.id = s.id
+                       and (official_sv.design_id is null or official_sv.design_id = s.design_id)
+                       and not official_sv.draft) as has_official,
               s.origin_design_id
             from layout.switch s
-              left join layout.switch official_s on s.id = official_s.id
-                and (official_s.design_id is null or official_s.design_id = s.design_id)
-                and not official_s.draft
               left join lateral
                 (select coalesce(array_agg(jv.number order by jv.number), '{}') as joint_numbers,
                         coalesce(array_agg(postgis.st_x(jv.location) order by jv.number), '{}') as joint_x_values,

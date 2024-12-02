@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -378,6 +379,27 @@ constructor(
         // context, leaving main-official version visible
         assertEquals(trackNumber, designDraftContext.fetchVersion(trackNumber.id))
         assertEquals(referenceLine, designDraftContext.fetchVersion(referenceLine.id))
+    }
+
+    @Test
+    fun `draft track number can find reference line in any above context`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val designOfficialContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+
+        val tn1 = designDraftContext.insert(trackNumber(number = TrackNumber("asdf"))).id
+        val rl1 = designOfficialContext.insert(referenceLine(tn1), alignment).id
+        assertEquals(rl1, designDraftContext.fetch(tn1)!!.referenceLineId)
+
+        val tn2 = designDraftContext.insert(trackNumber(number = TrackNumber("aoeu"))).id
+        val rl2 = mainOfficialContext.insert(referenceLine(tn2), alignment).id
+        assertEquals(rl2, designDraftContext.fetch(tn2)!!.referenceLineId)
+
+        val tn3 = mainDraftContext.insert(trackNumber(number = TrackNumber("arst"))).id
+        val rl3 = mainOfficialContext.insert(referenceLine(tn3), alignment).id
+        assertEquals(rl3, mainDraftContext.fetch(tn3)!!.referenceLineId)
     }
 
     private fun assertVersionReferences(

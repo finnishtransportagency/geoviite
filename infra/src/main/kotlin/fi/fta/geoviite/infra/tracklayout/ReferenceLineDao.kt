@@ -53,7 +53,7 @@ class ReferenceLineDao(
               rlv.start_address,
               exists(select * from layout.reference_line official_rl
                      where rlv.id = official_rl.id
-                       and (official_rl.design_id is not null or official_rl.design_id = rlv.design_id)
+                       and (official_rl.design_id is null or official_rl.design_id = rlv.design_id)
                        and not official_rl.draft) as has_official,
               origin_design_id
             from layout.reference_line_version rlv
@@ -91,12 +91,12 @@ class ReferenceLineDao(
               av.length,
               av.segment_count,
               rl.start_address,
-              official_rl.id is not null as has_official,
+              exists(select * from layout.reference_line official_rl
+                     where rl.id = official_rl.id
+                       and (official_rl.design_id is null or official_rl.design_id = rl.design_id)
+                       and not official_rl.draft) as has_official,
               rl.origin_design_id
             from layout.reference_line rl
-              left join layout.reference_line official_rl on rl.id = official_rl.id
-                and (official_rl.design_id is null or official_rl.design_id = rl.design_id)
-                and not official_rl.draft
               left join layout.alignment_version av on rl.alignment_id = av.id and rl.alignment_version = av.version
         """
                 .trimIndent()
