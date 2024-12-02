@@ -114,17 +114,17 @@ constructor(
 ) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
-        val sql =
-            """
-            truncate publication.publication cascade;
-            truncate integrations.lock cascade;
-            truncate layout.track_number_id cascade;
-            truncate layout.switch cascade;
-            truncate layout.operating_point cascade;
-            truncate layout.operating_point_version cascade;
-        """
-                .trimIndent()
-        jdbc.execute(sql) { it.execute() }
+        testDBService.deleteFromTables("publication", "split")
+        testDBService.deleteFromTables(
+            "layout",
+            "location_track",
+            "segment_version",
+            "switch_joint",
+            "switch",
+            "track_number",
+            "operating_point",
+            "operating_point_version",
+        )
     }
 
     lateinit var fakeRatko: FakeRatko
