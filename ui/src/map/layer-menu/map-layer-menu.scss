@@ -1,5 +1,25 @@
 @use 'vayla-design-lib' as vayla-design;
 
+.map-layer-button {
+    fill: vayla-design.$color-blue-dark;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-layer-button:hover {
+    background: vayla-design.$color-blue-lighter;
+}
+
+.map-layer-button__icon {
+    width: 18px;
+    height: 18px;
+}
+
 .map-layer-menu {
     @include vayla-design.shadow-8dp;
 

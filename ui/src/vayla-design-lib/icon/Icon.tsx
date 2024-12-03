@@ -128,6 +128,7 @@ export enum IconSize {
     MEDIUM = 'icon--size-medium',
     MEDIUM_SMALL = 'icon--size-medium-small',
     LARGE = 'icon--size-large',
+    INHERIT = 'icon--size-inherit',
     ORIGINAL = '',
 }
 
