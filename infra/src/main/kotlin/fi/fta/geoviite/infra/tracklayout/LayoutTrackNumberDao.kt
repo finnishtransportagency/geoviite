@@ -175,7 +175,8 @@ class LayoutTrackNumberDao(
                                             state,
                                             draft,
                                             cancelled,
-                                            design_id)
+                                            design_id,
+                                            origin_design_id)
               values
                 (:layout_context_id,
                  :id,
@@ -185,13 +186,15 @@ class LayoutTrackNumberDao(
                  :state::layout.state,
                  :draft,
                  :cancelled,
-                 :design_id)
+                 :design_id,
+                 :origin_design_id)
               on conflict (id, layout_context_id) do update
                 set external_id = excluded.external_id,
                     number = excluded.number,
                     description = excluded.description,
                     state = excluded.state,
-                    cancelled = excluded.cancelled
+                    cancelled = excluded.cancelled,
+                    origin_design_id = excluded.origin_design_id
               returning id, design_id, draft, version;
         """
                 .trimIndent()
@@ -206,6 +209,7 @@ class LayoutTrackNumberDao(
                 "draft" to item.isDraft,
                 "cancelled" to item.isCancelled,
                 "design_id" to item.contextData.designId?.intValue,
+                "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
             )
         jdbcTemplate.setUser()
         val response: LayoutRowVersion<TrackLayoutTrackNumber> =

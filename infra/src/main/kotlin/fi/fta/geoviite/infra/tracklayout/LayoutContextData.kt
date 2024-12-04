@@ -97,6 +97,10 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
     open val designId: IntId<LayoutDesign>?
         get() = null
 
+    @get:JsonIgnore
+    open val originBranch: LayoutBranch?
+        get() = null
+
     protected fun requireStoredRowVersion() =
         layoutAssetId.let { current ->
             if (current is StoredAssetId) current.version
@@ -181,7 +185,7 @@ data class MainOfficialContextData<T>(override val layoutAssetId: LayoutAssetId<
 data class MainDraftContextData<T>(
     override val layoutAssetId: LayoutAssetId<T>,
     override val hasOfficial: Boolean,
-    val originBranch: LayoutBranch,
+    override val originBranch: LayoutBranch,
 ) : MainContextData<T>() {
     override val isDraft: Boolean
         get() = true

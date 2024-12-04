@@ -144,7 +144,8 @@ class ReferenceLineDao(
               start_address,
               draft, 
               cancelled,
-              design_id
+              design_id,
+              origin_design_id
             ) 
             values (
               :layout_context_id,
@@ -155,13 +156,15 @@ class ReferenceLineDao(
               :start_address, 
               :draft, 
               :cancelled,
-              :design_id
+              :design_id,
+              :origin_design_id
             ) on conflict (id, layout_context_id) do update set
               track_number_id = excluded.track_number_id,
               alignment_id = excluded.alignment_id,
               alignment_version = excluded.alignment_version,
               start_address = excluded.start_address,
-              cancelled = excluded.cancelled
+              cancelled = excluded.cancelled,
+              origin_design_id = excluded.origin_design_id
             returning id, design_id, draft, version
         """
                 .trimIndent()
@@ -177,6 +180,7 @@ class ReferenceLineDao(
                 "draft" to item.isDraft,
                 "cancelled" to item.isCancelled,
                 "design_id" to item.contextData.designId?.intValue,
+                "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
             )
 
         jdbcTemplate.setUser()

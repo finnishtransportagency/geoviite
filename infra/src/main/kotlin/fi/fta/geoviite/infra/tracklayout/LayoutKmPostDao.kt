@@ -281,7 +281,8 @@ class LayoutKmPostDao(
               state,
               draft,
               cancelled,
-              design_id
+              design_id,
+              origin_design_id
             )
             values (
               :layout_context_id,
@@ -296,7 +297,8 @@ class LayoutKmPostDao(
               :state::layout.state,
               :draft,
               :cancelled,
-              :design_id
+              :design_id,
+              :origin_design_id
             )
             on conflict (id, layout_context_id) do update
               set track_number_id = excluded.track_number_id,
@@ -307,7 +309,8 @@ class LayoutKmPostDao(
                   gk_location_confirmed = excluded.gk_location_confirmed,
                   gk_location_source = excluded.gk_location_source,
                   state = excluded.state,
-                  cancelled = excluded.cancelled
+                  cancelled = excluded.cancelled,
+                  origin_design_id = excluded.origin_design_id
             returning version 
         """
                 .trimIndent()
@@ -330,6 +333,7 @@ class LayoutKmPostDao(
                 "draft" to item.contextData.isDraft,
                 "cancelled" to item.isCancelled,
                 "design_id" to item.contextData.designId?.intValue,
+                "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
             )
 
         jdbcTemplate.setUser()
