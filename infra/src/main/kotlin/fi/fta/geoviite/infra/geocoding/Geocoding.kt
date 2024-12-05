@@ -182,8 +182,10 @@ data class GeocodingContext(
                 "alignment=${referenceLineGeometry.id} " +
                 "edgeMValues=${polyLineEdges.map { e -> e.startM..e.endM }}"
         }
-        val rawLines = createProjectionLines(referencePoints, polyLineEdges)
-        validateProjectionLines(rawLines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
+        // TODO: GVT-1727 The validation claims to filter out bad projections, but we use the un-filtered here
+        createProjectionLines(referencePoints, polyLineEdges).also { lines ->
+            validateProjectionLines(lines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
+        }
     }
     val allKms: List<KmNumber> by lazy { referencePoints.map(GeocodingReferencePoint::kmNumber).distinct() }
 
