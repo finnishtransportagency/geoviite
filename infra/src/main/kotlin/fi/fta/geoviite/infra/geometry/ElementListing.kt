@@ -22,11 +22,11 @@ import fi.fta.geoviite.infra.math.RoundedPoint
 import fi.fta.geoviite.infra.math.radsMathToGeo
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.round
-import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
@@ -123,15 +123,13 @@ fun toElementListing(
                 else null
             } else {
                 val (planHeader, alignment) =
-                    headersAndAlignments[getAlignmentId(elementId)]
-                        ?: throw IllegalStateException(
-                            "Failed to fetch geometry alignment for element: element=$elementId"
-                        )
+                    requireNotNull(headersAndAlignments[getAlignmentId(elementId)]) {
+                        "Failed to fetch geometry alignment for element: element=$elementId"
+                    }
                 val element =
-                    alignment.elements.find { e -> e.id == elementId }
-                        ?: throw IllegalStateException(
-                            "Geometry element not found on its parent alignment: alignment=${alignment.id} element=$elementId"
-                        )
+                    requireNotNull(alignment.elements.find { e -> e.id == elementId }) {
+                        "Geometry element not found on its parent alignment: alignment=${alignment.id} element=$elementId"
+                    }
                 if (elementTypes.contains(TrackGeometryElementType.of(element.type))) {
                     toElementListing(
                         context,
@@ -155,10 +153,10 @@ fun toElementListing(
                 lengthOfSegmentsConnectedToSameElement.find { (elementId, _) -> elementId == listing.elementId }?.second
             listing.copy(
                 isPartial =
-                    if (calculatedSegmentLength != null && listing.planId != null)
+                    calculatedSegmentLength != null &&
+                        listing.planId != null &&
                         abs(calculatedSegmentLength - listing.lengthMeters.toDouble()) >
                             SEGMENT_AND_ELEMENT_LENGTH_MAX_DELTA
-                    else false
             )
         }
 }
@@ -197,8 +195,8 @@ private fun toMissingElementListing(
         elementId = null,
         elementType = MISSING_SECTION,
         lengthMeters = round(segment.length, LENGTH_DECIMALS),
-        start = getLocation(context, segment.alignmentStart, segment.startDirection),
-        end = getLocation(context, segment.alignmentEnd, segment.endDirection),
+        start = getLocation(context, segment.segmentStart, segment.startDirection),
+        end = getLocation(context, segment.segmentEnd, segment.endDirection),
         locationTrackName = locationTrack.name,
         connectedSwitchName = segment.switchId?.let { id -> getSwitchName(id) },
         isPartial = false,
@@ -363,7 +361,7 @@ private fun elementListing(
         )
     }
 
-private fun getLocation(context: GeocodingContext?, point: AlignmentPoint, directionRads: Double) =
+private fun getLocation(context: GeocodingContext?, point: SegmentPoint, directionRads: Double) =
     ElementLocation(
         coordinate = point.round(COORDINATE_DECIMALS),
         address = context?.getAddress(point)?.first,

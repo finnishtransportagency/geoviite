@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IPoint3DM
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
+import org.junit.jupiter.api.Assertions.assertEquals
 
 fun moveKmPostLocation(kmPost: TrackLayoutKmPost, layoutLocation: Point, kmPostService: LayoutKmPostService) {
     val gkPoint = transformFromLayoutToGKCoordinate(layoutLocation)
@@ -20,7 +21,7 @@ fun moveKmPostLocation(kmPost: TrackLayoutKmPost, layoutLocation: Point, kmPostS
 fun moveLocationTrackGeometryPointsAndUpdate(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
-    moveFunc: (point: IPoint3DM) -> IPoint,
+    moveFunc: (point: AlignmentPoint) -> Point,
     locationTrackService: LocationTrackService,
 ) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, moveAlignmentPoints(alignment, moveFunc))
 
@@ -68,28 +69,34 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
 fun moveReferenceLineGeometryPointsAndUpdate(
     referenceLine: ReferenceLine,
     alignment: LayoutAlignment,
-    moveFunc: (point: IPoint3DM) -> IPoint,
+    moveFunc: (point: IPoint3DM) -> Point?,
     referenceLineService: ReferenceLineService,
 ): LayoutRowVersion<ReferenceLine> =
     referenceLineService.saveDraft(LayoutBranch.main, referenceLine, moveAlignmentPoints(alignment, moveFunc))
 
-fun moveAlignmentPoints(alignment: LayoutAlignment, moveFunc: (point: IPoint3DM) -> IPoint): LayoutAlignment {
-    var segmentM = 0.0
-    return alignment.copy(
-        segments =
-            alignment.segments.map { segment ->
-                var prevPoint: IPoint3DM? = null
-                val newPoints =
-                    segment.segmentPoints.map { point ->
-                        val newPoint = moveFunc(point.toAlignmentPoint(segment.startM))
-                        val m = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: 0.0
-                        point.copy(x = newPoint.x, y = newPoint.y, m = m).also { p -> prevPoint = p }
+fun moveAlignmentPoints(alignment: LayoutAlignment, moveFunc: (point: AlignmentPoint) -> Point?): LayoutAlignment {
+    return alignment
+        .copy(
+            segments =
+                alignment.segmentsWithM.map { (segment, m) ->
+                    var prevPoint: IPoint3DM? = null
+                    val newPoints =
+                        segment.segmentPoints.mapNotNull { point ->
+                            moveFunc(point.toAlignmentPoint(m.min))?.let { newPoint ->
+                                val segmentM = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: 0.0
+                                point.copy(x = newPoint.x, y = newPoint.y, m = segmentM).also { p -> prevPoint = p }
+                            }
+                        }
+                    segment.withPoints(points = newPoints, newSourceStart = null).also {
+                        assertEquals(0.0, it.segmentPoints.first().m)
                     }
-                segment.withPoints(points = newPoints, newStart = segmentM, newSourceStart = null).also { newSegment ->
-                    segmentM = newSegment.endM
                 }
-            }
-    )
+        )
+        .also {
+            assertEquals(0.0, it.segmentMs.first().min)
+            assertEquals(it.segments.sumOf { s -> s.length }, it.segmentMs.last().max)
+            assertEquals(it.segments.sumOf { s -> s.length }, it.length)
+        }
 }
 
 fun moveSwitchPoints(

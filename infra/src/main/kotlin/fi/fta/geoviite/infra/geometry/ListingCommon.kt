@@ -12,7 +12,7 @@ fun collectLinkedElements(
     endAddress: TrackMeter?,
 ) =
     segments
-        .filter { segment -> overlapsAddressInterval(segment, context, startAddress, endAddress) }
+        .filter { s -> overlapsAddressInterval(s, context, startAddress, endAddress) }
         .map { s -> if (s.sourceId is IndexedId) s to s.sourceId else s to null }
 
 private fun overlapsAddressInterval(
@@ -21,11 +21,5 @@ private fun overlapsAddressInterval(
     start: TrackMeter?,
     end: TrackMeter?,
 ): Boolean =
-    (end == null || context != null && getStartAddress(segment, context)?.let { it < end } == true) &&
-        (start == null || context != null && getEndAddress(segment, context)?.let { it > start } == true)
-
-private fun getStartAddress(segment: LayoutSegment, context: GeocodingContext) =
-    context.getAddress(segment.alignmentStart)?.first
-
-private fun getEndAddress(segment: LayoutSegment, context: GeocodingContext) =
-    context.getAddress(segment.alignmentEnd)?.first
+    (end == null || context != null && context.getAddress(segment.segmentStart)?.first?.let { it < end } == true) &&
+        (start == null || context != null && context.getAddress(segment.segmentEnd)?.first?.let { it > start } == true)

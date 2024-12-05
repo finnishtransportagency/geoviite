@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
 import java.sql.ResultSet
@@ -157,7 +158,6 @@ class LayoutAlignmentDao(
               array_agg(s.segment_index order by s.segment_index) as indices,
               array_agg(s.geometry_alignment_id order by s.segment_index) as geometry_alignment_ids,
               array_agg(s.geometry_element_index order by s.segment_index) as geometry_element_indices,
-              array_agg(s.start order by s.segment_index) as start_m_values,
               array_agg(s.source_start order by s.segment_index) as source_start_m_values,
               array_agg(s.source order by s.segment_index) as sources,
               array_agg(s.geometry_id order by s.segment_index) as geometry_ids
@@ -185,8 +185,6 @@ class LayoutAlignmentDao(
                     rs.getNullableIntArray("geometry_alignment_ids").also { require(it.size == segmentIndices.size) }
                 val geometryElementIndices =
                     rs.getNullableIntArray("geometry_element_indices").also { require(it.size == segmentIndices.size) }
-                val startMValues =
-                    rs.getBigDecimalArray("start_m_values").also { require(it.size == segmentIndices.size) }
                 val sourceStartMValues =
                     rs.getNullableBigDecimalArray("source_start_m_values").also {
                         require(it.size == segmentIndices.size)
@@ -209,7 +207,6 @@ class LayoutAlignmentDao(
                         LayoutEdgeSegment(
                             id = IndexedId(edgeId.intValue, segmentIndex),
                             sourceId = sourceId,
-                            startM = startMValues[i].toDouble(),
                             sourceStart = sourceStartMValues[i]?.toDouble(),
                             source = sources[i],
                             geometry = requireNotNull(segmentGeometries[geometryIds[i]]),
@@ -222,6 +219,7 @@ class LayoutAlignmentDao(
                             startNodeId = rs.getIntId("start_node_id"),
                             endNodeId = rs.getIntId("end_node_id"),
                             segments = segments,
+                            segmentMs = calculateSegmentMs(segments),
                         ),
                 )
             }
@@ -254,7 +252,7 @@ class LayoutAlignmentDao(
                 "end_node_id" to content.endNodeId.intValue,
                 "geometry_alignment_ids" to content.segments.map { s -> s.sourceId?.parentId }.toTypedArray(),
                 "geometry_element_indices" to content.segments.map { s -> s.sourceId?.index }.toTypedArray(),
-                "start_m_values" to content.segments.map { s -> s.startM }.toTypedArray(),
+                "start_m_values" to content.segmentMs.map { m -> m.min }.toTypedArray(),
                 "source_start_m_values" to content.segments.map { s -> s.sourceStart }.toTypedArray(),
                 "sources" to content.segments.map { s -> s.source.name }.toTypedArray(),
                 "geometry_ids" to content.segments.map { s -> (s.geometry.id as IntId).intValue }.toTypedArray(),
@@ -459,7 +457,7 @@ class LayoutAlignmentDao(
         val id: RowVersion<LayoutAlignment> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
                 ?: throw IllegalStateException("Failed to generate ID for new Track Layout Alignment")
-        upsertSegments(id, alignment.segments)
+        upsertSegments(id, alignment.segmentsWithM)
         logger.daoAccess(AccessType.INSERT, LayoutAlignment::class, id)
         return id
     }
@@ -493,7 +491,7 @@ class LayoutAlignmentDao(
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
                 ?: throw IllegalStateException("Failed to get new version for Track Layout Alignment")
         logger.daoAccess(AccessType.UPDATE, LayoutAlignment::class, result.id)
-        upsertSegments(result, alignment.segments)
+        upsertSegments(result, alignment.segmentsWithM)
         return result
     }
 
@@ -587,7 +585,7 @@ class LayoutAlignmentDao(
                     endJointNumber = data.endJointNumber,
                     source = data.source,
                     geometry = geometry,
-                    startM = start,
+                    //                    startM = start,
                 )
                 .also { start += geometry.length }
         }
@@ -877,11 +875,14 @@ class LayoutAlignmentDao(
         }
     }
 
-    private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
+    private fun upsertSegments(
+        alignmentId: RowVersion<LayoutAlignment>,
+        segments: List<Pair<LayoutSegment, Range<Double>>>,
+    ) {
         if (segments.isNotEmpty()) {
             val newGeometryIds =
                 insertSegmentGeometries(
-                    segments.mapNotNull { s -> if (s.geometry.id is StringId) s.geometry else null }
+                    segments.mapNotNull { (s, _) -> if (s.geometry.id is StringId) s.geometry else null }
                 )
             // language=SQL
             val sqlIndexed =
@@ -905,11 +906,12 @@ class LayoutAlignmentDao(
                     .trimIndent()
             // This uses indexed parameters (rather than named ones),
             // since named parameter template's batch-method is considerably slower
-            jdbcTemplate.batchUpdateIndexed(sqlIndexed, segments) { ps, (index, s) ->
+            jdbcTemplate.batchUpdateIndexed(sqlIndexed, segments) { ps, (index, segmentAndM) ->
+                val (s, m) = segmentAndM
                 ps.setInt(1, alignmentId.id.intValue)
                 ps.setInt(2, alignmentId.version)
                 ps.setInt(3, index)
-                ps.setDouble(4, s.startM)
+                ps.setDouble(4, m.min)
                 ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
                 ps.setNullableInt(6) { if (s.sourceId is IndexedId) s.sourceId.index else null }
                 ps.setNullableInt(7) { if (s.switchId is IntId) s.switchId.intValue else null }

@@ -44,10 +44,10 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import org.junit.jupiter.api.Test
 
 class PublicationValidationTest {
 
@@ -256,8 +256,8 @@ class PublicationValidationTest {
                         segment.geometry.withPoints(
                             segmentPoints =
                                 toSegmentPoints(
-                                    segment.alignmentPoints.first(),
-                                    segment.alignmentPoints.last() + Point(0.0, 1.0),
+                                    segment.segmentPoints.first(),
+                                    segment.segmentPoints.last() + Point(0.0, 1.0),
                                 )
                         )
                 )
@@ -272,8 +272,8 @@ class PublicationValidationTest {
                         segment.geometry.withPoints(
                             segmentPoints =
                                 toSegmentPoints(
-                                    segment.alignmentPoints.first() + Point(0.0, 1.0),
-                                    segment.alignmentPoints.last(),
+                                    segment.segmentPoints.first() + Point(0.0, 1.0),
+                                    segment.segmentPoints.last(),
                                 )
                         )
                 )

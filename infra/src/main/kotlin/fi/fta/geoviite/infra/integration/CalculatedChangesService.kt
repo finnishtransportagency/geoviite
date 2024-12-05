@@ -612,7 +612,8 @@ private fun getTopologySwitchJointDataHolder(
             "Topology switch contains invalid joint number: $topologySwitch"
         }
     return if (presentationJointNumber == joint.number && address != null) {
-        topologySwitch.switchId to listOf(SwitchJointDataHolder(address = address, point = point, joint = joint))
+        topologySwitch.switchId to
+            listOf(SwitchJointDataHolder(address = address, point = point.toPoint(), joint = joint))
     } else null
 }
 
@@ -684,23 +685,26 @@ private fun calculateOverlappingLocationTracks(
         .filter { (_, alignment) -> alignmentContainsKilometer(geocodingContext, alignment, kilometers) }
         .map { (locationTrack, _) -> locationTrack.id as IntId }
 
-private fun findMatchingJoints(segment: LayoutSegment, switch: TrackLayoutSwitch, geocodingContext: GeocodingContext) =
+private fun findMatchingJoints(
+    segment: LayoutSegment,
+    switch: TrackLayoutSwitch,
+    geocodingContext: GeocodingContext,
+): List<SwitchJointDataHolder> =
     switch.joints.mapNotNull { joint ->
         val segmentPoint =
             when (joint.number) {
-                segment.startJointNumber -> segment.alignmentStart
-                segment.endJointNumber -> segment.alignmentEnd
+                segment.startJointNumber -> segment.segmentStart
+                segment.endJointNumber -> segment.segmentEnd
                 else -> null
             }
-
-        if (segmentPoint == null) null
-        else
-            geocodingContext.getAddress(segmentPoint)?.let { (address) ->
-                SwitchJointDataHolder(address = address, point = segmentPoint, joint = joint)
+        segmentPoint?.let { p ->
+            geocodingContext.getAddress(p)?.let { (address) ->
+                SwitchJointDataHolder(address = address, point = p.toPoint(), joint = joint)
             }
+        }
     }
 
-private data class SwitchJointDataHolder(val joint: TrackLayoutSwitchJoint, val address: TrackMeter, val point: IPoint)
+private data class SwitchJointDataHolder(val joint: TrackLayoutSwitchJoint, val address: TrackMeter, val point: Point)
 
 private fun findSwitchJointDifferences(
     list1: List<Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>>,

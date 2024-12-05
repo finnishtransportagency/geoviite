@@ -237,7 +237,7 @@ fun collectSplitPoints(
             } ?: EndpointSplitPoint(end, null, DuplicateEndPointType.END)
         }
 
-    val switchSplitPoints = alignment.segments.flatMap(::getSwitchSplitPoints)
+    val switchSplitPoints = alignment.segmentsWithM.flatMap { (s, m) -> getSwitchSplitPoints(m.min, s) }
 
     val allSplitPoints =
         listOf(listOfNotNull(startSplitPoint), switchSplitPoints, listOfNotNull(endSplitPoint)).flatten()
@@ -250,16 +250,16 @@ fun collectSplitPoints(
     return uniqueSplitPoints
 }
 
-fun getSwitchSplitPoints(segment: LayoutSegment): List<SwitchSplitPoint> {
+fun getSwitchSplitPoints(segmentStartM: Double, segment: LayoutSegment): List<SwitchSplitPoint> {
     val joints =
         segment.switchId?.let { switchId ->
             val startPoint =
                 segment.startJointNumber?.let { jointNumber ->
-                    SwitchSplitPoint(segment.alignmentStart, null, switchId, jointNumber)
+                    SwitchSplitPoint(segment.segmentStart.toAlignmentPoint(segmentStartM), null, switchId, jointNumber)
                 }
             val endPoint =
                 segment.endJointNumber?.let { jointNumber ->
-                    SwitchSplitPoint(segment.alignmentEnd, null, switchId, jointNumber)
+                    SwitchSplitPoint(segment.segmentEnd.toAlignmentPoint(segmentStartM), null, switchId, jointNumber)
                 }
             listOfNotNull(startPoint, endPoint)
         } ?: emptyList()

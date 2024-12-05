@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
-import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
@@ -38,9 +37,9 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -779,7 +778,7 @@ private fun findIndex(alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwi
 }
 
 private fun cutSegments(alignment: LayoutAlignment, segmentIndices: ClosedRange<Int>): List<LayoutSegment> =
-    fixSegmentStarts(alignment.segments.subList(segmentIndices.start, segmentIndices.endInclusive + 1))
+    alignment.segments.subList(segmentIndices.start, segmentIndices.endInclusive + 1)
 
 private fun verifySwitchSuggestions(
     suggestions: List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>>

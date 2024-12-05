@@ -27,23 +27,11 @@ class LinkingTest {
     @Test
     fun `Layout alignment can be replace with geometry alignment`() {
         val layoutAlignment =
-            alignment(
-                fixSegmentStarts(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
-            )
+            alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
         val geometryAlignment =
             mapAlignment(
-                mapSegment(
-                    Point3DM(10.0, 10.0, 0.0),
-                    Point3DM(13.0, 10.0, 3.0),
-                    Point3DM(16.0, 10.0, 6.0),
-                    startM = 0.0,
-                ),
-                mapSegment(
-                    Point3DM(16.0, 10.0, 0.0),
-                    Point3DM(19.0, 10.0, 3.0),
-                    Point3DM(22.0, 10.0, 6.0),
-                    startM = 6.0,
-                ),
+                mapSegment(Point3DM(10.0, 10.0, 0.0), Point3DM(13.0, 10.0, 3.0), Point3DM(16.0, 10.0, 6.0)),
+                mapSegment(Point3DM(16.0, 10.0, 0.0), Point3DM(19.0, 10.0, 3.0), Point3DM(22.0, 10.0, 6.0)),
             )
         // Take the full range of geometry -> all points match
         assertGeometryChange(
@@ -77,12 +65,10 @@ class LinkingTest {
     fun `Layout alignment can be shortened`() {
         val layoutAlignment =
             alignment(
-                fixSegmentStarts(
-                    // First segment m values: 0, 1, 2
-                    segment(Point(1.0, 0.0), Point(2.0, 0.0), Point(3.0, 0.0)),
-                    // Second segment m values: 2, 3, 4
-                    segment(Point(3.0, 0.0), Point(4.0, 0.0), Point(5.0, 0.0)),
-                )
+                // First segment m values: 0, 1, 2
+                segment(Point(1.0, 0.0), Point(2.0, 0.0), Point(3.0, 0.0)),
+                // Second segment m values: 2, 3, 4
+                segment(Point(3.0, 0.0), Point(4.0, 0.0), Point(5.0, 0.0)),
             )
         // Cut nothing -> geometry remains the same
         assertGeometryChange(
@@ -145,9 +131,9 @@ class LinkingTest {
         val layoutAlignment =
             alignment(
                 // First segment m values, matching y: 0, 1, 2, 3
-                segment(Point(0.0, 0.0), Point(0.0, 1.0), Point(0.0, 2.0), Point(0.0, 3.0), startM = 0.0),
+                segment(Point(0.0, 0.0), Point(0.0, 1.0), Point(0.0, 2.0), Point(0.0, 3.0)),
                 // Second segment m values, matching y: 3, 4, 5, 6
-                segment(Point(0.0, 3.0), Point(0.0, 4.0), Point(0.0, 5.0), Point(0.0, 6.0), startM = 3.0),
+                segment(Point(0.0, 3.0), Point(0.0, 4.0), Point(0.0, 5.0), Point(0.0, 6.0)),
             )
         // Geometry alignment, offset 0.1m in x axis
         val geometryAlignment =
@@ -157,14 +143,12 @@ class LinkingTest {
                     Point3DM(0.1, 1.0, 1.0),
                     Point3DM(0.1, 2.0, 2.0),
                     Point3DM(0.1, 3.0, 3.0),
-                    startM = 0.0,
                 ),
                 mapSegment(
                     Point3DM(0.1, 3.0, 0.0),
                     Point3DM(0.1, 4.0, 1.0),
                     Point3DM(0.1, 5.0, 2.0),
                     Point3DM(0.1, 6.0, 3.0),
-                    startM = 3.0,
                 ),
             )
         // Replace entire geometry
@@ -261,9 +245,9 @@ class LinkingTest {
         val layoutAlignment =
             alignment(
                 // First segment m values, matching y: 0, 1, 2
-                segment(Point(0.0, 0.0), Point(0.0, 1.0), Point(0.0, 2.0), startM = 2.0),
+                segment(Point(0.0, 0.0), Point(0.0, 1.0), Point(0.0, 2.0)),
                 // Second segment m values, matching y: 2, 3, 4
-                segment(Point(0.0, 2.0), Point(0.0, 3.0), Point(0.0, 4.0), startM = 2.0),
+                segment(Point(0.0, 2.0), Point(0.0, 3.0), Point(0.0, 4.0)),
             )
         // Geometry alignment, offset 0.1m in x-axis and long enough to be linked in both ends
         val geometryAlignment =
@@ -274,17 +258,15 @@ class LinkingTest {
                     Point3DM(0.1, -2.0, 1.0),
                     Point3DM(0.1, -1.0, 2.0),
                     Point3DM(0.1, 0.0, 3.0),
-                    startM = 0.0,
                 ),
                 // Mid-segment next to the layout segments: m 3-7
-                mapSegment(Point3DM(0.1, 0.0, 3.0), Point3DM(0.1, 4.0, 7.0), startM = 3.0),
+                mapSegment(Point3DM(0.1, 0.0, 3.0), Point3DM(0.1, 4.0, 7.0)),
                 // Last segment after layout alignment: m 7-10
                 mapSegment(
                     Point3DM(0.1, 4.0, 7.0),
                     Point3DM(0.1, 5.0, 8.0),
                     Point3DM(0.1, 6.0, 9.0),
                     Point3DM(0.1, 7.0, 10.0),
-                    startM = 7.0,
                 ),
             )
         // Extend start
@@ -328,7 +310,7 @@ class LinkingTest {
         val switchId1 = IntId<TrackLayoutSwitch>(1)
         val switchId2 = IntId<TrackLayoutSwitch>(2)
         val segments =
-            fixSegmentStarts(
+            listOf(
                 segment(
                     Point(0.0, 0.0),
                     Point(0.0, 1.0),
@@ -386,8 +368,8 @@ class LinkingTest {
         val switchId1 = IntId<TrackLayoutSwitch>(1)
         val switchId2 = IntId<TrackLayoutSwitch>(2)
         val switchId3 = IntId<TrackLayoutSwitch>(3)
-        val segments =
-            fixSegmentStarts(
+        val alignment =
+            alignment(
                 segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = switchId1),
                 segment(Point(0.0, 1.0), Point(0.0, 2.0)),
                 segment(Point(0.0, 2.0), Point(0.0, 3.0), switchId = switchId2),
@@ -396,38 +378,38 @@ class LinkingTest {
                 segment(Point(0.0, 5.0), Point(0.0, 6.0), switchId = switchId3),
             )
 
-        assertEquals(setOf<DomainId<TrackLayoutSwitch>>(), getSwitchIdsInside(segments, Range(0.0, 0.0)))
-        assertEquals(setOf<DomainId<TrackLayoutSwitch>>(), getSwitchIdsInside(segments, Range(4.0, 5.0)))
-        assertEquals(setOf(switchId1, switchId2, switchId3), getSwitchIdsInside(segments, Range(0.0, 6.0)))
-        assertEquals(setOf(switchId2, switchId3), getSwitchIdsInside(segments, Range(3.1, 5.1)))
-        assertEquals(setOf(switchId2), getSwitchIdsInside(segments, Range(3.5, 4.5)))
-        assertEquals(setOf(switchId2), getSwitchIdsInside(segments, Range(1.5, 4.5)))
-        assertEquals(setOf<DomainId<TrackLayoutSwitch>>(), getSwitchIdsInside(segments, Range(4.5, 4.7)))
-        assertEquals(setOf(switchId3), getSwitchIdsInside(segments, Range(5.5, 5.7)))
+        assertEquals(setOf<DomainId<TrackLayoutSwitch>>(), getSwitchIdsInside(alignment, Range(0.0, 0.0)))
+        assertEquals(setOf<DomainId<TrackLayoutSwitch>>(), getSwitchIdsInside(alignment, Range(4.0, 5.0)))
+        assertEquals(setOf(switchId1, switchId2, switchId3), getSwitchIdsInside(alignment, Range(0.0, 6.0)))
+        assertEquals(setOf(switchId2, switchId3), getSwitchIdsInside(alignment, Range(3.1, 5.1)))
+        assertEquals(setOf(switchId2), getSwitchIdsInside(alignment, Range(3.5, 4.5)))
+        assertEquals(setOf(switchId2), getSwitchIdsInside(alignment, Range(1.5, 4.5)))
+        assertEquals(setOf<DomainId<TrackLayoutSwitch>>(), getSwitchIdsInside(alignment, Range(4.5, 4.7)))
+        assertEquals(setOf(switchId3), getSwitchIdsInside(alignment, Range(5.5, 5.7)))
 
-        assertEquals(setOf(switchId1, switchId2, switchId3), getSwitchIdsOutside(segments, Range(0.0, 0.0)))
-        assertEquals(setOf(switchId1, switchId2, switchId3), getSwitchIdsOutside(segments, Range(4.0, 5.0)))
-        assertEquals(setOf(switchId1, switchId3), getSwitchIdsOutside(segments, Range(1.0, 5.0)))
-        assertEquals(setOf(switchId1, switchId3), getSwitchIdsOutside(segments, Range(0.5, 4.5)))
-        assertEquals(setOf<DomainId<TrackLayoutSwitch>>(), getSwitchIdsOutside(segments, Range(0.0, 6.0)))
+        assertEquals(setOf(switchId1, switchId2, switchId3), getSwitchIdsOutside(alignment, Range(0.0, 0.0)))
+        assertEquals(setOf(switchId1, switchId2, switchId3), getSwitchIdsOutside(alignment, Range(4.0, 5.0)))
+        assertEquals(setOf(switchId1, switchId3), getSwitchIdsOutside(alignment, Range(1.0, 5.0)))
+        assertEquals(setOf(switchId1, switchId3), getSwitchIdsOutside(alignment, Range(0.5, 4.5)))
+        assertEquals(setOf<DomainId<TrackLayoutSwitch>>(), getSwitchIdsOutside(alignment, Range(0.0, 6.0)))
     }
 
     @Test
     fun `Source length values are correct after splitting`() {
         val sourceId = IndexedId<GeometryElement>(1, 2)
         val sourceElement = minimalLine(Point(0.0, 0.0), Point(0.0, 1.0), id = sourceId)
-        val segments =
-            fixSegmentStarts(
+        val alignment =
+            alignment(
                 segment(Point(0.0, 0.0), Point(0.0, 1.0)),
                 segment(Point(0.0, 1.0), Point(0.0, 2.0), sourceId = sourceElement, sourceStart = 10.0),
                 segment(Point(0.0, 2.0), Point(0.0, 3.0)),
             )
         // Cutting other segments doesn't affect source start
-        assertEquals(10.0, sliceSegments(segments, Range(0.5, 2.5))[1].sourceStart)
+        assertEquals(10.0, sliceSegments(alignment, Range(0.5, 2.5))[1].sourceStart)
         // Cutting the sourced segment from beginning adds to the source start
-        assertEquals(10.5, sliceSegments(segments, Range(1.5, 3.0))[0].sourceStart)
+        assertEquals(10.5, sliceSegments(alignment, Range(1.5, 3.0))[0].sourceStart)
         // Cutting the sourced segment from end doesn't affect source start
-        assertEquals(10.0, sliceSegments(segments, Range(0.0, 1.5))[1].sourceStart)
+        assertEquals(10.0, sliceSegments(alignment, Range(0.0, 1.5))[1].sourceStart)
     }
 }
 

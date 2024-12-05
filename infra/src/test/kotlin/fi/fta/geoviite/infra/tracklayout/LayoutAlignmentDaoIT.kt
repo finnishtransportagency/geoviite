@@ -15,12 +15,10 @@ import fi.fta.geoviite.infra.geometry.infraModelFile
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.util.getIntId
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -31,6 +29,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -338,31 +337,30 @@ constructor(
         assertEquals(listOf(profileInfo[0], profileInfo[4]), onlyProfileful)
     }
 
-    private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =
+    private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20): LayoutAlignment =
         alignment(segmentsWithZAndCant(alignmentSeed, segmentCount))
 
-    private fun alignmentWithoutZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =
+    private fun alignmentWithoutZAndCant(alignmentSeed: Int, segmentCount: Int = 20): LayoutAlignment =
         alignment(segmentsWithoutZAndCant(alignmentSeed, segmentCount))
 
-    private fun segmentsWithZAndCant(alignmentSeed: Int, count: Int) =
-        fixSegmentStarts((0..count).map { seed -> segmentWithZAndCant(alignmentSeed + seed) })
+    private fun segmentsWithZAndCant(alignmentSeed: Int, count: Int): List<LayoutSegment> =
+        (0..count).map { seed -> segmentWithZAndCant(alignmentSeed + seed) }
 
-    private fun segmentsWithoutZAndCant(alignmentSeed: Int, count: Int) =
-        fixSegmentStarts((0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) })
+    private fun segmentsWithoutZAndCant(alignmentSeed: Int, count: Int): List<LayoutSegment> =
+        (0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) }
 
     private fun segmentWithoutZAndCant(segmentSeed: Int) =
-        createSegment(
-            segmentSeed,
+        segment(
             points(
                 count = 10,
                 x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
                 y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
             ),
+            source = GeometrySource.PLAN,
         )
 
     private fun segmentWithZAndCant(segmentSeed: Int) =
-        createSegment(
-            segmentSeed,
+        segment(
             points(
                 count = 20,
                 x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
@@ -370,10 +368,8 @@ constructor(
                 z = segmentSeed.toDouble()..segmentSeed + 20.0,
                 cant = segmentSeed.toDouble()..segmentSeed + 20.0,
             ),
+            source = GeometrySource.PLAN,
         )
-
-    private fun createSegment(segmentSeed: Int, points: List<SegmentPoint>) =
-        segment(points = points, startM = segmentSeed * 0.1, source = GeometrySource.PLAN)
 
     fun insertAndVerify(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
         val rowVersion = alignmentDao.insert(alignment)

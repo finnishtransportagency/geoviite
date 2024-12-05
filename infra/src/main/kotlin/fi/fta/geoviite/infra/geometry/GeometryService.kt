@@ -538,8 +538,8 @@ constructor(
             .mapNotNull { (lastPlanEndIndex, thisPlanEndIndex) ->
                 if (alignment.segments.isNotEmpty())
                     PlanLinkingSummaryItem(
-                        alignment.segments[lastPlanEndIndex + 1].startM,
-                        alignment.segments[thisPlanEndIndex].endM,
+                        alignment.segmentMs[lastPlanEndIndex + 1].min,
+                        alignment.segmentMs[thisPlanEndIndex].max,
                         segmentSources[thisPlanEndIndex].plan?.fileName,
                         segmentSources[thisPlanEndIndex].alignment?.let { toAlignmentHeader(null, it) },
                         segmentSources[thisPlanEndIndex].plan?.id,
@@ -573,8 +573,8 @@ constructor(
         val alignmentBoundaryAddresses =
             alignmentLinkEndSegmentIndices.flatMap { i ->
                 listOf(
-                    GeometryAlignmentBoundaryPoint(alignment.segments[i].endM, i),
-                    GeometryAlignmentBoundaryPoint(alignment.segments[i + 1].startM, i + 1),
+                    GeometryAlignmentBoundaryPoint(alignment.segmentMs[i].max, i),
+                    GeometryAlignmentBoundaryPoint(alignment.segmentMs[i + 1].min, i + 1),
                 )
             }
 
@@ -590,8 +590,9 @@ constructor(
         ) { point, givenSegmentIndex ->
             val segmentIndex = givenSegmentIndex ?: alignment.getSegmentIndexAtM(point.m)
             val segment = alignment.segments[segmentIndex]
+            val segmentM = alignment.segmentMs[segmentIndex]
             val source = segmentSources[segmentIndex]
-            val distanceInSegment = point.m - segment.startM
+            val distanceInSegment = point.m - segmentM.min
             val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
             val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
             val profileHeight = source.profile?.getHeightAt(distanceInGeometryAlignment)
