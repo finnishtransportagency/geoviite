@@ -556,7 +556,8 @@ class LayoutAlignmentDao(
                         )
                     and location_track.state != 'DELETED'
               ) s
-              where ((:has_profile_info::boolean is null) or :has_profile_info = has_profile_info);
+              where ((:has_profile_info::boolean is null) or :has_profile_info = has_profile_info)
+              order by id, segment_index
         """
                 .trimIndent()
 
