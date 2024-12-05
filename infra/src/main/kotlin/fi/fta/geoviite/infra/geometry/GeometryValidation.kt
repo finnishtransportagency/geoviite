@@ -592,11 +592,12 @@ private fun validateSpiral(alignmentName: AlignmentName, spiral: GeometrySpiral)
 
 private fun validateClothoid(alignmentName: AlignmentName, clothoid: GeometryClothoid): List<ElementIssue> {
     val calculatedConstant =
-        if (clothoid.radiusStart != null) {
-            sqrt(clothoid.radiusStart.toDouble() * clothoid.segmentToClothoidDistance(0.0))
-        } else if (clothoid.radiusEnd != null) {
-            sqrt(clothoid.radiusEnd.toDouble() * clothoid.segmentToClothoidDistance(clothoid.length.toDouble()))
-        } else null
+        clothoid.radiusStart?.toDouble()?.let { radiusStart ->
+            sqrt(radiusStart * clothoid.segmentToClothoidDistance(0.0))
+        }
+            ?: clothoid.radiusEnd?.toDouble()?.let { radiusEnd ->
+                sqrt(radiusEnd * clothoid.segmentToClothoidDistance(clothoid.length.toDouble()))
+            }
 
     return listOfNotNull(
         calculatedConstant?.let { calculated ->
