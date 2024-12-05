@@ -216,7 +216,7 @@ private fun <T> getMissingLinkings(
         ?.let { ranges -> MapAlignmentHighlight(id as IntId, type, ranges) }
 
 private fun getMissingLinkingRanges(alignment: LayoutAlignment): List<Range<Double>> =
-    combineContinuous(alignment.segments.filter { s -> s.sourceId == null }.map { s -> Range(s.startM, s.endM) })
+    combineContinuous(alignment.segmentsWithM.mapNotNull { (s, m) -> m.takeIf { s.sourceId == null } })
 
 private fun getEndPoints(alignment: LayoutAlignment): MapAlignmentEndPoints =
     MapAlignmentEndPoints(alignment.takeFirst(2), alignment.takeLast(2))

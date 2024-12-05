@@ -2,8 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import clickElementAtPoint
 import exists
-import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialogWithTextField
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
@@ -89,12 +88,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         finishLoading()
     }
 
-    fun clickAtCoordinates(point: Point, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
-        finishLoading()
-        clickAtCoordinates(point.x, point.y, doubleClick)
-    }
-
-    fun clickAtCoordinates(point: AlignmentPoint, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+    fun clickAtCoordinates(point: IPoint, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
         finishLoading()
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
