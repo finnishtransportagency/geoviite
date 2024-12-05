@@ -283,7 +283,8 @@ class LocationTrackDao(
               topology_start_switch_joint_number,
               topology_end_switch_id,
               topology_end_switch_joint_number,
-              owner_id
+              owner_id,
+              origin_design_id
             ) 
             values (
               :layout_context_id,
@@ -306,7 +307,8 @@ class LocationTrackDao(
               :topology_start_switch_joint_number,
               :topology_end_switch_id,
               :topology_end_switch_joint_number,
-              :owner_id
+              :owner_id,
+              :origin_design_id
             ) on conflict (id, layout_context_id) do update set
               track_number_id = excluded.track_number_id,
               external_id = excluded.external_id ,
@@ -324,7 +326,8 @@ class LocationTrackDao(
               topology_start_switch_joint_number = excluded.topology_start_switch_joint_number,
               topology_end_switch_id = excluded.topology_end_switch_id,
               topology_end_switch_joint_number = excluded.topology_end_switch_joint_number,
-              owner_id = excluded.owner_id
+              owner_id = excluded.owner_id,
+              origin_design_id = excluded.origin_design_id
             returning id, design_id, draft, version
         """
                 .trimIndent()
@@ -351,6 +354,7 @@ class LocationTrackDao(
                 "topology_end_switch_id" to item.topologyEndSwitch?.switchId?.intValue,
                 "topology_end_switch_joint_number" to item.topologyEndSwitch?.jointNumber?.intValue,
                 "owner_id" to item.ownerId.intValue,
+                "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
             )
 
         jdbcTemplate.setUser()

@@ -163,7 +163,8 @@ class LayoutSwitchDao(
                 draft,
                 cancelled,
                 design_id,
-                source
+                source,
+                origin_design_id
             )
             values (
               :layout_context_id,
@@ -178,7 +179,8 @@ class LayoutSwitchDao(
               :draft,
               :cancelled,
               :design_id,
-              :source::layout.geometry_source
+              :source::layout.geometry_source,
+              :origin_design_id
             )
             on conflict (id, layout_context_id) do update set
               external_id = excluded.external_id,
@@ -189,7 +191,8 @@ class LayoutSwitchDao(
               trap_point = excluded.trap_point,
               owner_id = excluded.owner_id,
               cancelled = excluded.cancelled,
-              source = excluded.source
+              source = excluded.source,
+              origin_design_id = excluded.origin_design_id
             returning id, design_id, draft, version
         """
                 .trimIndent()
@@ -211,6 +214,7 @@ class LayoutSwitchDao(
                     "cancelled" to item.isCancelled,
                     "design_id" to item.contextData.designId?.intValue,
                     "source" to item.source.name,
+                    "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
                 ),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")

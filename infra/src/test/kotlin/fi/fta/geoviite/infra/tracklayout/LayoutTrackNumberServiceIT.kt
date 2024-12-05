@@ -292,13 +292,7 @@ constructor(
         )
 
         val mainOfficial = trackNumberService.publish(LayoutBranch.main, mainDraft)
-        assertVersionReferences(
-            designBranch,
-            tnId,
-            mainOfficial = mainOfficial,
-            designOfficial = designOfficial,
-            designDraft = designDraft2,
-        )
+        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial, designDraft = designDraft2)
     }
 
     @Test
@@ -345,13 +339,7 @@ constructor(
         )
 
         val mainOfficial2 = trackNumberService.publish(LayoutBranch.main, mainDraft2)
-        assertVersionReferences(
-            designBranch,
-            tnId,
-            mainOfficial = mainOfficial2,
-            designOfficial = designOfficial,
-            designDraft = designDraft2,
-        )
+        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial2, designDraft = designDraft2)
     }
 
     @Test
