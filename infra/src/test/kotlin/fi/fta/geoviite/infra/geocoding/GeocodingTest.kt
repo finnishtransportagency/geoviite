@@ -49,7 +49,6 @@ val segment1 =
         Point(x = 385273.0397969192, y = 6675558.0948048225),
         Point(x = 385216.6663371209, y = 6675701.1816949705),
         Point(x = 385081.84688330034, y = 6675970.204397376),
-        startM = 0.0,
     )
 val segment2 =
     segment(
@@ -67,7 +66,6 @@ val segment2 =
         Point(x = 382900.3670653631, y = 6677856.032651512),
         Point(x = 382761.2176702685, y = 6677923.467526838),
         Point(x = 382711.47467736073, y = 6677942.28533952),
-        startM = segment1.startM + segment1.length,
     )
 val segment3 =
     segment(
@@ -84,7 +82,6 @@ val segment3 =
         Point(x = 380075.3780522702, y = 6677812.131510135),
         Point(x = 379546.59970029286, y = 6677795.661380321),
         Point(x = 379109.7436289962, y = 6677820.218810541),
-        startM = segment2.startM + segment2.length,
     )
 val alignment = alignment(segment1, segment2, segment3)
 val startAddress = TrackMeter(KmNumber(2), 150)
@@ -166,21 +163,21 @@ class GeocodingTest {
 
     @Test
     fun contextDistancesWorkForSegmentEnds() {
-        for (segment in alignment.segments) {
-            val startResult = context.getM(segment.alignmentPoints.first())
-            val endResult = context.getM(segment.alignmentPoints.last())
+        for ((segment, m) in alignment.segmentsWithM) {
+            val startResult = context.getM(segment.segmentStart)
+            val endResult = context.getM(segment.segmentEnd)
             assertEquals(WITHIN, startResult?.second)
-            assertEquals(segment.startM, startResult!!.first, DELTA)
+            assertEquals(m.min, startResult!!.first, DELTA)
             assertEquals(WITHIN, endResult?.second)
-            assertEquals(segment.endM, endResult!!.first, DELTA)
+            assertEquals(m.max, endResult!!.first, DELTA)
         }
     }
 
     @Test
     fun contextDistancesWorkAlongLine() {
         for (segment in alignment.segments) {
-            val midMinusOne = segment.alignmentPoints[1].toPoint()
-            val midPlusOne = segment.alignmentPoints[2].toPoint()
+            val midMinusOne = segment.segmentPoints[1]
+            val midPlusOne = segment.segmentPoints[2]
             val midPoint = (midMinusOne + midPlusOne) / 2.0
 
             val midDistance = context.getM(midPoint)!!.first
@@ -258,21 +255,9 @@ class GeocodingTest {
 
     @Test
     fun generatedSegmentsProjectWithSurroundingDirection() {
-        val startSegment = segment(Point(-0.7, 0.0), Point(1.0, 2.0), Point(3.0, 4.0), startM = 10.0, source = PLAN)
-        val connectSegment =
-            segment(
-                Point(3.0, 4.0),
-                Point(3.0, 6.0),
-                startM = startSegment.startM + startSegment.length,
-                source = GENERATED,
-            )
-        val endSegment =
-            segment(
-                Point(3.0, 6.0),
-                Point(7.0, 10.0),
-                startM = connectSegment.startM + connectSegment.length,
-                source = PLAN,
-            )
+        val startSegment = segment(Point(-0.7, 0.0), Point(1.0, 2.0), Point(3.0, 4.0), source = PLAN)
+        val connectSegment = segment(Point(3.0, 4.0), Point(3.0, 6.0), source = GENERATED)
+        val endSegment = segment(Point(3.0, 6.0), Point(7.0, 10.0), source = PLAN)
         val startAddress = TrackMeter(KmNumber(2), 100)
         val ctx =
             GeocodingContext.create(

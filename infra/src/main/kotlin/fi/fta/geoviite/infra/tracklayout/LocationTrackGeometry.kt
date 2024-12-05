@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import kotlin.math.abs
@@ -15,8 +16,9 @@ data class LocationTrackGeometry(val trackRowVersion: LayoutRowVersion<LocationT
     IAlignment {
     // TODO: Do we need an id like this? Can we just be rid of it? Should it be unique by version?
     override val id: IntId<LocationTrack> = trackRowVersion.id
-    // TODO: GVT-1727 segment start value conversions?
+    // TODO: GVT-1727 optimize segments/m-values
     override val segments: List<LayoutEdgeSegment> by lazy { edges.flatMap(LayoutEdge::segments) }
+    override val segmentMs: List<Range<Double>> by lazy { calculateSegmentMs(segments) }
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(edges.mapNotNull(LayoutEdge::boundingBox)) }
 }
 
@@ -29,6 +31,7 @@ interface IEdgeContent {
     val startNodeId: IntId<LayoutNode>
     val endNodeId: IntId<LayoutNode>
     val segments: List<LayoutEdgeSegment>
+    val segmentMs: List<Range<Double>>
 }
 
 interface IEdgeAlignment : IEdgeContent, IAlignment
@@ -37,6 +40,7 @@ data class EdgeContent(
     override val startNodeId: IntId<LayoutNode>,
     override val endNodeId: IntId<LayoutNode>,
     override val segments: List<LayoutEdgeSegment>,
+    override val segmentMs: List<Range<Double>>,
 ) : IEdgeContent {
     init {
         // TODO: GVT-1727 fix data?
@@ -44,10 +48,17 @@ data class EdgeContent(
         //        require(startNodeId != endNodeId) { "Start and end node must be different: start=$startNodeId
         // end=$endNodeId" }
         require(segments.isNotEmpty()) { "LayoutEdge must have at least one segment" }
-        segments.zipWithNext().map { (prev, next) ->
-            require(abs(prev.endM - next.startM) < 0.001) {
-                "Edge segment m-values should be continuous: prev=${prev.endM} next=${next.startM}"
+        segmentMs.forEach { range ->
+            require(range.min.isFinite() && range.min >= 0.0) { "Invalid start m: ${range.min}" }
+            require(range.max.isFinite() && range.max >= range.min) { "Invalid end m: ${range.max}" }
+        }
+
+        segmentMs.zipWithNext().map { (prev, next) ->
+            require(abs(prev.max - next.min) < 0.001) {
+                "Edge segment m-values should be continuous: prev=$prev next=$next"
             }
+        }
+        segments.zipWithNext().map { (prev, next) ->
             require(prev.segmentEnd.isSame(next.segmentStart, 0.001)) {
                 "Edge segments should begin where the previous one ends: prev=${prev.segmentEnd} next=${next.segmentStart}"
             }
@@ -69,7 +80,6 @@ data class LayoutEdgeSegment(
     override val sourceId: IndexedId<GeometryElement>?,
     // TODO: GVT-1727 these should be BigDecimals with a limited precision
     override val sourceStart: Double?,
-    override val startM: Double,
     override val source: GeometrySource,
     override val id: DomainId<LayoutEdgeSegment> = deriveFromSourceId("AS", sourceId),
 ) : ISegmentGeometry by geometry, ISegment {
@@ -80,8 +90,6 @@ data class LayoutEdgeSegment(
             "Source id and start must be either both null or both non-null"
         }
         require(sourceStart?.isFinite() != false) { "Invalid source start length: $sourceStart" }
-        require(startM.isFinite() && startM >= 0.0) { "Invalid start m: $startM" }
-        require(endM.isFinite() && endM >= startM) { "Invalid end m: $endM" }
     }
     // TODO: segment edit operations (mostly same as LayoutSegment)
 }

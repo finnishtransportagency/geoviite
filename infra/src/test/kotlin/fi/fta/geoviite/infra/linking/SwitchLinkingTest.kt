@@ -3,7 +3,12 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.linking.switches.*
+import fi.fta.geoviite.infra.linking.switches.createFittedSwitchByPoint
+import fi.fta.geoviite.infra.linking.switches.cropNothing
+import fi.fta.geoviite.infra.linking.switches.cropPoints
+import fi.fta.geoviite.infra.linking.switches.fitSwitch
+import fi.fta.geoviite.infra.linking.switches.getSwitchBoundsFromTracks
+import fi.fta.geoviite.infra.linking.switches.updateAlignmentSegmentsWithSwitchLinking
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
@@ -11,11 +16,27 @@ import fi.fta.geoviite.infra.math.interpolate
 import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
-import fi.fta.geoviite.infra.tracklayout.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackWithTwoSwitches
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.segmentPoint
+import fi.fta.geoviite.infra.tracklayout.someSegment
+import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
+import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
+import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class SwitchLinkingTest {
     private var testLayoutSwitchId = IntId<TrackLayoutSwitch>(0)
@@ -57,7 +78,6 @@ class SwitchLinkingTest {
 
     @Test
     fun adjacentSegmentsShouldHaveSameJointNumber() {
-        var startLength = 0.0
         val locationTrackId = IntId<LocationTrack>(0)
         val (_, origAlignmentNoSwitchInfo) =
             locationTrackAndAlignment(
@@ -66,9 +86,7 @@ class SwitchLinkingTest {
                     (1..5).map { num ->
                         val start = (num - 1).toDouble() * 10.0
                         val end = start + 10.0
-                        segment(Point(start, start), Point(end, end), startM = startLength).also { s ->
-                            startLength += s.length
-                        }
+                        segment(Point(start, start), Point(end, end))
                     },
                 id = locationTrackId,
                 draft = false,
@@ -84,11 +102,11 @@ class SwitchLinkingTest {
             updateAlignmentSegmentsWithSwitchLinking(origAlignmentNoSwitchInfo, testLayoutSwitchId, linkingJoints)
 
         assertEquals(origAlignmentNoSwitchInfo.segments.size + 1, updatedAlignment.segments.size)
-        assertEquals(joint1.m, updatedAlignment.segments[0].startM)
-        assertEquals(joint2.m, updatedAlignment.segments[0].endM)
-        assertEquals(joint2.m, updatedAlignment.segments[1].startM)
-        assertEquals(joint3.m, updatedAlignment.segments[1].endM)
-        assertEquals(joint3.m, updatedAlignment.segments[2].startM)
+        assertEquals(joint1.m, updatedAlignment.segmentMs[0].min)
+        assertEquals(joint2.m, updatedAlignment.segmentMs[0].max)
+        assertEquals(joint2.m, updatedAlignment.segmentMs[1].min)
+        assertEquals(joint3.m, updatedAlignment.segmentMs[1].max)
+        assertEquals(joint3.m, updatedAlignment.segmentMs[2].min)
 
         assertSwitchLinkingInfoEquals(
             updatedAlignment.segments[0],
@@ -108,7 +126,6 @@ class SwitchLinkingTest {
 
     @Test
     fun shouldSnapToSegmentsFirstAndLastPoint() {
-        var startLength = 0.0
         val locationTrackId = IntId<LocationTrack>(0)
         val (_, origAlignmentNoSwitchInfo) =
             locationTrackAndAlignment(
@@ -117,9 +134,7 @@ class SwitchLinkingTest {
                     (1..5).map { num ->
                         val start = (num - 1).toDouble() * 10.0
                         val end = start + 10.0
-                        segment(Point(start, start), Point(end, end), startM = startLength).also { s ->
-                            startLength += s.length
-                        }
+                        segment(Point(start, start), Point(end, end))
                     },
                 id = locationTrackId,
                 draft = false,
@@ -130,13 +145,13 @@ class SwitchLinkingTest {
                 SwitchLinkingJoint(
                     JointNumber(1),
                     1,
-                    origAlignmentNoSwitchInfo.segments[1].startM - 0.0001,
+                    origAlignmentNoSwitchInfo.segmentMs[1].min - 0.0001,
                     Point(0.0, 0.0),
                 ),
                 SwitchLinkingJoint(
                     JointNumber(2),
                     1,
-                    origAlignmentNoSwitchInfo.segments[1].endM + 0.0001,
+                    origAlignmentNoSwitchInfo.segmentMs[1].max + 0.0001,
                     Point(0.0, 0.0),
                 ),
             )
@@ -155,7 +170,6 @@ class SwitchLinkingTest {
 
     @Test
     fun shouldSplitSegmentsToSwitchGeometry() {
-        var startLength = 0.0
         val locationTrackId = IntId<LocationTrack>(0)
         val (_, origAlignmentNoSwitchInfo) =
             locationTrackAndAlignment(
@@ -164,9 +178,7 @@ class SwitchLinkingTest {
                     (1..5).map { num ->
                         val start = (num - 1).toDouble() * 10.0
                         val end = start + 10.0
-                        segment(Point(start, start), Point(end, end), startM = startLength).also { s ->
-                            startLength += s.length
-                        }
+                        segment(Point(start, start), Point(end, end))
                     },
                 id = locationTrackId,
                 draft = false,
@@ -174,7 +186,7 @@ class SwitchLinkingTest {
 
         val splitSegmentIndex = 1
         val splitPointM =
-            origAlignmentNoSwitchInfo.segments[splitSegmentIndex].let { s -> interpolate(s.startM, s.endM, 0.5) }
+            origAlignmentNoSwitchInfo.segmentMs[splitSegmentIndex].let { m -> interpolate(m.min, m.max, 0.5) }
         val linkingJoints =
             listOf(
                 switchLinkingJointAtStart(origAlignmentNoSwitchInfo, 0, 1),
@@ -193,7 +205,6 @@ class SwitchLinkingTest {
 
     @Test
     fun shouldUpdateSwitchLinkingIntoAlignment() {
-        var startLength = 0.0
         val locationTrackId = IntId<LocationTrack>(0)
         val (_, origAlignmentNoSwitchInfo) =
             locationTrackAndAlignment(
@@ -202,9 +213,7 @@ class SwitchLinkingTest {
                     (1..3).map { num ->
                         val start = (num - 1).toDouble() * 10.0
                         val end = start + 10.0
-                        segment(Point(start, start), Point(end, end), startM = startLength).also { s ->
-                            startLength += s.length
-                        }
+                        segment(Point(start, start), Point(end, end))
                     },
                 id = locationTrackId,
                 draft = false,
@@ -339,9 +348,9 @@ class SwitchLinkingTest {
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(2.5, 0.0), Point(5.0, 0.0)),
-                        segment(Point(5.0, 0.0), Point(7.5, 0.0), Point(10.0, 0.0), startM = 5.0),
-                        segment(Point(10.0, 0.0), Point(12.5, 0.0), Point(15.0, 0.0), startM = 10.0),
-                        segment(Point(15.0, 0.0), Point(17.5, 0.0), Point(20.0, 0.0), startM = 15.0),
+                        segment(Point(5.0, 0.0), Point(7.5, 0.0), Point(10.0, 0.0)),
+                        segment(Point(10.0, 0.0), Point(12.5, 0.0), Point(15.0, 0.0)),
+                        segment(Point(15.0, 0.0), Point(17.5, 0.0), Point(20.0, 0.0)),
                     )
             )
 
@@ -367,9 +376,9 @@ class SwitchLinkingTest {
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(2.5, 0.0), Point(5.0, 0.0)),
-                        segment(Point(5.0, 0.0), Point(7.5, 0.0), Point(10.0, 0.0), startM = 5.0),
-                        segment(Point(10.0, 0.0), Point(12.5, 0.0), Point(15.0, 0.0), startM = 10.0),
-                        segment(Point(15.0, 0.0), Point(17.5, 0.0), Point(20.0, 0.0), startM = 15.0),
+                        segment(Point(5.0, 0.0), Point(7.5, 0.0), Point(10.0, 0.0)),
+                        segment(Point(10.0, 0.0), Point(12.5, 0.0), Point(15.0, 0.0)),
+                        segment(Point(15.0, 0.0), Point(17.5, 0.0), Point(20.0, 0.0)),
                     )
             )
 
@@ -394,9 +403,9 @@ class SwitchLinkingTest {
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(0.1, 0.0), Point(0.5, 0.0)),
-                        segment(Point(0.5, 0.0), Point(0.6, 0.0), Point(10.0, 0.0), startM = 0.5),
-                        segment(Point(10.0, 0.0), Point(10.6, 0.0), Point(11.0, 0.0), startM = 10.0),
-                        segment(Point(11.0, 0.0), Point(20.0, 0.0), startM = 11.0),
+                        segment(Point(0.5, 0.0), Point(0.6, 0.0), Point(10.0, 0.0)),
+                        segment(Point(10.0, 0.0), Point(10.6, 0.0), Point(11.0, 0.0)),
+                        segment(Point(11.0, 0.0), Point(20.0, 0.0)),
                     )
             )
 
@@ -422,7 +431,7 @@ class SwitchLinkingTest {
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(0.5, 0.0), Point(1.0, 0.0)),
-                        segment(Point(1.0, 0.0), Point(9.5, 0.0), Point(10.0, 0.0), startM = 1.0),
+                        segment(Point(1.0, 0.0), Point(9.5, 0.0), Point(10.0, 0.0)),
                     )
             )
 
@@ -448,7 +457,7 @@ class SwitchLinkingTest {
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(4.9991, 0.0)),
-                        segment(Point(5.0, 0.0), Point(10.0, 0.0), startM = 4.999),
+                        segment(Point(5.0, 0.0), Point(10.0, 0.0)),
                     )
             )
 
@@ -477,8 +486,8 @@ class SwitchLinkingTest {
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(5.0, 0.0)),
-                        segment(Point(5.0, 0.0), Point(10.0, 0.0), startM = 5.0),
-                        segment(Point(10.0009, 0.0), Point(15.0, 0.0), Point(20.0, 0.0), startM = 10.0),
+                        segment(Point(5.0, 0.0), Point(10.0, 0.0)),
+                        segment(Point(10.0009, 0.0), Point(15.0, 0.0), Point(20.0, 0.0)),
                     )
             )
 
@@ -506,12 +515,12 @@ class SwitchLinkingTest {
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(4.0, 0.0)),
-                        segment(Point(4.0, 0.0), Point(8.0, 0.0), startM = 4.0),
-                        segment(Point(8.0, 0.0), Point(10.0, 0.0), startM = 8.0),
-                        segment(Point(10.0, 0.0), Point(12.0, 0.0), startM = 10.0),
-                        segment(Point(12.0, 0.0), Point(15.0, 0.0), startM = 12.0),
-                        segment(Point(15.0, 0.0), Point(16.0, 0.0), startM = 15.0),
-                        segment(Point(16.0, 0.0), Point(20.0, 0.0), startM = 16.0),
+                        segment(Point(4.0, 0.0), Point(8.0, 0.0)),
+                        segment(Point(8.0, 0.0), Point(10.0, 0.0)),
+                        segment(Point(10.0, 0.0), Point(12.0, 0.0)),
+                        segment(Point(12.0, 0.0), Point(15.0, 0.0)),
+                        segment(Point(15.0, 0.0), Point(16.0, 0.0)),
+                        segment(Point(16.0, 0.0), Point(20.0, 0.0)),
                     )
             )
 
@@ -528,8 +537,8 @@ class SwitchLinkingTest {
                             Point(16.0, 0.0),
                             Point(15.0, 0.0),
                         ),
-                        segment(Point(15.0, 0.0), Point(14.0, 0.0), Point(13.0, 0.0), startM = 5.0),
-                        segment(Point(13.0, 0.0), Point(12.0, 0.0), Point(11.0, 0.0), Point(10.0, 0.0), startM = 7.0),
+                        segment(Point(15.0, 0.0), Point(14.0, 0.0), Point(13.0, 0.0)),
+                        segment(Point(13.0, 0.0), Point(12.0, 0.0), Point(11.0, 0.0), Point(10.0, 0.0)),
                         segment(
                             Point(10.0, 0.0),
                             Point(9.0, 0.0),
@@ -537,7 +546,6 @@ class SwitchLinkingTest {
                             Point(7.0, 0.0),
                             Point(6.0, 0.0),
                             Point(5.0, 0.0),
-                            startM = 10.0,
                         ),
                         segment(
                             Point(5.0, 0.0),
@@ -546,7 +554,6 @@ class SwitchLinkingTest {
                             Point(2.0, 0.0),
                             Point(1.0, 0.0),
                             Point(0.0, 0.0),
-                            startM = 15.0,
                         ),
                     )
             )
@@ -585,9 +592,8 @@ class SwitchLinkingTest {
                             Point(10.0, 0.0),
                             Point(12.5, 0.0),
                             Point(15.0, 0.0),
-                            startM = 5.0,
                         ),
-                        segment(Point(15.0, 0.0), Point(20.0, 0.0), startM = 15.0),
+                        segment(Point(15.0, 0.0), Point(20.0, 0.0)),
                     )
             )
 
@@ -611,8 +617,8 @@ class SwitchLinkingTest {
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(5.0, 0.0)),
-                        segment(Point(5.0, 0.0), Point(10.0, 0.0), Point(15.0, 0.0), startM = 5.0),
-                        segment(Point(15.0, 0.0), Point(20.0, 0.0), startM = 15.0),
+                        segment(Point(5.0, 0.0), Point(10.0, 0.0), Point(15.0, 0.0)),
+                        segment(Point(15.0, 0.0), Point(20.0, 0.0)),
                     )
             )
 

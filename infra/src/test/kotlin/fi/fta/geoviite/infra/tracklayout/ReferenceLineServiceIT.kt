@@ -165,8 +165,8 @@ constructor(
 
         val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publishResponse.id)
         assertEquals(
-            alignmentTmp.segments.flatMap(LayoutSegment::alignmentPoints),
-            editedAlignment.segments.flatMap(LayoutSegment::alignmentPoints),
+            alignmentTmp.segments.flatMap(LayoutSegment::segmentPoints),
+            editedAlignment.segments.flatMap(LayoutSegment::segmentPoints),
         )
 
         // Creating a draft should duplicate the alignment
@@ -179,8 +179,8 @@ constructor(
 
         val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publishResponse.id)
         assertEquals(
-            alignmentTmp2.segments.flatMap(LayoutSegment::alignmentPoints),
-            editedAlignment2.segments.flatMap(LayoutSegment::alignmentPoints),
+            alignmentTmp2.segments.flatMap(LayoutSegment::segmentPoints),
+            editedAlignment2.segments.flatMap(LayoutSegment::segmentPoints),
         )
         assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         // Second edit to same draft should not duplicate alignment again

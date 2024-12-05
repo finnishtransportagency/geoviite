@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
 import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
@@ -68,6 +69,7 @@ data class SpatialCacheSegment(
     val locationTrackVersion: LayoutRowVersion<LocationTrack>,
     val alignmentVersion: RowVersion<LayoutAlignment>,
     val segment: LayoutSegment,
+    val m: Range<Double>,
 )
 
 data class SpatialCacheEntry(
@@ -120,8 +122,8 @@ data class ContextCache(
         location: IPoint,
         thresholdMeters: Double,
     ): LocationTrackCacheHit? {
-        val closestPointM = segment.segment.getClosestPointM(location).first
-        val closestPoint = segment.segment.seekPointAtM(closestPointM).point
+        val closestPointM = segment.segment.getClosestPointM(segment.m.min, location).first
+        val closestPoint = segment.segment.seekPointAtM(segment.m.min, closestPointM, 0.0).point
         val distance = lineLength(location, closestPoint)
         return if (distance < thresholdMeters) {
             LocationTrackCacheHit(
@@ -139,9 +141,9 @@ data class ContextCache(
 private fun createEntry(track: LocationTrack, alignment: LayoutAlignment): SpatialCacheEntry {
     val alignmentVersion = track.getAlignmentVersionOrThrow()
     val segmentData =
-        alignment.segments.map { segment ->
+        alignment.segmentsWithM.map { (segment, m) ->
             val bbox = segment.boundingBox!!
-            val entry = SpatialCacheSegment(track.version!!, alignmentVersion, segment)
+            val entry = SpatialCacheSegment(track.version!!, alignmentVersion, segment, m)
             val rect = Geometries.rectangle(bbox.x.min, bbox.y.min, bbox.x.max, bbox.y.max)
             entry to rect
         }

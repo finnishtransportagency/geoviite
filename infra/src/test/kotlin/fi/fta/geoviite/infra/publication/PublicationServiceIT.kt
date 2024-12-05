@@ -20,7 +20,6 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
-import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
@@ -323,10 +322,7 @@ constructor(
             LayoutBranch.main,
             tmpLine.copy(startAddress = TrackMeter("0002", 20)),
             tmpAlignment.copy(
-                segments =
-                    fixSegmentStarts(
-                        listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
-                    )
+                segments = listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
             ),
         )
         assertNotEquals(
@@ -384,10 +380,7 @@ constructor(
             LayoutBranch.main,
             tmpTrack.copy(name = AlignmentName("DRAFT test 01")),
             tmpAlignment.copy(
-                segments =
-                    fixSegmentStarts(
-                        listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
-                    )
+                segments = listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
             ),
         )
         assertNotEquals(
