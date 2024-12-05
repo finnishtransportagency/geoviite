@@ -332,7 +332,7 @@ class GeocodingTest {
                         start = points[index - 1],
                         end = point,
                         segmentStart = if (index <= points1.lastIndex) 0.0 else points1.last().m,
-                        projectionDirection = directionBetweenPoints(points[index - 1], point),
+                        referenceDirection = directionBetweenPoints(points[index - 1], point),
                     )
             }
 
@@ -462,6 +462,48 @@ class GeocodingTest {
             .forEach { (address, location) ->
                 assertAddressPoint(context.getTrackLocation(trackAlignment, address), address, location)
             }
+    }
+
+    @Test
+    fun `Location track zigzag doesn't prevent calculating address points`() {
+        val context =
+            createContext(
+                geometryPoints = listOf(Point(0.0, 0.0), Point(10.0, 0.0)),
+                startAddress = TrackMeter(1, "100.0"),
+                referencePoints = listOf(),
+            )
+        val trackAlignment =
+            alignment(
+                segment(Point(1.0, 1.0), Point(5.0, 1.0)),
+                segment(Point(5.0, 1.0), Point(2.0, 1.1)), // zig-zag connector
+                segment(Point(2.0, 1.1), Point(9.0, 1.1)),
+            )
+        val points = context.getAddressPoints(trackAlignment)!!
+
+        assertEquals(TrackMeter(1, "0101.000".toBigDecimal()), points.startPoint.address)
+        assertApproximatelyEquals(Point(x = 1.0, y = 1.0), points.startPoint.point)
+        assertEquals(TrackMeter(1, "0109.000".toBigDecimal()), points.endPoint.address)
+        assertApproximatelyEquals(Point(x = 9.0, y = 1.1), points.endPoint.point)
+
+        assertEquals(
+            listOf(
+                TrackMeter(1, "0102".toBigDecimal()),
+                TrackMeter(1, "0103".toBigDecimal()),
+                TrackMeter(1, "0104".toBigDecimal()),
+                TrackMeter(1, "0105".toBigDecimal()),
+                TrackMeter(1, "0106".toBigDecimal()),
+                TrackMeter(1, "0107".toBigDecimal()),
+                TrackMeter(1, "0108".toBigDecimal()),
+            ),
+            points.midPoints.map { it.address },
+        )
+        assertApproximatelyEquals(Point(x = 2.0, y = 1.0), points.midPoints[0].point)
+        assertApproximatelyEquals(Point(x = 3.0, y = 1.0), points.midPoints[1].point)
+        assertApproximatelyEquals(Point(x = 4.0, y = 1.0), points.midPoints[2].point)
+        assertApproximatelyEquals(Point(x = 5.0, y = 1.0), points.midPoints[3].point)
+        assertApproximatelyEquals(Point(x = 6.0, y = 1.1), points.midPoints[4].point)
+        assertApproximatelyEquals(Point(x = 7.0, y = 1.1), points.midPoints[5].point)
+        assertApproximatelyEquals(Point(x = 8.0, y = 1.1), points.midPoints[6].point)
     }
 
     private fun assertAddressPoint(point: AddressPoint?, address: TrackMeter, location: IPoint) {
