@@ -94,15 +94,15 @@ class FittedSwitchTest {
                     listOf(
                         SwitchJoint(
                             JointNumber(1),
-                            alignmentContainingSwitchSegments.segments[1].alignmentPoints.first().toPoint(),
+                            alignmentContainingSwitchSegments.segments[1].segmentStart.toPoint(),
                         ),
                         SwitchJoint(
                             JointNumber(5),
-                            alignmentContainingSwitchSegments.segments[2].alignmentPoints.first().toPoint(),
+                            alignmentContainingSwitchSegments.segments[2].segmentStart.toPoint(),
                         ),
                         SwitchJoint(
                             JointNumber(2),
-                            alignmentContainingSwitchSegments.segments[3].alignmentPoints.first().toPoint(),
+                            alignmentContainingSwitchSegments.segments[3].segmentStart.toPoint(),
                         ),
                     ),
                 switchStructure,

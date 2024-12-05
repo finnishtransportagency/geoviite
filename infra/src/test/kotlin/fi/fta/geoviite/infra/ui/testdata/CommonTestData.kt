@@ -147,12 +147,10 @@ fun referenceLine(
 
 private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): LayoutAlignment {
     val points = pointsFromIncrementList(basePoint, incrementPoints)
-
-    var startM = 0.0
     val segments =
         points.dropLast(1).mapIndexed { index, pointA ->
             val pointB = points[index + 1]
-            segment(points = toSegmentPoints(pointA, pointB), startM = startM).also { s -> startM += s.length }
+            segment(points = toSegmentPoints(pointA, pointB))
         }
     return alignment(segments)
 }
@@ -198,30 +196,27 @@ fun locationTrackAndAlignmentForGeometryAlignment(
     transformation: Transformation,
     draft: Boolean,
 ): Pair<LocationTrack, LayoutAlignment> {
-    var startM = 0.0
     val segments =
         geometryAlignment.elements.map { element ->
             val start = transformation.transform(element.start)
             val end = transformation.transform(element.end)
             LayoutSegment(
-                    geometry =
-                        SegmentGeometry(
-                            segmentPoints =
-                                listOf(
-                                    SegmentPoint(start.x, start.y, 0.0, 0.0, 0.0),
-                                    SegmentPoint(end.x, end.y, 0.0, element.calculatedLength, 0.0),
-                                ),
-                            resolution = 100,
-                        ),
-                    startM = startM,
-                    startJointNumber = null,
-                    endJointNumber = null,
-                    source = GeometrySource.PLAN,
-                    sourceId = element.id as IndexedId,
-                    sourceStart = null,
-                    switchId = null,
-                )
-                .also { startM += it.length }
+                geometry =
+                    SegmentGeometry(
+                        segmentPoints =
+                            listOf(
+                                SegmentPoint(start.x, start.y, 0.0, 0.0, 0.0),
+                                SegmentPoint(end.x, end.y, 0.0, element.calculatedLength, 0.0),
+                            ),
+                        resolution = 100,
+                    ),
+                startJointNumber = null,
+                endJointNumber = null,
+                source = GeometrySource.PLAN,
+                sourceId = element.id as IndexedId,
+                sourceStart = null,
+                switchId = null,
+            )
         }
     return locationTrackAndAlignment(trackNumberId, segments, draft = draft)
 }

@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.GeometryPoint
-import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
@@ -191,21 +190,19 @@ constructor(
             initialLocationTrack,
             setupData.locationTrackGeometry.copy(
                 segments =
-                    fixSegmentStarts(
-                        setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
-                            if (index == 0)
-                                segment.copy(
-                                    geometry =
-                                        segment.geometry.withPoints(
-                                            fixMValues(
-                                                listOf(movePoint(segment.segmentPoints.first(), -1.0)) +
-                                                    segment.segmentPoints.drop(1)
-                                            )
+                    setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
+                        if (index == 0)
+                            segment.copy(
+                                geometry =
+                                    segment.geometry.withPoints(
+                                        fixMValues(
+                                            listOf(movePoint(segment.segmentPoints.first(), -1.0)) +
+                                                segment.segmentPoints.drop(1)
                                         )
-                                )
-                            else segment
-                        }
-                    )
+                                    )
+                            )
+                        else segment
+                    }
             ),
         )
         val updateMoment = locationTrackDao.fetchChangeTime()
@@ -719,22 +716,20 @@ constructor(
                 referenceLine,
                 alignment.copy(
                     segments =
-                        fixSegmentStarts(
-                            alignment.segments.map { segment ->
-                                segment.copy(
-                                    geometry =
-                                        segment.geometry.withPoints(
-                                            fixMValues(
-                                                segment.segmentPoints.mapIndexed { inSegmentIndex, point ->
-                                                    val newPoint = moveFunc(index, point)
-                                                    if (inSegmentIndex < segment.alignmentPoints.lastIndex) index++
-                                                    point.copy(x = newPoint.x, y = newPoint.y)
-                                                }
-                                            )
+                        alignment.segments.map { segment ->
+                            segment.copy(
+                                geometry =
+                                    segment.geometry.withPoints(
+                                        fixMValues(
+                                            segment.segmentPoints.mapIndexed { inSegmentIndex, point ->
+                                                val newPoint = moveFunc(index, point)
+                                                if (inSegmentIndex < segment.segmentPoints.lastIndex) index++
+                                                point.copy(x = newPoint.x, y = newPoint.y)
+                                            }
                                         )
-                                )
-                            }
-                        )
+                                    )
+                            )
+                        }
                 ),
             )
         referenceLineService.publish(LayoutBranch.main, version)

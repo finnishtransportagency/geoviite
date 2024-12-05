@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
@@ -592,7 +593,8 @@ fun tryToSnapOverlappingSwitchSegmentToNearbySegment(
             )
         }
         ?.let { indexedExistingSwitchStartSegment ->
-            val distanceToPreviousSwitchLineStart = match.m - indexedExistingSwitchStartSegment.value.startM
+            val m = layoutAlignment.segmentMs[indexedExistingSwitchStartSegment.index]
+            val distanceToPreviousSwitchLineStart = match.m - m.min
             val hasAdjacentLayoutSegment = indexedExistingSwitchStartSegment.index > 0
 
             if (
@@ -620,7 +622,8 @@ fun tryToSnapOverlappingSwitchSegmentToNearbySegment(
             )
         }
         ?.let { indexedExistingSwitchEndSegment ->
-            val distanceToPreviousSwitchLineEnd = indexedExistingSwitchEndSegment.value.endM - match.m
+            val m = layoutAlignment.segmentMs[indexedExistingSwitchEndSegment.index]
+            val distanceToPreviousSwitchLineEnd = m.max - match.m
             val hasAdjacentLayoutSegment = indexedExistingSwitchEndSegment.index < layoutAlignment.segments.lastIndex
 
             if (
@@ -771,6 +774,7 @@ fun updateAlignmentSegmentsWithSwitchLinking(
                     getSegmentsByLinkingJoints(
                         switchLinkingJoints,
                         segment,
+                        alignment.segmentMs[index],
                         layoutSwitchId,
                         index == segmentIndexRange.first,
                         index == segmentIndexRange.last,
@@ -829,6 +833,7 @@ private fun filterMatchingJointsBySwitchAlignment(
 private fun getSegmentsByLinkingJoints(
     linkingJoints: List<SwitchLinkingJoint>,
     segment: LayoutSegment,
+    segmentM: Range<Double>,
     layoutSwitchId: IntId<TrackLayoutSwitch>,
     isFirstSegment: Boolean,
     isLastSegment: Boolean,
@@ -839,10 +844,10 @@ private fun getSegmentsByLinkingJoints(
             val previousSegment = acc.lastOrNull()?.also { acc.removeLast() } ?: segment
             val suggestedPointM = linkingJoint.m
 
-            if (isSame(segment.startM, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
+            if (isSame(segmentM.min, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
                 // Check if suggested point is start point
                 acc.add(setStartJointNumber(segment, layoutSwitchId, jointNumber))
-            } else if (isSame(segment.endM, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
+            } else if (isSame(segmentM.max, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
                 // Check if suggested point is end point
                 if (linkingJoints.size == 1) {
                     acc.add(setEndJointNumber(previousSegment, layoutSwitchId, jointNumber))
@@ -854,7 +859,7 @@ private fun getSegmentsByLinkingJoints(
                 // StartSplitSegment: before M-value
                 // EndSplitSegment: after M-value
                 val (startSplitSegment, endSplitSegment) =
-                    previousSegment.splitAtM(suggestedPointM, TOLERANCE_JOINT_LOCATION_NEW_POINT)
+                    previousSegment.splitAtM(segmentM.min, suggestedPointM, TOLERANCE_JOINT_LOCATION_NEW_POINT)
 
                 // Handle cases differently when there are multiple joint matches in a single
                 // segment
