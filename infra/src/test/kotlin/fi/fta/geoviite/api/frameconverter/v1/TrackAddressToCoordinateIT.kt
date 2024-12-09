@@ -85,7 +85,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -157,7 +157,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -180,7 +180,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -204,7 +204,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -229,7 +229,7 @@ constructor(
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -270,7 +270,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -326,7 +326,7 @@ constructor(
 
         // Valid track number which can be geocoded, but no location tracks use it.
         layoutTrackNumberDao
-            .insert(trackNumber(TrackNumber(trackNumberName)))
+            .save(trackNumber(TrackNumber(trackNumberName)))
             .id
             .let { trackNumberId -> layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!! }
             .let { trackNumber ->
@@ -359,7 +359,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -411,7 +411,7 @@ constructor(
         val layoutContext = mainOfficialContext
         val trackNumberName = testDBService.getUnusedTrackNumber().value
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -468,7 +468,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -549,7 +549,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -570,7 +570,7 @@ constructor(
         val layoutContext = mainOfficialContext
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
-        layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+        layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
             layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
         }
 
@@ -604,7 +604,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -661,7 +661,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -700,7 +700,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -738,7 +738,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -784,7 +784,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -837,7 +837,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -903,7 +903,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -939,7 +939,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -972,7 +972,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
@@ -1004,10 +1004,10 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao
-                .insert(trackNumber(TrackNumber(trackNumberName), state = LayoutState.DELETED))
-                .id
-                .let { trackNumberId -> layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!! }
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName), state = LayoutState.DELETED)).id.let {
+                trackNumberId ->
+                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+            }
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
@@ -1033,7 +1033,7 @@ constructor(
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 

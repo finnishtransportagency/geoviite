@@ -86,7 +86,7 @@ private val cacheHitComparator =
     compareBy<LocationTrackCacheHit>(
         { it.distance }, // Primary sort by distance
         { if (it.track.duplicateOf == null) 0 else 1 }, // Favor non-duplicates as tie-breaker
-        { it.track.version?.rowId?.intValue }, // Stable ordering by row ID
+        { it.track.version?.id?.intValue }, // Stable ordering by ID
     )
 
 data class ContextCache(

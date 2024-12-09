@@ -242,10 +242,9 @@ export const getLatestPublications = async (count: number, branchType: LayoutBra
         count,
     });
 
-    const page = await getNonNull<Page<PublicationDetails>>(
+    return await getNonNull<Page<PublicationDetails>>(
         `${PUBLICATION_URL}/latest/${branchType}${params}`,
     );
-    return page.items;
 };
 
 export const getPublication = (id: PublicationId) =>

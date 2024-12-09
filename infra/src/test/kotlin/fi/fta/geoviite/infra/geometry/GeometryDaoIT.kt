@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -210,7 +209,7 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
                 draft = true,
             )
         val trackVersion = locationTrackService.saveDraft(LayoutBranch.main, track.first, track.second)
-        locationTrackService.publish(LayoutBranch.main, ValidationVersion(trackVersion.id, trackVersion.rowVersion))
+        locationTrackService.publish(LayoutBranch.main, trackVersion)
         val trackChangeTime =
             locationTrackService.getLayoutAssetChangeInfo(MainLayoutContext.official, trackVersion.id)?.changed
 

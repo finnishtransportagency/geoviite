@@ -21,8 +21,8 @@ import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
@@ -231,7 +231,7 @@ constructor(
     fun saveKmPostLinking(
         branch: LayoutBranch,
         parameters: KmPostLinkingParameters,
-    ): LayoutDaoResponse<TrackLayoutKmPost> {
+    ): LayoutRowVersion<TrackLayoutKmPost> {
         verifyPlanNotHidden(parameters.geometryPlanId)
 
         val geometryKmPost = geometryService.getKmPost(parameters.geometryKmPostId)

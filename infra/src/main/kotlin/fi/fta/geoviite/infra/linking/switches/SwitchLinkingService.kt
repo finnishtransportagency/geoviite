@@ -40,7 +40,7 @@ import fi.fta.geoviite.infra.tracklayout.ContextCache
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
@@ -191,7 +191,7 @@ constructor(
         branch: LayoutBranch,
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<TrackLayoutSwitch>,
-    ): LayoutDaoResponse<TrackLayoutSwitch> {
+    ): LayoutRowVersion<TrackLayoutSwitch> {
         suggestedSwitch.geometrySwitchId?.let(::verifyPlanNotHidden)
         val originalTracks =
             suggestedSwitch.trackLinks.keys.associateWith { id ->
@@ -364,7 +364,7 @@ constructor(
         branch: LayoutBranch,
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<TrackLayoutSwitch>,
-    ): LayoutDaoResponse<TrackLayoutSwitch> {
+    ): LayoutRowVersion<TrackLayoutSwitch> {
         return createModifiedLayoutSwitchLinking(branch, suggestedSwitch, switchId).let { modifiedLayoutSwitch ->
             switchService.saveDraft(branch, modifiedLayoutSwitch)
         }

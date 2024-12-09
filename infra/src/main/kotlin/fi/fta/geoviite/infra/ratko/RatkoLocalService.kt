@@ -36,7 +36,7 @@ constructor(
 
     @Cacheable(CACHE_RATKO_HEALTH_STATUS, sync = true)
     fun getRatkoOnlineStatus(): RatkoStatus {
-        return ratkoClient?.getRatkoOnlineStatus() ?: RatkoStatus(false)
+        return ratkoClient?.getRatkoOnlineStatus() ?: RatkoStatus(RatkoConnectionStatus.NOT_CONFIGURED, null)
     }
 
     fun getRatkoPushError(publicationId: IntId<Publication>): RatkoPushErrorWithAsset? {

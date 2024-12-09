@@ -5,6 +5,7 @@ create view layout.location_track_change_view as
 (
 select
   location_track_version.id,
+  location_track_version.layout_context_id,
   location_track_version.change_time,
   location_track_version.name,
   location_track_version.track_number_id,

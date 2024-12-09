@@ -16,7 +16,7 @@ import {
     ToggleKmPostPayload,
     ToggleSwitchPayload,
 } from 'selection/selection-store';
-import { linkingReducers } from 'linking/linking-store';
+import { inferLayoutContextMode, linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import {
     draftDesignLayoutContext,
@@ -211,7 +211,7 @@ export type TrackLayoutState = {
 
 export const initialTrackLayoutState: TrackLayoutState = {
     layoutContext: officialMainLayoutContext(),
-    layoutContextMode: 'MAIN-OFFICIAL',
+    layoutContextMode: 'MAIN_OFFICIAL',
     designId: undefined,
     layoutMode: 'DEFAULT',
     map: initialMapState,
@@ -474,10 +474,13 @@ const trackLayoutSlice = createSlice({
             state: TrackLayoutState,
             { payload: publicationState }: PayloadAction<PublicationState>,
         ): void => {
-            state.layoutContext = {
+            const newLayoutContext = {
                 publicationState: publicationState,
                 branch: state.layoutContext.branch,
             };
+            state.layoutContext = newLayoutContext;
+            state.layoutContextMode = inferLayoutContextMode(newLayoutContext);
+
             if (publicationState === 'OFFICIAL') linkingReducers.stopLinking(state);
         },
         onLayoutContextModeChange: function (
@@ -496,6 +499,12 @@ const trackLayoutSlice = createSlice({
         ) {
             state.designId = designId;
             state.layoutContext = getLayoutContext(state.layoutContextMode, state.designId);
+            state.layoutContextMode =
+                designId !== undefined
+                    ? 'DESIGN'
+                    : state.layoutContext.publicationState === 'OFFICIAL'
+                      ? 'MAIN_OFFICIAL'
+                      : 'MAIN_DRAFT';
         },
         onLayoutModeChange: (
             state: TrackLayoutState,
@@ -549,7 +558,7 @@ function getLayoutContext(
 ): LayoutContext {
     if (layoutContextMode === 'DESIGN' && designId) {
         return draftDesignLayoutContext(designId);
-    } else if (layoutContextMode == 'MAIN-DRAFT') {
+    } else if (layoutContextMode == 'MAIN_DRAFT') {
         return draftMainLayoutContext();
     } else {
         return officialMainLayoutContext();

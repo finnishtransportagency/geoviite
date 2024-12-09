@@ -29,17 +29,17 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/push")
-    fun pushChangesToRatko(): HttpStatus {
+    fun pushChangesToRatko(): ResponseEntity<Unit> {
         ratkoService.retryLatestFailedPush()
 
-        return HttpStatus.NO_CONTENT
+        return ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/push-designs")
-    fun pushDesignChangesToRatko(): HttpStatus {
+    fun pushDesignChangesToRatko() {
         // TODO implement
-        return HttpStatus.NO_CONTENT
+        throw NotImplementedError("Not implemented")
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

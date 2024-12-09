@@ -47,7 +47,7 @@ class LayoutTrackNumberService(
 ) : LayoutAssetService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
-    fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutDaoResponse<TrackLayoutTrackNumber> {
+    fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutRowVersion<TrackLayoutTrackNumber> {
         val draftSaveResponse =
             saveDraftInternal(
                 branch,
@@ -56,7 +56,7 @@ class LayoutTrackNumberService(
                     description = saveRequest.description,
                     state = saveRequest.state,
                     externalId = null,
-                    contextData = LayoutContextData.newDraft(branch),
+                    contextData = LayoutContextData.newDraft(branch, dao.createId()),
                 ),
             )
         referenceLineService.addTrackNumberReferenceLine(branch, draftSaveResponse.id, saveRequest.startAddress)
@@ -68,7 +68,7 @@ class LayoutTrackNumberService(
         branch: LayoutBranch,
         id: IntId<TrackLayoutTrackNumber>,
         saveRequest: TrackNumberSaveRequest,
-    ): LayoutDaoResponse<TrackLayoutTrackNumber> {
+    ): LayoutRowVersion<TrackLayoutTrackNumber> {
         val original = dao.getOrThrow(branch.draft, id)
         val draftSaveResponse =
             saveDraftInternal(
@@ -88,7 +88,7 @@ class LayoutTrackNumberService(
         branch: LayoutBranch,
         id: IntId<TrackLayoutTrackNumber>,
         oid: Oid<TrackLayoutTrackNumber>,
-    ): LayoutDaoResponse<TrackLayoutTrackNumber> {
+    ): LayoutRowVersion<TrackLayoutTrackNumber> {
         val original = dao.getOrThrow(branch.draft, id)
         val trackLayoutTrackNumber = original.copy(externalId = oid)
 
@@ -108,7 +108,7 @@ class LayoutTrackNumberService(
     override fun cancel(
         branch: DesignBranch,
         id: IntId<TrackLayoutTrackNumber>,
-    ): LayoutDaoResponse<TrackLayoutTrackNumber>? =
+    ): LayoutRowVersion<TrackLayoutTrackNumber>? =
         dao.get(branch.official, id)?.let { trackNumber ->
             referenceLineService.getByTrackNumber(branch.official, trackNumber.id as IntId)?.let {
                 referenceLineService.cancel(branch, it.id as IntId)
@@ -291,7 +291,7 @@ private fun locationSourceTranslationKey(
         null
     } else
         if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
-                kmPost.gkLocation?.source?.let { source -> "enum.gk-location-source.$source" }
+                kmPost.gkLocation?.source?.let { source -> "enum.KmPostGkLocationSource.$source" }
             } else {
                 when (kmPost.gkLocationLinkedFromGeometry) {
                     true -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-geometry"

@@ -54,21 +54,22 @@ constructor(
     fun trackNumberWithoutKmPostsHasAContext() {
         val id = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion = alignmentDao.insert(alignment())
-        referenceLineDao.insert(referenceLine(id, alignmentVersion = alignmentVersion, draft = false))
+        referenceLineDao.save(referenceLine(id, alignmentVersion = alignmentVersion, draft = false))
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
     }
 
     @Test
     fun `Validation geocoding cache keys are calculated correctly`() {
-        val (tnId, tnOfficialVersion) = mainOfficialContext.createLayoutTrackNumber()
+        val tnOfficialVersion = mainOfficialContext.createLayoutTrackNumber()
+        val tnId = tnOfficialVersion.id
         val tnDraft = testDBService.createDraft(tnOfficialVersion)
 
         val rlOfficial = mainOfficialContext.insert(referenceLineAndAlignment(tnId))
-        val rlDraft = testDBService.createDraft(rlOfficial.rowVersion)
+        val rlDraft = testDBService.createDraft(rlOfficial)
 
         val kmPost1Official = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
-        val kmPost1Draft = testDBService.createDraft(kmPost1Official.rowVersion)
+        val kmPost1Draft = testDBService.createDraft(kmPost1Official)
         val kmPost2OnlyDraft = mainDraftContext.insert(kmPost(tnId, KmNumber(2)))
         val kmPost3OnlyOfficial = mainOfficialContext.insert(kmPost(tnId, KmNumber(3)))
 
@@ -80,8 +81,8 @@ constructor(
             LayoutGeocodingContextCacheKey(
                 trackNumberId = tnId,
                 trackNumberVersion = tnOfficialVersion,
-                referenceLineVersion = rlOfficial.rowVersion,
-                kmPostVersions = listOf(kmPost1Official.rowVersion, kmPost3OnlyOfficial.rowVersion),
+                referenceLineVersion = rlOfficial,
+                kmPostVersions = listOf(kmPost1Official, kmPost3OnlyOfficial),
             ),
             officialKey,
         )
@@ -90,10 +91,9 @@ constructor(
         assertEquals(
             LayoutGeocodingContextCacheKey(
                 trackNumberId = tnId,
-                trackNumberVersion = tnDraft.rowVersion,
-                referenceLineVersion = rlDraft.rowVersion,
-                kmPostVersions =
-                    listOf(kmPost1Draft.rowVersion, kmPost2OnlyDraft.rowVersion, kmPost3OnlyOfficial.rowVersion),
+                trackNumberVersion = tnDraft,
+                referenceLineVersion = rlDraft,
+                kmPostVersions = listOf(kmPost1Draft, kmPost2OnlyDraft, kmPost3OnlyOfficial),
             ),
             draftKey,
         )
@@ -116,25 +116,22 @@ constructor(
 
         // Publishing partial combines official with requested draft parts
         assertEquals(
-            officialKey.copy(trackNumberVersion = tnDraft.rowVersion),
+            officialKey.copy(trackNumberVersion = tnDraft),
             geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(trackNumbers = listOf(tnDraft))),
         )
         assertEquals(
-            officialKey.copy(referenceLineVersion = rlDraft.rowVersion),
+            officialKey.copy(referenceLineVersion = rlDraft),
             geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(referenceLines = listOf(rlDraft))),
         )
         assertEquals(
-            officialKey.copy(
-                kmPostVersions =
-                    listOf(kmPost1Draft.rowVersion, kmPost2OnlyDraft.rowVersion, kmPost3OnlyOfficial.rowVersion)
-            ),
+            officialKey.copy(kmPostVersions = listOf(kmPost1Draft, kmPost2OnlyDraft, kmPost3OnlyOfficial)),
             geocodingDao.getLayoutGeocodingContextCacheKey(
                 tnId,
                 validationVersions(kmPosts = listOf(kmPost1Draft, kmPost2OnlyDraft)),
             ),
         )
         assertEquals(
-            officialKey.copy(kmPostVersions = listOf(kmPost1Draft.rowVersion, kmPost3OnlyOfficial.rowVersion)),
+            officialKey.copy(kmPostVersions = listOf(kmPost1Draft, kmPost3OnlyOfficial)),
             geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(kmPosts = listOf(kmPost1Draft))),
         )
     }
@@ -148,10 +145,11 @@ constructor(
         // --- Version 1
 
         // First off, the main official versions for starting context
-        val (tnId, tnMainV1) = mainOfficialContext.createLayoutTrackNumber()
-        val (_, rlMainV1) = mainOfficialContext.insert(referenceLineAndAlignment(tnId))
-        val (_, kmp1MainV1) = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
-        val (_, kmp2MainV1) = mainOfficialContext.insert(kmPost(tnId, KmNumber(2)))
+        val tnMainV1 = mainOfficialContext.createLayoutTrackNumber()
+        val tnId = tnMainV1.id
+        val rlMainV1 = mainOfficialContext.insert(referenceLineAndAlignment(tnId))
+        val kmp1MainV1 = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
+        val kmp2MainV1 = mainOfficialContext.insert(kmPost(tnId, KmNumber(2)))
 
         // Add some draft changes as well. These shouldn't affect the results
         testDBService.createDraft(tnMainV1)
@@ -160,10 +158,10 @@ constructor(
         mainDraftContext.insert(kmPost(tnId, KmNumber(10)))
 
         // Add some design changes
-        val tnDesignV1 = officialDesignContext.copyFrom(tnMainV1, officialRowId = tnMainV1.rowId).rowVersion
-        val rlDesignV1 = officialDesignContext.copyFrom(rlMainV1, officialRowId = rlMainV1.rowId).rowVersion
-        val kmp1DesignV1 = officialDesignContext.copyFrom(kmp1MainV1, officialRowId = kmp1MainV1.rowId).rowVersion
-        val kmp3DesignV1 = officialDesignContext.insert(kmPost(tnId, KmNumber(3))).rowVersion
+        val tnDesignV1 = officialDesignContext.copyFrom(tnMainV1)
+        val rlDesignV1 = officialDesignContext.copyFrom(rlMainV1)
+        val kmp1DesignV1 = officialDesignContext.copyFrom(kmp1MainV1)
+        val kmp3DesignV1 = officialDesignContext.insert(kmPost(tnId, KmNumber(3)))
 
         // Design-draft changes should not affect results either
         testDBService.createDraft(tnDesignV1)
@@ -189,19 +187,19 @@ constructor(
         // --- Version 2
 
         // Update the official stuff
-        val tnMainV2 = testDBService.update(tnMainV1).rowVersion
-        val rlMainV2 = testDBService.update(rlMainV1).rowVersion
-        val kmp1MainV2 = testDBService.update(kmp1MainV1).rowVersion
-        val kmp4MainV2 = mainOfficialContext.insert(kmPost(tnId, KmNumber(4))).rowVersion
+        val tnMainV2 = testDBService.update(tnMainV1)
+        val rlMainV2 = testDBService.update(rlMainV1)
+        val kmp1MainV2 = testDBService.update(kmp1MainV1)
+        val kmp4MainV2 = mainOfficialContext.insert(kmPost(tnId, KmNumber(4)))
         // Add a deleted post - should not appear in results
         mainOfficialContext.insert(kmPost(tnId, KmNumber(5), state = LayoutState.DELETED))
 
         // Update the design stuff
-        val tnDesignV2 = testDBService.update(tnDesignV1).rowVersion
-        val rlDesignV2 = testDBService.update(rlDesignV1).rowVersion
+        val tnDesignV2 = testDBService.update(tnDesignV1)
+        val rlDesignV2 = testDBService.update(rlDesignV1)
         // Also delete one kmpost in the design -> it should be removed from the key
         testDBService.update(kmp1DesignV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }
-        val kmp3DesignV2 = testDBService.update(kmp3DesignV1).rowVersion
+        val kmp3DesignV2 = testDBService.update(kmp3DesignV1)
 
         val version2Time = testDBService.layoutChangeTime()
         Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
@@ -225,9 +223,9 @@ constructor(
         // --- Version 3
 
         // Transition one design-only km-post to main
-        val kmp3MainV3 = mainOfficialContext.moveFrom(kmp3DesignV2).rowVersion
+        val kmp3MainV3 = mainOfficialContext.moveFrom(kmp3DesignV2)
         // Mark kmp2 deleted
-        testDBService.update(kmp2MainV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }.rowVersion
+        testDBService.update(kmp2MainV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }
         // Delete some design-rows (should result in using main ones)
         referenceLineDao.deleteRow(rlDesignV2.rowId)
         kmPostDao.deleteRow(kmp1DesignV1.rowId)

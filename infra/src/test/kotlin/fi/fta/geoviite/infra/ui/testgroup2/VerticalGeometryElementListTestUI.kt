@@ -200,7 +200,7 @@ constructor(
                         .copy(sourceId = geoAlignmentA.elements[1].id as IndexedId),
                 )
             )
-        locationTrackDao.insert(
+        locationTrackDao.save(
             locationTrack(
                 trackNumberId = trackNumberId,
                 name = "foo test track",

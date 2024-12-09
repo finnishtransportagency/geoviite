@@ -28,7 +28,7 @@ const MeasurementMethod: React.FC<MeasurementMethodProps> = ({
     const { t } = useTranslation();
 
     return (
-        <React.Fragment>{t(`enum.measurement-method.${getTranslationKey(method)}`)}</React.Fragment>
+        <React.Fragment>{t(`enum.MeasurementMethod.${getTranslationKey(method)}`)}</React.Fragment>
     );
 };
 

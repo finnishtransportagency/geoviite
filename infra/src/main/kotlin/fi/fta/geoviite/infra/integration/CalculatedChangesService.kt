@@ -153,18 +153,18 @@ class CalculatedChangesService(
         val changeContext = createChangeContext(versions)
 
         val (trackNumberChanges, changedLocationTrackIdsByTrackNumbers) =
-            calculateTrackNumberChanges(versions.trackNumbers.map { it.officialId }, changeContext)
+            calculateTrackNumberChanges(versions.trackNumbers.map { it.id }, changeContext)
 
         val kPRLTrackNumberIds =
-            (versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v.validatedAssetVersion).trackNumberId } +
-                    versions.referenceLines.map { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId })
+            (versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v).trackNumberId } +
+                    versions.referenceLines.map { v -> referenceLineDao.fetch(v).trackNumberId })
                 .distinct()
 
         val (kPRLTrackNumberChanges, changedLocationTrackIdsByKPRL) =
             calculateTrackNumberChanges(kPRLTrackNumberIds, changeContext)
 
         val directLocationTrackChanges =
-            calculateLocationTrackChanges(versions.locationTracks.map { v -> v.officialId }, changeContext)
+            calculateLocationTrackChanges(versions.locationTracks.map { v -> v.id }, changeContext)
 
         val locationTrackChangesByTrackNumbers =
             calculateLocationTrackChanges(
@@ -172,7 +172,7 @@ class CalculatedChangesService(
                 changeContext,
             )
 
-        val directSwitchChanges = asDirectSwitchChanges(versions.switches.map { v -> v.officialId })
+        val directSwitchChanges = asDirectSwitchChanges(versions.switches.map { v -> v.id })
 
         val (switchChangesByLocationTracks, locationTrackChangesBySwitches) =
             getSwitchChangesByGeometryChanges(
@@ -199,8 +199,8 @@ class CalculatedChangesService(
         return CalculatedChanges(
             directChanges =
                 DirectChanges(
-                    kmPostChanges = versions.kmPosts.map { it.officialId },
-                    referenceLineChanges = versions.referenceLines.map { it.officialId },
+                    kmPostChanges = versions.kmPosts.map { it.id },
+                    referenceLineChanges = versions.referenceLines.map { it.id },
                     trackNumberChanges = mergeTrackNumberChanges(trackNumberChanges, indirectDirectTrackNumberChanges),
                     locationTrackChanges =
                         mergeLocationTrackChanges(directLocationTrackChanges, indirectDirectLocationTrackChanges),

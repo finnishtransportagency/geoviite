@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.main
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -36,7 +35,8 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
                 .copy(startAddress = TrackMeter(KmNumber(10), 125.5, 3), alignmentVersion = alignmentVersion)
 
         assertEquals(DataType.TEMP, referenceLine.dataType)
-        val (id, version) = referenceLineDao.insert(referenceLine)
+        val version = referenceLineDao.save(referenceLine)
+        val id = version.id
         assertEquals(version, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(version, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
         val fromDb = referenceLineDao.fetch(version)
@@ -44,7 +44,8 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
         assertMatches(referenceLine, fromDb, contextMatch = false)
 
         val updatedLine = fromDb.copy(startAddress = TrackMeter(KmNumber(12), 321))
-        val (updatedId, updatedVersion) = referenceLineDao.update(updatedLine)
+        val updatedVersion = referenceLineDao.save(updatedLine)
+        val updatedId = updatedVersion.id
         assertEquals(id, updatedId)
         assertEquals(updatedVersion.rowId, version.rowId)
         assertEquals(updatedVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
@@ -67,14 +68,15 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
                 alignmentVersion = alignmentVersion,
                 draft = false,
             )
-        val (id, insertVersion) = referenceLineDao.insert(tempTrack)
+        val insertVersion = referenceLineDao.save(tempTrack)
+        val id = insertVersion.id
         val inserted = referenceLineDao.fetch(insertVersion)
         assertMatches(tempTrack, inserted, contextMatch = false)
         assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
         val tempDraft1 = asMainDraft(inserted).copy(startAddress = TrackMeter(2, 4))
-        val draftVersion1 = referenceLineDao.insert(tempDraft1).rowVersion
+        val draftVersion1 = referenceLineDao.save(tempDraft1)
         val draft1 = referenceLineDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
         assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
@@ -83,7 +85,7 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
         val newTempAlignment = alignment(segment(Point(2.0, 2.0), Point(4.0, 4.0)))
         val newAlignmentVersion = alignmentDao.insert(newTempAlignment)
         val tempDraft2 = draft1.copy(alignmentVersion = newAlignmentVersion, length = newTempAlignment.length)
-        val draftVersion2 = referenceLineDao.update(tempDraft2).rowVersion
+        val draftVersion2 = referenceLineDao.save(tempDraft2)
         val draft2 = referenceLineDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
         assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
@@ -107,41 +109,33 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
         val design = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(design, PublicationState.OFFICIAL)
         val existingMainAndNearby =
-            mainOfficialContext
-                .insert(
-                    referenceLineAndAlignment(
-                        mainOfficialContext.createLayoutTrackNumber().id,
-                        segment(Point(0.0, 0.0), Point(1.0, 0.0)),
-                    )
+            mainOfficialContext.insert(
+                referenceLineAndAlignment(
+                    mainOfficialContext.createLayoutTrackNumber().id,
+                    segment(Point(0.0, 0.0), Point(1.0, 0.0)),
                 )
-                .rowVersion
+            )
         val existingMainButDistant =
-            mainOfficialContext
-                .insert(
-                    referenceLineAndAlignment(
-                        mainOfficialContext.createLayoutTrackNumber().id,
-                        segment(Point(0.0, 100.0), Point(1.0, 100.0)),
-                    )
+            mainOfficialContext.insert(
+                referenceLineAndAlignment(
+                    mainOfficialContext.createLayoutTrackNumber().id,
+                    segment(Point(0.0, 100.0), Point(1.0, 100.0)),
                 )
-                .rowVersion
+            )
         val nearbyAndMainButDeleted =
-            mainOfficialContext
-                .insert(
-                    referenceLineAndAlignment(
-                        mainOfficialContext.insert(trackNumber(TrackNumber("123"), state = LayoutState.DELETED)).id,
-                        segment(Point(0.0, 0.0), Point(1.0, 0.0)),
-                    )
+            mainOfficialContext.insert(
+                referenceLineAndAlignment(
+                    mainOfficialContext.insert(trackNumber(TrackNumber("123"), state = LayoutState.DELETED)).id,
+                    segment(Point(0.0, 0.0), Point(1.0, 0.0)),
                 )
-                .rowVersion
+            )
         val existingAndNearbyInDesign =
-            mainOfficialContext
-                .insert(
-                    referenceLineAndAlignment(
-                        designOfficialContext.createLayoutTrackNumber().id,
-                        segment(Point(0.0, 0.0), Point(1.0, 0.0)),
-                    )
+            mainOfficialContext.insert(
+                referenceLineAndAlignment(
+                    designOfficialContext.createLayoutTrackNumber().id,
+                    segment(Point(0.0, 0.0), Point(1.0, 0.0)),
                 )
-                .rowVersion
+            )
 
         assertEquals(
             listOf(existingMainAndNearby),

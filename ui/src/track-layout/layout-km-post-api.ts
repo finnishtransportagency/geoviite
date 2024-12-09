@@ -7,6 +7,7 @@ import {
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
 import {
+    DesignBranch,
     draftLayoutContext,
     KmNumber,
     LayoutAssetChangeInfo,
@@ -21,7 +22,7 @@ import {
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri, layoutUriByBranch } from 'track-layout/track-layout-api';
 import { getChangeTimes, updateKmPostChangeTime } from 'common/change-time-api';
 import { BoundingBox, Point } from 'model/geometry';
 import { bboxString, pointString } from 'common/common-api';
@@ -218,3 +219,7 @@ export const getKmPostChangeInfo = (id: LayoutKmPostId, layoutContext: LayoutCon
 
 export const getEntireRailNetworkKmLengthsCsvUrl = (layoutContext: LayoutContext) =>
     `${layoutUri('track-numbers', layoutContext)}/rail-network/km-lengths/file`;
+
+export async function cancelKmPost(design: DesignBranch, id: LayoutKmPostId): Promise<void> {
+    return postNonNull(`${layoutUriByBranch('km-posts', design)}/${id}/cancel`, '');
+}

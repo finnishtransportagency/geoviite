@@ -12,14 +12,22 @@ export const pushToRatko = (branchType: LayoutBranchType) =>
 export const getRatkoPushError = (publicationId: PublicationId) =>
     getNonNull<RatkoPushError>(`${RATKO_URI}/errors/${publicationId}`);
 
-export type RatkoStatus = { isOnline: true } | { isOnline: false; statusCode: number };
+export type RatkoConnectionStatus = 'ONLINE' | 'ONLINE_ERROR' | 'OFFLINE' | 'NOT_CONFIGURED';
+
+export type RatkoStatus = {
+    connectionStatus: RatkoConnectionStatus;
+    ratkoStatusCode: number | undefined;
+};
 
 export const getRatkoStatus: () => Promise<RatkoStatus> = () =>
     getNonNullAdt<RatkoStatus>(`${RATKO_URI}/is-online`).then((result) => {
         if (result.isOk()) {
-            return { isOnline: true };
+            return result.value;
         } else {
-            return { statusCode: result?.error?.status ?? 400, isOnline: false };
+            return {
+                ratkoStatusCode: undefined,
+                connectionStatus: 'OFFLINE',
+            };
         }
     });
 

@@ -1,5 +1,6 @@
 import { BoundingBox, Point } from 'model/geometry';
 import {
+    DesignBranch,
     draftLayoutContext,
     LayoutAssetChangeInfo,
     LayoutContext,
@@ -18,7 +19,7 @@ import {
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri, layoutUriByBranch } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
@@ -197,3 +198,7 @@ export const getSwitchChangeTimes = (
 ): Promise<LayoutAssetChangeInfo | undefined> => {
     return getNonNull<LayoutAssetChangeInfo>(changeInfoUri('switches', id, layoutContext));
 };
+
+export async function cancelSwitch(design: DesignBranch, id: LayoutSwitchId): Promise<void> {
+    return postNonNull(`${layoutUriByBranch('switches', design)}/${id}/cancel`, '');
+}

@@ -181,6 +181,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
             return Promise.resolve(undefined);
         }
     }
+
     function save() {
         if (canSaveKmPost(state) && state.kmPost) {
             stateActions.onStartSaving();
@@ -228,12 +229,12 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     const trackNumberOptions = (trackNumbers ?? [])
         .filter((tn) => tn.id === state.existingKmPost?.trackNumberId || tn.state !== 'DELETED')
         .map((tn) => {
-            const note = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+            const note = tn.state === 'DELETED' ? ` (${t('enum.LayoutState.DELETED')})` : '';
             return { name: tn.number + note, value: tn.id, qaId: `track-number-${tn.id}` };
         });
 
     const moveToEditLinkText = (kmp: LayoutKmPost) => {
-        const state = kmp.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+        const state = kmp.state === 'DELETED' ? ` (${t('enum.LayoutState.DELETED')})` : '';
         return t('km-post-dialog.move-to-edit', {
             number: kmp.kmNumber + state,
         });
@@ -366,7 +367,6 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             state={state}
                             stateActions={stateActions}
                             updateProp={updateProp}
-                            geometryKmPostGkLocation={props.geometryKmPostGkLocation}
                             editType={props.editType}
                             geometryPlanSrid={props.geometryPlanSrid}
                         />

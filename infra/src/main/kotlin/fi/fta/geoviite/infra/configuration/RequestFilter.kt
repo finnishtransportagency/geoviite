@@ -6,6 +6,8 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.TokenExpiredException
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import correlationId
 import currentUser
 import currentUserRole
@@ -61,6 +63,8 @@ const val ALGORITHM_RS256 = "RS256"
 const val ALGORITHM_ES256 = "ES256"
 
 val slowRequestThreshold: Duration = Duration.ofSeconds(5)
+
+val objectMapper = jacksonObjectMapper()
 
 @ConditionalOnWebApplication
 @Component
@@ -384,7 +388,7 @@ private fun jwtDataContent(dataToken: DecodedJWT) =
                 lastName = dataToken.getOptionalClaim(JwtClaim.LAST_NAME)?.let(AuthName::of),
                 organization = dataToken.getOptionalClaim(JwtClaim.ORGANIZATION)?.let(AuthName::of),
             ),
-        groupNames = dataToken.getMandatoryClaim(JwtClaim.ROLES).split(",").filter(::isValidCode).map(::AuthCode),
+        groupNames = dataToken.getMandatoryClaim(JwtClaim.ROLES).let(::parseAuthCodes),
     )
 
 private fun extractJwtToken(request: HttpServletRequest, header: String): DecodedJWT {
@@ -420,3 +424,16 @@ fun DecodedJWT.getOptionalClaim(claim: JwtClaim): String? = claims[claim.header]
 fun DecodedJWT.getMandatoryClaim(claim: JwtClaim): String =
     getOptionalClaim(claim)
         ?: throw ApiUnauthorizedException("JWT token does not contain required claim ${claim.header}")
+
+private fun parseAuthCodes(authCodeListing: String): List<AuthCode> {
+    val authCodeStrings =
+        if (authCodeListing.startsWith("[") && authCodeListing.endsWith("]")) {
+            // Auth code listing seems to be EntraID-style.
+            objectMapper.readValue(authCodeListing)
+        } else {
+            // Default to OAM-style auth code listing.
+            authCodeListing.split(",")
+        }
+
+    return authCodeStrings.filter(::isValidCode).map(::AuthCode)
+}

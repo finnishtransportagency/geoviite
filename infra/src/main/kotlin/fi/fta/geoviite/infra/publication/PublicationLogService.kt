@@ -23,7 +23,6 @@ import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
-import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -34,6 +33,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.TrackNumberAndChangeTime
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
@@ -133,9 +133,10 @@ constructor(
     }
 
     @Transactional(readOnly = true)
-    fun fetchLatestPublicationDetails(branchType: LayoutBranchType, count: Int): List<PublicationDetails> {
-        return publicationDao.fetchLatestPublications(branchType, count).map { getPublicationDetails(it.id) }
-    }
+    fun fetchLatestPublicationDetails(branchType: LayoutBranchType, count: Int): Page<PublicationDetails> =
+        publicationDao.list(branchType).let {
+            Page(it.size, it.take(count), 0).map { item -> getPublicationDetails(item.id) }
+        }
 
     @Transactional(readOnly = true)
     fun fetchPublicationDetails(
@@ -305,7 +306,7 @@ constructor(
 
         return listOfNotNull(
             compareChangeValues(trackNumberChanges.trackNumber, { it }, PropKey("track-number")),
-            compareChangeValues(trackNumberChanges.state, { it }, PropKey("state"), null, "layout-state"),
+            compareChangeValues(trackNumberChanges.state, { it }, PropKey("state"), null, "LayoutState"),
             compareChangeValues(trackNumberChanges.description, { it }, PropKey("description")),
             compareChangeValues(
                 trackNumberChanges.startAddress,
@@ -378,20 +379,20 @@ constructor(
                 PropKey("track-number"),
             ),
             compareChangeValues(locationTrackChanges.name, { it }, PropKey("location-track")),
-            compareChangeValues(locationTrackChanges.state, { it }, PropKey("state"), null, "location-track-state"),
+            compareChangeValues(locationTrackChanges.state, { it }, PropKey("state"), null, "LocationTrackState"),
             compareChangeValues(
                 locationTrackChanges.type,
                 { it },
                 PropKey("location-track-type"),
                 null,
-                "location-track-type",
+                "LocationTrackType",
             ),
             compareChangeValues(locationTrackChanges.descriptionBase, { it }, PropKey("description-base")),
             compareChangeValues(
                 locationTrackChanges.descriptionSuffix,
                 { it },
                 PropKey("description-suffix"),
-                enumLocalizationKey = "location-track-description-suffix",
+                enumLocalizationKey = "LocationTrackDescriptionSuffix",
             ),
             compareChangeValues(
                 locationTrackChanges.owner,
@@ -555,7 +556,7 @@ constructor(
                 PropKey("track-number"),
             ),
             compareChangeValues(changes.kmNumber, { it }, PropKey("km-post")),
-            compareChangeValues(changes.state, { it }, PropKey("state"), null, "layout-state"),
+            compareChangeValues(changes.state, { it }, PropKey("state"), null, "LayoutState"),
             compareChangeValues(
                 changes.location,
                 ::formatLocation,
@@ -584,7 +585,7 @@ constructor(
                 changes.gkLocationSource,
                 { it },
                 PropKey("gk-location-source"),
-                enumLocalizationKey = "gk-location-source",
+                enumLocalizationKey = "KmPostGkLocationSource",
             ),
             compareChangeValues(changes.gkLocationConfirmed, { it }, PropKey("gk-location-confirmed")),
         )
@@ -679,9 +680,9 @@ constructor(
 
         return listOfNotNull(
             compareChangeValues(changes.name, { it }, PropKey("switch")),
-            compareChangeValues(changes.state, { it }, PropKey("state-category"), null, "layout-state-category"),
+            compareChangeValues(changes.state, { it }, PropKey("state-category"), null, "LayoutStateCategory"),
             compareChangeValues(changes.type, { it.typeName }, PropKey("switch-type")),
-            compareChangeValues(changes.trapPoint, { it }, PropKey("trap-point"), enumLocalizationKey = "trap-point"),
+            compareChangeValues(changes.trapPoint, { it }, PropKey("trap-point"), enumLocalizationKey = "TrapPoint"),
             compareChangeValues(changes.owner, { it }, PropKey("owner")),
             compareChange(
                 { oldLinkedTrackNames != newLinkedTrackNames },
@@ -695,7 +696,7 @@ constructor(
                 { it.name },
                 PropKey("measurement-method"),
                 null,
-                "measurement-method",
+                "MeasurementMethod",
             ),
         ) + jointLocationChanges
     }
@@ -968,14 +969,7 @@ constructor(
                 "split-details-csv.source-oid" to { (lt, _) -> lt.externalId },
                 "split-details-csv.target-name" to { (_, split) -> split.name },
                 "split-details-csv.target-oid" to { (_, split) -> split.oid },
-                "split-details-csv.operation" to
-                    { (_, split) ->
-                        when (split.operation) {
-                            SplitTargetOperation.CREATE -> translation.t("split-details-csv.newly-created")
-                            SplitTargetOperation.OVERWRITE -> translation.t("split-details-csv.replaces-duplicate")
-                            SplitTargetOperation.TRANSFER -> translation.t("split-details-csv.transfers-assets")
-                        }
-                    },
+                "split-details-csv.operation" to { (_, split) -> translation.enum(split.operation) },
                 "split-details-csv.start-address" to { (_, split) -> split.startAddress },
                 "split-details-csv.end-address" to { (_, split) -> split.endAddress },
             )

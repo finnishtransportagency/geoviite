@@ -210,7 +210,7 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/{$LAYOUT_BRANCH}/{id}/cancel")
+    @PostMapping("/location-tracks/{$LAYOUT_BRANCH}/{id}/cancel")
     fun cancelLocationTrack(
         @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
         @PathVariable("id") id: IntId<LocationTrack>,

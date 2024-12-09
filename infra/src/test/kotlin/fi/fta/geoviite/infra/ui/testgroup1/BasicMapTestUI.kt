@@ -65,8 +65,8 @@ constructor(
         // it's clear what is expected
         TRACK_NUMBER_WEST = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
         val trackNumberEast = trackNumber(HKI_TRACK_NUMBER_2, draft = false)
-        val trackNumberWestId = trackNumberDao.insert(TRACK_NUMBER_WEST)
-        val trackNumberEastId = trackNumberDao.insert(trackNumberEast)
+        val trackNumberWestId = trackNumberDao.save(TRACK_NUMBER_WEST)
+        val trackNumberEastId = trackNumberDao.save(trackNumberEast)
 
         WEST_LT = westMainLocationTrack(trackNumberWestId.id)
 
@@ -79,12 +79,12 @@ constructor(
         insertReferenceLine(WEST_REFERENCE_LINE)
         insertReferenceLine(eastReferenceLine)
 
-        westTrackLayoutKmPosts(trackNumberWestId.id).forEach(kmPostDao::insert)
-        eastTrackLayoutKmPosts(trackNumberEastId.id).forEach(kmPostDao::insert)
+        westTrackLayoutKmPosts(trackNumberWestId.id).forEach(kmPostDao::save)
+        eastTrackLayoutKmPosts(trackNumberEastId.id).forEach(kmPostDao::save)
 
         EAST_LAYOUT_SWITCH = eastTrackLayoutSwitch()
-        switchDao.insert(westTrackLayoutSwitch())
-        switchDao.insert(EAST_LAYOUT_SWITCH)
+        switchDao.save(westTrackLayoutSwitch())
+        switchDao.save(EAST_LAYOUT_SWITCH)
 
         GEOMETRY_PLAN =
             geometryDao.fetchPlan((geometryDao.insertPlan(geometryPlan(TRACK_NUMBER_WEST.number), testFile(), null)))
@@ -188,6 +188,6 @@ constructor(
 
     fun insertReferenceLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) {
         val alignmentVersion = alignmentDao.insert(lineAndAlignment.second)
-        referenceLineDao.insert(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
+        referenceLineDao.save(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
     }
 }

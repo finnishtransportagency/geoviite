@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -15,7 +16,6 @@ import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -96,9 +96,7 @@ constructor(
     @Test
     fun `should return correct lengths for km posts`() {
         val trackNumber =
-            trackNumberDao.fetch(
-                trackNumberDao.insert(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)).rowVersion
-            )
+            trackNumberDao.fetch(trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)))
         referenceLineAndAlignment(
                 trackNumberId = trackNumber.id as IntId,
                 segments =
@@ -110,8 +108,8 @@ constructor(
             )
             .let { (referenceLine, alignment) ->
                 val referenceLineVersion =
-                    referenceLineDao.insert(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
-                referenceLineDao.fetch(referenceLineVersion.rowVersion)
+                    referenceLineDao.save(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
+                referenceLineDao.fetch(referenceLineVersion)
             }
 
         val kmPostVersions =
@@ -129,8 +127,7 @@ constructor(
                         draft = false,
                     ),
                 )
-                .map(kmPostDao::insert)
-                .map(LayoutDaoResponse<TrackLayoutKmPost>::rowVersion)
+                .map(kmPostDao::save)
 
         val kmLengths = trackNumberService.getKmLengths(MainLayoutContext.official, trackNumber.id as IntId)
         assertNotNull(kmLengths)
@@ -194,9 +191,7 @@ constructor(
     @Test
     fun `should ignore km posts without location when calculating lengths between km posts`() {
         val trackNumber =
-            trackNumberDao.fetch(
-                trackNumberDao.insert(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)).rowVersion
-            )
+            trackNumberDao.fetch(trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)))
 
         referenceLineAndAlignment(
                 trackNumberId = trackNumber.id as IntId,
@@ -209,9 +204,9 @@ constructor(
             )
             .let { (referenceLine, alignment) ->
                 val referenceLineVersion =
-                    referenceLineDao.insert(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
+                    referenceLineDao.save(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
 
-                referenceLineDao.fetch(referenceLineVersion.rowVersion)
+                referenceLineDao.fetch(referenceLineVersion)
             }
 
         val kmPostVersions =
@@ -229,8 +224,7 @@ constructor(
                         draft = false,
                     ),
                 )
-                .map(kmPostDao::insert)
-                .map(LayoutDaoResponse<TrackLayoutKmPost>::rowVersion)
+                .map(kmPostDao::save)
 
         val kmLengths = trackNumberService.getKmLengths(MainLayoutContext.official, trackNumber.id as IntId)
         assertNotNull(kmLengths)
@@ -279,37 +273,26 @@ constructor(
         val designDraft1 =
             trackNumberService.insert(designBranch, trackNumberSaveRequest(trackNumber, "$trackNumber v1"))
         val tnId = designDraft1.id
-        assertVersionReferences(designBranch, tnId, designDraft = designDraft1.rowVersion)
+        assertVersionReferences(designBranch, tnId, designDraft = designDraft1)
 
-        val designOfficial = trackNumberService.publish(designBranch, ValidationVersion(tnId, designDraft1.rowVersion))
-        assertVersionReferences(designBranch, tnId, designOfficial = designOfficial.rowVersion)
+        val designOfficial = trackNumberService.publish(designBranch, designDraft1)
+        assertVersionReferences(designBranch, tnId, designOfficial = designOfficial)
 
         val mainDraft = trackNumberService.mergeToMainBranch(designBranch, tnId)
-        assertVersionReferences(
-            designBranch,
-            tnId,
-            mainDraft = mainDraft.rowVersion,
-            designOfficial = designOfficial.rowVersion,
-        )
+        assertVersionReferences(designBranch, tnId, mainDraft = mainDraft, designOfficial = designOfficial)
 
         val designDraft2 =
             trackNumberService.update(designBranch, tnId, trackNumberSaveRequest(trackNumber, "$trackNumber v2"))
         assertVersionReferences(
             designBranch,
             tnId,
-            mainDraft = mainDraft.rowVersion,
-            designOfficial = designOfficial.rowVersion,
-            designDraft = designDraft2.rowVersion,
+            mainDraft = mainDraft,
+            designOfficial = designOfficial,
+            designDraft = designDraft2,
         )
 
-        val mainOfficial = trackNumberService.publish(LayoutBranch.main, ValidationVersion(tnId, mainDraft.rowVersion))
-        assertVersionReferences(
-            designBranch,
-            tnId,
-            mainOfficial = mainOfficial.rowVersion,
-            // draft version is updated by the publication, fixing references
-            designDraft = designDraft2.rowVersion.next(),
-        )
+        val mainOfficial = trackNumberService.publish(LayoutBranch.main, mainDraft)
+        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial, designDraft = designDraft2)
     }
 
     @Test
@@ -320,39 +303,28 @@ constructor(
         val mainDraft1 =
             trackNumberService.insert(LayoutBranch.main, trackNumberSaveRequest(trackNumber, "$trackNumber v1"))
         val tnId = mainDraft1.id
-        assertVersionReferences(designBranch, tnId, mainDraft = mainDraft1.rowVersion)
+        assertVersionReferences(designBranch, tnId, mainDraft = mainDraft1)
 
-        val mainOfficial1 =
-            trackNumberService.publish(LayoutBranch.main, ValidationVersion(tnId, mainDraft1.rowVersion))
+        val mainOfficial1 = trackNumberService.publish(LayoutBranch.main, mainDraft1)
         referenceLineService.getByTrackNumber(MainLayoutContext.draft, tnId).let { rl ->
-            referenceLineService.publish(LayoutBranch.main, ValidationVersion(rl!!.id as IntId, rl.version!!))
+            referenceLineService.publish(LayoutBranch.main, rl!!.version!!)
         }
-        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial1.rowVersion)
+        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial1)
 
         val designDraft1 =
             trackNumberService.update(designBranch, tnId, trackNumberSaveRequest(trackNumber, "$trackNumber v2"))
-        assertVersionReferences(
-            designBranch,
-            tnId,
-            mainOfficial = mainOfficial1.rowVersion,
-            designDraft = designDraft1.rowVersion,
-        )
+        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial1, designDraft = designDraft1)
 
-        val designOfficial = trackNumberService.publish(designBranch, ValidationVersion(tnId, designDraft1.rowVersion))
-        assertVersionReferences(
-            designBranch,
-            tnId,
-            mainOfficial = mainOfficial1.rowVersion,
-            designOfficial = designOfficial.rowVersion,
-        )
+        val designOfficial = trackNumberService.publish(designBranch, designDraft1)
+        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial1, designOfficial = designOfficial)
 
         val mainDraft2 = trackNumberService.mergeToMainBranch(designBranch, tnId)
         assertVersionReferences(
             designBranch,
             tnId,
-            mainOfficial = mainOfficial1.rowVersion,
-            mainDraft = mainDraft2.rowVersion,
-            designOfficial = designOfficial.rowVersion,
+            mainOfficial = mainOfficial1,
+            mainDraft = mainDraft2,
+            designOfficial = designOfficial,
         )
 
         val designDraft2 =
@@ -360,21 +332,14 @@ constructor(
         assertVersionReferences(
             designBranch,
             tnId,
-            mainOfficial = mainOfficial1.rowVersion,
-            mainDraft = mainDraft2.rowVersion,
-            designOfficial = designOfficial.rowVersion,
-            designDraft = designDraft2.rowVersion,
+            mainOfficial = mainOfficial1,
+            mainDraft = mainDraft2,
+            designOfficial = designOfficial,
+            designDraft = designDraft2,
         )
 
-        val mainOfficial2 =
-            trackNumberService.publish(LayoutBranch.main, ValidationVersion(tnId, mainDraft2.rowVersion))
-        assertVersionReferences(
-            designBranch,
-            tnId,
-            mainOfficial = mainOfficial2.rowVersion,
-            // draft version is updated by the publication, fixing references
-            designDraft = designDraft2.rowVersion.next(),
-        )
+        val mainOfficial2 = trackNumberService.publish(LayoutBranch.main, mainDraft2)
+        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial2, designDraft = designDraft2)
     }
 
     @Test
@@ -389,27 +354,40 @@ constructor(
             trackNumberService.saveDraft(designBranch, mainOfficialContext.fetch(trackNumber.id)!!)
         val firstReferenceLineDraft =
             referenceLineService.saveDraft(designBranch, mainOfficialContext.fetch(referenceLine.id)!!)
-        val designOfficialTrackNumber =
-            trackNumberService.publish(
-                designBranch,
-                ValidationVersion(trackNumber.id, firstTrackNumberDraft.rowVersion),
-            )
-        val designOfficialReferenceLine =
-            referenceLineService.publish(
-                designBranch,
-                ValidationVersion(referenceLine.id, firstReferenceLineDraft.rowVersion),
-            )
+        val designOfficialTrackNumber = trackNumberService.publish(designBranch, firstTrackNumberDraft)
+        val designOfficialReferenceLine = referenceLineService.publish(designBranch, firstReferenceLineDraft)
 
         // before cancelling the design change: design-official version is visible in draft context
-        assertEquals(designOfficialTrackNumber.rowVersion, designDraftContext.fetchVersion(trackNumber.id))
-        assertEquals(designOfficialReferenceLine.rowVersion, designDraftContext.fetchVersion(referenceLine.id))
+        assertEquals(designOfficialTrackNumber, designDraftContext.fetchVersion(trackNumber.id))
+        assertEquals(designOfficialReferenceLine, designDraftContext.fetchVersion(referenceLine.id))
 
         trackNumberService.cancel(designBranch, trackNumber.id)
 
         // after cancelling the design change: cancellation hides design-official version in draft
         // context, leaving main-official version visible
-        assertEquals(trackNumber.rowVersion, designDraftContext.fetchVersion(trackNumber.id))
-        assertEquals(referenceLine.rowVersion, designDraftContext.fetchVersion(referenceLine.id))
+        assertEquals(trackNumber, designDraftContext.fetchVersion(trackNumber.id))
+        assertEquals(referenceLine, designDraftContext.fetchVersion(referenceLine.id))
+    }
+
+    @Test
+    fun `draft track number can find reference line in any above context`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val designOfficialContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+
+        val tn1 = designDraftContext.insert(trackNumber(number = TrackNumber("asdf"))).id
+        val rl1 = designOfficialContext.insert(referenceLine(tn1), alignment).id
+        assertEquals(rl1, designDraftContext.fetch(tn1)!!.referenceLineId)
+
+        val tn2 = designDraftContext.insert(trackNumber(number = TrackNumber("aoeu"))).id
+        val rl2 = mainOfficialContext.insert(referenceLine(tn2), alignment).id
+        assertEquals(rl2, designDraftContext.fetch(tn2)!!.referenceLineId)
+
+        val tn3 = mainDraftContext.insert(trackNumber(number = TrackNumber("arst"))).id
+        val rl3 = mainOfficialContext.insert(referenceLine(tn3), alignment).id
+        assertEquals(rl3, mainDraftContext.fetch(tn3)!!.referenceLineId)
     }
 
     private fun assertVersionReferences(
@@ -445,26 +423,18 @@ constructor(
         mainOfficial?.let(trackNumberDao::fetch)?.let { trackNumber ->
             assertEquals(id, trackNumber.id)
             assertFalse(trackNumber.isDraft)
-            assertEquals(null, trackNumber.contextData.officialRowId)
-            assertEquals(null, trackNumber.contextData.designRowId)
         }
         mainDraft?.let(trackNumberDao::fetch)?.let { trackNumber ->
             assertEquals(id, trackNumber.id)
             assertTrue(trackNumber.isDraft)
-            assertEquals(mainOfficial?.rowId, trackNumber.contextData.officialRowId)
-            assertEquals(designOfficial?.rowId, trackNumber.contextData.designRowId)
         }
         designOfficial?.let(trackNumberDao::fetch)?.let { trackNumber ->
             assertEquals(id, trackNumber.id)
             assertFalse(trackNumber.isDraft)
-            assertEquals(mainOfficial?.rowId, trackNumber.contextData.officialRowId)
-            assertEquals(null, trackNumber.contextData.designRowId)
         }
         designDraft?.let(trackNumberDao::fetch)?.let { trackNumber ->
             assertEquals(id, trackNumber.id)
             assertTrue(trackNumber.isDraft)
-            assertEquals(mainOfficial?.rowId, trackNumber.contextData.officialRowId)
-            assertEquals(designOfficial?.rowId, trackNumber.contextData.designRowId)
         }
     }
 
@@ -498,7 +468,7 @@ constructor(
             trackNumberService.publish(LayoutBranch.main, version)
         }
 
-    private fun publishReferenceLine(id: IntId<ReferenceLine>): LayoutDaoResponse<ReferenceLine> =
+    private fun publishReferenceLine(id: IntId<ReferenceLine>): LayoutRowVersion<ReferenceLine> =
         referenceLineDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
             referenceLineService.publish(LayoutBranch.main, version)
         }

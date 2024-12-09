@@ -36,7 +36,11 @@ type PublishListProps = {
 const RATKO_SUPPORT_EMAIL = 'vayla.asiakkaat.fi@cgi.com';
 export const GEOVIITE_SUPPORT_EMAIL = 'geoviite.support@solita.fi';
 
-const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, contact: string) => {
+const parseRatkoConnectionError = (
+    errorType: string,
+    ratkoStatusCode: number | undefined,
+    contact: string,
+) => {
     return (
         <span>
             {i18n.t(`error-in-ratko-connection.${errorType}`, { code: ratkoStatusCode })}
@@ -49,33 +53,43 @@ const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, c
     );
 };
 
-const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }): JSX.Element => {
-    if (ratkoStatus.statusCode >= 500) {
-        return ratkoStatus.statusCode === 503
+const parseRatkoOfflineStatus = (ratkoStatus: number | undefined): JSX.Element => {
+    if (ratkoStatus === undefined) {
+        return parseRatkoConnectionError(
+            'connection-error-without-status-code',
+            ratkoStatus,
+            'contact-geoviite-support-if-needed',
+        );
+    } else if (ratkoStatus >= 500) {
+        return ratkoStatus === 503
             ? parseRatkoConnectionError(
                   'temporary-error-status-code',
-                  ratkoStatus.statusCode,
+                  ratkoStatus,
                   'contact-ratko-support-if-needed',
               )
             : parseRatkoConnectionError(
                   'connection-error-status-code',
-                  ratkoStatus.statusCode,
+                  ratkoStatus,
                   'contact-ratko-support',
               );
-    } else if (ratkoStatus.statusCode >= 400) {
+    } else if (ratkoStatus >= 400) {
         return parseRatkoConnectionError(
             'connection-error-status-code',
-            ratkoStatus.statusCode,
+            ratkoStatus,
             'contact-geoviite-support',
         );
-    } else if (ratkoStatus.statusCode >= 300) {
+    } else if (ratkoStatus >= 300) {
         return parseRatkoConnectionError(
             'integration-error-status-code',
-            ratkoStatus.statusCode,
+            ratkoStatus,
             'contact-geoviite-support',
         );
     } else {
-        return <React.Fragment />;
+        return parseRatkoConnectionError(
+            'connection-error-without-status-code',
+            ratkoStatus,
+            'contact-geoviite-support-if-needed',
+        );
     }
 };
 
@@ -126,10 +140,10 @@ const PublicationCard: React.FC<PublishListProps> = ({
         [publicationChangeTime, ratkoPushChangeTime, splitChangeTime, pageCount],
     );
     const reachedLastPublication =
-        (publications?.length ?? 0) < MAX_LISTED_PUBLICATIONS * pageCount;
+        !publications || publications?.items?.length === publications?.totalCount;
 
     const allPublications =
-        publications
+        publications?.items
             ?.sort((i1, i2) => compareTimestamps(i1.publicationTime, i2.publicationTime))
             ?.reverse() ?? [];
 
@@ -143,13 +157,17 @@ const PublicationCard: React.FC<PublishListProps> = ({
 
     const latestFailures = latestFailureByLayoutBranch(allPublications);
     const ratkoConnectionError =
-        ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;
+        ratkoStatus &&
+        (ratkoStatus.connectionStatus === 'ONLINE_ERROR' ||
+            ratkoStatus.connectionStatus === 'OFFLINE');
 
-    const allWaiting = nonSuccesses.every(
-        (publication) =>
-            !publication.ratkoPushStatus ||
-            publication.ratkoPushStatus === RatkoPushStatus.MANUAL_RETRY,
-    );
+    const allWaiting =
+        nonSuccesses.length > 0 &&
+        nonSuccesses.every(
+            (publication) =>
+                !publication.ratkoPushStatus ||
+                publication.ratkoPushStatus === RatkoPushStatus.MANUAL_RETRY,
+        );
 
     const navigateToPublicationLog = () => {
         trackLayoutActionDelegates.setSelectedPublicationSearch(defaultPublicationSearch);
@@ -171,16 +189,16 @@ const PublicationCard: React.FC<PublishListProps> = ({
                     <ProgressIndicatorWrapper
                         indicator={ProgressIndicatorType.Area}
                         inProgress={publicationFetchStatus !== LoaderStatus.Ready}>
-                        {(nonSuccesses.length > 0 || ratkoConnectionError) && (
+                        {ratkoConnectionError && (
+                            <p className={styles['publication-card__title-errors']}>
+                                {parseRatkoOfflineStatus(ratkoStatus?.ratkoStatusCode)}
+                            </p>
+                        )}
+                        {nonSuccesses.length > 0 && (
                             <section>
                                 <h3 className={styles['publication-card__subsection-title']}>
                                     {t('publication-card.waiting')}
                                 </h3>
-                                {ratkoConnectionError && (
-                                    <p className={styles['publication-card__title-errors']}>
-                                        {parseRatkoOfflineStatus(ratkoStatus)}
-                                    </p>
-                                )}
                                 {latestFailures.map((fail) => (
                                     <RatkoPushErrorDetails key={fail.id} failedPublication={fail} />
                                 ))}
@@ -191,7 +209,13 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                             size={IconSize.SMALL}
                                             color={IconColor.INHERIT}
                                         />
-                                        <span>{t('publication-card.transfer-starts-shortly')}</span>
+                                        <span>
+                                            {ratkoConnectionError
+                                                ? t(
+                                                      'publication-card.transfer-starts-after-reconnect',
+                                                  )
+                                                : t('publication-card.transfer-starts-shortly')}
+                                        </span>
                                     </div>
                                 )}
                                 {latestFailures.length > 0 && (

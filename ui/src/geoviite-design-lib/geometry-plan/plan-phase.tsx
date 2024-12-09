@@ -27,7 +27,7 @@ function getTranslationKey(phase: PlanPhaseModel | undefined) {
 const PlanPhase: React.FC<PlanPhaseProps> = ({ phase }: PlanPhaseProps) => {
     const { t } = useTranslation();
 
-    return <React.Fragment>{t(`enum.plan-phase.${getTranslationKey(phase)}`)}</React.Fragment>;
+    return <React.Fragment>{t(`enum.PlanPhase.${getTranslationKey(phase)}`)}</React.Fragment>;
 };
 
 export default PlanPhase;

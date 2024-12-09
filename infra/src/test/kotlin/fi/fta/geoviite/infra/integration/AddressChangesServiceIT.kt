@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -635,33 +634,29 @@ constructor(
         val refPoint = Point(370000.0, 7100000.0) // any point in Finland
         val trackNumber =
             layoutTrackNumberDao.fetch(
-                layoutTrackNumberDao.insert(trackNumber(TrackNumber("TEST TN $sequence"), draft = false)).rowVersion
+                layoutTrackNumberDao.save(trackNumber(TrackNumber("TEST TN $sequence"), draft = false))
             )
         val kmPost1 =
             layoutKmPostDao.fetch(
-                layoutKmPostDao
-                    .insert(
-                        kmPost(
-                            trackNumberId = trackNumber.id as IntId,
-                            km = KmNumber(1),
-                            roughLayoutLocation = refPoint + 5.0,
-                            draft = false,
-                        )
+                layoutKmPostDao.save(
+                    kmPost(
+                        trackNumberId = trackNumber.id as IntId,
+                        km = KmNumber(1),
+                        roughLayoutLocation = refPoint + 5.0,
+                        draft = false,
                     )
-                    .rowVersion
+                )
             )
         val kmPost2 =
             layoutKmPostDao.fetch(
-                layoutKmPostDao
-                    .insert(
-                        kmPost(
-                            trackNumberId = trackNumber.id as IntId,
-                            km = KmNumber(2),
-                            roughLayoutLocation = refPoint + 10.0,
-                            draft = false,
-                        )
+                layoutKmPostDao.save(
+                    kmPost(
+                        trackNumberId = trackNumber.id as IntId,
+                        km = KmNumber(2),
+                        roughLayoutLocation = refPoint + 10.0,
+                        draft = false,
                     )
-                    .rowVersion
+                )
             )
         val referenceLinePoints = (0..15).map { i -> refPoint + i.toDouble() }
         val referenceLineGeometryVersion =
@@ -669,16 +664,14 @@ constructor(
         val referenceLineGeometry = layoutAlignmentDao.fetch(referenceLineGeometryVersion)
         val referenceLine =
             referenceLineDao.fetch(
-                referenceLineDao
-                    .insert(
-                        referenceLine(
-                            trackNumber.id as IntId<TrackLayoutTrackNumber>,
-                            alignment = referenceLineGeometry,
-                            alignmentVersion = referenceLineGeometryVersion,
-                            draft = false,
-                        )
+                referenceLineDao.save(
+                    referenceLine(
+                        trackNumber.id as IntId<TrackLayoutTrackNumber>,
+                        alignment = referenceLineGeometry,
+                        alignmentVersion = referenceLineGeometryVersion,
+                        draft = false,
                     )
-                    .rowVersion
+                )
             )
         val alignmentPoints = referenceLinePoints.subList(2, referenceLinePoints.count() - 2)
         val locationTrackGeometryVersion =
@@ -686,17 +679,15 @@ constructor(
         val locationTrackGeometry = layoutAlignmentDao.fetch(locationTrackGeometryVersion)
         val locationTrack =
             locationTrackDao.fetch(
-                locationTrackDao
-                    .insert(
-                        locationTrack(
-                            trackNumberId = trackNumber.id as IntId,
-                            alignment = locationTrackGeometry,
-                            name = "TEST LocTr $sequence",
-                            alignmentVersion = locationTrackGeometryVersion,
-                            draft = false,
-                        )
+                locationTrackDao.save(
+                    locationTrack(
+                        trackNumberId = trackNumber.id as IntId,
+                        alignment = locationTrackGeometry,
+                        name = "TEST LocTr $sequence",
+                        alignmentVersion = locationTrackGeometryVersion,
+                        draft = false,
                     )
-                    .rowVersion
+                )
             )
 
         return SetupData(
@@ -713,7 +704,7 @@ constructor(
 
     fun updateAndPublish(locationTrack: LocationTrack, alignment: LayoutAlignment) {
         val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
-        locationTrackService.publish(LayoutBranch.main, ValidationVersion(version.id, version.rowVersion))
+        locationTrackService.publish(LayoutBranch.main, version)
     }
 
     fun moveReferenceLineGeometryPointsAndUpdate(
@@ -746,7 +737,7 @@ constructor(
                         )
                 ),
             )
-        referenceLineService.publish(LayoutBranch.main, ValidationVersion(version.id, version.rowVersion))
+        referenceLineService.publish(LayoutBranch.main, version)
     }
 
     fun moveKmPostGkLocationAndUpdate(
@@ -754,20 +745,15 @@ constructor(
         moveFunc: (point: IPoint) -> Point,
     ): TrackLayoutKmPost {
         return layoutKmPostDao.fetch(
-            layoutKmPostDao
-                .update(
-                    kmPost.copy(
-                        gkLocation =
-                            kmPost.gkLocation?.copy(
-                                location =
-                                    GeometryPoint(
-                                        moveFunc(kmPost.gkLocation!!.location),
-                                        kmPost.gkLocation!!.location.srid,
-                                    )
-                            )
-                    )
+            layoutKmPostDao.save(
+                kmPost.copy(
+                    gkLocation =
+                        kmPost.gkLocation?.copy(
+                            location =
+                                GeometryPoint(moveFunc(kmPost.gkLocation!!.location), kmPost.gkLocation!!.location.srid)
+                        )
                 )
-                .rowVersion
+            )
         )
     }
 

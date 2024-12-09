@@ -31,8 +31,6 @@ import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
-import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -583,6 +581,7 @@ fun validateDuplicateOfState(
     locationTrack: LocationTrack,
     duplicateOfLocationTrack: LocationTrack?,
     duplicateOfLocationTrackDraftName: AlignmentName?,
+    duplicateOfLocationTrackIsCancelled: Boolean,
     duplicates: List<LocationTrack>,
 ): List<LayoutValidationIssue> {
     val duplicateNameParams =
@@ -592,7 +591,10 @@ fun validateDuplicateOfState(
             listOfNotNull(
                 // Non-null reference, but the duplicateOf track doesn't exist in validation context
                 validateWithParams(locationTrack.duplicateOf == null) {
-                    "$VALIDATION_LOCATION_TRACK.duplicate-of.not-published" to duplicateNameParams
+                    cancelledOrNotPublishedKey(
+                        "$VALIDATION_LOCATION_TRACK.duplicate-of.",
+                        duplicateOfLocationTrackIsCancelled,
+                    ) to duplicateNameParams
                 }
             )
         } else {
@@ -636,11 +638,13 @@ fun validateReferenceLineReference(
     referenceLine: ReferenceLine,
     trackNumberNumber: TrackNumber?,
     trackNumber: TrackLayoutTrackNumber?,
+    trackNumberIsCancelled: Boolean,
 ): List<LayoutValidationIssue> {
     val numberParams = localizationParams("trackNumber" to trackNumberNumber)
     return listOfNotNull(
         validateWithParams(trackNumber != null) {
-            "$VALIDATION_REFERENCE_LINE.track-number.not-published" to numberParams
+            cancelledOrNotPublishedKey("$VALIDATION_REFERENCE_LINE.track-number.", trackNumberIsCancelled) to
+                numberParams
         },
         validateWithParams(trackNumber == null || referenceLine.trackNumberId == trackNumber.id) {
             "$VALIDATION_REFERENCE_LINE.track-number.not-official" to numberParams
@@ -652,12 +656,16 @@ fun validateLocationTrackReference(
     locationTrack: LocationTrack,
     trackNumber: TrackLayoutTrackNumber?,
     trackNumberName: TrackNumber?,
+    trackNumberIsCancelled: Boolean,
 ): List<LayoutValidationIssue> {
-    return if (trackNumber == null)
+    return if (trackNumber == null) {
         listOf(
-            validationError("$VALIDATION_LOCATION_TRACK.track-number.not-published", "trackNumber" to trackNumberName)
+            validationError(
+                cancelledOrNotPublishedKey("$VALIDATION_LOCATION_TRACK.track-number.", trackNumberIsCancelled),
+                "trackNumber" to trackNumberName,
+            )
         )
-    else {
+    } else {
         val numberParams = localizationParams("trackNumber" to trackNumber.number)
         listOfNotNull(
             validateWithParams(locationTrack.trackNumberId == trackNumber.id) {
@@ -1046,18 +1054,6 @@ private fun collectTopologyEndLinks(
         }
         .filter { (_, ends) -> ends.isNotEmpty() }
 
-fun <T> combineVersions(
-    officials: List<LayoutDaoResponse<T>>,
-    validations: List<ValidationVersion<T>>,
-): Collection<LayoutRowVersion<T>> {
-    val officialVersions =
-        officials
-            .filterNot { official -> validations.any { v -> v.officialId == official.id } }
-            .map { official -> official.rowVersion }
-    val validationVersions = validations.map { it.validatedAssetVersion }
-    return (officialVersions + validationVersions).distinct()
-}
-
 fun validationFatal(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
     LayoutValidationIssue(FATAL, key, params.associate { it })
 
@@ -1072,3 +1068,6 @@ fun validationWarning(key: String, vararg params: Pair<String, Any?>): LayoutVal
 
 fun validationWarning(key: String, params: LocalizationParams): LayoutValidationIssue =
     LayoutValidationIssue(WARNING, LocalizationKey(key), params)
+
+private fun cancelledOrNotPublishedKey(keyPrefix: String, cancelled: Boolean) =
+    "$keyPrefix${if (cancelled) "cancelled" else "not-published"}"

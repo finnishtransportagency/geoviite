@@ -6,7 +6,7 @@ import {
     KmPostSimpleFields,
 } from 'linking/linking-model';
 import {
-    GkLocationSource,
+    KmPostGkLocationSource,
     LayoutKmPost,
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
@@ -517,6 +517,7 @@ export function editingGkPointToSavePoint(state: KmPostEditState): GeometryPoint
         srid: expectDefined(state.kmPost.gkSrid),
     };
 }
+
 export function saveGkPointToEditingGkPoint(point: GeometryPoint): {
     gkLocationX: string;
     gkLocationY: string;
@@ -540,7 +541,7 @@ export function gkLocationIsEdited(state: KmPostEditState): boolean {
         : kmPostGkPointDiffersFromOriginal(state.kmPost, state.existingKmPost.gkLocation?.location);
 }
 
-export function gkLocationSource(state: KmPostEditState): GkLocationSource | undefined {
+export function gkLocationSource(state: KmPostEditState): KmPostGkLocationSource | undefined {
     return gkLocationIsEdited(state) ? 'MANUAL' : state.existingKmPost?.gkLocation?.source;
 }
 

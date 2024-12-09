@@ -82,7 +82,7 @@ export type BasePublicationCandidate = {
     issues: LayoutValidationIssue[];
     validationState: PublicationValidationState;
     stage: PublicationStage;
-    designRowReferrer: DesignRowReferrer;
+    cancelled: boolean;
 };
 
 export type PublicationCandidate =
@@ -93,11 +93,15 @@ export type PublicationCandidate =
     | KmPostPublicationCandidate;
 
 export type PublicationCandidateReference =
-    | { id: LayoutTrackNumberId; type: DraftChangeType.TRACK_NUMBER }
-    | { id: ReferenceLineId; type: DraftChangeType.REFERENCE_LINE }
-    | { id: LocationTrackId; type: DraftChangeType.LOCATION_TRACK }
-    | { id: LayoutSwitchId; type: DraftChangeType.SWITCH }
-    | { id: LayoutKmPostId; type: DraftChangeType.KM_POST };
+    | {
+          id: LayoutTrackNumberId;
+          type: DraftChangeType.TRACK_NUMBER;
+          number?: TrackNumber;
+      }
+    | { id: ReferenceLineId; type: DraftChangeType.REFERENCE_LINE; name?: TrackNumber }
+    | { id: LocationTrackId; type: DraftChangeType.LOCATION_TRACK; name?: string }
+    | { id: LayoutSwitchId; type: DraftChangeType.SWITCH; name?: string }
+    | { id: LayoutKmPostId; type: DraftChangeType.KM_POST; kmNumber?: KmNumber };
 
 export type WithBoundingBox = {
     boundingBox?: BoundingBox;

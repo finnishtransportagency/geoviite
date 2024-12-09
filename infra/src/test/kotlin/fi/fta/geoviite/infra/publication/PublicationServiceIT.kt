@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
@@ -30,7 +31,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetService
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
@@ -43,12 +43,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.StoredContextIdHolder
+import fi.fta.geoviite.infra.tracklayout.StoredAssetId
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
@@ -187,13 +186,13 @@ constructor(
 
     private fun <T> assertCandidatesContainCorrectVersions(
         candidates: List<PublicationCandidate<T>>,
-        vararg responses: LayoutDaoResponse<T>,
+        vararg responses: LayoutRowVersion<T>,
     ) {
         assertEquals(responses.size, candidates.size)
         responses.forEach { response ->
             val candidate = candidates.find { c -> c.id == response.id }
             assertNotNull(candidate)
-            assertEquals(response.rowVersion, candidate.rowVersion)
+            assertEquals(response, candidate.rowVersion)
         }
     }
 
@@ -447,7 +446,7 @@ constructor(
     fun publishingSwitchChangesWorks() {
         val officialId =
             switchDao
-                .insert(
+                .save(
                     switch(draft = false)
                         .copy(name = SwitchName("TST 001"), joints = listOf(switchJoint(1), switchJoint(3)))
                 )
@@ -511,7 +510,7 @@ constructor(
     fun publishingTrackNumberChangesWorks() {
         val officialId =
             trackNumberDao
-                .insert(
+                .save(
                     trackNumber(draft = false)
                         .copy(
                             number = testDBService.getUnusedTrackNumber(),
@@ -635,7 +634,7 @@ constructor(
     @Test
     fun `reverting split source track will remove the whole split`() {
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
-        publicationTestSupportService.saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
+        publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
 
         assertTrue {
             splitDao.fetchUnfinishedSplits(LayoutBranch.main).any { split ->
@@ -658,7 +657,7 @@ constructor(
     @Test
     fun `reverting one of the split target tracks will remove the whole split`() {
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
-        publicationTestSupportService.saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
+        publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
 
         val startTargetTrack = splitSetup.targetTracks.first().first
         val endTargetTrack = splitSetup.targetTracks.last().first
@@ -684,7 +683,7 @@ constructor(
     @Test
     fun `publication id should be added to splits that have location tracks published`() {
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
-        publicationTestSupportService.saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
+        publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
 
         val splitBeforePublish =
             splitDao.fetchUnfinishedSplits(LayoutBranch.main).first { split ->
@@ -713,7 +712,7 @@ constructor(
     @Test
     fun `split source and target location tracks depend on each other`() {
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
-        publicationTestSupportService.saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
+        publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
 
         for (id in splitSetup.trackIds) {
             val dependencies =
@@ -797,11 +796,11 @@ constructor(
 
     @Test
     fun `Publication rejects duplicate track number names`() {
-        trackNumberDao.insert(trackNumber(number = TrackNumber("TN"), draft = false))
-        val draftTrackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("TN"), draft = true)).id
+        trackNumberDao.save(trackNumber(number = TrackNumber("TN"), draft = false))
+        val draftTrackNumberId = trackNumberDao.save(trackNumber(number = TrackNumber("TN"), draft = true)).id
 
         val someAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
-        referenceLineDao.insert(referenceLine(draftTrackNumberId, alignmentVersion = someAlignment, draft = true)).id
+        referenceLineDao.save(referenceLine(draftTrackNumberId, alignmentVersion = someAlignment, draft = true)).id
         val exception =
             assertThrows<DuplicateNameInPublicationException> {
                 publish(publicationService, trackNumbers = listOf(draftTrackNumberId))
@@ -812,15 +811,15 @@ constructor(
 
     @Test
     fun `Publication rejects duplicate location track names`() {
-        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("TN"), draft = false)).id
+        val trackNumberId = trackNumberDao.save(trackNumber(number = TrackNumber("TN"), draft = false)).id
         val someAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
-        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = someAlignment, draft = true)).id
+        referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = someAlignment, draft = true)).id
 
-        locationTrackDao.insert(
+        locationTrackDao.save(
             locationTrack(trackNumberId, name = "LT", alignmentVersion = someAlignment, draft = false)
         )
         val draftLt = locationTrack(trackNumberId, name = "LT", alignmentVersion = someAlignment, draft = true)
-        val draftLocationTrackId = locationTrackDao.insert(draftLt).id
+        val draftLocationTrackId = locationTrackDao.save(draftLt).id
         val exception =
             assertThrows<DuplicateLocationTrackNameInPublicationException> {
                 publish(publicationService, locationTracks = listOf(draftLocationTrackId))
@@ -833,7 +832,7 @@ constructor(
     fun `Location tracks can be renamed over each other`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val someAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
-        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = someAlignment, draft = true)).id
+        referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = someAlignment, draft = true)).id
 
         val lt1 =
             locationTrack(
@@ -843,9 +842,9 @@ constructor(
                 externalId = null,
                 draft = false,
             )
-        val lt1OriginalVersion = locationTrackDao.insert(lt1).rowVersion
+        val lt1OriginalVersion = locationTrackDao.save(lt1)
         val lt1RenamedDraft =
-            locationTrackDao.insert(
+            locationTrackDao.save(
                 asMainDraft(locationTrackDao.fetch(lt1OriginalVersion).copy(name = AlignmentName("LT2")))
             )
 
@@ -857,9 +856,9 @@ constructor(
                 externalId = null,
                 draft = false,
             )
-        val lt2OriginalVersion = locationTrackDao.insert(lt2).rowVersion
+        val lt2OriginalVersion = locationTrackDao.save(lt2)
         val lt2RenamedDraft =
-            locationTrackDao.insert(
+            locationTrackDao.save(
                 asMainDraft(locationTrackDao.fetch(lt2OriginalVersion).copy(name = AlignmentName("LT1")))
             )
 
@@ -868,8 +867,8 @@ constructor(
 
     @Test
     fun `Publication rejects duplicate switch names`() {
-        switchDao.insert(switch(name = "SW123", draft = false, stateCategory = EXISTING))
-        val draftSwitchId = switchDao.insert(switch(name = "SW123", draft = true, stateCategory = EXISTING)).id
+        switchDao.save(switch(name = "SW123", draft = false, stateCategory = EXISTING))
+        val draftSwitchId = switchDao.save(switch(name = "SW123", draft = true, stateCategory = EXISTING)).id
         val exception =
             assertThrows<DuplicateNameInPublicationException> {
                 publish(publicationService, switches = listOf(draftSwitchId))
@@ -1202,7 +1201,7 @@ constructor(
     @Test
     fun `Should fetch split details correctly`() {
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
-        publicationTestSupportService.saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
+        publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
 
         val publicationId =
             publicationService
@@ -1310,8 +1309,7 @@ constructor(
     fun `Published split should not be deleted when a target location track is later modified and reverted`() {
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
 
-        val splitId =
-            publicationTestSupportService.saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
+        val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
 
         splitDao.get(splitId).let { split ->
             assertNotNull(split)
@@ -1365,7 +1363,7 @@ constructor(
 
         val splitId =
             publicationTestSupportService.saveSplit(
-                sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
+                sourceTrackVersion = splitSetup.sourceTrack,
                 targetTracks = splitSetup.targetParams,
                 switches = listOf(someSwitch.id),
             )
@@ -1416,13 +1414,157 @@ constructor(
             ),
         )
         val designBranch = testDBService.createDesignBranch()
-        switchDao.insert(asDesignDraft(mainOfficialContext.fetch(switch)!!, designBranch.designId))
+        switchDao.save(asDesignDraft(mainOfficialContext.fetch(switch)!!, designBranch.designId))
         val publicationId =
             publicationTestSupportService
                 .publishAndVerify(designBranch, publicationRequestIds(switches = listOf(switch)))
                 .publicationId!!
         val changes = publicationDao.fetchPublishedSwitches(publicationId)
         assertEquals(setOf(trackNumber), changes.directChanges[0].trackNumberIds)
+    }
+
+    @Test
+    fun `publishing a cancellation of an asset creation in a design removes the asset from design-official context`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val trackNumber = designDraftContext.createLayoutTrackNumber().id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        val referenceLine = designDraftContext.insert(referenceLine(trackNumber), alignment).id
+        val locationTrack = designDraftContext.insert(locationTrack(trackNumber), alignment).id
+        val switch = designDraftContext.insert(switch()).id
+        val kmPost = designDraftContext.insert(kmPost(trackNumber, KmNumber(1))).id
+
+        publicationTestSupportService.publishAndVerify(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber),
+                referenceLines = listOf(referenceLine),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
+            ),
+        )
+
+        trackNumberService.cancel(designBranch, trackNumber)
+        referenceLineService.cancel(designBranch, referenceLine)
+        locationTrackService.cancel(designBranch, locationTrack)
+        switchService.cancel(designBranch, switch)
+        kmPostService.cancel(designBranch, kmPost)
+
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber),
+                referenceLines = listOf(referenceLine),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
+            ),
+        )
+
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        assertNull(designOfficialContext.fetchVersion(trackNumber))
+        assertNull(designOfficialContext.fetchVersion(referenceLine))
+        assertNull(designOfficialContext.fetchVersion(locationTrack))
+        assertNull(designOfficialContext.fetchVersion(switch))
+        assertNull(designOfficialContext.fetchVersion(kmPost))
+    }
+
+    @Test
+    fun `publishing a cancellation of an asset edit brings out the main-official row in the design context`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        val referenceLine = mainOfficialContext.insert(referenceLine(trackNumber), alignment).id
+        val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber), alignment).id
+        val switch = mainOfficialContext.insert(switch()).id
+        val kmPost = mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1))).id
+
+        designDraftContext.insert(mainOfficialContext.fetch(trackNumber)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(referenceLine)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(locationTrack)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(switch)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(kmPost)!!)
+
+        publicationTestSupportService.publishAndVerify(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber),
+                referenceLines = listOf(referenceLine),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
+            ),
+        )
+
+        trackNumberService.cancel(designBranch, trackNumber)
+        referenceLineService.cancel(designBranch, referenceLine)
+        locationTrackService.cancel(designBranch, locationTrack)
+        switchService.cancel(designBranch, switch)
+        kmPostService.cancel(designBranch, kmPost)
+
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber),
+                referenceLines = listOf(referenceLine),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
+            ),
+        )
+
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        assertEquals(MainLayoutContext.official, designOfficialContext.fetch(trackNumber)?.layoutContext)
+        assertEquals(MainLayoutContext.official, designOfficialContext.fetch(referenceLine)?.layoutContext)
+        assertEquals(MainLayoutContext.official, designOfficialContext.fetch(locationTrack)?.layoutContext)
+        assertEquals(MainLayoutContext.official, designOfficialContext.fetch(switch)?.layoutContext)
+        assertEquals(MainLayoutContext.official, designOfficialContext.fetch(kmPost)?.layoutContext)
+    }
+
+    @Test
+    fun `cancelled items are not merge-to-main candidates`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
+
+        val trackNumber = designOfficialContext.insert(trackNumber()).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
+        val referenceLine = designOfficialContext.insert(referenceLine(trackNumber), alignment).id
+        val locationTrack = designOfficialContext.insert(locationTrack(trackNumber), alignment).id
+        val switch = designOfficialContext.insert(switch()).id
+        val kmPost = designOfficialContext.insert(kmPost(trackNumber, KmNumber(1))).id
+
+        val trackNumberToBeCancelled = designOfficialContext.insert(trackNumber(TrackNumber("aoeu"))).id
+        val referenceLineToBeCancelled =
+            designOfficialContext.insert(referenceLine(trackNumberToBeCancelled), alignment).id
+        val locationTrackToBeCancelled = designOfficialContext.insert(locationTrack(trackNumber), alignment).id
+        val switchToBeCancelled = designOfficialContext.insert(switch()).id
+        val kmPostToBeCancelled = designOfficialContext.insert(kmPost(trackNumberToBeCancelled, KmNumber(1))).id
+
+        trackNumberService.cancel(designBranch, trackNumberToBeCancelled)
+        referenceLineService.cancel(designBranch, referenceLineToBeCancelled)
+        locationTrackService.cancel(designBranch, locationTrackToBeCancelled)
+        switchService.cancel(designBranch, switchToBeCancelled)
+        kmPostService.cancel(designBranch, kmPostToBeCancelled)
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumberToBeCancelled),
+                referenceLines = listOf(referenceLineToBeCancelled),
+                locationTracks = listOf(locationTrackToBeCancelled),
+                switches = listOf(switchToBeCancelled),
+                kmPosts = listOf(kmPostToBeCancelled),
+            ),
+        )
+
+        val candidates =
+            publicationService.collectPublicationCandidates(LayoutContextTransition.mergeToMainFrom(designBranch))
+        assertEquals(listOf(trackNumber), candidates.trackNumbers.map { it.id })
+        assertEquals(listOf(referenceLine), candidates.referenceLines.map { it.id })
+        assertEquals(listOf(locationTrack), candidates.locationTracks.map { it.id })
+        assertEquals(listOf(switch), candidates.switches.map { it.id })
+        assertEquals(listOf(kmPost), candidates.kmPosts.map { it.id })
     }
 
     data class PublicationGroupTestData(
@@ -1460,7 +1602,7 @@ constructor(
             }
 
         splitDao.saveSplit(
-            sourceTrack.rowVersion,
+            sourceTrack,
             listOf(
                 SplitTarget(middleTrack.id, 0..0, SplitTargetOperation.CREATE),
                 SplitTarget(endTrack.id, 0..0, SplitTargetOperation.CREATE),
@@ -1493,33 +1635,33 @@ private fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublishingWorks(
     mutate: (orig: T) -> T,
 ) {
     // First id remains official
-    val (officialId, draftVersion1) = service.saveDraft(LayoutBranch.main, create())
+    val draftVersion1 = service.saveDraft(LayoutBranch.main, create())
+    val officialId = draftVersion1.id
     assertEquals(1, draftVersion1.version)
 
     val officialVersion1 = publishAndCheck(draftVersion1, dao, service).first
     assertEquals(officialId, officialVersion1.id)
-    // First row remains and is updated as official
-    assertEquals(draftVersion1.rowId, officialVersion1.rowVersion.rowId)
-    assertEquals(2, officialVersion1.rowVersion.version)
+    // First publication, so gets version 1
+    assertEquals(1, officialVersion1.version)
 
-    val draftVersion2 = service.saveDraft(LayoutBranch.main, mutate(dao.fetch(officialVersion1.rowVersion)))
+    val draftVersion2 = service.saveDraft(LayoutBranch.main, mutate(dao.fetch(officialVersion1)))
     assertEquals(officialId, draftVersion2.id)
-    // Second draft must be a separate row to not touch the official
-    assertNotEquals(officialVersion1.rowVersion.rowId, draftVersion2.rowVersion.rowId)
-    assertEquals(1, draftVersion2.rowVersion.version)
+    assertNotEquals(officialVersion1.rowId, draftVersion2.rowId)
+    // a draft already existed before, and was deleted for publication, so this is now version 3
+    assertEquals(3, draftVersion2.version)
 
-    val officialVersion2 = publishAndCheck(draftVersion2.rowVersion, dao, service).first
+    val officialVersion2 = publishAndCheck(draftVersion2, dao, service).first
     assertEquals(officialId, officialVersion2.id)
-    // Second publish should update the original row again
-    assertEquals(officialVersion1.rowVersion.rowId, officialVersion2.rowVersion.rowId)
-    assertEquals(3, officialVersion2.rowVersion.version)
+    assertEquals(officialVersion1.rowId, officialVersion2.rowId)
+    // second publication, so version 2
+    assertEquals(2, officialVersion2.version)
 }
 
 fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     rowVersion: LayoutRowVersion<T>,
     dao: S,
     service: LayoutAssetService<T, S>,
-): Pair<LayoutDaoResponse<T>, T> {
+): Pair<LayoutRowVersion<T>, T> {
     val draft = dao.fetch(rowVersion)
     val id = draft.id
 
@@ -1528,46 +1670,39 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     assertEquals(rowVersion, dao.fetchVersion(MainLayoutContext.draft, id))
     assertTrue(draft.isDraft)
     assertEquals(DataType.STORED, draft.dataType)
-    assertEquals(
-        MainDraftContextData(
-            contextIdHolder = StoredContextIdHolder(rowVersion),
-            officialRowId = draft.contextData.officialRowId,
-            designRowId = null,
-        ),
-        draft.contextData,
-    )
+    assertEquals(StoredAssetId(rowVersion), draft.contextData.layoutAssetId)
 
-    val published = service.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
+    val published = service.publish(LayoutBranch.main, rowVersion)
     assertEquals(id, published.id)
-    assertEquals(published.rowVersion, dao.fetchVersionOrThrow(MainLayoutContext.official, id))
-    assertEquals(published.rowVersion, dao.fetchVersion(MainLayoutContext.draft, id))
+    assertEquals(published, dao.fetchVersionOrThrow(MainLayoutContext.official, id))
+    assertEquals(published, dao.fetchVersion(MainLayoutContext.draft, id))
 
-    val publishedItem = dao.fetch(published.rowVersion)
+    val publishedItem = dao.fetch(published)
     assertFalse(publishedItem.isDraft)
     assertEquals(id, published.id)
-    assertEquals(id.intValue, published.rowVersion.rowId.intValue)
-    assertEquals(MainOfficialContextData(StoredContextIdHolder(published.rowVersion)), publishedItem.contextData)
+    assertEquals(id.intValue, published.id.intValue)
+    assertEquals(MainOfficialContextData(StoredAssetId(published)), publishedItem.contextData)
 
     return published to publishedItem
 }
 
 fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublished(
     layoutBranch: LayoutBranch,
-    validationVersions: List<ValidationVersion<T>>,
+    validationVersions: List<LayoutRowVersion<T>>,
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,
 ) = validationVersions.forEach { v -> verifyPublished(layoutBranch, v, dao, checkMatch) }
 
 fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublished(
     layoutBranch: LayoutBranch,
-    validationVersion: ValidationVersion<T>,
+    validationVersion: LayoutRowVersion<T>,
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,
 ) {
-    val currentOfficialVersion = dao.fetchVersionOrThrow(layoutBranch.official, validationVersion.officialId)
-    val currentDraftVersion = dao.fetchVersionOrThrow(layoutBranch.draft, validationVersion.officialId)
+    val currentOfficialVersion = dao.fetchVersionOrThrow(layoutBranch.official, validationVersion.id)
+    val currentDraftVersion = dao.fetchVersionOrThrow(layoutBranch.draft, validationVersion.id)
     assertEquals(currentOfficialVersion, currentDraftVersion)
-    val draft = dao.fetch(validationVersion.validatedAssetVersion)
+    val draft = dao.fetch(validationVersion)
     assertTrue(draft.isDraft)
     val official = dao.fetch(currentOfficialVersion)
     assertTrue(official.isOfficial)

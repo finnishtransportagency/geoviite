@@ -16,6 +16,7 @@ import { OnSelectFunction } from 'selection/selection-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
+    DraftChangeType,
     emptyValidatedPublicationCandidates,
     PublicationCandidate,
     PublicationCandidateReference,
@@ -54,6 +55,7 @@ import {
     filterByUser,
 } from 'preview/preview-view-filters';
 import {
+    DesignBranch,
     draftLayoutContext,
     draftMainLayoutContext,
     LayoutBranch,
@@ -66,6 +68,12 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { createAreaSelectTool, SelectMode } from 'map/tools/area-select-tool';
 import { filterNotEmpty, filterUniqueById, first } from 'utils/array-utils';
 import { expectDefined } from 'utils/type-utils';
+import { cancelLocationTrack } from 'track-layout/layout-location-track-api';
+import { cancelReferenceLine } from 'track-layout/layout-reference-line-api';
+import { cancelSwitch } from 'track-layout/layout-switch-api';
+import { cancelTrackNumber } from 'track-layout/layout-track-number-api';
+import { cancelKmPost } from 'track-layout/layout-km-post-api';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -104,6 +112,8 @@ export type PreviewOperations = {
             revertRequestSource: RevertRequestSource,
         ) => void;
     };
+
+    cancel: (candidateToRevert: PublicationCandidate) => void;
 };
 
 export type ChangesBeingReverted = {
@@ -131,6 +141,26 @@ const getCalculatedChangesDebounced = debounceAsync(
     1000,
 );
 
+function cancelPublicationCandidate(
+    publicationCandidate: PublicationCandidate,
+    design: DesignBranch,
+): Promise<void> {
+    switch (publicationCandidate.type) {
+        case DraftChangeType.TRACK_NUMBER:
+            return cancelTrackNumber(design, publicationCandidate.id);
+        case DraftChangeType.REFERENCE_LINE:
+            return cancelReferenceLine(design, publicationCandidate.id);
+        case DraftChangeType.LOCATION_TRACK:
+            return cancelLocationTrack(design, publicationCandidate.id);
+        case DraftChangeType.SWITCH:
+            return cancelSwitch(design, publicationCandidate.id);
+        case DraftChangeType.KM_POST:
+            return cancelKmPost(design, publicationCandidate.id);
+        default:
+            return exhaustiveMatchingGuard(publicationCandidate);
+    }
+}
+
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
     const user = useLoader(getOwnUser, []);
@@ -156,6 +186,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
     const canRevertChanges =
         props.layoutContext.branch === 'MAIN' || designPublicationMode === 'PUBLISH_CHANGES';
+    const canCancelChanges =
+        props.layoutContext.branch !== 'MAIN' && designPublicationMode == 'MERGE_TO_MAIN';
 
     const [mapDisplayTransitionSide, setMapDisplayTransitionSide] =
         React.useState<MapDisplayTransitionSide>('WITH_CHANGES');
@@ -412,6 +444,17 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         });
     };
 
+    const cancelCandidate = (publicationCandidate: PublicationCandidate) => {
+        const design = props.layoutContext.branch;
+        if (design === 'MAIN') return;
+        return cancelPublicationCandidate(publicationCandidate, design).then(() => {
+            Snackbar.success('publish.cancellation-success');
+            setPublicationCandidates((publicationCandidates) =>
+                publicationCandidates.filter((pc) => pc.id !== publicationCandidate.id),
+            );
+        });
+    };
+
     const clearStagedCandidates = () => {
         const updatedCandidates = publicationCandidates.filter(
             (candidate) => candidate.stage === PublicationStage.UNSTAGED,
@@ -433,6 +476,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             changesWithDependencies: revertChangesWithDependencies,
             publicationGroup: revertPublicationGroup,
         },
+
+        cancel: cancelCandidate,
     };
 
     const publishCandidateSelectTool = React.useMemo(
@@ -542,6 +587,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                             : item.validationState;
                                     }}
                                     canRevertChanges={canRevertChanges}
+                                    canCancelChanges={canCancelChanges}
                                 />
                             </section>
                             <section qa-id={'staged-changes'} className={styles['preview-section']}>
@@ -574,6 +620,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     tableValidationState={publicationValidationState}
                                     tableEntryValidationState={() => publicationValidationState}
                                     canRevertChanges={canRevertChanges}
+                                    canCancelChanges={canCancelChanges}
                                 />
                             </section>
                             <div className={styles['preview-section']}>

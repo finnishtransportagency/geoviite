@@ -1,4 +1,4 @@
-import { LayoutContext } from 'common/common-model';
+import { LayoutBranch, LayoutContext } from 'common/common-model';
 import { API_URI } from 'api/api-fetch';
 
 type LayoutDataType =
@@ -24,6 +24,15 @@ export function layoutUri(
     id?: string,
 ): string {
     const baseUri = `${TRACK_LAYOUT_URI}/${dataType}/${contextInUri(layoutContext)}`;
+    return id ? `${baseUri}/${id}` : baseUri;
+}
+
+export function layoutUriByBranch(
+    dataType: LayoutDataType,
+    layoutBranch: LayoutBranch,
+    id?: string,
+): string {
+    const baseUri = `${TRACK_LAYOUT_URI}/${dataType}/${layoutBranch.toLowerCase()}`;
     return id ? `${baseUri}/${id}` : baseUri;
 }
 

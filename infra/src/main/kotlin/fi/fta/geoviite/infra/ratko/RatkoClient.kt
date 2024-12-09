@@ -42,6 +42,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClientRequestException
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
@@ -61,6 +62,13 @@ private const val ASSET_PATH = "/api/assets/v1.2"
 private const val VERSION_PATH = "/api/versions/v1.0/version"
 private const val BULK_TRANSFER_PATH = "/api/split/bulk-transfer"
 
+enum class RatkoConnectionStatus {
+    ONLINE,
+    ONLINE_ERROR,
+    OFFLINE,
+    NOT_CONFIGURED,
+}
+
 @Component
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
@@ -70,14 +78,21 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-    data class RatkoStatus(val isOnline: Boolean)
+    data class RatkoStatus(val connectionStatus: RatkoConnectionStatus, val ratkoStatusCode: Int?)
 
     fun getRatkoOnlineStatus(): RatkoStatus {
         return getSpec(VERSION_PATH)
             .toBodilessEntity()
-            .map { response -> RatkoStatus(response.statusCode == HttpStatus.OK) }
-            .onErrorReturn(RatkoStatus(false))
-            .block(defaultBlockTimeout) ?: RatkoStatus(false)
+            .map { response -> RatkoStatus(RatkoConnectionStatus.ONLINE, response.statusCode.value()) }
+            // Handle non-2xx responses from Ratko
+            .onErrorResume(WebClientResponseException::class.java) { ex ->
+                Mono.just(RatkoStatus(RatkoConnectionStatus.ONLINE_ERROR, ex.statusCode.value()))
+            }
+            // Handle exceptions thrown by the WebClient (e.g. timeouts)
+            .onErrorResume(WebClientRequestException::class.java) {
+                Mono.just(RatkoStatus(RatkoConnectionStatus.OFFLINE, null))
+            }
+            .block(defaultBlockTimeout) ?: RatkoStatus(RatkoConnectionStatus.OFFLINE, null)
     }
 
     fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {
@@ -488,9 +503,15 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     private fun deletePoints(url: String) {
         deleteSpec(url)
             .toBodilessEntity()
-            .onErrorResume(WebClientResponseException::class.java) {
-                if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it))
+            .onErrorResume(WebClientResponseException::class.java) { response ->
+                if (HttpStatus.NOT_FOUND == response.statusCode || HttpStatus.BAD_REQUEST == response.statusCode)
+                    Mono.empty()
+                else {
+                    logger.error(
+                        "Error during Ratko push! HTTP Status code: ${response.statusCode}, body: ${response.responseBodyAsString}"
+                    )
+                    Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, response))
+                }
             }
             .block(defaultBlockTimeout)
     }

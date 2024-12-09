@@ -23,30 +23,59 @@ import { ChangesBeingReverted } from 'preview/preview-view';
 
 const TrackNumberItem: React.FC<{
     layoutContext: LayoutContext;
-    trackNumberId: LayoutTrackNumberId;
+    trackNumber: PublicationCandidateReference & { type: DraftChangeType.TRACK_NUMBER };
     changeTime: TimeStamp;
 }> = (props) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbersIncludingDeleted(
-        draftLayoutContext(props.layoutContext),
-        props.changeTime,
-    );
-    const trackNumber = trackNumbers && trackNumbers.find((tn) => tn.id === props.trackNumberId);
-    return trackNumber === undefined ? (
-        <li />
-    ) : (
+    return (
         <li>
-            {t('publish.revert-confirm.dependency-list.track-number')} {trackNumber.number}
+            {t('publish.revert-confirm.dependency-list.track-number')}{' '}
+            {props.trackNumber.number ?? (
+                <LookupTrackNumberItem
+                    layoutContext={props.layoutContext}
+                    trackNumberId={props.trackNumber.id}
+                    changeTime={props.changeTime}
+                />
+            )}
         </li>
     );
 };
 
+const LookupTrackNumberItem: React.FC<{
+    layoutContext: LayoutContext;
+    trackNumberId: LayoutTrackNumberId;
+    changeTime: TimeStamp;
+}> = (props) =>
+    useTrackNumbersIncludingDeleted(
+        draftLayoutContext(props.layoutContext),
+        props.changeTime,
+    )?.find((tn) => tn.id === props.trackNumberId)?.number ?? '';
+
 const ReferenceLineItem: React.FC<{
+    layoutContext: LayoutContext;
+    referenceLine: PublicationCandidateReference & { type: DraftChangeType.REFERENCE_LINE };
+    changeTimes: ChangeTimes;
+}> = (props) => {
+    const { t } = useTranslation();
+    return (
+        <li>
+            {t('publish.revert-confirm.dependency-list.reference-line')}{' '}
+            {props.referenceLine.name ?? (
+                <LookupReferenceLineItem
+                    layoutContext={props.layoutContext}
+                    referenceLineId={props.referenceLine.id}
+                    changeTimes={props.changeTimes}
+                />
+            )}
+        </li>
+    );
+};
+
+const LookupReferenceLineItem: React.FC<{
     layoutContext: LayoutContext;
     referenceLineId: ReferenceLineId;
     changeTimes: ChangeTimes;
 }> = (props) => {
-    const { t } = useTranslation();
     const trackNumbers = useTrackNumbersIncludingDeleted(
         draftLayoutContext(props.layoutContext),
         props.changeTimes.layoutTrackNumber,
@@ -60,64 +89,78 @@ const ReferenceLineItem: React.FC<{
         return <li />;
     }
     const trackNumber = trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId);
-    return trackNumber === undefined ? (
-        <li />
-    ) : (
-        <li>
-            {t('publish.revert-confirm.dependency-list.reference-line')} {trackNumber.number}
-        </li>
-    );
+    return trackNumber?.number ?? '';
 };
 
 const LocationTrackItem: React.FC<{
     layoutContext: LayoutContext;
-    locationTrackId: LocationTrackId;
+    locationTrack: PublicationCandidateReference & { type: DraftChangeType.LOCATION_TRACK };
     changeTime: TimeStamp;
 }> = (props) => {
     const { t } = useTranslation();
-    const locationTrack = useLocationTrack(
+    return (
+        <li>
+            {t('publish.revert-confirm.dependency-list.location-track')}{' '}
+            {props.locationTrack.name ?? (
+                <LookupLocationTrackItem
+                    layoutContext={props.layoutContext}
+                    locationTrackId={props.locationTrack.id}
+                    changeTime={props.changeTime}
+                />
+            )}
+        </li>
+    );
+};
+const LookupLocationTrackItem: React.FC<{
+    layoutContext: LayoutContext;
+    locationTrackId: LocationTrackId;
+    changeTime: TimeStamp;
+}> = (props) =>
+    useLocationTrack(
         props.locationTrackId,
         draftLayoutContext(props.layoutContext),
         props.changeTime,
-    );
-    return locationTrack === undefined ? (
-        <li />
-    ) : (
+    )?.name;
+
+const SwitchItem: React.FC<{
+    layoutContext: LayoutContext;
+    switchCandidate: PublicationCandidateReference & { type: DraftChangeType.SWITCH };
+}> = ({ layoutContext, switchCandidate }) => {
+    const { t } = useTranslation();
+    return (
         <li>
-            {t('publish.revert-confirm.dependency-list.location-track')} {locationTrack.name}
+            {t('publish.revert-confirm.dependency-list.switch')}{' '}
+            {switchCandidate.name ?? (
+                <LookupSwitchItem layoutContext={layoutContext} switchId={switchCandidate.id} />
+            )}
         </li>
     );
 };
 
-const SwitchItem: React.FC<{ layoutContext: LayoutContext; switchId: LayoutSwitchId }> = ({
+const LookupSwitchItem: React.FC<{ layoutContext: LayoutContext; switchId: LayoutSwitchId }> = ({
     layoutContext,
     switchId,
-}) => {
+}) => useSwitch(switchId, draftLayoutContext(layoutContext))?.name;
+
+const KmPostItem: React.FC<{
+    layoutContext: LayoutContext;
+    kmPost: PublicationCandidateReference & { type: DraftChangeType.KM_POST };
+}> = ({ layoutContext, kmPost }) => {
     const { t } = useTranslation();
-    const switchObj = useSwitch(switchId, draftLayoutContext(layoutContext));
-    return switchObj === undefined ? (
-        <li />
-    ) : (
+    return (
         <li>
-            {t('publish.revert-confirm.dependency-list.switch')} {switchObj.name}
+            {t('publish.revert-confirm.dependency-list.km-post')}{' '}
+            {kmPost.kmNumber ?? (
+                <LookupKmPostItem layoutContext={layoutContext} kmPostId={kmPost.id} />
+            )}
         </li>
     );
 };
 
-const KmPostItem: React.FC<{ layoutContext: LayoutContext; kmPostId: LayoutKmPostId }> = ({
+const LookupKmPostItem: React.FC<{ layoutContext: LayoutContext; kmPostId: LayoutKmPostId }> = ({
     layoutContext,
     kmPostId,
-}) => {
-    const { t } = useTranslation();
-    const kmPost = useKmPost(kmPostId, draftLayoutContext(layoutContext));
-    return kmPost === undefined ? (
-        <li />
-    ) : (
-        <li>
-            {t('publish.revert-confirm.dependency-list.km-post')} {kmPost.kmNumber}
-        </li>
-    );
-};
+}) => useKmPost(kmPostId, draftLayoutContext(layoutContext))?.kmNumber;
 
 export const publicationRequestTypeTranslationKey = (type: DraftChangeType) => {
     switch (type) {
@@ -179,7 +222,7 @@ const getPublicationCandidateComponent = (
                 <TrackNumberItem
                     layoutContext={layoutContext}
                     key={candidateComponentKey}
-                    trackNumberId={candidate.id}
+                    trackNumber={candidate}
                     changeTime={changeTimes.layoutTrackNumber}
                 />
             );
@@ -189,7 +232,7 @@ const getPublicationCandidateComponent = (
                 <LocationTrackItem
                     layoutContext={layoutContext}
                     key={candidateComponentKey}
-                    locationTrackId={candidate.id}
+                    locationTrack={candidate}
                     changeTime={changeTimes.layoutLocationTrack}
                 />
             );
@@ -199,7 +242,7 @@ const getPublicationCandidateComponent = (
                 <ReferenceLineItem
                     layoutContext={layoutContext}
                     key={candidateComponentKey}
-                    referenceLineId={candidate.id}
+                    referenceLine={candidate}
                     changeTimes={changeTimes}
                 />
             );
@@ -208,7 +251,7 @@ const getPublicationCandidateComponent = (
             return (
                 <SwitchItem
                     layoutContext={layoutContext}
-                    switchId={candidate.id}
+                    switchCandidate={candidate}
                     key={candidateComponentKey}
                 />
             );
@@ -217,7 +260,7 @@ const getPublicationCandidateComponent = (
             return (
                 <KmPostItem
                     layoutContext={layoutContext}
-                    kmPostId={candidate.id}
+                    kmPost={candidate}
                     key={candidateComponentKey}
                 />
             );

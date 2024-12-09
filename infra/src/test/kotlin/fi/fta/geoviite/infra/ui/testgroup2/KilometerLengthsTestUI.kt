@@ -42,16 +42,16 @@ constructor(
     fun cleanup() {
         testDBService.clearAllTables()
 
-        val trackNumberId = trackNumberDao.insert(trackNumber(TrackNumber("foo"), draft = false)).id
+        val trackNumberId = trackNumberDao.save(trackNumber(TrackNumber("foo"), draft = false)).id
 
         val alignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
-        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignment, draft = false))
-        locationTrackDao.insert(
+        referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = alignment, draft = false))
+        locationTrackDao.save(
             locationTrack(trackNumberId = trackNumberId, name = "foo bar", alignmentVersion = alignment, draft = false)
         )
-        kmPostDao.insert(kmPost(trackNumberId, KmNumber(1), Point(900.0, 1.0), draft = false))
-        kmPostDao.insert(kmPost(trackNumberId, KmNumber(2), Point(2000.0, -1.0), draft = false))
-        kmPostDao.insert(kmPost(trackNumberId, KmNumber(3), Point(3000.0, 0.0), draft = false))
+        kmPostDao.save(kmPost(trackNumberId, KmNumber(1), Point(900.0, 1.0), draft = false))
+        kmPostDao.save(kmPost(trackNumberId, KmNumber(2), Point(2000.0, -1.0), draft = false))
+        kmPostDao.save(kmPost(trackNumberId, KmNumber(3), Point(3000.0, 0.0), draft = false))
     }
 
     @Test

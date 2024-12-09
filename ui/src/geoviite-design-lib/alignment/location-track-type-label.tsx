@@ -26,7 +26,7 @@ const LocationTrackTypeLabel: React.FC<LocationTrackTypeLabelProps> = ({
 }: LocationTrackTypeLabelProps) => {
     const { t } = useTranslation();
 
-    return <span qa-id={type}>{t(`enum.location-track-type.${getTranslationKey(type)}`)}</span>;
+    return <span qa-id={type}>{t(`enum.LocationTrackType.${getTranslationKey(type)}`)}</span>;
 };
 
 export default LocationTrackTypeLabel;

@@ -167,7 +167,7 @@ data class TopologyLocationTrackSwitch(val switchId: IntId<TrackLayoutSwitch>, v
 
 val locationTrackDescriptionLength = 4..256
 
-enum class DescriptionSuffixType {
+enum class LocationTrackDescriptionSuffix {
     NONE,
     SWITCH_TO_SWITCH,
     SWITCH_TO_BUFFER,
@@ -272,7 +272,7 @@ data class SplittingInitializationParameters(
 data class LocationTrack(
     val name: AlignmentName,
     val descriptionBase: LocationTrackDescriptionBase,
-    val descriptionSuffix: DescriptionSuffixType,
+    val descriptionSuffix: LocationTrackDescriptionSuffix,
     val type: LocationTrackType,
     val state: LocationTrackState,
     val externalId: Oid<LocationTrack>?,

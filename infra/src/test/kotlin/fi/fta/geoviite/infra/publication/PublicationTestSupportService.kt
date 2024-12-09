@@ -16,7 +16,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -93,7 +92,7 @@ constructor(
         val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment(startSegment, endSegment))
 
         val draftSource =
-            locationTrackDao.fetch(sourceTrack.rowVersion).copy(state = sourceLocationTrackState).let { d ->
+            locationTrackDao.fetch(sourceTrack).copy(state = sourceLocationTrackState).let { d ->
                 locationTrackService.saveDraft(LayoutBranch.main, d)
             }
 
@@ -119,6 +118,14 @@ constructor(
 
     fun getCalculatedChangesInRequest(versions: ValidationVersions): CalculatedChanges =
         calculatedChangesService.getCalculatedChanges(versions)
+
+    fun publish(layoutBranch: LayoutBranch, request: PublicationRequestIds): PublicationResult {
+        val versions = publicationService.getValidationVersions(layoutBranch, request)
+        verifyVersions(request, versions)
+        verifyVersionsAreDrafts(layoutBranch, versions)
+        val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
+        return testPublish(layoutBranch, versions, draftCalculatedChanges)
+    }
 
     fun publishAndVerify(layoutBranch: LayoutBranch, request: PublicationRequestIds): PublicationResult {
         val versions = publicationService.getValidationVersions(layoutBranch, request)
@@ -172,16 +179,14 @@ constructor(
 }
 
 data class SplitSetup(
-    val sourceTrack: LayoutDaoResponse<LocationTrack>,
-    val targetTracks: List<Pair<LayoutDaoResponse<LocationTrack>, IntRange>>,
+    val sourceTrack: LayoutRowVersion<LocationTrack>,
+    val targetTracks: List<Pair<LayoutRowVersion<LocationTrack>, IntRange>>,
 ) {
 
     val targetParams: List<Pair<IntId<LocationTrack>, IntRange>> =
         targetTracks.map { (track, range) -> track.id to range }
 
     val trackResponses = (listOf(sourceTrack) + targetTracks.map { it.first })
-
-    val trackValidationVersions = trackResponses.map { ValidationVersion(it.id, it.rowVersion) }
 
     val trackIds = trackResponses.map { r -> r.id }
 }
@@ -194,23 +199,20 @@ fun verifyVersions(publicationRequestIds: PublicationRequestIds, validationVersi
     verifyVersions(publicationRequestIds.switches, validationVersions.switches)
 }
 
-fun <T : LayoutAsset<T>> verifyVersions(ids: List<IntId<T>>, versions: List<ValidationVersion<T>>) {
+fun <T : LayoutAsset<T>> verifyVersions(ids: List<IntId<T>>, versions: List<LayoutRowVersion<T>>) {
     assertEquals(ids.size, versions.size)
-    ids.forEach { id -> assertTrue(versions.any { v -> v.officialId == id }) }
+    ids.forEach { id -> assertTrue(versions.any { v -> v.id == id }) }
 }
 
 fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyVersionsAreDrafts(
     branch: LayoutBranch,
     dao: S,
-    versions: List<ValidationVersion<T>>,
+    versions: List<LayoutRowVersion<T>>,
 ) {
-    versions
-        .map { v -> v.validatedAssetVersion }
-        .map(dao::fetch)
-        .forEach { asset ->
-            assertTrue(asset.isDraft)
-            assertEquals(branch, asset.branch)
-        }
+    versions.map(dao::fetch).forEach { asset ->
+        assertTrue(asset.isDraft)
+        assertEquals(branch, asset.branch)
+    }
 }
 
 fun assertEqualsCalculatedChanges(calculatedChanges: CalculatedChanges, publicationDetails: PublicationDetails) {

@@ -25,7 +25,6 @@ import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -139,7 +138,7 @@ constructor(
     fun modifyOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
-        publishAndCheck(version.rowVersion)
+        publishAndCheck(version)
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId).let { lt ->
@@ -156,7 +155,7 @@ constructor(
     fun deleteOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
-        publishAndCheck(version.rowVersion)
+        publishAndCheck(version)
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackService
@@ -176,7 +175,7 @@ constructor(
             insertAndCheck(
                 asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT"), state = LocationTrackState.DELETED)
             )
-        publishAndCheck(version.rowVersion)
+        publishAndCheck(version)
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackService
@@ -295,13 +294,62 @@ constructor(
     }
 
     @Test
+    fun `fetchLinkedLocationTracks does not confuse official rows with drafts`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val switch = mainOfficialContext.insert(switch()).id
+        val track1Main =
+            mainOfficialContext.insert(
+                locationTrack(trackNumber),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(1.0, 0.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
+                ),
+            )
+        val track2Main =
+            mainOfficialContext.insert(
+                locationTrack(trackNumber),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(1.0, 0.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
+                ),
+            )
+        mainDraftContext.insert(
+            locationTrackDao.fetch(track1Main),
+            alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+        )
+        mainDraftContext.insert(
+            locationTrackDao.fetch(track2Main),
+            alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+        )
+
+        assertEquals(
+            // null locationTrackIdsInPublicationUnit = everything in publication unit = nothing
+            // linked
+            mapOf(),
+            publicationDao.fetchLinkedLocationTracks(ValidateTransition(PublicationInMain), listOf(switch), null),
+        )
+        assertEquals(
+            // nothing in publication unit = everything linked
+            mapOf(switch to setOf(track1Main, track2Main)),
+            publicationDao.fetchLinkedLocationTracks(ValidateTransition(PublicationInMain), listOf(switch), listOf()),
+        )
+        assertEquals(
+            // just one track in publication unit = only the track not in publication unit is linked
+            mapOf(switch to setOf(track2Main)),
+            publicationDao.fetchLinkedLocationTracks(
+                ValidateTransition(PublicationInMain),
+                listOf(switch),
+                listOf(track1Main.id),
+            ),
+        )
+    }
+
+    @Test
     fun `fetchLinkedLocationTracks works on publication units`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val switchByAlignment = switchDao.insert(switch(draft = false)).id
-        val switchByTopo = switchDao.insert(switch(draft = false)).id
+        val switchByAlignment = switchDao.save(switch(draft = false)).id
+        val switchByTopo = switchDao.save(switch(draft = false)).id
         val dummyAlignment = alignmentDao.insert(alignment())
         val officialLinkedTopo =
-            locationTrackDao.insert(
+            locationTrackDao.save(
                 locationTrack(
                     trackNumberId,
                     topologyStartSwitch = TopologyLocationTrackSwitch(switchByTopo, JointNumber(1)),
@@ -310,7 +358,7 @@ constructor(
                 )
             )
         val draftLinkedTopo =
-            locationTrackDao.insert(
+            locationTrackDao.save(
                 locationTrack(
                     trackNumberId,
                     topologyStartSwitch = TopologyLocationTrackSwitch(switchByTopo, JointNumber(3)),
@@ -319,7 +367,7 @@ constructor(
                 )
             )
         val officialLinkedAlignment =
-            locationTrackDao.insert(
+            locationTrackDao.save(
                 locationTrack(
                     trackNumberId = trackNumberId,
                     alignmentVersion =
@@ -337,7 +385,7 @@ constructor(
                 )
             )
         val draftLinkedAlignment =
-            locationTrackDao.insert(
+            locationTrackDao.save(
                 locationTrack(
                     trackNumberId = trackNumberId,
                     alignmentVersion =
@@ -404,9 +452,9 @@ constructor(
 
     private fun insertAndCheck(
         trackNumber: TrackLayoutTrackNumber
-    ): Pair<LayoutDaoResponse<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> {
-        val official = trackNumberDao.insert(trackNumber)
-        val fromDb = trackNumberDao.fetch(official.rowVersion)
+    ): Pair<LayoutRowVersion<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> {
+        val official = trackNumberDao.save(trackNumber)
+        val fromDb = trackNumberDao.fetch(official)
         assertEquals(official.id, fromDb.id)
         assertMatches(trackNumber, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, trackNumber.dataType)
@@ -417,9 +465,9 @@ constructor(
 
     private fun insertAndCheck(
         switch: TrackLayoutSwitch
-    ): Pair<LayoutDaoResponse<TrackLayoutSwitch>, TrackLayoutSwitch> {
-        val official = switchDao.insert(switch)
-        val fromDb = switchDao.fetch(official.rowVersion)
+    ): Pair<LayoutRowVersion<TrackLayoutSwitch>, TrackLayoutSwitch> {
+        val official = switchDao.save(switch)
+        val fromDb = switchDao.fetch(official)
         assertEquals(official.id, fromDb.id)
         assertMatches(switch, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, switch.dataType)
@@ -428,11 +476,11 @@ constructor(
         return official to fromDb
     }
 
-    private fun insertAndCheck(referenceLine: ReferenceLine): Pair<LayoutDaoResponse<ReferenceLine>, ReferenceLine> {
+    private fun insertAndCheck(referenceLine: ReferenceLine): Pair<LayoutRowVersion<ReferenceLine>, ReferenceLine> {
         val dbAlignmentVersion = alignmentDao.insert(alignment())
         val lineWithAlignment = referenceLine.copy(alignmentVersion = dbAlignmentVersion)
-        val official = referenceLineDao.insert(lineWithAlignment)
-        val fromDb = referenceLineDao.fetch(official.rowVersion)
+        val official = referenceLineDao.save(lineWithAlignment)
+        val fromDb = referenceLineDao.fetch(official)
         assertEquals(official.id, fromDb.id)
         assertMatches(lineWithAlignment, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, referenceLine.dataType)
@@ -441,11 +489,11 @@ constructor(
         return official to fromDb
     }
 
-    private fun insertAndCheck(locationTrack: LocationTrack): Pair<LayoutDaoResponse<LocationTrack>, LocationTrack> {
+    private fun insertAndCheck(locationTrack: LocationTrack): Pair<LayoutRowVersion<LocationTrack>, LocationTrack> {
         val dbAlignmentVersion = alignmentDao.insert(alignment())
         val trackWithAlignment = locationTrack.copy(alignmentVersion = dbAlignmentVersion)
-        val official = locationTrackDao.insert(trackWithAlignment)
-        val fromDb = locationTrackDao.fetch(official.rowVersion)
+        val official = locationTrackDao.save(trackWithAlignment)
+        val fromDb = locationTrackDao.fetch(official)
         assertEquals(official.id, fromDb.id)
         assertMatches(trackWithAlignment, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, locationTrack.dataType)

@@ -13,9 +13,6 @@ import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
-import fi.fta.geoviite.infra.tracklayout.LayoutRowId
-import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
@@ -89,7 +86,7 @@ class PublicationValidationTest {
         val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
         val referenceLine = referenceLine(trackNumberId = IntId(1), id = IntId(1), draft = false)
         val kmPost = kmPost(trackNumberId, KmNumber(1), draft = true)
-        val trackNumber = trackNumber(id = IntId(2), draft = false, draftOfId = IntId(1))
+        val trackNumber = trackNumber(id = IntId(2), draft = false)
         assertKmPostReferenceError(
             true,
             kmPost,
@@ -207,19 +204,6 @@ class PublicationValidationTest {
     fun alignmentFieldValidationCatchesLackingGeometry() {
         assertLocationTrackFieldError(true, alignment(listOf()), "$VALIDATION_LOCATION_TRACK.empty-segments")
         assertLocationTrackFieldError(false, alignment(someSegment()), "$VALIDATION_LOCATION_TRACK.empty-segments")
-    }
-
-    @Test
-    fun validationCatchesReferencingDraftRow() {
-        val segmentSwitch = segmentSwitchPair(switchDraft = true, switchInPublication = true)
-        assertSegmentSwitchError(false, segmentSwitch, "$VALIDATION_LOCATION_TRACK.switch.not-official")
-        assertSegmentSwitchError(
-            true,
-            editSegment(segmentSwitch) { segment ->
-                segment.copy(switchId = IntId(segmentSwitch.switch?.contextData?.rowId!!.intValue))
-            },
-            "$VALIDATION_LOCATION_TRACK.switch.not-official",
-        )
     }
 
     @Test
@@ -478,7 +462,7 @@ class PublicationValidationTest {
         val lt = locationTrack(IntId(0), duplicateOf = IntId(0), draft = true)
         assertContainsError(
             true,
-            validateDuplicateOfState(lt, lt, AlignmentName("duplicateof"), listOf()),
+            validateDuplicateOfState(lt, lt, AlignmentName("duplicateof"), false, listOf()),
             "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated",
         )
     }
@@ -522,31 +506,6 @@ class PublicationValidationTest {
             false,
             validateSwitchLocationTrackLinkStructure(rightPlaceSwitch, switchStructureYV60_300_1_9(), listOf(lt)),
             "$VALIDATION_SWITCH.location-track.joint-location-mismatch",
-        )
-    }
-
-    @Test
-    fun `Combine versions overrides official version with validation version`() {
-        val officialVersions: List<LayoutDaoResponse<PublicationValidationTest>> =
-            listOf(
-                LayoutDaoResponse(IntId(1), LayoutRowVersion(LayoutRowId(1), 2)),
-                LayoutDaoResponse(IntId(2), LayoutRowVersion(LayoutRowId(2), 3)),
-                LayoutDaoResponse(IntId(3), LayoutRowVersion(LayoutRowId(3), 4)),
-            )
-        val validationVersions: List<ValidationVersion<PublicationValidationTest>> =
-            listOf(
-                ValidationVersion(IntId(2), LayoutRowVersion(LayoutRowId(16), 1)),
-                ValidationVersion(IntId(4), LayoutRowVersion(LayoutRowId(17), 1)),
-            )
-        assertEquals(
-            listOf(
-                LayoutRowVersion(LayoutRowId(1), 2),
-                // Official version for row 2 gets replace by draft 16_1
-                LayoutRowVersion(LayoutRowId(3), 4),
-                LayoutRowVersion(LayoutRowId(16), 1),
-                LayoutRowVersion(LayoutRowId(17), 1),
-            ),
-            combineVersions(officialVersions, validationVersions),
         )
     }
 
@@ -866,7 +825,6 @@ class PublicationValidationTest {
                         TrackLayoutSwitchJoint(JointNumber(1), Point(10.0, 10.0), null),
                         TrackLayoutSwitchJoint(JointNumber(2), Point(20.0, 20.0), null),
                     ),
-                draftOfId = if (switchDraft) IntId(1) else null,
             )
         val joint1 = switch.joints.first()
         val joint2 = switch.joints.last()

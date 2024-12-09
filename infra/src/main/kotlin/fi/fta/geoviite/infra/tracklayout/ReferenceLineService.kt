@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
@@ -28,14 +27,14 @@ class ReferenceLineService(
         branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startAddress: TrackMeter,
-    ): LayoutDaoResponse<ReferenceLine> {
+    ): LayoutRowVersion<ReferenceLine> {
         return saveDraftInternal(
             branch,
             ReferenceLine(
                 trackNumberId = trackNumberId,
                 startAddress = startAddress,
                 sourceId = null,
-                contextData = LayoutContextData.newDraft(branch),
+                contextData = LayoutContextData.newDraft(branch, dao.createId()),
             ),
             emptyAlignment(),
         )
@@ -46,7 +45,7 @@ class ReferenceLineService(
         branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startAddress: TrackMeter,
-    ): LayoutDaoResponse<ReferenceLine>? {
+    ): LayoutRowVersion<ReferenceLine>? {
         val originalVersion =
             dao.fetchVersionByTrackNumberId(branch.draft, trackNumberId)
                 ?: throw IllegalStateException("Track number should have a reference line")
@@ -62,7 +61,7 @@ class ReferenceLineService(
     }
 
     @Transactional
-    override fun saveDraft(branch: LayoutBranch, draftAsset: ReferenceLine): LayoutDaoResponse<ReferenceLine> =
+    override fun saveDraft(branch: LayoutBranch, draftAsset: ReferenceLine): LayoutRowVersion<ReferenceLine> =
         super.saveDraft(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)))
 
     @Transactional
@@ -70,7 +69,7 @@ class ReferenceLineService(
         branch: LayoutBranch,
         draftAsset: ReferenceLine,
         alignment: LayoutAlignment,
-    ): LayoutDaoResponse<ReferenceLine> {
+    ): LayoutRowVersion<ReferenceLine> {
         return saveDraftInternal(branch, draftAsset, alignment)
     }
 
@@ -78,7 +77,7 @@ class ReferenceLineService(
         branch: LayoutBranch,
         draftAsset: ReferenceLine,
         alignment: LayoutAlignment,
-    ): LayoutDaoResponse<ReferenceLine> {
+    ): LayoutRowVersion<ReferenceLine> {
         require(alignment.segments.all { it.switchId == null }) {
             "Reference lines cannot have switches: id=${draftAsset.id} referenceLine=$draftAsset"
         }
@@ -108,9 +107,9 @@ class ReferenceLineService(
     @Transactional
     override fun publish(
         branch: LayoutBranch,
-        version: ValidationVersion<ReferenceLine>,
-    ): LayoutDaoResponse<ReferenceLine> {
-        val publishedVersion = publishInternal(branch, version.validatedAssetVersion)
+        version: LayoutRowVersion<ReferenceLine>,
+    ): LayoutRowVersion<ReferenceLine> {
+        val publishedVersion = publishInternal(branch, version)
         // Some of the versions may get deleted in publication -> delete any alignments they left
         // behind
         alignmentDao.deleteOrphanedAlignments()
@@ -118,10 +117,9 @@ class ReferenceLineService(
     }
 
     @Transactional
-    override fun deleteDraft(branch: LayoutBranch, id: IntId<ReferenceLine>): LayoutDaoResponse<ReferenceLine> {
-        val draft = dao.getOrThrow(branch.draft, id)
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<ReferenceLine>): LayoutRowVersion<ReferenceLine> {
         val deletedVersion = super.deleteDraft(branch, id)
-        draft.alignmentVersion?.id?.let(alignmentDao::delete)
+        dao.fetch(deletedVersion).alignmentVersion?.id?.let(alignmentDao::delete)
         return deletedVersion
     }
 
@@ -129,7 +127,7 @@ class ReferenceLineService(
     fun deleteDraftByTrackNumberId(
         branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): LayoutDaoResponse<ReferenceLine>? {
+    ): LayoutRowVersion<ReferenceLine>? {
         val referenceLine =
             requireNotNull(referenceLineDao.getByTrackNumber(branch.draft, trackNumberId)) {
                 "Found Track Number without Reference Line $trackNumberId"
@@ -240,13 +238,15 @@ class ReferenceLineService(
     override fun mergeToMainBranch(
         fromBranch: DesignBranch,
         id: IntId<ReferenceLine>,
-    ): LayoutDaoResponse<ReferenceLine> {
-        val (versions, line) = fetchAndCheckVersionsForMerging(fromBranch, id)
-        return mergeToMainBranchInternal(
-            versions,
-            line.copy(alignmentVersion = alignmentService.duplicate(line.getAlignmentVersionOrThrow())),
+    ): LayoutRowVersion<ReferenceLine> {
+        val line = fetchAndCheckForMerging(fromBranch, id)
+        return dao.save(
+            asMainDraft(line.copy(alignmentVersion = alignmentService.duplicate(line.getAlignmentVersionOrThrow())))
         )
     }
+
+    override fun cancelInternal(asset: ReferenceLine) =
+        cancelled(asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())))
 }
 
 fun referenceLineWithAlignment(

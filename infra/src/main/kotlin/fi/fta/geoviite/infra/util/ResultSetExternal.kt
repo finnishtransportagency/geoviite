@@ -31,13 +31,12 @@ import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
-import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
-import fi.fta.geoviite.infra.tracklayout.StoredContextIdHolder
+import fi.fta.geoviite.infra.tracklayout.StoredAssetId
 import java.sql.ResultSet
 import java.time.Instant
 import java.time.LocalDate
@@ -75,9 +74,13 @@ fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T
     }
 }
 
-fun <T> ResultSet.getLayoutRowId(name: String): LayoutRowId<T> = verifyNotNull(name, ::getLayoutRowIdOrNull)
+fun <T> ResultSet.getLayoutRowId(idName: String, designIdName: String, draftFlagName: String) =
+    LayoutRowId(getIntId<T>(idName), getLayoutContext(designIdName, draftFlagName))
 
-fun <T> ResultSet.getLayoutRowIdOrNull(name: String): LayoutRowId<T>? = getIntOrNull(name)?.let(::LayoutRowId)
+fun <T> ResultSet.getLayoutRowIdOrNull(idName: String, designIdName: String, draftFlagName: String) =
+    getIntIdOrNull<T>(idName)?.let { id ->
+        getLayoutContextOrNull(designIdName, draftFlagName)?.let { layoutContext -> LayoutRowId(id, layoutContext) }
+    }
 
 fun <T> ResultSet.getIntId(name: String): IntId<T> = verifyNotNull(name, ::getIntIdOrNull)
 
@@ -160,9 +163,6 @@ fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? = getString(n
 
 fun <T> ResultSet.getIntIdArray(name: String): List<IntId<T>> = getListOrNull<Int>(name)?.map(::IntId) ?: emptyList()
 
-fun <T> ResultSet.getLayoutRowIdArray(name: String): List<LayoutRowId<T>> =
-    getListOrNull<Int>(name)?.map(::LayoutRowId) ?: emptyList()
-
 fun ResultSet.getIntArray(name: String): List<Int> = verifyNotNull(name, ::getIntArrayOrNull)
 
 fun ResultSet.getIntArrayOrNull(name: String): List<Int>? = getListOrNull(name)
@@ -208,9 +208,6 @@ inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? 
         if (arr is Array<*>) (arr as Array<out Any?>).map { it?.let(::verifyType) } else null
     }
 
-fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) =
-    LayoutDaoResponse<T>(id = getIntId(officialIdName), rowVersion = getLayoutRowVersion(versionIdName, versionName))
-
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
     RowVersion(getIntId(idName), getIntNonNull(versionName))
 
@@ -220,14 +217,41 @@ fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowV
     return if (rowId != null && version != null) RowVersion(rowId, version) else null
 }
 
-fun <T> ResultSet.getLayoutRowVersion(rowIdName: String, versionName: String): LayoutRowVersion<T> =
-    LayoutRowVersion(getLayoutRowId(rowIdName), getIntNonNull(versionName))
+fun <T> ResultSet.getLayoutRowVersion(
+    idName: String,
+    layoutBranchName: String,
+    publicationStateName: String,
+    versionName: String,
+): LayoutRowVersion<T> =
+    LayoutRowVersion(getLayoutRowId(idName, layoutBranchName, publicationStateName), getIntNonNull(versionName))
 
-fun <T> ResultSet.getLayoutRowVersionOrNull(rowIdName: String, versionName: String): LayoutRowVersion<T>? {
-    val rowId = getLayoutRowIdOrNull<T>(rowIdName)
+fun <T> ResultSet.getLayoutRowVersionOrNull(
+    idName: String,
+    layoutBranchName: String,
+    publicationStateName: String,
+    versionName: String,
+): LayoutRowVersion<T>? {
+    val rowId = getLayoutRowIdOrNull<T>(idName, layoutBranchName, publicationStateName)
     val version = getIntOrNull(versionName)
     return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
 }
+
+fun <T> ResultSet.getLayoutRowVersionArray(
+    idsName: String,
+    designIdsName: String,
+    publicationStatesName: String,
+    versionsName: String,
+): List<LayoutRowVersion<T>> {
+    val ids = getIntIdArray<T>(idsName)
+    val branches = getLayoutBranchArray(designIdsName)
+    val drafts = getBooleanArray(publicationStatesName)
+    val versions = getIntArray(versionsName)
+    return ids.mapIndexed { index, id ->
+        LayoutRowVersion(id, branches[index].let { if (drafts[index]) it.draft else it.official }, versions[index])
+    }
+}
+
+fun ResultSet.getBooleanArray(name: String) = getList<Boolean>(name)
 
 fun ResultSet.getIntNonNull(name: String) = getIntOrNull(name) ?: error("$name can't be null")
 
@@ -326,6 +350,17 @@ fun ResultSet.getPublicationStateOrNull(draftFlagName: String): PublicationState
 fun ResultSet.getLayoutBranch(designIdName: String): LayoutBranch =
     getIntIdOrNull<LayoutDesign>(designIdName).let { id -> if (id == null) LayoutBranch.main else DesignBranch.of(id) }
 
+// no getLayoutBranchOrNull, as we couldn't distinguish between when to return the main branch and
+// when null
+
+fun ResultSet.getLayoutBranchArray(designIdsName: String): List<LayoutBranch> =
+    getNullableIntArray(designIdsName).map { id -> if (id == null) LayoutBranch.main else DesignBranch.of(IntId(id)) }
+
+fun ResultSet.getLayoutBranchArrayOrNull(designIdsName: String): List<LayoutBranch>? =
+    getNullableIntArrayOrNull(designIdsName)?.map { id ->
+        if (id == null) LayoutBranch.main else DesignBranch.of(IntId(id))
+    }
+
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
     requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }
 
@@ -336,50 +371,42 @@ inline fun <reified T> verifyType(value: Any?): T =
     }
 
 fun <T> ResultSet.getLayoutContextData(
-    officialRowIdName: String,
-    designRowIdName: String,
+    idName: String,
     designIdName: String,
-    rowIdName: String,
-    rowVersionName: String,
     draftFlagName: String,
+    versionName: String,
     cancelledName: String,
+    hasOfficialName: String,
+    originDesignIdName: String,
 ): LayoutContextData<T> {
     val designId = getIntIdOrNull<LayoutDesign>(designIdName)
-    val designRowId = getLayoutRowIdOrNull<T>(designRowIdName)
-    val officialRowId = getLayoutRowIdOrNull<T>(officialRowIdName)
-    val rowVersion = LayoutRowVersion(getLayoutRowId<T>(rowIdName), getInt(rowVersionName))
     val isDraft = getBoolean(draftFlagName)
+    val rowVersion = getLayoutRowVersion<T>(idName, designIdName, draftFlagName, versionName)
     val cancelled = getBoolean(cancelledName)
+    val hasOfficial = getBoolean(hasOfficialName)
+    val originBranch = getLayoutBranch(originDesignIdName)
     return if (designId != null) {
         if (isDraft) {
             DesignDraftContextData(
-                contextIdHolder = StoredContextIdHolder(rowVersion),
-                officialRowId = officialRowId,
+                layoutAssetId = StoredAssetId(rowVersion),
                 designId = designId,
-                designRowId = designRowId,
                 cancelled = cancelled,
+                hasOfficial = hasOfficial,
             )
         } else {
-            require(designRowId == null) {
-                "For official design rows, design row ref should be null: officialRow=$officialRowId rowVersion=$rowVersion designRowId=$designRowId"
-            }
             DesignOfficialContextData(
-                contextIdHolder = StoredContextIdHolder(rowVersion),
-                officialRowId = officialRowId,
+                layoutAssetId = StoredAssetId(rowVersion),
                 designId = designId,
                 cancelled = cancelled,
             )
         }
     } else if (isDraft) {
         MainDraftContextData(
-            contextIdHolder = StoredContextIdHolder(rowVersion),
-            officialRowId = officialRowId,
-            designRowId = designRowId,
+            layoutAssetId = StoredAssetId(rowVersion),
+            hasOfficial = hasOfficial,
+            originBranch = originBranch,
         )
     } else {
-        require(officialRowId == null) {
-            "For official rows, official row ref should be null: officialRow=$officialRowId rowVersion=$rowVersion draft=$isDraft"
-        }
-        MainOfficialContextData(contextIdHolder = StoredContextIdHolder(rowVersion))
+        MainOfficialContextData(layoutAssetId = StoredAssetId(rowVersion))
     }
 }

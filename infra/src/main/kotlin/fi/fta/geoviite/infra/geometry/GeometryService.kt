@@ -473,14 +473,8 @@ constructor(
 
             GeometryPlanSortField.KM_END ->
                 Comparator { a, b -> nullsLastComparator(a.kmNumberRange?.max, b.kmNumberRange?.max) }
-            GeometryPlanSortField.PLAN_PHASE ->
-                stringComparator { h ->
-                    h.planPhase?.let { planPhase -> translation.t("enum.plan-phase.${planPhase.name}") }
-                }
-            GeometryPlanSortField.DECISION_PHASE ->
-                stringComparator { h ->
-                    h.decisionPhase?.let { decisionPhase -> translation.t("enum.plan-decision.${decisionPhase.name}") }
-                }
+            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> h.planPhase?.let(translation::enum) }
+            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> h.decisionPhase?.let(translation::enum) }
             GeometryPlanSortField.CREATED_AT -> Comparator { a, b -> nullsLastComparator(a.planTime, b.planTime) }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
             GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }

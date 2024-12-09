@@ -172,7 +172,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     );
 
     const moveToEditLinkText = (tn: LayoutTrackNumber) => {
-        const state = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+        const state = tn.state === 'DELETED' ? ` (${t('enum.LayoutState.DELETED')})` : '';
         return t('track-number-edit.action.move-to-edit', {
             number: tn.number + state,
         });
