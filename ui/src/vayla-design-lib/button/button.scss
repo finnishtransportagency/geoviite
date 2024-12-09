@@ -59,6 +59,12 @@ $button-animation-size-small: 12px;
     height: 24px;
 }
 
+.button.button--size-by-content {
+    height: auto;
+    width: auto;
+    padding: 0;
+}
+
 .button--has-icon {
     padding: 8px 12px 8px 8px;
 }
