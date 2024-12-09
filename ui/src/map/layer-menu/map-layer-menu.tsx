@@ -18,6 +18,7 @@ import {
 } from 'map/map-store';
 import { VIEW_GEOMETRY } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
 type MapLayerMenuProps = {
     onMenuChange: (change: MapLayerMenuChange) => void;
@@ -152,15 +153,18 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
     return (
         <React.Fragment>
             <div ref={buttonRef}>
-                <div
-                    className={styles['map-layer-button']}
+                <Button
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.BY_CONTENT}
                     onClick={() => setShowMapLayerMenu(!showMapLayerMenu)}
                     qa-id="map-layers-button"
                     title={t('map-layer-menu.title')}>
-                    <div className={styles['map-layer-button__icon']}>
-                        <Icons.Layers color={IconColor.INHERIT} size={IconSize.INHERIT} />
+                    <div className={styles['map-layer-button-content']}>
+                        <div className={styles['map-layer-button-content__icon']}>
+                            <Icons.Layers color={IconColor.INHERIT} size={IconSize.INHERIT} />
+                        </div>
                     </div>
-                </div>
+                </Button>
             </div>
             {showMapLayerMenu && (
                 <CloseableModal
