@@ -878,12 +878,12 @@ data class CroppedAlignment(
     val cropStartSegmentIndex: Int,
     override val segments: List<LayoutSegment>,
     override val segmentMs: List<Range<Double>>,
-    override val id: DomainId<LayoutAlignment>,
+    val id: DomainId<LayoutAlignment>,
 ) : IAlignment {
 
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.mapNotNull(ISegment::boundingBox)) }
 
-    override fun toLog(): String = logFormat("id" to id, "segments" to segments.map(ISegment::id))
+    override fun toLog(): String = logFormat("id" to id, "segments" to segments.size)
 }
 
 fun cropNothing(alignment: LayoutAlignment) = CroppedAlignment(0, alignment.segments, alignment.segmentMs, alignment.id)
