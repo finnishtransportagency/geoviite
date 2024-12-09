@@ -62,7 +62,7 @@ data class PlanLayoutAlignment(
     override val segmentMs: List<Range<Double>> by lazy { calculateSegmentMs(segments) }
 
     @get:JsonIgnore
-    override val id: DomainId<GeometryAlignment>
+    val id: DomainId<GeometryAlignment>
         get() = header.id
 
     @get:JsonIgnore
@@ -79,5 +79,5 @@ data class PlanLayoutSegment(
     override val sourceId: DomainId<GeometryElement>?,
     override val sourceStart: Double?,
     override val source: GeometrySource,
-    override val id: DomainId<LayoutSegment>,
+    val id: DomainId<LayoutSegment>,
 ) : ISegment, ISegmentGeometry by geometry
