@@ -178,8 +178,8 @@ data class GeocodingContext(
     val projectionLines: List<ProjectionLine> by lazy {
         require(isSame(polyLineEdges.last().endM, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
             "Polyline edges should cover the whole reference line geometry: " +
-                "trackNumber=${trackNumber} " +
-                "alignment=${referenceLineGeometry.id} " +
+                "trackNumber=$trackNumber " +
+                "alignment=$referenceLineGeometry " +
                 "edgeMValues=${polyLineEdges.map { e -> e.startM..e.endM }}"
         }
         // TODO: GVT-1727 The validation claims to filter out bad projections, but we use the un-filtered here

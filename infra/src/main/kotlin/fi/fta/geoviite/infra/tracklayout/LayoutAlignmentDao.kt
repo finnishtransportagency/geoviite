@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
 import java.sql.ResultSet
@@ -65,14 +66,14 @@ class LayoutAlignmentDao(
     fun getNode(id: IntId<LayoutNode>): LayoutNode =
         nodesCache.get(id) {
             val node = fetchNodes(id).single()
-            nodeIdsByHash[node.content.lazyHash] = id
+            nodeIdsByHash[node.contentHash] = id
             node
         }
 
     fun preloadNodes(): Int {
         val nodes = fetchNodes(id = null)
         nodesCache.putAll(nodes.associateBy(LayoutNode::id))
-        nodeIdsByHash.putAll(nodes.associate { n -> n.content.lazyHash to n.id })
+        nodeIdsByHash.putAll(nodes.associate { n -> n.contentHash to n.id })
         return nodes.size
     }
 
@@ -111,10 +112,10 @@ class LayoutAlignmentDao(
     }
 
     @Transactional
-    fun getOrCreateNode(content: LayoutNodeContent): LayoutNode =
-        getNode(nodeIdsByHash[content.lazyHash] ?: saveNode(content))
+    fun getOrCreateNode(content: ILayoutNodeContent): LayoutNode =
+        if (content is LayoutNode) content else getNode(nodeIdsByHash[content.contentHash] ?: saveNode(content))
 
-    private fun saveNode(content: LayoutNodeContent): IntId<LayoutNode> {
+    private fun saveNode(content: ILayoutNodeContent): IntId<LayoutNode> {
         val sql = "select layout.get_or_insert_node(:switch_ids, :switch_joints, :start_track_id, :end_track_id)"
         val switchIds = content.switches.takeIf { l -> l.isNotEmpty() }?.map { s -> s.id.intValue }?.toTypedArray()
         val switchJoints =
@@ -133,7 +134,7 @@ class LayoutAlignmentDao(
     fun getEdge(id: IntId<LayoutEdge>): LayoutEdge =
         edgesCache.get(id) {
             val edge = fetchEdges(ids = listOf(id), active = false).values.single()
-            edgeIdsByHash[edge.content.lazyHash] = id
+            edgeIdsByHash[edge.contentHash] = id
             edge
         }
 
@@ -143,7 +144,7 @@ class LayoutAlignmentDao(
         val edges = fetchEdges(ids = null, active = true)
         //        logger.info("Preloaded: ${edges.keys.toList()}")
         edgesCache.putAll(edges)
-        edgeIdsByHash.putAll(edges.values.associate { n -> n.content.lazyHash to n.id })
+        edgeIdsByHash.putAll(edges.values.associate { n -> n.contentHash to n.id })
         return edges.size
     }
 
@@ -195,7 +196,8 @@ class LayoutAlignmentDao(
                     rs.getIntIdArray<SegmentGeometry>("geometry_ids").also { require(it.size == segmentIndices.size) }
                 val segmentGeometries = fetchSegmentGeometries(geometryIds)
                 val segments =
-                    segmentIndices.mapIndexed { i, segmentIndex ->
+                    //                    segmentIndices.mapIndexed { i, segmentIndex ->
+                    segmentIndices.map { i ->
                         val geometryAlignmentId = geometryAlignmentIds[i]
                         val geometryElementIndex = geometryElementIndices[i]
                         val sourceId: IndexedId<GeometryElement>? =
@@ -205,7 +207,7 @@ class LayoutAlignmentDao(
                                 null
                             }
                         LayoutEdgeSegment(
-                            id = IndexedId(edgeId.intValue, segmentIndex),
+                            //                            id = IndexedId(edgeId.intValue, segmentIndex),
                             sourceId = sourceId,
                             sourceStart = sourceStartMValues[i]?.toDouble(),
                             source = sources[i],
@@ -215,9 +217,12 @@ class LayoutAlignmentDao(
                 LayoutEdge(
                     id = edgeId,
                     content =
-                        EdgeContent(
-                            startNodeId = rs.getIntId("start_node_id"),
-                            endNodeId = rs.getIntId("end_node_id"),
+                        LayoutEdgeContent(
+                            //                            startNodeId = rs.getIntId("start_node_id"),
+                            //                            endNodeId = rs.getIntId("end_node_id"),
+                            // TODO: GVT-1727 fetch with single query or just trust in the cache?
+                            startNode = getNode(rs.getIntId("start_node_id")),
+                            endNode = getNode(rs.getIntId("end_node_id")),
                             segments = segments,
                             segmentMs = calculateSegmentMs(segments),
                         ),
@@ -227,12 +232,19 @@ class LayoutAlignmentDao(
     }
 
     @Transactional
-    fun getOrCreateEdge(content: EdgeContent): LayoutEdge {
-        val updatedContent = saveContentGeometry(content)
-        return getEdge(edgeIdsByHash[updatedContent.hashCode()] ?: saveEdge(updatedContent))
-    }
+    fun getOrCreateEdge(content: ILayoutEdge): LayoutEdge =
+        when (content) {
+            is LayoutEdge -> content
+            is LayoutEdgeContent ->
+                saveContentGeometry(content).let { updatedContent ->
+                    getEdge(edgeIdsByHash[updatedContent.contentHash] ?: saveEdge(updatedContent))
+                }
+            else -> error("Unknown edge content type ${content::class.simpleName}")
+        }
 
-    private fun saveEdge(content: EdgeContent): IntId<LayoutEdge> {
+    private fun saveEdge(content: LayoutEdgeContent): IntId<LayoutEdge> {
+        val startNodeId = getOrCreateNode(content.startNode).id
+        val endNodeId = getOrCreateNode(content.endNode).id
         val sql =
             """
             select layout.get_or_insert_edge(
@@ -248,8 +260,8 @@ class LayoutAlignmentDao(
         """
         val params =
             mapOf(
-                "start_node_id" to content.startNodeId.intValue,
-                "end_node_id" to content.endNodeId.intValue,
+                "start_node_id" to startNodeId.intValue,
+                "end_node_id" to endNodeId.intValue,
                 "geometry_alignment_ids" to content.segments.map { s -> s.sourceId?.parentId }.toTypedArray(),
                 "geometry_element_indices" to content.segments.map { s -> s.sourceId?.index }.toTypedArray(),
                 "start_m_values" to content.segmentMs.map { m -> m.min }.toTypedArray(),
@@ -260,7 +272,7 @@ class LayoutAlignmentDao(
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutEdge>("id") }.single()
     }
 
-    private fun saveContentGeometry(content: EdgeContent): EdgeContent {
+    private fun saveContentGeometry(content: LayoutEdgeContent): LayoutEdgeContent {
         val newGeometryIds =
             insertSegmentGeometries(
                 content.segments.mapNotNull { s -> if (s.geometry.id is StringId) s.geometry else null }
@@ -328,6 +340,36 @@ class LayoutAlignmentDao(
                 )
             }
             .associateBy(LocationTrackGeometry::trackRowVersion)
+    }
+
+    @Transactional
+    fun saveLocationTrackGeometry(trackVersion: LayoutRowVersion<LocationTrack>, content: ILocationTrackGeometry) {
+        val edges = content.edges.associate { e -> e.contentHash to getOrCreateEdge(e).id }
+        val sql =
+            """
+            insert into layout.location_track_version_edge(
+                location_track_id,
+                location_track_layout_context_id,
+                location_track_version,
+                edge_id,
+                edge_index,
+                start_m
+            )
+            values(?, ?, ?, ?, ?) 
+        """
+                .trimIndent()
+
+        // This uses indexed parameters (rather than named ones),
+        // since named parameter template's batch-method is considerably slower
+        jdbcTemplate.batchUpdateIndexed(sql, content.edgesWithM) { ps, (index, edgeAndM) ->
+            val (edge, m) = edgeAndM
+            ps.setInt(1, trackVersion.id.intValue)
+            ps.setString(2, trackVersion.context.toSqlString())
+            ps.setInt(3, trackVersion.version)
+            ps.setInt(4, requireNotNull(edges[edge.contentHash]).intValue)
+            ps.setInt(5, index)
+            ps.setBigDecimal(6, roundTo6Decimals(m.min))
+        }
     }
 
     fun preloadLocationTrackGeometries(): Int {

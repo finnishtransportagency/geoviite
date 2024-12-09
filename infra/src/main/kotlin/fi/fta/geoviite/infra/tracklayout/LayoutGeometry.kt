@@ -89,7 +89,7 @@ fun calculateSegmentMs(segments: List<ISegment>): List<Range<Double>> {
 interface IAlignment : Loggable {
     val segments: List<ISegment>
     val segmentMs: List<Range<Double>>
-    val id: DomainId<*>
+    //    val id: DomainId<*>
     val boundingBox: BoundingBox?
 
     val segmentsWithM: List<Pair<ISegment, Range<Double>>>
@@ -244,12 +244,12 @@ interface IAlignment : Loggable {
             getClosestPoint(point)?.let { closestPoint -> lineLength(point, closestPoint.first.toPoint()) <= distance }
                 ?: false
 
-    override fun toLog(): String = logFormat("id" to id, "segments" to segments.size, "length" to round(length, 3))
+    override fun toLog(): String = logFormat("segments" to segments.size, "length" to round(length, 3))
 }
 
 data class LayoutAlignment(
     override val segments: List<LayoutSegment>,
-    override val id: DomainId<LayoutAlignment> = StringId(),
+    val id: DomainId<LayoutAlignment> = StringId(),
     val dataType: DataType = DataType.TEMP,
 ) : IAlignment {
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.mapNotNull { s -> s.boundingBox }) }
@@ -285,6 +285,8 @@ data class LayoutAlignment(
     fun takeFirst(count: Int): List<AlignmentPoint> = allAlignmentPoints.take(count).toList()
 
     fun takeLast(count: Int): List<AlignmentPoint> = allAlignmentPointsDownward.take(count).toList().asReversed()
+
+    override fun toLog(): String = logFormat("id" to id, "segments" to segments.size, "length" to round(length, 3))
 }
 
 data class LayoutSegmentMetadata(
@@ -426,7 +428,7 @@ interface ISegmentFields {
     val sourceId: DomainId<GeometryElement>?
     val sourceStart: Double?
     val source: GeometrySource
-    val id: DomainId<*>
+    //    val id: DomainId<*>
 }
 
 interface ISegment : ISegmentGeometry, ISegmentFields {
@@ -503,7 +505,7 @@ data class LayoutSegment(
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,
     override val source: GeometrySource,
-    override val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
+    val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
 ) : ISegmentGeometry by geometry, ISegment, Loggable {
 
     init {
