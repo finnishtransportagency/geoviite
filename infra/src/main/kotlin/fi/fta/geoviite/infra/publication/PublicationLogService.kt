@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.TrackNumberAndChangeTime
@@ -51,6 +52,7 @@ constructor(
     private val publicationDao: PublicationDao,
     private val geocodingService: GeocodingService,
     private val locationTrackService: LocationTrackService,
+    private val locationTrackDao: LocationTrackDao,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val ratkoPushDao: RatkoPushDao,
     private val splitService: SplitService,
@@ -189,6 +191,12 @@ constructor(
                 val split = splitService.getOrThrow(splitId)
                 val (sourceLocationTrack, sourceAlignment) =
                     locationTrackService.getWithAlignment(split.sourceLocationTrackVersion)
+                val oid =
+                    requireNotNull(
+                        locationTrackDao.fetchExternalId(publication.layoutBranch, sourceLocationTrack.id as IntId)
+                    ) {
+                        "expected to find oid for published location track ${sourceLocationTrack.id} in publication ${id}"
+                    }
                 val targetLocationTracks =
                     publicationDao
                         .fetchPublishedLocationTracks(id)
@@ -208,6 +216,7 @@ constructor(
                     id = publication.id,
                     splitId = split.id,
                     locationTrack = sourceLocationTrack,
+                    locationTrackOid = oid,
                     targetLocationTracks = targetLocationTracks,
                 )
             }
@@ -246,7 +255,7 @@ constructor(
             return SplitTargetInPublication(
                 id = track.id,
                 name = track.name,
-                oid = track.externalId,
+                oid = locationTrackDao.fetchExternalId(publicationBranch, track.id),
                 startAddress = startAddress,
                 endAddress = endAddress,
                 operation = target.operation,
@@ -257,9 +266,7 @@ constructor(
     @Transactional(readOnly = true)
     fun getSplitInPublicationCsv(id: IntId<Publication>, lang: LocalizationLanguage): Pair<String, AlignmentName?> {
         return getSplitInPublication(id).let { splitInPublication ->
-            val data =
-                splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication.locationTrack to lt }
-                    ?: emptyList()
+            val data = splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication to lt } ?: emptyList()
             printCsv(splitCsvColumns(localizationService.getLocalization(lang)), data) to
                 splitInPublication?.locationTrack?.name
         }
@@ -963,10 +970,10 @@ constructor(
 
     private fun splitCsvColumns(
         translation: Translation
-    ): List<CsvEntry<Pair<LocationTrack, SplitTargetInPublication>>> =
-        mapOf<String, (item: Pair<LocationTrack, SplitTargetInPublication>) -> Any?>(
-                "split-details-csv.source-name" to { (lt, _) -> lt.name },
-                "split-details-csv.source-oid" to { (lt, _) -> lt.externalId },
+    ): List<CsvEntry<Pair<SplitInPublication, SplitTargetInPublication>>> =
+        mapOf<String, (item: Pair<SplitInPublication, SplitTargetInPublication>) -> Any?>(
+                "split-details-csv.source-name" to { (split, _) -> split.locationTrack.name },
+                "split-details-csv.source-oid" to { (split, _) -> split.locationTrackOid },
                 "split-details-csv.target-name" to { (_, split) -> split.name },
                 "split-details-csv.target-oid" to { (_, split) -> split.oid },
                 "split-details-csv.operation" to { (_, split) -> translation.enum(split.operation) },

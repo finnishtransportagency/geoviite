@@ -53,6 +53,7 @@ import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
+import { SwitchOid } from 'track-layout/oid';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -233,7 +234,14 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             qaId="switch-oid"
                             label={t('tool-panel.switch.layout.oid')}
                             value={
-                                layoutSwitch.externalId || t('tool-panel.switch.layout.unpublished')
+                                <SwitchOid
+                                    id={layoutSwitch.id}
+                                    branch={layoutContext.branch}
+                                    changeTimes={changeTimes}
+                                    getFallbackTextIfNoOid={() =>
+                                        t('tool-panel.switch.layout.unpublished')
+                                    }
+                                />
                             }
                         />
                         <InfoboxField

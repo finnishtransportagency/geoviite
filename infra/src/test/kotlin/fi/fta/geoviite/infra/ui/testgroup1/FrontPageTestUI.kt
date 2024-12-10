@@ -56,8 +56,8 @@ constructor(
     @Disabled
     @Test
     fun `Retry failed publication`() {
-        val originalTrackNumber =
-            trackNumberDao.save(trackNumber(TrackNumber("original name"), externalId = Oid("1.2.3.4.5"), draft = false))
+        val originalTrackNumber = trackNumberDao.save(trackNumber(TrackNumber("original name"), draft = false))
+        trackNumberDao.insertExternalId(originalTrackNumber.id, LayoutBranch.main, Oid("1.2.3.4.5"))
         val trackNumberId = originalTrackNumber.id
         val alignmentVersion =
             alignmentDao.insert(alignment(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0)))))

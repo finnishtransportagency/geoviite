@@ -159,7 +159,6 @@ private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: L
 
 fun trackLayoutSwitch(name: String, jointPoints: List<Point>, switchStructure: SwitchStructure) =
     TrackLayoutSwitch(
-        externalId = null,
         sourceId = null,
         name = SwitchName(name),
         stateCategory = LayoutStateCategory.EXISTING,

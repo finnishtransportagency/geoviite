@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -87,7 +86,6 @@ data class LocationTrackDuplicate(
     val id: IntId<LocationTrack>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val name: AlignmentName,
-    val externalId: Oid<LocationTrack>?,
     val start: AlignmentPoint?,
     val end: AlignmentPoint?,
     val length: Double,
@@ -100,7 +98,6 @@ data class TrackLayoutTrackNumber(
     val number: TrackNumber,
     val description: TrackNumberDescription,
     val state: LayoutState,
-    val externalId: Oid<TrackLayoutTrackNumber>?,
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutTrackNumber>,
     @JsonIgnore val referenceLineId: IntId<ReferenceLine>? = null,
 ) : LayoutAsset<TrackLayoutTrackNumber>(contextData) {
@@ -275,7 +272,6 @@ data class LocationTrack(
     val descriptionSuffix: LocationTrackDescriptionSuffix,
     val type: LocationTrackType,
     val state: LocationTrackState,
-    val externalId: Oid<LocationTrack>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,
     val boundingBox: BoundingBox?,
@@ -337,7 +333,6 @@ data class TrackLayoutSwitch(
     val switchStructureId: IntId<SwitchStructure>,
     val stateCategory: LayoutStateCategory,
     val joints: List<TrackLayoutSwitchJoint>,
-    val externalId: Oid<TrackLayoutSwitch>?,
     val sourceId: DomainId<GeometrySwitch>?,
     val trapPoint: Boolean?,
     val ownerId: IntId<SwitchOwner>?,

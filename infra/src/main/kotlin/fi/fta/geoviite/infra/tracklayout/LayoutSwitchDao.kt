@@ -13,6 +13,8 @@ import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.ratko.ExternalIdDao
+import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBooleanOrNull
@@ -51,6 +53,11 @@ class LayoutSwitchDao(
         LayoutAssetTable.LAYOUT_ASSET_SWITCH,
         cacheEnabled,
         SWITCH_CACHE_SIZE,
+    ),
+    IExternalIdDao<TrackLayoutSwitch> by ExternalIdDao(
+        jdbcTemplateParam,
+        "layout.switch_external_id",
+        "layout.switch_external_id_version",
     ) {
 
     override fun fetchVersions(
@@ -153,7 +160,6 @@ class LayoutSwitchDao(
               layout.switch(
                 layout_context_id,
                 id,
-                external_id,
                 geometry_switch_id,
                 name,
                 switch_structure_id,
@@ -169,7 +175,6 @@ class LayoutSwitchDao(
             values (
               :layout_context_id,
               :id,
-              :external_id, 
               :geometry_switch_id,
               :name,
               :switch_structure_id,
@@ -183,7 +188,6 @@ class LayoutSwitchDao(
               :origin_design_id
             )
             on conflict (id, layout_context_id) do update set
-              external_id = excluded.external_id,
               geometry_switch_id = excluded.geometry_switch_id,
               name = excluded.name,
               switch_structure_id = excluded.switch_structure_id,
@@ -203,7 +207,6 @@ class LayoutSwitchDao(
                 mapOf(
                     "layout_context_id" to item.layoutContext.toSqlString(),
                     "id" to id.intValue,
-                    "external_id" to item.externalId,
                     "geometry_switch_id" to item.sourceId?.let(::toDbId)?.intValue,
                     "name" to item.name,
                     "switch_structure_id" to item.switchStructureId.intValue,
@@ -298,7 +301,6 @@ class LayoutSwitchDao(
               sv.draft,
               sv.cancelled,
               sv.geometry_switch_id, 
-              sv.external_id, 
               sv.name, 
               sv.switch_structure_id,
               sv.state_category,
@@ -351,7 +353,6 @@ class LayoutSwitchDao(
               s.draft,
               s.cancelled,
               s.geometry_switch_id, 
-              s.external_id, 
               s.name, 
               s.switch_structure_id,
               s.state_category,
@@ -390,7 +391,6 @@ class LayoutSwitchDao(
     private fun getLayoutSwitch(rs: ResultSet): TrackLayoutSwitch {
         val switchStructureId = rs.getIntId<SwitchStructure>("switch_structure_id")
         return TrackLayoutSwitch(
-            externalId = rs.getOidOrNull("external_id"),
             sourceId = rs.getIntIdOrNull("geometry_switch_id"),
             name = SwitchName(rs.getString("name")),
             switchStructureId = switchStructureId,
@@ -469,7 +469,7 @@ class LayoutSwitchDao(
                   (location_track).design_id,
                   (location_track).draft,
                   (location_track).version,
-                  (location_track).external_id
+                  external_id
                   from (
                     select topology_start_switch_id as switch_id, location_track
                       from layout.location_track
@@ -485,7 +485,10 @@ class LayoutSwitchDao(
                       where switch_id = any (array [:switch_ids])
                   ) location_track
                     cross join lateral layout.location_track_is_in_layout_context(:publication_state::layout.publication_state,
-                                                                                  :design_id, location_track);
+                                                                                  :design_id, location_track)
+                    left join layout.location_track_external_id ext_id
+                      on (location_track).id = ext_id.id
+                        and ext_id.layout_context_id = layout.layout_context_id(:design_id, false);
             """
                 .trimIndent()
         val params =
@@ -520,12 +523,15 @@ class LayoutSwitchDao(
               location_track.design_id,
               location_track.draft,
               location_track.version,
-              location_track.external_id
+              location_track_external_id.external_id
             from layout.switch_at(:moment) switch
               inner join layout.location_track_at(:moment) location_track on not location_track.draft
               inner join layout.segment_version segment 
                 on segment.alignment_id = location_track.alignment_id 
                   and segment.alignment_version = location_track.alignment_version
+              left join layout.location_track_external_id
+                on location_track.id = location_track_external_id.id
+                  and location_track.layout_context_id = location_track_external_id.layout_context_id
             where switch.id = :switch_id 
                 and (segment.switch_id = :switch_id
                   or (location_track.topology_start_switch_id = :switch_id 
@@ -623,5 +629,11 @@ class LayoutSwitchDao(
                 rs.getIntId<TrackLayoutSwitch>("switch_id")
             }
             .also { results -> logger.daoAccess(FETCH, "Switches near alignment", results) }
+    }
+
+    @Transactional
+    fun insertExternalId(id: IntId<TrackLayoutSwitch>, branch: LayoutBranch, oid: Oid<TrackLayoutSwitch>) {
+        jdbcTemplate.setUser()
+        insertExternalIdInExistingTransaction(branch, id, oid)
     }
 }

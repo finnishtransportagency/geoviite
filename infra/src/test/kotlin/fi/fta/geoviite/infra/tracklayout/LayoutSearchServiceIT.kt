@@ -85,7 +85,7 @@ constructor(
 
         saveTrackNumbersWithSaveRequests(trackNumbers, LayoutState.DELETED).forEachIndexed { index, trackNumberId ->
             val oid = Oid<TrackLayoutTrackNumber>("1.2.3.4.5.6.$index")
-            trackNumberService.updateExternalId(LayoutBranch.main, trackNumberId, oid)
+            trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, oid)
 
             assertEquals(
                 1,

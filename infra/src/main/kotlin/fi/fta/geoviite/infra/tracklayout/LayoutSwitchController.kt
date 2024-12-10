@@ -3,12 +3,14 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
@@ -155,5 +157,11 @@ class LayoutSwitchController(
     ): ResponseEntity<LayoutAssetChangeInfo> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return toResponse(switchService.getLayoutAssetChangeInfo(layoutContext, switchId))
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/{id}/oids")
+    fun getSwitchOids(@PathVariable("id") id: IntId<TrackLayoutSwitch>): Map<LayoutBranch, Oid<TrackLayoutSwitch>> {
+        return switchService.getExternalIdsByBranch(id)
     }
 }

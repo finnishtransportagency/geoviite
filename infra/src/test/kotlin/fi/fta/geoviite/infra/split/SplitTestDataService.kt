@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -21,6 +22,7 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
+import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
 import kotlin.test.assertEquals
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,6 +42,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val splitDao: SplitDao,
     private val splitService: SplitService,
+    private val switchDao: LayoutSwitchDao,
 ) : DBTestBase() {
 
     fun clearSplits() {
@@ -85,13 +88,11 @@ constructor(
     ): SwitchAndSegments {
         val switchInsertResponse =
             mainOfficialContext.insert(
-                switchFromDbStructure(
-                    testDBService.getUnusedSwitchName().toString(),
-                    startPoint,
-                    structure,
-                    externalId = externalId?.toString(),
-                )
+                switchFromDbStructure(testDBService.getUnusedSwitchName().toString(), startPoint, structure)
             )
+        if (externalId != null) {
+            switchDao.insertExternalId(switchInsertResponse.id, LayoutBranch.main, externalId)
+        }
         return SwitchAndSegments(
             switchInsertResponse,
             segmentsFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 5, 2)),
@@ -130,6 +131,7 @@ constructor(
             assertEquals(trackNumberId, dbTrack.trackNumberId)
             assertEquals(segments.size, dbAlignment.segments.size)
             assertEquals(segments.sumOf { s -> s.length }, dbAlignment.length, 0.001)
+            locationTrackService.insertExternalId(LayoutBranch.main, dbTrack.id as IntId, someOid())
         }
     }
 

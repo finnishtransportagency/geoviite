@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.page
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
@@ -35,7 +36,6 @@ constructor(
                 switchStructureId = request.switchStructureId,
                 stateCategory = request.stateCategory,
                 joints = listOf(),
-                externalId = null,
                 sourceId = null,
                 trapPoint = request.trapPoint,
                 ownerId = request.ownerId,
@@ -117,21 +117,20 @@ constructor(
         return dao.list(layoutContext, includeDeleted).map(::withStructure)
     }
 
-    override fun idMatches(term: String, item: TrackLayoutSwitch) =
-        item.externalId.toString() == term || item.id.toString() == term
+    fun idMatches(
+        layoutContext: LayoutContext,
+        possibleIds: List<IntId<TrackLayoutSwitch>>? = null,
+    ): ((term: String, item: TrackLayoutSwitch) -> Boolean) =
+        dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
+            { term, item -> externalIds[item.id]?.toString() == term || item.id.toString() == term }
+        }
 
     override fun contentMatches(term: String, item: TrackLayoutSwitch) =
         item.exists && item.name.toString().replace("  ", " ").contains(term, true)
 
     @Transactional
-    fun updateExternalIdForSwitch(
-        branch: LayoutBranch,
-        id: IntId<TrackLayoutSwitch>,
-        oid: Oid<TrackLayoutSwitch>,
-    ): LayoutRowVersion<TrackLayoutSwitch> {
-        val original = dao.getOrThrow(branch.draft, id)
-        return saveDraft(branch, original.copy(externalId = oid))
-    }
+    fun insertExternalIdForSwitch(branch: LayoutBranch, id: IntId<TrackLayoutSwitch>, oid: Oid<TrackLayoutSwitch>) =
+        dao.insertExternalId(id, branch, oid)
 
     private fun withStructure(switch: TrackLayoutSwitch): Pair<TrackLayoutSwitch, SwitchStructure> =
         switch to switchLibraryService.getSwitchStructure(switch.switchStructureId)
@@ -175,6 +174,13 @@ constructor(
         return dao.findLocationTracksLinkedToSwitch(layoutContext, layoutSwitchId).map { ids ->
             locationTrackService.getWithAlignment(ids.rowVersion)
         }
+    }
+
+    fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
+
+    @Transactional(readOnly = true)
+    fun getExternalIdsByBranch(id: IntId<TrackLayoutSwitch>): Map<LayoutBranch, Oid<TrackLayoutSwitch>> {
+        return dao.fetchExternalIdsByBranch(id)
     }
 }
 

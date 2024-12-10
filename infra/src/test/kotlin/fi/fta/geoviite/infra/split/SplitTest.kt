@@ -61,7 +61,6 @@ class SplitTest {
         assertEquals(targets.size, resultTracks.size)
         resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
         assertEquals(dupTrack.id, resultTracks[0].locationTrack.id)
-        assertEquals(dupTrack.externalId, resultTracks[0].locationTrack.externalId)
         assertSegmentsMatch(alignment.segments.subList(0, 1), resultTracks[0].alignment)
         assertSegmentsMatch(alignment.segments.subList(1, 2), resultTracks[1].alignment)
     }

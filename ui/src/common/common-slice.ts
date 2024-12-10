@@ -6,9 +6,12 @@ import { PURGE } from 'redux-persist';
 
 export type ChangeTimes = {
     layoutTrackNumber: TimeStamp;
+    layoutTrackNumberExtId: TimeStamp;
     layoutLocationTrack: TimeStamp;
+    layoutLocationTrackExtId: TimeStamp;
     layoutReferenceLine: TimeStamp;
     layoutSwitch: TimeStamp;
+    layoutSwitchExtId: TimeStamp;
     layoutKmPost: TimeStamp;
     geometryPlan: TimeStamp;
     project: TimeStamp;
@@ -24,9 +27,12 @@ export type ChangeTimes = {
 export const initialChangeTime: TimeStamp = '1970-01-01T00:00:00.000Z';
 export const initialChangeTimes: ChangeTimes = {
     layoutTrackNumber: initialChangeTime,
+    layoutTrackNumberExtId: initialChangeTime,
     layoutLocationTrack: initialChangeTime,
+    layoutLocationTrackExtId: initialChangeTime,
     layoutReferenceLine: initialChangeTime,
     layoutSwitch: initialChangeTime,
+    layoutSwitchExtId: initialChangeTime,
     layoutKmPost: initialChangeTime,
     geometryPlan: initialChangeTime,
     project: initialChangeTime,

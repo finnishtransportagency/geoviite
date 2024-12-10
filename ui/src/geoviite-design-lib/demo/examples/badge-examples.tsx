@@ -33,7 +33,6 @@ const layoutLocationTrack: LayoutLocationTrack = {
     trackNumberId: brand(''),
     sourceId: '',
     type: undefined,
-    externalId: undefined,
     duplicateOf: undefined,
     topologicalConnectivity: 'NONE',
     topologyStartSwitch: undefined,

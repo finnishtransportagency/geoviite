@@ -122,7 +122,6 @@ fun toTrackLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation)
                     )
                 },
             sourceId = switch.id,
-            externalId = null,
             trapPoint = null,
             ownerId = null,
             source = GeometrySource.PLAN,

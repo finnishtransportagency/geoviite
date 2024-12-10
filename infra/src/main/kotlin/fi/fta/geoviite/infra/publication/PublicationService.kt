@@ -153,19 +153,16 @@ constructor(
      * want to store it, even if the rest fail
      */
     fun updateExternalId(branch: LayoutBranch, request: PublicationRequestIds) {
-        val draftContext = branch.draft
         try {
             request.locationTracks
-                .filter { trackId -> locationTrackService.getOrThrow(draftContext, trackId).externalId == null }
-                .forEach { trackId -> updateExternalIdForLocationTrack(branch, trackId) }
+                .filter { trackId -> locationTrackDao.fetchExternalId(branch, trackId) == null }
+                .forEach { trackId -> insertExternalIdForLocationTrack(branch, trackId) }
             request.trackNumbers
-                .filter { trackNumberId ->
-                    trackNumberService.getOrThrow(draftContext, trackNumberId).externalId == null
-                }
-                .forEach { trackNumberId -> updateExternalIdForTrackNumber(branch, trackNumberId) }
+                .filter { trackNumberId -> trackNumberDao.fetchExternalId(branch, trackNumberId) == null }
+                .forEach { trackNumberId -> insertExternalIdForTrackNumber(branch, trackNumberId) }
             request.switches
-                .filter { switchId -> switchService.getOrThrow(draftContext, switchId).externalId == null }
-                .forEach { switchId -> updateExternalIdForSwitch(branch, switchId) }
+                .filter { switchId -> switchDao.fetchExternalId(branch, switchId) == null }
+                .forEach { switchId -> insertExternalIdForSwitch(branch, switchId) }
         } catch (e: Exception) {
             throw PublicationFailureException(
                 message = "Failed to update external IDs for publication candidates",
@@ -197,21 +194,21 @@ constructor(
         )
     }
 
-    private fun updateExternalIdForLocationTrack(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>) {
+    private fun insertExternalIdForLocationTrack(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>) {
         val locationTrackOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewLocationTrackOid()) { "No OID received from RATKO" } }
-        locationTrackOid?.let { oid -> locationTrackService.updateExternalId(branch, locationTrackId, Oid(oid.id)) }
+        locationTrackOid?.let { oid -> locationTrackService.insertExternalId(branch, locationTrackId, Oid(oid.id)) }
     }
 
-    private fun updateExternalIdForTrackNumber(branch: LayoutBranch, trackNumberId: IntId<TrackLayoutTrackNumber>) {
+    private fun insertExternalIdForTrackNumber(branch: LayoutBranch, trackNumberId: IntId<TrackLayoutTrackNumber>) {
         val routeNumberOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewRouteNumberOid()) { "No OID received from RATKO" } }
-        routeNumberOid?.let { oid -> trackNumberService.updateExternalId(branch, trackNumberId, Oid(oid.id)) }
+        routeNumberOid?.let { oid -> trackNumberService.insertExternalId(branch, trackNumberId, Oid(oid.id)) }
     }
 
-    private fun updateExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<TrackLayoutSwitch>) {
+    private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<TrackLayoutSwitch>) {
         val switchOid = ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()) { "No OID received from RATKO" } }
-        switchOid?.let { oid -> switchService.updateExternalIdForSwitch(branch, switchId, Oid(oid.id)) }
+        switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(oid.id)) }
     }
 
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =

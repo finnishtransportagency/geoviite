@@ -60,12 +60,12 @@ constructor(
         val id = trackNumberService.insert(LayoutBranch.main, saveRequest).id
         val trackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
 
-        assertNull(trackNumber.externalId)
+        assertNull(trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id as IntId))
 
-        trackNumberService.updateExternalId(LayoutBranch.main, trackNumber.id as IntId, externalIdForTrackNumber())
+        val newExternalId = externalIdForTrackNumber()
+        trackNumberService.insertExternalId(LayoutBranch.main, trackNumber.id, newExternalId)
 
-        val updatedTrackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
-        assertNotNull(updatedTrackNumber.externalId)
+        assertEquals(newExternalId, trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id))
     }
 
     @Test

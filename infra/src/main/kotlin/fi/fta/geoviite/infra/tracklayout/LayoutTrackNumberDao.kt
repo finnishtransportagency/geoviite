@@ -1,11 +1,15 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.ratko.ExternalIdDao
+import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstant
@@ -13,7 +17,6 @@ import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
-import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getTrackNumber
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
@@ -35,6 +38,11 @@ class LayoutTrackNumberDao(
         LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER,
         cacheEnabled,
         TRACK_NUMBER_CACHE_SIZE,
+    ),
+    IExternalIdDao<TrackLayoutTrackNumber> by ExternalIdDao(
+        jdbcTemplateParam,
+        "layout.track_number_external_id",
+        "layout.track_number_external_id",
     ) {
 
     override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
@@ -78,7 +86,6 @@ class LayoutTrackNumberDao(
               tn.design_id,
               tn.draft,
               tn.cancelled,
-              tn.external_id,
               tn.number,
               tn.description,
               tn.state,
@@ -116,7 +123,6 @@ class LayoutTrackNumberDao(
               tn.version,
               tn.design_id,
               tn.draft,
-              tn.external_id, 
               tn.number, 
               tn.description,
               tn.state,
@@ -144,7 +150,6 @@ class LayoutTrackNumberDao(
             number = rs.getTrackNumber("number"),
             description = rs.getString("description").let(::TrackNumberDescription),
             state = rs.getEnum("state"),
-            externalId = rs.getOidOrNull("external_id"),
             // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken
             // data
             referenceLineId = rs.getIntIdOrNull("reference_line_id"),
@@ -169,7 +174,6 @@ class LayoutTrackNumberDao(
             """
             insert into layout.track_number(layout_context_id,
                                             id,
-                                            external_id,
                                             number,
                                             description,
                                             state,
@@ -180,7 +184,6 @@ class LayoutTrackNumberDao(
               values
                 (:layout_context_id,
                  :id,
-                 :external_id,
                  :number,
                  :description,
                  :state::layout.state,
@@ -189,8 +192,7 @@ class LayoutTrackNumberDao(
                  :design_id,
                  :origin_design_id)
               on conflict (id, layout_context_id) do update
-                set external_id = excluded.external_id,
-                    number = excluded.number,
+                set number = excluded.number,
                     description = excluded.description,
                     state = excluded.state,
                     cancelled = excluded.cancelled,
@@ -202,7 +204,6 @@ class LayoutTrackNumberDao(
             mapOf(
                 "layout_context_id" to item.layoutContext.toSqlString(),
                 "id" to id.intValue,
-                "external_id" to item.externalId,
                 "number" to item.number,
                 "description" to item.description,
                 "state" to item.state.name,
@@ -268,5 +269,11 @@ class LayoutTrackNumberDao(
             // Ensure that the result contains all asked-for numbers, even if there are no matches
             numbers.associateWith { n -> found.filter { (number, _) -> number == n }.map { (_, v) -> v } }
         }
+    }
+
+    @Transactional
+    fun insertExternalId(id: IntId<TrackLayoutTrackNumber>, branch: LayoutBranch, oid: Oid<TrackLayoutTrackNumber>) {
+        jdbcTemplate.setUser()
+        insertExternalIdInExistingTransaction(branch, id, oid)
     }
 }

@@ -35,6 +35,7 @@ import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -90,6 +91,7 @@ constructor(
         val startSegment = segment(Point(0.0, 0.0), Point(5.0, 0.0))
         val endSegment = segment(Point(5.0, 0.0), Point(10.0, 0.0))
         val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment(startSegment, endSegment))
+        locationTrackDao.insertExternalId(sourceTrack.id, LayoutBranch.main, someOid())
 
         val draftSource =
             locationTrackDao.fetch(sourceTrack).copy(state = sourceLocationTrackState).let { d ->

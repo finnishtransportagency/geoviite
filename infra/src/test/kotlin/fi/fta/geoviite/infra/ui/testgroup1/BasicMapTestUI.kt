@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.testFile
@@ -9,10 +10,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
@@ -50,6 +53,7 @@ constructor(
     private val kmPostDao: LayoutKmPostDao,
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
+    private val locationTrackDao: LocationTrackDao,
 ) : SeleniumTest() {
     lateinit var WEST_LT: Pair<LocationTrack, LayoutAlignment>
     lateinit var GEOMETRY_PLAN: GeometryPlan
@@ -74,7 +78,8 @@ constructor(
         val eastReferenceLine = eastReferenceLine(trackNumberEastId.id)
         val eastLocationTrack = eastLocationTrack(trackNumberEastId.id)
 
-        mainOfficialContext.insert(WEST_LT)
+        val westLtId = mainOfficialContext.insert(WEST_LT).id
+        locationTrackDao.insertExternalId(westLtId, LayoutBranch.main, someOid())
         mainOfficialContext.insert(eastLocationTrack)
         insertReferenceLine(WEST_REFERENCE_LINE)
         insertReferenceLine(eastReferenceLine)

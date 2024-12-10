@@ -277,7 +277,6 @@ fun trackNumber(
     number: TrackNumber = TrackNumber("100"),
     description: String = "Test Track number $number",
     draft: Boolean = false,
-    externalId: Oid<TrackLayoutTrackNumber>? = someOid(),
     state: LayoutState = LayoutState.IN_USE,
     id: IntId<TrackLayoutTrackNumber>? = null,
     contextData: LayoutContextData<TrackLayoutTrackNumber> = createMainContext(id, draft),
@@ -286,7 +285,6 @@ fun trackNumber(
         number = number,
         description = TrackNumberDescription(description),
         state = state,
-        externalId = externalId,
         contextData = contextData,
     )
 
@@ -370,7 +368,6 @@ fun locationTrackAndAlignment(
     state: LocationTrackState = LocationTrackState.IN_USE,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
-    externalId: Oid<LocationTrack>? = someOid(),
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
 ): Pair<LocationTrack, LayoutAlignment> =
@@ -383,7 +380,6 @@ fun locationTrackAndAlignment(
         state = state,
         id = id,
         draft = draft,
-        externalId = externalId,
         topologyStartSwitch = topologyStartSwitch,
         topologyEndSwitch = topologyEndSwitch,
     )
@@ -398,7 +394,6 @@ fun locationTrackAndAlignment(
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    externalId: Oid<LocationTrack>? = someOid(),
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
 ): Pair<LocationTrack, LayoutAlignment> {
@@ -414,7 +409,6 @@ fun locationTrackAndAlignment(
             description = description,
             duplicateOf = duplicateOf,
             state = state,
-            externalId = externalId,
             topologyStartSwitch = topologyStartSwitch,
             topologyEndSwitch = topologyEndSwitch,
         )
@@ -430,7 +424,6 @@ fun locationTrack(
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    externalId: Oid<LocationTrack>? = someOid(),
     alignmentVersion: RowVersion<LayoutAlignment>? = if (id != null) someRowVersion() else null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
@@ -448,7 +441,6 @@ fun locationTrack(
         description = description,
         type = type,
         state = state,
-        externalId = externalId,
         alignmentVersion = alignmentVersion,
         topologicalConnectivity = topologicalConnectivity,
         topologyStartSwitch = topologyStartSwitch,
@@ -466,7 +458,6 @@ fun locationTrack(
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    externalId: Oid<LocationTrack>? = someOid(),
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
@@ -481,7 +472,6 @@ fun locationTrack(
         descriptionSuffix = descriptionSuffix,
         type = type,
         state = state,
-        externalId = externalId,
         trackNumberId = trackNumberId,
         sourceId = null,
         boundingBox = alignment?.boundingBox,
@@ -924,11 +914,9 @@ fun switchFromDbStructure(
     switchStart: IPoint,
     structure: SwitchStructure,
     draft: Boolean = false,
-    externalId: String? = null,
 ): TrackLayoutSwitch =
     switch(
         name = name,
-        externalId = externalId,
         structureId = structure.id as IntId,
         draft = draft,
         joints =
@@ -943,7 +931,6 @@ fun switch(
     structureId: IntId<SwitchStructure> = switchStructureYV60_300_1_9().id as IntId,
     joints: List<TrackLayoutSwitchJoint> = listOf(),
     name: String = "TV${switchNameCounter++}",
-    externalId: String? = null,
     stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
     id: IntId<TrackLayoutSwitch>? = null,
     draft: Boolean = false,
@@ -951,7 +938,6 @@ fun switch(
     contextData: LayoutContextData<TrackLayoutSwitch> = createMainContext(id, draft),
 ) =
     TrackLayoutSwitch(
-        externalId = if (externalId != null) Oid(externalId) else null,
         sourceId = null,
         name = SwitchName(name),
         stateCategory = stateCategory,

@@ -731,6 +731,8 @@ class PublicationDao(
                 |layoutBranch=$layoutBranch, publicationId=$publicationId"""
                 .trimMargin()
         }
+        require(layoutBranch == null || layoutBranch == LayoutBranch.main) { """Only main branch supported""" }
+
         val sql =
             """
             select
@@ -739,7 +741,7 @@ class PublicationDao(
               location_track_id,
               switch_version.id as switch_id,
               switch_version.name as switch_name,
-              switch_version.external_id as switch_oid
+              switch_external_id.external_id as switch_oid
               from publication.publication
                 join publication.location_track plt on publication.id = plt.publication_id
                 join lateral
@@ -770,6 +772,9 @@ class PublicationDao(
                    where switch_id is not null) switch_ids on (true)
                 join layout.switch_version on switch_ids.switch_id = switch_version.id and not switch_version.draft
                   and switch_version.design_id is null
+                left join layout.switch_external_id
+                  on switch_version.id = switch_external_id.id
+                    and switch_version.layout_context_id = switch_external_id.layout_context_id
               where direct_change
                 and not exists(
                   select *

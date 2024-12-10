@@ -492,6 +492,7 @@ data class SplitInPublication(
     val id: IntId<Publication>,
     val splitId: IntId<Split>,
     val locationTrack: LocationTrack,
+    val locationTrackOid: Oid<LocationTrack>,
     val targetLocationTracks: List<SplitTargetInPublication>,
 )
 

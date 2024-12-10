@@ -33,7 +33,9 @@ constructor(
     fun searchAllLocationTracks(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LocationTrack> {
         return locationTrackService
             .list(layoutContext, true)
-            .let { list -> locationTrackService.filterBySearchTerm(list, searchTerm) }
+            .let { list ->
+                locationTrackService.filterBySearchTerm(list, searchTerm, locationTrackService.idMatches(layoutContext))
+            }
             .sortedBy(LocationTrack::name)
             .take(limit)
     }
@@ -41,7 +43,7 @@ constructor(
     fun searchAllSwitches(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<TrackLayoutSwitch> {
         return switchService
             .list(layoutContext, true)
-            .let { list -> switchService.filterBySearchTerm(list, searchTerm) }
+            .let { list -> switchService.filterBySearchTerm(list, searchTerm, switchService.idMatches(layoutContext)) }
             .sortedBy(TrackLayoutSwitch::name)
             .take(limit)
     }
@@ -53,7 +55,9 @@ constructor(
     ): List<TrackLayoutTrackNumber> {
         return trackNumberService
             .list(layoutContext, true)
-            .let { list -> trackNumberService.filterBySearchTerm(list, searchTerm) }
+            .let { list ->
+                trackNumberService.filterBySearchTerm(list, searchTerm, trackNumberService.idMatches(layoutContext))
+            }
             .sortedBy(TrackLayoutTrackNumber::number)
             .take(limit)
     }
@@ -82,13 +86,20 @@ constructor(
             }
         val locationTracks = getLocationTrackAndDuplicatesByScope(layoutContext, locationTrackSearchScope)
         val trackNumbers = emptyList<TrackLayoutTrackNumber>()
-
+        val switchIdMatch = switchService.idMatches(layoutContext, switches.map { it.id as IntId })
+        val ltIdMatch = locationTrackService.idMatches(layoutContext, locationTracks.map { it.id as IntId })
+        val trackNumberIdMatch = trackNumberService.idMatches(layoutContext, trackNumbers.map { it.id as IntId })
         return TrackLayoutSearchResult(
-            switches = switches.let { list -> switchService.filterBySearchTerm(list, searchTerm) }.take(limit),
+            switches =
+                switches.let { list -> switchService.filterBySearchTerm(list, searchTerm, switchIdMatch) }.take(limit),
             locationTracks =
-                locationTracks.let { list -> locationTrackService.filterBySearchTerm(list, searchTerm) }.take(limit),
+                locationTracks
+                    .let { list -> locationTrackService.filterBySearchTerm(list, searchTerm, ltIdMatch) }
+                    .take(limit),
             trackNumbers =
-                trackNumbers.let { list -> trackNumberService.filterBySearchTerm(list, searchTerm) }.take(limit),
+                trackNumbers
+                    .let { list -> trackNumberService.filterBySearchTerm(list, searchTerm, trackNumberIdMatch) }
+                    .take(limit),
             operatingPoints = ratkoLocalService.searchOperatingPoints(searchTerm, limit),
         )
     }

@@ -1,12 +1,14 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeText
@@ -21,8 +23,11 @@ import org.springframework.test.context.ActiveProfiles
 @SpringBootTest
 class RatkoLocalServiceIT
 @Autowired
-constructor(private val ratkoLocalService: RatkoLocalService, private val operatingPointDao: RatkoOperatingPointDao) :
-    DBTestBase() {
+constructor(
+    private val ratkoLocalService: RatkoLocalService,
+    private val operatingPointDao: RatkoOperatingPointDao,
+    private val trackNumberDao: LayoutTrackNumberDao,
+) : DBTestBase() {
 
     @BeforeEach
     fun clearOperatingPoints() {
@@ -217,9 +222,8 @@ constructor(private val ratkoLocalService: RatkoLocalService, private val operat
                 ratkoRouteNumberOid != null -> ratkoRouteNumberOid
                 else ->
                     someOid<RatkoRouteNumber>().also { oid ->
-                        mainDraftContext.insert(
-                            trackNumber(testDBService.getUnusedTrackNumber(), externalId = Oid(oid.toString()))
-                        )
+                        val trackNumber = mainDraftContext.insert(trackNumber(testDBService.getUnusedTrackNumber())).id
+                        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid(oid.toString()))
                     }
             }
 

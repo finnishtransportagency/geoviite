@@ -3,7 +3,9 @@ import {
     DesignBranch,
     draftLayoutContext,
     LayoutAssetChangeInfo,
+    LayoutBranch,
     LayoutContext,
+    Oid,
     TimeStamp,
 } from 'common/common-model';
 import {
@@ -19,7 +21,12 @@ import {
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeInfoUri, layoutUri, layoutUriByBranch } from 'track-layout/track-layout-api';
+import {
+    changeInfoUri,
+    layoutUri,
+    layoutUriByBranch,
+    layoutUriWithoutContext,
+} from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
@@ -33,6 +40,7 @@ const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 const switchValidationCache = asyncCache<string, ValidatedSwitch>();
 const tiledSwitchValidationCache = asyncCache<string, ValidatedSwitch[]>();
+const switchOidsCache = asyncCache<LayoutSwitchId, { [key in LayoutBranch]?: Oid } | undefined>();
 
 const cacheKey = (id: LayoutSwitchId, layoutContext: LayoutContext) =>
     `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
@@ -201,4 +209,16 @@ export const getSwitchChangeTimes = (
 
 export async function cancelSwitch(design: DesignBranch, id: LayoutSwitchId): Promise<void> {
     return postNonNull(`${layoutUriByBranch('switches', design)}/${id}/cancel`, '');
+}
+
+export async function getSwitchOids(
+    id: LayoutSwitchId,
+    changeTime: TimeStamp,
+): Promise<{ [key in LayoutBranch]?: Oid }> {
+    const oids = await switchOidsCache.get(changeTime, id, () =>
+        getNullable<{ [key in LayoutBranch]?: Oid }>(
+            `${layoutUriWithoutContext('switches', id)}/oids`,
+        ),
+    );
+    return oids ?? {};
 }

@@ -32,6 +32,7 @@ import { getLocationTrackDescriptions } from 'track-layout/layout-location-track
 import { useLocationTrackInfoboxExtras } from 'track-layout/track-layout-react-utils';
 import { first } from 'utils/array-utils';
 import { LocationTrackState } from 'geoviite-design-lib/location-track-state/location-track-state';
+import { LocationTrackOid } from 'track-layout/oid';
 
 type LocationTrackBasicInfoInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -132,7 +133,16 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                 <InfoboxField
                     qaId="location-track-oid"
                     label={t('tool-panel.location-track.identifier')}
-                    value={locationTrack.externalId || t('tool-panel.location-track.unpublished')}
+                    value={
+                        <LocationTrackOid
+                            id={locationTrack.id}
+                            branch={layoutContext.branch}
+                            changeTimes={changeTimes}
+                            getFallbackTextIfNoOid={() =>
+                                t('tool-panel.location-track.unpublished')
+                            }
+                        />
+                    }
                 />
                 <InfoboxField
                     qaId="location-track-name"

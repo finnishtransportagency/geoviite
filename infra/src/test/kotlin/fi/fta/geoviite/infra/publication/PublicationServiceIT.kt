@@ -835,13 +835,7 @@ constructor(
         referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = someAlignment, draft = true)).id
 
         val lt1 =
-            locationTrack(
-                trackNumberId = trackNumberId,
-                name = "LT1",
-                alignmentVersion = someAlignment,
-                externalId = null,
-                draft = false,
-            )
+            locationTrack(trackNumberId = trackNumberId, name = "LT1", alignmentVersion = someAlignment, draft = false)
         val lt1OriginalVersion = locationTrackDao.save(lt1)
         val lt1RenamedDraft =
             locationTrackDao.save(
@@ -849,13 +843,7 @@ constructor(
             )
 
         val lt2 =
-            locationTrack(
-                trackNumberId = trackNumberId,
-                name = "LT2",
-                alignmentVersion = someAlignment,
-                externalId = null,
-                draft = false,
-            )
+            locationTrack(trackNumberId = trackNumberId, name = "LT2", alignmentVersion = someAlignment, draft = false)
         val lt2OriginalVersion = locationTrackDao.save(lt2)
         val lt2RenamedDraft =
             locationTrackDao.save(

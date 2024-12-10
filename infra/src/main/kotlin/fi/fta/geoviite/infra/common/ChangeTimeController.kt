@@ -16,9 +16,12 @@ import org.springframework.web.bind.annotation.GetMapping
 
 data class CollectedChangeTimes(
     val layoutTrackNumber: Instant,
+    val layoutTrackNumberExtId: Instant,
     val layoutLocationTrack: Instant,
+    val layoutLocationTrackExtId: Instant,
     val layoutReferenceLine: Instant,
     val layoutSwitch: Instant,
+    val layoutSwitchExtId: Instant,
     val layoutKmPost: Instant,
     val geometryPlan: Instant,
     val project: Instant,
@@ -53,10 +56,13 @@ class ChangeTimeController(
     fun getCollectedChangeTimes(): CollectedChangeTimes {
         return CollectedChangeTimes(
             layoutTrackNumber = trackNumberService.getChangeTime(),
+            layoutTrackNumberExtId = trackNumberService.getExternalIdChangeTime(),
             layoutLocationTrack = locationTrackService.getChangeTime(),
+            layoutLocationTrackExtId = locationTrackService.getExternalIdChangeTime(),
             layoutReferenceLine = referenceLineService.getChangeTime(),
             layoutKmPost = kmPostService.getChangeTime(),
             layoutSwitch = switchService.getChangeTime(),
+            layoutSwitchExtId = switchService.getExternalIdChangeTime(),
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
             project = geometryService.getProjectChangeTime(),
             author = geometryService.getAuthorChangeTime(),
