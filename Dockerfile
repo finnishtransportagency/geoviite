@@ -75,7 +75,7 @@ FROM ${IMAGE_BASE_DISTRIBUTION} AS geoviite-distribution-build
 
 WORKDIR /app
 
-ENV JAVA_OPTS="-XX:+UseContainerSupport-XX:MinRAMPercentage=25.0 -XX:MaxRAMPercentage=80.0"
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MinRAMPercentage=25.0 -XX:MaxRAMPercentage=80.0"
 
 COPY --from=geoviite-distribution-build-combiner /app/infra-SNAPSHOT.jar ./infra-SNAPSHOT.jar
 
