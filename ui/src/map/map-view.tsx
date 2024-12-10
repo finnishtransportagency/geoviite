@@ -90,6 +90,7 @@ import { createPublicationCandidateLayer } from 'map/layers/highlight/publicatio
 import { PublicationCandidate } from 'publication/publication-model';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { areaSelectTool } from 'map/tools/area-select-tool';
+import { createPreviewOfficialLocationTrackAlignmentLayer } from 'map/layers/alignment/preview-official-location-track-alignment-layer';
 
 declare global {
     interface Window {
@@ -429,6 +430,18 @@ const MapView: React.FC<MapViewProps> = ({
                               );
                     case 'location-track-alignment-layer':
                         return createLocationTrackAlignmentLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
+                            selection,
+                            !!splittingState,
+                            layoutContext,
+                            changeTimes,
+                            olView,
+                            onShownLayerItemsChange,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'preview-official-location-track-alignment-layer':
+                        return createPreviewOfficialLocationTrackAlignmentLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
                             selection,

@@ -128,13 +128,13 @@ export function createAlignmentFeatures(
     selection: Selection,
     showEndTicks: boolean,
     style: Style,
-    hightlightStyle: Style,
+    hightlightStyle?: Style,
 ): Feature<LineString | OlPoint>[] {
     return alignments.flatMap((alignment) =>
         createAlignmentFeature(
             alignment,
             showEndTicks,
-            isHighlighted(selection, alignment.header) ? hightlightStyle : style,
+            isHighlighted(selection, alignment.header) && hightlightStyle ? hightlightStyle : style,
         ),
     );
 }

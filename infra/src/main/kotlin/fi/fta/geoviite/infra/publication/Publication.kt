@@ -357,6 +357,7 @@ data class ReferenceLinePublicationCandidate(
     override val publicationGroup: PublicationGroup? = null,
     override val cancelled: Boolean,
     val boundingBox: BoundingBox?,
+    var geometryChanges: List<Range<Double>>,
 ) : PublicationCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
 }

@@ -135,6 +135,7 @@ class PublicationDao(
                     operation = rs.getEnum<Operation>("operation"),
                     cancelled = rs.getBoolean("cancelled"),
                     boundingBox = rs.getBboxOrNull("bounding_box"),
+                    geometryChanges = emptyList(),
                 )
             }
         logger.daoAccess(

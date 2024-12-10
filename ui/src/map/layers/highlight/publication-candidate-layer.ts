@@ -3,7 +3,9 @@ import { Circle, Fill, Stroke, Style } from 'ol/style';
 import { MapLayerName, MapTile } from 'map/map-model';
 import {
     getLocationTrackMapAlignmentsByTiles,
+    getReferenceLineMapAlignmentsByTiles,
     LocationTrackAlignmentDataHolder,
+    ReferenceLineAlignmentDataHolder,
 } from 'track-layout/layout-map-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { LayoutContext, Range } from 'common/common-model';
@@ -18,18 +20,26 @@ import {
 } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import {
+    BasePublicationCandidate,
     DraftChangeType,
+    KmPostPublicationCandidate,
     LocationTrackPublicationCandidate,
     PublicationCandidate,
     PublicationStage,
+    ReferenceLinePublicationCandidate,
     SwitchPublicationCandidate,
+    TrackNumberPublicationCandidate,
+    WithLocation,
 } from 'publication/publication-model';
 import { rangesIntersectInclusive, Rectangle } from 'model/geometry';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
-import { expectDefined } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 
+export const TRACK_NUMBER_CANDIDATE_DATA_PROPERTY = 'track-number-candidate-data';
+export const REFERENCE_LINE_CANDIDATE_DATA_PROPERTY = 'reference-line-candidate-data';
 export const LOCATION_TRACK_CANDIDATE_DATA_PROPERTY = 'location-track-candidate-data';
 export const SWITCH_CANDIDATE_DATA_PROPERTY = 'switch-candidate-data';
+export const KM_POST_CANDIDATE_DATA_PROPERTY = 'km-post-candidate-data';
 
 enum ChangeType {
     EXPLICIT,
@@ -38,9 +48,17 @@ enum ChangeType {
 
 type PublicationCandidateFeatureTypes = LineString | OlPoint;
 
-type LocationTrackCandidateWithAlignment = {
+type LocationTrackCandidateAndAlignment = {
     publishCandidate: LocationTrackPublicationCandidate;
     alignment: LocationTrackAlignmentDataHolder;
+};
+type ReferenceLineCandidateAndAlignment = {
+    publishCandidate: ReferenceLinePublicationCandidate;
+    alignment: ReferenceLineAlignmentDataHolder;
+};
+type TrackNumberCandidateAndAlignment = {
+    publishCandidate: TrackNumberPublicationCandidate;
+    alignment: ReferenceLineAlignmentDataHolder;
 };
 
 function colorByStage(stage: PublicationStage, changeType: ChangeType): string {
@@ -199,49 +217,95 @@ function splitByRanges(points: AlignmentPoint[], mRanges: Range<number>[]): Poin
     }
 }
 
-function createLocationTrackCandidateFeatures(
-    candidates: LocationTrackCandidateWithAlignment[],
+function createAlignmentLineStringFeature(
+    pointRange: PointRange | undefined,
+    alignmentPoints: AlignmentPoint[],
+    candidate: PublicationCandidate,
     metersPerPixel: number,
-): Feature<LineString>[] {
-    return candidates.flatMap((candidate) => {
-        const pointRanges = splitByRanges(
-            candidate.alignment.points,
-            candidate.publishCandidate.geometryChanges,
-        );
-        return pointRanges.map((pointRange) => {
-            const start = pointRange.indexRange.min;
-            const end = pointRange.indexRange.max;
-            const points = candidate.alignment.points.slice(
-                start,
-                end + 1, // +1 for inclusive slicing
-            );
-            const rangeLengthInMeters =
-                expectDefined(last(points)).m - expectDefined(first(points)).m;
-            const rangeLengthInPixels = rangeLengthInMeters / metersPerPixel;
-            const style = new Style({
-                stroke: new Stroke({
-                    color: colorByStage(candidate.publishCandidate.stage, pointRange.changeType),
-                    width: 15,
-                    lineCap: rangeLengthInPixels < 15 ? 'square' : 'butt',
-                }),
-                zIndex: getZIndexByStage(candidate.publishCandidate.stage, pointRange.changeType),
-            });
-            const feature = new Feature({
-                geometry: new LineString(points.map(pointToCoords)),
-            });
-            feature.setStyle(style);
-            //if (pointRange.isChanged) {
-            feature.set(LOCATION_TRACK_CANDIDATE_DATA_PROPERTY, candidate.publishCandidate);
-            //}
-            return feature;
-        });
+    type: DraftChangeType.REFERENCE_LINE | DraftChangeType.LOCATION_TRACK,
+): Feature<LineString> {
+    const start = pointRange?.indexRange.min || 0;
+    const end = pointRange?.indexRange.max || lastIndex(alignmentPoints);
+    const points = alignmentPoints.slice(
+        start,
+        end + 1, // +1 for inclusive slicing
+    );
+    const rangeLengthInMeters = expectDefined(last(points)).m - expectDefined(first(points)).m;
+    const rangeLengthInPixels = rangeLengthInMeters / metersPerPixel;
+    const style = new Style({
+        stroke: new Stroke({
+            color: colorByStage(candidate.stage, pointRange?.changeType ?? ChangeType.IMPLICIT),
+            width: 15,
+            lineCap: rangeLengthInPixels < 15 ? 'square' : 'butt',
+        }),
+        zIndex: getZIndexByStage(candidate.stage, pointRange?.changeType ?? ChangeType.IMPLICIT),
     });
+    const feature = new Feature({
+        geometry: new LineString(points.map(pointToCoords)),
+    });
+    feature.setStyle(style);
+    //if (pointRange.isChanged) {
+    feature.set(dataPropertyByType(type), candidate);
+    //}
+    return feature;
 }
 
-function createSwitchCandidateFeatures(
-    switchCandidates: SwitchPublicationCandidate[],
-): Feature<OlPoint>[] {
-    const features = switchCandidates
+function createLocationTrackCandidateFeatures(
+    candidates: LocationTrackCandidateAndAlignment[],
+    metersPerPixel: number,
+): Feature<LineString>[] {
+    return candidates.flatMap((candidate) =>
+        splitByRanges(candidate.alignment.points, candidate.publishCandidate.geometryChanges).map(
+            (pointRange) =>
+                createAlignmentLineStringFeature(
+                    pointRange,
+                    candidate.alignment.points,
+                    candidate.publishCandidate,
+                    metersPerPixel,
+                    DraftChangeType.LOCATION_TRACK,
+                ),
+        ),
+    );
+}
+
+function createReferenceLineCandidateFeatures(
+    candidates: ReferenceLineCandidateAndAlignment[],
+    metersPerPixel: number,
+): Feature<LineString>[] {
+    return candidates.flatMap((candidate) =>
+        splitByRanges(candidate.alignment.points, candidate.publishCandidate.geometryChanges).map(
+            (pointRange) =>
+                createAlignmentLineStringFeature(
+                    pointRange,
+                    candidate.alignment.points,
+                    candidate.publishCandidate,
+                    metersPerPixel,
+                    DraftChangeType.LOCATION_TRACK,
+                ),
+        ),
+    );
+}
+
+function createTrackNumberCandidateFeatures(
+    candidates: TrackNumberCandidateAndAlignment[],
+    metersPerPixel: number,
+): Feature<LineString>[] {
+    return candidates.flatMap((candidate) =>
+        createAlignmentLineStringFeature(
+            undefined,
+            candidate.alignment.points,
+            candidate.publishCandidate,
+            metersPerPixel,
+            DraftChangeType.LOCATION_TRACK,
+        ),
+    );
+}
+
+const createPointCandidateFeatures = (
+    switchCandidates: (BasePublicationCandidate & WithLocation)[],
+    type: DraftChangeType,
+): Feature<OlPoint>[] =>
+    switchCandidates
         .map((candidate) => {
             if (!candidate.location) {
                 return undefined;
@@ -261,12 +325,28 @@ function createSwitchCandidateFeatures(
                 geometry: new OlPoint(pointToCoords(candidate.location)),
             });
             feature.setStyle(style);
-            feature.set(SWITCH_CANDIDATE_DATA_PROPERTY, candidate);
+            feature.set(dataPropertyByType(type), candidate);
+
             return feature;
         })
         .filter(filterNotEmpty);
-    return features;
-}
+
+const dataPropertyByType = (type: DraftChangeType) => {
+    switch (type) {
+        case DraftChangeType.TRACK_NUMBER:
+            return TRACK_NUMBER_CANDIDATE_DATA_PROPERTY;
+        case DraftChangeType.REFERENCE_LINE:
+            return REFERENCE_LINE_CANDIDATE_DATA_PROPERTY;
+        case DraftChangeType.LOCATION_TRACK:
+            return LOCATION_TRACK_CANDIDATE_DATA_PROPERTY;
+        case DraftChangeType.SWITCH:
+            return SWITCH_CANDIDATE_DATA_PROPERTY;
+        case DraftChangeType.KM_POST:
+            return KM_POST_CANDIDATE_DATA_PROPERTY;
+        default:
+            return exhaustiveMatchingGuard(type);
+    }
+};
 
 const layerName: MapLayerName = 'publication-candidate-layer';
 
@@ -284,26 +364,66 @@ export function createPublicationCandidateLayer(
     const locationTrackCandidates = publicationCandidates.filter(
         (c) => c.type == DraftChangeType.LOCATION_TRACK,
     );
-    const locationTrackIds = locationTrackCandidates
-        .map((c) => (c.type == DraftChangeType.LOCATION_TRACK ? c.id : undefined))
-        .filter(filterNotEmpty);
+    const locationTrackIds = locationTrackCandidates.map((c) => c.id);
 
     const locationTrackAlignmentPromise = getLocationTrackMapAlignmentsByTiles(
         changeTimes,
         mapTiles,
         layoutContext,
-    ).then((locationTrackAlignments) => {
-        return locationTrackAlignments
+    ).then((locationTrackAlignments) =>
+        locationTrackAlignments
             .map((alignment) => {
                 const candidate = locationTrackCandidates.find((c) => c.id == alignment.header.id);
                 return candidate
                     ? ({
                           alignment: alignment,
                           publishCandidate: candidate,
-                      } as LocationTrackCandidateWithAlignment)
+                      } as LocationTrackCandidateAndAlignment)
+                    : undefined;
+            })
+            .filter(filterNotEmpty),
+    );
+
+    const trackNumberCandidates = publicationCandidates.filter(
+        (c) => c.type === DraftChangeType.TRACK_NUMBER,
+    );
+    const trackNumberIds = trackNumberCandidates.map((c) => c.id);
+
+    const referenceLineCandidates = publicationCandidates.filter(
+        (c) => c.type === DraftChangeType.REFERENCE_LINE,
+    );
+    const referenceLineIds = referenceLineCandidates.map((c) => c.id);
+    const referenceLineAlignmentPromise = getReferenceLineMapAlignmentsByTiles(
+        changeTimes,
+        mapTiles,
+        layoutContext,
+    ).then((rlAlignments) => {
+        const rlCandidates = rlAlignments
+            .map((alignment) => {
+                const candidate = referenceLineCandidates.find((c) => c.id == alignment.header.id);
+                return candidate
+                    ? ({
+                          alignment: alignment,
+                          publishCandidate: candidate,
+                      } as ReferenceLineCandidateAndAlignment)
                     : undefined;
             })
             .filter(filterNotEmpty);
+        const tnCandidates = rlAlignments
+            .map((alignment) => {
+                const candidate = trackNumberCandidates.find(
+                    (c) => c.id == alignment.header.trackNumberId,
+                );
+                return candidate
+                    ? ({
+                          alignment: alignment,
+                          publishCandidate: candidate,
+                      } as TrackNumberCandidateAndAlignment)
+                    : undefined;
+            })
+            .filter(filterNotEmpty);
+
+        return { trackNumberCandidates: tnCandidates, referenceLineCandidates: rlCandidates };
     });
 
     const switchCandidates = publicationCandidates
@@ -312,30 +432,68 @@ export function createPublicationCandidateLayer(
         )
         .filter(filterNotEmpty);
 
+    const kmPostCandidates = publicationCandidates
+        .map((c) =>
+            c.type === DraftChangeType.KM_POST ? (c as KmPostPublicationCandidate) : undefined,
+        )
+        .filter(filterNotEmpty);
+
     const createFeatures = (data: {
-        locationTrackCandidates: LocationTrackCandidateWithAlignment[];
+        locationTrackCandidates: LocationTrackCandidateAndAlignment[];
+        referenceLineCandidates: ReferenceLineCandidateAndAlignment[];
+        trackNumberCandidates: TrackNumberCandidateAndAlignment[];
     }) => {
         // // const showAll = Object.values(layerSettings).every((s) => !s.selected);
-        const filteredAlignments = data.locationTrackCandidates.filter((c) => {
+        const filteredLocationTracks = data.locationTrackCandidates.filter((c) => {
             return locationTrackIds.includes(c.alignment.header.id);
             // const trackNumberId = a.trackNumber?.id;
             // return trackNumberId ? !!layerSettings[trackNumberId]?.selected : false;
         });
-        //
-        // const alignmentsWithColor = filteredAlignments.filter((a) => {
-        //     return true;
-        // });
+        const filteredReferenceLines = data.referenceLineCandidates.filter((c) => {
+            return referenceLineIds.includes(c.alignment.header.id);
+        });
+        const filteredTrackNumbers = data.trackNumberCandidates.filter(
+            (c) =>
+                c.alignment.header.trackNumberId !== undefined &&
+                trackNumberIds.includes(c.alignment.header.trackNumberId),
+        );
+
         const locationTrackAlignmentFeatures = createLocationTrackCandidateFeatures(
-            filteredAlignments,
+            filteredLocationTracks,
             metersPerPixel,
         );
-        const switchFeatures = createSwitchCandidateFeatures(switchCandidates);
+        const referenceLineAlignmentFeatures = createReferenceLineCandidateFeatures(
+            filteredReferenceLines,
+            metersPerPixel,
+        );
+        const trackNumberAlignmentFeatures = createTrackNumberCandidateFeatures(
+            filteredTrackNumbers,
+            metersPerPixel,
+        );
+        const switchFeatures = createPointCandidateFeatures(
+            switchCandidates,
+            DraftChangeType.SWITCH,
+        );
+        const kmPostFeatures = createPointCandidateFeatures(
+            kmPostCandidates,
+            DraftChangeType.KM_POST,
+        );
 
-        return [...locationTrackAlignmentFeatures, ...switchFeatures];
+        return [
+            ...locationTrackAlignmentFeatures,
+            ...referenceLineAlignmentFeatures,
+            ...trackNumberAlignmentFeatures,
+            ...switchFeatures,
+            ...kmPostFeatures,
+        ];
     };
 
-    const allData = Promise.all([locationTrackAlignmentPromise]).then((result) => ({
-        locationTrackCandidates: result[0],
+    const allData = Promise.all([
+        locationTrackAlignmentPromise,
+        referenceLineAlignmentPromise,
+    ]).then(([locationTrackCandidates, trackNumberAndReferenceLineCandidates]) => ({
+        locationTrackCandidates,
+        ...trackNumberAndReferenceLineCandidates,
     }));
 
     loadLayerData(source, isLatest, onLoadingData, allData, createFeatures);
@@ -352,6 +510,14 @@ export function createPublicationCandidateLayer(
                     options,
                 );
 
+            const referenceLinePublicationCandidates =
+                findMatchingEntities<ReferenceLinePublicationCandidate>(
+                    hitArea,
+                    source,
+                    REFERENCE_LINE_CANDIDATE_DATA_PROPERTY,
+                    options,
+                );
+
             const switchPublicationCandidates = findMatchingEntities<SwitchPublicationCandidate>(
                 hitArea,
                 source,
@@ -359,9 +525,18 @@ export function createPublicationCandidateLayer(
                 options,
             );
 
+            const kmPostPublicationCandidates = findMatchingEntities<KmPostPublicationCandidate>(
+                hitArea,
+                source,
+                KM_POST_CANDIDATE_DATA_PROPERTY,
+                options,
+            );
+
             return {
-                locationTrackPublicationCandidates: locationTrackPublicationCandidates,
-                switchPublicationCandidates: switchPublicationCandidates,
+                locationTrackPublicationCandidates,
+                referenceLinePublicationCandidates,
+                switchPublicationCandidates,
+                kmPostPublicationCandidates,
             };
         },
     };

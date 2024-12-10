@@ -22,6 +22,7 @@ export type MapLayerName =
     | 'track-number-diagram-layer'
     | 'track-number-addresses-layer'
     | 'location-track-alignment-layer'
+    | 'preview-official-location-track-alignment-layer'
     | 'reference-line-alignment-layer'
     | 'missing-profile-highlight-layer'
     | 'missing-linking-highlight-layer'

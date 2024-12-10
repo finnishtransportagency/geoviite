@@ -255,9 +255,17 @@ export function mergePartialItemSearchResults(
                 merged.locationTrackPublicationCandidates,
                 searchResult.locationTrackPublicationCandidates,
             ),
+            referenceLinePublicationCandidates: mergeOptionalArrays(
+                merged.referenceLinePublicationCandidates,
+                searchResult.referenceLinePublicationCandidates,
+            ),
             switchPublicationCandidates: mergeOptionalArrays(
                 merged.switchPublicationCandidates,
                 searchResult.switchPublicationCandidates,
+            ),
+            kmPostPublicationCandidates: mergeOptionalArrays(
+                merged.kmPostPublicationCandidates,
+                searchResult.kmPostPublicationCandidates,
             ),
         };
     }, {});

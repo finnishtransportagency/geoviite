@@ -488,8 +488,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
                 const selectedCandidates = [
                     ...(items.locationTrackPublicationCandidates || []),
+                    ...(items.referenceLinePublicationCandidates || []),
                     ...(items.switchPublicationCandidates || []),
+                    ...(items.kmPostPublicationCandidates || []),
                 ].flat();
+                console.log(selectedCandidates, items, mode);
 
                 const groups = selectedCandidates
                     .map((candidate) => candidate.publicationGroup)

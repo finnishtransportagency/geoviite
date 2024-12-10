@@ -136,6 +136,7 @@ export type ReferenceLinePublicationCandidate = BasePublicationCandidate &
         name: TrackNumber;
         operation?: Operation;
         boundingBox?: BoundingBox;
+        geometryChanges: Range<number>[];
     };
 
 export type SwitchPublicationCandidate = BasePublicationCandidate &
