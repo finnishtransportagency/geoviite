@@ -137,7 +137,7 @@ class WebConfig(
 
         logger.info("Registering version converters")
         registry.addStringConstructorConverter { RowVersion<Any>(it) }
-        registry.addStringConstructorConverter(::LayoutRowVersion)
+        registry.addStringConstructorConverter { LayoutRowVersion<Any>(it) }
 
         logger.info("Registering geography converters")
         registry.addStringConstructorConverter(::BoundingBox)

@@ -30,7 +30,6 @@ import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
-import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
@@ -75,10 +74,10 @@ fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T
     }
 }
 
-fun <T : LayoutAsset<T>> ResultSet.getLayoutRowId(idName: String, designIdName: String, draftFlagName: String) =
+fun <T> ResultSet.getLayoutRowId(idName: String, designIdName: String, draftFlagName: String) =
     LayoutRowId(getIntId<T>(idName), getLayoutContext(designIdName, draftFlagName))
 
-fun <T : LayoutAsset<T>> ResultSet.getLayoutRowIdOrNull(idName: String, designIdName: String, draftFlagName: String) =
+fun <T> ResultSet.getLayoutRowIdOrNull(idName: String, designIdName: String, draftFlagName: String) =
     getIntIdOrNull<T>(idName)?.let { id ->
         getLayoutContextOrNull(designIdName, draftFlagName)?.let { layoutContext -> LayoutRowId(id, layoutContext) }
     }
@@ -218,7 +217,7 @@ fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowV
     return if (rowId != null && version != null) RowVersion(rowId, version) else null
 }
 
-fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersion(
+fun <T> ResultSet.getLayoutRowVersion(
     idName: String,
     layoutBranchName: String,
     publicationStateName: String,
@@ -226,7 +225,7 @@ fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersion(
 ): LayoutRowVersion<T> =
     LayoutRowVersion(getLayoutRowId(idName, layoutBranchName, publicationStateName), getIntNonNull(versionName))
 
-fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionOrNull(
+fun <T> ResultSet.getLayoutRowVersionOrNull(
     idName: String,
     layoutBranchName: String,
     publicationStateName: String,
@@ -237,7 +236,7 @@ fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionOrNull(
     return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
 }
 
-fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionArray(
+fun <T> ResultSet.getLayoutRowVersionArray(
     idsName: String,
     designIdsName: String,
     publicationStatesName: String,
@@ -371,7 +370,7 @@ inline fun <reified T> verifyType(value: Any?): T =
         v
     }
 
-fun <T : LayoutAsset<T>> ResultSet.getLayoutContextData(
+fun <T> ResultSet.getLayoutContextData(
     idName: String,
     designIdName: String,
     draftFlagName: String,

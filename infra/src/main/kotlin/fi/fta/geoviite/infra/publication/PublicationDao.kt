@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -1953,7 +1953,7 @@ private fun <T> partitionDirectIndirectChanges(rows: List<Pair<Boolean, T>>) =
             )
         }
 
-private inline fun <reified T : LayoutAsset<T>> requireUniqueIds(candidates: List<PublicationCandidate<T>>) {
+private inline fun <reified T> requireUniqueIds(candidates: List<PublicationCandidate<T>>) {
     filterNonUniqueIds(candidates).let { nonUniqueIds ->
         require(nonUniqueIds.isEmpty()) {
             "${T::class.simpleName} publication candidates contained non-unique ids: $nonUniqueIds"
@@ -1961,7 +1961,7 @@ private inline fun <reified T : LayoutAsset<T>> requireUniqueIds(candidates: Lis
     }
 }
 
-private fun <T : LayoutAsset<T>> filterNonUniqueIds(candidates: List<PublicationCandidate<T>>): Map<IntId<T>, Int> {
+private fun <T> filterNonUniqueIds(candidates: List<PublicationCandidate<T>>): Map<IntId<T>, Int> {
     return candidates
         .groupingBy { candidate -> candidate.id }
         .eachCount()

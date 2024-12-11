@@ -86,7 +86,7 @@ class TrackLayoutTest {
         )
     }
 
-    private fun <T : LayoutAsset<T>> assertRoundTrip(version: LayoutRowVersion<T>) {
+    private fun <T> assertRoundTrip(version: LayoutRowVersion<T>) {
         val text = version.toString()
         val versionAgain = LayoutRowVersion<T>(text)
         val textAgain = versionAgain.toString()

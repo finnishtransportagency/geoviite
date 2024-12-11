@@ -24,7 +24,11 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
-import org.junit.jupiter.api.Assertions.assertNotNull
+import java.math.BigDecimal
+import java.util.*
+import junit.framework.TestCase.assertNotNull
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -32,10 +36,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.math.BigDecimal
-import java.util.*
-import kotlin.math.hypot
-import kotlin.test.assertEquals
 
 private const val API_TRACK_ADDRESSES: FrameConverterUrl = "/rata-vkm/v1/rataosoitteet"
 
@@ -468,7 +468,7 @@ constructor(
         assertEquals(geocodableTrack.trackNumber.number.toString(), properties["ratanumero"])
         assertEquals(geocodableTrack.locationTrack.name.toString(), properties["sijaintiraide"])
         assertEquals(trackDescription, properties["sijaintiraide_kuvaus"])
-        assertEquals("kujaraide", properties["sijaintiraide_tyyppi"])
+        assertEquals("kujaraide", properties.get("sijaintiraide_tyyppi"))
         assertEquals(0, properties["ratakilometri"])
         assertEquals(10, properties["ratametri"] as Int)
         assertEquals(0, properties["ratametri_desimaalit"] as Int)

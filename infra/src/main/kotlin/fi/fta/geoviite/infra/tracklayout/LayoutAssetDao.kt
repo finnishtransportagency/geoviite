@@ -414,5 +414,5 @@ fun <T : LayoutAsset<T>> verifyObjectIsExisting(contextData: LayoutContextData<T
     require(contextData.version != null) { "DB row should have DB ID: context=$contextData" }
 }
 
-inline fun <reified T : LayoutAsset<T>, reified S> getOne(rowVersion: LayoutRowVersion<T>, result: List<S>) =
+inline fun <reified T, reified S> getOne(rowVersion: LayoutRowVersion<T>, result: List<S>) =
     requireOne(T::class, rowVersion, result)

@@ -28,7 +28,8 @@ import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
 import fi.fta.geoviite.infra.linking.SuggestedSwitchJointMatchType
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
-import fi.fta.geoviite.infra.map.GeometryAlignmentHeader
+import fi.fta.geoviite.infra.map.AlignmentHeader
+import fi.fta.geoviite.infra.map.MapAlignmentSource
 import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IPoint3DM
@@ -510,13 +511,17 @@ fun mapAlignment(vararg segments: PlanLayoutSegment) = mapAlignment(segments.toL
 fun mapAlignment(segments: List<PlanLayoutSegment>) =
     PlanLayoutAlignment(
         header =
-            GeometryAlignmentHeader(
+            AlignmentHeader(
                 id = StringId(),
                 name = AlignmentName("test-alignment"),
+                alignmentSource = MapAlignmentSource.GEOMETRY,
                 alignmentType = MapAlignmentType.LOCATION_TRACK,
+                trackType = LocationTrackType.MAIN,
                 state = LayoutState.IN_USE,
                 segmentCount = segments.size,
                 trackNumberId = IntId(1),
+                version = null,
+                duplicateOf = null,
                 length = segments.map(PlanLayoutSegment::length).sum(),
                 boundingBox = boundingBoxCombining(segments.mapNotNull(PlanLayoutSegment::boundingBox)),
             ),
@@ -958,7 +963,7 @@ fun switch(
         contextData = contextData,
     )
 
-fun <T : LayoutAsset<T>> createMainContext(id: IntId<T>?, draft: Boolean): LayoutContextData<T> =
+fun <T> createMainContext(id: IntId<T>?, draft: Boolean): LayoutContextData<T> =
     if (draft) {
         MainDraftContextData(
             if (id != null) IdentifiedAssetId(id) else TemporaryAssetId(),
