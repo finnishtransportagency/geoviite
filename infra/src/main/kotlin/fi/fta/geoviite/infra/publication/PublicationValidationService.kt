@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -299,7 +300,10 @@ constructor(
         }
     }
 
-    private inline fun <reified T> assertNoErrors(version: LayoutRowVersion<T>, issues: List<LayoutValidationIssue>) {
+    private inline fun <reified T : LayoutAsset<T>> assertNoErrors(
+        version: LayoutRowVersion<T>,
+        issues: List<LayoutValidationIssue>,
+    ) {
         val errors = issues.filter { issue -> issue.type == ERROR }
         if (errors.isNotEmpty()) {
             logger.warn("Validation errors in published ${T::class.simpleName}: item=$version errors=$errors")

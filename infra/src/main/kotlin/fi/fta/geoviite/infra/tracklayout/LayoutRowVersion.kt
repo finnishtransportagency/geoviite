@@ -11,9 +11,13 @@ import fi.fta.geoviite.infra.common.parseLayoutContextSqlString
 private const val ID_SEPARATOR = "__"
 private const val VERSION_SEPARATOR = "_v"
 
-data class LayoutRowId<T> @JsonCreator(mode = DISABLED) constructor(val id: IntId<T>, val context: LayoutContext)
+data class LayoutRowId<T : LayoutAsset<T>>
+@JsonCreator(mode = DISABLED)
+constructor(val id: IntId<T>, val context: LayoutContext)
 
-data class LayoutRowVersion<T> @JsonCreator(mode = DISABLED) constructor(val rowId: LayoutRowId<T>, val version: Int) {
+data class LayoutRowVersion<T : LayoutAsset<T>>
+@JsonCreator(mode = DISABLED)
+constructor(val rowId: LayoutRowId<T>, val version: Int) {
     constructor(
         id: IntId<T>,
         layoutContext: LayoutContext,
@@ -44,7 +48,7 @@ data class LayoutRowVersion<T> @JsonCreator(mode = DISABLED) constructor(val row
     fun previous() = if (version > 1) LayoutRowVersion(rowId, version - 1) else null
 }
 
-fun <T> parseLayoutRowVersionValues(text: String): Triple<IntId<T>, LayoutContext, Int> {
+fun <T : LayoutAsset<T>> parseLayoutRowVersionValues(text: String): Triple<IntId<T>, LayoutContext, Int> {
     val idSplit = text.split(ID_SEPARATOR)
     require(idSplit.size == 2) {
         "LayoutRowVersion text must consist of two parts split by $ID_SEPARATOR, but was $text"
