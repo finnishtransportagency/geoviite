@@ -5,7 +5,15 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import kotlin.math.roundToInt
 
 enum class MapAlignmentSource {
@@ -18,20 +26,46 @@ enum class MapAlignmentType {
     REFERENCE_LINE,
 }
 
-data class AlignmentHeader<T, U>(
-    val id: DomainId<T>,
-    val version: LayoutRowVersion<T>?,
-    val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
+sealed class AlignmentHeader<T, U> {
+    abstract val id: DomainId<T>
+    abstract val trackNumberId: DomainId<TrackLayoutTrackNumber>?
+    abstract val name: AlignmentName
+    abstract val state: U
+    abstract val alignmentSource: MapAlignmentSource
+    abstract val alignmentType: MapAlignmentType
+    abstract val length: Double
+    abstract val boundingBox: BoundingBox?
+    abstract val segmentCount: Int
+}
+
+data class GeometryAlignmentHeader<T, U>(
+    override val id: DomainId<T>,
+    override val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
+    override val name: AlignmentName,
+    override val state: U,
+    override val alignmentType: MapAlignmentType,
+    override val length: Double,
+    override val boundingBox: BoundingBox?,
+    override val segmentCount: Int,
+) : AlignmentHeader<T, U>() {
+    override val alignmentSource = MapAlignmentSource.GEOMETRY
+}
+
+data class LayoutAlignmentHeader<T : LayoutAsset<T>, U>(
+    override val id: IntId<T>,
+    val version: LayoutRowVersion<T>,
+    override val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val duplicateOf: IntId<LocationTrack>?,
-    val name: AlignmentName,
-    val state: U,
-    val alignmentSource: MapAlignmentSource,
-    val alignmentType: MapAlignmentType,
+    override val name: AlignmentName,
+    override val state: U,
+    override val alignmentType: MapAlignmentType,
     val trackType: LocationTrackType?,
-    val length: Double,
-    val boundingBox: BoundingBox?,
-    val segmentCount: Int,
-)
+    override val length: Double,
+    override val boundingBox: BoundingBox?,
+    override val segmentCount: Int,
+) : AlignmentHeader<T, U>() {
+    override val alignmentSource = MapAlignmentSource.LAYOUT
+}
 
 data class AlignmentPolyLine<T>(
     val id: DomainId<T>,
@@ -42,14 +76,13 @@ data class AlignmentPolyLine<T>(
 }
 
 fun toAlignmentHeader(trackNumber: TrackLayoutTrackNumber, referenceLine: ReferenceLine, alignment: LayoutAlignment?) =
-    AlignmentHeader(
-        id = referenceLine.id,
-        version = referenceLine.version,
+    LayoutAlignmentHeader(
+        id = referenceLine.id.also { require(it is IntId) } as IntId,
+        version = requireNotNull(referenceLine.version),
         trackNumberId = referenceLine.trackNumberId,
         duplicateOf = null,
         name = AlignmentName(trackNumber.number.toString()),
         state = trackNumber.state,
-        alignmentSource = MapAlignmentSource.LAYOUT,
         alignmentType = MapAlignmentType.REFERENCE_LINE,
         trackType = null,
         length = alignment?.length ?: 0.0,
@@ -58,14 +91,13 @@ fun toAlignmentHeader(trackNumber: TrackLayoutTrackNumber, referenceLine: Refere
     )
 
 fun toAlignmentHeader(locationTrack: LocationTrack, alignment: LayoutAlignment?) =
-    AlignmentHeader(
-        id = locationTrack.id,
-        version = locationTrack.version,
+    LayoutAlignmentHeader(
+        id = locationTrack.id.also { require(it is IntId) } as IntId,
+        version = requireNotNull(locationTrack.version),
         trackNumberId = locationTrack.trackNumberId,
         duplicateOf = locationTrack.duplicateOf,
         name = locationTrack.name,
         state = locationTrack.state,
-        alignmentSource = MapAlignmentSource.LAYOUT,
         alignmentType = MapAlignmentType.LOCATION_TRACK,
         trackType = locationTrack.type,
         length = alignment?.length ?: 0.0,

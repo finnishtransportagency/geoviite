@@ -438,7 +438,11 @@ constructor(
         }
     }
 
-    fun <T> assertVersionMatch(description: String, expected: LayoutRowVersion<T>?, actual: LayoutRowVersion<T>?) {
+    fun <T : LayoutAsset<T>> assertVersionMatch(
+        description: String,
+        expected: LayoutRowVersion<T>?,
+        actual: LayoutRowVersion<T>?,
+    ) {
         assertEquals(expected = expected, actual = actual, message = "$description expected=$expected actual=$actual")
     }
 

@@ -316,7 +316,7 @@ data class LayoutValidationIssue(
     ) : this(type, LocalizationKey(key), localizationParams(params))
 }
 
-interface PublicationCandidate<T> {
+interface PublicationCandidate<T : LayoutAsset<T>> {
     val type: DraftChangeType
     val rowVersion: LayoutRowVersion<T>
     val draftChangeTime: Instant
