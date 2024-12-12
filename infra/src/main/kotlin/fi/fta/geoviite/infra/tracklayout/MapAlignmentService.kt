@@ -209,14 +209,14 @@ class MapAlignmentService(
 private fun <T> getMissingLinkings(
     id: DomainId<T>,
     type: MapAlignmentType,
-    alignment: LayoutAlignment,
+    alignment: IAlignment,
 ): MapAlignmentHighlight<T>? =
     getMissingLinkingRanges(alignment)
         .takeIf { list -> list.isNotEmpty() }
         ?.let { ranges -> MapAlignmentHighlight(id as IntId, type, ranges) }
 
-private fun getMissingLinkingRanges(alignment: LayoutAlignment): List<Range<Double>> =
+private fun getMissingLinkingRanges(alignment: IAlignment): List<Range<Double>> =
     combineContinuous(alignment.segmentsWithM.mapNotNull { (s, m) -> m.takeIf { s.sourceId == null } })
 
-private fun getEndPoints(alignment: LayoutAlignment): MapAlignmentEndPoints =
+private fun getEndPoints(alignment: IAlignment): MapAlignmentEndPoints =
     MapAlignmentEndPoints(alignment.takeFirst(2), alignment.takeLast(2))
