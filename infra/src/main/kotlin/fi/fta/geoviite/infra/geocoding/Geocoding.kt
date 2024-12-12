@@ -32,12 +32,12 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
 import kotlin.math.abs
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 data class AddressPoint(val point: AlignmentPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
@@ -412,7 +412,7 @@ data class GeocodingContext(
     val referenceLineAddresses by lazy { getAddressPoints(referenceLineGeometry) }
 
     fun getPartialAddressRange(
-        sourceAlignment: LayoutAlignment,
+        sourceAlignment: IAlignment,
         segmentIndices: IntRange,
     ): Pair<AddressPoint, AddressPoint>? {
         assert(segmentIndices.first >= 0 && segmentIndices.last <= sourceAlignment.segments.lastIndex) {

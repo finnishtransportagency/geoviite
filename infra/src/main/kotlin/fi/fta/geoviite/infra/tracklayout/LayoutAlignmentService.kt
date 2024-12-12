@@ -63,7 +63,7 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
     }
 }
 
-private fun toPlanSectionPoint(point: IPoint, alignment: LayoutAlignment, context: GeocodingContext) =
+private fun toPlanSectionPoint(point: IPoint, alignment: IAlignment, context: GeocodingContext) =
     context.getAddress(point)?.let { (address, _) ->
         PlanSectionPoint(
             address = address,
