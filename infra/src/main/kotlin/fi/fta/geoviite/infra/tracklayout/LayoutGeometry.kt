@@ -27,7 +27,7 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleAvgRads
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
-import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.closestPointProportionOnLine
 import fi.fta.geoviite.infra.math.directionBetweenPoints
@@ -154,6 +154,10 @@ interface IAlignment : Loggable {
                 segment.getClosestPointM(segmentM.min, target)
             }
         }
+
+    fun takeFirst(count: Int): List<AlignmentPoint> = allAlignmentPoints.take(count).toList()
+
+    fun takeLast(count: Int): List<AlignmentPoint> = allAlignmentPointsDownward.take(count).toList().asReversed()
 
     fun getPointAtM(m: Double, snapDistance: Double = 0.0): AlignmentPoint? =
         when {
@@ -282,10 +286,6 @@ data class LayoutAlignment(
 
     fun withSegments(newSegments: List<LayoutSegment>) = copy(segments = newSegments)
 
-    fun takeFirst(count: Int): List<AlignmentPoint> = allAlignmentPoints.take(count).toList()
-
-    fun takeLast(count: Int): List<AlignmentPoint> = allAlignmentPointsDownward.take(count).toList().asReversed()
-
     override fun toLog(): String = logFormat("id" to id, "segments" to segments.size, "length" to round(length, 3))
 }
 
@@ -322,7 +322,7 @@ interface ISegmentGeometry {
 
     @get:JsonIgnore val endDirection: Double
 
-    @get:JsonIgnore val boundingBox: BoundingBox?
+    @get:JsonIgnore val boundingBox: BoundingBox
 
     val segmentStart: SegmentPoint
         get() = segmentPoints.first()
@@ -371,7 +371,7 @@ data class SegmentGeometry(
     val id: DomainId<SegmentGeometry> = StringId(),
 ) : ISegmentGeometry, Loggable {
 
-    override val boundingBox: BoundingBox? by lazy { boundingBoxAroundPointsOrNull(segmentPoints) }
+    override val boundingBox: BoundingBox by lazy { boundingBoxAroundPoints(segmentPoints) }
 
     override val startDirection: Double by lazy { directionBetweenPoints(segmentPoints[0], segmentPoints[1]) }
     override val endDirection: Double by lazy {

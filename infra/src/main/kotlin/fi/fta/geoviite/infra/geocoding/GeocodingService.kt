@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.time.Instant
@@ -71,7 +71,7 @@ class GeocodingService(
     fun getTrackLocation(
         layoutContext: LayoutContext,
         locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
+        alignment: IAlignment,
         address: TrackMeter,
     ): AddressPoint? {
         return getGeocodingContext(layoutContext, locationTrack.trackNumberId)?.getTrackLocation(alignment, address)
