@@ -4,7 +4,9 @@ import {
     DesignBranch,
     draftLayoutContext,
     LayoutAssetChangeInfo,
+    LayoutBranch,
     LayoutContext,
+    Oid,
     TimeStamp,
 } from 'common/common-model';
 import {
@@ -15,7 +17,12 @@ import {
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeInfoUri, layoutUri, layoutUriByBranch } from 'track-layout/track-layout-api';
+import {
+    changeInfoUri,
+    layoutUri,
+    layoutUriByBranch,
+    layoutUriWithoutContext,
+} from 'track-layout/track-layout-api';
 import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-number-edit-store';
 import {
     getChangeTimes,
@@ -28,6 +35,10 @@ import { bboxString } from 'common/common-api';
 import { BoundingBox } from 'model/geometry';
 
 const trackNumbersCache = asyncCache<string, LayoutTrackNumber[]>();
+const trackNumberOidsCache = asyncCache<
+    LayoutTrackNumberId,
+    { [key in LayoutBranch]?: Oid } | undefined
+>();
 
 export async function getTrackNumberById(
     trackNumberId: LayoutTrackNumberId,
@@ -118,4 +129,16 @@ export async function cancelTrackNumber(
     id: LayoutTrackNumberId,
 ): Promise<void> {
     return postNonNull(`${layoutUriByBranch('track-numbers', design)}/${id}/cancel`, '');
+}
+
+export async function getTrackNumberOids(
+    id: LayoutTrackNumberId,
+    changeTime: TimeStamp,
+): Promise<{ [key in LayoutBranch]?: Oid }> {
+    const oids = await trackNumberOidsCache.get(changeTime, id, () =>
+        getNullable<{ [key in LayoutBranch]?: Oid }>(
+            `${layoutUriWithoutContext('track-numbers', id)}/oids`,
+        ),
+    );
+    return oids ?? {};
 }

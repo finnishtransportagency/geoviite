@@ -190,14 +190,7 @@ constructor(
                 .id
 
         // two new location tracks stepping over each other's names
-        val newLt =
-            locationTrack(
-                draftTrackNumberId,
-                name = "NLT",
-                alignmentVersion = someAlignment,
-                externalId = null,
-                draft = true,
-            )
+        val newLt = locationTrack(draftTrackNumberId, name = "NLT", alignmentVersion = someAlignment, draft = true)
         val newLocationTrack1 = locationTrackDao.save(newLt).id
         val newLocationTrack2 = locationTrackDao.save(newLt).id
 

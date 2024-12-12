@@ -62,7 +62,7 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
                         </div>
                     </FieldLayout>
                     <FieldLayout label={t('split-details-dialog.source-oid')}>
-                        <div>{splitDetails?.locationTrack?.externalId}</div>
+                        <div>{splitDetails?.locationTrackOid}</div>
                     </FieldLayout>
                     <FieldLayout
                         label={t('split-details-dialog.targets', {

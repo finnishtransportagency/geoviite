@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_DOWNLOAD_GEOMETRY
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_GEOMETRY
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.DesignBranch
@@ -12,6 +13,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -201,6 +203,14 @@ class LayoutTrackNumberController(
     ): ResponseEntity<LayoutAssetChangeInfo> {
         val context = LayoutContext.of(branch, publicationState)
         return toResponse(trackNumberService.getLayoutAssetChangeInfo(context, id))
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/{id}/oids")
+    fun getTrackNumberOids(
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>
+    ): Map<LayoutBranch, Oid<TrackLayoutTrackNumber>> {
+        return trackNumberService.getExternalIdsByBranch(id)
     }
 }
 

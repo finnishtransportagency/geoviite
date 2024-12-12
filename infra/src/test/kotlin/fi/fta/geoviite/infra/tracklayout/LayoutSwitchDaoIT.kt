@@ -24,7 +24,9 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LayoutSwitchDaoIT @Autowired constructor(private val switchDao: LayoutSwitchDao) : DBTestBase() {
+class LayoutSwitchDaoIT
+@Autowired
+constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao: LocationTrackDao) : DBTestBase() {
 
     @BeforeEach
     fun cleanup() {
@@ -37,14 +39,14 @@ class LayoutSwitchDaoIT @Autowired constructor(private val switchDao: LayoutSwit
 
         // If the OID is already in use, remove it
         transactional {
-            val deleteSql = "delete from layout.switch where external_id = :external_id"
+            val deleteSql = "delete from layout.switch_external_id where external_id = :external_id"
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
-        val switch1 = switch(externalId = oid.toString(), draft = false)
-        val switch2 = switch(externalId = oid.toString(), draft = false)
-        switchDao.save(switch1)
-        assertThrows<DuplicateKeyException> { switchDao.save(switch2) }
+        val switch1 = switchDao.save(switch())
+        val switch2 = switchDao.save(switch())
+        switchDao.insertExternalId(switch1.id, LayoutBranch.main, oid)
+        assertThrows<DuplicateKeyException> { switchDao.insertExternalId(switch2.id, LayoutBranch.main, oid) }
     }
 
     @Test
@@ -204,11 +206,12 @@ class LayoutSwitchDaoIT @Autowired constructor(private val switchDao: LayoutSwit
         val oid = Oid<LocationTrack>("1.2.3.4.5")
         val officialTrack =
             mainOfficialContext.insert(
-                locationTrack(trackNumber, externalId = oid),
+                locationTrack(trackNumber),
                 alignment(
                     segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch, startJointNumber = JointNumber(1))
                 ),
             )
+        locationTrackDao.insertExternalId(officialTrack.id, LayoutBranch.main, oid)
         mainDraftContext.insert(
             asMainDraft(mainOfficialContext.fetch(officialTrack.id)!!),
             alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),

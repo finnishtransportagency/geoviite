@@ -151,6 +151,7 @@ class CalculatedChangesService(
 
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges {
         val changeContext = createChangeContext(versions)
+        val extIds = getAllOids(versions.target.candidateBranch)
 
         val (trackNumberChanges, changedLocationTrackIdsByTrackNumbers) =
             calculateTrackNumberChanges(versions.trackNumbers.map { it.id }, changeContext)
@@ -178,6 +179,7 @@ class CalculatedChangesService(
             getSwitchChangesByGeometryChanges(
                 mergeLocationTrackChanges(directLocationTrackChanges, locationTrackChangesByTrackNumbers),
                 changeContext,
+                extIds,
             )
 
         val (indirectDirectTrackNumberChanges, indirectTrackNumberChanges) =
@@ -219,6 +221,7 @@ class CalculatedChangesService(
         layoutBranch: LayoutBranch,
         locationTrackId: IntId<LocationTrack>,
         moment: Instant,
+        extIds: AllOids,
     ): List<SwitchChange> {
         val (locationTrack, alignment) =
             locationTrackService.getOfficialWithAlignmentAtMoment(layoutBranch, locationTrackId, moment)
@@ -253,9 +256,9 @@ class CalculatedChangesService(
                             address = change.address,
                             point = change.point.toPoint(),
                             locationTrackId = locationTrackId,
-                            locationTrackExternalId = locationTrack.externalId,
+                            locationTrackExternalId = extIds.locationTracks[locationTrack.id],
                             trackNumberId = trackNumberId,
-                            trackNumberExternalId = trackNumber.externalId,
+                            trackNumberExternalId = extIds.trackNumbers[trackNumber.id],
                         )
                     },
             )
@@ -323,6 +326,7 @@ class CalculatedChangesService(
     private fun getSwitchChangesByLocationTrack(
         trackId: IntId<LocationTrack>,
         changeContext: ChangeContext,
+        extIds: AllOids,
     ): List<SwitchChange> {
         val (oldLocationTrack, oldAlignment) =
             changeContext.locationTracks.beforeVersion(trackId)?.let(locationTrackService::getWithAlignment)
@@ -330,9 +334,6 @@ class CalculatedChangesService(
 
         val (newLocationTrack, newAlignment) =
             changeContext.locationTracks.afterVersion(trackId).let(locationTrackService::getWithAlignment)
-
-        val oldTrackNumber =
-            oldLocationTrack?.let { track -> changeContext.trackNumbers.getBefore(track.trackNumberId) }
 
         val newTrackNumber =
             newLocationTrack.let { track -> changeContext.trackNumbers.getAfterIfExists(track.trackNumberId) }
@@ -383,9 +384,9 @@ class CalculatedChangesService(
                                         address = changeData.address,
                                         point = changeData.point.toPoint(),
                                         locationTrackId = oldLocationTrack.id as IntId,
-                                        locationTrackExternalId = oldLocationTrack.externalId,
+                                        locationTrackExternalId = extIds.locationTracks[oldLocationTrack.id],
                                         trackNumberId = oldLocationTrack.trackNumberId,
-                                        trackNumberExternalId = oldTrackNumber?.externalId,
+                                        trackNumberExternalId = extIds.trackNumbers[oldLocationTrack.trackNumberId],
                                     )
                                 },
                         )
@@ -407,9 +408,9 @@ class CalculatedChangesService(
                                     address = changeData.address,
                                     point = changeData.point.toPoint(),
                                     locationTrackId = newLocationTrack.id as IntId,
-                                    locationTrackExternalId = newLocationTrack.externalId,
+                                    locationTrackExternalId = extIds.locationTracks[newLocationTrack.id],
                                     trackNumberId = newLocationTrack.trackNumberId,
-                                    trackNumberExternalId = newTrackNumber?.externalId,
+                                    trackNumberExternalId = newTrackNumber?.id?.let { id -> extIds.trackNumbers[id] },
                                 )
                             },
                     )
@@ -425,12 +426,13 @@ class CalculatedChangesService(
     private fun getSwitchChangesByGeometryChanges(
         locationTracksChanges: Collection<LocationTrackChange>,
         changeContext: ChangeContext,
+        extIds: AllOids,
     ): Pair<List<SwitchChange>, List<LocationTrackChange>> {
         val switchChanges =
             mergeSwitchChanges(
                 locationTracksChanges
                     .flatMap { locationTrackChange ->
-                        getSwitchChangesByLocationTrack(locationTrackChange.locationTrackId, changeContext)
+                        getSwitchChangesByLocationTrack(locationTrackChange.locationTrackId, changeContext, extIds)
                     }
                     .filter { switchChange -> switchChange.changedJoints.isNotEmpty() }
             )
@@ -488,6 +490,9 @@ class CalculatedChangesService(
                 locationTrackDao.fetchVersions(versions.target.baseContext, false, trackNumberId)
             },
         )
+
+    fun getAllOids(layoutBranch: LayoutBranch) =
+        AllOids(trackNumberDao.fetchExternalIds(layoutBranch), locationTrackDao.fetchExternalIds(layoutBranch))
 }
 
 private fun asDirectSwitchChanges(switchIds: Collection<IntId<TrackLayoutSwitch>>) =
@@ -649,3 +654,8 @@ private fun findSwitchJointDifferences(
         }
         .filter { it.second.isNotEmpty() }
 }
+
+data class AllOids(
+    val trackNumbers: Map<IntId<TrackLayoutTrackNumber>, Oid<TrackLayoutTrackNumber>>,
+    val locationTracks: Map<IntId<LocationTrack>, Oid<LocationTrack>>,
+)

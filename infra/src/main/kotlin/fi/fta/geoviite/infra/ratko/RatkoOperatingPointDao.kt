@@ -64,8 +64,8 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
                      :type::layout.operating_point_type,
                      postgis.st_setsrid(postgis.st_point(:x, :y), :srid),
                      tn.id
-                     from layout.track_number tn
-                     where tn.external_id = :trackNumberExternalId
+                     from layout.track_number_external_id tn
+                     where tn.external_id = :trackNumberExternalId and tn.layout_context_id = 'main_official'
                   )
                   on conflict(external_id) do update set
                    external_id = excluded.external_id,

@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.MetaDataName
@@ -40,7 +41,6 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val switchDao: LayoutSwitchDao,
 ) : DBTestBase() {
-
     @BeforeEach
     fun cleanup() {
         testDBService.clearLayoutTables()
@@ -261,19 +261,17 @@ constructor(
 
     @Test
     fun switchIsReturnedBySwitchType() {
-        val switch = switch(draft = false, stateCategory = EXISTING)
+        val switch = switchDao.fetch(switchDao.save(switch(draft = false, stateCategory = EXISTING)))
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
         val typeName = structure.type.typeName
-
-        switchDao.save(switch)
 
         val switchesCompleteTypeName = getSwitches(switchFilter(switchType = typeName))
         val switchesPartialTypeName = getSwitches(switchFilter(switchType = typeName.substring(2)))
 
         assertTrue(switchesCompleteTypeName.isNotEmpty())
         assertTrue(switchesPartialTypeName.isNotEmpty())
-        assertTrue(switchesCompleteTypeName.any { s -> s.externalId == switch.externalId })
-        assertTrue(switchesPartialTypeName.any { s -> s.externalId == switch.externalId })
+        assertTrue(switchesCompleteTypeName.any { s -> s.id == switch.id })
+        assertTrue(switchesPartialTypeName.any { s -> s.id == switch.id })
     }
 
     @Test
@@ -303,19 +301,20 @@ constructor(
             )
         val (_, withStartLink) =
             insertDraft(
-                locationTrack(tnId, externalId = someOid(), draft = true)
+                locationTrack(tnId, draft = true)
                     .copy(topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1))),
                 alignment(someSegment()),
+                someOid(),
             )
         val (_, withEndLink) =
             insertDraft(
-                locationTrack(tnId, externalId = null, draft = true)
+                locationTrack(tnId, draft = true)
                     .copy(topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2))),
                 alignment(someSegment()),
             )
         val (_, withSegmentLink) =
             insertDraft(
-                locationTrack(tnId, externalId = someOid(), draft = true),
+                locationTrack(tnId, draft = true),
                 alignment(
                     someSegment()
                         .copy(
@@ -324,6 +323,7 @@ constructor(
                             endJointNumber = JointNumber(2),
                         )
                 ),
+                someOid(),
             )
         assertEquals(
             listOf<LocationTrackIdentifiers>(),
@@ -348,12 +348,12 @@ constructor(
             mainOfficialContext.insert(
                 locationTrack(
                     trackNumberId = trackNumberId,
-                    externalId = locationTrack1Oid,
                     name = "LT 1",
                     topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
                 ),
                 alignment(someSegment()),
             )
+        locationTrackService.insertExternalId(LayoutBranch.main, locationTrack1.id, locationTrack1Oid)
 
         val locationTrack2 =
             mainOfficialContext.insert(
@@ -370,7 +370,6 @@ constructor(
             mainOfficialContext.insert(
                 locationTrack(
                     trackNumberId = trackNumberId,
-                    externalId = locationTrack3Oid,
                     name = "LT 3",
                     topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
                 ),
@@ -379,6 +378,7 @@ constructor(
                         .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(2))
                 ),
             )
+        locationTrackService.insertExternalId(LayoutBranch.main, locationTrack3.id, locationTrack3Oid)
 
         val linkedLocationTracks =
             switchDao.findLocationTracksLinkedToSwitchAtMoment(
@@ -452,10 +452,14 @@ constructor(
     private fun insertDraft(
         locationTrack: LocationTrack,
         alignment: LayoutAlignment,
+        oid: Oid<LocationTrack>? = null,
     ): Pair<LocationTrack, LocationTrackIdentifiers> {
         val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        if (oid != null) {
+            locationTrackService.insertExternalId(LayoutBranch.main, version.id, oid)
+        }
         val track = locationTrackService.getOrThrow(MainLayoutContext.draft, version.id)
-        val identifiers = LocationTrackIdentifiers(version, locationTrack.externalId)
+        val identifiers = LocationTrackIdentifiers(version, oid)
         return track to identifiers
     }
 

@@ -93,30 +93,26 @@ constructor(
 
         // If the OID is already in use, remove it
         transactional {
-            val deleteSql = "delete from layout.location_track where external_id = :external_id"
+            val deleteSql = "delete from layout.location_track_external_id where external_id = :external_id"
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion1 = alignmentDao.insert(alignment())
         val locationTrack1 =
-            locationTrack(
-                trackNumberId = trackNumberId,
-                externalId = oid,
-                alignmentVersion = alignmentVersion1,
-                draft = false,
-            )
+            locationTrackDao
+                .save(locationTrack(trackNumberId = trackNumberId, alignmentVersion = alignmentVersion1, draft = false))
+                .id
         val alignmentVersion2 = alignmentDao.insert(alignment())
         val locationTrack2 =
-            locationTrack(
-                trackNumberId = trackNumberId,
-                externalId = oid,
-                alignmentVersion = alignmentVersion2,
-                draft = false,
-            )
+            locationTrackDao
+                .save(locationTrack(trackNumberId = trackNumberId, alignmentVersion = alignmentVersion2, draft = false))
+                .id
 
-        locationTrackDao.save(locationTrack1)
-        assertThrows<DuplicateKeyException> { locationTrackDao.save(locationTrack2) }
+        locationTrackDao.insertExternalId(locationTrack1, LayoutBranch.main, oid)
+        assertThrows<DuplicateKeyException> {
+            locationTrackDao.insertExternalId(locationTrack2, LayoutBranch.main, oid)
+        }
     }
 
     @Test

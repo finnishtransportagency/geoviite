@@ -46,7 +46,11 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return dao.fetchLayoutAssetChangeInfo(context, id)
     }
 
-    fun filterBySearchTerm(list: List<ObjectType>, searchTerm: FreeText): List<ObjectType> =
+    fun filterBySearchTerm(
+        list: List<ObjectType>,
+        searchTerm: FreeText,
+        idMatches: (String, ObjectType) -> Boolean,
+    ): List<ObjectType> =
         searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
             list.filter { item -> idMatches(term, item) || contentMatches(term, item) }
         } ?: listOf()
@@ -56,8 +60,6 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         dao.fetchVersion(branch.official, id)?.let { version -> saveDraft(branch, cancelInternal(dao.fetch(version))) }
 
     protected fun cancelInternal(asset: ObjectType) = cancelled(asset)
-
-    protected open fun idMatches(term: String, item: ObjectType): Boolean = false
 
     protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
 

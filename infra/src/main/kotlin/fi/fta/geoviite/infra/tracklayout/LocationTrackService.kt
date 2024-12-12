@@ -44,7 +44,7 @@ const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
 
 @GeoviiteService
 class LocationTrackService(
-    locationTrackDao: LocationTrackDao,
+    val locationTrackDao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val geocodingService: GeocodingService,
@@ -67,7 +67,6 @@ class LocationTrackService(
                 descriptionSuffix = request.descriptionSuffix,
                 type = request.type,
                 state = request.state,
-                externalId = null,
                 trackNumberId = request.trackNumberId,
                 sourceId = null,
                 length = alignment.length,
@@ -198,17 +197,8 @@ class LocationTrackService(
     }
 
     @Transactional
-    fun updateExternalId(
-        branch: LayoutBranch,
-        id: IntId<LocationTrack>,
-        oid: Oid<LocationTrack>,
-    ): LayoutRowVersion<LocationTrack> {
-        val original = dao.getOrThrow(branch.draft, id)
-        return saveDraftInternal(
-            branch,
-            original.copy(externalId = oid, alignmentVersion = updatedAlignmentVersion(original)),
-        )
-    }
+    fun insertExternalId(branch: LayoutBranch, id: IntId<LocationTrack>, oid: Oid<LocationTrack>) =
+        dao.insertExternalId(id, branch, oid)
 
     @Transactional
     override fun publish(
@@ -265,8 +255,13 @@ class LocationTrackService(
         return dao.list(layoutContext, includeDeleted, trackNumberId, names)
     }
 
-    override fun idMatches(term: String, item: LocationTrack) =
-        item.externalId.toString() == term || item.id.toString() == term
+    fun idMatches(
+        layoutContext: LayoutContext,
+        possibleIds: List<IntId<LocationTrack>>? = null,
+    ): ((term: String, item: LocationTrack) -> Boolean) =
+        dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
+            return { term, item -> externalIds[item.id]?.toString() == term || item.id.toString() == term }
+        }
 
     override fun contentMatches(term: String, item: LocationTrack) =
         item.exists && (item.name.contains(term, true) || item.descriptionBase.contains(term, true))
@@ -375,7 +370,7 @@ class LocationTrackService(
         return if (geocodingContext != null && locationTrack.alignmentVersion != null) {
             alignmentService.getGeometryMetadataSections(
                 locationTrack.alignmentVersion,
-                locationTrack.externalId,
+                dao.fetchExternalId(layoutContext.branch, locationTrackId),
                 boundingBox,
                 geocodingContext,
             )
@@ -755,6 +750,13 @@ class LocationTrackService(
 
     override fun cancelInternal(asset: LocationTrack) =
         cancelled(asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())))
+
+    fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
+
+    @Transactional(readOnly = true)
+    fun getExternalIdsByBranch(id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
+        return locationTrackDao.fetchExternalIdsByBranch(id)
+    }
 }
 
 fun collectAllSwitches(locationTrack: LocationTrack, alignment: LayoutAlignment): List<IntId<TrackLayoutSwitch>> {

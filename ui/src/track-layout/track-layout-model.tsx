@@ -125,7 +125,6 @@ export type LayoutLocationTrack = {
     descriptionSuffix?: LocationTrackDescriptionSuffixMode;
     type?: LocationTrackType;
     state: LocationTrackState;
-    externalId?: Oid;
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryAlignmentId;
     id: LocationTrackId;
@@ -204,7 +203,6 @@ export type LocationTrackDuplicate = {
     id: LocationTrackId;
     trackNumberId: LayoutTrackNumberId;
     name: string;
-    externalId: Oid;
     start: AlignmentPoint | undefined;
     end: AlignmentPoint | undefined;
     duplicateStatus: DuplicateStatus;
@@ -263,7 +261,6 @@ export type LayoutSwitchId = Brand<string, 'LayoutSwitchId'>;
 
 export type LayoutSwitch = {
     id: LayoutSwitchId;
-    externalId?: Oid;
     name: string;
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;
@@ -344,7 +341,6 @@ export type LayoutTrackNumberId = Brand<string, 'LayoutTrackNumberId'>;
 
 export type LayoutTrackNumber = {
     id: LayoutTrackNumberId;
-    externalId?: Oid;
     description: string;
     number: TrackNumber;
     state: LayoutState;

@@ -701,8 +701,6 @@ private fun createSplitTarget(
             descriptionBase = request.descriptionBase,
             descriptionSuffix = request.descriptionSuffix,
 
-            // New track -> no external ID
-            externalId = null,
             // After split, tracks are not duplicates
             duplicateOf = null,
             // Topology is re-resolved after tracks and switches are updated

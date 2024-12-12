@@ -31,7 +31,6 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
                 number = testDBService.getUnusedTrackNumber(),
                 description = TrackNumberDescription("empty-test-track-number"),
                 state = IN_USE,
-                externalId = null,
                 contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
             )
         val version = trackNumberDao.save(original)
@@ -47,14 +46,14 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
 
         // If the OID is already in use, remove it
         transactional {
-            val deleteSql = "delete from layout.track_number where external_id = :external_id"
+            val deleteSql = "delete from layout.track_number_external_id where external_id = :external_id"
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
-        val tn1 = trackNumber(testDBService.getUnusedTrackNumber(), externalId = oid, draft = false)
-        val tn2 = trackNumber(testDBService.getUnusedTrackNumber(), externalId = oid, draft = false)
-        trackNumberDao.save(tn1)
-        assertThrows<DuplicateKeyException> { trackNumberDao.save(tn2) }
+        val tn1 = trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false))
+        val tn2 = trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false))
+        trackNumberDao.insertExternalId(tn1.id, LayoutBranch.main, oid)
+        assertThrows<DuplicateKeyException> { trackNumberDao.insertExternalId(tn2.id, LayoutBranch.main, oid) }
     }
 
     @Test

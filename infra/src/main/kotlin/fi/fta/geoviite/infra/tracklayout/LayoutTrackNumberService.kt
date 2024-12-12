@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.printCsv
+import java.time.Instant
 import java.util.stream.Collectors
 import org.springframework.transaction.annotation.Transactional
 
@@ -55,7 +56,6 @@ class LayoutTrackNumberService(
                     number = saveRequest.number,
                     description = saveRequest.description,
                     state = saveRequest.state,
-                    externalId = null,
                     contextData = LayoutContextData.newDraft(branch, dao.createId()),
                 ),
             )
@@ -84,16 +84,8 @@ class LayoutTrackNumberService(
     }
 
     @Transactional
-    fun updateExternalId(
-        branch: LayoutBranch,
-        id: IntId<TrackLayoutTrackNumber>,
-        oid: Oid<TrackLayoutTrackNumber>,
-    ): LayoutRowVersion<TrackLayoutTrackNumber> {
-        val original = dao.getOrThrow(branch.draft, id)
-        val trackLayoutTrackNumber = original.copy(externalId = oid)
-
-        return saveDraftInternal(branch, trackLayoutTrackNumber)
-    }
+    fun insertExternalId(branch: LayoutBranch, id: IntId<TrackLayoutTrackNumber>, oid: Oid<TrackLayoutTrackNumber>) =
+        dao.insertExternalId(id, branch, oid)
 
     @Transactional
     fun deleteDraftAndReferenceLine(
@@ -116,8 +108,13 @@ class LayoutTrackNumberService(
             super.cancel(branch, id)
         }
 
-    override fun idMatches(term: String, item: TrackLayoutTrackNumber) =
-        item.externalId.toString() == term || item.id.toString() == term
+    fun idMatches(
+        layoutContext: LayoutContext,
+        possibleIds: List<IntId<TrackLayoutTrackNumber>>? = null,
+    ): ((term: String, item: TrackLayoutTrackNumber) -> Boolean) =
+        dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
+            { term, item -> externalIds[item.id]?.toString() == term || item.id.toString() == term }
+        }
 
     override fun contentMatches(term: String, item: TrackLayoutTrackNumber) =
         item.exists && item.number.toString().replace("  ", " ").contains(term, true)
@@ -199,7 +196,7 @@ class LayoutTrackNumberService(
             if (geocodingContext != null && referenceLine.alignmentVersion != null) {
                 alignmentService.getGeometryMetadataSections(
                     referenceLine.alignmentVersion,
-                    trackNumber.externalId,
+                    dao.fetchExternalId(layoutContext.branch, trackNumberId),
                     boundingBox,
                     geocodingContext,
                 )
@@ -207,6 +204,13 @@ class LayoutTrackNumberService(
                 null
             }
         } ?: listOf()
+    }
+
+    fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
+
+    @Transactional(readOnly = true)
+    fun getExternalIdsByBranch(id: IntId<TrackLayoutTrackNumber>): Map<LayoutBranch, Oid<TrackLayoutTrackNumber>> {
+        return dao.fetchExternalIdsByBranch(id)
     }
 }
 

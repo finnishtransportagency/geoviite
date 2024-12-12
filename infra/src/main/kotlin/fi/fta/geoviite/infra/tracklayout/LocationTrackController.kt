@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
@@ -273,5 +274,11 @@ class LocationTrackController(
     ): ResponseEntity<SplittingInitializationParameters> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(locationTrackService.getSplittingInitializationParameters(context, id))
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/location-tracks/{id}/oids")
+    fun getLocationTrackOids(@PathVariable("id") id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
+        return locationTrackService.getExternalIdsByBranch(id)
     }
 }

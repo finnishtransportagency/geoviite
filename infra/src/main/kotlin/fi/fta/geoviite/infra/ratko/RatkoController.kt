@@ -45,7 +45,7 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
     @PreAuthorize(AUTH_VIEW_LAYOUT)
     @PostMapping("/push-location-tracks")
     fun pushLocationTracksToRatko(@RequestBody changes: List<LocationTrackChange>): ResponseEntity<Unit> {
-        ratkoService.pushLocationTracksToRatko(LayoutBranch.main, changes)
+        ratkoService.pushLocationTracksToRatko(LayoutBranch.main, changes, extIdsProvided = null)
         return ResponseEntity(HttpStatus.NO_CONTENT)
     }
 

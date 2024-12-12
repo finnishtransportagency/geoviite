@@ -199,16 +199,11 @@ constructor(
         val id = locationTrackService.insert(LayoutBranch.main, insertRequest).id
         val locationTrack = locationTrackService.get(MainLayoutContext.draft, id)!!
 
-        assertNull(locationTrack.externalId)
+        assertNull(locationTrackDao.fetchExternalId(LayoutBranch.main, id))
 
-        locationTrackService.updateExternalId(
-            LayoutBranch.main,
-            locationTrack.id as IntId,
-            externalIdForLocationTrack(),
-        )
+        locationTrackService.insertExternalId(LayoutBranch.main, id, externalIdForLocationTrack())
 
-        val updatedLocationTrack = locationTrackService.get(MainLayoutContext.draft, id)!!
-        assertNotNull(updatedLocationTrack.externalId)
+        assertNotNull(locationTrackDao.fetchExternalId(LayoutBranch.main, id))
     }
 
     @Test
