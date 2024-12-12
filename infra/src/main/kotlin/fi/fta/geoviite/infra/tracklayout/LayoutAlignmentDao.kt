@@ -51,7 +51,7 @@ class LayoutAlignmentDao(
     private val edgesCache: Cache<IntId<LayoutEdge>, LayoutEdge> =
         Caffeine.newBuilder().maximumSize(EDGE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
-    private val locationTrackGeometryCache: Cache<LayoutRowVersion<LocationTrack>, LocationTrackGeometry> =
+    private val locationTrackGeometryCache: Cache<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> =
         Caffeine.newBuilder().maximumSize(ALIGNMENT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     private val alignmentsCache: Cache<RowVersion<LayoutAlignment>, LayoutAlignment> =
@@ -94,12 +94,12 @@ class LayoutAlignmentDao(
                 .trimIndent()
         val params = mapOf("id" to id?.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            val type = rs.getEnum<NodeType>("type")
+            val type = rs.getEnum<LayoutNodeType>("type")
             val content =
                 when (type) {
-                    NodeType.TRACK_START -> LayoutNodeStartTrack(rs.getIntId("starting_location_track_id"))
-                    NodeType.TRACK_END -> LayoutNodeEndTrack(rs.getIntId("ending_location_track_id"))
-                    NodeType.SWITCH -> {
+                    LayoutNodeType.TRACK_START -> LayoutNodeStartTrack(rs.getIntId("starting_location_track_id"))
+                    LayoutNodeType.TRACK_END -> LayoutNodeEndTrack(rs.getIntId("ending_location_track_id"))
+                    LayoutNodeType.SWITCH -> {
                         val switchIds = rs.getIntArray("switch_ids")
                         val jointNumbers = rs.getIntArray("switch_joints")
                         LayoutNodeSwitches(
@@ -295,7 +295,7 @@ class LayoutAlignmentDao(
     }
 
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-    fun get(trackVersion: LayoutRowVersion<LocationTrack>): LocationTrackGeometry =
+    fun get(trackVersion: LayoutRowVersion<LocationTrack>): DbLocationTrackGeometry =
         locationTrackGeometryCache.get(trackVersion) { version ->
             fetchLocationTrackGeometry(version, false).values.single()
         }
@@ -303,7 +303,7 @@ class LayoutAlignmentDao(
     private fun fetchLocationTrackGeometry(
         trackVersion: LayoutRowVersion<LocationTrack>?,
         active: Boolean,
-    ): Map<LayoutRowVersion<LocationTrack>, LocationTrackGeometry> {
+    ): Map<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> {
         val sql =
             """
             select
@@ -334,16 +334,16 @@ class LayoutAlignmentDao(
             .query(sql, params) { rs, _ ->
                 val edgeIds = rs.getIntIdArray<LayoutEdge>("edge_ids")
                 val edges = getEdges(edgeIds)
-                LocationTrackGeometry(
+                DbLocationTrackGeometry(
                     trackRowVersion = rs.getLayoutRowVersion("id", "layout_context_id", "version"),
                     edges = edgeIds.map { id -> requireNotNull(edges[id]) },
                 )
             }
-            .associateBy(LocationTrackGeometry::trackRowVersion)
+            .associateBy(DbLocationTrackGeometry::trackRowVersion)
     }
 
     @Transactional
-    fun saveLocationTrackGeometry(trackVersion: LayoutRowVersion<LocationTrack>, content: ILocationTrackGeometry) {
+    fun saveLocationTrackGeometry(trackVersion: LayoutRowVersion<LocationTrack>, content: LocationTrackGeometry) {
         val edges = content.edges.associate { e -> e.contentHash to getOrCreateEdge(e).id }
         val sql =
             """
@@ -372,6 +372,41 @@ class LayoutAlignmentDao(
         }
     }
 
+    fun copyLocationTrackGeometry(from: LayoutRowVersion<LocationTrack>, to: LayoutRowVersion<LocationTrack>) {
+        val sql =
+            """
+            insert into layout.location_track_version_edge(
+                location_track_id,
+                location_track_layout_context_id,
+                location_track_version,
+                edge_id,
+                edge_index,
+                start_m
+            ) select
+                :to_id,
+                :to_context_id,
+                :to_version,
+                edge_id,
+                edge_index,
+                start_m
+                from layout.location_track_version_edge
+                where location_track_id = :from_id
+                  and location_track_layout_context_id = :from_context_id
+                  and location_track_version = :from_version
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "from_id" to from.id.intValue,
+                "from_context_id" to from.context.toSqlString(),
+                "from_version" to from.version,
+                "to_id" to to.id.intValue,
+                "to_context_id" to to.context.toSqlString(),
+                "to_version" to to.version,
+            )
+        jdbcTemplate.update(sql, params)
+    }
+
     fun preloadLocationTrackGeometries(): Int {
         val geoms = fetchLocationTrackGeometry(trackVersion = null, active = true)
         locationTrackGeometryCache.putAll(geoms)
@@ -385,6 +420,11 @@ class LayoutAlignmentDao(
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetchMany(versions: List<RowVersion<LayoutAlignment>>): Map<RowVersion<LayoutAlignment>, LayoutAlignment> =
         versions.associateWith(::fetch)
+
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+    fun getMany(
+        versions: List<LayoutRowVersion<LocationTrack>>
+    ): Map<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> = versions.associateWith(::get)
 
     private fun fetchInternal(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
         val sql =
@@ -633,6 +673,16 @@ class LayoutAlignmentDao(
         }
     }
 
+    // TODO: GVT-1727
+    fun fetchSegmentGeometriesAndPlanMetadata(
+        trackVersion: LayoutRowVersion<LocationTrack>,
+        metadataExternalId: Oid<*>?,
+        boundingBox: BoundingBox?,
+    ): List<SegmentGeometryAndMetadata> {
+        TODO()
+    }
+
+    @Deprecated("Should be implemented throug nodes and edges")
     fun fetchSegmentGeometriesAndPlanMetadata(
         alignmentVersion: RowVersion<LayoutAlignment>,
         metadataExternalId: Oid<*>?,

@@ -12,15 +12,46 @@ import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import java.util.*
 import kotlin.math.abs
 
-interface ILocationTrackGeometry : IAlignment {
-    val edges: List<ILayoutEdge>
-    val edgeMs: List<Range<Double>>
+sealed class LocationTrackGeometry : IAlignment {
+    abstract val edges: List<ILayoutEdge>
+    val edgeMs: List<Range<Double>> by lazy { calculateEdgeMs(edges) }
+    override val segments: List<LayoutEdgeSegment> by lazy { edges.flatMap(ILayoutEdge::segments) }
+    override val segmentMs: List<Range<Double>> by lazy { calculateSegmentMs(segments) }
+    override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(edges.mapNotNull(ILayoutEdge::boundingBox)) }
 
-    val nodes: List<ILayoutNodeContent>
-        get() = edges.flatMap { e -> listOf(e.startNode, e.endNode) }.distinctBy { n -> n.contentHash }
+    override val segmentsWithM: List<Pair<LayoutEdgeSegment, Range<Double>>>
+        get() = segments.zip(segmentMs)
+
+    // All edges have segments, all segments have points
+    val isEmpty: Boolean
+        get() = edges.isEmpty()
+
+    val isNotEmpty: Boolean
+        get() = edges.isNotEmpty()
+
+    val nodes: List<ILayoutNodeContent> by lazy {
+        edges.flatMap { e -> listOf(e.startNode, e.endNode) }.distinctBy { n -> n.contentHash }
+    }
+
+    val nodesWithLocation: List<Pair<ILayoutNodeContent, AlignmentPoint>> by lazy {
+        edgesWithM
+            .flatMap { (e, m) ->
+                listOf(
+                    e.startNode to e.firstSegmentStart.toAlignmentPoint(m.min),
+                    e.endNode to e.lastSegmentEnd.toAlignmentPoint(m.min + e.segmentMs.last().min),
+                )
+            }
+            .distinctBy { (n, _) -> n.contentHash }
+    }
 
     val edgesWithM: List<Pair<ILayoutEdge, Range<Double>>>
         get() = edges.zip(edgeMs)
+
+    val switchIdAtStart: IntId<TrackLayoutSwitch>?
+        get() = edges.firstOrNull()?.startNode?.switches?.lastOrNull()?.id
+
+    val switchIdAtEnd: IntId<TrackLayoutSwitch>?
+        get() = edges.lastOrNull()?.endNode?.switches?.firstOrNull()?.id
 }
 
 fun calculateEdgeMs(edges: List<ILayoutEdge>): List<Range<Double>> {
@@ -28,31 +59,32 @@ fun calculateEdgeMs(edges: List<ILayoutEdge>): List<Range<Double>> {
     return edges.map { edge -> Range(previousEnd, previousEnd + edge.length).also { previousEnd += edge.length } }
 }
 
-data class LocationTrackGeometryContent(override val edges: List<ILayoutEdge>) : ILocationTrackGeometry {
-    // TODO: Do we need an id like this? Can we just be rid of it? Should it be unique by version?
-    //    override val id: StringId<LocationTrack> = StringId()
-    // TODO: GVT-1727 optimize segments/m-values
-    override val edgeMs: List<Range<Double>> by lazy { calculateEdgeMs(edges) }
-    override val segments: List<LayoutEdgeSegment> by lazy { edges.flatMap(ILayoutEdge::segments) }
-    override val segmentMs: List<Range<Double>> by lazy { calculateSegmentMs(segments) }
-    override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(edges.mapNotNull(ILayoutEdge::boundingBox)) }
-}
+data class TmpLocationTrackGeometry(override val edges: List<ILayoutEdge>) : LocationTrackGeometry()
 
-data class LocationTrackGeometry(
+data class DbLocationTrackGeometry(
     val trackRowVersion: LayoutRowVersion<LocationTrack>,
     override val edges: List<LayoutEdge>,
-) : ILocationTrackGeometry {
-    // TODO: GVT-1727 duplication with the above, due to interfaces not allowing lazy props and we don't wan to recalc
-    override val edgeMs: List<Range<Double>> by lazy { calculateEdgeMs(edges) }
-    override val segments: List<LayoutEdgeSegment> by lazy { edges.flatMap(ILayoutEdge::segments) }
-    override val segmentMs: List<Range<Double>> by lazy { calculateSegmentMs(segments) }
-    override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(edges.mapNotNull(ILayoutEdge::boundingBox)) }
-}
+) : LocationTrackGeometry()
 
 interface ILayoutEdge : IAlignment {
     val startNode: ILayoutNodeContent
     val endNode: ILayoutNodeContent
     override val segments: List<LayoutEdgeSegment>
+
+    override val firstSegmentStart: SegmentPoint
+        get() = segments.first().segmentStart
+
+    override val lastSegmentEnd: SegmentPoint
+        get() = segments.last().segmentEnd
+
+    override val start: AlignmentPoint
+        get() = firstSegmentStart.toAlignmentPoint(0.0) // alignmentStart
+
+    override val end: AlignmentPoint
+        get() = lastSegmentEnd.toAlignmentPoint(segmentMs.last().min)
+
+    override val boundingBox: BoundingBox
+
     //    override val segmentMs: List<Range<Double>>
     val contentHash: Int
 }
@@ -63,6 +95,10 @@ data class LayoutEdgeContent(
     override val segments: List<LayoutEdgeSegment>,
     override val segmentMs: List<Range<Double>>,
 ) : ILayoutEdge {
+
+    override val segmentsWithM: List<Pair<LayoutEdgeSegment, Range<Double>>>
+        get() = segments.zip(segmentMs)
+
     init {
         // TODO: GVT-1727 fix data?
         // Our base data is broken so that there's bad edges like this. It's the same in original segments as well.
@@ -85,8 +121,10 @@ data class LayoutEdgeContent(
         }
     }
 
-    override val boundingBox: BoundingBox? by lazy {
-        boundingBoxCombining(segments.mapNotNull(LayoutEdgeSegment::boundingBox))
+    override val boundingBox: BoundingBox by lazy {
+        requireNotNull(boundingBoxCombining(segments.mapNotNull(LayoutEdgeSegment::boundingBox))) {
+            "An edge must have segments, so it must have a bounding box"
+        }
     }
     override val contentHash: Int by lazy { Objects.hash(startNode.contentHash, endNode.contentHash, segments) }
 }
@@ -103,8 +141,10 @@ data class LayoutEdge(val id: IntId<LayoutEdge>, @JsonIgnore val content: Layout
     override val endNode: LayoutNode
         get() = content.endNode as LayoutNode
 
-    override val boundingBox: BoundingBox? by lazy {
-        boundingBoxCombining(segments.mapNotNull(LayoutEdgeSegment::boundingBox))
+    override val boundingBox: BoundingBox by lazy {
+        requireNotNull(boundingBoxCombining(segments.mapNotNull(LayoutEdgeSegment::boundingBox))) {
+            "An edge must have segments, so it must have a bounding box"
+        }
     }
 }
 
@@ -128,13 +168,13 @@ data class LayoutEdgeSegment(
     // TODO: segment edit operations (mostly same as LayoutSegment)
 }
 
-enum class NodeType {
+enum class LayoutNodeType {
     SWITCH,
     TRACK_START,
     TRACK_END,
 }
 
-data class LayoutNode(val id: IntId<LayoutNode>, @JsonIgnore val content: ILayoutNodeContent) :
+data class LayoutNode(val id: IntId<LayoutNode>, @JsonIgnore val content: LayoutNodeContent) :
     ILayoutNodeContent by content
 
 interface ILayoutNodeContent {
@@ -147,23 +187,25 @@ interface ILayoutNodeContent {
     val endingTrack: IntId<LocationTrack>?
         get() = null
 
-    val nodeType: NodeType
+    val nodeType: LayoutNodeType
 
     val contentHash: Int
 }
 
-data class LayoutNodeStartTrack(override val startingTrackId: IntId<LocationTrack>) : ILayoutNodeContent {
-    override val nodeType: NodeType = NodeType.TRACK_START
+sealed class LayoutNodeContent : ILayoutNodeContent
+
+data class LayoutNodeStartTrack(override val startingTrackId: IntId<LocationTrack>) : LayoutNodeContent() {
+    override val nodeType: LayoutNodeType = LayoutNodeType.TRACK_START
     override val contentHash: Int by lazy { hashCode() }
 }
 
-data class LayoutNodeEndTrack(override val endingTrack: IntId<LocationTrack>) : ILayoutNodeContent {
-    override val nodeType: NodeType = NodeType.TRACK_END
+data class LayoutNodeEndTrack(override val endingTrack: IntId<LocationTrack>) : LayoutNodeContent() {
+    override val nodeType: LayoutNodeType = LayoutNodeType.TRACK_END
     override val contentHash: Int by lazy { hashCode() }
 }
 
-data class LayoutNodeSwitches(override val switches: List<SwitchLink>) : ILayoutNodeContent {
-    override val nodeType: NodeType = NodeType.SWITCH
+data class LayoutNodeSwitches(override val switches: List<SwitchLink>) : LayoutNodeContent() {
+    override val nodeType: LayoutNodeType = LayoutNodeType.SWITCH
     override val contentHash: Int by lazy { hashCode() }
 }
 

@@ -75,6 +75,13 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
         get() = contextData.hasOfficial
 
     abstract fun withContext(contextData: LayoutContextData<T>): T
+
+    @get:JsonIgnore
+    val versionOrThrow
+        get() =
+            requireNotNull(version) {
+                "Expected object to be stored in DB and hence have a version: object=${this.toLog()}"
+            }
 }
 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
