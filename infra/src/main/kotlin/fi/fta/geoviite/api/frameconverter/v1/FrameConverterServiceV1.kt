@@ -220,7 +220,7 @@ constructor(
                     )
                 val trackDescriptions =
                     getLocationTrackFeatureDetailInfo(params, tracksAndAlignments.map { (track) -> track })
-                TrackNumberRequests(trackNumberDetails, tracksAndAlignments, trackDescriptions, requests)
+                TrackNumberRequests(trackNumberDetails, tracksAndAlignments, trackDescriptions, trackNumberRequests)
             }
             .parallelStream()
             .map { r ->

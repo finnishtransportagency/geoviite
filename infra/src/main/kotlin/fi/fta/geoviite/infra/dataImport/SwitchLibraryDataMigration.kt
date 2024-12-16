@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.switchLibrary.data.KV54_200N_1_9_V
 import fi.fta.geoviite.infra.switchLibrary.data.KV54_200_1_9_O
 import fi.fta.geoviite.infra.switchLibrary.data.KV54_200_1_9_V
 import fi.fta.geoviite.infra.switchLibrary.data.RR43_1_9_514
+import fi.fta.geoviite.infra.switchLibrary.data.RR54_1_3_078
 import fi.fta.geoviite.infra.switchLibrary.data.RR54_1_9
 import fi.fta.geoviite.infra.switchLibrary.data.RR54_2x1_9
 import fi.fta.geoviite.infra.switchLibrary.data.RR54_4x1_9
@@ -133,6 +134,7 @@ val switchStructures: List<SwitchStructure> by lazy {
         KV54_200N_1_9_V(),
         RR43_1_9_514(),
         RR54_1_9(),
+        RR54_1_3_078(),
         RR54_2x1_9(),
         RR54_4x1_9(),
         SKV60_800_423_1_15_5_O(),
