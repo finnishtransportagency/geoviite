@@ -10,13 +10,13 @@ data class EndPointSwitchInfos(val start: EndPointSwitchInfo?, val end: EndPoint
 
 fun getDuplicateTrackParentStatus(
     parentTrack: LocationTrack,
-    parentAlignment: LayoutAlignment,
+    parentGeometry: LocationTrackGeometry,
     childTrack: LocationTrack,
-    childAlignment: LayoutAlignment,
+    childGeometry: LocationTrackGeometry,
     isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean,
 ): LocationTrackDuplicate {
-    val parentTrackSplitPoints = collectSplitPoints(parentTrack, parentAlignment, isPresentationJointNumber)
-    val childTrackSplitPoints = collectSplitPoints(childTrack, childAlignment, isPresentationJointNumber)
+    val parentTrackSplitPoints = collectSplitPoints(parentGeometry, isPresentationJointNumber)
+    val childTrackSplitPoints = collectSplitPoints(childGeometry, isPresentationJointNumber)
     val (_, status) =
         getDuplicateMatches(parentTrackSplitPoints, childTrackSplitPoints, parentTrack.id, childTrack.duplicateOf)
             .first() // There has to at least one found, since we know the duplicateOf is set
@@ -24,20 +24,20 @@ fun getDuplicateTrackParentStatus(
         parentTrack.id as IntId,
         parentTrack.trackNumberId,
         parentTrack.name,
-        start = childAlignment.start,
-        end = childAlignment.end,
-        length = childAlignment.length,
+        start = childGeometry.start,
+        end = childGeometry.end,
+        length = childGeometry.length,
         status,
     )
 }
 
 fun getLocationTrackDuplicatesBySplitPoints(
     mainTrack: LocationTrack,
-    mainAlignment: LayoutAlignment,
-    duplicateTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
+    mainGeometry: LocationTrackGeometry,
+    duplicateTracksAndAlignments: List<Pair<LocationTrack, LocationTrackGeometry>>,
     isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean,
 ): List<LocationTrackDuplicate> {
-    val mainTrackSplitPoints = collectSplitPoints(mainTrack, mainAlignment, isPresentationJointNumber)
+    val mainTrackSplitPoints = collectSplitPoints(mainGeometry, isPresentationJointNumber)
     return duplicateTracksAndAlignments
         .asSequence()
         .flatMap { (duplicateTrack, duplicateAlignment) ->
@@ -58,10 +58,10 @@ private fun getLocationTrackDuplicatesBySplitPoints(
     mainTrackId: DomainId<LocationTrack>,
     mainTrackSplitPoints: List<SplitPoint>,
     duplicateTrack: LocationTrack,
-    duplicateAlignment: LayoutAlignment,
+    duplicateGeometry: LocationTrackGeometry,
     isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean,
 ): List<Pair<Int, LocationTrackDuplicate>> {
-    val duplicateTrackSplitPoints = collectSplitPoints(duplicateTrack, duplicateAlignment, isPresentationJointNumber)
+    val duplicateTrackSplitPoints = collectSplitPoints(duplicateGeometry, isPresentationJointNumber)
     val statuses =
         getDuplicateMatches(mainTrackSplitPoints, duplicateTrackSplitPoints, mainTrackId, duplicateTrack.duplicateOf)
     return statuses.map { (jointIndex, status) ->
@@ -70,9 +70,9 @@ private fun getLocationTrackDuplicatesBySplitPoints(
                 duplicateTrack.id as IntId,
                 duplicateTrack.trackNumberId,
                 duplicateTrack.name,
-                start = duplicateAlignment.start,
-                end = duplicateAlignment.end,
-                length = duplicateAlignment.length,
+                start = duplicateGeometry.start,
+                end = duplicateGeometry.end,
+                length = duplicateGeometry.length,
                 status,
             )
     }
@@ -214,6 +214,45 @@ fun getEndPointSwitchInfos(
                 isPresentationJointNumber,
             ),
     )
+}
+
+fun collectSplitPoints(
+    geometry: LocationTrackGeometry,
+    isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean,
+): List<SplitPoint> {
+    // TODO: GVT-1727 should a node know if it's a presentation-joint-node? Then this could be done by nodes only
+    // TODO: GVT-1727 why does this even care about presentation joins for the ends, when it doesn't for the rest?
+    val allSplitPoints =
+        geometry.nodesWithLocation.flatMapIndexed { index, (node, location) ->
+            when (index) {
+                0 -> {
+                    val switchLink =
+                        node.switches.lastOrNull { sl -> isPresentationJointNumber(sl.id, sl.jointNumber) }
+                            ?: node.switches.lastOrNull()
+                    listOf(
+                        if (switchLink != null) SwitchSplitPoint(location, null, switchLink.id, switchLink.jointNumber)
+                        else EndpointSplitPoint(location, null, DuplicateEndPointType.START)
+                    )
+                }
+                geometry.nodesWithLocation.size -> {
+                    val switchLink =
+                        node.switches.firstOrNull { sl -> isPresentationJointNumber(sl.id, sl.jointNumber) }
+                            ?: node.switches.firstOrNull()
+                    listOf(
+                        if (switchLink != null) SwitchSplitPoint(location, null, switchLink.id, switchLink.jointNumber)
+                        else EndpointSplitPoint(location, null, DuplicateEndPointType.END)
+                    )
+                }
+                else -> node.switches.map { sl -> SwitchSplitPoint(location, null, sl.id, sl.jointNumber) }
+            }
+        }
+
+    val uniqueSplitPoints =
+        allSplitPoints.filterIndexed { index, splitPoint ->
+            val firstIndex = allSplitPoints.indexOfFirst { otherSplitPoint -> splitPoint.isSame(otherSplitPoint) }
+            firstIndex == index
+        }
+    return uniqueSplitPoints
 }
 
 fun collectSplitPoints(

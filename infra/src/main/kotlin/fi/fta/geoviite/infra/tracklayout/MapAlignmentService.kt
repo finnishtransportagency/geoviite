@@ -59,7 +59,7 @@ class MapAlignmentService(
         resolution: Int,
     ): AlignmentPolyLine<LocationTrack>? {
         return locationTrackService
-            .getWithAlignment(layoutContext, id)
+            .getWithGeometry(layoutContext, id)
             ?.takeIf { (t, _) -> t.state != LocationTrackState.DELETED }
             ?.let { (track, alignment) ->
                 toAlignmentPolyLine(
@@ -134,13 +134,13 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         locationTrackIds: List<IntId<LocationTrack>>,
     ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
-        return locationTrackService.getManyWithAlignments(layoutContext, locationTrackIds).map { (track, alignment) ->
+        return locationTrackService.getManyWithGeometries(layoutContext, locationTrackIds).map { (track, alignment) ->
             toAlignmentHeader(track, alignment)
         }
     }
 
     fun getLocationTrackSegmentMValues(layoutContext: LayoutContext, id: IntId<LocationTrack>): List<Double> {
-        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, id)
+        val (_, alignment) = locationTrackService.getWithGeometryOrThrow(layoutContext, id)
         return getSegmentBorderMValues(alignment)
     }
 
@@ -150,7 +150,7 @@ class MapAlignmentService(
     }
 
     fun getLocationTrackEnds(layoutContext: LayoutContext, id: IntId<LocationTrack>): MapAlignmentEndPoints {
-        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, id)
+        val (_, alignment) = locationTrackService.getWithGeometryOrThrow(layoutContext, id)
         return getEndPoints(alignment)
     }
 
@@ -165,7 +165,7 @@ class MapAlignmentService(
         resolution: Int,
         includeSegmentEndPoints: Boolean,
     ): List<AlignmentPolyLine<LocationTrack>> =
-        locationTrackService.listWithAlignments(layoutContext, includeDeleted = false, boundingBox = bbox).map {
+        locationTrackService.listWithGeometries(layoutContext, includeDeleted = false, boundingBox = bbox).map {
             (track, alignment) ->
             toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints)
         }
@@ -191,7 +191,7 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<LocationTrack>> =
-        locationTrackService.listWithAlignments(layoutContext, boundingBox = bbox, includeDeleted = false).mapNotNull {
+        locationTrackService.listWithGeometries(layoutContext, boundingBox = bbox, includeDeleted = false).mapNotNull {
             (track, alignment) ->
             getMissingLinkings(track.id, LOCATION_TRACK, alignment)
         }

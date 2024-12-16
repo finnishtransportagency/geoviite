@@ -5,22 +5,22 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import org.springframework.transaction.annotation.Transactional
 
 data class AddressPointCacheKey(
-    val alignmentVersion: RowVersion<LayoutAlignment>,
+    val locationTrackVersion: LayoutRowVersion<LocationTrack>,
     val geocodingContextCacheKey: GeocodingContextCacheKey,
 )
 
 data class AddressPointCalculationData(
     val key: AddressPointCacheKey,
-    val alignment: LayoutAlignment,
+    val alignment: DbLocationTrackGeometry,
     val geocodingContext: GeocodingContext,
 )
 
@@ -43,11 +43,8 @@ class AddressPointsCache(
     ): AddressPointCacheKey? {
         return locationTrackDao.fetchVersion(layoutContext, locationTrackId)?.let { trackVersion ->
             val track = locationTrackDao.fetch(trackVersion)
-            val contextCacheKey = geocodingDao.getLayoutGeocodingContextCacheKey(layoutContext, track.trackNumberId)
-            if (track.alignmentVersion != null && contextCacheKey != null) {
-                AddressPointCacheKey(track.alignmentVersion, contextCacheKey)
-            } else {
-                null
+            geocodingDao.getLayoutGeocodingContextCacheKey(layoutContext, track.trackNumberId)?.let { contextCacheKey ->
+                AddressPointCacheKey(trackVersion, contextCacheKey)
             }
         }
     }
@@ -62,7 +59,7 @@ class AddressPointsCache(
 
     fun getAddressPointCalculationData(cacheKey: AddressPointCacheKey): AddressPointCalculationData? =
         geocodingCacheService.getGeocodingContext(cacheKey.geocodingContextCacheKey)?.let { geocodingContext ->
-            AddressPointCalculationData(cacheKey, alignmentDao.fetch(cacheKey.alignmentVersion), geocodingContext)
+            AddressPointCalculationData(cacheKey, alignmentDao.get(cacheKey.locationTrackVersion), geocodingContext)
         }
 
     fun getAddressPoints(input: AddressPointCalculationData): AlignmentAddresses? =

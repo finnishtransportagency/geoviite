@@ -285,6 +285,7 @@ data class LocationTrack(
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
     @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore val segmentSwitchIds: List<IntId<TrackLayoutSwitch>> = listOf(),
+    // ) : LayoutAsset<LocationTrack>(contextData) {
 ) : PolyLineLayoutAsset<LocationTrack>(contextData) {
 
     @JsonIgnore val exists = !state.isRemoved()
@@ -302,9 +303,9 @@ data class LocationTrack(
                 "length=${descriptionBase.length} " +
                 "allowed=$locationTrackDescriptionLength"
         }
-        require(dataType == DataType.TEMP || alignmentVersion != null) {
-            "LocationTrack in DB must have an alignment: id=$id"
-        }
+        //        require(dataType == DataType.TEMP || alignmentVersion != null) {
+        //            "LocationTrack in DB must have an alignment: id=$id"
+        //        }
         require(topologyStartSwitch?.switchId == null || topologyStartSwitch.switchId != topologyEndSwitch?.switchId) {
             "LocationTrack cannot topologically connect to the same switch at both ends: " +
                 "trackId=$id " +
@@ -321,7 +322,7 @@ data class LocationTrack(
             "context" to contextData::class.simpleName,
             "name" to name,
             "trackNumber" to trackNumberId,
-            "alignment" to alignmentVersion,
+            //            "alignment" to alignmentVersion,
         )
 
     override fun withContext(contextData: LayoutContextData<LocationTrack>): LocationTrack =

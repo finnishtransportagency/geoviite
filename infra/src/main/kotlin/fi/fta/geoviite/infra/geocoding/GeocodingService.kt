@@ -14,12 +14,13 @@ import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
-import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
 class GeocodingService(
@@ -36,9 +37,9 @@ class GeocodingService(
 
     fun getAddressPoints(
         contextKey: GeocodingContextCacheKey,
-        alignmentVersion: RowVersion<LayoutAlignment>,
+        trackVersion: LayoutRowVersion<LocationTrack>,
     ): AlignmentAddresses? {
-        return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
+        return addressPointsCache.getAddressPoints(AddressPointCacheKey(trackVersion, contextKey))
     }
 
     fun getAddress(
