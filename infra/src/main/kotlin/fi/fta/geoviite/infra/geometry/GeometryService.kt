@@ -27,11 +27,12 @@ import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ElementListingFile
 import fi.fta.geoviite.infra.tracklayout.ElementListingFileDao
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutEdgeSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -242,7 +243,7 @@ constructor(
     @Transactional(readOnly = true)
     fun getElementListing(
         locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
+        geometry: DbLocationTrackGeometry,
         trackNumber: TrackNumber?,
         geocodingContext: GeocodingContext?,
     ): List<ElementListing> {
@@ -250,7 +251,7 @@ constructor(
             geocodingContext,
             coordinateTransformationService::getLayoutTransformation,
             locationTrack,
-            alignment,
+            geometry,
             trackNumber,
             TrackGeometryElementType.entries,
             null,
@@ -269,7 +270,7 @@ constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): List<ElementListing> {
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, trackId)
+        val (track, alignment) = locationTrackService.getWithGeometryOrThrow(layoutContext, trackId)
         val trackNumber = trackNumberService.get(layoutContext, track.trackNumberId)?.number
         return toElementListing(
             geocodingService.getGeocodingContext(layoutContext, track.trackNumberId),
@@ -314,7 +315,7 @@ constructor(
             val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)
             val elementListing =
                 locationTrackService
-                    .listWithAlignments(MainLayoutContext.official, includeDeleted = false)
+                    .listWithGeometries(MainLayoutContext.official, includeDeleted = false)
                     .map { (locationTrack, alignment) ->
                         Triple(locationTrack, alignment, trackNumbers[locationTrack.trackNumberId]?.number)
                     }
@@ -372,7 +373,7 @@ constructor(
         startAddress: TrackMeter? = null,
         endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, locationTrackId)
+        val (track, alignment) = locationTrackService.getWithGeometryOrThrow(layoutContext, locationTrackId)
         val geocodingContext = geocodingService.getGeocodingContext(layoutContext, track.trackNumberId)
         return toVerticalGeometryListing(
             track,
@@ -498,10 +499,10 @@ constructor(
         }
     }
 
-    private fun collectSegmentSources(alignment: LayoutAlignment): List<SegmentSource> {
+    private fun collectSegmentSources(segments: List<LayoutEdgeSegment>): List<SegmentSource> {
         val planAlignmentIdToPlans: MutableMap<IntId<GeometryAlignment>, RowVersion<GeometryPlan>> = mutableMapOf()
 
-        return alignment.segments.map { segment ->
+        return segments.map { segment ->
             val sourceId = segment.sourceId
             if (sourceId == null || segment.sourceStart == null) {
                 SegmentSource(null, null, null, null)
@@ -526,8 +527,8 @@ constructor(
         locationTrackId: IntId<LocationTrack>,
     ): List<PlanLinkingSummaryItem>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
-        val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
-        val segmentSources = collectSegmentSources(alignment)
+        val alignment = layoutAlignmentDao.get(locationTrack.versionOrThrow)
+        val segmentSources = collectSegmentSources(alignment.segments)
         val planLinkEndSegmentIndices =
             segmentSources
                 .zipWithNext { a, b -> a.plan == b.plan }
@@ -558,12 +559,12 @@ constructor(
         tickLength: Int,
     ): List<KmHeights>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
-        val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
+        val alignment = layoutAlignmentDao.get(locationTrack.versionOrThrow)
         val boundingBox = alignment.boundingBox ?: return null
         val geocodingContext =
             geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId) ?: return null
 
-        val segmentSources = collectSegmentSources(alignment)
+        val segmentSources = collectSegmentSources(alignment.segments)
         val alignmentLinkEndSegmentIndices =
             segmentSources
                 .zipWithNext { a, b -> a.alignment == b.alignment }

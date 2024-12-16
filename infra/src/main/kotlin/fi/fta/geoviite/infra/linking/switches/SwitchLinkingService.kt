@@ -140,9 +140,9 @@ constructor(
             originalSwitches.map { switch -> switchLibraryService.getSwitchStructure(switch.switchStructureId) }
         val alignmentsNearRequests =
             requests.map { request ->
-                locationTrackCache.getWithinBoundingBox(request.points.bounds + TRACK_SEARCH_AREA_SIZE).sortedBy {
-                    (it.first.id as IntId).intValue
-                }
+                locationTrackCache
+                    .getAlignmentWithinBoundingBox(request.points.bounds + TRACK_SEARCH_AREA_SIZE)
+                    .sortedBy { (it.first.id as IntId).intValue }
             }
         return requests
             .mapIndexed { i, r -> i to r }
@@ -278,7 +278,7 @@ constructor(
                 checkNotNull(presentationJointLocation) { "no presentation joint on switch ${originalSwitch.id}" }
                 val nearbyTracksForFit =
                     locationTrackService
-                        .getLocationTracksNear(branch.draft, presentationJointLocation)
+                        .getLocationTracksAndAlignmentsNear(branch.draft, presentationJointLocation)
                         .let { nearby ->
                             val map = nearby.associateBy { it.first.id as IntId }
                             map + changedLocationTracks.filterKeys { id -> map.containsKey(id) }
@@ -1122,7 +1122,7 @@ private fun collectLocationTracksNearFitGrids(
     fitGrids.map { fitGrid ->
         boundingBoxCombining(fitGrid.keys().mapNotNull { fit -> getSwitchBoundsFromSwitchFit(fit) })?.let { boundingBox
             ->
-            locationTrackCache.getWithinBoundingBox(boundingBox)
+            locationTrackCache.getAlignmentWithinBoundingBox(boundingBox)
         }
     }
 

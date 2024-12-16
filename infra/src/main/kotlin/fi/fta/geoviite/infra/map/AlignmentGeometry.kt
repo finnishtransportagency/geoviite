@@ -5,7 +5,15 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import kotlin.math.roundToInt
 
 enum class MapAlignmentSource {
@@ -57,7 +65,7 @@ fun toAlignmentHeader(trackNumber: TrackLayoutTrackNumber, referenceLine: Refere
         boundingBox = alignment?.boundingBox,
     )
 
-fun toAlignmentHeader(locationTrack: LocationTrack, alignment: LayoutAlignment?) =
+fun toAlignmentHeader(locationTrack: LocationTrack, alignment: DbLocationTrackGeometry) =
     AlignmentHeader(
         id = locationTrack.id,
         version = locationTrack.version,
@@ -68,9 +76,9 @@ fun toAlignmentHeader(locationTrack: LocationTrack, alignment: LayoutAlignment?)
         alignmentSource = MapAlignmentSource.LAYOUT,
         alignmentType = MapAlignmentType.LOCATION_TRACK,
         trackType = locationTrack.type,
-        length = alignment?.length ?: 0.0,
+        length = alignment.length,
         segmentCount = locationTrack.segmentCount,
-        boundingBox = alignment?.boundingBox,
+        boundingBox = alignment.boundingBox,
     )
 
 fun getSegmentBorderMValues(alignment: IAlignment): List<Double> =

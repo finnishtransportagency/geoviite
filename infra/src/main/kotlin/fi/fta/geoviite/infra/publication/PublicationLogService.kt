@@ -23,8 +23,8 @@ import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -188,7 +188,7 @@ constructor(
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
                 val (sourceLocationTrack, sourceAlignment) =
-                    locationTrackService.getWithAlignment(split.sourceLocationTrackVersion)
+                    locationTrackService.getWithGeometry(split.sourceLocationTrackVersion)
                 val targetLocationTracks =
                     publicationDao
                         .fetchPublishedLocationTracks(id)
@@ -215,13 +215,13 @@ constructor(
     }
 
     private fun createSplitTargetInPublication(
-        sourceAlignment: LayoutAlignment,
+        sourceAlignment: IAlignment,
         rowVersion: LayoutRowVersion<LocationTrack>,
         publicationBranch: LayoutBranch,
         publicationTime: Instant,
         split: Split,
     ): SplitTargetInPublication? {
-        val (track, alignment) = locationTrackService.getWithAlignment(rowVersion)
+        val (track, alignment) = locationTrackService.getWithGeometry(rowVersion)
         return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
             val ctx =
                 geocodingService.getGeocodingContextAtMoment(publicationBranch, track.trackNumberId, publicationTime)

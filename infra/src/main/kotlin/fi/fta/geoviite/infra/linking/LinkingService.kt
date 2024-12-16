@@ -66,7 +66,7 @@ constructor(
         bbox: BoundingBox,
     ): List<LocationTrack> {
         return locationTrackService
-            .listNearWithAlignments(branch.draft, bbox)
+            .listNearWithGeometries(branch.draft, bbox)
             .filter { (first, _) -> first.id != locationTrackId }
             .filter { (_, second) -> isAlignmentConnected(location, locationTrackPointUpdateType, second, 2.0) }
             .map { (first, _) -> first }
