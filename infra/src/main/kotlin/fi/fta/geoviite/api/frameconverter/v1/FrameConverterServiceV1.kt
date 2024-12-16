@@ -202,8 +202,8 @@ constructor(
                     params,
                 )
             }
+            .map { it.flatten() }
             .toList()
-            .flatten()
 
     private fun processForwardGeocodingRequestsForTrackNumber(
         geocodingContext: GeocodingContext?,

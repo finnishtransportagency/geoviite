@@ -1064,4 +1064,39 @@ constructor(
             properties?.get("virheet"),
         )
     }
+
+    @Test
+    fun `overlapping tracks should all be reported`() {
+        val layoutContext = mainOfficialContext
+        val trackNumberName = testDBService.getUnusedTrackNumber().value
+        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+
+        val trackNumber =
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+            }
+
+        val referenceLineId =
+            layoutContext
+                .insert(referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments))
+                .id
+
+        (0..3).map { i ->
+            frameConverterTestDataService.insertGeocodableTrack(
+                trackNumberId = trackNumber.id as IntId,
+                referenceLineId = referenceLineId,
+                segments = segments,
+                locationTrackName = "track $i",
+            )
+        }
+
+        val request =
+            TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500, ratanumero = trackNumberName)
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+        assertEquals(
+            (0..3).map { i -> "track $i" }.toSet(),
+            featureCollection.features.map { it.properties?.get("sijaintiraide") }.toSet(),
+        )
+    }
 }
