@@ -190,7 +190,7 @@ constructor(
                         includeDeleted = false,
                     )
                 val trackDescriptions = getTrackDescriptions(params, tracksAndAlignments.map { (track) -> track })
-                TrackNumberRequests(geocodingContext, tracksAndAlignments, trackDescriptions, requests)
+                TrackNumberRequests(geocodingContext, tracksAndAlignments, trackDescriptions, trackNumberRequests)
             }
             .parallelStream()
             .map { r ->

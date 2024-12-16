@@ -1064,4 +1064,64 @@ constructor(
             properties?.get("virheet"),
         )
     }
+
+    @Test
+    fun `request batch can contain multiple track numbers`() {
+        val layoutContext = mainOfficialContext
+        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+
+        val trackNumberNames =
+            (0..3).map { trackNumberIndex ->
+                val trackNumberName = testDBService.getUnusedTrackNumber().value
+                val trackNumber =
+                    layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+                        layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+                    }
+
+                val referenceLineId =
+                    layoutContext
+                        .insert(referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments))
+                        .id
+                trackNumber to referenceLineId
+
+                // different numbers of overlapping location tracks on each track number, including
+                // 0
+                (0 until trackNumberIndex).map { i ->
+                    frameConverterTestDataService.insertGeocodableTrack(
+                        trackNumberId = trackNumber.id as IntId,
+                        referenceLineId = referenceLineId,
+                        segments = segments,
+                        locationTrackName = "track $i",
+                    )
+                }
+                trackNumberName
+            }
+
+        val requests =
+            trackNumberNames.mapIndexed { index, trackNumberName ->
+                TestTrackAddressToCoordinateRequest(
+                    ratakilometri = 0,
+                    ratametri = 500,
+                    ratanumero = trackNumberName,
+                    tunniste = "req $index",
+                )
+            }
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, requests)
+        val propertiess = featureCollection.features.map { it.properties!! }
+        print(featureCollection)
+        // 0 location tracks on index 0 should cause an error
+        assertContainsErrorMessage(
+            "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
+            propertiess.find { it["tunniste"] == "req 0" }!!["virheet"],
+        )
+        // rest should have the correct number f tracks each
+        (1..3).map { requestIndex ->
+            val responses = propertiess.filter { it["tunniste"] == "req $requestIndex" }
+            assertEquals(
+                (0 until requestIndex).map { "track $it" }.toSet(),
+                responses.map { it["sijaintiraide"] }.toSet(),
+            )
+        }
+    }
 }
