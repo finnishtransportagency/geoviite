@@ -682,7 +682,7 @@ class LayoutAlignmentDao(
         TODO()
     }
 
-    @Deprecated("Should be implemented throug nodes and edges")
+    @Deprecated("Should be implemented through nodes and edges")
     fun fetchSegmentGeometriesAndPlanMetadata(
         alignmentVersion: RowVersion<LayoutAlignment>,
         metadataExternalId: Oid<*>?,

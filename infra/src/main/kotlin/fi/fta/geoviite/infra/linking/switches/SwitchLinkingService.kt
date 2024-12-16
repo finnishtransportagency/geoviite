@@ -115,7 +115,7 @@ constructor(
                 fitGrid.map(parallel = true) { fit ->
                     SuggestedSwitchWithOriginallyLinkedTracks(
                         matchFittedSwitchToTracks(fit, relevantTracks, switchId),
-                        originallyLinked,
+                        originallyLinked.keys,
                     )
                 }
             }
@@ -1096,7 +1096,7 @@ fun matchSamplingGridToQueryPoints(
 
 class SuggestedSwitchWithOriginallyLinkedTracks(
     val suggestedSwitch: SuggestedSwitch,
-    val originallyLinkedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
+    val originallyLinkedTracks: Set<IntId<LocationTrack>>,
 ) {
 
     // need to use these as map keys, but avoid very expensive hashCode()s on all those alignments
