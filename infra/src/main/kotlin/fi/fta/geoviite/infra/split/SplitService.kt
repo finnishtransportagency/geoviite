@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
@@ -37,9 +38,9 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -331,10 +332,7 @@ class SplitService(
         val sourceAddressPointRange =
             context
                 .getGeocodingContext(sourceTrack.trackNumberId)
-                ?.getPartialAddressRange(
-                    alignmentDao.fetch(sourceTrack.getAlignmentVersionOrThrow()),
-                    target.segmentIndices,
-                )
+                ?.getPartialAddressRange(alignmentDao.get(sourceTrack.versionOrThrow), target.segmentIndices)
         val sourceAddresses: List<AddressPoint>? =
             sourceAddressPointRange?.let { (start, end) ->
                 context
@@ -426,6 +424,7 @@ class SplitService(
 
         // Fetch post-re-linking track & alignment
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, request.sourceTrackId)
+        // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
         val targetResults =
             splitLocationTrack(
                 track = track,
@@ -796,8 +795,8 @@ private fun verifySwitchSuggestions(
 
 private fun findNewLocationTracksForUnusedDuplicates(
     geocodingContext: GeocodingContext,
-    unusedDuplicates: List<Pair<LocationTrack, LayoutAlignment>>,
-    splitTargetLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    unusedDuplicates: List<Pair<LocationTrack, IAlignment>>,
+    splitTargetLocationTracks: List<Pair<LocationTrack, IAlignment>>,
 ): List<LocationTrack> {
     val geocodedUnusedDuplicates =
         unusedDuplicates.mapNotNull { (unusedDuplicate, alignment) ->
@@ -850,7 +849,7 @@ private data class AlignmentStartAndEndMeters(val start: Double, val end: Double
 
 private fun getAlignmentStartAndEndM(
     geocodingContext: GeocodingContext,
-    alignment: LayoutAlignment,
+    alignment: IAlignment,
 ): AlignmentStartAndEndMeters? {
     val startMeters = alignment.start?.let(geocodingContext::getM)?.first
     val endMeters = alignment.end?.let(geocodingContext::getM)?.first

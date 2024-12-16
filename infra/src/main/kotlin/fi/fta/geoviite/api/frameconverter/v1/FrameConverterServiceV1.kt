@@ -23,8 +23,8 @@ import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
@@ -183,7 +183,7 @@ constructor(
 
     private data class TrackNumberRequests(
         val trackNumberDetails: TrackNumberDetails,
-        val tracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
+        val tracksAndAlignments: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
         val trackDetailInfos: Map<DomainId<LocationTrack>, LocationTrackDetails>?,
         val requests: List<ValidTrackAddressToCoordinateRequestV1>,
     )
@@ -213,7 +213,7 @@ constructor(
             .map { (trackNumberRequests, trackNumberDetails) ->
                 val trackNumberId = trackNumberRequests.first().trackNumber.id as IntId
                 val tracksAndAlignments =
-                    locationTrackService.listWithAlignments(
+                    locationTrackService.listWithGeometries(
                         layoutContext = layoutContext,
                         trackNumberId = trackNumberId,
                         includeDeleted = false,
@@ -237,7 +237,7 @@ constructor(
 
     private fun processForwardGeocodingRequestsForTrackNumber(
         trackNumberDetails: TrackNumberDetails,
-        tracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
+        tracksAndAlignments: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
         locationTrackDetails: Map<DomainId<LocationTrack>, LocationTrackDetails>?,
         requests: List<ValidTrackAddressToCoordinateRequestV1>,
         params: FrameConverterQueryParamsV1,
@@ -275,7 +275,7 @@ constructor(
     private fun processForwardGeocodingRequestsForLocationTrack(
         requests: List<ValidTrackAddressToCoordinateRequestV1>,
         locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
+        alignment: DbLocationTrackGeometry,
         geocodingContext: GeocodingContext,
         params: FrameConverterQueryParamsV1,
         locationTrackDetails: Map<DomainId<LocationTrack>, LocationTrackDetails>?,

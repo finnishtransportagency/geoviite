@@ -55,9 +55,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.SwitchPlacingRequest
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import kotlin.math.max
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
 const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
@@ -874,6 +874,7 @@ fun cropPoints(
     )
 }
 
+// TODO: GVT-1727 switches are now in nodes -> this should be edge-based
 data class CroppedAlignment(
     val cropStartSegmentIndex: Int,
     override val segments: List<LayoutSegment>,
@@ -883,7 +884,7 @@ data class CroppedAlignment(
 
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.mapNotNull(ISegment::boundingBox)) }
 
-    override fun toLog(): String = logFormat("id" to id, "segments" to segments.size)
+    override fun toLog(): String = logFormat("id" to id, "segments" to segmentMs)
 }
 
 fun cropNothing(alignment: LayoutAlignment) = CroppedAlignment(0, alignment.segments, alignment.segmentMs, alignment.id)

@@ -155,7 +155,7 @@ constructor(
         )
         assertEquals(
             officialTrack to officialAlignment,
-            locationTrackService.getWithAlignment(MainLayoutContext.official, locationTrackId),
+            locationTrackService.getWithGeometry(MainLayoutContext.official, locationTrackId),
         )
 
         val (_, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId)

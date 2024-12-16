@@ -536,11 +536,9 @@ constructor(
     ): List<LayoutValidationIssue> =
         if (!track.exists) {
             listOf()
-        } else if (track.alignmentVersion == null) {
-            throw IllegalStateException("LocationTrack in DB should have an alignment: track=$track")
         } else {
             validateAddressPoints(trackNumber, track, validationTargetLocalizationPrefix) {
-                geocodingService.getAddressPoints(contextKey, track.alignmentVersion)
+                geocodingService.getAddressPoints(contextKey, track.versionOrThrow)
             }
         }
 }

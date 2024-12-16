@@ -84,7 +84,7 @@ class AddressChangesService(val geocodingService: GeocodingService) {
 
     private fun getAddresses(track: LocationTrack?, contextKey: GeocodingContextCacheKey?): AlignmentAddresses? =
         if (track == null || contextKey == null || !track.exists) null
-        else geocodingService.getAddressPoints(contextKey, track.getAlignmentVersionOrThrow())
+        else geocodingService.getAddressPoints(contextKey, track.versionOrThrow)
 }
 
 fun getAddressChanges(oldAddresses: AlignmentAddresses?, newAddresses: AlignmentAddresses?) =

@@ -41,6 +41,25 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
     ): List<AlignmentPlanSection> {
         val sections = dao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
         val alignment = dao.fetch(alignmentVersion)
+        return toPlanSections(sections, alignment, context)
+    }
+
+    fun getGeometryMetadataSections(
+        trackVersion: LayoutRowVersion<LocationTrack>,
+        externalId: Oid<*>?,
+        boundingBox: BoundingBox?,
+        context: GeocodingContext,
+    ): List<AlignmentPlanSection> {
+        val sections = dao.fetchSegmentGeometriesAndPlanMetadata(trackVersion, externalId, boundingBox)
+        val alignment = dao.get(trackVersion)
+        return toPlanSections(sections, alignment, context)
+    }
+
+    private fun toPlanSections(
+        sections: List<SegmentGeometryAndMetadata>,
+        alignment: IAlignment,
+        context: GeocodingContext,
+    ): List<AlignmentPlanSection> {
         return sections.mapNotNull { section ->
             val start = section.startPoint?.let { p -> toPlanSectionPoint(p, alignment, context) }
             val end = section.endPoint?.let { p -> toPlanSectionPoint(p, alignment, context) }

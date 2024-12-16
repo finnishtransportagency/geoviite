@@ -22,9 +22,9 @@ import fi.fta.geoviite.infra.math.RoundedPoint
 import fi.fta.geoviite.infra.math.radsMathToGeo
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
@@ -101,7 +101,7 @@ fun toElementListing(
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     track: LocationTrack,
-    layoutAlignment: LayoutAlignment,
+    layoutAlignment: IAlignment,
     trackNumber: TrackNumber?,
     elementTypes: List<TrackGeometryElementType>,
     startAddress: TrackMeter?,
@@ -111,15 +111,17 @@ fun toElementListing(
 ): List<ElementListing> {
     val linkedElementIds = collectLinkedElements(layoutAlignment.segments, context, startAddress, endAddress)
     val lengthOfSegmentsConnectedToSameElement =
-        linkedElementIds.groupBy { it.second }.map { it.key to it.value.sumOf { (segment, _) -> segment.length } }
-    val linkedAlignmentIds = linkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
+        linkedElementIds
+            .groupBy { e -> e.elementId }
+            .map { (key, value) -> key to value.sumOf { e -> e.segment.length } }
+    val linkedAlignmentIds = linkedElementIds.mapNotNull { e -> e.elementId?.let(::getAlignmentId) }.distinct()
     val headersAndAlignments = linkedAlignmentIds.associateWith { id -> getPlanHeaderAndAlignment(id) }
 
     return linkedElementIds
-        .mapNotNull { (segment, elementId) ->
+        .mapNotNull { (index, segment, elementId) ->
             if (elementId == null) {
                 if (elementTypes.contains(MISSING_SECTION))
-                    toMissingElementListing(context, trackNumber, segment, track, getSwitchName)
+                    toMissingElementListing(context, trackNumber, index, segment, track, getSwitchName)
                 else null
             } else {
                 val (planHeader, alignment) =
@@ -177,12 +179,13 @@ fun toElementListing(
 private fun toMissingElementListing(
     context: GeocodingContext?,
     trackNumber: TrackNumber?,
-    segment: LayoutSegment,
+    segmentIndex: Int,
+    segment: ISegment,
     locationTrack: LocationTrack,
     getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
 ) =
     ElementListing(
-        id = StringId("MEL_${segment.id}"),
+        id = StringId("MEL_${segmentIndex}"),
         planId = null,
         planSource = null,
         fileName = null,
@@ -198,7 +201,9 @@ private fun toMissingElementListing(
         start = getLocation(context, segment.segmentStart, segment.startDirection),
         end = getLocation(context, segment.segmentEnd, segment.endDirection),
         locationTrackName = locationTrack.name,
-        connectedSwitchName = segment.switchId?.let { id -> getSwitchName(id) },
+        // TODO: GVT-1727 Do we really want a layout switch here or should it be the plan switch?
+        // Layout switch needs the edges, plan needs a different fetch
+        connectedSwitchName = null, // segment.switchId?.let { id -> getSwitchName(id) },
         isPartial = false,
     )
 
@@ -210,7 +215,7 @@ private fun toElementListing(
     alignment: GeometryAlignment,
     trackNumber: TrackNumber?,
     element: GeometryElement,
-    segment: LayoutSegment,
+    segment: ISegment,
     getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
 ) =
     elementListing(
@@ -331,7 +336,7 @@ private fun elementListing(
     alignment: GeometryAlignment,
     locationTrack: LocationTrack?,
     element: GeometryElement,
-    segment: LayoutSegment?,
+    segment: ISegment?,
     getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
     planTime: Instant?,
 ) =
@@ -355,7 +360,9 @@ private fun elementListing(
             lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
             start = start,
             end = end,
-            connectedSwitchName = segment?.switchId?.let { id -> getSwitchName(id) },
+            // TODO: GVT-1727 Do we really want a layout switch here or should it be the plan switch?
+            // Layout switch needs the edges, plan needs a different fetch
+            connectedSwitchName = null, // segment?.switchId?.let { id -> getSwitchName(id) },
             isPartial = false,
             planTime = planTime,
         )
