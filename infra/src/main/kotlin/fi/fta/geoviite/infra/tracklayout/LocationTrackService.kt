@@ -748,8 +748,11 @@ class LocationTrackService(
         )
     }
 
-    override fun cancelInternal(asset: LocationTrack) =
-        cancelled(asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())))
+    override fun cancelInternal(asset: LocationTrack, designBranch: DesignBranch) =
+        cancelled(
+            asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())),
+            designBranch.designId,
+        )
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 

@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -73,7 +74,11 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                 .let(splitDao::getOrThrow)
 
         val publicationId =
-            publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("SPLIT PUBLICATION"))
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of("SPLIT PUBLICATION"),
+                PublicationCause.MANUAL,
+            )
         val updatedSplit =
             splitDao
                 .updateSplit(
@@ -203,6 +208,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
             publicationDao.createPublication(
                 LayoutBranch.main,
                 FreeTextWithNewLines.of("test: bulk transfer state update"),
+                PublicationCause.MANUAL,
             )
 
         BulkTransferState.entries.forEach { newBulkTransferState ->

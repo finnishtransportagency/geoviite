@@ -96,6 +96,7 @@ constructor(
                 ),
             split = split?.let(::SplitHeader),
             layoutBranch = publication.layoutBranch,
+            cause = publication.cause,
         )
     }
 
@@ -109,7 +110,7 @@ constructor(
         return getPublicationDetails(id).let { publication ->
             val previousPublication =
                 publicationDao
-                    .fetchPublicationTimes(publication.layoutBranch)
+                    .fetchPublicationTimes(publication.layoutBranch.branch)
                     .entries
                     .sortedByDescending { it.key }
                     .find { it.key < publication.publicationTime }
@@ -119,7 +120,12 @@ constructor(
                 publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(publication.id),
                 previousPublication?.key ?: publication.publicationTime.minusMillis(1),
                 { trackNumberId: IntId<TrackLayoutTrackNumber>, timestamp: Instant ->
-                    getOrPutGeocodingContext(geocodingContextCache, publication.layoutBranch, trackNumberId, timestamp)
+                    getOrPutGeocodingContext(
+                        geocodingContextCache,
+                        publication.layoutBranch.branch,
+                        trackNumberId,
+                        timestamp,
+                    )
                 },
             )
         }
@@ -193,7 +199,10 @@ constructor(
                     locationTrackService.getWithAlignment(split.sourceLocationTrackVersion)
                 val oid =
                     requireNotNull(
-                        locationTrackDao.fetchExternalId(publication.layoutBranch, sourceLocationTrack.id as IntId)
+                        locationTrackDao.fetchExternalId(
+                            publication.layoutBranch.branch,
+                            sourceLocationTrack.id as IntId,
+                        )
                     ) {
                         "expected to find oid for published location track ${sourceLocationTrack.id} in publication ${id}"
                     }
@@ -206,7 +215,7 @@ constructor(
                             createSplitTargetInPublication(
                                 sourceAlignment = sourceAlignment,
                                 rowVersion = v,
-                                publicationBranch = publication.layoutBranch,
+                                publicationBranch = publication.layoutBranch.branch,
                                 publicationTime = publication.publicationTime,
                                 split = split,
                             )
@@ -743,7 +752,7 @@ constructor(
         val publicationLocationTrackChanges = publicationDao.fetchPublicationLocationTrackChanges(publication.id)
         val publicationTrackNumberChanges =
             publicationDao.fetchPublicationTrackNumberChanges(
-                publication.layoutBranch,
+                publication.layoutBranch.branch,
                 publication.id,
                 previousComparisonTime,
             )
@@ -818,7 +827,7 @@ constructor(
                                 error("Location track changes not found: id=${lt.id} version=${lt.version}")
                             },
                             switchLinkChanges[lt.id],
-                            publication.layoutBranch,
+                            publication.layoutBranch.branch,
                             publication.publicationTime,
                             previousComparisonTime,
                             trackNumberNamesCache,
@@ -897,7 +906,7 @@ constructor(
                                 error("Location track changes not found: id=${lt.id} version=${lt.version}")
                             },
                             switchLinkChanges[lt.id],
-                            publication.layoutBranch,
+                            publication.layoutBranch.branch,
                             publication.publicationTime,
                             previousComparisonTime,
                             trackNumberNamesCache,

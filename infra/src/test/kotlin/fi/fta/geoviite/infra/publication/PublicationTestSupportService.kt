@@ -177,6 +177,7 @@ constructor(
             versions,
             calculatedChanges,
             FreeTextWithNewLines.of("${this::class.simpleName}"),
+            PublicationCause.MANUAL,
         )
 }
 

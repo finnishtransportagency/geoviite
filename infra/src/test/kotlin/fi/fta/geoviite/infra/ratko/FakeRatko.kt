@@ -74,6 +74,10 @@ class FakeRatko(port: Int) {
         get("/api/versions/v1.0/version").withId("version-check").respond(HttpResponse.response().withStatusCode(500))
     }
 
+    fun acceptsNewPlansGivingThemIds(ids: List<Int>) {
+        ids.forEach { id -> post("/api/plan/v1.0/plans", times = Times.once()).respond(okJson(mapOf("id" to id))) }
+    }
+
     fun acceptsNewRouteNumbersGivingThemOids(oids: List<String>) {
         patch("/api/infra/v1.0/routenumbers/geom", oids).respond(ok())
 

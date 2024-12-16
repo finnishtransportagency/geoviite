@@ -28,6 +28,9 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
+import fi.fta.geoviite.infra.publication.PublishedInBranch
+import fi.fta.geoviite.infra.publication.PublishedInDesign
+import fi.fta.geoviite.infra.publication.PublishedInMain
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
@@ -349,6 +352,11 @@ fun ResultSet.getPublicationStateOrNull(draftFlagName: String): PublicationState
 
 fun ResultSet.getLayoutBranch(designIdName: String): LayoutBranch =
     getIntIdOrNull<LayoutDesign>(designIdName).let { id -> if (id == null) LayoutBranch.main else DesignBranch.of(id) }
+
+fun ResultSet.getPublicationPublishedIn(designIdName: String, designVersionName: String): PublishedInBranch =
+    getIntIdOrNull<LayoutDesign>(designIdName).let { id ->
+        if (id == null) PublishedInMain else PublishedInDesign(DesignBranch.of(id), getInt(designVersionName))
+    }
 
 // no getLayoutBranchOrNull, as we couldn't distinguish between when to return the main branch and
 // when null

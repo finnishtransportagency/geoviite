@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationRequest
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
@@ -136,6 +137,7 @@ constructor(
                 versions,
                 calculatedChanges,
                 publicationRequest.message,
+                PublicationCause.MANUAL,
             )
 
         return result.publicationId!!

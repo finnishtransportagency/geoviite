@@ -180,6 +180,9 @@ data class MainOfficialContextData<T>(override val layoutAssetId: LayoutAssetId<
             hasOfficial = true,
         )
     }
+
+    fun asCancelledDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> =
+        asDesignDraft(designId).copy(cancelled = true)
 }
 
 data class MainDraftContextData<T>(
@@ -326,8 +329,11 @@ fun <T : LayoutAsset<T>> asDesignDraft(item: T, designId: IntId<LayoutDesign>): 
         }
     }
 
-fun <T : LayoutAsset<T>> cancelled(item: T): T =
-    item.withContext(
-        (item.contextData as? DesignOfficialContextData)?.cancelled()
-            ?: error("The cancellation operation is only allowed for design-official items")
-    )
+fun <T : LayoutAsset<T>> cancelled(item: T, designId: IntId<LayoutDesign>): T =
+    item.contextData.let { ctx ->
+        when (ctx) {
+            is DesignOfficialContextData -> item.withContext(ctx.cancelled())
+            is MainOfficialContextData -> item.withContext(ctx.asCancelledDraft(designId))
+            else -> error("The cancellation operation is only allowed for official items")
+        }
+    }

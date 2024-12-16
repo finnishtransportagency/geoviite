@@ -702,6 +702,7 @@ constructor(
                             versions,
                             publicationTestSupportService.getCalculatedChangesInRequest(versions),
                             FreeTextWithNewLines.of(""),
+                            PublicationCause.MANUAL,
                         )
                         .publicationId
                 }
