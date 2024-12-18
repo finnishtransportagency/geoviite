@@ -41,6 +41,7 @@ create temporary table switch_joint_version_change on commit drop as
         join layout.switch_joint_version sjv
              on svc.id = sjv.switch_id
                and svc.old_version = sjv.switch_version
+               and svc.layout_context_id = sjv.switch_layout_context_id
   );
 
 update publication.switch
