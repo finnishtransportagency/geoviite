@@ -268,7 +268,7 @@ private fun findPossiblyMatchableSegments(
         .subList(firstPossibleSegmentIndex, (closestSegmentIndex + 2).coerceAtMost(alignment.segments.size))
         .mapIndexed { index, (segment, m) ->
             val closestPointM = segment.getClosestPointM(m.min, jointLocation).first
-            val pointSeekResult = segment.seekPointAtM(m.min, closestPointM, 0.0)
+            val pointSeekResult = segment.seekPointAtM(m.min, closestPointM)
             val closestSegmentPointIndex = pointSeekResult.index
             val jointDistanceToSegment = lineLength(pointSeekResult.point, jointLocation)
             PossibleSegment(
@@ -874,7 +874,7 @@ fun cropPoints(
     )
 }
 
-// TODO: GVT-1727 switches are now in nodes -> this should be edge-based
+// TODO: GVT-2927 switches are now in nodes -> this should be edge-based
 data class CroppedAlignment(
     val cropStartSegmentIndex: Int,
     override val segments: List<LayoutSegment>,

@@ -138,7 +138,6 @@ private fun toLayoutSegment(segment: ISegment): LayoutSegment =
 private fun tryCreateLinkedAlignment(original: LayoutAlignment, newSegments: List<LayoutSegment>): LayoutAlignment =
     try {
         original.withSegments(newSegments.also(::validateSegments))
-        //        original.withSegments(fixSegmentStarts(newSegments).also(::validateSegments))
     } catch (e: IllegalArgumentException) {
         throw LinkingFailureException(
             message = "Linking selection produces invalid alignment",
@@ -161,13 +160,6 @@ private fun validateSegments(newSegments: List<LayoutSegment>) =
         }
     }
 
-// fun fixSegmentStarts(vararg segments: LayoutSegment) = fixSegmentStarts(segments.toList())
-
-// fun fixSegmentStarts(segments: List<LayoutSegment>): List<LayoutSegment> {
-//    var cumulativeM = 0.0
-//    return segments.map { s -> s.withStartM(cumulativeM).also { cumulativeM += s.length } }
-// }
-
 fun sliceSegments(
     alignment: IAlignment,
     mRange: Range<Double>,
@@ -179,12 +171,8 @@ fun sliceSegments(
         } else if (segmentM.min >= mRange.min - snapDistance && segmentM.max <= mRange.max + snapDistance) {
             toLayoutSegment(segment)
         } else {
-            toLayoutSegment(segment)
-                .slice(
-                    startM = segmentM.min,
-                    mRange = Range(max(mRange.min, segmentM.min), min(mRange.max, segmentM.max)),
-                    snapDistance = snapDistance,
-                )
+            val range = Range(max(mRange.min - segmentM.min, 0.0), min(mRange.max - segmentM.min, segment.length))
+            toLayoutSegment(segment).slice(segmentMRange = range, snapDistance = snapDistance)
         }
     }
 

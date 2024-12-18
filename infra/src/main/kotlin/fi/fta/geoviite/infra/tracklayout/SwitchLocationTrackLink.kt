@@ -13,7 +13,7 @@ fun getDuplicateTrackParentStatus(
     parentGeometry: LocationTrackGeometry,
     childTrack: LocationTrack,
     childGeometry: LocationTrackGeometry,
-    isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean,
+    isPresentationJointNumber: (SwitchLink) -> Boolean,
 ): LocationTrackDuplicate {
     val parentTrackSplitPoints = collectSplitPoints(parentGeometry, isPresentationJointNumber)
     val childTrackSplitPoints = collectSplitPoints(childGeometry, isPresentationJointNumber)
@@ -36,7 +36,7 @@ fun getLocationTrackDuplicatesBySplitPoints(
     mainTrack: LocationTrack,
     mainGeometry: LocationTrackGeometry,
     duplicateTracksAndAlignments: List<Pair<LocationTrack, LocationTrackGeometry>>,
-    isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean,
+    isPresentationJointNumber: (SwitchLink) -> Boolean,
 ): List<LocationTrackDuplicate> {
     val mainTrackSplitPoints = collectSplitPoints(mainGeometry, isPresentationJointNumber)
     return duplicateTracksAndAlignments
@@ -60,7 +60,7 @@ private fun getLocationTrackDuplicatesBySplitPoints(
     mainTrackSplitPoints: List<SplitPoint>,
     duplicateTrack: LocationTrack,
     duplicateGeometry: LocationTrackGeometry,
-    isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean,
+    isPresentationJointNumber: (SwitchLink) -> Boolean,
 ): List<Pair<Int, LocationTrackDuplicate>> {
     val duplicateTrackSplitPoints = collectSplitPoints(duplicateGeometry, isPresentationJointNumber)
     val statuses =
@@ -220,89 +220,50 @@ fun getEndPointSwitchInfos(
 
 fun collectSplitPoints(
     geometry: LocationTrackGeometry,
-    isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean,
+    isPresentationJointNumber: (SwitchLink) -> Boolean,
 ): List<SplitPoint> {
-    // TODO: GVT-1727 should a node know if it's a presentation-joint-node? Then this could be done by nodes only
-    // TODO: GVT-1727 why does this even care about presentation joins for the ends, when it doesn't for the rest?
+    // TODO: GVT-2941 This might be more complex than needed, but it retains the old logic
+    // TODO: GVT-2941 Compare to main: it includes all segment links + some endpoint link which is more complex
+    // Would it be fine to just include all inner links + topology link if it's a presentation joint?
+    // Currently the logic takes the topology link only if the inner link doesn't override it as "main link"
     val allSplitPoints =
         geometry.nodesWithLocation.flatMapIndexed { index, (node, location) ->
             when (index) {
                 0 -> {
-                    val switchLink =
-                        node.switches.lastOrNull { sl -> isPresentationJointNumber(sl.id, sl.jointNumber) }
-                            ?: node.switches.lastOrNull()
-                    listOf(
-                        if (switchLink != null) SwitchSplitPoint(location, null, switchLink.id, switchLink.jointNumber)
-                        else EndpointSplitPoint(location, null, DuplicateEndPointType.START)
-                    )
+                    // The main switch link might be a topology link or an in-track-switch link
+                    val mainLink = geometry.getStartSwitchLink(isPresentationJointNumber)
+                    // Inner links need to be included always, unless it's already the main link
+                    val innerLink = node.switchOut?.takeIf { it != mainLink }
+                    if (mainLink != null || innerLink != null) {
+                        listOfNotNull(mainLink, innerLink).map { sl ->
+                            SwitchSplitPoint(location, null, sl.id, sl.jointNumber)
+                        }
+                    } else {
+                        listOf(EndpointSplitPoint(location, null, DuplicateEndPointType.START))
+                    }
                 }
                 geometry.nodesWithLocation.size -> {
-                    val switchLink =
-                        node.switches.firstOrNull { sl -> isPresentationJointNumber(sl.id, sl.jointNumber) }
-                            ?: node.switches.firstOrNull()
-                    listOf(
-                        if (switchLink != null) SwitchSplitPoint(location, null, switchLink.id, switchLink.jointNumber)
-                        else EndpointSplitPoint(location, null, DuplicateEndPointType.END)
-                    )
+                    // The main switch link might be a topology link or an in-track-switch link
+                    val mainLink = geometry.getEndSwitchLink(isPresentationJointNumber)
+                    // Inner links need to be included always, unless it's already the main link
+                    val innerLink = node.switchIn?.takeIf { it != mainLink }
+                    if (mainLink != null || innerLink != null) {
+                        listOfNotNull(mainLink, innerLink).map { sl ->
+                            SwitchSplitPoint(location, null, sl.id, sl.jointNumber)
+                        }
+                    } else {
+                        listOf(EndpointSplitPoint(location, null, DuplicateEndPointType.END))
+                    }
                 }
-                else -> node.switches.map { sl -> SwitchSplitPoint(location, null, sl.id, sl.jointNumber) }
+                else -> {
+                    listOfNotNull(node.switchIn, node.switchOut).map { sl ->
+                        SwitchSplitPoint(location, null, sl.id, sl.jointNumber)
+                    }
+                }
             }
         }
-
-    val uniqueSplitPoints =
-        allSplitPoints.filterIndexed { index, splitPoint ->
-            val firstIndex = allSplitPoints.indexOfFirst { otherSplitPoint -> splitPoint.isSame(otherSplitPoint) }
-            firstIndex == index
-        }
-    return uniqueSplitPoints
-}
-
-fun collectSplitPoints(
-    track: LocationTrack,
-    alignment: LayoutAlignment,
-    isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean,
-): List<SplitPoint> {
-    val endPointSwitchInfos = getEndPointSwitchInfos(track, alignment, isPresentationJointNumber)
-
-    val startSplitPoint =
-        alignment.start?.let { start ->
-            endPointSwitchInfos.start?.let { endPointSwitchInfo ->
-                SwitchSplitPoint(start, null, endPointSwitchInfo.switchId, endPointSwitchInfo.jointNumber)
-            } ?: EndpointSplitPoint(start, null, DuplicateEndPointType.START)
-        }
-
-    val endSplitPoint =
-        alignment.end?.let { end ->
-            endPointSwitchInfos.end?.let { endPointSwitchInfo ->
-                SwitchSplitPoint(end, null, endPointSwitchInfo.switchId, endPointSwitchInfo.jointNumber)
-            } ?: EndpointSplitPoint(end, null, DuplicateEndPointType.END)
-        }
-
-    val switchSplitPoints = alignment.segmentsWithM.flatMap { (s, m) -> getSwitchSplitPoints(m.min, s) }
-
-    val allSplitPoints =
-        listOf(listOfNotNull(startSplitPoint), switchSplitPoints, listOfNotNull(endSplitPoint)).flatten()
-
-    val uniqueSplitPoints =
-        allSplitPoints.filterIndexed { index, splitPoint ->
-            val firstIndex = allSplitPoints.indexOfFirst { otherSplitPoint -> splitPoint.isSame(otherSplitPoint) }
-            firstIndex == index
-        }
-    return uniqueSplitPoints
-}
-
-fun getSwitchSplitPoints(segmentStartM: Double, segment: LayoutSegment): List<SwitchSplitPoint> {
-    val joints =
-        segment.switchId?.let { switchId ->
-            val startPoint =
-                segment.startJointNumber?.let { jointNumber ->
-                    SwitchSplitPoint(segment.segmentStart.toAlignmentPoint(segmentStartM), null, switchId, jointNumber)
-                }
-            val endPoint =
-                segment.endJointNumber?.let { jointNumber ->
-                    SwitchSplitPoint(segment.segmentEnd.toAlignmentPoint(segmentStartM), null, switchId, jointNumber)
-                }
-            listOfNotNull(startPoint, endPoint)
-        } ?: emptyList()
-    return joints
+    return allSplitPoints.filterIndexed { index, splitPoint ->
+        val firstIndex = allSplitPoints.indexOfFirst { otherSplitPoint -> splitPoint.isSame(otherSplitPoint) }
+        firstIndex == index
+    }
 }

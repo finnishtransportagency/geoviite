@@ -83,11 +83,13 @@ class LayoutAlignmentDao(
             select 
               node.id,
               node.type,
-              array_agg(joint.switch_id) as switch_ids,
-              array_agg(joint.switch_joint) as switch_joints,
+              node.switch_in_id,
+              node.switch_in_joint_number,
+              node.switch_out_id,
+              node.switch_out_joint_number,
               node.starting_location_track_id,
               node.ending_location_track_id
-            from layout.node left join layout.node_switch_joint joint on node.id = joint.node_id
+            from layout.node
             where (:id::int is null or node.id = :id)
             group by node.id 
         """
@@ -100,10 +102,15 @@ class LayoutAlignmentDao(
                     LayoutNodeType.TRACK_START -> LayoutNodeStartTrack(rs.getIntId("starting_location_track_id"))
                     LayoutNodeType.TRACK_END -> LayoutNodeEndTrack(rs.getIntId("ending_location_track_id"))
                     LayoutNodeType.SWITCH -> {
-                        val switchIds = rs.getIntArray("switch_ids")
-                        val jointNumbers = rs.getIntArray("switch_joints")
-                        LayoutNodeSwitches(
-                            switchIds.zip(jointNumbers).map { (sId, j) -> SwitchLink(IntId(sId), JointNumber(j)) }
+                        LayoutNodeSwitch(
+                            switchIn =
+                                rs.getIntIdOrNull<TrackLayoutSwitch>("switch_in_id")?.let { id ->
+                                    SwitchLink(id, rs.getJointNumber("switch_in_joint_number"))
+                                },
+                            switchOut =
+                                rs.getIntIdOrNull<TrackLayoutSwitch>("switch_out_id")?.let { id ->
+                                    SwitchLink(id, rs.getJointNumber("switch_out_joint_number"))
+                                },
                         )
                     }
                 }
@@ -116,14 +123,23 @@ class LayoutAlignmentDao(
         if (content is LayoutNode) content else getNode(nodeIdsByHash[content.contentHash] ?: saveNode(content))
 
     private fun saveNode(content: ILayoutNodeContent): IntId<LayoutNode> {
-        val sql = "select layout.get_or_insert_node(:switch_ids, :switch_joints, :start_track_id, :end_track_id)"
-        val switchIds = content.switches.takeIf { l -> l.isNotEmpty() }?.map { s -> s.id.intValue }?.toTypedArray()
-        val switchJoints =
-            content.switches.takeIf { l -> l.isNotEmpty() }?.map { s -> s.jointNumber.intValue }?.toTypedArray()
+        val sql =
+            """
+            select layout.get_or_insert_node(
+                :switch_in_id,
+                :switch_in_joint_number,
+                :switch_out_id,
+                :switch_out_joint_number,
+                :start_track_id,
+                :end_track_id
+            )
+        """
         val params =
             mapOf(
-                "switch_ids" to switchIds,
-                "switch_joints" to switchJoints,
+                "switch_in_id" to content.switchIn?.id?.intValue,
+                "switch_in_joint_number" to content.switchIn?.jointNumber?.intValue,
+                "switch_out_id" to content.switchOut?.id?.intValue,
+                "switch_out_joint_number" to content.switchOut?.jointNumber?.intValue,
                 "start_track_id" to content.startingTrackId?.intValue,
                 "end_track_id" to content.endingTrack?.intValue,
             )
@@ -673,7 +689,7 @@ class LayoutAlignmentDao(
         }
     }
 
-    // TODO: GVT-1727
+    // TODO: GVT-2948 fetch metadata from node-edge model
     fun fetchSegmentGeometriesAndPlanMetadata(
         trackVersion: LayoutRowVersion<LocationTrack>,
         metadataExternalId: Oid<*>?,
