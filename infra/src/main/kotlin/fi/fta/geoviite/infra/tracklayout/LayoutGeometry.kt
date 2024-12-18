@@ -484,8 +484,7 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
      * Finds a point on the line at given alignment m-value (segment start + in-segment m). Snaps to actual segment
      * points at snapDistance, if provided and greater than zero.
      */
-    // TODO: GVT-1727 Snap distance should have default 0.0 but temp removed to catch all users
-    fun seekPointAtM(segmentStartM: Double, m: Double, snapDistance: Double): PointSeekResult<AlignmentPoint> =
+    fun seekPointAtM(segmentStartM: Double, m: Double, snapDistance: Double = 0.0): PointSeekResult<AlignmentPoint> =
         seekPointAtSegmentM(m - segmentStartM, snapDistance).let { r ->
             PointSeekResult(toAlignmentPoint(segmentStartM, r.point), r.index, r.isSnapped)
         }
@@ -532,18 +531,16 @@ data class LayoutSegment(
         }
     }
 
-    // TODO: GVT-1727 This should use segment range directly. Temp add param to catch all users
-    fun slice(startM: Double, mRange: Range<Double>, snapDistance: Double = 0.0): LayoutSegment {
-        val endM = startM + length
-        require(mRange.min + snapDistance < mRange.max) {
-            "Slice m-range must be at least as long as snap distance: range=$mRange snapDistance=$snapDistance"
+    fun slice(segmentMRange: Range<Double>, snapDistance: Double = 0.0): LayoutSegment {
+        require(segmentMRange.min + snapDistance < segmentMRange.max) {
+            "Slice m-range must be at least as long as snap distance: range=$segmentMRange snapDistance=$snapDistance"
         }
-        require(mRange.min + snapDistance >= startM && mRange.max - startM <= endM) {
+        require(segmentMRange.min + snapDistance >= 0.0 && segmentMRange.max <= length) {
             "Slice m-range ends must be within segment (with snapDistance tolerance):" +
-                " range=$mRange snapDistance=$snapDistance segment=${startM..endM}"
+                " range=$segmentMRange snapDistance=$snapDistance segment=${0.0..length}"
         }
-        val start = seekPointAtSegmentM(mRange.min - startM, snapDistance)
-        val end = seekPointAtSegmentM(mRange.max - startM, snapDistance)
+        val start = seekPointAtSegmentM(segmentMRange.min, snapDistance)
+        val end = seekPointAtSegmentM(segmentMRange.max, snapDistance)
         val actualPointsRange = start.index..(if (end.isSnapped) end.index else end.index - 1)
         val currentSegmentPoints = segmentPoints.slice(actualPointsRange)
         val interpolatedStart = listOfNotNull(if (start.isSnapped) null else start.point)
@@ -559,9 +556,8 @@ data class LayoutSegment(
     private fun withGeometry(geometry: SegmentGeometry, newSourceStart: Double?): LayoutSegment =
         copy(geometry = geometry, sourceStart = newSourceStart)
 
-    // TODO: GVT-1727 This only needs one m-value if you deduct on the user-side. Temp add param to catch all users
-    fun splitAtM(startM: Double, m: Double, tolerance: Double): Pair<LayoutSegment, LayoutSegment?> {
-        val (startGeom, endGeom) = geometry.splitAtSegmentM(m - startM, tolerance)
+    fun splitAtM(segmentM: Double, tolerance: Double): Pair<LayoutSegment, LayoutSegment?> {
+        val (startGeom, endGeom) = geometry.splitAtSegmentM(segmentM, tolerance)
         return if (endGeom == null) {
             this to null
         } else {

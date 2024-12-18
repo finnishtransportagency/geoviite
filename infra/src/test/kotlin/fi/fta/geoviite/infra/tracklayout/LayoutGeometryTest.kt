@@ -20,11 +20,11 @@ class LayoutGeometryTest {
     fun shouldReturnSegmentAsIsWhenDistanceIsOverSegmentsMValues() {
         val segment = segment(Point(0.0, 0.0), Point(10.0, 0.0), Point(20.0, 0.0))
 
-        val (startSegment, endSegment) = segment.splitAtM(0.0, 30.0, 0.0)
+        val (startSegment, endSegment) = segment.splitAtM(30.0, 0.0)
         assertEquals(segment, startSegment)
         assertNull(endSegment)
 
-        val (startSegment2, endSegment2) = segment.splitAtM(0.0, 0.0, 0.0)
+        val (startSegment2, endSegment2) = segment.splitAtM(0.0, 0.0)
         assertEquals(segment, startSegment2)
         assertNull(endSegment2)
     }
@@ -33,7 +33,7 @@ class LayoutGeometryTest {
     fun shouldSplitFromSegmentPoint() {
         val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
 
-        val (startSegment, endSegment) = segment.splitAtM(0.0, 10.0, 0.0001)
+        val (startSegment, endSegment) = segment.splitAtM(10.0, 0.0001)
         assertEquals(2, startSegment.segmentPoints.size)
         assertEquals(0.0, startSegment.segmentPoints.first().x)
         assertEquals(10.0, startSegment.segmentPoints.last().m)
@@ -64,7 +64,7 @@ class LayoutGeometryTest {
                 source = GeometrySource.IMPORTED,
             )
 
-        val (startSegment, endSegment) = segment.splitAtM(0.0, 10.0, 0.5)
+        val (startSegment, endSegment) = segment.splitAtM(10.0, 0.5)
         assertNotNull(endSegment)
         endSegment!!
         assertEquals(segment.sourceId, startSegment.sourceId)
@@ -87,7 +87,7 @@ class LayoutGeometryTest {
     fun shouldSplitFromPointWithinTolerance() {
         val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
 
-        val (startSegment, endSegment) = segment.splitAtM(0.0, 9.9, 0.5)
+        val (startSegment, endSegment) = segment.splitAtM(9.9, 0.5)
         assertEquals(2, startSegment.segmentPoints.size)
         assertEquals(0.0, startSegment.segmentPoints.first().x)
         assertEquals(10.0, startSegment.segmentPoints.last().x)
@@ -104,7 +104,7 @@ class LayoutGeometryTest {
     fun shouldNotSplitWhenEndPointIsWithinTolerance() {
         val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
 
-        val (startSegment, endSegment) = segment.splitAtM(0.0, 20.5, 1.0)
+        val (startSegment, endSegment) = segment.splitAtM(20.5, 1.0)
         assertNull(endSegment)
         assertEquals(3, startSegment.segmentPoints.size)
         assertEquals(0.0, startSegment.segmentPoints.first().m)
@@ -115,7 +115,7 @@ class LayoutGeometryTest {
     fun shouldSplitFromANewPointWhenNonePointsWithinTolerance() {
         val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
 
-        val (startSegment1, endSegment1) = segment.splitAtM(0.0, 5.0, 0.5)
+        val (startSegment1, endSegment1) = segment.splitAtM(5.0, 0.5)
         assertEquals(2, startSegment1.segmentPoints.size)
         assertEquals(0.0, startSegment1.segmentPoints.first().m)
         assertEquals(5.0, startSegment1.segmentPoints.last().m)
@@ -129,7 +129,7 @@ class LayoutGeometryTest {
         assertEquals(5.0, endSegment1.segmentPoints.first().x)
         assertEquals(20.0, endSegment1.segmentPoints.last().x)
 
-        val (startSegment2, endSegment2) = segment.splitAtM(0.0, 15.0, 0.5)
+        val (startSegment2, endSegment2) = segment.splitAtM(15.0, 0.5)
         assertEquals(3, startSegment2.segmentPoints.size)
         assertEquals(0.0, startSegment2.segmentPoints.first().m)
         assertEquals(15.0, startSegment2.segmentPoints.last().m)

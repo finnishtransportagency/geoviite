@@ -15,7 +15,6 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.InheritanceFromPublicationInMain
 import fi.fta.geoviite.infra.publication.ValidateTransition
@@ -23,13 +22,11 @@ import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -41,8 +38,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
@@ -569,89 +564,23 @@ private fun getSwitchJointChanges(
     fetchSwitch: (switchId: IntId<TrackLayoutSwitch>) -> TrackLayoutSwitch?,
     fetchStructure: (structureId: IntId<SwitchStructure>) -> SwitchStructure,
 ): List<Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>> {
-    // TODO: GVT-1727 previously this filtered topology links out if they were not presentation joints:
-    // Use presentation joint to filter joints to update because
-    // - that is joint number that is normally used to connect tracks and switch topologically
-    // - and Ratko may not want other joint numbers in this case
-    // TODO: GVT-1727 If similar filtering is wanted, we need to identify topology links from other links
+    // TODO: GVT-2929 previously this filtered topology links out if they were not presentation joints - check vs main
+    // TODO: GVT-2929 it never did the same to segment joints, so the solution might have been partial
+    // TODO: (comment from main) Use presentation joint to filter joints to update because
+    // TODO: (comment from main) - that is joint number that is normally used to connect tracks and switch topologically
+    // TODO: (comment from main) - and Ratko may not want other joint numbers in this case
     val switchChanges =
-        geometry.nodesWithLocation.flatMap { (node, location) ->
-            node.switches.mapNotNull { switchLink ->
-                val joint = fetchSwitch(switchLink.id)?.getJoint(switchLink.jointNumber)
-                val address = geocodingContext.getAddress(location)?.first
-                if (joint != null && address != null) {
-                    switchLink.id to SwitchJointDataHolder(joint, address, location.toPoint())
-                } else {
-                    null
-                }
+        geometry.switchLinks.mapNotNull { link ->
+            val joint = fetchSwitch(link.switchId)?.getJoint(link.jointNumber)
+            val address = geocodingContext.getAddress(link.location)?.first
+            if (joint != null && address != null) {
+                link.switchId to SwitchJointDataHolder(joint, address, link.location.toPoint())
+            } else {
+                null
             }
         }
     return switchChanges.groupBy({ it.first }, { it.second }).toList()
 }
-
-// TODO: GVT-1727 this should be based on edges and nodes
-@Deprecated("Should be based on nodes/edges")
-private fun getSwitchJointChanges(
-    locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
-    geocodingContext: GeocodingContext,
-    fetchSwitch: (switchId: IntId<TrackLayoutSwitch>) -> TrackLayoutSwitch?,
-    fetchStructure: (structureId: IntId<SwitchStructure>) -> SwitchStructure,
-): List<Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>> {
-    val switchChanges =
-        alignment.segments
-            .asSequence()
-            .mapNotNull { segment -> if (segment.switchId != null) segment to fetchSwitch(segment.switchId) else null }
-            .mapNotNull { (segment, switch) ->
-                if (switch == null) null
-                else
-                    (switch.id as IntId) to
-                        findMatchingJoints(segment = segment, switch = switch, geocodingContext = geocodingContext)
-            }
-            .toList()
-
-    val topologySwitches =
-        topologySwitchLinks(locationTrack, alignment).mapNotNull { (topologySwitch, location) ->
-            getTopologySwitchJointDataHolder(topologySwitch, location, geocodingContext, fetchSwitch, fetchStructure)
-        }
-
-    return (switchChanges + topologySwitches)
-        .groupBy({ it.first }, { it.second })
-        .mapValues { (_, value) -> value.flatten() }
-        .toList()
-}
-
-private fun getTopologySwitchJointDataHolder(
-    topologySwitch: TopologyLocationTrackSwitch,
-    point: IPoint,
-    geocodingContext: GeocodingContext,
-    fetchSwitch: (switchId: IntId<TrackLayoutSwitch>) -> TrackLayoutSwitch?,
-    fetchStructure: (structureId: IntId<SwitchStructure>) -> SwitchStructure,
-): Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>? {
-    val switch = fetchSwitch(topologySwitch.switchId) ?: return null
-    // Use presentation joint to filter joints to update because
-    // - that is joint number that is normally used to connect tracks and switch topologically
-    // - and Ratko may not want other joint numbers in this case
-    val presentationJointNumber = fetchStructure(switch.switchStructureId).presentationJointNumber
-    val address = geocodingContext.getAddress(point)?.first
-    val joint =
-        requireNotNull(switch.getJoint(topologySwitch.jointNumber)) {
-            "Topology switch contains invalid joint number: $topologySwitch"
-        }
-    return if (presentationJointNumber == joint.number && address != null) {
-        topologySwitch.switchId to
-            listOf(SwitchJointDataHolder(address = address, point = point.toPoint(), joint = joint))
-    } else null
-}
-
-private fun topologySwitchLinks(track: LocationTrack, alignment: LayoutAlignment) =
-    listOfNotNull(
-        switchIdAndLocation(track.topologyStartSwitch, alignment.firstSegmentStart),
-        switchIdAndLocation(track.topologyEndSwitch, alignment.lastSegmentEnd),
-    )
-
-private fun switchIdAndLocation(topologySwitch: TopologyLocationTrackSwitch?, location: SegmentPoint?) =
-    if (topologySwitch != null && location != null) topologySwitch to location.toPoint() else null
 
 private fun mergeLocationTrackChanges(vararg changeLists: Collection<LocationTrackChange>) =
     changeLists
@@ -711,25 +640,6 @@ private fun calculateOverlappingLocationTracks(
     locationTracks
         .filter { (_, alignment) -> geometryContainsKilometer(geocodingContext, alignment, kilometers) }
         .map { (locationTrack, _) -> locationTrack.id as IntId }
-
-private fun findMatchingJoints(
-    segment: LayoutSegment,
-    switch: TrackLayoutSwitch,
-    geocodingContext: GeocodingContext,
-): List<SwitchJointDataHolder> =
-    switch.joints.mapNotNull { joint ->
-        val segmentPoint =
-            when (joint.number) {
-                segment.startJointNumber -> segment.segmentStart
-                segment.endJointNumber -> segment.segmentEnd
-                else -> null
-            }
-        segmentPoint?.let { p ->
-            geocodingContext.getAddress(p)?.let { (address) ->
-                SwitchJointDataHolder(address = address, point = p.toPoint(), joint = joint)
-            }
-        }
-    }
 
 private data class SwitchJointDataHolder(val joint: TrackLayoutSwitchJoint, val address: TrackMeter, val point: Point)
 

@@ -247,7 +247,23 @@ fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowV
     return if (rowId != null && version != null) RowVersion(rowId, version) else null
 }
 
-fun <T> ResultSet.getLayoutRowVersion(
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersion(
+    idName: String,
+    contextIdName: String,
+    versionName: String,
+): LayoutRowVersion<T> = LayoutRowVersion(getLayoutRowId(idName, contextIdName), getIntNonNull(versionName))
+
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionOrNull(
+    idName: String,
+    contextIdName: String,
+    versionName: String,
+): LayoutRowVersion<T>? {
+    val rowId = getLayoutRowIdOrNull<T>(idName, contextIdName)
+    val version = getIntOrNull(versionName)
+    return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
+}
+
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersion(
     idName: String,
     layoutBranchName: String,
     publicationStateName: String,
