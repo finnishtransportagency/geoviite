@@ -56,7 +56,7 @@ data class GeometryAlignmentHeader(
 data class ReferenceLineHeader(
     override val id: IntId<ReferenceLine>,
     val version: LayoutRowVersion<ReferenceLine>,
-    override val trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    override val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val name: AlignmentName,
     override val state: LayoutState,
     override val length: Double,
@@ -70,11 +70,11 @@ data class ReferenceLineHeader(
 data class LocationTrackHeader(
     override val id: IntId<LocationTrack>,
     val version: LayoutRowVersion<LocationTrack>,
-    override val trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    override val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val duplicateOf: IntId<LocationTrack>?,
     override val name: AlignmentName,
     override val state: LocationTrackState,
-    val trackType: LocationTrackType?,
+    val trackType: LocationTrackType,
     override val length: Double,
     override val boundingBox: BoundingBox?,
     override val segmentCount: Int,
