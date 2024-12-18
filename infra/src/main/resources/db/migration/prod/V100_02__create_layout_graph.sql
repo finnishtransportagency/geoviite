@@ -38,8 +38,10 @@ create temporary table node_point_version_temp as (
         location_track_version,
         alignment_id,
         alignment_version,
-        switch_id,
-        switch_start_joint_number as joint_number,
+        null as switch_in_id,
+        null as switch_in_joint_number,
+        switch_id switch_out_id,
+        switch_start_joint_number as switch_out_joint_number,
         segment_index as start_segment_index,
         case when segment_index = 0 then null else segment_index - 1 end as end_segment_index,
         null::int as start_track_link,
@@ -54,8 +56,10 @@ create temporary table node_point_version_temp as (
         location_track_version,
         alignment_id,
         alignment_version,
-        switch_id,
-        switch_end_joint_number as joint_number,
+        switch_id as switch_in_id,
+        switch_end_joint_number as switch_in_joint_number,
+        null as switch_out_id,
+        null as switch_out_joint_number,
         case when segment_index = segment_count - 1 then null else segment_index + 1 end as start_segment_index,
         segment_index as end_segment_index,
         null::int as start_track_link,
@@ -71,8 +75,10 @@ create temporary table node_point_version_temp as (
         lt.version as location_track_version,
         lt.alignment_id,
         lt.alignment_version,
-        lt.topology_start_switch_id as switch_id,
-        lt.topology_start_switch_joint_number as joint_number,
+        lt.topology_start_switch_id as switch_in_id,
+        lt.topology_start_switch_joint_number as joint_in_joint_number,
+        null as switch_out_id,
+        null as switch_out_joint_number,
         0 as start_segment_index,
         null as end_segment_index,
         lt.id as start_track_link,
@@ -90,8 +96,10 @@ create temporary table node_point_version_temp as (
         lt.version as location_track_version,
         lt.alignment_id,
         lt.alignment_version,
-        lt.topology_end_switch_id as switch_id,
-        lt.topology_end_switch_joint_number as joint_number,
+        null as switch_in_id,
+        null as switch_in_joint_number,
+        lt.topology_end_switch_id as switch_out_id,
+        lt.topology_end_switch_joint_number as switch_out_joint_number,
         null as start_segment_index,
         a.segment_count - 1 as end_segment_index,
         null::int as start_track_link,
@@ -113,12 +121,17 @@ create temporary table node_point_version_temp as (
         -- Node ordering within the alignment version
         row_number() over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by start_segment_index, end_segment_index) as node_index,
         -- The grouping contracts the duplicated locations to a single node which may have multiple switch links
-        -- Duplicate the data into separate arrays for easy unnesting in later processing
-        array_agg(switch_id order by switch_id, joint_number) filter (where switch_id is not null) switch_ids,
-        array_agg(joint_number order by switch_id, joint_number) filter (where switch_id is not null) switch_joints,
+--         -- Duplicate the data into separate arrays for easy unnesting in later processing
+--         array_agg(switch_id order by switch_id, joint_number) filter (where switch_id is not null) switch_ids,
+--         array_agg(joint_number order by switch_id, joint_number) filter (where switch_id is not null) switch_joints,
+--         array_agg(switch_direction order by switch_id, joint_number) filter (where switch_id is not null) switch_directions,
         -- There can only be one or null of these per node
-        min(start_track_link) as start_track_link,
-        min(end_track_link) as end_track_link,
+        (array_agg(distinct switch_in_id) filter (where switch_in_id is not null))[1] as switch_in_id,
+        (array_agg(distinct switch_in_joint_number) filter (where switch_in_joint_number is not null))[1] as switch_in_joint_number,
+        (array_agg(distinct switch_out_id) filter (where switch_out_id is not null))[1] as switch_out_id,
+        (array_agg(distinct switch_out_joint_number) filter (where switch_out_joint_number is not null))[1] as switch_out_joint_number,
+        (array_agg(distinct start_track_link) filter (where start_track_link is not null))[1] as start_track_link,
+        (array_agg(distinct end_track_link) filter (where end_track_link is not null))[1] as end_track_link,
         -- The locations should all be approximately the same, but there might be minor variation due to floating point errors
         start_segment_index,
         end_segment_index
@@ -132,39 +145,38 @@ create temporary table node_point_version_temp as (
       alignment_id,
       alignment_version,
       node_index,
-      switch_ids,
-      switch_joints,
-      case when switch_ids is null then start_track_link end as start_track_link,
-      case when switch_ids is null then end_track_link end as end_track_link,
+      switch_in_id,
+      switch_in_joint_number,
+      switch_out_id,
+      switch_out_joint_number,
+      case when switch_in_id is null and switch_out_id is null then start_track_link end as start_track_link,
+      case when switch_in_id is null and switch_out_id is null then end_track_link end as end_track_link,
       start_segment_index,
       end_segment_index,
-      layout.calculate_node_key(switch_ids, switch_joints, start_track_link, end_track_link) as node_key
+      layout.calculate_node_key(switch_in_id, switch_in_joint_number, switch_out_id, switch_out_joint_number, start_track_link, end_track_link) as node_key
     from track_node_version_candidate
 );
 
 -- select * from node_point_version_temp where start_track_link=1790;
 
 -- Create immutable nodes
-insert into layout.node (key, starting_location_track_id, ending_location_track_id)
-select distinct on (node_key)
+insert into layout.node (
+  key,
+  switch_in_id,
+  switch_in_joint_number,
+  switch_out_id,
+  switch_out_joint_number,
+  starting_location_track_id,
+  ending_location_track_id
+) select distinct on (node_key)
   node_key as key,
+  switch_in_id,
+  switch_in_joint_number,
+  switch_out_id,
+  switch_out_joint_number,
   start_track_link,
   end_track_link
   from node_point_version_temp;
-insert into layout.node_switch_joint (node_id, switch_id, switch_joint)
-select distinct
-  id as node_id,
-  unnest(switch_ids) as switch_switch_id,
-  unnest(switch_joints) as switch_joint
-  from (
-    select distinct on (np.node_key)
-      node.id,
-      np.switch_ids,
-      np.switch_joints
-      from node_point_version_temp np
-        inner join layout.node on np.node_key = node.key
-      where np.switch_ids is not null
-  ) tmp;
 
 -- All potential edges, as seen from the location track versions' point of view
 drop table if exists track_edge_version_temp;

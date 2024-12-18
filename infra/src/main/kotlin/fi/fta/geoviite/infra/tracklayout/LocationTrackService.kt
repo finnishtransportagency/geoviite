@@ -31,6 +31,8 @@ import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
+import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
@@ -117,7 +119,7 @@ class LocationTrackService(
                 ownerId = request.ownerId,
             )
 
-        // TODO: GVT-1727 do we need to recalc topology? I think not, since:
+        // TODO: GVT-2928 do we need to recalc topology? I think not, since:
         // a) the data on the track itself does not affect topology
         // b) we don't need to delete track-switch links on track delete, right?
         //   - they are now in the nodes, which don't maintain referential integrity: draft switch delete wont break it
@@ -148,7 +150,7 @@ class LocationTrackService(
         val originalTrack = getOrThrow(branch.draft, id)
         //        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack = originalTrack.copy(state = state)
-        // TODO: GVT-1727 do we need to recalc topology? I think not, (see above)
+        // TODO: GVT-2928 do we need to recalc topology? I think not, (see above)
         return saveDraft(branch, locationTrack)
         //
         //        return if (locationTrack.state != LocationTrackState.DELETED) {
@@ -175,7 +177,6 @@ class LocationTrackService(
         }
     }
 
-    // TODO: GVT-1727 This is different from old alignments, where the version ref was kept by default. OK?
     @Transactional
     override fun saveDraft(branch: LayoutBranch, draftAsset: LocationTrack): LayoutRowVersion<LocationTrack> {
         val draft = asDraft(branch, draftAsset)
@@ -464,17 +465,15 @@ class LocationTrackService(
         locationTracks: List<LocationTrack>,
         lang: LocalizationLanguage,
     ): List<FreeText> {
-        // TODO: GVT-1727 this needs an order for the node switches
         val startAndEndSwitchIds =
             locationTracks.map { locationTrack ->
                 alignmentDao.get(locationTrack.versionOrThrow).let { geom ->
-                    geom.switchIdAtStart to geom.switchIdAtEnd
+                    // TODO: GVT-2947 when switch links contain presentation joint info, these won't need the lambda
+                    geom.getStartSwitchLink { isPresentationJointNumber(layoutContext, it.id, it.jointNumber) }?.id to
+                        geom.getStartSwitchLink { isPresentationJointNumber(layoutContext, it.id, it.jointNumber) }?.id
+                    // TODO: GVT-2946 bug: this doesn't work like infobox start/end (favor presentation joints).
+                    //                    geom.switchIdAtStart to geom.switchIdAtEnd
                 }
-                //                locationTrack.alignmentVersion?.let { alignmentVersion ->
-                //                    val alignment = alignmentDao.fetch(alignmentVersion)
-                //                    getSwitchIdAtStart(alignment, locationTrack) to getSwitchIdAtEnd(alignment,
-                // locationTrack)
-                //                } ?: (null to null)
             }
         val switches =
             switchDao
@@ -582,51 +581,28 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun getInfoboxExtras(layoutContext: LayoutContext, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
-        return getWithGeometry(layoutContext, id)?.let { (track, alignment) ->
+        return getWithGeometry(layoutContext, id)?.let { (track, geometry) ->
             val geocodingContext = geocodingService.getGeocodingContext(layoutContext, track.trackNumberId)
-            val start = alignment.start
-            val end = alignment.end
+            val start = geometry.start
+            val end = geometry.end
 
             val duplicateOf = getDuplicateTrackParent(layoutContext, track)
             val duplicates =
-                getLocationTrackDuplicates(layoutContext, track, alignment)
+                getLocationTrackDuplicates(layoutContext, track, geometry)
                     .let { dups -> geocodingContext?.let { gc -> fillTrackAddresses(dups, gc) } ?: dups }
                     .sortedBy { dup -> dup.duplicateStatus.startSplitPoint?.address }
 
-            // TODO: GVT-1727 Split stuff should be rebuilt on edges/nodes
-            val isPresentationJointNumber = createFunIsPresentationJointNumberInContext(layoutContext)
-            //            val endPointSwitchInfos =
-            //                getEndPointSwitchInfos(track, alignment,
-            // createFunIsPresentationJointNumberInContext(layoutContext))
-            val startSwitchLink =
-                alignment.nodes.firstOrNull()?.let { node ->
-                    node.switches.lastOrNull { sl -> isPresentationJointNumber(sl.id, sl.jointNumber) }
-                        ?: node.switches.lastOrNull()
-                }
-            val endSwitchLink =
-                alignment.nodes.lastOrNull()?.let { node ->
-                    node.switches.firstOrNull { sl -> isPresentationJointNumber(sl.id, sl.jointNumber) }
-                        ?: node.switches.firstOrNull()
-                }
+            val isPresentationJoint = createFunIsPresentationJointNumberInContext(layoutContext)
 
-            val startSplitPoint =
-                createSplitPoint(
-                    start,
-                    startSwitchLink?.id,
-                    //                    endPointSwitchInfos.start?.switchId,
-                    DuplicateEndPointType.START,
-                    geocodingContext,
-                )
-            val endSplitPoint = createSplitPoint(end, endSwitchLink?.id, DuplicateEndPointType.END, geocodingContext)
-            //            createSplitPoint(end, endPointSwitchInfos.end?.switchId, DuplicateEndPointType.END,
-            // geocodingContext)
+            val startSwitchLink = geometry.getStartSwitchLink(isPresentationJoint)
+            val endSwitchLink = geometry.getEndSwitchLink(isPresentationJoint)
+
+            val startSplitPoint = createSplitPoint(start, startSwitchLink?.id, START, geocodingContext)
+            val endSplitPoint = createSplitPoint(end, endSwitchLink?.id, END, geocodingContext)
 
             val startSwitch = endSwitchLink?.id?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
             val endSwitch = endSwitchLink?.id?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
-            //            val startSwitch = endPointSwitchInfos.start?.switchId?.let { id ->
-            // fetchSwitchAtEndById(layoutContext, id) }
-            //            val endSwitch = endPointSwitchInfos.end?.switchId?.let { id ->
-            // fetchSwitchAtEndById(layoutContext, id) }
+
             val partOfUnfinishedSplit =
                 splitDao.locationTracksPartOfAnyUnfinishedSplit(layoutContext.branch, listOf(id)).isNotEmpty()
 
@@ -675,13 +651,10 @@ class LocationTrackService(
         } ?: false
     }
 
-    private fun createFunIsPresentationJointNumberInContext(
-        layoutContext: LayoutContext
-    ): (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean {
-        return { switchId: IntId<TrackLayoutSwitch>, jointNumber: JointNumber ->
-            isPresentationJointNumber(layoutContext, switchId, jointNumber)
+    private fun createFunIsPresentationJointNumberInContext(layoutContext: LayoutContext): (SwitchLink) -> Boolean =
+        { link ->
+            isPresentationJointNumber(layoutContext, link.id, link.jointNumber)
         }
-    }
 
     @Transactional(readOnly = true)
     fun getLocationTrackDuplicates(

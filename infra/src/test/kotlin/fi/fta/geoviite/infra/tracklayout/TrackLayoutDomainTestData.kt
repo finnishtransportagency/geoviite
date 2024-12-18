@@ -27,9 +27,7 @@ import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
 import fi.fta.geoviite.infra.linking.SuggestedSwitchJointMatchType
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
-import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.map.GeometryAlignmentHeader
-import fi.fta.geoviite.infra.map.MapAlignmentSource
 import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IPoint3DM

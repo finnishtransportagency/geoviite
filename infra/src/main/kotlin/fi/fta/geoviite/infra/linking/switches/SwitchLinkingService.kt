@@ -859,7 +859,7 @@ private fun getSegmentsByLinkingJoints(
                 // StartSplitSegment: before M-value
                 // EndSplitSegment: after M-value
                 val (startSplitSegment, endSplitSegment) =
-                    previousSegment.splitAtM(segmentM.min, suggestedPointM, TOLERANCE_JOINT_LOCATION_NEW_POINT)
+                    previousSegment.splitAtM(suggestedPointM - segmentM.min, TOLERANCE_JOINT_LOCATION_NEW_POINT)
 
                 // Handle cases differently when there are multiple joint matches in a single
                 // segment

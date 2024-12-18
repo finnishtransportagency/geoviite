@@ -11,9 +11,9 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
+import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class LocationTrackSpatialCache
@@ -139,7 +139,7 @@ data class ContextCache(
         thresholdMeters: Double,
     ): LocationTrackCacheHit? {
         val closestPointM = segment.segment.getClosestPointM(segment.m.min, location).first
-        val closestPoint = segment.segment.seekPointAtM(segment.m.min, closestPointM, 0.0).point
+        val closestPoint = segment.segment.seekPointAtM(segment.m.min, closestPointM).point
         val distance = lineLength(location, closestPoint)
         return if (distance < thresholdMeters) {
             LocationTrackCacheHit(
