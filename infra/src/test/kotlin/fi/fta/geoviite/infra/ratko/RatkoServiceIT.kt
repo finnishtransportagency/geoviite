@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -1226,6 +1227,7 @@ constructor(
             publicationDao.createPublication(
                 LayoutBranch.main,
                 FreeTextWithNewLines.of("test: bulk transfer to in progress"),
+                PublicationCause.MANUAL,
             )
         splitDao.updateSplit(splitId = splitId, publicationId = publicationId)
 
@@ -1257,6 +1259,7 @@ constructor(
                         publicationDao.createPublication(
                             LayoutBranch.main,
                             FreeTextWithNewLines.of("some in progress bulk transfer"),
+                            PublicationCause.MANUAL,
                         ),
                     bulkTransferState = BulkTransferState.IN_PROGRESS,
                     bulkTransferId = someBulkTransferId,
@@ -1273,6 +1276,7 @@ constructor(
                             publicationDao.createPublication(
                                 LayoutBranch.main,
                                 FreeTextWithNewLines.of("pending bulk transfer"),
+                                PublicationCause.MANUAL,
                             ),
                     )
                     .id
@@ -1299,6 +1303,7 @@ constructor(
                             publicationDao.createPublication(
                                 LayoutBranch.main,
                                 FreeTextWithNewLines.of("pending bulk transfer"),
+                                PublicationCause.MANUAL,
                             ),
                     )
                     .id
@@ -1337,6 +1342,7 @@ constructor(
                                 publicationDao.createPublication(
                                     LayoutBranch.main,
                                     FreeTextWithNewLines.of("pending bulk transfer $index"),
+                                    PublicationCause.MANUAL,
                                 ),
                         )
                         .id
@@ -1371,6 +1377,7 @@ constructor(
                                     publicationDao.createPublication(
                                         LayoutBranch.main,
                                         FreeTextWithNewLines.of("testing $bulkTransferState"),
+                                        PublicationCause.MANUAL,
                                     ),
                                 bulkTransferId = testDBService.getUnusedBulkTransferId(),
                                 bulkTransferState = bulkTransferState,
@@ -1432,7 +1439,13 @@ constructor(
         publicationService.updateExternalId(LayoutBranch.main, ids)
         val versions = publicationService.getValidationVersions(LayoutBranch.main, ids)
         val calculatedChanges = publicationService.getCalculatedChanges(versions)
-        publicationService.publishChanges(LayoutBranch.main, versions, calculatedChanges, FreeTextWithNewLines.of(""))
+        publicationService.publishChanges(
+            LayoutBranch.main,
+            versions,
+            calculatedChanges,
+            FreeTextWithNewLines.of(""),
+            PublicationCause.MANUAL,
+        )
         ratkoService.pushChangesToRatko(LayoutBranch.main)
     }
 

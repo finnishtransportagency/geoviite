@@ -57,9 +57,12 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
 
     @Transactional
     fun cancel(branch: DesignBranch, id: IntId<ObjectType>): LayoutRowVersion<ObjectType>? =
-        dao.fetchVersion(branch.official, id)?.let { version -> saveDraft(branch, cancelInternal(dao.fetch(version))) }
+        dao.fetchVersion(branch.official, id)?.let { version ->
+            saveDraft(branch, cancelInternal(dao.fetch(version), branch))
+        }
 
-    protected fun cancelInternal(asset: ObjectType) = cancelled(asset)
+    protected fun cancelInternal(asset: ObjectType, designBranch: DesignBranch) =
+        cancelled(asset, designBranch.designId)
 
     protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
 
@@ -103,6 +106,11 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
                 require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
             }
         dao.deleteRow(draftVersion.rowId)
+
+        if (draft.isCancelled) {
+            dao.deleteRow(publicationVersion.rowId)
+        }
+
         (draft.contextData as? MainDraftContextData)?.originBranch?.let { originBranch ->
             if (originBranch is DesignBranch) {
                 dao.deleteRow(LayoutRowId(draftVersion.id, originBranch.official))

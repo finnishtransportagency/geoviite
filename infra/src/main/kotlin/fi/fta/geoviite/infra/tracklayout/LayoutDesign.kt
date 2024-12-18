@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
 import fi.fta.geoviite.infra.util.StringSanitizer
 import java.time.LocalDate
 
@@ -33,6 +34,7 @@ data class LayoutDesignName @JsonCreator(mode = DELEGATING) constructor(private 
 
 data class LayoutDesign(
     val id: DomainId<LayoutDesign>,
+    val ratkoId: RatkoPlanId?,
     val name: LayoutDesignName,
     val estimatedCompletion: LocalDate,
     val designState: DesignState,

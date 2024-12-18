@@ -92,6 +92,14 @@ data class IndirectChanges(
 )
 
 data class CalculatedChanges(val directChanges: DirectChanges, val indirectChanges: IndirectChanges) {
+    companion object {
+        fun empty() =
+            CalculatedChanges(
+                DirectChanges(listOf(), listOf(), listOf(), listOf(), listOf()),
+                IndirectChanges(listOf(), listOf(), listOf()),
+            )
+    }
+
     init {
         checkDuplicates(
             directChanges.kmPostChanges,

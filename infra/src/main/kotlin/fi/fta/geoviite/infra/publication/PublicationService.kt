@@ -219,12 +219,13 @@ constructor(
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
         message: FreeTextWithNewLines,
+        cause: PublicationCause,
     ): PublicationResult {
         try {
             val result =
                 requireNotNull(
                     transactionTemplate.execute {
-                        publishChangesTransaction(branch, versions, calculatedChanges, message)
+                        publishChangesTransaction(branch, versions, calculatedChanges, message, cause)
                     }
                 )
             result.publicationId?.let { publicationGeometryChangeRemarksUpdateService.processPublication(it) }
@@ -263,14 +264,19 @@ constructor(
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
         message: FreeTextWithNewLines,
+        cause: PublicationCause,
     ): PublicationResult {
         val trackNumbers = versions.trackNumbers.map { v -> trackNumberService.publish(branch, v) }
         val kmPosts = versions.kmPosts.map { v -> kmPostService.publish(branch, v) }
         val switches = versions.switches.map { v -> switchService.publish(branch, v) }
         val referenceLines = versions.referenceLines.map { v -> referenceLineService.publish(branch, v) }
         val locationTracks = versions.locationTracks.map { v -> locationTrackService.publish(branch, v) }
-        val publicationId = publicationDao.createPublication(branch, message)
-        publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
+        val publicationId = publicationDao.createPublication(branch, message, cause)
+        publicationDao.insertCalculatedChanges(
+            publicationId,
+            calculatedChanges,
+            PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts),
+        )
 
         splitService.publishSplit(versions.splits, locationTracks, publicationId)
 

@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.integration.IndirectChanges
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.ratko.FakeRatkoService
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
@@ -19,6 +20,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
@@ -64,14 +66,34 @@ constructor(
         referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
 
         val successfulPublicationId =
-            publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("successful"))
-        publicationDao.insertCalculatedChanges(successfulPublicationId, changesTouchingTrackNumber(trackNumberId))
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of("successful"),
+                PublicationCause.MANUAL,
+            )
+        publicationDao.insertCalculatedChanges(
+            successfulPublicationId,
+            changesTouchingTrackNumber(trackNumberId),
+            publishedVersions(trackNumbers = listOf(originalTrackNumber)),
+        )
 
-        trackNumberDao.fetch(originalTrackNumber).copy(number = TrackNumber("updated name")).let(trackNumberDao::save)
+        val updatedTrackNumberVersion =
+            trackNumberDao
+                .fetch(originalTrackNumber)
+                .copy(number = TrackNumber("updated name"))
+                .let(trackNumberDao::save)
 
         val failingPublicationId =
-            publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("failing test publication"))
-        publicationDao.insertCalculatedChanges(failingPublicationId, changesTouchingTrackNumber(trackNumberId))
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of("failing test publication"),
+                PublicationCause.MANUAL,
+            )
+        publicationDao.insertCalculatedChanges(
+            failingPublicationId,
+            changesTouchingTrackNumber(trackNumberId),
+            publishedVersions(trackNumbers = listOf(updatedTrackNumberVersion)),
+        )
 
         val failedRatkoPushId = ratkoPushDao.startPushing(listOf(failingPublicationId))
         ratkoPushDao.updatePushStatus(failedRatkoPushId, RatkoPushStatus.FAILED)

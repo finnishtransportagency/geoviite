@@ -245,8 +245,11 @@ class ReferenceLineService(
         )
     }
 
-    override fun cancelInternal(asset: ReferenceLine) =
-        cancelled(asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())))
+    override fun cancelInternal(asset: ReferenceLine, designBranch: DesignBranch) =
+        cancelled(
+            asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())),
+            designBranch.designId,
+        )
 }
 
 fun referenceLineWithAlignment(

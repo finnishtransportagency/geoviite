@@ -6,10 +6,12 @@ import fi.fta.geoviite.infra.error.DuplicateDesignNameException
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntOrNull
 import fi.fta.geoviite.infra.util.getLocalDate
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.queryOne
@@ -29,7 +31,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
     fun fetch(id: IntId<LayoutDesign>): LayoutDesign {
         val sql =
             """
-            select id, name, estimated_completion, design_state
+            select id, ratko_id, name, estimated_completion, design_state
             from layout.design
             where id = :id
         """
@@ -37,6 +39,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         return jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue)) { rs, _ ->
             LayoutDesign(
                 rs.getIntId("id"),
+                rs.getIntOrNull("ratko_id")?.let(::RatkoPlanId),
                 LayoutDesignName(rs.getString("name")),
                 rs.getLocalDate("estimated_completion"),
                 rs.getEnum("design_state"),
@@ -47,7 +50,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
     fun list(includeCompleted: Boolean = false, includeDeleted: Boolean = false): List<LayoutDesign> {
         val sql =
             """
-            select id, name, estimated_completion, design_state
+            select id, ratko_id, name, estimated_completion, design_state
             from layout.design
             where design_state = 'ACTIVE'::layout.design_state 
               or :include_completed is true and design_state = 'COMPLETED'::layout.design_state
@@ -60,10 +63,27 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         ) { rs, _ ->
             LayoutDesign(
                 rs.getIntId("id"),
+                rs.getIntOrNull("ratko_id")?.let(::RatkoPlanId),
                 LayoutDesignName(rs.getString("name")),
                 rs.getLocalDate("estimated_completion"),
                 rs.getEnum("design_state"),
             )
+        }
+    }
+
+    @Transactional
+    fun initializeRatkoId(id: IntId<LayoutDesign>, ratkoId: Int) {
+        jdbcTemplate.setUser()
+        val sql =
+            """
+            update layout.design
+            set ratko_id = :ratko_id
+            where id = :id and ratko_id is null
+        """
+                .trimIndent()
+        val updated = jdbcTemplate.update(sql, mapOf("id" to toDbId(id).intValue, "ratko_id" to ratkoId))
+        require(updated == 1) {
+            "Expected initializing Ratko ID for design $id to update exactly one row, but updated count was $updated"
         }
     }
 
@@ -122,6 +142,20 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
 
     fun getChangeTime(): Instant {
         return fetchLatestChangeTime(DbTable.LAYOUT_DESIGN)
+    }
+
+    @Transactional
+    fun designHasPublications(designId: IntId<LayoutDesign>): Boolean {
+        // language="sql"
+        val sql =
+            """
+            select exists(select * from publication.publication where design_id = :design_id) as has_publication
+        """
+                .trimIndent()
+
+        return jdbcTemplate.queryOne(sql, mapOf("design_id" to designId.intValue)) { rs, _ ->
+            rs.getBoolean("has_publication")
+        }
     }
 }
 

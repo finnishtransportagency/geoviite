@@ -1,6 +1,7 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -70,5 +71,11 @@ fun publish(
 ): PublicationResult {
     val versions = publicationService.getValidationVersions(branch, request)
     val calculatedChanges = publicationService.getCalculatedChanges(versions)
-    return publicationService.publishChanges(branch, versions, calculatedChanges, FreeTextWithNewLines.of("Test"))
+    return publicationService.publishChanges(
+        branch,
+        versions,
+        calculatedChanges,
+        FreeTextWithNewLines.of("Test"),
+        PublicationCause.MANUAL,
+    )
 }

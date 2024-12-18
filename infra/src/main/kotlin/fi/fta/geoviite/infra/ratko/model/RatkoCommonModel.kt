@@ -170,3 +170,11 @@ enum class RatkoAccuracyType(@get:JsonValue val value: String) {
     @Suppress("unused") DIGITALIZED_AERIAL_IMAGE("DIGITIZED AERIAL IMAGE"),
     @Suppress("unused") ESTIMATED_TRACK_ADDRESS("ESTIMATED TRACKADDRESS"),
 }
+
+data class RatkoPlanId(val id: Int)
+
+enum class RatkoPlanState {
+    OPEN,
+    COMPLETED,
+    CANCELLED,
+}
