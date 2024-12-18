@@ -242,8 +242,8 @@ class TestDBService(
 
     fun getUnusedAuthorCompanyName(): CompanyName = CompanyName(getUniqueName(DbTable.GEOMETRY_PLAN_AUTHOR, 100))
 
-    fun getUnusedBulkTransferId(): IntId<BulkTransfer> {
-        return getUniqueId(DbTable.PUBLICATION_SPLIT, "bulk_transfer_id")
+    fun getUnusedRatkoBulkTransferId(): IntId<BulkTransfer> {
+        return getUniqueId(DbTable.BULK_TRANSFER, "ratko_bulk_transfer_id")
     }
 
     private fun getUniqueName(table: DbTable, maxLength: Int): String {

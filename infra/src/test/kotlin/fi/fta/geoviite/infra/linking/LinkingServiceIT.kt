@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTarget
@@ -50,6 +51,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -73,6 +75,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val kmPostService: LayoutKmPostService,
     private val splitDao: SplitDao,
+    private val publicationDao: PublicationDao,
 ) : DBTestBase() {
 
     @Test
@@ -344,14 +347,27 @@ constructor(
 
         val split =
             splitDao.getOrThrow(
-                splitDao.saveSplit(
-                    locationTrackResponse,
-                    listOf(SplitTarget(locationTrackResponse.id, 0..1, SplitTargetOperation.CREATE)),
-                    relinkedSwitches = emptyList(),
-                    updatedDuplicates = emptyList(),
-                )
+                splitDao
+                    .saveSplit(
+                        locationTrackResponse,
+                        listOf(SplitTarget(locationTrackResponse.id, 0..1, SplitTargetOperation.CREATE)),
+                        relinkedSwitches = emptyList(),
+                        updatedDuplicates = emptyList(),
+                    )
+                    .also { splitId ->
+                        splitDao.updateSplit(
+                            splitId = splitId,
+                            publicationId =
+                                publicationDao.createPublication(
+                                    LayoutBranch.main,
+                                    FreeTextWithNewLines.of("test: published split"),
+                                ),
+                        )
+
+                        splitDao.insertBulkTransfer(splitId = splitId)
+                        splitDao.updateBulkTransfer(splitId = splitId, bulkTransferState = BulkTransferState.DONE)
+                    }
             )
-        splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
 
         assertDoesNotThrow {
             linkingService.saveLocationTrackLinking(

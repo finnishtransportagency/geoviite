@@ -116,7 +116,7 @@ fun ratkoSwitch(
 
 fun bulkTransferStartRequest(
     sourceLocationTrackOid: Oid<LocationTrack> = someOid(),
-    destinationLocationTracks: List<RatkoBulkTransferStartRequestDestinationTrack> = emptyList(),
+    destinationLocationTracks: List<RatkoBulkTransferDestinationTrack> = emptyList(),
 ): RatkoBulkTransferStartRequest {
     return RatkoBulkTransferStartRequest(
         sourceLocationTrack = sourceLocationTrackOid,
@@ -138,13 +138,20 @@ fun bulkTransferPollResponse(
     remainingTrexAssets: Int = 0,
 ): RatkoBulkTransferPollResponse {
     return RatkoBulkTransferPollResponse(
-        locationtrackChangeAssetsAmount = locationtrackChangeAssetsAmount,
+        locationTrackChangeAssetsAmount = locationtrackChangeAssetsAmount,
         remainingTrexAssets = remainingTrexAssets,
         locationTrackChange =
             RatkoBulkTransferPollResponseLocationTrackChange(
                 id = bulkTransferId,
                 sourceLocationTrackOid = sourceLocationTrackOid,
-                destinationLocationtrackOids = destinationLocationtrackOids,
+                destinationLocationTracks =
+                    destinationLocationtrackOids.map { oid ->
+                        RatkoBulkTransferDestinationTrack(
+                            oid = oid,
+                            startKmM = RatkoTrackMeter.create("0000+0000"),
+                            endKmM = RatkoTrackMeter.create("0001+0000"),
+                        )
+                    },
                 startKmM = startKmM,
                 endKmM = endKmM,
                 assetsToMove = assetsToMove,

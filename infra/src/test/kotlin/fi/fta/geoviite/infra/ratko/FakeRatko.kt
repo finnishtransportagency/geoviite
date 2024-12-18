@@ -187,7 +187,7 @@ class FakeRatko(port: Int) {
             }
 
     fun acceptsNewBulkTransferGivingItId(bulkTransferId: IntId<BulkTransfer>) {
-        val responseStarted = RatkoBulkTransferStartResponse(locationtrackChangeId = bulkTransferId)
+        val responseStarted = RatkoBulkTransferStartResponse(locationTrackChangeId = bulkTransferId)
         val responseFinished = bulkTransferPollResponseFinished(bulkTransferId = bulkTransferId)
 
         post("/api/assets/v1.3/locationtrackChanges", times = Times.once()).respond(okJson(responseStarted))

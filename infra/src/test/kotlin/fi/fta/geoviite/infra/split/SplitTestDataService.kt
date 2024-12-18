@@ -154,11 +154,13 @@ constructor(
         segments: List<LayoutSegment>,
         duplicateOf: IntId<LocationTrack>? = null,
         trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        oid: Oid<LocationTrack> = someOid(),
     ): IntId<LocationTrack> {
         val alignment = alignment(segments)
         return mainOfficialContext
             .insert(locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf), alignment)
             .id
+            .also { locationTrackId -> locationTrackService.insertExternalId(LayoutBranch.main, locationTrackId, oid) }
     }
 
     fun createAsMainTrack(
@@ -184,7 +186,7 @@ constructor(
         assertMainBranch(branch)
 
         splitService.findUnfinishedSplits(branch).forEach { split ->
-            splitService.updateSplit(splitId = split.id, bulkTransferState = BulkTransferState.DONE)
+            splitDao.updateBulkTransfer(splitId = split.id, bulkTransferState = BulkTransferState.DONE)
         }
     }
 }

@@ -23,13 +23,15 @@ import fi.fta.geoviite.infra.publication.PublicationDetails
 import fi.fta.geoviite.infra.publication.PublicationLogService
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.publication.PublishedSwitch
+import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferDestinationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferStartRequest
-import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferStartRequestDestinationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
+import fi.fta.geoviite.infra.ratko.model.RatkoTrackMeter
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -74,6 +76,7 @@ constructor(
     private val lockDao: LockDao,
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
     private val splitService: SplitService,
+    private val splitDao: SplitDao, // TODO use service level instead?
     private val geocodingService: GeocodingService,
     private val locationTrackDao: LocationTrackDao,
 ) {
@@ -131,31 +134,29 @@ constructor(
             .sortedWith(compareBy { split -> split.publicationTime ?: Instant.MAX })
             .firstOrNull()
             ?.let(::pollBulkTransferStateUpdate)
-            .takeIf { split ->
-                split?.bulkTransferState in listOf(BulkTransferState.PENDING, BulkTransferState.TEMPORARY_FAILURE)
-            }
+            .takeIf { split -> split?.bulkTransfer?.state == BulkTransferState.PENDING }
             ?.let { split -> beginNewBulkTransfer(branch, split) }
     }
 
     fun pollBulkTransferStateUpdate(split: Split): Split {
-        if (split.bulkTransferState != BulkTransferState.IN_PROGRESS) {
+        if (split.bulkTransfer?.state != BulkTransferState.IN_PROGRESS) {
             logger.info(
-                "Skipping bulk transfer state poll: split is not in progress (current state=${split.bulkTransferState})"
+                "Skipping bulk transfer state poll: split is not in progress (current state=${split.bulkTransfer?.state})"
             )
 
             return split
         }
 
-        checkNotNull(split.bulkTransferId) {
+        checkNotNull(split.bulkTransfer.ratkoBulkTransferId) {
             error("Was about to poll bulk transfer state for split=${split.id}, but bulkTransferId was null!")
         }
 
-        val oldState = split.bulkTransferState
-        val newState = ratkoClient.pollBulkTransferState(split.bulkTransferId)
+        val oldState = split.bulkTransfer.state
+        val newState = ratkoClient.pollBulkTransferState(split.bulkTransfer.ratkoBulkTransferId)
 
         return if (newState != oldState) {
             logger.info("Updating split=${split.id} bulkTransferState from $oldState to $newState")
-            splitService.updateSplit(split.id, newState)
+            splitDao.updateBulkTransfer(splitId = split.id, bulkTransferState = newState)
             splitService.getOrThrow(split.id)
         } else {
             logger.info("Split=${split.id} still has the same bulkTransferState=$oldState")
@@ -167,10 +168,10 @@ constructor(
         val request = createBulkTransferStartRequest(branch, split)
 
         ratkoClient.startNewBulkTransfer(request).let { (bulkTransferId, bulkTransferState) ->
-            splitService.updateSplit(
+            splitDao.updateBulkTransfer(
                 splitId = split.id,
                 bulkTransferState = bulkTransferState,
-                bulkTransferId = bulkTransferId,
+                ratkoBulkTransferId = bulkTransferId,
             )
         }
     }
@@ -201,10 +202,10 @@ constructor(
                 .map { (locationTrack, alignment) ->
                     val (start, end) = geocodingContext.getStartAndEnd(alignment)
 
-                    RatkoBulkTransferStartRequestDestinationTrack(
+                    RatkoBulkTransferDestinationTrack(
                         oid = requireNotNull(splitLocationTrackOidMap[locationTrack.id]),
-                        startKmM = requireNotNull(start).address,
-                        endKmM = requireNotNull(end).address,
+                        startKmM = requireNotNull(start).address.let(::RatkoTrackMeter),
+                        endKmM = requireNotNull(end).address.let(::RatkoTrackMeter),
                     )
                 }
 

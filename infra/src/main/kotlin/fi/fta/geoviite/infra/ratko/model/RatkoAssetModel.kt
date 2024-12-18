@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.ratko.model
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
@@ -146,34 +148,44 @@ data class IncomingRatkoPoint(val geometry: IncomingRatkoGeometry, val routenumb
 data class IncomingRatkoGeometry(val type: RatkoGeometryType, val coordinates: List<Double>, val crs: RatkoCrs)
 
 data class RatkoBulkTransferStartRequest(
-    val sourceLocationTrack: Oid<LocationTrack>,
-    val destinationLocationTracks: List<RatkoBulkTransferStartRequestDestinationTrack>,
+    @JsonProperty("sourceLocationtrack") val sourceLocationTrack: Oid<LocationTrack>,
+    @JsonProperty("destinationLocationtracks") val destinationLocationTracks: List<RatkoBulkTransferDestinationTrack>,
 )
 
-data class RatkoBulkTransferStartRequestDestinationTrack(
+data class RatkoBulkTransferDestinationTrack(
     val oid: Oid<LocationTrack>,
-    val startKmM: TrackMeter,
-    val endKmM: TrackMeter,
+    val startKmM: RatkoTrackMeter,
+    val endKmM: RatkoTrackMeter,
 )
 
-data class RatkoBulkTransferStartResponse(val locationtrackChangeId: IntId<BulkTransfer>)
+data class RatkoBulkTransferStartResponse(
+    @JsonProperty("locationtrackChangeId") val locationTrackChangeId: IntId<BulkTransfer>
+)
 
 data class RatkoBulkTransferPollResponse(
-    val locationtrackChangeAssetsAmount: Int,
+    @JsonProperty("locationtrackChange") val locationTrackChange: RatkoBulkTransferPollResponseLocationTrackChange,
+
+    // Only available after start, not after only creation.
+    @JsonProperty("locationtrackChangeAssetsAmount") val locationTrackChangeAssetsAmount: Int,
     val remainingTrexAssets: Int,
-    val locationTrackChange: RatkoBulkTransferPollResponseLocationTrackChange,
 )
 
 // TODO oletus: locationtrackChange.endtime on null kun pollaus on aktiivinen.
 //  Siirron tilanseurausta voi katsoa locationTrackChangeAssetsAmountin avulla
 data class RatkoBulkTransferPollResponseLocationTrackChange(
     val id: IntId<BulkTransfer>,
-    val sourceLocationTrackOid: Oid<LocationTrack>,
-    val destinationLocationtrackOids: List<Oid<LocationTrack>>,
+    @JsonProperty("sourceLocationtrackOid") val sourceLocationTrackOid: Oid<LocationTrack>,
+    @JsonProperty("destinationLocationtracks") val destinationLocationTracks: List<RatkoBulkTransferDestinationTrack>,
     val startKmM: TrackMeter,
     val endKmM: TrackMeter,
-    val assetsToMove: Int,
-    val trexAssets: Int,
-    val startTime: Instant,
+
+    // Only available after start, not after only creation.
+    val assetsToMove: Int?,
+    val trexAssets: Int?,
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm'Z'", timezone = "UTC")
+    val startTime: Instant?,
+
+    // Only available after completion.
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm'Z'", timezone = "UTC")
     val endTime: Instant?,
 )

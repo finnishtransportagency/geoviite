@@ -63,7 +63,8 @@ private const val ROUTE_NUMBER_PATH = "$INFRA_PATH/routenumbers"
 private const val ASSET_PATH = "/api/assets/v1.2"
 private const val VERSION_PATH = "/api/versions/v1.0/version"
 
-private const val BULK_TRANSFER_START_PATH = "/api/assets/v1.3/locationtrackChanges"
+private const val BULK_TRANSFER_ADD_PATH = "/api/assets/v1.3/locationtrackChanges"
+private const val BULK_TRANSFER_START_PATH = "/api/assets/v1.3/locationtrackChangesStart"
 private const val BULK_TRANSFER_POLL_PATH = "/api/assets/v1.2/pollLocationtrackChange"
 
 enum class RatkoConnectionStatus {
@@ -441,10 +442,16 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         //        val body = postWithResponseBody<String>(url = BULK_TRANSFER_START_PATH, content =
         // request)
 
-        val body = postSpec(url = BULK_TRANSFER_START_PATH, content = request)
+        val body =
+            postSpec(url = BULK_TRANSFER_ADD_PATH, content = request)
+                .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.CREATE)
+                .bodyToMono<String>()
+                .block(defaultBlockTimeout)
+
+        logger.info(body)
 
         val bulkTransferId =
-            ratkoJsonMapper.readValue(body, RatkoBulkTransferStartResponse::class.java)?.locationtrackChangeId
+            ratkoJsonMapper.readValue(body, RatkoBulkTransferStartResponse::class.java)?.locationTrackChangeId
 
         // TODO How to handle a response error?
         checkNotNull(bulkTransferId) { "Received bulk transfer id was null" }
@@ -454,10 +461,23 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         return bulkTransferId to BulkTransferState.IN_PROGRESS
     }
 
+    fun forceStartBulkTransfer(bulkTransferId: IntId<BulkTransfer>) {
+        logger.info("forcefully starting bulk transfer=${bulkTransferId.intValue}")
+        val body =
+            putSpec(url = "$BULK_TRANSFER_START_PATH/${bulkTransferId.intValue}", content = "")
+                .bodyToMono<String>()
+                .block(defaultBlockTimeout)
+
+        logger.info(body)
+    }
+
     fun pollBulkTransferState(bulkTransferId: IntId<BulkTransfer>): BulkTransferState {
         logger.integrationCall("pollBulkTransferState", "bulkTransferId" to bulkTransferId)
 
+        //        forceStartBulkTransfer(bulkTransferId)
+
         return getSpec(url = "$BULK_TRANSFER_POLL_PATH/${bulkTransferId.intValue}?showAmount=true")
+            //        return getSpec(url = "$BULK_TRANSFER_POLL_PATH/${bulkTransferId.intValue}")
             .bodyToMono<String>()
             .onErrorResume(WebClientResponseException::class.java) {
                 // TODO Figure out bulk transfer error handling

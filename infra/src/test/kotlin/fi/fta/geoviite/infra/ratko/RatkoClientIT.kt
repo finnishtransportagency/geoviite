@@ -97,7 +97,7 @@ constructor(
     fun `New bulk transfer can be started`() {
         val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
 
-        val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
+        val expectedBulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
         val (receivedBulkTransferId, receivedBulkTransferState) =
@@ -111,7 +111,7 @@ constructor(
     fun `Bulk transfer state can be polled`() {
         val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
 
-        val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
+        val expectedBulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
         val (receivedBulkTransferId, _) = ratkoClient.startNewBulkTransfer(bulkTransferStartRequest())
