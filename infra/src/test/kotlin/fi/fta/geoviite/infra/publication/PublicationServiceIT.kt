@@ -184,7 +184,7 @@ constructor(
         assertCandidatesContainCorrectVersions(candidates.kmPosts, kmPost)
     }
 
-    private fun <T> assertCandidatesContainCorrectVersions(
+    private fun <T : LayoutAsset<T>> assertCandidatesContainCorrectVersions(
         candidates: List<PublicationCandidate<T>>,
         vararg responses: LayoutRowVersion<T>,
     ) {

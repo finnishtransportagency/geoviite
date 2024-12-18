@@ -24,8 +24,7 @@ import fi.fta.geoviite.infra.geometry.PlanState.ABANDONED
 import fi.fta.geoviite.infra.geometry.PlanState.DESTROYED
 import fi.fta.geoviite.infra.geometry.PlanState.EXISTING
 import fi.fta.geoviite.infra.geometry.PlanState.PROPOSED
-import fi.fta.geoviite.infra.map.AlignmentHeader
-import fi.fta.geoviite.infra.map.MapAlignmentSource
+import fi.fta.geoviite.infra.map.GeometryAlignmentHeader
 import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -172,19 +171,15 @@ fun toAlignmentHeader(
     alignment: GeometryAlignment,
     boundingBoxInLayoutSpace: BoundingBox? = null,
 ) =
-    AlignmentHeader(
+    GeometryAlignmentHeader(
         id = alignment.id,
         name = alignment.name,
-        alignmentSource = MapAlignmentSource.GEOMETRY,
         alignmentType = getAlignmentType(alignment.featureTypeCode),
         state = getLayoutStateOrDefault(alignment.state),
         trackNumberId = trackNumberId,
         boundingBox = boundingBoxInLayoutSpace,
         length = alignment.elements.sumOf(GeometryElement::calculatedLength),
         segmentCount = alignment.elements.size,
-        version = null,
-        duplicateOf = null,
-        trackType = null,
     )
 
 private fun toMapSegments(
