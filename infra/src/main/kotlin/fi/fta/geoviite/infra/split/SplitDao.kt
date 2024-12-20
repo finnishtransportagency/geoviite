@@ -418,7 +418,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     }
 
     // TODO Should not be here
-    private fun getBulkTransfer(splitId: IntId<Split>): BulkTransfer? {
+    fun getBulkTransfer(splitId: IntId<Split>): BulkTransfer? {
         val sql =
             """
           select

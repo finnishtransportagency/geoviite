@@ -166,8 +166,8 @@ data class RatkoBulkTransferPollResponse(
     @JsonProperty("locationtrackChange") val locationTrackChange: RatkoBulkTransferPollResponseLocationTrackChange,
 
     // Only available after start, not after only creation.
-    @JsonProperty("locationtrackChangeAssetsAmount") val locationTrackChangeAssetsAmount: Int,
-    val remainingTrexAssets: Int,
+    @JsonProperty("locationtrackChangeAssetsAmount") val locationTrackChangeAssetsAmount: Int?,
+    val remainingTrexAssets: Int?,
 )
 
 // TODO oletus: locationtrackChange.endtime on null kun pollaus on aktiivinen.

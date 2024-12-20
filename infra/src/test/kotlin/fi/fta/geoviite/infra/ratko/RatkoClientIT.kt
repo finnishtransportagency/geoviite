@@ -95,13 +95,13 @@ constructor(
 
     @Test
     fun `New bulk transfer can be started`() {
-        val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
+        splitTestDataService.insertSplit().let(splitDao::getOrThrow)
 
         val expectedBulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
         val (receivedBulkTransferId, receivedBulkTransferState) =
-            ratkoClient.startNewBulkTransfer(bulkTransferStartRequest())
+            ratkoClient.startNewBulkTransfer(bulkTransferStartRequest(), defaultBlockTimeout)
 
         assertEquals(expectedBulkTransferId, receivedBulkTransferId)
         assertEquals(BulkTransferState.IN_PROGRESS, receivedBulkTransferState)
@@ -109,13 +109,16 @@ constructor(
 
     @Test
     fun `Bulk transfer state can be polled`() {
-        val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
-
+        splitTestDataService.insertSplit().let(splitDao::getOrThrow)
         val expectedBulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
-        val (receivedBulkTransferId, _) = ratkoClient.startNewBulkTransfer(bulkTransferStartRequest())
+        val (receivedBulkTransferId, _) =
+            ratkoClient.startNewBulkTransfer(bulkTransferStartRequest(), defaultBlockTimeout)
 
-        assertEquals(BulkTransferState.DONE, ratkoClient.pollBulkTransferState(receivedBulkTransferId))
+        assertEquals(
+            BulkTransferState.DONE,
+            ratkoClient.pollBulkTransferState(receivedBulkTransferId, defaultBlockTimeout),
+        )
     }
 }

@@ -7,6 +7,8 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -25,6 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertEquals
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -44,6 +47,7 @@ constructor(
     private val splitDao: SplitDao,
     private val splitService: SplitService,
     private val switchDao: LayoutSwitchDao,
+    private val publicationDao: PublicationDao,
 ) : DBTestBase() {
 
     fun clearSplits() {
@@ -80,6 +84,16 @@ constructor(
             relinkedSwitches = listOf(mainOfficialContext.createSwitch().id),
             updatedDuplicates = emptyList(),
         )
+    }
+
+    fun insertPublishedSplit(
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        publicationId: IntId<Publication> =
+            publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("some published split")),
+    ): IntId<Split> {
+        return insertSplit()
+            .let { splitId -> splitDao.updateSplit(splitId = splitId, publicationId = publicationId).id }
+            .also { splitId -> splitDao.insertBulkTransfer(splitId) }
     }
 
     fun insertGeocodableSplit(

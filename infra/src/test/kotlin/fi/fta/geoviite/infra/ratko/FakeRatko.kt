@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometry
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetProperty
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetType
+import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferPollResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferStartResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoCrs
 import fi.fta.geoviite.infra.ratko.model.RatkoGeometryType
@@ -40,11 +41,13 @@ import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import java.time.Duration
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.configuration.Configuration
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
 import org.mockserver.matchers.Times
+import org.mockserver.model.Delay
 import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
@@ -190,21 +193,47 @@ class FakeRatko(port: Int) {
         val responseStarted = RatkoBulkTransferStartResponse(locationTrackChangeId = bulkTransferId)
         val responseFinished = bulkTransferPollResponseFinished(bulkTransferId = bulkTransferId)
 
-        post("/api/assets/v1.3/locationtrackChanges", times = Times.once()).respond(okJson(responseStarted))
-        get("/api/assets/v1.2/pollLocationtrackChange/${bulkTransferId.intValue}").respond(okJson(responseFinished))
+        post(BULK_TRANSFER_ADD_PATH, times = Times.once()).respond(okJson(responseStarted))
+        get(bulkTransferPollPath(bulkTransferId)).respond(okJson(responseFinished))
     }
 
     fun allowsBulkTransferStatePollingAndAnswersWithState(
         bulkTransferId: IntId<BulkTransfer>,
         bulkTransferState: BulkTransferState,
     ) {
-        assert(bulkTransferState == BulkTransferState.IN_PROGRESS) {
-            "This FakeRatko api currently only supports IN_PROGRESS bulkTransferState"
-        }
+        val response =
+            when (bulkTransferState) {
+                BulkTransferState.IN_PROGRESS -> bulkTransferPollResponseInProgress(bulkTransferId = bulkTransferId)
+                BulkTransferState.CREATED -> bulkTransferPollResponseCreated(bulkTransferId = bulkTransferId)
 
-        val response = bulkTransferPollResponseInProgress(bulkTransferId = bulkTransferId)
+                else -> error { "This FakeRatko api does not support bulkTransferState=${bulkTransferState}" }
+            }
 
-        get("/api/assets/v1.2/pollLocationtrackChange/${bulkTransferId.intValue}").respond(okJson(response))
+        get(bulkTransferPollPath(bulkTransferId)).respond(okJson(response))
+    }
+
+    fun acceptsBulkTransferExpeditedStart(bulkTransferId: IntId<BulkTransfer>, times: Times = Times.unlimited()) {
+        put(bulkTransferExpeditedStartPath(bulkTransferId), times = times).respond(statusCodeResponse(200))
+    }
+
+    fun respondsToBulkTransferPoll(
+        bulkTransferId: IntId<BulkTransfer>,
+        response: RatkoBulkTransferPollResponse,
+        times: Times = Times.unlimited(),
+    ) {
+        get(bulkTransferPollPath(bulkTransferId), times = times).respond(okJson(response))
+    }
+
+    fun respondsToBulkTransferCreationWithHttpStatus(httpStatusCode: Int) {
+        get(BULK_TRANSFER_ADD_PATH, times = Times.once()).respond(statusCodeResponse(httpStatusCode))
+    }
+
+    fun respondsToBulkTransferPollWithHttpStatus(
+        bulkTransferId: IntId<BulkTransfer>,
+        httpStatusCode: Int,
+        times: Times = Times.unlimited(),
+    ) {
+        get(bulkTransferPollPath(bulkTransferId), times = times).respond(statusCodeResponse(httpStatusCode))
     }
 
     // return deleted route number kms, or an empty string if all of a route number points were
@@ -316,6 +345,14 @@ class FakeRatko(port: Int) {
         post("/api/assets/v1.2/search", mapOf("assetType" to "railway_traffic_operating_point"), times = Times.once())
             .respond(okJson(RatkoOperatingPointAssetsResponse(points.map(::marshallOperatingPoint))))
 
+    fun delayedOkGetResponse(url: String, delay: Duration, times: Times = Times.once()) {
+        get(url, times = times).respond(HttpResponse().withDelay(Delay.milliseconds(delay.toMillis())))
+    }
+
+    fun delayedOkPostResponse(url: String, delay: Duration, times: Times = Times.once()) {
+        post(url, times = times).respond(HttpResponse().withDelay(Delay.milliseconds(delay.toMillis())))
+    }
+
     private fun getPointUpdates(oid: String, urlInfix: String, method: String): List<List<RatkoPoint>> =
         mockServer
             .retrieveRecordedRequests(request("/api/$urlInfix/$oid").withMethod(method))
@@ -378,6 +415,8 @@ class FakeRatko(port: Int) {
 
     private fun ok() = HttpResponse.response().withStatusCode(200)
 
+    private fun statusCodeResponse(httpStatusCode: Int) = HttpResponse.response().withStatusCode(httpStatusCode)
+
     private fun okJson(body: Any) =
         HttpResponse.response(jsonMapper.writeValueAsString(body))
             .withStatusCode(200)
@@ -419,3 +458,8 @@ private fun marshallOperatingPoint(point: RatkoOperatingPointParse): RatkoOperat
                 )
             ),
     )
+
+fun bulkTransferPollPath(bulkTransferId: IntId<BulkTransfer>) = "$BULK_TRANSFER_POLL_PATH/${bulkTransferId.intValue}"
+
+fun bulkTransferExpeditedStartPath(bulkTransferId: IntId<BulkTransfer>) =
+    "${BULK_TRANSFER_EXPEDITED_START_PATH}/${bulkTransferId.intValue}"

@@ -63,9 +63,9 @@ private const val ROUTE_NUMBER_PATH = "$INFRA_PATH/routenumbers"
 private const val ASSET_PATH = "/api/assets/v1.2"
 private const val VERSION_PATH = "/api/versions/v1.0/version"
 
-private const val BULK_TRANSFER_ADD_PATH = "/api/assets/v1.3/locationtrackChanges"
-private const val BULK_TRANSFER_START_PATH = "/api/assets/v1.3/locationtrackChangesStart"
-private const val BULK_TRANSFER_POLL_PATH = "/api/assets/v1.2/pollLocationtrackChange"
+const val BULK_TRANSFER_ADD_PATH = "/api/assets/v1.3/locationtrackChanges"
+const val BULK_TRANSFER_EXPEDITED_START_PATH = "/api/assets/v1.3/locationtrackChangesStart"
+const val BULK_TRANSFER_POLL_PATH = "/api/assets/v1.2/pollLocationtrackChange"
 
 enum class RatkoConnectionStatus {
     ONLINE,
@@ -435,7 +435,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         return allPoints
     }
 
-    fun startNewBulkTransfer(request: RatkoBulkTransferStartRequest): Pair<IntId<BulkTransfer>, BulkTransferState> {
+    fun startNewBulkTransfer(
+        request: RatkoBulkTransferStartRequest,
+        timeout: Duration,
+    ): Pair<IntId<BulkTransfer>, BulkTransferState> {
         logger.integrationCall("startNewBulkTransfer", "sourceLocationTrackOid" to request.sourceLocationTrack)
 
         // TODO This is missing request-level error handling (e.g. no connection to Ratko)
@@ -446,7 +449,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             postSpec(url = BULK_TRANSFER_ADD_PATH, content = request)
                 .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.CREATE)
                 .bodyToMono<String>()
-                .block(defaultBlockTimeout)
+                .block(timeout)
 
         logger.info(body)
 
@@ -461,17 +464,18 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         return bulkTransferId to BulkTransferState.IN_PROGRESS
     }
 
-    fun forceStartBulkTransfer(bulkTransferId: IntId<BulkTransfer>) {
+    // TODO
+    fun forceStartBulkTransfer(bulkTransferId: IntId<BulkTransfer>, timeout: Duration) {
         logger.info("forcefully starting bulk transfer=${bulkTransferId.intValue}")
         val body =
-            putSpec(url = "$BULK_TRANSFER_START_PATH/${bulkTransferId.intValue}", content = "")
+            putSpec(url = "$BULK_TRANSFER_EXPEDITED_START_PATH/${bulkTransferId.intValue}", content = "")
                 .bodyToMono<String>()
-                .block(defaultBlockTimeout)
+                .block(timeout)
 
         logger.info(body)
     }
 
-    fun pollBulkTransferState(bulkTransferId: IntId<BulkTransfer>): BulkTransferState {
+    fun pollBulkTransferState(bulkTransferId: IntId<BulkTransfer>, timeout: Duration): BulkTransferState {
         logger.integrationCall("pollBulkTransferState", "bulkTransferId" to bulkTransferId)
 
         //        forceStartBulkTransfer(bulkTransferId)
@@ -483,7 +487,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 // TODO Figure out bulk transfer error handling
                 Mono.error(it)
             }
-            .block(defaultBlockTimeout)
+            .block(timeout)
             .let { response ->
                 logger.info("Bulk transfer response from Ratko: $response")
 

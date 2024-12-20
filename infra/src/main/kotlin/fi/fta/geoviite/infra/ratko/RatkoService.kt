@@ -125,7 +125,7 @@ constructor(
         }
     }
 
-    fun manageRatkoBulkTransfers(branch: LayoutBranch) {
+    fun manageRatkoBulkTransfers(branch: LayoutBranch, timeout: Duration = defaultBlockTimeout) {
         assertMainBranch(branch)
 
         splitService
@@ -133,12 +133,12 @@ constructor(
             .filter { split -> split.publicationId != null && split.publicationTime != null }
             .sortedWith(compareBy { split -> split.publicationTime ?: Instant.MAX })
             .firstOrNull()
-            ?.let(::pollBulkTransferStateUpdate)
+            ?.let { split -> pollBulkTransferStateUpdate(split, timeout) }
             .takeIf { split -> split?.bulkTransfer?.state == BulkTransferState.PENDING }
-            ?.let { split -> beginNewBulkTransfer(branch, split) }
+            ?.let { split -> beginNewBulkTransfer(branch, split, timeout) }
     }
 
-    fun pollBulkTransferStateUpdate(split: Split): Split {
+    fun pollBulkTransferStateUpdate(split: Split, timeout: Duration): Split {
         if (split.bulkTransfer?.state != BulkTransferState.IN_PROGRESS) {
             logger.info(
                 "Skipping bulk transfer state poll: split is not in progress (current state=${split.bulkTransfer?.state})"
@@ -152,7 +152,7 @@ constructor(
         }
 
         val oldState = split.bulkTransfer.state
-        val newState = ratkoClient.pollBulkTransferState(split.bulkTransfer.ratkoBulkTransferId)
+        val newState = ratkoClient.pollBulkTransferState(split.bulkTransfer.ratkoBulkTransferId, timeout)
 
         return if (newState != oldState) {
             logger.info("Updating split=${split.id} bulkTransferState from $oldState to $newState")
@@ -164,10 +164,10 @@ constructor(
         }
     }
 
-    fun beginNewBulkTransfer(branch: LayoutBranch, split: Split) {
+    fun beginNewBulkTransfer(branch: LayoutBranch, split: Split, timeout: Duration) {
         val request = createBulkTransferStartRequest(branch, split)
 
-        ratkoClient.startNewBulkTransfer(request).let { (bulkTransferId, bulkTransferState) ->
+        ratkoClient.startNewBulkTransfer(request, timeout).let { (bulkTransferId, bulkTransferState) ->
             splitDao.updateBulkTransfer(
                 splitId = split.id,
                 bulkTransferState = bulkTransferState,
