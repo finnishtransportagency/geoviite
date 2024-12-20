@@ -1234,18 +1234,22 @@ constructor(
         splitDao.insertBulkTransfer(splitId)
 
         val someBulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
-        fakeRatko.acceptsNewBulkTransferGivingItId(someBulkTransferId)
 
+        fakeRatko.acceptsNewBulkTransferGivingItId(someBulkTransferId)
         ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
 
         val splitAfterBulkTransferStart = splitDao.getOrThrow(splitId)
-        assertEquals(BulkTransferState.IN_PROGRESS, splitAfterBulkTransferStart.bulkTransfer?.state)
+        assertEquals(BulkTransferState.CREATED, splitAfterBulkTransferStart.bulkTransfer?.state)
         assertEquals(someBulkTransferId, splitAfterBulkTransferStart.bulkTransfer?.ratkoBulkTransferId)
 
+        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(
+            bulkTransferId = someBulkTransferId,
+            BulkTransferState.IN_PROGRESS,
+        )
         ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
 
         val splitAfterPoll = splitDao.getOrThrow(splitId)
-        assertEquals(BulkTransferState.DONE, splitAfterPoll.bulkTransfer?.state)
+        assertEquals(BulkTransferState.IN_PROGRESS, splitAfterPoll.bulkTransfer?.state)
         assertEquals(someBulkTransferId, splitAfterPoll.bulkTransfer?.ratkoBulkTransferId)
     }
 
@@ -1277,7 +1281,7 @@ constructor(
         val branch = LayoutBranch.main
 
         httpStatusTests.forEach { httpStatus ->
-            val splitId = splitTestDataService.insertPublishedSplit()
+            val splitId = splitTestDataService.insertPublishedGeocodableSplit()
             val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
             fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
@@ -1300,78 +1304,104 @@ constructor(
     @Test
     fun `Retries temporarily failed bulk transfer`() {
         val branch = LayoutBranch.main
-        val statesToRetry = BulkTransferState.entries.filter { state -> state != BulkTransferState.DONE }
+
+        val statesToRetry = listOf(BulkTransferState.PENDING, BulkTransferState.CREATED, BulkTransferState.IN_PROGRESS)
 
         statesToRetry.forEach { bulkTransferState ->
-            val splitId = splitTestDataService.insertPublishedSplit()
+            val splitId = splitTestDataService.insertPublishedGeocodableSplit()
             val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
-            splitDao.updateBulkTransfer(
-                splitId = splitId,
-                bulkTransferState = BulkTransferState.IN_PROGRESS,
-                ratkoBulkTransferId = bulkTransferId,
-                temporaryFailure = true,
-            )
+            if (bulkTransferState == BulkTransferState.PENDING) {
+                splitDao.updateBulkTransfer(
+                    splitId = splitId,
+                    bulkTransferState = bulkTransferState,
+                    temporaryFailure = true,
+                )
 
-            fakeRatko.respondsToBulkTransferPollWithHttpStatus(bulkTransferId, 502)
-            ratkoService.manageRatkoBulkTransfers(branch)
-            assertEquals(true, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+                fakeRatko.respondsToBulkTransferCreateWithHttpStatus(502)
+                ratkoService.manageRatkoBulkTransfers(branch)
+                assertEquals(true, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
 
-            fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.IN_PROGRESS)
-            ratkoService.manageRatkoBulkTransfers(branch)
-            assertEquals(false, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+                fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
+                ratkoService.manageRatkoBulkTransfers(branch)
+                splitDao.getOrThrow(splitId).let { split ->
+                    assertEquals(false, split.bulkTransfer?.temporaryFailure)
+                    assertEquals(bulkTransferId, split.bulkTransfer?.ratkoBulkTransferId)
+                }
+            } else {
+                splitDao.updateBulkTransfer(
+                    splitId = splitId,
+                    bulkTransferState = bulkTransferState,
+                    ratkoBulkTransferId = bulkTransferId,
+                    temporaryFailure = true,
+                )
+
+                fakeRatko.respondsToBulkTransferPollWithHttpStatus(bulkTransferId, 502)
+                ratkoService.manageRatkoBulkTransfers(branch)
+                assertEquals(true, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+
+                fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(
+                    bulkTransferId,
+                    BulkTransferState.IN_PROGRESS,
+                )
+                ratkoService.manageRatkoBulkTransfers(branch)
+                assertEquals(false, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+            }
 
             splitDao.updateBulkTransfer(splitId = splitId, bulkTransferState = BulkTransferState.DONE)
         }
     }
 
     @Test
-    fun `Assigns bulk transfer temporary failure status when ratko connection times out`() {
+    fun `Assigns bulk transfer temporary failure when Ratko times out, but resets it when the connection works again`() {
         val branch = LayoutBranch.main
 
-        val splitId = splitTestDataService.insertPublishedSplit()
+        val splitId = splitTestDataService.insertPublishedGeocodableSplit()
         assertEquals(false, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
 
-        fakeRatko.delayedOkPostResponse(BULK_TRANSFER_ADD_PATH, delay = Duration.ofSeconds(2))
-        ratkoService.manageRatkoBulkTransfers(branch, timeout = Duration.ofMillis(1000))
+        fakeRatko.delayedOkPostResponse(BULK_TRANSFER_CREATE_PATH, delay = Duration.ofSeconds(2))
+        ratkoService.manageRatkoBulkTransfers(branch, timeout = Duration.ofSeconds(1))
         assertEquals(true, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
 
         val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
+        ratkoService.manageRatkoBulkTransfers(branch)
         splitDao.getOrThrow(splitId).let { split ->
             assertEquals(false, split.bulkTransfer?.temporaryFailure)
             assertEquals(bulkTransferId, split.bulkTransfer?.ratkoBulkTransferId)
         }
 
         fakeRatko.delayedOkGetResponse(bulkTransferPollPath(bulkTransferId), delay = Duration.ofSeconds(2))
+        ratkoService.manageRatkoBulkTransfers(branch, timeout = Duration.ofSeconds(1))
         splitDao.getOrThrow(splitId).let { split ->
             assertEquals(true, split.bulkTransfer?.temporaryFailure)
             assertEquals(bulkTransferId, split.bulkTransfer?.ratkoBulkTransferId)
         }
 
-        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.CREATED)
+        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.IN_PROGRESS)
+        ratkoService.manageRatkoBulkTransfers(branch)
         splitDao.getOrThrow(splitId).let { split ->
             assertEquals(false, split.bulkTransfer?.temporaryFailure)
             assertEquals(bulkTransferId, split.bulkTransfer?.ratkoBulkTransferId)
-            assertEquals(BulkTransferState.CREATED, split.bulkTransfer?.state)
+            assertEquals(BulkTransferState.IN_PROGRESS, split.bulkTransfer?.state)
         }
     }
 
     @Test
-    fun `Assigns bulk transfer FAILED status when receiving HTTP 500, 400 and others`() {
+    fun `Assigns bulk transfer FAILED status when receiving HTTP 400, 500 and others`() {
         val branch = LayoutBranch.main
 
-        val httpStatusCodesToTest = listOf(400, 429, 500)
+        val httpStatusCodesToTest = listOf(400, 418, 429, 500)
         val statesToTest = listOf(BulkTransferState.PENDING, BulkTransferState.CREATED, BulkTransferState.IN_PROGRESS)
 
         httpStatusCodesToTest.forEach { httpStatus ->
             statesToTest.forEach { bulkTransferState ->
-                val splitId = splitTestDataService.insertPublishedSplit()
+                val splitId = splitTestDataService.insertPublishedGeocodableSplit()
                 val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
                 if (bulkTransferState == BulkTransferState.PENDING) {
-                    fakeRatko.respondsToBulkTransferCreationWithHttpStatus(httpStatus)
+                    fakeRatko.respondsToBulkTransferCreateWithHttpStatus(httpStatus)
                     ratkoService.manageRatkoBulkTransfers(branch)
                     assertEquals(BulkTransferState.FAILED, splitDao.getOrThrow(splitId).bulkTransfer?.state)
                 } else {
@@ -1385,6 +1415,9 @@ constructor(
                     ratkoService.manageRatkoBulkTransfers(branch)
                     assertEquals(BulkTransferState.FAILED, splitDao.getOrThrow(splitId).bulkTransfer?.state)
                 }
+
+                // Finish the current test case so that a new split can be created and tested
+                splitDao.updateBulkTransfer(splitId, bulkTransferState = BulkTransferState.DONE)
             }
         }
     }
@@ -1421,14 +1454,16 @@ constructor(
     fun `Bulk transfer status values are updated based on poll response values`() {
         val branch = LayoutBranch.main
 
-        val splitId = splitTestDataService.insertPublishedSplit()
+        val splitId = splitTestDataService.insertPublishedGeocodableSplit()
         assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransfer?.state)
 
-        assertEquals(null, splitDao.getOrThrow(splitId).bulkTransfer?.assetsMoved)
-        assertEquals(null, splitDao.getOrThrow(splitId).bulkTransfer?.assetsTotal)
+        splitDao.getOrThrow(splitId).let { split ->
+            assertEquals(null, split.bulkTransfer?.assetsMoved)
+            assertEquals(null, split.bulkTransfer?.assetsTotal)
 
-        assertEquals(null, splitDao.getOrThrow(splitId).bulkTransfer?.trexAssetsRemaining)
-        assertEquals(null, splitDao.getOrThrow(splitId).bulkTransfer?.trexAssetsTotal)
+            assertEquals(null, split.bulkTransfer?.trexAssetsRemaining)
+            assertEquals(null, split.bulkTransfer?.trexAssetsTotal)
+        }
 
         val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
@@ -1442,6 +1477,7 @@ constructor(
                 response =
                     bulkTransferPollResponse(
                         bulkTransferId = bulkTransferId,
+                        startTime = Instant.now(),
                         locationTrackChangeAssetsAmount = valueList[0],
                         assetsToMove = valueList[1],
                         remainingTrexAssets = valueList[2],
@@ -1451,11 +1487,13 @@ constructor(
 
             ratkoService.manageRatkoBulkTransfers(branch)
 
-            assertEquals(valueList[0], splitDao.getOrThrow(splitId).bulkTransfer?.assetsMoved)
-            assertEquals(valueList[1], splitDao.getOrThrow(splitId).bulkTransfer?.assetsTotal)
+            splitDao.getOrThrow(splitId).let { split ->
+                assertEquals(valueList[0], split.bulkTransfer?.assetsMoved)
+                assertEquals(valueList[1], split.bulkTransfer?.assetsTotal)
 
-            assertEquals(valueList[2], splitDao.getOrThrow(splitId).bulkTransfer?.trexAssetsRemaining)
-            assertEquals(valueList[3], splitDao.getOrThrow(splitId).bulkTransfer?.trexAssetsTotal)
+                assertEquals(valueList[2], split.bulkTransfer?.trexAssetsRemaining)
+                assertEquals(valueList[3], split.bulkTransfer?.trexAssetsTotal)
+            }
         }
     }
 
@@ -1463,8 +1501,8 @@ constructor(
     fun `Setting a failed bulk transfer back to pending will cause it to be retried and not start another one`() {
         val branch = LayoutBranch.main
 
-        val splitId = splitTestDataService.insertPublishedSplit()
-        val anotherSplitId = splitTestDataService.insertPublishedSplit()
+        val splitId = splitTestDataService.insertPublishedGeocodableSplit()
+        val anotherSplitId = splitTestDataService.insertPublishedGeocodableSplit()
         splitDao.updateBulkTransfer(splitId, bulkTransferState = BulkTransferState.FAILED)
         ratkoService.manageRatkoBulkTransfers(branch)
 
@@ -1483,7 +1521,7 @@ constructor(
     fun `Bulk transfer expedited starting works and marks the bulk transfer to be in progress`() {
         val branch = LayoutBranch.main
 
-        val splitId = splitTestDataService.insertPublishedSplit()
+        val splitId = splitTestDataService.insertPublishedGeocodableSplit()
         splitDao.updateBulkTransfer(splitId = splitId, expeditedStart = true)
         assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransfer?.state)
 
@@ -1494,7 +1532,7 @@ constructor(
         assertEquals(bulkTransferId, splitDao.getOrThrow(splitId).bulkTransfer?.ratkoBulkTransferId)
 
         fakeRatko.acceptsBulkTransferExpeditedStart(bulkTransferId, times = Times.exactly(1))
-        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.CREATED)
+        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.IN_PROGRESS)
         ratkoService.manageRatkoBulkTransfers(branch)
         assertEquals(BulkTransferState.IN_PROGRESS, splitDao.getOrThrow(splitId).bulkTransfer?.state)
     }
@@ -1503,21 +1541,27 @@ constructor(
     fun `Bulk transfer expedited starting should not be tried more than once`() {
         val branch = LayoutBranch.main
 
-        val splitId = splitTestDataService.insertPublishedSplit()
+        val splitId = splitTestDataService.insertPublishedGeocodableSplit()
         splitDao.updateBulkTransfer(splitId = splitId, expeditedStart = true)
 
         val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
+        fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
         fakeRatko.acceptsBulkTransferExpeditedStart(bulkTransferId, times = Times.exactly(1))
-        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.CREATED)
 
-        (0..2).forEach { ratkoService.manageRatkoBulkTransfers(branch) }
+        // Polling causes a temporary error which does not update the state of the bulk transfer
+        // based on the received data during the poll request
+        fakeRatko.respondsToBulkTransferPollWithHttpStatus(bulkTransferId, 502, times = Times.exactly(2))
+
+        (0..2).forEach { _ -> ratkoService.manageRatkoBulkTransfers(branch) }
 
         assertEquals(BulkTransferState.IN_PROGRESS, splitDao.getOrThrow(splitId).bulkTransfer?.state)
     }
 
+    // TODO
     @Test fun `New bulk transfer should not be created if the previous Ratko push failed`() {}
 
+    // TODO
     @Test fun `In progress bulk transfer should be polled even if the previous Ratko push failed`() {}
 
     // TODO Move to SplitDao or elsewhere
@@ -1572,7 +1616,7 @@ constructor(
 
         val splitAfterSecondExpectedBulkTransferStart = splitDao.getOrThrow(splitIds[0])
         assertEquals(someBulkTransferId, splitAfterSecondExpectedBulkTransferStart.bulkTransfer?.ratkoBulkTransferId)
-        assertEquals(BulkTransferState.IN_PROGRESS, splitAfterSecondExpectedBulkTransferStart.bulkTransfer?.state)
+        assertEquals(BulkTransferState.CREATED, splitAfterSecondExpectedBulkTransferStart.bulkTransfer?.state)
     }
 
     @Test
@@ -1623,8 +1667,25 @@ constructor(
                 }
 
         splitsAndExpectedBulkTransferStates.forEach { (splitId, _) ->
-            splitDao.getOrThrow(splitId).let { id ->
-                ratkoService.pollBulkTransferStateUpdate(id, timeout = defaultBlockTimeout)
+            splitDao.getOrThrow(splitId).let { split ->
+                when (requireNotNull(split.bulkTransfer).state) {
+                    BulkTransferState.PENDING ->
+                        fakeRatko.acceptsNewBulkTransferGivingItId(
+                            bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
+                        )
+                    BulkTransferState.CREATED ->
+                        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(
+                            requireNotNull(split.bulkTransfer?.ratkoBulkTransferId),
+                            BulkTransferState.CREATED,
+                        )
+                    else ->
+                        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(
+                            requireNotNull(split.bulkTransfer?.ratkoBulkTransferId),
+                            BulkTransferState.IN_PROGRESS,
+                        )
+                }
+
+                ratkoService.pollBulkTransferStateUpdate(split, timeout = defaultBlockTimeout)
             }
         }
 

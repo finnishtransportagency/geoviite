@@ -191,47 +191,50 @@ class FakeRatko(port: Int) {
 
     fun acceptsNewBulkTransferGivingItId(bulkTransferId: IntId<BulkTransfer>) {
         val responseStarted = RatkoBulkTransferStartResponse(locationTrackChangeId = bulkTransferId)
-        val responseFinished = bulkTransferPollResponseFinished(bulkTransferId = bulkTransferId)
+        //        val responseFinished = bulkTransferPollResponseInProgress(bulkTransferId =
+        // bulkTransferId)
 
-        post(BULK_TRANSFER_ADD_PATH, times = Times.once()).respond(okJson(responseStarted))
-        get(bulkTransferPollPath(bulkTransferId)).respond(okJson(responseFinished))
+        post(BULK_TRANSFER_CREATE_PATH, times = Times.once()).respond(okJson(responseStarted))
+        //        get(bulkTransferPollPath(bulkTransferId)).respond(okJson(responseFinished))
     }
 
     fun allowsBulkTransferStatePollingAndAnswersWithState(
         bulkTransferId: IntId<BulkTransfer>,
         bulkTransferState: BulkTransferState,
+        times: Times = Times.once(),
     ) {
         val response =
             when (bulkTransferState) {
-                BulkTransferState.IN_PROGRESS -> bulkTransferPollResponseInProgress(bulkTransferId = bulkTransferId)
-                BulkTransferState.CREATED -> bulkTransferPollResponseCreated(bulkTransferId = bulkTransferId)
+                BulkTransferState.IN_PROGRESS -> bulkTransferPollResponseInProgress(bulkTransferId)
+                BulkTransferState.CREATED -> bulkTransferPollResponseCreated(bulkTransferId)
+                BulkTransferState.DONE -> bulkTransferPollResponseFinished(bulkTransferId)
 
                 else -> error { "This FakeRatko api does not support bulkTransferState=${bulkTransferState}" }
             }
 
-        get(bulkTransferPollPath(bulkTransferId)).respond(okJson(response))
+        get(bulkTransferPollPath(bulkTransferId), times).respond(okJson(response))
     }
 
-    fun acceptsBulkTransferExpeditedStart(bulkTransferId: IntId<BulkTransfer>, times: Times = Times.unlimited()) {
+    fun acceptsBulkTransferExpeditedStart(bulkTransferId: IntId<BulkTransfer>, times: Times = Times.once()) {
         put(bulkTransferExpeditedStartPath(bulkTransferId), times = times).respond(statusCodeResponse(200))
     }
 
     fun respondsToBulkTransferPoll(
         bulkTransferId: IntId<BulkTransfer>,
         response: RatkoBulkTransferPollResponse,
-        times: Times = Times.unlimited(),
+        times: Times = Times.once(),
     ) {
         get(bulkTransferPollPath(bulkTransferId), times = times).respond(okJson(response))
     }
 
-    fun respondsToBulkTransferCreationWithHttpStatus(httpStatusCode: Int) {
-        get(BULK_TRANSFER_ADD_PATH, times = Times.once()).respond(statusCodeResponse(httpStatusCode))
+    fun respondsToBulkTransferCreateWithHttpStatus(httpStatusCode: Int, times: Times = Times.once()) {
+        post(BULK_TRANSFER_CREATE_PATH, times = times).respond(statusCodeResponse(httpStatusCode))
     }
 
     fun respondsToBulkTransferPollWithHttpStatus(
         bulkTransferId: IntId<BulkTransfer>,
         httpStatusCode: Int,
-        times: Times = Times.unlimited(),
+        times: Times = Times.once(),
     ) {
         get(bulkTransferPollPath(bulkTransferId), times = times).respond(statusCodeResponse(httpStatusCode))
     }

@@ -147,7 +147,7 @@ data class IncomingRatkoPoint(val geometry: IncomingRatkoGeometry, val routenumb
 
 data class IncomingRatkoGeometry(val type: RatkoGeometryType, val coordinates: List<Double>, val crs: RatkoCrs)
 
-data class RatkoBulkTransferStartRequest(
+data class RatkoBulkTransferCreateRequest(
     @JsonProperty("sourceLocationtrack") val sourceLocationTrack: Oid<LocationTrack>,
     @JsonProperty("destinationLocationtracks") val destinationLocationTracks: List<RatkoBulkTransferDestinationTrack>,
 )

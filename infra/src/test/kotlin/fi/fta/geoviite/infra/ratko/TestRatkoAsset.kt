@@ -117,8 +117,8 @@ fun ratkoSwitch(
 fun bulkTransferStartRequest(
     sourceLocationTrackOid: Oid<LocationTrack> = someOid(),
     destinationLocationTracks: List<RatkoBulkTransferDestinationTrack> = emptyList(),
-): RatkoBulkTransferStartRequest {
-    return RatkoBulkTransferStartRequest(
+): RatkoBulkTransferCreateRequest {
+    return RatkoBulkTransferCreateRequest(
         sourceLocationTrack = sourceLocationTrackOid,
         destinationLocationTracks = destinationLocationTracks,
     )

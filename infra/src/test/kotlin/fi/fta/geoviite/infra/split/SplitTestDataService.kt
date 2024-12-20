@@ -137,6 +137,19 @@ constructor(
         )
     }
 
+    fun insertPublishedGeocodableSplit(
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        publicationId: IntId<Publication> =
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of("some published geocodable split"),
+            ),
+    ): IntId<Split> {
+        return insertGeocodableSplit()
+            .let { splitId -> splitDao.updateSplit(splitId = splitId, publicationId = publicationId).id }
+            .also { splitId -> splitDao.insertBulkTransfer(splitId) }
+    }
+
     fun createSwitchAndGeometry(
         startPoint: IPoint,
         structure: SwitchStructure = getYvStructure(),

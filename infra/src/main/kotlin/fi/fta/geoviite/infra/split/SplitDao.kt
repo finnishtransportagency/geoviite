@@ -323,7 +323,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 trex_assets_total = coalesce(:trex_assets_total, trex_assets_total),
                 trex_assets_remaining = coalesce(:trex_assets_remaining, trex_assets_remaining)
             where 
-                split_id = :split_id
+                split_id = :split_id -- TODO This is missing cases where the update is unnecessary, eg. no actual values are modified (no need to create a new version)
             returning 
                 split_id, version
             """

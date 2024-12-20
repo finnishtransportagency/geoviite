@@ -101,10 +101,10 @@ constructor(
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
         val (receivedBulkTransferId, receivedBulkTransferState) =
-            ratkoClient.startNewBulkTransfer(bulkTransferStartRequest(), defaultBlockTimeout)
+            ratkoClient.sendBulkTransferCreateRequest(bulkTransferStartRequest(), defaultBlockTimeout)
 
         assertEquals(expectedBulkTransferId, receivedBulkTransferId)
-        assertEquals(BulkTransferState.IN_PROGRESS, receivedBulkTransferState)
+        assertEquals(BulkTransferState.CREATED, receivedBulkTransferState)
     }
 
     @Test
@@ -114,11 +114,14 @@ constructor(
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
         val (receivedBulkTransferId, _) =
-            ratkoClient.startNewBulkTransfer(bulkTransferStartRequest(), defaultBlockTimeout)
+            ratkoClient.sendBulkTransferCreateRequest(bulkTransferStartRequest(), defaultBlockTimeout)
 
-        assertEquals(
+        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(
+            bulkTransferId = receivedBulkTransferId,
             BulkTransferState.DONE,
-            ratkoClient.pollBulkTransferState(receivedBulkTransferId, defaultBlockTimeout),
         )
+
+        val (polledState, _) = ratkoClient.pollBulkTransferState(receivedBulkTransferId, defaultBlockTimeout)
+        assertEquals(BulkTransferState.DONE, polledState)
     }
 }
