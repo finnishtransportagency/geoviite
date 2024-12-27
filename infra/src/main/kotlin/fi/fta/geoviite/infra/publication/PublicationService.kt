@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublication
@@ -13,9 +14,11 @@ import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
+import fi.fta.geoviite.infra.integration.IndirectChanges
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -59,6 +62,8 @@ constructor(
     private val transactionTemplate: TransactionTemplate,
     private val publicationGeometryChangeRemarksUpdateService: PublicationGeometryChangeRemarksUpdateService,
     private val splitService: SplitService,
+    private val publicationValidationService: PublicationValidationService,
+    private val layoutDesignDao: LayoutDesignDao,
 ) {
     @Transactional(readOnly = true)
     fun collectPublicationCandidates(transition: LayoutContextTransition): PublicationCandidates {
@@ -214,25 +219,120 @@ constructor(
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =
         calculatedChangesService.getCalculatedChanges(versions)
 
+    fun publishManualPublication(branch: LayoutBranch, request: PublicationRequest): PublicationResult {
+        val versions = requireNotNull(transactionTemplate.execute { getValidationVersions(branch, request.content) })
+        publicationValidationService.validatePublicationRequest(versions)
+        val (inheritedPublications, inheritedChangeIds) =
+            if (branch is MainBranch) {
+                getInheritedDesignPublicationsFromMainPublication(versions, request) to PublicationRequestIds.empty()
+            } else {
+                listOf<PreparedPublicationRequest>() to getInheritedCalculatedChangeIds(versions)
+            }
+        updateExternalId(branch, request.content + inheritedChangeIds)
+        val calculatedChanges = calculatedChangesService.getCalculatedChanges(versions)
+        val mainPublication =
+            PreparedPublicationRequest(branch, versions, calculatedChanges, request.message, PublicationCause.MANUAL)
+        // publication results already only include direct changes, and all inherited changes are
+        // indirect, so we can throw them out
+        return publishPublicationRequests(listOf(mainPublication) + inheritedPublications).first()
+    }
+
     fun publishChanges(
         branch: LayoutBranch,
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
         message: FreeTextWithNewLines,
         cause: PublicationCause,
-    ): PublicationResult {
-        try {
-            val result =
+    ): PublicationResult =
+        publishPublicationRequests(
+                listOf(PreparedPublicationRequest(branch, versions, calculatedChanges, message, cause))
+            )
+            .first()
+
+    fun publishPublicationRequests(publications: List<PreparedPublicationRequest>): List<PublicationResult> {
+        val results =
+            try {
                 requireNotNull(
                     transactionTemplate.execute {
-                        publishChangesTransaction(branch, versions, calculatedChanges, message, cause)
+                        publications.map { publication ->
+                            publishChangesTransaction(
+                                publication.branch,
+                                publication.versions,
+                                publication.calculatedChanges,
+                                publication.message,
+                                publication.cause,
+                            )
+                        }
                     }
                 )
+            } catch (exception: DataIntegrityViolationException) {
+                enrichDuplicateNameExceptionOrRethrow(publications.map { it.branch }.distinct(), exception)
+            }
+        results.forEach { result ->
             result.publicationId?.let { publicationGeometryChangeRemarksUpdateService.processPublication(it) }
-            return result
-        } catch (exception: DataIntegrityViolationException) {
-            enrichDuplicateNameExceptionOrRethrow(branch, exception)
         }
+        return results
+    }
+
+    private fun getInheritedDesignPublicationsFromMainPublication(
+        versions: ValidationVersions,
+        request: PublicationRequest,
+    ): List<PreparedPublicationRequest> =
+        layoutDesignDao.list().mapNotNull { design ->
+            val inheritorBranch = DesignBranch.of(design.id as IntId)
+            val changesInheritedToDesign =
+                calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
+                    inheritorBranch,
+                    versions.trackNumbers,
+                    versions.referenceLines,
+                    versions.locationTracks,
+                    versions.switches,
+                    versions.kmPosts,
+                )
+
+            if (changesInheritedToDesign.isEmpty()) null
+            else
+                PreparedPublicationRequest(
+                    inheritorBranch,
+                    versions = getInheritedChangeVersions(inheritorBranch, changesInheritedToDesign),
+                    CalculatedChanges.onlyIndirect(changesInheritedToDesign),
+                    request.message,
+                    PublicationCause.CALCULATED_CHANGE,
+                )
+        }
+
+    private fun getInheritedChangeVersions(
+        inheritorBranch: DesignBranch,
+        changes: IndirectChanges,
+    ): ValidationVersions =
+        ValidationVersions(
+            ValidateTransition(InheritanceFromPublicationInMain(inheritorBranch)),
+            trackNumbers =
+                trackNumberDao
+                    .getMany(inheritorBranch.official, changes.trackNumberChanges.map { it.trackNumberId })
+                    .map { requireNotNull(it.version) },
+            referenceLines = listOf(),
+            locationTracks =
+                locationTrackDao
+                    .getMany(inheritorBranch.official, changes.locationTrackChanges.map { it.locationTrackId })
+                    .map { requireNotNull(it.version) },
+            switches =
+                switchDao.getMany(inheritorBranch.official, changes.switchChanges.map { it.switchId }).map {
+                    requireNotNull(it.version)
+                },
+            kmPosts = listOf(),
+            splits = listOf(),
+        )
+
+    fun getInheritedCalculatedChangeIds(versions: ValidationVersions): PublicationRequestIds {
+        val indirectChanges = calculatedChangesService.getCalculatedChanges(versions).indirectChanges
+        return PublicationRequestIds(
+            trackNumbers = indirectChanges.trackNumberChanges.map { it.trackNumberId },
+            referenceLines = listOf(),
+            locationTracks = indirectChanges.locationTrackChanges.map { it.locationTrackId },
+            switches = indirectChanges.switchChanges.map { it.switchId },
+            kmPosts = listOf(),
+        )
     }
 
     @Transactional
@@ -246,7 +346,7 @@ constructor(
                 request.kmPosts.forEach { id -> kmPostService.mergeToMainBranch(fromBranch, id) }
             }
         } catch (exception: DataIntegrityViolationException) {
-            enrichDuplicateNameExceptionOrRethrow(fromBranch, exception)
+            enrichDuplicateNameExceptionOrRethrow(listOf(fromBranch), exception)
         }
 
         return PublicationResult(
@@ -291,7 +391,7 @@ constructor(
     }
 
     private fun enrichDuplicateNameExceptionOrRethrow(
-        branch: LayoutBranch,
+        possibleBranches: List<LayoutBranch>,
         exception: DataIntegrityViolationException,
     ): Nothing {
         val cause = exception.cause
@@ -306,14 +406,14 @@ constructor(
             "track_number_number_layout_context_unique" ->
                 maybeThrowDuplicateTrackNumberNumberException(detail, exception)
             "location_track_unique_official_name" ->
-                maybeThrowDuplicateLocationTrackNameException(branch, detail, exception)
+                maybeThrowDuplicateLocationTrackNameException(possibleBranches, detail, exception)
         }
         throw exception
     }
 
     private val duplicateLocationTrackErrorRegex =
         Regex(
-            """Key \(track_number_id, name, layout_context_id\)=\((\d+), ([^,]+), [^)]+\) conflicts with existing key"""
+            """Key \(track_number_id, name, layout_context_id\)=\((\d+), ([^,]+), ([^)]+)\) conflicts with existing key"""
         )
     private val duplicateTrackNumberErrorRegex =
         Regex("""Key \(number, layout_context_id\)=\(([^,]+), [^)]+\) already exists""")
@@ -321,16 +421,21 @@ constructor(
         Regex("""Key \(name, layout_context_id\)=\(([^,]+), [^)]+\) conflicts with existing key""")
 
     private fun maybeThrowDuplicateLocationTrackNameException(
-        branch: LayoutBranch,
+        possibleBranches: List<LayoutBranch>,
         detail: String,
         exception: DataIntegrityViolationException,
     ) {
         duplicateLocationTrackErrorRegex.matchAt(detail, 0)?.let { match ->
             val trackIdString = match.groups[1]?.value
             val nameString = match.groups[2]?.value
+            val layoutContextIdString = match.groups[3]?.value
             val trackId = IntId<TrackLayoutTrackNumber>(Integer.parseInt(trackIdString))
-            if (trackIdString != null && nameString != null) {
-                val trackNumberVersion = trackNumberDao.fetchVersion(branch.official, trackId)
+            if (trackIdString != null && nameString != null && layoutContextIdString != null) {
+                val branch =
+                    requireNotNull(
+                        possibleBranches.map { it.official }.find { it.toSqlString() == layoutContextIdString }
+                    )
+                val trackNumberVersion = trackNumberDao.fetchVersion(branch, trackId)
                 if (trackNumberVersion != null) {
                     val trackNumber = trackNumberDao.fetch(trackNumberVersion)
                     throw DuplicateLocationTrackNameInPublicationException(
