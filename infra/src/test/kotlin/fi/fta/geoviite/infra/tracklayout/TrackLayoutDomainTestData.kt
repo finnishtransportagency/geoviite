@@ -39,6 +39,7 @@ import fi.fta.geoviite.infra.math.Point3DZ
 import fi.fta.geoviite.infra.math.Point4DZM
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.publication.PublishedVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchElementCurve
 import fi.fta.geoviite.infra.switchLibrary.SwitchElementLine
@@ -1147,3 +1148,11 @@ fun geocodingContextCacheKey(
         referenceLineVersion = referenceLineVersion,
         kmPostVersions = kmPostVersions.toList().sortedBy { rv -> rv.id.intValue },
     )
+
+fun publishedVersions(
+    trackNumbers: List<LayoutRowVersion<TrackLayoutTrackNumber>> = listOf(),
+    referenceLines: List<LayoutRowVersion<ReferenceLine>> = listOf(),
+    locationTracks: List<LayoutRowVersion<LocationTrack>> = listOf(),
+    switches: List<LayoutRowVersion<TrackLayoutSwitch>> = listOf(),
+    kmPosts: List<LayoutRowVersion<TrackLayoutKmPost>> = listOf(),
+) = PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts)

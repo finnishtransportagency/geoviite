@@ -127,7 +127,13 @@ constructor(
             val versions = publicationService.getValidationVersions(branch, request.content)
             publicationValidationService.validatePublicationRequest(versions)
             val calculatedChanges = publicationService.getCalculatedChanges(versions)
-            publicationService.publishChanges(branch, versions, calculatedChanges, request.message)
+            publicationService.publishChanges(
+                branch,
+                versions,
+                calculatedChanges,
+                request.message,
+                PublicationCause.MANUAL,
+            )
         }
             ?: throw PublicationFailureException(
                 message = "Could not reserve publication lock",

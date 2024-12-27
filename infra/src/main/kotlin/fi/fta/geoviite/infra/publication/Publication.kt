@@ -74,8 +74,29 @@ open class Publication(
     open val publicationTime: Instant,
     open val publicationUser: UserName,
     open val message: FreeTextWithNewLines,
-    open val layoutBranch: LayoutBranch,
+    open val layoutBranch: PublishedInBranch,
+    open val cause: PublicationCause,
 )
+
+sealed class PublishedInBranch {
+    abstract val branch: LayoutBranch
+}
+
+data object PublishedInMain : PublishedInBranch() {
+    override val branch = LayoutBranch.main
+}
+
+data class PublishedInDesign(val designBranch: DesignBranch, val designVersion: Int) : PublishedInBranch() {
+    override val branch = designBranch
+}
+
+enum class PublicationCause {
+    MANUAL, // the usual cause: All user-created publications
+    LAYOUT_DESIGN_CHANGE,
+    LAYOUT_DESIGN_CANCELLATION,
+    MERGE_FINALIZATION,
+    CALCULATED_CHANGE,
+}
 
 data class PublishedItemListing<T>(val directChanges: List<T>, val indirectChanges: List<T>)
 
@@ -143,7 +164,8 @@ data class PublicationDetails(
     override val publicationTime: Instant,
     override val publicationUser: UserName,
     override val message: FreeTextWithNewLines,
-    override val layoutBranch: LayoutBranch,
+    override val layoutBranch: PublishedInBranch,
+    override val cause: PublicationCause,
     val trackNumbers: List<PublishedTrackNumber>,
     val referenceLines: List<PublishedReferenceLine>,
     val locationTracks: List<PublishedLocationTrack>,
@@ -153,7 +175,7 @@ data class PublicationDetails(
     val ratkoPushTime: Instant?,
     val indirectChanges: PublishedIndirectChanges,
     val split: SplitHeader?,
-) : Publication(id, publicationTime, publicationUser, message, layoutBranch) {
+) : Publication(id, publicationTime, publicationUser, message, layoutBranch, cause) {
     val allPublishedTrackNumbers = trackNumbers + indirectChanges.trackNumbers
     val allPublishedLocationTracks = locationTracks + indirectChanges.locationTracks
     val allPublishedSwitches = switches + indirectChanges.switches
@@ -241,6 +263,11 @@ data class ValidationVersions(
     val kmPosts: List<LayoutRowVersion<TrackLayoutKmPost>>,
     val splits: List<RowVersion<Split>>,
 ) {
+    companion object {
+        fun emptyWithTarget(target: ValidationTarget) =
+            ValidationVersions(target, listOf(), listOf(), listOf(), listOf(), listOf(), listOf())
+    }
+
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.id == id }
 
     fun containsKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.id == id }
@@ -611,3 +638,11 @@ fun draftTransitionOrOfficialState(publicationState: PublicationState, branch: L
     } else {
         ValidateContext(LayoutContext.of(branch, publicationState))
     }
+
+data class PublishedVersions(
+    val trackNumbers: List<LayoutRowVersion<TrackLayoutTrackNumber>>,
+    val referenceLines: List<LayoutRowVersion<ReferenceLine>>,
+    val locationTracks: List<LayoutRowVersion<LocationTrack>>,
+    val switches: List<LayoutRowVersion<TrackLayoutSwitch>>,
+    val kmPosts: List<LayoutRowVersion<TrackLayoutKmPost>>,
+)
