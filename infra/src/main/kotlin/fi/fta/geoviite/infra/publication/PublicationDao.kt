@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -1478,23 +1478,22 @@ class PublicationDao(
                   track_number_version,
                   direct_change
                 ) 
-                select publication.id,
-                       layout.layout_context_id(publication.design_id, false),
+                values (:publication_id,
+                       :track_number_layout_context_id,
                        :track_number_id,
                        :start_changed,
                        :end_changed,
                        :track_number_version,
-                       true
-                from publication.publication
-                where publication.id = :publication_id
+                       true)
             """
                 .trimMargin(),
             directChanges
                 .map { change ->
+                    val rowVersion = requireNotNull(publishedVersions.find { it.id == change.trackNumberId })
                     trackNumberChangeFields(publicationId, change) +
                         mapOf(
-                            "track_number_version" to
-                                requireNotNull(publishedVersions.find { it.id == change.trackNumberId }).version
+                            "track_number_version" to rowVersion.version,
+                            "track_number_layout_context_id" to rowVersion.context.toSqlString(),
                         )
                 }
                 .toTypedArray(),
@@ -1562,20 +1561,20 @@ class PublicationDao(
         jdbcTemplate.batchUpdate(
             """
                 insert into publication.km_post (publication_id, layout_context_id, km_post_id, km_post_version)
-                select publication.id,
-                       layout.layout_context_id(publication.design_id, false),
+                values (:publication_id,
+                       :km_post_layout_context_id,
                        :km_post_id,
-                       :km_post_version
-                from publication.publication
-                where publication.id = :publication_id
+                       :km_post_version)
             """
                 .trimMargin(),
             kmPostIds
                 .map { id ->
+                    val rowVersion = requireNotNull(publishedVersions.find { it.id == id })
                     mapOf(
                         "publication_id" to publicationId.intValue,
                         "km_post_id" to id.intValue,
-                        "km_post_version" to requireNotNull(publishedVersions.find { it.id == id }).version,
+                        "km_post_version" to rowVersion.version,
+                        "km_post_layout_context_id" to rowVersion.context.toSqlString(),
                     )
                 }
                 .toTypedArray(),
@@ -1590,20 +1589,20 @@ class PublicationDao(
         jdbcTemplate.batchUpdate(
             """
                 insert into publication.reference_line (publication_id, layout_context_id, reference_line_id, reference_line_version)
-                select publication.id,
-                       layout.layout_context_id(publication.design_id, false),
+                values (:publication_id,
+                       :reference_line_layout_context_id,
                        :reference_line_id,
-                       :reference_line_version
-                from publication.publication
-                where publication.id = :publication_id
+                       :reference_line_version)
             """
                 .trimMargin(),
             referenceLineIds
                 .map { id ->
+                    val rowVersion = requireNotNull(publishedVersions.find { it.id == id })
                     mapOf(
                         "publication_id" to publicationId.intValue,
                         "reference_line_id" to id.intValue,
-                        "reference_line_version" to requireNotNull(publishedVersions.find { it.id == id }).version,
+                        "reference_line_version" to rowVersion.version,
+                        "reference_line_layout_context_id" to rowVersion.context.toSqlString(),
                     )
                 }
                 .toTypedArray(),
@@ -1628,24 +1627,23 @@ class PublicationDao(
                   direct_change,
                   geometry_change_summary_computed
                 )
-                select publication.id,
-                       layout.layout_context_id(publication.design_id, false),
+                values (:publication_id,
+                       :location_track_layout_context_id,
                        :location_track_id,
                        :start_changed,
                        :end_changed,
                        :location_track_version,
                        true,
-                       false
-                from publication.publication
-                where publication.id = :publication_id
+                       false)
             """
                 .trimMargin(),
             directChanges
                 .map { change ->
+                    val rowVersion = requireNotNull(publishedVersions.find { it.id == change.locationTrackId })
                     locationTrackChangeFields(publicationId, change) +
                         mapOf(
-                            "location_track_version" to
-                                requireNotNull(publishedVersions.find { it.id == change.locationTrackId }).version
+                            "location_track_version" to rowVersion.version,
+                            "location_track_layout_context_id" to rowVersion.context.toSqlString(),
                         )
                 }
                 .toTypedArray(),
@@ -1716,17 +1714,17 @@ class PublicationDao(
         jdbcTemplate.batchUpdate(
             """
                 insert into publication.switch (publication_id, layout_context_id, switch_id, switch_version, direct_change) 
-                select publication.id, layout.layout_context_id(publication.design_id, false), :switch_id, :switch_version, true
-                from publication.publication
-                where publication.id = :publication_id
+                values (:publication_id, :switch_layout_context_id, :switch_id, :switch_version, true)
             """
                 .trimMargin(),
             directChanges
                 .map { change ->
+                    val rowVersion = requireNotNull(publishedVersions.find { it.id == change.switchId })
                     mapOf(
                         "publication_id" to publicationId.intValue,
                         "switch_id" to change.switchId.intValue,
-                        "switch_version" to requireNotNull(publishedVersions.find { it.id == change.switchId }).version,
+                        "switch_version" to rowVersion.version,
+                        "switch_layout_context_id" to rowVersion.context.toSqlString(),
                     )
                 }
                 .toTypedArray(),
