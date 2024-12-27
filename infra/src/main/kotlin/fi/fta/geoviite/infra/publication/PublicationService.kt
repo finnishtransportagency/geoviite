@@ -233,7 +233,7 @@ constructor(
         val mainPublication =
             PreparedPublicationRequest(branch, versions, calculatedChanges, request.message, PublicationCause.MANUAL)
         // publication results already only include direct changes, and all inherited changes are
-        // indirect, so we can throw them out
+        // indirect, so all but the first publication result are empty -> can be thrown out
         return publishPublicationRequests(listOf(mainPublication) + inheritedPublications).first()
     }
 
