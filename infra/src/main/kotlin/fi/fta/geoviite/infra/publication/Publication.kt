@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geometry.MetaDataName
+import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.localization.LocalizationKey
@@ -304,6 +305,10 @@ data class PublicationRequestIds(
     val switches: List<IntId<TrackLayoutSwitch>>,
     val kmPosts: List<IntId<TrackLayoutKmPost>>,
 ) {
+    companion object {
+        fun empty(): PublicationRequestIds = PublicationRequestIds(listOf(), listOf(), listOf(), listOf(), listOf())
+    }
+
     operator fun minus(other: PublicationRequestIds) =
         PublicationRequestIds(
             trackNumbers - other.trackNumbers.toSet(),
@@ -311,6 +316,15 @@ data class PublicationRequestIds(
             referenceLines - other.referenceLines.toSet(),
             switches - other.switches.toSet(),
             kmPosts - other.kmPosts.toSet(),
+        )
+
+    operator fun plus(other: PublicationRequestIds) =
+        PublicationRequestIds(
+            (trackNumbers.toSet() + other.trackNumbers).toList(),
+            (locationTracks.toSet() + other.locationTracks).toList(),
+            (referenceLines.toSet() + other.referenceLines).toList(),
+            (switches.toSet() + other.switches).toList(),
+            (kmPosts.toSet() + other.kmPosts).toList(),
         )
 }
 
@@ -585,6 +599,12 @@ data class MergeFromDesign(override val candidateBranch: DesignBranch) : LayoutC
     override val basePublicationState = PublicationState.DRAFT
 }
 
+data class InheritanceFromPublicationInMain(override val baseBranch: DesignBranch) : LayoutContextTransition() {
+    override val candidateBranch = MainBranch.instance
+    override val candidatePublicationState = PublicationState.DRAFT
+    override val basePublicationState = PublicationState.OFFICIAL
+}
+
 enum class ValidationTargetType {
     PUBLISHING,
     MERGING_TO_MAIN,
@@ -645,4 +665,12 @@ data class PublishedVersions(
     val locationTracks: List<LayoutRowVersion<LocationTrack>>,
     val switches: List<LayoutRowVersion<TrackLayoutSwitch>>,
     val kmPosts: List<LayoutRowVersion<TrackLayoutKmPost>>,
+)
+
+data class PreparedPublicationRequest(
+    val branch: LayoutBranch,
+    val versions: ValidationVersions,
+    val calculatedChanges: CalculatedChanges,
+    val message: FreeTextWithNewLines,
+    val cause: PublicationCause,
 )

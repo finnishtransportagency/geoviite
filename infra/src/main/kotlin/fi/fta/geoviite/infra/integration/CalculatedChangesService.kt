@@ -2,8 +2,10 @@ package fi.fta.geoviite.infra.integration
 
 import ChangeContext
 import LazyMap
+import com.fasterxml.jackson.annotation.JsonIgnore
 import createTypedContext
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
@@ -15,12 +17,17 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.InheritanceFromPublicationInMain
+import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
@@ -39,6 +46,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.time.Instant
+import org.springframework.transaction.annotation.Transactional
 
 data class TrackNumberChange(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
@@ -89,15 +97,22 @@ data class IndirectChanges(
     val trackNumberChanges: List<TrackNumberChange>,
     val locationTrackChanges: List<LocationTrackChange>,
     val switchChanges: List<SwitchChange>,
-)
+) {
+    companion object {
+        fun empty(): IndirectChanges = IndirectChanges(listOf(), listOf(), listOf())
+    }
+
+    @JsonIgnore
+    fun isEmpty(): Boolean = trackNumberChanges.isEmpty() && locationTrackChanges.isEmpty() && switchChanges.isEmpty()
+}
 
 data class CalculatedChanges(val directChanges: DirectChanges, val indirectChanges: IndirectChanges) {
     companion object {
         fun empty() =
-            CalculatedChanges(
-                DirectChanges(listOf(), listOf(), listOf(), listOf(), listOf()),
-                IndirectChanges(listOf(), listOf(), listOf()),
-            )
+            CalculatedChanges(DirectChanges(listOf(), listOf(), listOf(), listOf(), listOf()), IndirectChanges.empty())
+
+        fun onlyIndirect(indirectChanges: IndirectChanges) =
+            CalculatedChanges(DirectChanges(listOf(), listOf(), listOf(), listOf(), listOf()), indirectChanges)
     }
 
     init {
@@ -156,10 +171,9 @@ class CalculatedChangesService(
     val geocodingService: GeocodingService,
     val alignmentDao: LayoutAlignmentDao,
 ) {
-
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges {
         val changeContext = createChangeContext(versions)
-        val extIds = getAllOids(versions.target.candidateBranch)
+        val extIds = getAllOids(versions.target.baseBranch)
 
         val (trackNumberChanges, changedLocationTrackIdsByTrackNumbers) =
             calculateTrackNumberChanges(versions.trackNumbers.map { it.id }, changeContext)
@@ -223,6 +237,34 @@ class CalculatedChangesService(
                     trackNumberChanges = indirectTrackNumberChanges,
                 ),
         )
+    }
+
+    @Transactional(readOnly = true)
+    fun getCalculatedChangesForMainToDesignInheritance(
+        branch: DesignBranch,
+        trackNumbers: List<LayoutRowVersion<TrackLayoutTrackNumber>>,
+        referenceLines: List<LayoutRowVersion<ReferenceLine>>,
+        locationTracks: List<LayoutRowVersion<LocationTrack>>,
+        switches: List<LayoutRowVersion<TrackLayoutSwitch>>,
+        kmPosts: List<LayoutRowVersion<TrackLayoutKmPost>>,
+    ): IndirectChanges {
+        val allOids = getAllOids(branch)
+        return if (allOids.isEmpty()) IndirectChanges.empty()
+        else {
+            val validationVersions =
+                ValidationVersions(
+                    ValidateTransition(InheritanceFromPublicationInMain(branch)),
+                    trackNumbers = getNonOverriddenVersions(branch, trackNumbers, trackNumberDao),
+                    referenceLines = getNonOverriddenVersions(branch, referenceLines, referenceLineDao),
+                    locationTracks = getNonOverriddenVersions(branch, locationTracks, locationTrackDao),
+                    switches = getNonOverriddenVersions(branch, switches, switchDao),
+                    kmPosts = getNonOverriddenVersions(branch, kmPosts, kmPostDao),
+                    splits = listOf(),
+                )
+            getCalculatedChanges(validationVersions).indirectChanges.let {
+                filterIndirectChangesByOidPresence(it, allOids)
+            }
+        }
     }
 
     fun getAllSwitchChangesByLocationTrackAtMoment(
@@ -500,7 +542,23 @@ class CalculatedChangesService(
         )
 
     fun getAllOids(layoutBranch: LayoutBranch) =
-        AllOids(trackNumberDao.fetchExternalIds(layoutBranch), locationTrackDao.fetchExternalIds(layoutBranch))
+        AllOids(
+            trackNumberDao.fetchExternalIds(layoutBranch),
+            locationTrackDao.fetchExternalIds(layoutBranch),
+            switchDao.fetchExternalIds(layoutBranch),
+        )
+
+    private fun <T : LayoutAsset<T>> getNonOverriddenVersions(
+        branch: DesignBranch,
+        versions: List<LayoutRowVersion<T>>,
+        dao: LayoutAssetDao<T>,
+    ): List<LayoutRowVersion<T>> {
+        val overriddenIds =
+            dao.getMany(branch.official, versions.map { asset -> asset.id })
+                .mapNotNull { asset -> asset.takeIf { it.layoutContext.branch == branch }?.id as? IntId }
+                .toSet()
+        return versions.filter { version -> !overriddenIds.contains(version.id) }
+    }
 }
 
 private fun asDirectSwitchChanges(switchIds: Collection<IntId<TrackLayoutSwitch>>) =
@@ -666,4 +724,18 @@ private fun findSwitchJointDifferences(
 data class AllOids(
     val trackNumbers: Map<IntId<TrackLayoutTrackNumber>, Oid<TrackLayoutTrackNumber>>,
     val locationTracks: Map<IntId<LocationTrack>, Oid<LocationTrack>>,
-)
+    val switches: Map<IntId<TrackLayoutSwitch>, Oid<TrackLayoutSwitch>>,
+) {
+    fun isEmpty() = trackNumbers.isEmpty() && locationTracks.isEmpty() && switches.isEmpty()
+}
+
+private fun filterIndirectChangesByOidPresence(indirectChanges: IndirectChanges, oids: AllOids) =
+    IndirectChanges(
+        trackNumberChanges =
+            indirectChanges.trackNumberChanges.filter { change -> oids.trackNumbers.containsKey(change.trackNumberId) },
+        locationTrackChanges =
+            indirectChanges.locationTrackChanges.filter { change ->
+                oids.locationTracks.containsKey(change.locationTrackId)
+            },
+        switchChanges = indirectChanges.switchChanges.filter { change -> oids.switches.containsKey(change.switchId) },
+    )
