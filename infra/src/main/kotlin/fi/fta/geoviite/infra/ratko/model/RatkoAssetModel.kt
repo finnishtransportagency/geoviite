@@ -14,6 +14,8 @@ abstract class RatkoAsset(
     open val rowMetadata: RatkoMetadata,
     open val locations: List<RatkoAssetLocation>?,
     val type: RatkoAssetType,
+    open val isPlanContext: Boolean,
+    open val planItemIds: List<Int>?,
 ) {
     abstract fun withoutGeometries(): RatkoAsset
 }
@@ -22,6 +24,8 @@ data class RatkoMetadataAsset(
     override val properties: Collection<RatkoAssetProperty>,
     override val rowMetadata: RatkoMetadata = RatkoMetadata(),
     override val locations: List<RatkoAssetLocation>,
+    override val isPlanContext: Boolean,
+    override val planItemIds: List<Int>?,
 ) :
     RatkoAsset(
         state = RatkoAssetState.IN_USE,
@@ -29,6 +33,8 @@ data class RatkoMetadataAsset(
         rowMetadata = rowMetadata,
         properties = properties,
         locations = locations,
+        isPlanContext = isPlanContext,
+        planItemIds = planItemIds,
     ) {
     override fun withoutGeometries() = this.copy(locations = locations.map { it.withoutGeometries() })
 }
@@ -42,6 +48,8 @@ constructor(
     override val rowMetadata: RatkoMetadata = RatkoMetadata(),
     override val locations: List<RatkoAssetLocation>?,
     val assetGeoms: Collection<RatkoAssetGeometry>?,
+    override val isPlanContext: Boolean,
+    override val planItemIds: List<Int>?,
 ) :
     RatkoAsset(
         state = state,
@@ -49,6 +57,8 @@ constructor(
         rowMetadata = rowMetadata,
         properties = properties,
         locations = locations,
+        isPlanContext = isPlanContext,
+        planItemIds = planItemIds,
     ) {
     override fun withoutGeometries() = this.copy(locations = locations?.map { it.withoutGeometries() })
 }

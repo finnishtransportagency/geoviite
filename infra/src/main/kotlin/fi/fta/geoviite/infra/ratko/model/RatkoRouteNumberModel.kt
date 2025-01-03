@@ -11,6 +11,8 @@ data class RatkoRouteNumber(
     val description: String,
     val state: RatkoRouteNumberState,
     val rowMetadata: RatkoMetadata = RatkoMetadata(),
+    val isPlanContext: Boolean,
+    val planItemIds: List<Int>?,
 )
 
 data class RatkoRouteNumberState(val name: RatkoRouteNumberStateType)

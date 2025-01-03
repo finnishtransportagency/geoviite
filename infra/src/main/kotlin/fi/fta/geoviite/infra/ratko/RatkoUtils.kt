@@ -1,17 +1,46 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.common.DesignBranch
+import fi.fta.geoviite.infra.common.DesignRatkoExternalId
+import fi.fta.geoviite.infra.common.FullRatkoExternalId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
+import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.switchLibrary.SwitchNationality
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+
+fun <T : LayoutAsset<T>> getOrCreateFullExternalId(
+    branch: PushableLayoutBranch,
+    id: IntId<T>,
+    ratkoClient: RatkoClient,
+    fetchSavedExternalId: (branch: LayoutBranch, id: IntId<T>) -> RatkoExternalId<T>?,
+    insertPlanItemId: (id: IntId<T>, branch: DesignBranch, planItemId: RatkoPlanItemId) -> Unit,
+): FullRatkoExternalId<T>? =
+    fetchSavedExternalId(branch.branch, id)?.let { saved ->
+        when (branch) {
+            is PushableMainBranch -> MainBranchRatkoExternalId(saved.oid)
+            is PushableDesignBranch ->
+                DesignRatkoExternalId(
+                    saved.oid,
+                    saved.planItemId
+                        ?: ratkoClient
+                            .createPlanItem(branch.planId, fetchSavedExternalId(LayoutBranch.main, id)?.oid)
+                            .also { planItemId -> insertPlanItemId(id, branch.branch, planItemId) },
+                )
+        }
+    }
 
 fun getEndPointNodeCollection(
     alignmentAddresses: AlignmentAddresses,

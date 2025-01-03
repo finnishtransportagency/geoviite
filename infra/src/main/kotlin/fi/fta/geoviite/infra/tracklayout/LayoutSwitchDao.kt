@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -13,6 +14,7 @@ import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -636,6 +638,12 @@ class LayoutSwitchDao(
                 rs.getIntId<LayoutSwitch>("switch_id")
             }
             .also { results -> logger.daoAccess(FETCH, "Switches near alignment", results) }
+    }
+
+    @Transactional
+    fun savePlanItemId(id: IntId<LayoutSwitch>, branch: DesignBranch, planItemId: RatkoPlanItemId) {
+        jdbcTemplate.setUser()
+        savePlanItemIdInExistingTransaction(branch, id, planItemId)
     }
 
     @Transactional

@@ -12,6 +12,10 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+
+private val ratkoDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
 fun mapToRatkoLocationTrackState(layoutState: LocationTrackState) =
     when (layoutState) {
@@ -156,7 +160,7 @@ fun mapJointNumberToGeometryType(number: JointNumber, baseType: SwitchBaseType):
 
 fun convertToRatkoLocationTrack(
     locationTrack: LocationTrack,
-    locationTrackOid: Oid<LocationTrack>?,
+    locationTrackExternalId: FullRatkoExternalId<LocationTrack>?,
     trackNumberOid: Oid<LayoutTrackNumber>?,
     nodeCollection: RatkoNodes? = null,
     duplicateOfOid: Oid<LocationTrack>?,
@@ -164,7 +168,7 @@ fun convertToRatkoLocationTrack(
     owner: LocationTrackOwner,
 ) =
     RatkoLocationTrack(
-        id = locationTrackOid?.toString(),
+        id = locationTrackExternalId?.oid?.toString(),
         name = locationTrack.name.toString(),
         routenumber = trackNumberOid?.let(::RatkoOid),
         description = descriptionGetter(locationTrack).toString(),
@@ -174,19 +178,23 @@ fun convertToRatkoLocationTrack(
         duplicateOf = duplicateOfOid?.toString(),
         topologicalConnectivity = mapToRatkoTopologicalConnectivityType(locationTrack.topologicalConnectivity),
         owner = owner.name.toString(),
+        isPlanContext = locationTrackExternalId is DesignRatkoExternalId,
+        planItemIds = asPlanItemIdsList(locationTrackExternalId),
     )
 
 fun convertToRatkoRouteNumber(
     trackNumber: LayoutTrackNumber,
-    trackNumberOid: Oid<LayoutTrackNumber>?,
+    trackNumberExternalId: FullRatkoExternalId<LayoutTrackNumber>?,
     nodeCollection: RatkoNodes? = null,
 ) =
     RatkoRouteNumber(
-        id = trackNumberOid?.toString(),
+        id = trackNumberExternalId?.oid?.toString(),
         name = trackNumber.number.toString(),
         description = trackNumber.description.toString(),
         state = mapToRatkoRouteNumberState(trackNumber.state),
         nodecollection = nodeCollection,
+        isPlanContext = trackNumberExternalId is DesignRatkoExternalId,
+        planItemIds = asPlanItemIdsList(trackNumberExternalId),
     )
 
 fun convertToRatkoPoint(point: AddressPoint, state: RatkoPointStates = RatkoPointStates.VALID) =
@@ -214,7 +222,7 @@ fun convertToRatkoNode(
 
 fun convertToRatkoMetadataAsset(
     trackNumberOid: Oid<LayoutTrackNumber>,
-    locationTrackOid: Oid<LocationTrack>,
+    locationTrackExternalId: FullRatkoExternalId<LocationTrack>,
     segmentMetadata: LayoutSegmentMetadata,
     startTrackMeter: TrackMeter,
     endTrackMeter: TrackMeter,
@@ -249,7 +257,7 @@ fun convertToRatkoMetadataAsset(
                                         point =
                                             RatkoPoint(
                                                 kmM = RatkoTrackMeter(startTrackMeter),
-                                                locationtrack = RatkoOid(locationTrackOid),
+                                                locationtrack = RatkoOid(requireNotNull(locationTrackExternalId.oid)),
                                                 routenumber = RatkoOid(trackNumberOid),
                                                 geometry = RatkoGeometry(segmentMetadata.startPoint),
                                                 state = RatkoPointState(RatkoPointStates.VALID),
@@ -261,7 +269,7 @@ fun convertToRatkoMetadataAsset(
                                         point =
                                             RatkoPoint(
                                                 kmM = RatkoTrackMeter(endTrackMeter),
-                                                locationtrack = RatkoOid(locationTrackOid),
+                                                locationtrack = RatkoOid(locationTrackExternalId.oid),
                                                 routenumber = RatkoOid(trackNumberOid),
                                                 geometry = RatkoGeometry(segmentMetadata.endPoint),
                                                 state = RatkoPointState(RatkoPointStates.VALID),
@@ -272,17 +280,19 @@ fun convertToRatkoMetadataAsset(
                         ),
                 )
             ),
+        isPlanContext = locationTrackExternalId is DesignRatkoExternalId,
+        planItemIds = asPlanItemIdsList(locationTrackExternalId),
     )
 
 fun convertToRatkoSwitch(
     layoutSwitch: LayoutSwitch,
-    layoutSwitchOid: Oid<LayoutSwitch>?,
+    layoutSwitchExternalId: FullRatkoExternalId<LayoutSwitch>?,
     switchStructure: SwitchStructure,
     switchOwner: SwitchOwner?,
     existingRatkoSwitch: RatkoSwitchAsset? = null,
 ) =
     RatkoSwitchAsset(
-        id = layoutSwitchOid?.toString(),
+        id = layoutSwitchExternalId?.oid?.toString(),
         state = mapToRatkoSwitchState(layoutSwitch.stateCategory, existingRatkoSwitch?.state),
         properties =
             listOf(
@@ -308,6 +318,8 @@ fun convertToRatkoSwitch(
             ),
         locations = null,
         assetGeoms = null,
+        isPlanContext = layoutSwitchExternalId is DesignRatkoExternalId,
+        planItemIds = asPlanItemIdsList(layoutSwitchExternalId),
     )
 
 fun convertToRatkoAssetLocations(
@@ -352,3 +364,23 @@ fun convertToRatkoAssetLocations(
             )
         }
 }
+
+fun asPlanItemIdsList(extId: FullRatkoExternalId<*>?): List<Int>? =
+    (extId as? DesignRatkoExternalId)?.let { listOf(it.planItemId.id) }
+
+fun newRatkoPlan(design: LayoutDesign): RatkoPlan =
+    RatkoPlan(
+        id = null,
+        name = design.name.toString(),
+        estimatedCompletion =
+            design.estimatedCompletion.atTime(12, 0, 0).atOffset(ZoneOffset.of("Z")).format(ratkoDateFormatter),
+        phase = RatkoPlanPhase.RAILWAY_PLAN,
+        state =
+            when (design.designState) {
+                DesignState.ACTIVE -> RatkoPlanState.OPEN
+                DesignState.DELETED -> RatkoPlanState.CANCELLED
+                DesignState.COMPLETED -> RatkoPlanState.COMPLETED
+            },
+    )
+
+fun existingRatkoPlan(design: LayoutDesign, id: RatkoPlanId): RatkoPlan = newRatkoPlan(design).copy(id = id.id)

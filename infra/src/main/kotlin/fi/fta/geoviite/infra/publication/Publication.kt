@@ -674,3 +674,5 @@ data class PreparedPublicationRequest(
     val message: FreeTextWithNewLines,
     val cause: PublicationCause,
 )
+
+data class RatkoPlanItemId(val id: Int)

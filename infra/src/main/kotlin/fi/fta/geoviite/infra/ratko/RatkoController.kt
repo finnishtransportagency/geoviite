@@ -38,8 +38,7 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/push-designs")
     fun pushDesignChangesToRatko() {
-        // TODO implement
-        throw NotImplementedError("Not implemented")
+        ratkoService.pushDesignChangesToRatko()
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

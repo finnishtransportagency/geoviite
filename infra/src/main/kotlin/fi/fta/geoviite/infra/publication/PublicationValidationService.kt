@@ -202,7 +202,7 @@ constructor(
             ValidationVersions(target, trackNumbers, locationTracks, referenceLines, switches, kmPosts, emptyList())
         )
 
-    private fun createValidationContext(publicationSet: ValidationVersions): ValidationContext =
+    fun createValidationContext(publicationSet: ValidationVersions): ValidationContext =
         ValidationContext(
             trackNumberDao = trackNumberDao,
             referenceLineDao = referenceLineDao,
