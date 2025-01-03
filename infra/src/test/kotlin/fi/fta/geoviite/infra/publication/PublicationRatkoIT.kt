@@ -151,6 +151,7 @@ constructor(
         fakeRatko.acceptsNewSwitchGivingItOid("2.3.3.4.6")
         fakeRatko.acceptsNewLocationTrackGivingItOid("3.3.3.4.5")
         fakeRatko.acceptsNewLocationTrackGivingItOid("3.3.3.4.6")
+        fakeRatko.acceptsNewDesignGivingItId(1)
         publicationService.publishManualPublication(
             someDesign,
             PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), FreeTextWithNewLines.of("aoeu")),

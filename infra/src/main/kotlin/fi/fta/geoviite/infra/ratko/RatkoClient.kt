@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
+import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoPointStates
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
@@ -61,6 +62,7 @@ private const val ROUTE_NUMBER_PATH = "$INFRA_PATH/routenumbers"
 private const val ASSET_PATH = "/api/assets/v1.2"
 private const val VERSION_PATH = "/api/versions/v1.0/version"
 private const val BULK_TRANSFER_PATH = "/api/split/bulk-transfer"
+private const val PLAN_PATH = "/api/plan/v1.0/plans"
 
 enum class RatkoConnectionStatus {
     ONLINE,
@@ -461,6 +463,17 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
                 bulkTransferState
             }
+    }
+
+    fun createPlan(plan: RatkoPlan): Int? {
+        logger.integrationCall("createPlan", "plan" to plan)
+        return postWithResponseBody<RatkoPlan>(url = PLAN_PATH, plan)?.id
+    }
+
+    fun updatePlan(plan: RatkoPlan) {
+        logger.integrationCall("updatePlan", "plan" to plan)
+        val ratkoId = requireNotNull(plan.id)
+        return putWithoutResponseBody(url = "$PLAN_PATH/$ratkoId", plan)
     }
 
     private fun replaceKmM(nodeCollection: JsonNode?) {

@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalDate
 
 val RATKO_SRID = WGS_84_SRID
 const val GEOVIITE_NAME = "GEOVIITE"
@@ -171,7 +172,21 @@ enum class RatkoAccuracyType(@get:JsonValue val value: String) {
     @Suppress("unused") ESTIMATED_TRACK_ADDRESS("ESTIMATED TRACKADDRESS"),
 }
 
+data class RatkoPlan(
+    val id: Int?,
+    val name: String,
+    val estimatedCompletion: LocalDate,
+    val phase: RatkoPlanPhase,
+    val state: RatkoPlanState,
+)
+
 data class RatkoPlanId(val id: Int)
+
+enum class RatkoPlanPhase {
+    GENERAL_PLAN,
+    RAILWAY_PLAN,
+    RAILWAY_CONSTRUCTION_PLAN,
+}
 
 enum class RatkoPlanState {
     OPEN,

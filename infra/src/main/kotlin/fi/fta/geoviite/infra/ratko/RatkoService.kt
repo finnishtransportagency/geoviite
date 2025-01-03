@@ -1,9 +1,11 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.integration.AllOids
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
@@ -16,16 +18,20 @@ import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.publication.Operation
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationDetails
 import fi.fta.geoviite.infra.publication.PublicationLogService
+import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.publication.PublishedSwitch
+import fi.fta.geoviite.infra.publication.existingRatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -68,6 +74,8 @@ constructor(
     private val lockDao: LockDao,
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
     private val splitService: SplitService,
+    private val publicationDao: PublicationDao,
+    private val layoutDesignDao: LayoutDesignDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(120)
@@ -80,8 +88,6 @@ constructor(
     }
 
     fun pushChangesToRatko(layoutBranch: LayoutBranch) {
-        assertMainBranch(layoutBranch)
-
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
 
             // Kill off any pushes that have been stuck for too long, as it's likely failed and
@@ -272,6 +278,10 @@ constructor(
 
         val lastPublicationTime = publications.maxOf { it.publicationTime }
         try {
+            if (layoutBranch is DesignBranch) {
+                updatePlan(layoutBranch, publications)
+            }
+
             val pushedRouteNumberOids =
                 ratkoRouteNumberService.pushTrackNumberChangesToRatko(
                     layoutBranch,
@@ -418,5 +428,21 @@ constructor(
             operation = Operation.MODIFY,
             changedJoints = switchChange.changedJoints,
         )
+    }
+
+    fun updatePlan(designBranch: DesignBranch, rangePublications: List<PublicationDetails>) {
+        val firstPublicationId = rangePublications.first().id
+        val lastPublicationDesign =
+            requireNotNull(rangePublications.last().layoutBranch as? PublishedInDesign) {
+                "Expected publication ${rangePublications.last().id} to be published in a design"
+            }
+        val lastPublicationDesignVersion = lastPublicationDesign.designVersion
+
+        val previousDesignVersion =
+            publicationDao.getPreviouslyPushedDesignVersion(firstPublicationId, designBranch.designId)
+        if (previousDesignVersion == lastPublicationDesignVersion) return
+
+        val design = layoutDesignDao.fetchVersion(RowVersion(designBranch.designId, lastPublicationDesignVersion))
+        ratkoClient.updatePlan(existingRatkoPlan(design))
     }
 }

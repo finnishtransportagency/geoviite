@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.RatkoOperation
@@ -40,7 +39,6 @@ constructor(
     ): List<Oid<TrackLayoutTrackNumber>> {
         // TODO: Design branches not yet supported. We need to ensure that design tracknumbers have
         // own OIDs -> could we rely on tracknumber.branch instead of arg?
-        assertMainBranch(branch)
         return publishedTrackNumbers
             .groupBy { it.id }
             .map { (_, trackNumbers) ->

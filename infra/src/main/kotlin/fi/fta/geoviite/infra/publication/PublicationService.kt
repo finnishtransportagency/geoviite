@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.integration.IndirectChanges
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
@@ -159,6 +160,12 @@ constructor(
      */
     fun updateExternalId(branch: LayoutBranch, request: PublicationRequestIds) {
         try {
+            if (branch is DesignBranch) {
+                val design = layoutDesignDao.fetch(branch.designId)
+                if (design.ratkoId == null) {
+                    insertExternalIdForLayoutDesign(design)
+                }
+            }
             request.locationTracks
                 .filter { trackId -> locationTrackDao.fetchExternalId(branch, trackId) == null }
                 .forEach { trackId -> insertExternalIdForLocationTrack(branch, trackId) }
@@ -214,6 +221,11 @@ constructor(
     private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<TrackLayoutSwitch>) {
         val switchOid = ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()) { "No OID received from RATKO" } }
         switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(oid.id)) }
+    }
+
+    private fun insertExternalIdForLayoutDesign(design: LayoutDesign) {
+        val designId = ratkoClient?.let { s -> requireNotNull(s.createPlan(newRatkoPlan(design))) }
+        designId?.let { ratkoId -> layoutDesignDao.initializeRatkoId(design.id as IntId, ratkoId) }
     }
 
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =

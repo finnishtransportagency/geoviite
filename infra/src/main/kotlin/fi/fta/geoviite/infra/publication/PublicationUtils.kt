@@ -16,9 +16,14 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.math.roundTo3Decimals
+import fi.fta.geoviite.infra.ratko.model.RatkoPlan
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanPhase
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanState
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
+import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
@@ -533,3 +538,20 @@ fun findJointPoint(
         }
     }
 }
+
+fun newRatkoPlan(design: LayoutDesign): RatkoPlan =
+    RatkoPlan(
+        id = null,
+        name = design.name.toString(),
+        estimatedCompletion = design.estimatedCompletion,
+        phase = RatkoPlanPhase.RAILWAY_PLAN,
+        state =
+            when (design.designState) {
+                DesignState.ACTIVE -> RatkoPlanState.OPEN
+                DesignState.DELETED -> RatkoPlanState.CANCELLED
+                DesignState.COMPLETED -> RatkoPlanState.COMPLETED
+            },
+    )
+
+fun existingRatkoPlan(design: LayoutDesign): RatkoPlan =
+    newRatkoPlan(design).copy(id = requireNotNull(design.ratkoId).id)

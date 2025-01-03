@@ -2087,6 +2087,42 @@ class PublicationDao(
                 partitionDirectIndirectChanges(trackNumberRows)
             }
     }
+
+    fun getPreviouslyPushedDesignVersion(publicationId: IntId<Publication>, designId: IntId<LayoutDesign>): Int? {
+        // A design's creation in Ratko is recorded by setting its ratko_id, while updates are
+        // recorded with publications' design_versions, and a design might be created but have no
+        // further updates yet.
+        val sql =
+            """
+            with previous_publication_in_design as (
+              select previous_in_design.design_version
+                from publication.publication previous_in_design
+                where design_id = :design_id
+                  and publication_time < (
+                  select publication_time from publication.publication where id = :publication_id
+                )
+                order by publication_time
+                limit 1
+            ),
+              first_pushed_design_version as (
+                select version
+                  from layout.design_version
+                  where id = :design_id and ratko_id is not null
+                  order by version
+                  limit 1
+              )
+            select
+              coalesce((select * from previous_publication_in_design),
+                       (select * from first_pushed_design_version)) as design_version;
+        """
+                .trimIndent()
+        return jdbcTemplate.queryOptional(
+            sql,
+            mapOf("publication_id" to publicationId.intValue, "design_id" to designId.intValue),
+        ) { rs, _ ->
+            rs.getInt("design_version")
+        }
+    }
 }
 
 private fun <T> partitionDirectIndirectChanges(rows: List<Pair<Boolean, T>>) =

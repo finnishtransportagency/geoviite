@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.DuplicateDesignNameException
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.logging.AccessType
@@ -17,6 +18,7 @@ import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
+import java.sql.ResultSet
 import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
@@ -36,15 +38,22 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
             where id = :id
         """
                 .trimIndent()
-        return jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue)) { rs, _ ->
-            LayoutDesign(
-                rs.getIntId("id"),
-                rs.getIntOrNull("ratko_id")?.let(::RatkoPlanId),
-                LayoutDesignName(rs.getString("name")),
-                rs.getLocalDate("estimated_completion"),
-                rs.getEnum("design_state"),
-            )
-        }
+        return jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue), mapper = ::getLayoutDesign)
+    }
+
+    fun fetchVersion(rowVersion: RowVersion<LayoutDesign>): LayoutDesign {
+        val sql =
+            """
+            select id, ratko_id, name, estimated_completion, design_state
+            from layout.design_version
+            where id = :id and version = :version
+        """
+                .trimIndent()
+        return jdbcTemplate.queryOne(
+            sql,
+            mapOf("id" to rowVersion.id.intValue, "version" to rowVersion.version),
+            mapper = ::getLayoutDesign,
+        )
     }
 
     fun list(includeCompleted: Boolean = false, includeDeleted: Boolean = false): List<LayoutDesign> {
@@ -60,15 +69,8 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         return jdbcTemplate.query(
             sql,
             mapOf("include_completed" to includeCompleted, "include_deleted" to includeDeleted),
-        ) { rs, _ ->
-            LayoutDesign(
-                rs.getIntId("id"),
-                rs.getIntOrNull("ratko_id")?.let(::RatkoPlanId),
-                LayoutDesignName(rs.getString("name")),
-                rs.getLocalDate("estimated_completion"),
-                rs.getEnum("design_state"),
-            )
-        }
+            ::getLayoutDesign,
+        )
     }
 
     @Transactional
@@ -178,3 +180,12 @@ fun asDuplicateNameException(e: DataIntegrityViolationException): DuplicateDesig
                 null
             }
         }
+
+private fun getLayoutDesign(rs: ResultSet, _rowNum: Int) =
+    LayoutDesign(
+        rs.getIntId("id"),
+        rs.getIntOrNull("ratko_id")?.let(::RatkoPlanId),
+        LayoutDesignName(rs.getString("name")),
+        rs.getLocalDate("estimated_completion"),
+        rs.getEnum("design_state"),
+    )
