@@ -2,10 +2,16 @@ import * as React from 'react';
 import styles from './tab-header.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
+export enum TabHeaderSize {
+    Small = 'tab-header--size-small',
+    Large = 'tab-header--size-large',
+}
+
 type TabHeaderProps = {
     selected: boolean;
     onClick: () => void;
     children: React.ReactNode;
+    size?: TabHeaderSize;
     className?: string;
     qaId?: string;
     disabled?: boolean;
@@ -20,9 +26,11 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
     qaId,
     disabled,
     title,
+    size = TabHeaderSize.Large,
 }) => {
     const tabClassName = createClassName(
         styles['tab-header'],
+        styles[size],
         selected && styles['tab-header--selected'],
         disabled && styles['tab-header--disabled'],
         className,
