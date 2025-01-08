@@ -13,6 +13,6 @@
  *
  * @param className
  */
-export function createClassName(...className: (string | false | undefined | 0)[]): string {
+export function createClassName(...className: (string | false | undefined | null | 0)[]): string {
     return className.filter((c) => c).join(' ');
 }

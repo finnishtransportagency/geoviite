@@ -56,6 +56,7 @@ import { useCommonDataAppSelector } from 'store/hooks';
 import { ManualTrackNumberDialog } from 'infra-model/view/dialogs/manual-track-number-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { formatWithSrid } from 'utils/geography-utils';
+import { TextField } from 'vayla-design-lib/text-field/text-field';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -78,7 +79,8 @@ type InframodelViewFormContainerProps = {
 export type EditablePlanField =
     | undefined
     | 'observations'
-    | 'planName'
+    | 'name'
+    | 'project'
     | 'planOid'
     | 'assignmentName'
     | 'trackNumbers'
@@ -332,11 +334,39 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                 <FormgroupContent title={t('im-form.file-metadata')}>
                     <FormgroupField
                         label={t('im-form.name-field')}
+                        qaId="name-im-field"
+                        inEditMode={fieldInEdit === 'name'}
+                        onEdit={() => setFieldInEdit('name')}
+                        onClose={() => setFieldInEdit(undefined)}
+                        errors={getVisibleErrorsByProp('name')}>
+                        {fieldInEdit !== 'name' ? (
+                            extraInframodelParameters.name
+                        ) : (
+                            <FieldLayout
+                                spacing={false}
+                                value={
+                                    <TextField
+                                        value={extraInframodelParameters.name}
+                                        wide
+                                        onChange={(e) =>
+                                            changeInExtraParametersField(
+                                                e.target.value.trim(),
+                                                'name',
+                                            )
+                                        }
+                                        hasError={getVisibleErrorsByProp('name').length > 0}
+                                    />
+                                }></FieldLayout>
+                        )}
+                    </FormgroupField>
+
+                    <FormgroupField
+                        label={t('im-form.project-field')}
                         qaId="project-im-field"
-                        inEditMode={fieldInEdit === 'planName'}
-                        onEdit={() => setFieldInEdit('planName')}
+                        inEditMode={fieldInEdit === 'project'}
+                        onEdit={() => setFieldInEdit('project')}
                         onClose={() => setFieldInEdit(undefined)}>
-                        {fieldInEdit !== 'planName' ? (
+                        {fieldInEdit !== 'project' ? (
                             project?.name
                         ) : (
                             <ProjectDropdown

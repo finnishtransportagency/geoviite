@@ -63,6 +63,7 @@ export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps>
                     onSelectPlan(plan.id);
                 }
             }}>
+            <td>{plan.name}</td>
             <td>
                 {plan.project.name}
                 {plan.source == 'PAIKANNUSPALVELU' && (

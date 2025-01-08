@@ -10,12 +10,17 @@ export type FieldLayoutProps = {
     errors?: string[];
     disabled?: boolean;
     children?: React.ReactNode;
+    spacing?: boolean;
 };
 
-export const FieldLayout: React.FC<FieldLayoutProps> = (props: FieldLayoutProps) => {
+export const FieldLayout: React.FC<FieldLayoutProps> = ({
+    spacing = true,
+    ...props
+}: FieldLayoutProps) => {
     const className = createClassName(
         styles['field-layout'],
         props.errors?.length && styles['field-layout--has-error'],
+        spacing && styles['field-layout--extra-spacing'],
     );
 
     const labelClassName = createClassName(

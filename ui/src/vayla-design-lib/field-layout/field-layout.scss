@@ -4,6 +4,9 @@
 .field-layout {
     display: flex;
     flex-direction: column;
+}
+
+.field-layout--extra-spacing {
     margin-bottom: 10px;
 }
 

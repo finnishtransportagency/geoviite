@@ -11,8 +11,8 @@ import { wrapReducers } from 'store/store-utils';
 import { initialSelectionState, selectionReducers } from 'selection/selection-store';
 import {
     AuthorId,
-    PlanDecisionPhase,
     GeometryPlan,
+    PlanDecisionPhase,
     PlanPhase,
     PlanSource,
     ProjectId,
@@ -63,6 +63,7 @@ export type ExtraInfraModelParameters = {
     measurementMethod?: MeasurementMethod;
     elevationMeasurementMethod?: ElevationMeasurementMethod;
     message?: Message;
+    name?: string;
 };
 
 export type XmlCharset = 'US_ASCII' | 'UTF_16LE' | 'UTF_16' | 'UTF_16BE' | 'UTF_8' | 'ISO_8859_1';
@@ -157,6 +158,11 @@ const infraModelSlice = createSlice({
             state: InfraModelState,
             { payload: response }: PayloadAction<ValidationResponse>,
         ) => {
+            state.extraInfraModelParameters = {
+                ...state.extraInfraModelParameters,
+                name: state.extraInfraModelParameters.name || response.geometryPlan?.name,
+            };
+            state.committedFields = ['name'];
             state.validationResponse = response;
             state.validationIssues = validateParams(
                 response.geometryPlan,
@@ -241,6 +247,7 @@ const infraModelSlice = createSlice({
                 measurementMethod: plan?.measurementMethod ?? undefined,
                 elevationMeasurementMethod: plan?.elevationMeasurementMethod ?? undefined,
                 message: plan?.message ?? undefined,
+                name: undefined, // plan?.name ?? undefined,
             };
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
@@ -316,6 +323,16 @@ function validateParams(
         issues.push(
             createValidationIssue('decisionPhase', 'critical', FieldValidationIssueType.WARNING),
         );
+
+    !extraParams.name &&
+        issues.push(
+            createValidationIssue(
+                'name',
+                'name-is-mandatory-field',
+                FieldValidationIssueType.ERROR,
+            ),
+        );
+
     overrideParams.createdDate === undefined &&
         plan?.planTime === undefined &&
         issues.push(

@@ -32,6 +32,10 @@
         overflow-wrap: anywhere;
     }
 
+    &__field-value-content {
+        zoom: 1;
+    }
+
     &__edit-icon {
         display: flex;
         align-items: center;
@@ -58,4 +62,29 @@
         white-space: pre-line;
         word-break: break-all;
     }
+}
+
+.formgroup__field--has-errors .formgroup__field-label {
+    color: vayla-design.$color-red-dark;
+    font-weight: bold;
+}
+
+.formgroup__field-errors {
+    @include vayla-design.typography-caption;
+    display: flex;
+    flex-direction: column;
+    margin-top: 2px;
+    color: vayla-design.$color-red-dark;
+}
+
+.formgroup__field--has-value-content .formgroup__field-errors {
+    margin-top: 8px;
+}
+
+.formgroup__field--edit-mode .formgroup__field-errors {
+    margin-top: 2px;
+}
+
+.formgroup__field-error {
+    margin-bottom: 8px;
 }
