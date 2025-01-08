@@ -36,6 +36,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { filterNotEmpty, first } from 'utils/array-utils';
+import { GeometryPlanFilterMenuContainer } from 'selection-panel/geometry-plan-panel/geometry-plan-filter-menu-container';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
@@ -184,9 +185,14 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     return (
         <section>
             <h3 className={styles['selection-panel__title']}>
-                {`${t('selection-panel.geometries-title')} (${
-                    planHeadersDisplayableInPanel.length
-                }/${planHeaderCount})`}{' '}
+                <span className={styles['selection-panel__title-text']}>
+                    {`${t('selection-panel.geometries.title')} (${
+                        planHeadersDisplayableInPanel.length
+                    }/${planHeaderCount})`}{' '}
+                </span>
+
+                <GeometryPlanFilterMenuContainer />
+
                 {planHeadersDisplayableInPanel.length > 1 && !disabled && (
                     <Eye
                         onVisibilityToggle={toggleAllPlanVisibilities}

@@ -18,9 +18,14 @@
 
         display: flex;
         flex-direction: row;
+        align-items: center;
 
         .eye {
             line-height: 0;
+        }
+
+        > *:not(:last-child) {
+            margin-right: 4px;
         }
     }
 
@@ -41,4 +46,8 @@
             padding-left: 0;
         }
     }
+}
+
+.selection-panel__title-text {
+    flex: 1;
 }
