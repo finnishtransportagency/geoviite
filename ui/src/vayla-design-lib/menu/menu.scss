@@ -40,6 +40,24 @@
     }
 }
 
+.menu--has-icons .menu__item {
+    padding-left: 0;
+}
+
+.menu__icon {
+    width: 14px;
+    margin-left: 9px;
+    margin-right: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    fill: colors.$color-blue-default;
+}
+
+.menu__item--disabled .menu__icon {
+    fill: colors.$color-black-lighter;
+}
+
 .menu__divider {
     height: 1px;
     background-color: colors.$color-white-darker;
