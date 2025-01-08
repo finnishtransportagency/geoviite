@@ -25,15 +25,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.*
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 
 enum class VerticalIntersectionType {
     POINT,
@@ -887,10 +887,9 @@ constructor(
             """
           select 
             plan.id,
-            plan_file.name as file_name,
+            plan.name,
             postgis.st_astext(plan.bounding_polygon_simple) as bounding_polygon
           from geometry.plan
-            left join geometry.plan_file on plan.id = plan_file.plan_id
             where hidden = false
               and postgis.st_intersects(
                   plan.bounding_polygon_simple, 
@@ -905,7 +904,7 @@ constructor(
                     val area =
                         GeometryPlanArea(
                             id = rs.getIntId("id"),
-                            fileName = rs.getFileName("file_name"),
+                            name = rs.getPlanName("name"),
                             polygon = rs.getPolygonPointList("bounding_polygon"),
                         )
                     area

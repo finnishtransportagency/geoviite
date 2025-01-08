@@ -111,7 +111,7 @@ data class GeometryPlan(
         )
 }
 
-data class GeometryPlanArea(val id: DomainId<GeometryPlan>, val fileName: FileName, val polygon: List<Point>)
+data class GeometryPlanArea(val id: DomainId<GeometryPlan>, val name: PlanName, val polygon: List<Point>)
 
 data class GeometryPlanUnits(val id: IntId<GeometryPlan>, val units: GeometryUnits)
 

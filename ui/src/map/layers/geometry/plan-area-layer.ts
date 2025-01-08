@@ -21,7 +21,7 @@ function createPlanFeature(planArea: PlanArea): Feature<Polygon> {
     feature.setStyle(
         new Style({
             text: new Text({
-                text: planArea.fileName.replace(/\s/g, '_').split('/').join(' '),
+                text: planArea.name,
                 font: mapStyles.fontFamily,
                 scale: 2,
                 offsetX: 30,

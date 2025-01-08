@@ -26,13 +26,21 @@ export const searchGeometryPlanHeaders = async (
     return t.planHeaders.items;
 };
 
+export function getPlanFullName(plan: GeometryPlanHeader): string {
+    return `${plan.name} (${plan.fileName})`;
+}
+
 export const getGeometryPlanOptions = (
     headers: GeometryPlanHeader[],
     selectedHeader: GeometryPlanHeader | undefined,
 ) =>
     headers
         .filter((plan) => !selectedHeader || plan.id !== selectedHeader.id)
-        .map((plan) => ({ name: plan.fileName, value: plan, qaId: `plan-${plan.fileName}` }));
+        .map((plan) => ({
+            name: getPlanFullName(plan),
+            value: plan,
+            qaId: `plan-${plan.fileName}`,
+        }));
 
 export const debouncedGetGeometryPlanHeaders = debounceAsync(searchGeometryPlanHeaders, 250);
 

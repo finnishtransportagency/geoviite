@@ -215,7 +215,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     return (
         <div className={styles['geometry-plan-panel']}>
             <Accordion
-                header={planHeader.project.name}
+                header={planHeader.name}
                 subheader={subHeader}
                 onToggle={onPlanToggle}
                 open={!disabled && (isPlanOpen || openingAccordion)}
