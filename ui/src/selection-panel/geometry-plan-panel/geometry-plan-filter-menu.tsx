@@ -4,12 +4,21 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { Menu, menuDivider, menuOption, MenuOption } from 'vayla-design-lib/menu/menu';
 import { useTranslation } from 'react-i18next';
 import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
+import { PlanSource } from 'geometry/geometry-model';
 
 type GeometryPlanFilterMenuProps = {
     grouping: GeometryPlanGrouping;
+    onGroupingChanged: (grouping: GeometryPlanGrouping) => void;
+    visibleSources: PlanSource[];
+    onVisibleSourcesChanged: (sources: PlanSource[]) => void;
 };
 
-export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({ grouping }) => {
+export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({
+    grouping,
+    onGroupingChanged,
+    visibleSources,
+    onVisibleSourcesChanged,
+}) => {
     const { t } = useTranslation();
     const [popupVisible, setPopupVisible] = React.useState(false);
     const ref = React.useRef<HTMLDivElement>(null);
@@ -22,31 +31,43 @@ export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({ 
         setPopupVisible(false);
     }
 
+    const showPlansOfPaikannuspalvelu = visibleSources.includes('PAIKANNUSPALVELU');
     const menuItems: MenuOption[] = [
-        menuOption(
-            () => alert('x'),
-            t('selection-panel.geometries.group-by-project'),
-            'geometry-filter.geometries.group-by-project',
-        ),
-        menuOption(
-            () => alert('x'),
-            t('selection-panel.geometries.no-grouping'),
-            'geometry-filter.geometries.no-groupping',
-        ),
+        {
+            ...menuOption(
+                () => onGroupingChanged(GeometryPlanGrouping.ByProject),
+                t('selection-panel.geometries.group-by-project'),
+                'geometry-filter.geometries.group-by-project',
+            ),
+            icon: grouping == GeometryPlanGrouping.ByProject ? Icons.Tick : undefined,
+        },
+        {
+            ...menuOption(
+                () => onGroupingChanged(GeometryPlanGrouping.None),
+                t('selection-panel.geometries.no-grouping'),
+                'geometry-filter.geometries.no-groupping',
+            ),
+            icon: grouping == GeometryPlanGrouping.None ? Icons.Tick : undefined,
+        },
         menuDivider(),
-        menuOption(
-            () => alert('x'),
-            t('selection-panel.geometries.show-paikannuspalvelu-geometries'),
-            'geometry-filter.geometries.show-paikannuspalvelu-geometries',
-        ),
-        menuOption(
-            () => alert('x'),
-            t('selection-panel.geometries.hide-paikannuspalvelu-geometries'),
-            'geometry-filter.geometries.hide-paikannuspalvelu-geometries',
-        ),
+        {
+            ...menuOption(
+                () => onVisibleSourcesChanged(['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU']),
+                t('selection-panel.geometries.show-paikannuspalvelu-geometries'),
+                'geometry-filter.geometries.show-paikannuspalvelu-geometries',
+            ),
+            icon: showPlansOfPaikannuspalvelu ? Icons.Tick : undefined,
+        },
+        {
+            ...menuOption(
+                () => onVisibleSourcesChanged(['GEOMETRIAPALVELU']),
+                t('selection-panel.geometries.hide-paikannuspalvelu-geometries'),
+                'geometry-filter.geometries.hide-paikannuspalvelu-geometries',
+            ),
+            icon: !showPlansOfPaikannuspalvelu ? Icons.Tick : undefined,
+        },
     ];
 
-    //    const className = createClassName(styles['popup-button']);
     return (
         <React.Fragment>
             <div ref={ref}>

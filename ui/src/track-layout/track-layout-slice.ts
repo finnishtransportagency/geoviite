@@ -546,6 +546,18 @@ const trackLayoutSlice = createSlice({
         hideLocationTrackTaskList: (state: TrackLayoutState) => {
             state.locationTrackTaskList = undefined;
         },
+        updateGeometryPlanGrouping: (
+            state: TrackLayoutState,
+            { payload: grouping }: PayloadAction<GeometryPlanGrouping>,
+        ) => {
+            state.geometryPlanViewSettings.grouping = grouping;
+        },
+        updateGeometryPlanVisibleSources: (
+            state: TrackLayoutState,
+            { payload: sources }: PayloadAction<PlanSource[]>,
+        ) => {
+            state.geometryPlanViewSettings.visibleSources = sources;
+        },
     },
 });
 
