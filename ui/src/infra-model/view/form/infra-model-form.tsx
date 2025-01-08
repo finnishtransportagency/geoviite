@@ -337,7 +337,13 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         qaId="name-im-field"
                         inEditMode={fieldInEdit === 'name'}
                         onEdit={() => setFieldInEdit('name')}
-                        onClose={() => setFieldInEdit(undefined)}
+                        onClose={() => {
+                            changeInExtraParametersField(
+                                extraInframodelParameters.name?.trim(),
+                                'name',
+                            );
+                            setFieldInEdit(undefined);
+                        }}
                         errors={getVisibleErrorsByProp('name')}>
                         {fieldInEdit !== 'name' ? (
                             extraInframodelParameters.name
@@ -349,10 +355,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                         value={extraInframodelParameters.name}
                                         wide
                                         onChange={(e) =>
-                                            changeInExtraParametersField(
-                                                e.target.value.trim(),
-                                                'name',
-                                            )
+                                            changeInExtraParametersField(e.target.value, 'name')
                                         }
                                         hasError={getVisibleErrorsByProp('name').length > 0}
                                     />

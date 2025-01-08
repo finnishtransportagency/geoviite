@@ -31,6 +31,7 @@ import {
 import { Prop } from 'utils/type-utils';
 import { LocalizationParams } from 'i18n/config';
 import { PURGE } from 'redux-persist';
+import { isNilOrBlank } from 'utils/string-utils';
 
 export enum InfraModelViewType {
     UPLOAD,
@@ -324,7 +325,7 @@ function validateParams(
             createValidationIssue('decisionPhase', 'critical', FieldValidationIssueType.WARNING),
         );
 
-    !extraParams.name &&
+    isNilOrBlank(extraParams.name) &&
         issues.push(
             createValidationIssue(
                 'name',

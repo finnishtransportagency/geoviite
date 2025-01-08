@@ -40,6 +40,7 @@ type GeometryPlanInfoboxProps = {
 interface AgeProps {
     timeStamp: TimeStamp;
 }
+
 const Age: React.FC<AgeProps> = ({ timeStamp }) => {
     const { t } = useTranslation();
     const time = toDateOrUndefined(timeStamp);
@@ -105,6 +106,11 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     qaId="geometry-plan-remarks"
                     label={t('tool-panel.geometry-plan.observations')}
                     value={planHeader.message}
+                />
+                <InfoboxField
+                    qaId="geometry-plan-name"
+                    label={t('tool-panel.geometry-plan.name')}
+                    value={planHeader.name}
                 />
                 <InfoboxField
                     qaId="geometry-plan-author"

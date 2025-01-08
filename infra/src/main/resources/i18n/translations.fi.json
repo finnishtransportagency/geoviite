@@ -447,6 +447,7 @@
             "general-title": "Suunnitelman perustiedot",
             "quality-title": "Laatutiedot",
             "observations": "Huomiot",
+            "name": "Nimi",
             "author": "Yritys",
             "project": "Projekti",
             "file": "Tiedosto",
