@@ -100,7 +100,8 @@ constructor(
               measurement_method,
               elevation_measurement_method,
               message,
-              hidden
+              hidden,
+              name
             )
             values(
               :track_number,
@@ -123,7 +124,8 @@ constructor(
               :measurement_method::common.measurement_method,
               :elevation_measurement_method::common.elevation_measurement_method,
               :message,
-              :hidden
+              :hidden,
+              :name
             )
             returning id, version
         """
@@ -155,6 +157,7 @@ constructor(
                 "elevation_measurement_method" to plan.elevationMeasurementMethod?.name,
                 "message" to plan.message,
                 "hidden" to plan.isHidden,
+                "name" to plan.name,
             )
 
         val planId: RowVersion<GeometryPlan> =
@@ -317,7 +320,8 @@ constructor(
               elevation_measurement_method = :elevation_measurement_method::common.elevation_measurement_method,
               message = :message,
               source = :source::geometry.plan_source,
-              hidden = :hidden
+              hidden = :hidden,
+              name = :name
             where id = :id
             returning id, version
         """
@@ -342,6 +346,7 @@ constructor(
                 "message" to geometryPlan.message,
                 "source" to geometryPlan.source.name,
                 "hidden" to geometryPlan.isHidden,
+                "name" to geometryPlan.name,
             )
 
         return getOne(
@@ -702,7 +707,8 @@ constructor(
             author.company_name as author,
             has_profile,
             has_cant,
-            plan.hidden
+            plan.hidden,
+            plan.name
           from geometry.plan
             left join geometry.plan_file on plan_file.plan_id = plan.id
             left join geometry.plan_project project on project.id = plan.plan_project_id
@@ -763,7 +769,8 @@ constructor(
             author.company_name as author,
             has_profile,
             has_cant,
-            plan.hidden
+            plan.hidden,
+            plan.name
           from geometry.plan_version plan
             left join geometry.plan_file on plan_file.plan_id = plan.id
             left join geometry.plan_project project on project.id = plan.plan_project_id
@@ -823,6 +830,7 @@ constructor(
             hasProfile = rs.getBoolean("has_profile"),
             hasCant = rs.getBoolean("has_cant"),
             isHidden = rs.getBoolean("hidden"),
+            name = rs.getPlanName("name"),
         )
     }
 
@@ -937,7 +945,8 @@ constructor(
               plan.measurement_method,
               plan.elevation_measurement_method,
               plan.message,
-              plan.hidden
+              plan.hidden,
+              plan.name
             from geometry.plan 
               left join geometry.plan_file on plan_file.plan_id = plan.id
               left join geometry.plan_author on plan.plan_author_id = plan_author.id
@@ -994,6 +1003,7 @@ constructor(
                             message = rs.getFreeTextWithNewLinesOrNull("message"),
                             uploadTime = rs.getInstant("upload_time"),
                             isHidden = rs.getBoolean("hidden"),
+                            name = rs.getPlanName("name"),
                         )
                     geometryPlan
                 }

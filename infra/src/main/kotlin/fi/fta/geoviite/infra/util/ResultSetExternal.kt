@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.parse2DPolygon
+import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
@@ -276,6 +277,8 @@ fun ResultSet.getFreeTextWithNewLinesOrNull(name: String): FreeTextWithNewLines?
 fun ResultSet.getFileName(name: String): FileName = verifyNotNull(name, ::getFileNameOrNull)
 
 fun ResultSet.getFileNameOrNull(name: String): FileName? = getString(name)?.let(::FileName)
+
+fun ResultSet.getPlanName(name: String): PlanName = verifyNotNull<PlanName>(name) { getString(name)?.let(::PlanName) }
 
 fun ResultSet.getBbox(name: String): BoundingBox = verifyNotNull(name, ::getBboxOrNull)
 

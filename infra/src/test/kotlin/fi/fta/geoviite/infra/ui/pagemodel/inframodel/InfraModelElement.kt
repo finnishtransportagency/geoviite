@@ -42,13 +42,15 @@ data class E2EInfraModelTableRow(
     val planTime: LocalDateTime,
     val created: LocalDateTime,
     val linked: LocalDateTime?,
+    val name: String,
 ) {
 
     constructor(
         columns: List<WebElement>,
         headers: List<WebElement>,
     ) : this(
-        projectName = getColumnContent("im-form.name-header", columns, headers),
+        name = getColumnContent("im-form.name-header", columns, headers),
+        projectName = getColumnContent("im-form.project-name-header", columns, headers),
         fileName = getColumnContent("im-form.file-name-header", columns, headers),
         trackNumber = getColumnContent("im-form.track-number-header", columns, headers),
         startKmNumber = getColumnContent("im-form.km-start-header", columns, headers),

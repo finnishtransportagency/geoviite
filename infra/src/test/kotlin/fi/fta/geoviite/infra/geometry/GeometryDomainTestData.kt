@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.CantTransitionType.LINEAR
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.inframodel.getPlanNameByFileName
 import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Grads
 import fi.fta.geoviite.infra.math.Point
@@ -485,6 +486,7 @@ fun plan(
         elevationMeasurementMethod = elevationMeasurementMethod,
         message = FreeTextWithNewLines.of("test text \n description"),
         uploadTime = Instant.now(),
+        name = getPlanNameByFileName(fileName),
     )
 }
 
@@ -520,6 +522,7 @@ fun planHeader(
         hasProfile = false,
         author = "Test Company",
         isHidden = false,
+        name = getPlanNameByFileName(fileName),
     )
 
 fun minimalPlan(fileName: FileName = FileName("TEST_FILE.xml")) =
@@ -548,6 +551,7 @@ fun minimalPlan(fileName: FileName = FileName("TEST_FILE.xml")) =
         elevationMeasurementMethod = null,
         trackNumber = null,
         uploadTime = null,
+        name = getPlanNameByFileName(fileName),
     )
 
 fun geometryLine(

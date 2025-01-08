@@ -57,10 +57,11 @@ data class GeometryPlanHeader(
     val hasProfile: Boolean,
     val hasCant: Boolean,
     val isHidden: Boolean,
+    val name: PlanName,
 ) : Loggable {
     @get:JsonIgnore
     val searchParams: List<String> by lazy {
-        listOfNotNull(fileName, project.name, message).map { o -> o.toString().lowercase() }
+        listOfNotNull(fileName, project.name, message, name).map { o -> o.toString().lowercase() }
     }
 
     override fun toLog(): String = logFormat("version" to version, "name" to fileName, "source" to source)
@@ -92,6 +93,7 @@ data class GeometryPlan(
     val measurementMethod: MeasurementMethod?,
     val elevationMeasurementMethod: ElevationMeasurementMethod?,
     val message: FreeTextWithNewLines?,
+    val name: PlanName,
     val isHidden: Boolean = false,
     val id: DomainId<GeometryPlan> = StringId(),
     val dataType: DataType = DataType.TEMP,
