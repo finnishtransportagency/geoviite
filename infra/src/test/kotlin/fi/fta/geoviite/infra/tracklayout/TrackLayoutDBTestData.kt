@@ -11,7 +11,10 @@ import fi.fta.geoviite.infra.math.lineLength
 
 fun moveKmPostLocation(kmPost: TrackLayoutKmPost, layoutLocation: Point, kmPostService: LayoutKmPostService) {
     val gkPoint = transformFromLayoutToGKCoordinate(layoutLocation)
-    kmPostService.saveDraft(LayoutBranch.main, kmPost.copy(gkLocation = kmPost.gkLocation?.copy(location = gkPoint)))
+    kmPostService.saveDraft(
+        kmPost.layoutContext.branch,
+        kmPost.copy(gkLocation = kmPost.gkLocation?.copy(location = gkPoint)),
+    )
 }
 
 fun moveLocationTrackGeometryPointsAndUpdate(

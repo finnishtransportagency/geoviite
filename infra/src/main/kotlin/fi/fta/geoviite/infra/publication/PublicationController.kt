@@ -123,17 +123,7 @@ constructor(
         @RequestBody request: PublicationRequest,
     ): PublicationResult {
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publicationService.updateExternalId(branch, request.content)
-            val versions = publicationService.getValidationVersions(branch, request.content)
-            publicationValidationService.validatePublicationRequest(versions)
-            val calculatedChanges = publicationService.getCalculatedChanges(versions)
-            publicationService.publishChanges(
-                branch,
-                versions,
-                calculatedChanges,
-                request.message,
-                PublicationCause.MANUAL,
-            )
+            publicationService.publishManualPublication(branch, request)
         }
             ?: throw PublicationFailureException(
                 message = "Could not reserve publication lock",

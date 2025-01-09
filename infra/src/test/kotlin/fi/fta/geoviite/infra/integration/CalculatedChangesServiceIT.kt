@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -19,8 +20,10 @@ import fi.fta.geoviite.infra.linking.switches.matchFittedSwitchToTracks
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
+import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -92,14 +95,12 @@ constructor(
     val kmPostService: LayoutKmPostService,
     val trackNumberservice: LayoutTrackNumberService,
     val switchLibraryService: SwitchLibraryService,
+    val publicationTestSupportService: PublicationTestSupportService,
 ) : DBTestBase() {
 
     @BeforeEach
     fun setup() {
-        locationTrackDao.deleteDrafts(LayoutBranch.main)
-        referenceLineDao.deleteDrafts(LayoutBranch.main)
-        alignmentDao.deleteOrphanedAlignments()
-        switchDao.deleteDrafts(LayoutBranch.main)
+        testDBService.clearLayoutTables()
     }
 
     @Test
@@ -1046,6 +1047,192 @@ constructor(
             )
         assertEquals(1, changes.directChanges.switchChanges.size)
         assertEquals(1, changes.directChanges.switchChanges.find { it.switchId == switch }?.changedJoints?.size)
+    }
+
+    @Test
+    fun `changes done in a main publication can be inherited to assets edited in design`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val kmPost =
+            mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        val switch =
+            mainOfficialContext
+                .insert(switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
+                .id
+        val locationTrack =
+            mainOfficialContext
+                .insert(
+                    locationTrack(trackNumber),
+                    alignment(
+                        segment(Point(0.0, 0.0), Point(7.0, 0.0))
+                            .copy(switchId = switch, endJointNumber = JointNumber(1))
+                    ),
+                )
+                .id
+
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designDraftContext.insert(mainOfficialContext.fetch(switch)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(locationTrack)!!)
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(switches = listOf(switch), locationTracks = listOf(locationTrack)),
+        )
+        locationTrackDao.insertExternalId(locationTrack, designBranch, Oid("1.2.3.4.5"))
+        switchDao.insertExternalId(switch, designBranch, Oid("2.3.4.5.6"))
+        layoutTrackNumberDao.insertExternalId(trackNumber, designBranch, Oid("3.4.5.6.7"))
+
+        moveKmPostLocation(mainOfficialContext.fetch(kmPost)!!, Point(5.0, 0.0), kmPostService)
+
+        val changes =
+            calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
+                branch = designBranch,
+                trackNumbers = listOf(),
+                referenceLines = listOf(),
+                locationTracks = listOf(),
+                switches = listOf(),
+                kmPosts = listOf(mainDraftContext.fetchVersion(kmPost)!!),
+            )
+        assertEquals(
+            listOf(TrackNumberChange(trackNumber, setOf(KmNumber(0), KmNumber(1)), false, true)),
+            changes.trackNumberChanges,
+        )
+        assertEquals(
+            listOf(LocationTrackChange(locationTrack, setOf(KmNumber(0), KmNumber(1)), false, true)),
+            changes.locationTrackChanges,
+        )
+        val expectedSwitchJointChange =
+            SwitchJointChange(
+                JointNumber(1),
+                false,
+                TrackMeter(KmNumber(1), BigDecimal("2.000")),
+                Point(7.0, 0.0),
+                locationTrack,
+                Oid("1.2.3.4.5"),
+                trackNumber,
+                Oid("3.4.5.6.7"),
+            )
+        assertEquals(listOf(SwitchChange(switch, listOf(expectedSwitchJointChange))), changes.switchChanges)
+    }
+
+    @Test
+    fun `changes done in a main publication can be inherited to assets created in design`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val kmPost =
+            mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        val switch =
+            designDraftContext
+                .insert(switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
+                .id
+        val locationTrack =
+            designDraftContext
+                .insert(
+                    locationTrack(trackNumber),
+                    alignment(
+                        segment(Point(0.0, 0.0), Point(7.0, 0.0))
+                            .copy(switchId = switch, endJointNumber = JointNumber(1))
+                    ),
+                )
+                .id
+
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(switches = listOf(switch), locationTracks = listOf(locationTrack)),
+        )
+        locationTrackDao.insertExternalId(locationTrack, designBranch, Oid("1.2.3.4.5"))
+        switchDao.insertExternalId(switch, designBranch, Oid("2.3.4.5.6"))
+        layoutTrackNumberDao.insertExternalId(trackNumber, designBranch, Oid("3.4.5.6.7"))
+
+        moveKmPostLocation(mainOfficialContext.fetch(kmPost)!!, Point(5.0, 0.0), kmPostService)
+
+        val changes =
+            calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
+                branch = designBranch,
+                trackNumbers = listOf(),
+                referenceLines = listOf(),
+                locationTracks = listOf(),
+                switches = listOf(),
+                kmPosts = listOf(mainDraftContext.fetchVersion(kmPost)!!),
+            )
+        assertEquals(
+            listOf(TrackNumberChange(trackNumber, setOf(KmNumber(0), KmNumber(1)), false, true)),
+            changes.trackNumberChanges,
+        )
+        assertEquals(
+            listOf(LocationTrackChange(locationTrack, setOf(KmNumber(0), KmNumber(1)), false, true)),
+            changes.locationTrackChanges,
+        )
+        val expectedSwitchJointChange =
+            SwitchJointChange(
+                JointNumber(1),
+                false,
+                TrackMeter(KmNumber(1), BigDecimal("2.000")),
+                Point(7.0, 0.0),
+                locationTrack,
+                Oid("1.2.3.4.5"),
+                trackNumber,
+                Oid("3.4.5.6.7"),
+            )
+        assertEquals(listOf(SwitchChange(switch, listOf(expectedSwitchJointChange))), changes.switchChanges)
+    }
+
+    @Test
+    fun `changes to main objects that are overridden in design don't cause inherited changes`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val kmPost =
+            mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        val switch =
+            mainOfficialContext
+                .insert(switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
+                .id
+        val locationTrack =
+            mainOfficialContext
+                .insert(
+                    locationTrack(trackNumber),
+                    alignment(
+                        segment(Point(0.0, 0.0), Point(7.0, 0.0))
+                            .copy(switchId = switch, endJointNumber = JointNumber(1))
+                    ),
+                )
+                .id
+
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designDraftContext.insert(mainOfficialContext.fetch(switch)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(locationTrack)!!)
+        // the beef: the design contains a version of the kmPost, so moving it in main should cause
+        // no geocoding changes in the design
+        designDraftContext.insert(mainOfficialContext.fetch(kmPost)!!)
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(
+                switches = listOf(switch),
+                locationTracks = listOf(locationTrack),
+                kmPosts = listOf(kmPost),
+            ),
+        )
+        locationTrackDao.insertExternalId(locationTrack, designBranch, Oid("1.2.3.4.5"))
+        switchDao.insertExternalId(switch, designBranch, Oid("2.3.4.5.6"))
+        layoutTrackNumberDao.insertExternalId(trackNumber, designBranch, Oid("3.4.5.6.7"))
+
+        moveKmPostLocation(mainOfficialContext.fetch(kmPost)!!, Point(5.0, 0.0), kmPostService)
+
+        val changes =
+            calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
+                branch = designBranch,
+                trackNumbers = listOf(),
+                referenceLines = listOf(),
+                locationTracks = listOf(),
+                switches = listOf(),
+                kmPosts = listOf(mainDraftContext.fetchVersion(kmPost)!!),
+            )
+        // no calculated changes affecting the design whatsoever, as the change's cause (the moved
+        // km post) is overridden in the design
+        assertEquals(IndirectChanges.empty(), changes)
     }
 
     data class TestData(
