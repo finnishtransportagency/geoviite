@@ -18,6 +18,8 @@ import {
     GeometryPlanId,
     GeometrySortBy,
     GeometrySortOrder,
+    PlanSource,
+    ProjectId,
 } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 import { useMapState, useRateLimitedEffect, useSetState } from 'utils/react-utils';
@@ -35,8 +37,10 @@ import {
 import { ChangeTimes } from 'common/common-slice';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { filterNotEmpty, first } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, first } from 'utils/array-utils';
 import { GeometryPlanFilterMenuContainer } from 'selection-panel/geometry-plan-panel/geometry-plan-filter-menu-container';
+import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
+import { expectDefined } from 'utils/type-utils';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
@@ -56,6 +60,8 @@ type GeometryPlansPanelProps = {
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
     onSelect: (options: OnSelectOptions) => void;
     disabled?: boolean;
+    grouping: GeometryPlanGrouping;
+    visibleSources: PlanSource[];
 };
 const MAX_PLAN_HEADERS = 50;
 
@@ -81,6 +87,8 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
     onSelect,
+    grouping,
+    visibleSources,
     disabled = false,
 }) => {
     const { t } = useTranslation();
@@ -113,10 +121,12 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     MAX_PLAN_HEADERS,
                     0,
                     viewport.area,
-                    ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
+                    visibleSources,
                     selectedTrackNumbers,
                     undefined,
-                    GeometrySortBy.UPLOADED_AT,
+                    grouping == GeometryPlanGrouping.ByProject
+                        ? GeometrySortBy.PROJECT_NAME
+                        : GeometrySortBy.NAME,
                     GeometrySortOrder.ASCENDING,
                 ).then((result) => {
                     setPlanHeadersDisplayableInPanel(result.planHeaders.items);
@@ -128,7 +138,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             }
         },
         1000,
-        [viewport.area, changeTimes.geometryPlan, selectedTrackNumbers],
+        [viewport.area, changeTimes.geometryPlan, selectedTrackNumbers, visibleSources, grouping],
     );
 
     React.useEffect(
@@ -170,17 +180,42 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         planIdsInViewport.some((planId) => planId === p.id),
     );
 
+    function fetchPlansAndSetVisible(planIds: GeometryPlanId[]) {
+        fetchPlanLayouts(planIds).then((plans) =>
+            plans
+                .filter(filterNotEmpty)
+                .forEach((plan) => onTogglePlanVisibility(wholePlanVisibility(plan))),
+        );
+    }
+
     const toggleAllPlanVisibilities = () => {
         if (visiblePlansInView.length > 0) {
             visiblePlansInView.forEach(onTogglePlanVisibility);
         } else if (planHeadersDisplayableInPanel.length === planHeaderCount) {
-            fetchPlanLayouts(planHeadersDisplayableInPanel.map((h) => h.id)).then((plans) =>
-                plans
-                    .filter(filterNotEmpty)
-                    .forEach((plan) => onTogglePlanVisibility(wholePlanVisibility(plan))),
-            );
+            const allDisplayablePlanIds = planHeadersDisplayableInPanel.map((h) => h.id);
+            fetchPlansAndSetVisible(allDisplayablePlanIds);
         }
     };
+
+    const visibleProjectIds = planHeadersDisplayableInPanel
+        .filter((plan) => visiblePlans.some((visiblePlan) => visiblePlan.id == plan.id))
+        .map((plan) => plan.project.id)
+        .filter(filterUnique);
+
+    function setProjectVisibility(projectId: ProjectId, newVisibility: boolean) {
+        const projectPlans = planHeadersDisplayableInPanel.filter(
+            (plan) => plan.project.id == projectId,
+        );
+        if (!newVisibility) {
+            const visibleProjectPlans = visiblePlansInView.filter((visiblePlan) =>
+                projectPlans.some((projectPlan) => projectPlan.id == visiblePlan.id),
+            );
+            visibleProjectPlans.forEach(onTogglePlanVisibility);
+        } else {
+            const projectPlanIds = projectPlans.map((plan) => plan.id);
+            fetchPlansAndSetVisible(projectPlanIds);
+        }
+    }
 
     return (
         <section>
@@ -206,78 +241,102 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     styles['selection-panel__content--unpadded'],
                 )}>
                 {planHeadersDisplayableInPanel.length == planHeaderCount &&
-                    planHeadersDisplayableInPanel.map((h) => {
+                    planHeadersDisplayableInPanel.map((h, index, allPlans) => {
+                        const prevProjectId =
+                            index > 0 ? expectDefined(allPlans[index - 1]).project.id : undefined;
+                        const showProjectRow =
+                            grouping == GeometryPlanGrouping.ByProject &&
+                            prevProjectId != h.project.id;
+                        const projectIsVisible = visibleProjectIds.includes(h.project.id);
                         return (
-                            <GeometryPlanPanel
-                                key={h.id}
-                                planHeader={h}
-                                onPlanHeaderSelection={(header) =>
-                                    onSelect({
-                                        ...createEmptyItemCollections(),
-                                        geometryPlans: [header.id],
-                                        isToggle: true,
-                                    })
-                                }
-                                changeTimes={changeTimes}
-                                onTogglePlanVisibility={onTogglePlanVisibility}
-                                onToggleAlignmentVisibility={onToggleAlignmentVisibility}
-                                onToggleAlignmentSelection={(alignment) =>
-                                    onSelect({
-                                        ...createEmptyItemCollections(),
-                                        geometryAlignmentIds: [
-                                            {
-                                                geometryId: alignment.id,
-                                                planId: h.id,
-                                            },
-                                        ],
-                                        isToggle: true,
-                                    })
-                                }
-                                onToggleSwitchVisibility={onToggleSwitchVisibility}
-                                onToggleSwitchSelection={(switchItem) =>
-                                    onSelect({
-                                        ...createEmptyItemCollections(),
-                                        geometrySwitchIds: switchItem.sourceId
-                                            ? [
-                                                  {
-                                                      geometryId: switchItem.sourceId,
-                                                      planId: h.id,
-                                                  },
-                                              ]
-                                            : [],
-                                        isToggle: true,
-                                    })
-                                }
-                                onToggleKmPostVisibility={onToggleKmPostVisibility}
-                                onToggleKmPostSelection={(kmPost) =>
-                                    onSelect({
-                                        ...createEmptyItemCollections(),
-                                        geometryKmPostIds: kmPost.sourceId
-                                            ? [
-                                                  {
-                                                      geometryId: kmPost.sourceId,
-                                                      planId: h.id,
-                                                  },
-                                              ]
-                                            : [],
-                                        isToggle: true,
-                                    })
-                                }
-                                selectedItems={selectedItems}
-                                visiblePlans={visiblePlans}
-                                togglePlanOpen={togglePlanOpen}
-                                openPlans={openPlans}
-                                togglePlanKmPostsOpen={togglePlanKmPostsOpen}
-                                togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
-                                togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                                planLayout={fetchedPlans.get(h.id)?.planLayout}
-                                linkStatus={fetchedPlans.get(h.id)?.linkStatus}
-                                planBeingLoaded={plansBeingFetched.has(h.id)}
-                                loadPlanLayout={() =>
-                                    fetchPlanLayouts([h.id]).then((ps) => first(ps))
-                                }
-                                disabled={disabled}
-                            />
+                            <React.Fragment>
+                                {showProjectRow && (
+                                    <div className={styles['selection-panel__project']}>
+                                        <span className={styles['selection-panel__project-title']}>
+                                            {h.project.name}
+                                        </span>
+                                        <Eye
+                                            onVisibilityToggle={() =>
+                                                setProjectVisibility(
+                                                    h.project.id,
+                                                    !projectIsVisible,
+                                                )
+                                            }
+                                            visibility={projectIsVisible}
+                                        />
+                                    </div>
+                                )}
+                                <GeometryPlanPanel
+                                    key={h.id}
+                                    planHeader={h}
+                                    onPlanHeaderSelection={(header) =>
+                                        onSelect({
+                                            ...createEmptyItemCollections(),
+                                            geometryPlans: [header.id],
+                                            isToggle: true,
+                                        })
+                                    }
+                                    changeTimes={changeTimes}
+                                    onTogglePlanVisibility={onTogglePlanVisibility}
+                                    onToggleAlignmentVisibility={onToggleAlignmentVisibility}
+                                    onToggleAlignmentSelection={(alignment) =>
+                                        onSelect({
+                                            ...createEmptyItemCollections(),
+                                            geometryAlignmentIds: [
+                                                {
+                                                    geometryId: alignment.id,
+                                                    planId: h.id,
+                                                },
+                                            ],
+                                            isToggle: true,
+                                        })
+                                    }
+                                    onToggleSwitchVisibility={onToggleSwitchVisibility}
+                                    onToggleSwitchSelection={(switchItem) =>
+                                        onSelect({
+                                            ...createEmptyItemCollections(),
+                                            geometrySwitchIds: switchItem.sourceId
+                                                ? [
+                                                      {
+                                                          geometryId: switchItem.sourceId,
+                                                          planId: h.id,
+                                                      },
+                                                  ]
+                                                : [],
+                                            isToggle: true,
+                                        })
+                                    }
+                                    onToggleKmPostVisibility={onToggleKmPostVisibility}
+                                    onToggleKmPostSelection={(kmPost) =>
+                                        onSelect({
+                                            ...createEmptyItemCollections(),
+                                            geometryKmPostIds: kmPost.sourceId
+                                                ? [
+                                                      {
+                                                          geometryId: kmPost.sourceId,
+                                                          planId: h.id,
+                                                      },
+                                                  ]
+                                                : [],
+                                            isToggle: true,
+                                        })
+                                    }
+                                    selectedItems={selectedItems}
+                                    visiblePlans={visiblePlans}
+                                    togglePlanOpen={togglePlanOpen}
+                                    openPlans={openPlans}
+                                    togglePlanKmPostsOpen={togglePlanKmPostsOpen}
+                                    togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
+                                    togglePlanSwitchesOpen={togglePlanSwitchesOpen}
+                                    planLayout={fetchedPlans.get(h.id)?.planLayout}
+                                    linkStatus={fetchedPlans.get(h.id)?.linkStatus}
+                                    planBeingLoaded={plansBeingFetched.has(h.id)}
+                                    loadPlanLayout={() =>
+                                        fetchPlanLayouts([h.id]).then((ps) => first(ps))
+                                    }
+                                    disabled={disabled}
+                                />
+                            </React.Fragment>
                         );
                     })}
                 {planHeadersDisplayableInPanel.length < planHeaderCount && (
