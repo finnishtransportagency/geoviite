@@ -31,6 +31,13 @@ export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({
         setPopupVisible(false);
     }
 
+    function toggleVisibleSources() {
+        const newSources: PlanSource[] = visibleSources.includes('PAIKANNUSPALVELU')
+            ? ['GEOMETRIAPALVELU']
+            : ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'];
+        onVisibleSourcesChanged(newSources);
+    }
+
     const showPlansOfPaikannuspalvelu = visibleSources.includes('PAIKANNUSPALVELU');
     const menuItems: MenuOption[] = [
         {
@@ -52,19 +59,11 @@ export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({
         menuDivider(),
         {
             ...menuOption(
-                () => onVisibleSourcesChanged(['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU']),
+                toggleVisibleSources,
                 t('selection-panel.geometries.show-paikannuspalvelu-geometries'),
                 'geometry-filter.geometries.show-paikannuspalvelu-geometries',
             ),
             icon: showPlansOfPaikannuspalvelu ? Icons.Tick : undefined,
-        },
-        {
-            ...menuOption(
-                () => onVisibleSourcesChanged(['GEOMETRIAPALVELU']),
-                t('selection-panel.geometries.hide-paikannuspalvelu-geometries'),
-                'geometry-filter.geometries.hide-paikannuspalvelu-geometries',
-            ),
-            icon: !showPlansOfPaikannuspalvelu ? Icons.Tick : undefined,
         },
     ];
 
