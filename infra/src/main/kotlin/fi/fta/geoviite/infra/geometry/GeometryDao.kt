@@ -25,15 +25,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.*
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 enum class VerticalIntersectionType {
     POINT,
@@ -196,7 +196,10 @@ constructor(
     fun getPlanFile(planId: IntId<GeometryPlan>): InfraModelFileWithSource {
         val sql =
             """
-          select name as file_name, plan.source, xmlserialize(document content as varchar) as file_content
+          select 
+            plan_file.name as file_name, 
+            plan.source, 
+            xmlserialize(document content as varchar) as file_content
             from geometry.plan_file
             inner join geometry.plan 
             on plan_id = plan.id
