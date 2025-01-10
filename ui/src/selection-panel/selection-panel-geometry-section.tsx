@@ -40,7 +40,6 @@ import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { filterNotEmpty, filterUnique, first } from 'utils/array-utils';
 import { GeometryPlanFilterMenuContainer } from 'selection-panel/geometry-plan-panel/geometry-plan-filter-menu-container';
 import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
-import { expectDefined } from 'utils/type-utils';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
@@ -240,11 +239,10 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                 )}>
                 {planHeadersDisplayableInPanel.length == planHeaderCount &&
                     planHeadersDisplayableInPanel.map((h, index, allPlans) => {
-                        const prevProjectId =
-                            index > 0 ? expectDefined(allPlans[index - 1]).project.id : undefined;
+                        const isSameAsPrevProject =
+                            h.project.id === allPlans[index - 1]?.project?.id;
                         const showProjectRow =
-                            grouping == GeometryPlanGrouping.ByProject &&
-                            prevProjectId != h.project.id;
+                            grouping == GeometryPlanGrouping.ByProject && !isSameAsPrevProject;
                         const projectIsVisible = visibleProjectIds.includes(h.project.id);
                         return (
                             <React.Fragment>

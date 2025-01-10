@@ -66,7 +66,7 @@ export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps>
             <td>{plan.name}</td>
             <td>
                 {plan.project.name}
-                {plan.source == 'PAIKANNUSPALVELU' && (
+                {plan.source === 'PAIKANNUSPALVELU' && (
                     <div className="infra-model-list-search-result__plan-paikannuspalvelu">
                         {t(`enum.PlanSource.${plan.source}`)}
                     </div>
