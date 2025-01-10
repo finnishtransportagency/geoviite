@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
+import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.geometry.PlanPhase
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
@@ -98,6 +99,7 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
                 measurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_RAIL,
                 message = FreeTextWithNewLines.of("test message 1"),
+                name = PlanName("test name 1"),
             )
 
         val overrides2 =
@@ -118,6 +120,7 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
                 measurementMethod = MeasurementMethod.DIGITIZED_AERIAL_IMAGE,
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = FreeTextWithNewLines.of("test message 2"),
+                name = PlanName("test name 2"),
             )
 
         val planId = infraModelService.saveInfraModel(file, overrides1, extraInfo1).id
