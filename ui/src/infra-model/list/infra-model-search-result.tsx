@@ -139,7 +139,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                         <tr>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.NAME
+                                    props.searchParams.sortBy === GeometrySortBy.NAME
                                         ? getSortingIcon()
                                         : undefined
                                 }
@@ -150,7 +150,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.PROJECT_NAME
+                                    props.searchParams.sortBy === GeometrySortBy.PROJECT_NAME
                                         ? getSortingIcon()
                                         : undefined
                                 }

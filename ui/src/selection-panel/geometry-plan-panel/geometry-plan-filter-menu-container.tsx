@@ -4,13 +4,7 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 
-type GeometryPlanFilterMenuContainerProps = {
-    some?: string;
-};
-
-export const GeometryPlanFilterMenuContainer: React.FC<GeometryPlanFilterMenuContainerProps> = (
-    _,
-) => {
+export const GeometryPlanFilterMenuContainer: React.FC = () => {
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
     const state = useTrackLayoutAppSelector((state) => state);
 

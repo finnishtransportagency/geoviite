@@ -46,7 +46,7 @@ export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({
                 t('selection-panel.geometries.group-by-project'),
                 'geometry-filter.geometries.group-by-project',
             ),
-            icon: grouping == GeometryPlanGrouping.ByProject ? Icons.Tick : undefined,
+            icon: grouping === GeometryPlanGrouping.ByProject ? Icons.Tick : undefined,
         },
         {
             ...menuOption(
@@ -54,7 +54,7 @@ export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({
                 t('selection-panel.geometries.no-grouping'),
                 'geometry-filter.geometries.no-groupping',
             ),
-            icon: grouping == GeometryPlanGrouping.None ? Icons.Tick : undefined,
+            icon: grouping === GeometryPlanGrouping.None ? Icons.Tick : undefined,
         },
         menuDivider(),
         {

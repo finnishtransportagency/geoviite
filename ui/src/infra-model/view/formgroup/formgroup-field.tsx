@@ -32,7 +32,7 @@ const FormgroupField: React.FC<InfoboxFieldProps> = ({
         styles['formgroup__field'],
         inEditMode && styles['formgroup__field--edit-mode'],
         errors?.length > 0 && styles['formgroup__field--has-errors'],
-        (children || value) && styles['formgroup__field--has-value-content'],
+        children || value ? styles['formgroup__field--has-value-content'] : undefined,
     );
     return (
         <div className={className} qa-id={qaId}>
