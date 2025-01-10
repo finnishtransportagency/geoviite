@@ -227,13 +227,11 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                 </span>
 
                 <GeometryPlanFilterMenuContainer />
-
-                {planHeadersDisplayableInPanel.length > 1 && !disabled && (
-                    <Eye
-                        onVisibilityToggle={toggleAllPlanVisibilities}
-                        visibility={visiblePlansInView.length > 0}
-                    />
-                )}
+                <Eye
+                    disabled={disabled || planHeadersDisplayableInPanel.length == 0}
+                    onVisibilityToggle={toggleAllPlanVisibilities}
+                    visibility={visiblePlansInView.length > 0}
+                />
             </h3>
             <div
                 className={createClassName(

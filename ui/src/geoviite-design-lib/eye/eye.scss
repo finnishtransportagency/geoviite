@@ -10,4 +10,9 @@
     &--visible {
         fill: vayla-design.$color-blue-default;
     }
+
+    &--disabled {
+        cursor: default;
+        fill: vayla-design.$color-white-darker;
+    }
 }
