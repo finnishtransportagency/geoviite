@@ -146,7 +146,7 @@ class TestDBService(
                     "switch",
                     "switch_external_id",
                     "switch_version",
-                    "switch_joint",
+                    "switch_joint_version",
                     "track_number",
                     "track_number_external_id",
                     "segment_version",

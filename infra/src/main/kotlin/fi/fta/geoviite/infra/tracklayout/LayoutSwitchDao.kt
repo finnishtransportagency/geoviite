@@ -31,13 +31,13 @@ import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 
 const val SWITCH_CACHE_SIZE = 10000L
 
@@ -91,8 +91,9 @@ class LayoutSwitchDao(
             select number, location_accuracy, location_track_id, postgis.st_x(point) x, postgis.st_y(point) y
               from layout.switch_in_layout_context(:publication_state::layout.publication_state,
                                                    :design_id) switch
-                join layout.switch_joint on switch.id = switch_joint.switch_id
-                  and switch.layout_context_id = switch_joint.switch_layout_context_id
+                join layout.switch_joint_version jv on switch.id = jv.switch_id
+                  and switch.layout_context_id = jv.switch_layout_context_id
+                  and switch.version = jv.switch_version
                 left join (
                   select lt.id as location_track_id, *
                     from layout.segment_version
@@ -235,7 +236,7 @@ class LayoutSwitchDao(
         if (joints.isNotEmpty()) {
             val sql =
                 """
-              insert into layout.switch_joint(
+              insert into layout.switch_joint_version(
                 switch_id,
                 switch_layout_context_id,
                 switch_version,
@@ -251,11 +252,6 @@ class LayoutSwitchDao(
                 postgis.st_setsrid(postgis.st_point(:location_x, :location_y), :srid), 
                 :location_accuracy::common.location_accuracy
                 )
-              on conflict (switch_id, switch_layout_context_id, number) do update
-              set
-                switch_version = excluded.switch_version,
-                location = excluded.location,
-                location_accuracy = excluded.location_accuracy
           """
                     .trimIndent()
             val params =
@@ -274,24 +270,6 @@ class LayoutSwitchDao(
                     }
                     .toTypedArray()
             jdbcTemplate.batchUpdate(sql, params)
-        }
-
-        if (switchVersion.version > 1) {
-            val sqlDelete =
-                """ 
-              delete from layout.switch_joint 
-              where switch_id = :switch_id
-                and switch_layout_context_id = :switch_layout_context_id
-                and switch_joint.switch_version < :switch_version  
-            """
-                    .trimIndent()
-            val paramsDelete =
-                mapOf(
-                    "switch_id" to switchVersion.id.intValue,
-                    "switch_layout_context_id" to switchVersion.context.toSqlString(),
-                    "switch_version" to switchVersion.version,
-                )
-            jdbcTemplate.update(sqlDelete, paramsDelete)
         }
     }
 
@@ -332,7 +310,7 @@ class LayoutSwitchDao(
                   where jv.switch_id = sv.id
                     and jv.switch_layout_context_id = sv.layout_context_id
                     and jv.switch_version = sv.version
-                    and not jv.deleted) jv on (true)
+              ) jv on (true)
             where sv.id = :id and sv.layout_context_id = :layout_context_id and sv.version = :version
               and sv.deleted = false
         """
@@ -384,7 +362,7 @@ class LayoutSwitchDao(
                  where jv.switch_id = s.id
                    and jv.switch_layout_context_id = s.layout_context_id
                    and jv.switch_version = s.version
-                   and not jv.deleted) jv on (true)
+                ) jv on (true)
         """
                 .trimIndent()
 
@@ -612,12 +590,13 @@ class LayoutSwitchDao(
             select distinct switch.id as switch_id
               from layout.segment_version
                 join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                join layout.switch_joint on
-                  postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), switch_joint.location)
-                  and postgis.st_dwithin(segment_geometry.geometry, switch_joint.location, :dist)
-                join layout.switch_in_layout_context('DRAFT', :design_id) switch
-                  on switch_joint.switch_id = switch.id
-                    and switch_joint.switch_layout_context_id = switch.layout_context_id
+                join layout.switch_joint_version jv on
+                  postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), jv.location)
+                  and postgis.st_dwithin(segment_geometry.geometry, jv.location, :dist)
+                inner join layout.switch_in_layout_context('DRAFT', :design_id) switch
+                  on jv.switch_id = switch.id
+                    and jv.switch_layout_context_id = switch.layout_context_id
+                    and jv.switch_version = switch.version
               where segment_version.alignment_id = :alignmentId
                 and segment_version.alignment_version = :alignmentVersion
                 and switch.state_category != 'NOT_EXISTING';
