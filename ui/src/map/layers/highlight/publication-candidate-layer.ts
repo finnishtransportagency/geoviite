@@ -31,7 +31,7 @@ import {
     TrackNumberPublicationCandidate,
     WithLocation,
 } from 'publication/publication-model';
-import { rangesIntersectInclusive, Rectangle } from 'model/geometry';
+import { Point, rangesIntersectInclusive, Rectangle } from 'model/geometry';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 
@@ -41,7 +41,7 @@ export const LOCATION_TRACK_CANDIDATE_DATA_PROPERTY = 'location-track-candidate-
 export const SWITCH_CANDIDATE_DATA_PROPERTY = 'switch-candidate-data';
 export const KM_POST_CANDIDATE_DATA_PROPERTY = 'km-post-candidate-data';
 
-enum ChangeType {
+export enum ChangeType {
     EXPLICIT,
     IMPLICIT,
 }
@@ -61,14 +61,22 @@ type TrackNumberCandidateAndAlignment = {
     alignment: ReferenceLineAlignmentDataHolder;
 };
 
-function colorByStage(stage: PublicationStage, changeType: ChangeType): string {
+export function colorByStage(
+    stage: PublicationStage,
+    changeType: ChangeType,
+    isDeletion: boolean,
+): string {
     return stage === PublicationStage.STAGED
-        ? changeType === ChangeType.EXPLICIT
+        ? changeType === ChangeType.EXPLICIT && !isDeletion
             ? '#0066cc'
             : '#99c2ea'
-        : changeType === ChangeType.EXPLICIT
-          ? '#ffc300'
-          : '#cdc8b9';
+        : isDeletion
+          ? changeType === ChangeType.EXPLICIT
+              ? '#ff6903'
+              : '#f0b6b3'
+          : changeType === ChangeType.EXPLICIT
+            ? '#ffc300'
+            : '#cdc8b9';
 }
 
 const zIndexOrder = [
@@ -222,7 +230,10 @@ function createAlignmentLineStringFeature(
     alignmentPoints: AlignmentPoint[],
     candidate: PublicationCandidate,
     metersPerPixel: number,
-    type: DraftChangeType.REFERENCE_LINE | DraftChangeType.LOCATION_TRACK,
+    type:
+        | DraftChangeType.REFERENCE_LINE
+        | DraftChangeType.LOCATION_TRACK
+        | DraftChangeType.TRACK_NUMBER,
 ): Feature<LineString> {
     const start = pointRange?.indexRange.min || 0;
     const end = pointRange?.indexRange.max || lastIndex(alignmentPoints);
@@ -234,7 +245,11 @@ function createAlignmentLineStringFeature(
     const rangeLengthInPixels = rangeLengthInMeters / metersPerPixel;
     const style = new Style({
         stroke: new Stroke({
-            color: colorByStage(candidate.stage, pointRange?.changeType ?? ChangeType.IMPLICIT),
+            color: colorByStage(
+                candidate.stage,
+                pointRange?.changeType ?? ChangeType.IMPLICIT,
+                false,
+            ),
             width: 15,
             lineCap: rangeLengthInPixels < 15 ? 'square' : 'butt',
         }),
@@ -280,7 +295,7 @@ function createReferenceLineCandidateFeatures(
                     candidate.alignment.points,
                     candidate.publishCandidate,
                     metersPerPixel,
-                    DraftChangeType.LOCATION_TRACK,
+                    DraftChangeType.REFERENCE_LINE,
                 ),
         ),
     );
@@ -296,9 +311,35 @@ function createTrackNumberCandidateFeatures(
             candidate.alignment.points,
             candidate.publishCandidate,
             metersPerPixel,
-            DraftChangeType.LOCATION_TRACK,
+            DraftChangeType.TRACK_NUMBER,
         ),
     );
+}
+
+export function createPointCandidateFeature(
+    candidate: BasePublicationCandidate & WithLocation,
+    location: Point,
+    type: DraftChangeType,
+    isDeletion: boolean,
+    zIndex: number,
+): Feature<OlPoint> | undefined {
+    const color = colorByStage(candidate.stage, ChangeType.EXPLICIT, isDeletion);
+    const style = new Style({
+        image: new Circle({
+            radius: candidate.stage == PublicationStage.STAGED ? 18 : 22,
+            stroke: new Stroke({ color: color }),
+            fill: new Fill({ color: color }),
+        }),
+        zIndex,
+    });
+
+    const feature = new Feature({
+        geometry: new OlPoint(pointToCoords(location)),
+    });
+    feature.setStyle(style);
+    feature.set(dataPropertyByType(type), candidate);
+
+    return feature;
 }
 
 const createPointCandidateFeatures = (
@@ -306,29 +347,17 @@ const createPointCandidateFeatures = (
     type: DraftChangeType,
 ): Feature<OlPoint>[] =>
     switchCandidates
-        .map((candidate) => {
-            if (!candidate.location) {
-                return undefined;
-            }
-
-            const color = colorByStage(candidate.stage, ChangeType.EXPLICIT);
-            const style = new Style({
-                image: new Circle({
-                    radius: candidate.stage == PublicationStage.STAGED ? 18 : 22,
-                    stroke: new Stroke({ color: color }),
-                    fill: new Fill({ color: color }),
-                }),
-                zIndex: getZIndexByStage(candidate.stage, ChangeType.EXPLICIT),
-            });
-
-            const feature = new Feature({
-                geometry: new OlPoint(pointToCoords(candidate.location)),
-            });
-            feature.setStyle(style);
-            feature.set(dataPropertyByType(type), candidate);
-
-            return feature;
-        })
+        .map((candidate) =>
+            candidate.location
+                ? createPointCandidateFeature(
+                      candidate,
+                      candidate.location,
+                      type,
+                      false,
+                      getZIndexByStage(candidate.stage, ChangeType.EXPLICIT),
+                  )
+                : undefined,
+        )
         .filter(filterNotEmpty);
 
 const dataPropertyByType = (type: DraftChangeType) => {
@@ -518,6 +547,14 @@ export function createPublicationCandidateLayer(
                     options,
                 );
 
+            const trackNumberPublicationCandidates =
+                findMatchingEntities<TrackNumberPublicationCandidate>(
+                    hitArea,
+                    source,
+                    TRACK_NUMBER_CANDIDATE_DATA_PROPERTY,
+                    options,
+                );
+
             const switchPublicationCandidates = findMatchingEntities<SwitchPublicationCandidate>(
                 hitArea,
                 source,
@@ -532,9 +569,12 @@ export function createPublicationCandidateLayer(
                 options,
             );
 
+            console.log(locationTrackPublicationCandidates, referenceLinePublicationCandidates);
+
             return {
                 locationTrackPublicationCandidates,
                 referenceLinePublicationCandidates,
+                trackNumberPublicationCandidates,
                 switchPublicationCandidates,
                 kmPostPublicationCandidates,
             };

@@ -7,11 +7,13 @@ import {
     LocationTrackPublicationCandidate,
     ReferenceLinePublicationCandidate,
     SwitchPublicationCandidate,
+    TrackNumberPublicationCandidate,
 } from 'publication/publication-model';
 
 export type LayerItemSearchResult = OptionalItemCollections & {
     locationTrackPublicationCandidates?: LocationTrackPublicationCandidate[];
     referenceLinePublicationCandidates?: ReferenceLinePublicationCandidate[];
+    trackNumberPublicationCandidates?: TrackNumberPublicationCandidate[];
     switchPublicationCandidates?: SwitchPublicationCandidate[];
     kmPostPublicationCandidates?: KmPostPublicationCandidate[];
 };

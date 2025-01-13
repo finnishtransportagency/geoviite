@@ -489,10 +489,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 const selectedCandidates = [
                     ...(items.locationTrackPublicationCandidates || []),
                     ...(items.referenceLinePublicationCandidates || []),
+                    ...(items.trackNumberPublicationCandidates || []),
                     ...(items.switchPublicationCandidates || []),
                     ...(items.kmPostPublicationCandidates || []),
                 ].flat();
-                console.log(selectedCandidates, items, mode);
 
                 const groups = selectedCandidates
                     .map((candidate) => candidate.publicationGroup)
@@ -657,6 +657,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         }
                         publicationCandidates={diplayedOnMapPublicationCandidates}
                         customActiveMapTool={publishCandidateSelectTool}
+                        designPublicationMode={designPublicationMode}
                     />
                 </MapContext.Provider>
                 <PreviewFooter

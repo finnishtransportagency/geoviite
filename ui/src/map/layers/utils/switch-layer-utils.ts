@@ -422,7 +422,7 @@ function createSwitchFeatures(
         });
 }
 
-function createSwitchFeature(
+export function createSwitchFeature(
     layoutSwitch: LayoutSwitch,
     selected: boolean,
     highlighted: boolean,

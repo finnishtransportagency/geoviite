@@ -33,6 +33,61 @@ export function getKmPostStepByResolution(resolution: number): number {
     return kmPostSteps.find((step) => step * 10 >= resolution) || 0;
 }
 
+export function createKmPostFeature(
+    kmPost: LayoutKmPost,
+    isSelected: (kmPost: LayoutKmPost) => boolean,
+    kmPostType: 'layoutKmPost' | 'geometryKmPost',
+    isLinked: ((kmPost: LayoutKmPost) => boolean) | undefined,
+    resolution: number,
+    planId: string | undefined,
+): [Feature<OlPoint>, Feature<Polygon>] {
+    const location = kmPost.layoutLocation as Point;
+    const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
+
+    const selected = isSelected(kmPost);
+
+    feature.setStyle(
+        new Style({
+            zIndex: selected ? 1 : 0,
+            renderer: selected
+                ? getSelectedKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost))
+                : getKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost)),
+        }),
+    );
+
+    // Create a feature to act as a clickable area
+    const width = 35 * resolution;
+    const height = 15 * resolution;
+    const clickableX = location.x - 5 * resolution; // offset x a bit
+    const polygon = new Polygon([
+        [
+            [clickableX, location.y - height / 2],
+            [clickableX + width, location.y - height / 2],
+            [clickableX + width, location.y + height / 2],
+            [clickableX, location.y + height / 2],
+            [clickableX, location.y - height / 2],
+        ],
+    ]);
+    const hitAreaFeature = new Feature({ geometry: polygon });
+    setKmPostFeatureProperty(hitAreaFeature, { kmPost, planId });
+
+    return [feature, hitAreaFeature];
+}
+
+export const createKmPostBadgeFeature = (kmPost: LayoutKmPost) => {
+    const location = kmPost.layoutLocation as Point;
+    const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
+
+    feature.setStyle(
+        new Style({
+            zIndex: 2,
+            renderer: getRenderer(kmPost, 14, [kmPostIconDrawFunction(6, 12)]),
+        }),
+    );
+
+    return [feature];
+};
+
 export function createKmPostFeatures(
     kmPosts: LayoutKmPost[],
     isSelected: (kmPost: LayoutKmPost) => boolean,
@@ -43,43 +98,9 @@ export function createKmPostFeatures(
 ): Feature<OlPoint | Rectangle>[] {
     return kmPosts
         .filter((kmPost) => kmPost.layoutLocation)
-        .flatMap((kmPost) => {
-            const location = kmPost.layoutLocation as Point;
-            const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
-
-            const selected = isSelected(kmPost);
-
-            feature.setStyle(
-                new Style({
-                    zIndex: selected ? 1 : 0,
-                    renderer: selected
-                        ? getSelectedKmPostRenderer(
-                              kmPost,
-                              kmPostType,
-                              isLinked && isLinked(kmPost),
-                          )
-                        : getKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost)),
-                }),
-            );
-
-            // Create a feature to act as a clickable area
-            const width = 35 * resolution;
-            const height = 15 * resolution;
-            const clickableX = location.x - 5 * resolution; // offset x a bit
-            const polygon = new Polygon([
-                [
-                    [clickableX, location.y - height / 2],
-                    [clickableX + width, location.y - height / 2],
-                    [clickableX + width, location.y + height / 2],
-                    [clickableX, location.y + height / 2],
-                    [clickableX, location.y - height / 2],
-                ],
-            ]);
-            const hitAreaFeature = new Feature({ geometry: polygon });
-            setKmPostFeatureProperty(hitAreaFeature, { kmPost, planId });
-
-            return [feature, hitAreaFeature];
-        });
+        .flatMap((kmPost) =>
+            createKmPostFeature(kmPost, isSelected, kmPostType, isLinked, resolution, planId),
+        );
 }
 
 function getRenderer(
@@ -193,6 +214,19 @@ function getSelectedKmPostRenderer(
     return getRenderer(kmPost, 14, dFunctions);
 }
 
+const kmPostIconDrawFunction =
+    (iconRadius: number, iconSize: number) =>
+    (_: LayoutKmPost, coord: Coordinate, ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
+        const [x, y] = expectCoordinate(coord);
+        ctx.drawImage(
+            kmPostImg,
+            x - iconRadius * pixelRatio,
+            y - iconRadius * pixelRatio,
+            iconSize * pixelRatio,
+            iconSize * pixelRatio,
+        );
+    };
+
 function getKmPostRenderer(
     kmPost: LayoutKmPost,
     kmPostType: KmPostType,
@@ -242,23 +276,7 @@ function getKmPostRenderer(
         },
     );
 
-    dFunctions.push(
-        (
-            _: LayoutKmPost,
-            coord: Coordinate,
-            ctx: CanvasRenderingContext2D,
-            { pixelRatio }: State,
-        ) => {
-            const [x, y] = expectCoordinate(coord);
-            ctx.drawImage(
-                kmPostImg,
-                x - iconRadius * pixelRatio,
-                y - iconRadius * pixelRatio,
-                iconSize * pixelRatio,
-                iconSize * pixelRatio,
-            );
-        },
-    );
+    dFunctions.push(kmPostIconDrawFunction(iconRadius, iconSize));
 
     dFunctions.push(
         (

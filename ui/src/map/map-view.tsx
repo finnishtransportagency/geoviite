@@ -91,6 +91,8 @@ import { PublicationCandidate } from 'publication/publication-model';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { areaSelectTool } from 'map/tools/area-select-tool';
 import { createPreviewOfficialLocationTrackAlignmentLayer } from 'map/layers/alignment/preview-official-location-track-alignment-layer';
+import { DesignPublicationMode } from 'preview/preview-tool-bar';
+import { createDeletedPreviewPointFeaturesLayer } from 'map/layers/alignment/preview-deleted-point-features-layer';
 
 declare global {
     interface Window {
@@ -123,6 +125,7 @@ export type MapViewProps = {
     visibleLayerNames: MapLayerName[];
     publicationCandidates?: PublicationCandidate[];
     customActiveMapTool?: MapTool;
+    designPublicationMode?: DesignPublicationMode;
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -201,6 +204,7 @@ const MapView: React.FC<MapViewProps> = ({
     visibleLayerNames,
     publicationCandidates,
     customActiveMapTool,
+    designPublicationMode,
 }: MapViewProps) => {
     const { t } = useTranslation();
     // State to store OpenLayers map object between renders
@@ -370,17 +374,48 @@ const MapView: React.FC<MapViewProps> = ({
                             map.layerSettings['track-number-diagram-layer'],
                             (loading) => onLayerLoading(layerName, loading),
                         );
+                    case 'preview-official-location-track-alignment-layer':
+                        return designPublicationMode
+                            ? createPreviewOfficialLocationTrackAlignmentLayer(
+                                  mapTiles,
+                                  existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
+                                  publicationCandidates ?? [],
+                                  designPublicationMode,
+                                  !!splittingState,
+                                  layoutContext,
+                                  changeTimes,
+                                  olView,
+                                  onShownLayerItemsChange,
+                                  (loading) => onLayerLoading(layerName, loading),
+                              )
+                            : undefined;
+                    case 'preview-deleted-point-features-layer':
+                        return designPublicationMode
+                            ? createDeletedPreviewPointFeaturesLayer(
+                                  mapTiles,
+                                  existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
+                                  publicationCandidates ?? [],
+                                  designPublicationMode,
+                                  !!splittingState,
+                                  layoutContext,
+                                  changeTimes,
+                                  onShownLayerItemsChange,
+                                  (loading) => onLayerLoading(layerName, loading),
+                              )
+                            : undefined;
                     case 'publication-candidate-layer':
-                        return createPublicationCandidateLayer(
-                            mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
-                            changeTimes,
-                            layoutContext,
-                            resolution,
-                            // map.layerSettings['track-number-diagram-layer'],
-                            (loading) => onLayerLoading(layerName, loading),
-                            publicationCandidates?.length ? publicationCandidates : [],
-                        );
+                        return designPublicationMode
+                            ? createPublicationCandidateLayer(
+                                  mapTiles,
+                                  existingOlLayer as VectorLayer<Feature<LineString>>,
+                                  changeTimes,
+                                  layoutContext,
+                                  resolution,
+                                  // map.layerSettings['track-number-diagram-layer'],
+                                  (loading) => onLayerLoading(layerName, loading),
+                                  publicationCandidates?.length ? publicationCandidates : [],
+                              )
+                            : undefined;
                     case 'track-number-addresses-layer':
                         return createTrackNumberEndPointAddressesLayer(
                             mapTiles,
@@ -430,18 +465,6 @@ const MapView: React.FC<MapViewProps> = ({
                               );
                     case 'location-track-alignment-layer':
                         return createLocationTrackAlignmentLayer(
-                            mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
-                            selection,
-                            !!splittingState,
-                            layoutContext,
-                            changeTimes,
-                            olView,
-                            onShownLayerItemsChange,
-                            (loading) => onLayerLoading(layerName, loading),
-                        );
-                    case 'preview-official-location-track-alignment-layer':
-                        return createPreviewOfficialLocationTrackAlignmentLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
                             selection,
@@ -692,6 +715,7 @@ const MapView: React.FC<MapViewProps> = ({
             .forEach((l) => l.onRemove && l.onRemove());
 
         setVisibleLayers(updatedLayers);
+        console.log(updatedLayers.map((l) => l.name));
 
         // Set converted layers into map object
         const olLayers = updatedLayers.map((l) => l.layer);
