@@ -197,6 +197,7 @@ constructor(
             measurementMethod = extraInfoParameters?.measurementMethod,
             elevationMeasurementMethod = extraInfoParameters?.elevationMeasurementMethod,
             message = extraInfoParameters?.message ?: plan.message,
+            name = extraInfoParameters?.name ?: plan.name,
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
             source = overrideParameters?.source ?: plan.source,

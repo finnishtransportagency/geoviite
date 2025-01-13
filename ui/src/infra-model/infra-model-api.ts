@@ -94,6 +94,7 @@ export async function updateGeometryPlan(
         },
     );
 }
+
 export async function hidePlan(planId: GeometryPlanId): Promise<GeometryPlanId | undefined> {
     return putNonNull<boolean, GeometryPlanId>(`${INFRAMODEL_URI}/${planId}/hidden`, true).then(
         (id) => updatePlanChangeTime().then((_) => id),
@@ -190,10 +191,14 @@ const createFormData = (
     overrideParameters?: OverrideInfraModelParameters,
 ) => {
     const formData = new FormData();
-
+    const trimmedExtraParameters = extraParameters && {
+        ...extraParameters,
+        name: extraParameters.name?.trim(),
+    };
     if (file) formData.set('file', file);
     if (overrideParameters) formData.set('override-parameters', createJsonBlob(overrideParameters));
-    if (extraParameters) formData.set('extrainfo-parameters', createJsonBlob(extraParameters));
+    if (trimmedExtraParameters)
+        formData.set('extrainfo-parameters', createJsonBlob(trimmedExtraParameters));
 
     return formData;
 };

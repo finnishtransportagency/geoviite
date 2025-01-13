@@ -38,6 +38,7 @@ import fi.fta.geoviite.infra.geometry.GeometrySwitchJoint
 import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeName
 import fi.fta.geoviite.infra.geometry.GeometryUnits
 import fi.fta.geoviite.infra.geometry.MetaDataName
+import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.PlanState
 import fi.fta.geoviite.infra.geometry.PlanState.ABANDONED
@@ -87,6 +88,12 @@ const val COORDINATE_ACCURACY = 0.001
 val defaultTimeZone: ZoneId = ZoneId.of("Europe/Helsinki")
 
 val logger: Logger = LoggerFactory.getLogger(InfraModel::class.java)
+
+val findPartsToRemoveFromFileName = Regex("^B|(\\.[a-z]{1,3})*\$")
+
+fun getPlanNameByFileName(fileName: FileName): PlanName {
+    return PlanName(fileName.toString().replace(findPartsToRemoveFromFileName, ""))
+}
 
 fun toGvtPlan(
     source: PlanSource,
@@ -172,6 +179,7 @@ fun toGvtPlan(
         message = null,
         uploadTime = null,
         isHidden = false,
+        name = getPlanNameByFileName(fileName),
     )
 }
 

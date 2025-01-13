@@ -89,6 +89,7 @@ export type GeometryPlanHeader = {
     hasProfile: boolean;
     hasCant: boolean;
     isHidden: boolean;
+    name: string;
 };
 
 export type GeometryPlan = {
@@ -114,9 +115,11 @@ export type GeometryPlan = {
     message?: string;
     uploadTime?: Date;
     isHidden: boolean;
+    name: string;
 };
 
 export enum GeometrySortBy {
+    NAME,
     PROJECT_NAME,
     TRACK_NUMBER,
     KM_START,

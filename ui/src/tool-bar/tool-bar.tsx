@@ -436,7 +436,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             <div className={styles['tool-bar__left-section']}>
                 <span className={styles['tool-bar__tabs']}>
                     <TabHeader
-                        className={styles['tool-bar__tab-header']}
                         qaId="current-mode-tab"
                         selected={layoutContextMode === 'MAIN_OFFICIAL'}
                         title={layoutContextTransferDisabledReason()}
@@ -446,7 +445,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     </TabHeader>
                     <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
                         <TabHeader
-                            className={styles['tool-bar__tab-header']}
                             qaId={'draft-mode-tab'}
                             selected={layoutContextMode === 'MAIN_DRAFT'}
                             title={layoutContextTransferDisabledReason()}
@@ -459,13 +457,12 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
                             <div>
                                 <TabHeader
-                                    className={styles['tool-bar__tab-header']}
                                     qaId={'design-mode-tab'}
                                     selected={layoutContextMode === 'DESIGN'}
                                     title={layoutContextTransferDisabledReason()}
                                     disabled={!!splittingState || !!linkingState}
                                     onClick={switchToDesign}>
-                                    <span>
+                                    <span className={styles['tool-bar__tab-content']}>
                                         {t(`enum.LayoutContextMode.DESIGN`)}
                                         <span>{currentDesign && `:`}</span>
                                         <div className={styles['tool-bar__design-tab-actions']}>

@@ -16,6 +16,7 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import {
     debouncedGetGeometryPlanHeaders,
     getGeometryPlanOptions,
+    getPlanFullName,
 } from 'data-products/data-products-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
@@ -101,7 +102,7 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
                             <Dropdown
                                 qaId="data-products-search-plan"
                                 value={state.plan}
-                                getName={(item: GeometryPlanHeader) => item.fileName}
+                                getName={(item: GeometryPlanHeader) => getPlanFullName(item)}
                                 placeholder={t('data-products.search.search')}
                                 options={geometryPlanHeaders}
                                 searchable

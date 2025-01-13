@@ -48,6 +48,7 @@ import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
 import { filterByPublicationStage } from 'preview/preview-view-filters';
 import { asPublicationCandidateReferences } from 'publication/publication-utils';
+import { PlanSource } from 'geometry/geometry-model';
 
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
@@ -191,6 +192,16 @@ export type SwitchRelinkingValidationTaskList = {
     branch: LayoutBranch;
 };
 
+export enum GeometryPlanGrouping {
+    None,
+    ByProject,
+}
+
+export type GeometryPlanViewSettings = {
+    grouping: GeometryPlanGrouping;
+    visibleSources: PlanSource[];
+};
+
 export type TrackLayoutState = {
     layoutContext: LayoutContext;
     layoutContextMode: LayoutContextMode;
@@ -207,6 +218,7 @@ export type TrackLayoutState = {
     infoboxVisibilities: InfoboxVisibilities;
     locationTrackTaskList?: SwitchRelinkingValidationTaskList;
     previewState: PreviewState;
+    geometryPlanViewSettings: GeometryPlanViewSettings;
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
@@ -224,6 +236,10 @@ export const initialTrackLayoutState: TrackLayoutState = {
     locationTrackTaskList: undefined,
     previewState: {
         showOnlyOwnUnstagedChanges: false,
+    },
+    geometryPlanViewSettings: {
+        grouping: GeometryPlanGrouping.ByProject,
+        visibleSources: ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
     },
 };
 
@@ -529,6 +545,18 @@ const trackLayoutSlice = createSlice({
         },
         hideLocationTrackTaskList: (state: TrackLayoutState) => {
             state.locationTrackTaskList = undefined;
+        },
+        updateGeometryPlanGrouping: (
+            state: TrackLayoutState,
+            { payload: grouping }: PayloadAction<GeometryPlanGrouping>,
+        ) => {
+            state.geometryPlanViewSettings.grouping = grouping;
+        },
+        updateGeometryPlanVisibleSources: (
+            state: TrackLayoutState,
+            { payload: sources }: PayloadAction<PlanSource[]>,
+        ) => {
+            state.geometryPlanViewSettings.visibleSources = sources;
         },
     },
 });

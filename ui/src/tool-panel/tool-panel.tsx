@@ -42,7 +42,7 @@ import { SwitchInfoboxContainer } from 'tool-panel/switch/switch-infobox-contain
 import { SuggestedSwitchInfoboxContainer } from 'tool-panel/switch/dialog/suggested-switch-infobox-container';
 import { GeometrySwitchInfoboxContainer } from 'tool-panel/switch/dialog/geometry-switch-infobox-container';
 import { LocationTrackTaskListContainer } from 'tool-panel/location-track/location-track-task-list/location-track-task-list-container';
-import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
+import { TabHeader, TabHeaderSize } from 'geoviite-design-lib/tab-header/tab-header';
 import { LayoutContext } from 'common/common-model';
 
 type ToolPanelProps = {
@@ -482,6 +482,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         return (
                             <TabHeader
                                 className={'tool-panel__tab-header'}
+                                size={TabHeaderSize.Small}
                                 key={t.asset.type + '_' + t.asset.id}
                                 selected={selected}
                                 onClick={() => changeTab(t.asset)}>

@@ -139,14 +139,25 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                         <tr>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.PROJECT_NAME
+                                    props.searchParams.sortBy === GeometrySortBy.NAME
+                                        ? getSortingIcon()
+                                        : undefined
+                                }
+                                onClick={() => setFilter(GeometrySortBy.NAME)}
+                                className={'infra-model-list-search-result__name'}
+                                qa-id="im-form.name-header">
+                                {t('im-form.name-field')}
+                            </Th>
+                            <Th
+                                icon={
+                                    props.searchParams.sortBy === GeometrySortBy.PROJECT_NAME
                                         ? getSortingIcon()
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.PROJECT_NAME)}
                                 className={'infra-model-list-search-result__project-name'}
-                                qa-id="im-form.name-header">
-                                {t('im-form.name-field')}
+                                qa-id="im-form.project-name-header">
+                                {t('im-form.project-name-field')}
                             </Th>
                             <Th
                                 icon={

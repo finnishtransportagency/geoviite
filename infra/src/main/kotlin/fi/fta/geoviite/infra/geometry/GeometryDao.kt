@@ -100,7 +100,8 @@ constructor(
               measurement_method,
               elevation_measurement_method,
               message,
-              hidden
+              hidden,
+              name
             )
             values(
               :track_number,
@@ -123,7 +124,8 @@ constructor(
               :measurement_method::common.measurement_method,
               :elevation_measurement_method::common.elevation_measurement_method,
               :message,
-              :hidden
+              :hidden,
+              :name
             )
             returning id, version
         """
@@ -155,6 +157,7 @@ constructor(
                 "elevation_measurement_method" to plan.elevationMeasurementMethod?.name,
                 "message" to plan.message,
                 "hidden" to plan.isHidden,
+                "name" to plan.name,
             )
 
         val planId: RowVersion<GeometryPlan> =
@@ -193,7 +196,10 @@ constructor(
     fun getPlanFile(planId: IntId<GeometryPlan>): InfraModelFileWithSource {
         val sql =
             """
-          select name as file_name, plan.source, xmlserialize(document content as varchar) as file_content
+          select 
+            plan_file.name as file_name, 
+            plan.source, 
+            xmlserialize(document content as varchar) as file_content
             from geometry.plan_file
             inner join geometry.plan 
             on plan_id = plan.id
@@ -317,7 +323,8 @@ constructor(
               elevation_measurement_method = :elevation_measurement_method::common.elevation_measurement_method,
               message = :message,
               source = :source::geometry.plan_source,
-              hidden = :hidden
+              hidden = :hidden,
+              name = :name
             where id = :id
             returning id, version
         """
@@ -342,6 +349,7 @@ constructor(
                 "message" to geometryPlan.message,
                 "source" to geometryPlan.source.name,
                 "hidden" to geometryPlan.isHidden,
+                "name" to geometryPlan.name,
             )
 
         return getOne(
@@ -702,7 +710,8 @@ constructor(
             author.company_name as author,
             has_profile,
             has_cant,
-            plan.hidden
+            plan.hidden,
+            plan.name
           from geometry.plan
             left join geometry.plan_file on plan_file.plan_id = plan.id
             left join geometry.plan_project project on project.id = plan.plan_project_id
@@ -763,7 +772,8 @@ constructor(
             author.company_name as author,
             has_profile,
             has_cant,
-            plan.hidden
+            plan.hidden,
+            plan.name
           from geometry.plan_version plan
             left join geometry.plan_file on plan_file.plan_id = plan.id
             left join geometry.plan_project project on project.id = plan.plan_project_id
@@ -823,6 +833,7 @@ constructor(
             hasProfile = rs.getBoolean("has_profile"),
             hasCant = rs.getBoolean("has_cant"),
             isHidden = rs.getBoolean("hidden"),
+            name = rs.getPlanName("name"),
         )
     }
 
@@ -879,10 +890,9 @@ constructor(
             """
           select 
             plan.id,
-            plan_file.name as file_name,
+            plan.name,
             postgis.st_astext(plan.bounding_polygon_simple) as bounding_polygon
           from geometry.plan
-            left join geometry.plan_file on plan.id = plan_file.plan_id
             where hidden = false
               and postgis.st_intersects(
                   plan.bounding_polygon_simple, 
@@ -897,7 +907,7 @@ constructor(
                     val area =
                         GeometryPlanArea(
                             id = rs.getIntId("id"),
-                            fileName = rs.getFileName("file_name"),
+                            name = rs.getPlanName("name"),
                             polygon = rs.getPolygonPointList("bounding_polygon"),
                         )
                     area
@@ -937,7 +947,8 @@ constructor(
               plan.measurement_method,
               plan.elevation_measurement_method,
               plan.message,
-              plan.hidden
+              plan.hidden,
+              plan.name
             from geometry.plan 
               left join geometry.plan_file on plan_file.plan_id = plan.id
               left join geometry.plan_author on plan.plan_author_id = plan_author.id
@@ -994,6 +1005,7 @@ constructor(
                             message = rs.getFreeTextWithNewLinesOrNull("message"),
                             uploadTime = rs.getInstant("upload_time"),
                             isHidden = rs.getBoolean("hidden"),
+                            name = rs.getPlanName("name"),
                         )
                     geometryPlan
                 }

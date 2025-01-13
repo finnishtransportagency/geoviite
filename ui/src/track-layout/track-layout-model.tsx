@@ -311,7 +311,7 @@ export type LayoutKmLengthDetails = {
 
 export type PlanArea = {
     id: GeometryPlanId;
-    fileName: string;
+    name: string;
     polygon: Point[];
 };
 

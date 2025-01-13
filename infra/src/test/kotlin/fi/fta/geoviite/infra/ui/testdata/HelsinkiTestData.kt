@@ -46,6 +46,7 @@ class HelsinkiTestData private constructor() {
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = null,
                 uploadTime = Instant.now(),
+                name = PlanName("ratapiha"),
             )
         }
 

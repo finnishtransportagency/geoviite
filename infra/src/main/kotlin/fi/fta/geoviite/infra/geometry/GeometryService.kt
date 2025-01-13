@@ -43,13 +43,13 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -466,6 +466,7 @@ constructor(
         val translation = localizationService.getLocalization(lang)
         return when (sortField) {
             GeometryPlanSortField.ID -> Comparator.comparing { h -> h.id.intValue }
+            GeometryPlanSortField.NAME -> stringComparator { h -> h.name }
             GeometryPlanSortField.PROJECT_NAME -> stringComparator { h -> h.project.name }
             GeometryPlanSortField.TRACK_NUMBER -> stringComparator { h -> h.trackNumber }
             GeometryPlanSortField.KM_START ->
@@ -685,6 +686,7 @@ private fun splitSearchTerms(freeText: FreeText?): List<String> =
 
 enum class GeometryPlanSortField {
     ID,
+    NAME,
     PROJECT_NAME,
     TRACK_NUMBER,
     KM_START,
