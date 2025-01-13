@@ -41,7 +41,7 @@ const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({
         <TabHeader
             selected={activeTab === tabId}
             onClick={handleClick}
-            qa-id={`infra-model-nav-tab-${tabId}`}>
+            qaId={`infra-model-nav-tab-${tabId}`}>
             {title}
             {exclamationPointVisible && (
                 <span className={styles['tabs__exclamation-point-container']}>
