@@ -21,6 +21,8 @@ import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -28,8 +30,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPostGkLocation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
@@ -228,10 +228,7 @@ constructor(
     }
 
     @Transactional
-    fun saveKmPostLinking(
-        branch: LayoutBranch,
-        parameters: KmPostLinkingParameters,
-    ): LayoutRowVersion<TrackLayoutKmPost> {
+    fun saveKmPostLinking(branch: LayoutBranch, parameters: KmPostLinkingParameters): LayoutRowVersion<LayoutKmPost> {
         verifyPlanNotHidden(parameters.geometryPlanId)
 
         val geometryKmPost = geometryService.getKmPost(parameters.geometryKmPostId)
@@ -247,7 +244,7 @@ constructor(
         val modifiedLayoutKmPost =
             layoutKmPost.copy(
                 gkLocation =
-                    TrackLayoutKmPostGkLocation(
+                    LayoutKmPostGkLocation(
                         location = newGkLocation,
                         source = KmPostGkLocationSource.FROM_GEOMETRY,
                         confirmed = true,

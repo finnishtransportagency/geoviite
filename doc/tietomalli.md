@@ -32,15 +32,15 @@ käsitteistön kannalta oleellista osaa niiden tietosisällöstä.
 | GeometryCant                  | (osana geometry.alignment taulua) | Suunnitelman raiteen kallistus                                |                                                                      |
 | GeometryCantPoint             | geometry.cant_point               | Suunnitelman raiteen kallistuspiste                           | Määrityskohta kaltevuudelle: arvo suhteessa raiteen pituuteen        |
 | **Paikannuspohjan käsitteet** |                                   |                                                               |                                                                      |
-| TrackLayoutTrackNumber        | layout.track_number               | Paikannuspohjan ratanumero                                    |                                                                      |
+| LayoutTrackNumber             | layout.track_number               | Paikannuspohjan ratanumero                                    |                                                                      |
 | ReferenceLine                 | layout.reference_line             | Paikannuspohjan pituusmittauslinja                            | Ratanumeron osoitteiston määräävä linja. Yleensä seuraa pääraidetta. |
-| TrackLayoutKmPost             | layout.km_post                    | Paikannuspohjan tasakilometripiste                            | Rataosoitteen kilometrinumeron vaihtumiskohta pituusmittauslinjalla  |
+| LayoutKmPost                  | layout.km_post                    | Paikannuspohjan tasakilometripiste                            | Rataosoitteen kilometrinumeron vaihtumiskohta pituusmittauslinjalla  |
 | LocationTrack                 | layout.location_track             | Paikannuspohjan sijaintiraide                                 |                                                                      |
 | LayoutAlignment               | layout.alignment                  | Paikannuspohjan keskilinja                                    | Paikannuspohjan geometriaviiva (kokonaisuus)                         |
 | LayoutSegment                 | layout.segment_version            | Paikannuspohjan keskilinjan segmentti                         | Geometriaviivan pätkä: metatiedoiltaan yhtenevä osa                  |
 | SegmentGeometry               | layout.segment_geometry           | Paikannuspohjan segmenttigeometria                            | Uniikki segmentin geometriapätkä                                     |
-| TrackLayoutSwitch             | layout.switch                     | Paikannuspohjan vaihde                                        |                                                                      |
-| TrackLayoutSwitchJoint        | layout.switch_joint               | Paikannuspohjan vaihdepiste                                   |                                                                      |
+| LayoutSwitch                  | layout.switch                     | Paikannuspohjan vaihde                                        |                                                                      |
+| LayoutSwitchJoint             | layout.switch_joint               | Paikannuspohjan vaihdepiste                                   |                                                                      |
 | **Muut käsitteet**            |                                   |                                                               |                                                                      |
 | PVDocument                    | projektivelho.document            | Projektivelhon dokumentti                                     | Projektivelhosta ladattu yksittäinen tiedosto                        |
 | SwitchStructure               | common.switch_structure           | Vaihdetyyppi                                                  | Vaihdetyypin kuvaus ja sen RATO-määrityksen mukainen rakenne         |
@@ -77,7 +77,7 @@ classDiagram
     GeometryPlan *-- "*" GeometrySwitch
     GeometrySwitch *-- "1..n" GeometrySwitchJoint
     GeometryPlan *-- "*" GeometryKmPost
-    TrackLayoutTrackNumber "0..1" <-- GeometryPlan
+    LayoutTrackNumber "0..1" <-- GeometryPlan
     PVDocument "0..1" <-- GeometryPlan
     GeometrySwitch "0..1" --> SwitchStructure
     class GeometryPlan {
@@ -133,7 +133,7 @@ classDiagram
         presentationJointNumber: Int
         [structure geometry as a separate object model]
     }
-    class TrackLayoutTrackNumber {
+    class LayoutTrackNumber {
         [See layout model below]
     }
     class PVDocument {
@@ -245,9 +245,9 @@ classDiagram
     LocationTrack "1" --> "1" LayoutAlignment
     LayoutSegment *-- "1" SegmentGeometry
     SegmentGeometry *-- SegmentPoint
-    TrackLayoutTrackNumber "1" <-- "1" LocationTrack
-    TrackLayoutTrackNumber "1" <-- "1" ReferenceLine
-    TrackLayoutTrackNumber "1" <-- "n" LayoutKmPost
+    LayoutTrackNumber "1" <-- "1" LocationTrack
+    LayoutTrackNumber "1" <-- "1" ReferenceLine
+    LayoutTrackNumber "1" <-- "n" LayoutKmPost
     LayoutSwitch *-- "n" LayoutSwitchJoint
     LayoutSwitch <-- LayoutSegment
     LayoutAlignment *-- "n" LayoutSegment
@@ -257,7 +257,7 @@ classDiagram
     GeometrySwitch "0..1" <-- "n" LayoutSwitch
     LayoutSegment "n" --> "0..1" GeometryElement
 
-    class TrackLayoutTrackNumber {
+    class LayoutTrackNumber {
         externalId: Oid
         number: String
         description: String

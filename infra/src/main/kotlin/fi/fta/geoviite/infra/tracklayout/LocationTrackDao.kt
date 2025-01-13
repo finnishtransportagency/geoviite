@@ -240,11 +240,11 @@ class LocationTrackDao(
             topologicalConnectivity = rs.getEnum("topological_connectivity"),
             ownerId = rs.getIntId("owner_id"),
             topologyStartSwitch =
-                rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")?.let { id ->
+                rs.getIntIdOrNull<LayoutSwitch>("topology_start_switch_id")?.let { id ->
                     TopologyLocationTrackSwitch(id, rs.getJointNumber("topology_start_switch_joint_number"))
                 },
             topologyEndSwitch =
-                rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")?.let { id ->
+                rs.getIntIdOrNull<LayoutSwitch>("topology_end_switch_id")?.let { id ->
                     TopologyLocationTrackSwitch(id, rs.getJointNumber("topology_end_switch_joint_number"))
                 },
             segmentSwitchIds = rs.getIntIdArray("segment_switch_ids"),
@@ -372,14 +372,14 @@ class LocationTrackDao(
     fun list(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
     ): List<LocationTrack> = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).map(::fetch)
 
     fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
@@ -412,7 +412,7 @@ class LocationTrackDao(
         context: LayoutContext,
         bbox: BoundingBox,
         includeDeleted: Boolean = false,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
@@ -484,7 +484,7 @@ class LocationTrackDao(
     fun fetchOnlyDraftVersions(
         branch: LayoutBranch,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
@@ -511,9 +511,9 @@ class LocationTrackDao(
 
     fun fetchVersionsForPublication(
         target: ValidationTarget,
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
         trackIdsToPublish: List<IntId<LocationTrack>>,
-    ): Map<IntId<TrackLayoutTrackNumber>, List<LayoutRowVersion<LocationTrack>>> {
+    ): Map<IntId<LayoutTrackNumber>, List<LayoutRowVersion<LocationTrack>>> {
         if (trackNumberIds.isEmpty()) return emptyMap()
 
         val sql =
@@ -543,7 +543,7 @@ class LocationTrackDao(
             ) + target.sqlParameters()
         val versions =
             jdbcTemplate.query(sql, params) { rs, _ ->
-                val trackNumberId = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
+                val trackNumberId = rs.getIntId<LayoutTrackNumber>("track_number_id")
                 val daoResponse = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
                 trackNumberId to daoResponse
             }

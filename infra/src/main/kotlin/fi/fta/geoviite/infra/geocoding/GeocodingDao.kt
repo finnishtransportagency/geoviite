@@ -8,10 +8,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersionArray
@@ -42,13 +42,13 @@ class GeocodingDao(
 
     fun getLayoutGeocodingContextCacheKey(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): LayoutGeocodingContextCacheKey? =
         getOptional(trackNumberId, getLayoutGeocodingContextCacheKeysInternal(layoutContext, trackNumberId))
 
     private fun getLayoutGeocodingContextCacheKeysInternal(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>?,
+        trackNumberId: IntId<LayoutTrackNumber>?,
     ): List<LayoutGeocodingContextCacheKey> {
         // language=SQL
         val sql =
@@ -93,7 +93,7 @@ class GeocodingDao(
 
     fun getLayoutGeocodingContextCacheKey(
         branch: LayoutBranch,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         moment: Instant,
     ): GeocodingContextCacheKey? {
         // language=SQL
@@ -191,7 +191,7 @@ class GeocodingDao(
 
     private fun toGeocodingContextCacheKey(rs: ResultSet): LayoutGeocodingContextCacheKey? {
         val tnVersion =
-            rs.getLayoutRowVersionOrNull<TrackLayoutTrackNumber>("tn_id", "tn_design_id", "tn_draft", "tn_version")
+            rs.getLayoutRowVersionOrNull<LayoutTrackNumber>("tn_id", "tn_design_id", "tn_draft", "tn_version")
         val rlVersion = rs.getLayoutRowVersionOrNull<ReferenceLine>("rl_id", "rl_design_id", "rl_draft", "rl_version")
         return if (tnVersion == null || rlVersion == null) {
             null
@@ -205,7 +205,7 @@ class GeocodingDao(
     }
 
     fun getLayoutGeocodingContextCacheKey(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         versions: ValidationVersions,
     ): GeocodingContextCacheKey? {
         val base = getLayoutGeocodingContextCacheKey(versions.target.baseContext, trackNumberId)

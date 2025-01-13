@@ -8,29 +8,29 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull
-import java.time.Instant
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -42,7 +42,7 @@ constructor(
     val publicationDao: PublicationDao,
     val locationTrackDao: LocationTrackDao,
 ) : DBTestBase() {
-    lateinit var trackNumberId: IntId<TrackLayoutTrackNumber>
+    lateinit var trackNumberId: IntId<LayoutTrackNumber>
     lateinit var publicationId: IntId<Publication>
     lateinit var locationTrackId: IntId<LocationTrack>
     lateinit var publicationMoment: Instant
@@ -251,11 +251,11 @@ constructor(
 
     fun createPublication(
         layoutBranch: LayoutBranch = LayoutBranch.main,
-        trackNumbers: List<LayoutRowVersion<TrackLayoutTrackNumber>> = listOf(),
+        trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>> = listOf(),
         referenceLines: List<LayoutRowVersion<ReferenceLine>> = listOf(),
         locationTracks: List<LayoutRowVersion<LocationTrack>> = listOf(),
-        switches: List<LayoutRowVersion<TrackLayoutSwitch>> = listOf(),
-        kmPosts: List<LayoutRowVersion<TrackLayoutKmPost>> = listOf(),
+        switches: List<LayoutRowVersion<LayoutSwitch>> = listOf(),
+        kmPosts: List<LayoutRowVersion<LayoutKmPost>> = listOf(),
         message: String = "",
     ): IntId<Publication> =
         publicationDao

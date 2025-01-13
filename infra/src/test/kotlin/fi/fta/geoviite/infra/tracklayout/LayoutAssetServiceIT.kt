@@ -328,11 +328,11 @@ constructor(
     }
 
     private data class AllAssetTypes(
-        val trackNumber: IntId<TrackLayoutTrackNumber>,
+        val trackNumber: IntId<LayoutTrackNumber>,
         val referenceLine: IntId<ReferenceLine>,
         val locationTrack: IntId<LocationTrack>,
-        val switch: IntId<TrackLayoutSwitch>,
-        val kmPost: IntId<TrackLayoutKmPost>,
+        val switch: IntId<LayoutSwitch>,
+        val kmPost: IntId<LayoutKmPost>,
     ) {
         companion object {
             fun createIn(context: TestLayoutContext): AllAssetTypes {

@@ -7,13 +7,15 @@ import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.tracklayout.DuplicateStatus
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.SwitchOnLocationTrack
 import java.time.Instant
 
 class BulkTransfer
@@ -52,7 +54,7 @@ data class Split(
     val publicationId: IntId<Publication>?,
     val publicationTime: Instant?,
     val targetLocationTracks: List<SplitTarget>,
-    val relinkedSwitches: List<IntId<TrackLayoutSwitch>>,
+    val relinkedSwitches: List<IntId<LayoutSwitch>>,
     val updatedDuplicates: List<IntId<LocationTrack>>,
 ) {
     init {
@@ -84,7 +86,7 @@ data class Split(
     fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? =
         targetLocationTracks.find { track -> track.locationTrackId == trackId }
 
-    fun containsSwitch(switchId: IntId<TrackLayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
+    fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
 }
 
 enum class SplitTargetOperation {
@@ -111,11 +113,11 @@ data class SplitTarget(
 )
 
 data class SplitLayoutValidationIssues(
-    val trackNumbers: Map<IntId<TrackLayoutTrackNumber>, List<LayoutValidationIssue>>,
+    val trackNumbers: Map<IntId<LayoutTrackNumber>, List<LayoutValidationIssue>>,
     val referenceLines: Map<IntId<ReferenceLine>, List<LayoutValidationIssue>>,
-    val kmPosts: Map<IntId<TrackLayoutKmPost>, List<LayoutValidationIssue>>,
+    val kmPosts: Map<IntId<LayoutKmPost>, List<LayoutValidationIssue>>,
     val locationTracks: Map<IntId<LocationTrack>, List<LayoutValidationIssue>>,
-    val switches: Map<IntId<TrackLayoutSwitch>, List<LayoutValidationIssue>>,
+    val switches: Map<IntId<LayoutSwitch>, List<LayoutValidationIssue>>,
 ) {
     fun allIssues(): List<LayoutValidationIssue> =
         (trackNumbers.values + referenceLines.values + kmPosts.values + locationTracks.values + switches.values)
@@ -126,7 +128,7 @@ data class SplitRequestTargetDuplicate(val id: IntId<LocationTrack>, val operati
 
 data class SplitRequestTarget(
     val duplicateTrack: SplitRequestTargetDuplicate?,
-    val startAtSwitchId: IntId<TrackLayoutSwitch>?,
+    val startAtSwitchId: IntId<LayoutSwitch>?,
     val name: AlignmentName,
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,
@@ -136,3 +138,16 @@ data class SplitRequestTarget(
 }
 
 data class SplitRequest(val sourceTrackId: IntId<LocationTrack>, val targetTracks: List<SplitRequestTarget>)
+
+data class SplittingInitializationParameters(
+    val id: IntId<LocationTrack>,
+    val switches: List<SwitchOnLocationTrack>,
+    val duplicates: List<SplitDuplicateTrack>,
+)
+
+data class SplitDuplicateTrack(
+    val id: IntId<LocationTrack>,
+    val name: AlignmentName,
+    val length: Double,
+    val status: DuplicateStatus,
+)

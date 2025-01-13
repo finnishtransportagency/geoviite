@@ -15,8 +15,8 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
 
 typealias FrameConverterIdentifierV1 = FreeText
@@ -254,7 +254,7 @@ data class TrackAddressToCoordinateRequestV1(
  */
 data class ValidTrackAddressToCoordinateRequestV1(
     val identifier: FrameConverterIdentifierV1?,
-    val trackNumber: TrackLayoutTrackNumber,
+    val trackNumber: LayoutTrackNumber,
     val trackAddress: TrackMeter,
     val locationTrackName: AlignmentName?,
     val locationTrackType: LocationTrackType?,

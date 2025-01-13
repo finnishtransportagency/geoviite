@@ -51,7 +51,7 @@ class LayoutTrackNumberController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("includeDeleted", defaultValue = "false") includeDeleted: Boolean,
-    ): List<TrackLayoutTrackNumber> {
+    ): List<LayoutTrackNumber> {
         val context = LayoutContext.of(branch, publicationState)
         return trackNumberService.list(context, includeDeleted)
     }
@@ -61,8 +61,8 @@ class LayoutTrackNumberController(
     fun getTrackNumber(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
-    ): ResponseEntity<TrackLayoutTrackNumber> {
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
+    ): ResponseEntity<LayoutTrackNumber> {
         val context = LayoutContext.of(branch, publicationState)
         return toResponse(trackNumberService.get(context, id))
     }
@@ -72,8 +72,8 @@ class LayoutTrackNumberController(
     fun validateTrackNumberAndReferenceLine(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
-    ): ResponseEntity<ValidatedAsset<TrackLayoutTrackNumber>> {
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
+    ): ResponseEntity<ValidatedAsset<LayoutTrackNumber>> {
         return publicationValidationService
             .validateTrackNumbersAndReferenceLines(draftTransitionOrOfficialState(publicationState, branch), listOf(id))
             .firstOrNull()
@@ -85,7 +85,7 @@ class LayoutTrackNumberController(
     fun insertTrackNumber(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody saveRequest: TrackNumberSaveRequest,
-    ): IntId<TrackLayoutTrackNumber> {
+    ): IntId<LayoutTrackNumber> {
         return trackNumberService.insert(branch, saveRequest).id
     }
 
@@ -93,9 +93,9 @@ class LayoutTrackNumberController(
     @PutMapping("/{$LAYOUT_BRANCH}/draft/{id}")
     fun updateTrackNumber(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable id: IntId<TrackLayoutTrackNumber>,
+        @PathVariable id: IntId<LayoutTrackNumber>,
         @RequestBody saveRequest: TrackNumberSaveRequest,
-    ): IntId<TrackLayoutTrackNumber> {
+    ): IntId<LayoutTrackNumber> {
         return trackNumberService.update(branch, id, saveRequest).id
     }
 
@@ -103,8 +103,8 @@ class LayoutTrackNumberController(
     @DeleteMapping("/{$LAYOUT_BRANCH}/draft/{id}")
     fun deleteDraftTrackNumber(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
-    ): IntId<TrackLayoutTrackNumber> {
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
+    ): IntId<LayoutTrackNumber> {
         return trackNumberService.deleteDraftAndReferenceLine(branch, id)
     }
 
@@ -112,15 +112,15 @@ class LayoutTrackNumberController(
     @PostMapping("/{$LAYOUT_BRANCH}/{id}/cancel")
     fun cancelTrackNumber(
         @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
-    ): ResponseEntity<IntId<TrackLayoutTrackNumber>> = toResponse(trackNumberService.cancel(branch, id)?.id)
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
+    ): ResponseEntity<IntId<LayoutTrackNumber>> = toResponse(trackNumberService.cancel(branch, id)?.id)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/plan-geometry")
     fun getTrackSectionsByPlan(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
         val context = LayoutContext.of(branch, publicationState)
@@ -132,8 +132,8 @@ class LayoutTrackNumberController(
     fun getTrackNumberKmLengths(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
-    ): List<TrackLayoutKmLengthDetails> {
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
+    ): List<LayoutKmLengthDetails> {
         val context = LayoutContext.of(branch, publicationState)
         return trackNumberService.getKmLengths(context, id) ?: emptyList()
     }
@@ -143,7 +143,7 @@ class LayoutTrackNumberController(
     fun getTrackNumberKmLengthsAsCsv(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
         @RequestParam("startKmNumber") startKmNumber: KmNumber? = null,
         @RequestParam("endKmNumber") endKmNumber: KmNumber? = null,
         @RequestParam("precision") precision: KmLengthsLocationPrecision,
@@ -199,7 +199,7 @@ class LayoutTrackNumberController(
     fun getTrackNumberChangeInfo(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): ResponseEntity<LayoutAssetChangeInfo> {
         val context = LayoutContext.of(branch, publicationState)
         return toResponse(trackNumberService.getLayoutAssetChangeInfo(context, id))
@@ -208,8 +208,8 @@ class LayoutTrackNumberController(
     @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/{id}/oids")
     fun getTrackNumberOids(
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>
-    ): Map<LayoutBranch, Oid<TrackLayoutTrackNumber>> {
+        @PathVariable("id") id: IntId<LayoutTrackNumber>
+    ): Map<LayoutBranch, Oid<LayoutTrackNumber>> {
         return trackNumberService.getExternalIdsByBranch(id)
     }
 }

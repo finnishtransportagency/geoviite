@@ -12,12 +12,12 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.RatkoClient.RatkoStatus
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
@@ -46,12 +46,11 @@ constructor(
                     TRACK_NUMBER ->
                         trackNumberService.get(
                             MainLayoutContext.official,
-                            ratkoError.assetId as IntId<TrackLayoutTrackNumber>,
+                            ratkoError.assetId as IntId<LayoutTrackNumber>,
                         )
                     LOCATION_TRACK ->
                         locationTrackService.get(MainLayoutContext.official, ratkoError.assetId as IntId<LocationTrack>)
-                    SWITCH ->
-                        switchService.get(MainLayoutContext.official, ratkoError.assetId as IntId<TrackLayoutSwitch>)
+                    SWITCH -> switchService.get(MainLayoutContext.official, ratkoError.assetId as IntId<LayoutSwitch>)
                 }
             checkNotNull(asset) { "No asset found for id! ${ratkoError.assetType} ${ratkoError.assetId}" }
 

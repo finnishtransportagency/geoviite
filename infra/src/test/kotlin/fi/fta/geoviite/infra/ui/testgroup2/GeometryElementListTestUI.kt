@@ -17,8 +17,8 @@ import fi.fta.geoviite.infra.geometry.minimalCurve
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -146,7 +146,7 @@ constructor(
 
     private fun linkPlanToSomeLocationTrack(
         planVersion: RowVersion<GeometryPlan>,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ) {
         val geometryPlan = geometryDao.fetchPlan(planVersion)
         val geoAlignmentA = geometryPlan.alignments[0]

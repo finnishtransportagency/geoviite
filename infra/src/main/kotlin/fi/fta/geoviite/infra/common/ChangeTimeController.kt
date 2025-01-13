@@ -77,31 +77,31 @@ class ChangeTimeController(
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/track-numbers")
-    fun getTrackLayoutTrackNumberChangeTime(): Instant {
+    fun getLayoutTrackNumberChangeTime(): Instant {
         return trackNumberService.getChangeTime()
     }
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/location-tracks")
-    fun getTrackLayoutLocationTrackChangeTime(): Instant {
+    fun getLayoutLocationTrackChangeTime(): Instant {
         return locationTrackService.getChangeTime()
     }
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/reference-lines")
-    fun getTrackLayoutReferenceLineChangeTime(): Instant {
+    fun getLayoutReferenceLineChangeTime(): Instant {
         return referenceLineService.getChangeTime()
     }
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/switches")
-    fun getTrackLayoutSwitchChangeTime(): Instant {
+    fun getLayoutSwitchChangeTime(): Instant {
         return switchService.getChangeTime()
     }
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/km-posts")
-    fun getTrackLayoutKmPostChangeTime(): Instant {
+    fun getLayoutKmPostChangeTime(): Instant {
         return kmPostService.getChangeTime()
     }
 

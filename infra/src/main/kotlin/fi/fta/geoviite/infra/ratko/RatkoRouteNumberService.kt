@@ -17,8 +17,8 @@ import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoNodeCollection
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
@@ -37,7 +37,7 @@ constructor(
         branch: LayoutBranch,
         publishedTrackNumbers: Collection<PublishedTrackNumber>,
         publicationTime: Instant,
-    ): List<Oid<TrackLayoutTrackNumber>> {
+    ): List<Oid<LayoutTrackNumber>> {
         // TODO: Design branches not yet supported. We need to ensure that design tracknumbers have
         // own OIDs -> could we rely on tracknumber.branch instead of arg?
         assertMainBranch(branch)
@@ -87,8 +87,8 @@ constructor(
     }
 
     private fun deleteRouteNumber(
-        trackNumber: TrackLayoutTrackNumber,
-        trackNumberOid: Oid<TrackLayoutTrackNumber>,
+        trackNumber: LayoutTrackNumber,
+        trackNumberOid: Oid<LayoutTrackNumber>,
         existingRatkoRouteNumber: RatkoRouteNumber,
     ) {
         try {
@@ -108,8 +108,8 @@ constructor(
 
     private fun updateRouteNumber(
         branch: LayoutBranch,
-        trackNumber: TrackLayoutTrackNumber,
-        trackNumberOid: Oid<TrackLayoutTrackNumber>,
+        trackNumber: LayoutTrackNumber,
+        trackNumberOid: Oid<LayoutTrackNumber>,
         existingRatkoRouteNumber: RatkoRouteNumber,
         moment: Instant,
         changedKmNumbers: Set<KmNumber>,
@@ -164,8 +164,8 @@ constructor(
 
     private fun createRouteNumber(
         branch: LayoutBranch,
-        trackNumber: TrackLayoutTrackNumber,
-        trackNumberOid: Oid<TrackLayoutTrackNumber>,
+        trackNumber: LayoutTrackNumber,
+        trackNumberOid: Oid<LayoutTrackNumber>,
         moment: Instant,
     ) {
         try {
@@ -198,8 +198,8 @@ constructor(
         }
 
     private fun updateRouteNumberProperties(
-        trackNumber: TrackLayoutTrackNumber,
-        trackNumberOid: Oid<TrackLayoutTrackNumber>,
+        trackNumber: LayoutTrackNumber,
+        trackNumberOid: Oid<LayoutTrackNumber>,
         nodeCollection: RatkoNodes? = null,
     ) {
         val ratkoRouteNumber =

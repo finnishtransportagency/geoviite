@@ -356,14 +356,14 @@ class E2EGeometryKmPostLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infobox
         )
     }
 
-    fun createNewTrackLayoutKmPost(): E2EKmPostEditDialog {
+    fun createNewLayoutKmPost(): E2EKmPostEditDialog {
         logger.info("Create new layout km post")
 
         clickChild(By.cssSelector("div.geometry-km-post-linking-infobox__search button"))
         return E2EKmPostEditDialog()
     }
 
-    val trackLayoutKmPosts: List<String>
+    val layoutKmPosts: List<String>
         get() = childTexts(By.xpath(".//li[@class='geometry-km-post-linking-infobox__layout-km-post']"))
 
     override fun initiateLinking(): E2ELinkingInfoBox = apply {
@@ -453,7 +453,7 @@ class E2EGeometrySwitchLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infobox
     override val linked: String
         get() = childText(ByChained(byQaId("geometry-switch-linked"), By.className("infobox__field-value")))
 
-    fun createNewTrackLayoutSwitch(): E2ELayoutSwitchEditDialog {
+    fun createNewLayoutSwitch(): E2ELayoutSwitchEditDialog {
         logger.info("Create new layout switch")
         clickChild(By.cssSelector("div.geometry-switch-infobox__search-container button"))
 

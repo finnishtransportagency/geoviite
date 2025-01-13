@@ -699,7 +699,7 @@ constructor(
 
     private fun getTrackNameSetByLayoutContextAndTrackNumber(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): Set<String> {
         val names =
             locationTrackDao.list(layoutContext, includeDeleted = false, trackNumberId = trackNumberId).map {
@@ -710,14 +710,14 @@ constructor(
         return nameSet
     }
 
-    private fun insertOfficialLocationTrack(tnId: IntId<TrackLayoutTrackNumber>): LayoutRowVersion<LocationTrack> {
+    private fun insertOfficialLocationTrack(tnId: IntId<LayoutTrackNumber>): LayoutRowVersion<LocationTrack> {
         val (track, alignment) = locationTrackAndAlignment(tnId, draft = false)
         val alignmentVersion = alignmentDao.insert(alignment)
         return locationTrackDao.save(track.copy(alignmentVersion = alignmentVersion))
     }
 
     private fun insertDraftLocationTrack(
-        tnId: IntId<TrackLayoutTrackNumber>,
+        tnId: IntId<LayoutTrackNumber>,
         state: LocationTrackState = LocationTrackState.IN_USE,
     ): LayoutRowVersion<LocationTrack> {
         val (track, alignment) = locationTrackAndAlignment(trackNumberId = tnId, state = state, draft = true)
@@ -727,7 +727,7 @@ constructor(
 
     private fun createDraftWithNewTrackNumber(
         trackVersion: LayoutRowVersion<LocationTrack>,
-        newTrackNumber: IntId<TrackLayoutTrackNumber>,
+        newTrackNumber: IntId<LayoutTrackNumber>,
     ): LayoutRowVersion<LocationTrack> {
         val track = locationTrackDao.fetch(trackVersion)
         assertFalse(track.isDraft)

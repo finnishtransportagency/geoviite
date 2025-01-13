@@ -17,7 +17,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
@@ -27,8 +29,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -119,11 +119,11 @@ constructor(
 
         val switchAtStart =
             mainOfficialContext.insert(
-                switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)))
+                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)))
             )
         val switchAtEnd =
             mainOfficialContext.insert(
-                switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(10.0, 0.0), null)))
+                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(10.0, 0.0), null)))
             )
         switchDao.insertExternalId(switchAtStart.id, LayoutBranch.main, Oid("2.2.3.4.5"))
         switchDao.insertExternalId(switchAtEnd.id, LayoutBranch.main, Oid("2.2.3.4.6"))
@@ -187,7 +187,7 @@ constructor(
                     .trimIndent(),
                 mapOf("publication_id" to designPublicationId.intValue),
             ) { rs, _ ->
-                rs.getLayoutRowVersion<TrackLayoutSwitch>("id", "design_id", "draft", "version")
+                rs.getLayoutRowVersion<LayoutSwitch>("id", "design_id", "draft", "version")
             }
         assertEquals(listOf(switchAtEnd), publishedSwitches)
 

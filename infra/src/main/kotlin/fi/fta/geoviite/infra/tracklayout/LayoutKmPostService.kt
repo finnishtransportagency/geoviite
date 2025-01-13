@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryDao
-import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
+import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.pageToList
@@ -18,12 +18,12 @@ class LayoutKmPostService(
     dao: LayoutKmPostDao,
     private val referenceLineService: ReferenceLineService,
     private val geometryDao: GeometryDao,
-) : LayoutAssetService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
+) : LayoutAssetService<LayoutKmPost, LayoutKmPostDao>(dao) {
 
     @Transactional
-    fun insertKmPost(branch: LayoutBranch, request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
+    fun insertKmPost(branch: LayoutBranch, request: LayoutKmPostSaveRequest): IntId<LayoutKmPost> {
         val kmPost =
-            TrackLayoutKmPost(
+            LayoutKmPost(
                 kmNumber = request.kmNumber,
                 state = request.state,
                 trackNumberId = request.trackNumberId,
@@ -37,30 +37,30 @@ class LayoutKmPostService(
     @Transactional
     fun updateKmPost(
         branch: LayoutBranch,
-        id: IntId<TrackLayoutKmPost>,
-        kmPost: TrackLayoutKmPostSaveRequest,
-    ): IntId<TrackLayoutKmPost> {
-        val trackLayoutKmPost =
+        id: IntId<LayoutKmPost>,
+        request: LayoutKmPostSaveRequest,
+    ): IntId<LayoutKmPost> {
+        val kmPost =
             dao.getOrThrow(branch.draft, id)
                 .copy(
-                    kmNumber = kmPost.kmNumber,
-                    state = kmPost.state,
-                    gkLocation = kmPost.gkLocation,
-                    sourceId = kmPost.sourceId,
+                    kmNumber = request.kmNumber,
+                    state = request.state,
+                    gkLocation = request.gkLocation,
+                    sourceId = request.sourceId,
                 )
-        return saveDraftInternal(branch, trackLayoutKmPost).id
+        return saveDraftInternal(branch, kmPost).id
     }
 
-    fun list(layoutContext: LayoutContext, filter: ((kmPost: TrackLayoutKmPost) -> Boolean)?): List<TrackLayoutKmPost> {
+    fun list(layoutContext: LayoutContext, filter: ((kmPost: LayoutKmPost) -> Boolean)?): List<LayoutKmPost> {
         val all = dao.list(layoutContext, false)
         return filter?.let(all::filter) ?: all
     }
 
-    fun list(layoutContext: LayoutContext, trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
+    fun list(layoutContext: LayoutContext, trackNumberId: IntId<LayoutTrackNumber>): List<LayoutKmPost> {
         return dao.list(layoutContext, false, trackNumberId)
     }
 
-    fun list(layoutContext: LayoutContext, boundingBox: BoundingBox, step: Int): List<TrackLayoutKmPost> {
+    fun list(layoutContext: LayoutContext, boundingBox: BoundingBox, step: Int): List<LayoutKmPost> {
         return dao.list(layoutContext, false, bbox = boundingBox).filter { p ->
             (step <= 1 || (p.kmNumber.isPrimary() && p.kmNumber.number % step == 0))
         }
@@ -68,27 +68,27 @@ class LayoutKmPostService(
 
     fun getByKmNumber(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         kmNumber: KmNumber,
         includeDeleted: Boolean,
-    ): TrackLayoutKmPost? {
+    ): LayoutKmPost? {
         return dao.fetchVersion(layoutContext, trackNumberId, kmNumber, includeDeleted)?.let(dao::fetch)
     }
 
     fun listNearbyOnTrackPaged(
         layoutContext: LayoutContext,
         location: Point,
-        trackNumberId: IntId<TrackLayoutTrackNumber>?,
+        trackNumberId: IntId<LayoutTrackNumber>?,
         offset: Int,
         limit: Int?,
-    ): List<TrackLayoutKmPost> {
+    ): List<LayoutKmPost> {
         val allPosts = dao.list(layoutContext, false, trackNumberId)
         val postsByDistance = allPosts.map { post -> associateByDistance(post, location) }
         return pageToList(postsByDistance, offset, limit, ::compareByDistanceNullsFirst).map { (kmPost, _) -> kmPost }
     }
 
     @Transactional(readOnly = true)
-    fun getKmPostInfoboxExtras(layoutContext: LayoutContext, id: IntId<TrackLayoutKmPost>): KmPostInfoboxExtras {
+    fun getKmPostInfoboxExtras(layoutContext: LayoutContext, id: IntId<LayoutKmPost>): KmPostInfoboxExtras {
         val kmPost = dao.get(layoutContext, id)
         val length = getSingleKmPostLength(layoutContext, id)
         val geometryPlanId = if (kmPost?.sourceId is IntId) geometryDao.getPlanIdForKmPost(kmPost.sourceId) else null
@@ -96,7 +96,7 @@ class LayoutKmPostService(
         return KmPostInfoboxExtras(length, geometryPlanId)
     }
 
-    fun getSingleKmPostLength(layoutContext: LayoutContext, id: IntId<TrackLayoutKmPost>): Double? {
+    fun getSingleKmPostLength(layoutContext: LayoutContext, id: IntId<LayoutKmPost>): Double? {
         return dao.get(layoutContext, id)?.getAsIntegral()?.let { kmPost ->
             referenceLineService.getByTrackNumberWithAlignment(layoutContext, kmPost.trackNumberId)?.let {
                 (_, alignment) ->
@@ -109,7 +109,7 @@ class LayoutKmPostService(
 
     private fun getKmEndM(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         kmNumber: KmNumber,
         referenceLineAlignment: LayoutAlignment,
     ): Double? {
@@ -125,5 +125,5 @@ class LayoutKmPostService(
     }
 }
 
-fun associateByDistance(kmPost: TrackLayoutKmPost, comparisonPoint: Point): Pair<TrackLayoutKmPost, Double?> =
+fun associateByDistance(kmPost: LayoutKmPost, comparisonPoint: Point): Pair<LayoutKmPost, Double?> =
     kmPost to kmPost.layoutLocation?.let { l -> calculateDistance(LAYOUT_SRID, comparisonPoint, l) }

@@ -5,8 +5,8 @@ import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.util.getPointOrNull
 import fi.fta.geoviite.infra.util.getRowVersion
 import org.flywaydb.core.api.migration.BaseJavaMigration
@@ -21,7 +21,7 @@ class V84__convert_km_post_locations : BaseJavaMigration() {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    private data class Row(val rowVersion: LayoutRowVersion<TrackLayoutKmPost>, val location: Point)
+    private data class Row(val rowVersion: LayoutRowVersion<LayoutKmPost>, val location: Point)
 
     private fun migrateTable(jdbcTemplate: NamedParameterJdbcTemplate, table: String) {
         val sql =
@@ -34,7 +34,7 @@ class V84__convert_km_post_locations : BaseJavaMigration() {
             jdbcTemplate
                 .query(sql) { rs, _ ->
                     rs.getPointOrNull("x", "y")?.let { point ->
-                        rs.getRowVersion<TrackLayoutKmPost>("id", "version") to point
+                        rs.getRowVersion<LayoutKmPost>("id", "version") to point
                     }
                 }
                 .filterNotNull()

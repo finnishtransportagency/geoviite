@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
+import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -24,6 +25,7 @@ import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.publication.publicationInOrMergeFromBranch
+import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
@@ -35,6 +37,12 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
+
+data class SwitchValidationWithSuggestedSwitch(
+    val switchId: IntId<LayoutSwitch>,
+    val switchValidation: ValidatedAsset<LayoutSwitch>,
+    val switchSuggestion: SuggestedSwitch?,
+)
 
 @GeoviiteController("/track-layout")
 class LocationTrackController(
@@ -251,7 +259,7 @@ class LocationTrackController(
     fun getTrackNumberTracksByName(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
+        @PathVariable("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
         @RequestParam("locationTrackNames") names: List<AlignmentName>,
         @RequestParam("includeDeleted") includeDeleted: Boolean = true,
     ): List<LocationTrack> {

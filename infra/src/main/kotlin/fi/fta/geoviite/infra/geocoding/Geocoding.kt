@@ -30,14 +30,14 @@ import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
 import kotlin.math.abs
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 data class AddressPoint(val point: AlignmentPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
@@ -129,12 +129,12 @@ private const val PROJECTION_LINE_MAX_ANGLE_DELTA = PI / 16
 
 private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.java)
 
-data class KmPostWithRejectedReason(val kmPost: TrackLayoutKmPost, val rejectedReason: KmPostRejectedReason)
+data class KmPostWithRejectedReason(val kmPost: LayoutKmPost, val rejectedReason: KmPostRejectedReason)
 
 data class GeocodingContextCreateResult(
     val geocodingContext: GeocodingContext,
     val rejectedKmPosts: List<KmPostWithRejectedReason>,
-    val validKmPosts: List<TrackLayoutKmPost>,
+    val validKmPosts: List<LayoutKmPost>,
     val startPointRejectedReason: StartPointRejectedReason?,
 )
 
@@ -261,7 +261,7 @@ data class GeocodingContext(
             trackNumber: TrackNumber,
             startAddress: TrackMeter,
             referenceLineGeometry: IAlignment,
-            kmPosts: List<TrackLayoutKmPost>,
+            kmPosts: List<LayoutKmPost>,
         ): GeocodingContextCreateResult {
             val (validatedKmPosts, invalidKmPosts) = validateKmPosts(kmPosts, startAddress)
 
@@ -302,7 +302,7 @@ data class GeocodingContext(
 
         private fun createReferencePoints(
             startAddress: TrackMeter,
-            kmPosts: List<TrackLayoutKmPost>,
+            kmPosts: List<LayoutKmPost>,
             referenceLineGeometry: IAlignment,
         ): Pair<List<GeocodingReferencePoint>, List<KmPostWithRejectedReason>> {
             val kpReferencePoints =
@@ -319,9 +319,9 @@ data class GeocodingContext(
         }
 
         private fun validateKmPosts(
-            kmPosts: List<TrackLayoutKmPost>,
+            kmPosts: List<LayoutKmPost>,
             startAddress: TrackMeter,
-        ): Pair<List<TrackLayoutKmPost>, List<KmPostWithRejectedReason>> {
+        ): Pair<List<LayoutKmPost>, List<KmPostWithRejectedReason>> {
             val (withoutLocations, withLocations) = kmPosts.partition { it.layoutLocation == null }
 
             val (invalidStartAddresses, validKmPosts) =
@@ -339,7 +339,7 @@ data class GeocodingContext(
 
         private fun validateReferencePoints(
             referencePoints: List<GeocodingReferencePoint>,
-            kmPosts: List<TrackLayoutKmPost>,
+            kmPosts: List<LayoutKmPost>,
         ): Pair<List<GeocodingReferencePoint>, List<KmPostWithRejectedReason>> {
             val (withinPoints, beforePoints, afterPoints) =
                 referencePoints

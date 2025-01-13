@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
+import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -146,7 +146,7 @@ constructor(
     fun kmPostIdIsReturnedWhenAddingNewKmPost() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val kmPost =
-            TrackLayoutKmPostSaveRequest(
+            LayoutKmPostSaveRequest(
                 kmNumber = someKmNumber(),
                 state = LayoutState.IN_USE,
                 trackNumberId = trackNumberId,

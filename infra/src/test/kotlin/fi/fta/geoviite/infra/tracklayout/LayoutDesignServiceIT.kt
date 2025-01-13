@@ -182,7 +182,7 @@ constructor(
         mainOfficialContext.insert(referenceLine(trackNumber), alignment)
         val switch =
             mainOfficialContext
-                .insert(switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(10.0, 0.0), null))))
+                .insert(switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(10.0, 0.0), null))))
                 .id
         val locationTrack =
             mainOfficialContext

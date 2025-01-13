@@ -43,14 +43,17 @@ import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -61,9 +64,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -995,10 +995,10 @@ constructor(
     }
 
     private fun setupDraftSwitchAndLocationTracks(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         switchName: String = "TV123",
         switchStateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
-    ): Triple<LayoutRowVersion<TrackLayoutSwitch>, LayoutRowVersion<LocationTrack>, LayoutRowVersion<LocationTrack>> {
+    ): Triple<LayoutRowVersion<LayoutSwitch>, LayoutRowVersion<LocationTrack>, LayoutRowVersion<LocationTrack>> {
         val switch =
             switchService.saveDraft(
                 LayoutBranch.main,
@@ -1400,7 +1400,7 @@ constructor(
     }
 
     private fun insertSomeOfficialReferenceLineFor(
-        trackNumberId: IntId<TrackLayoutTrackNumber>
+        trackNumberId: IntId<LayoutTrackNumber>
     ): LayoutRowVersion<ReferenceLine> {
         return insertOfficialReferenceLineFromPair(
             referenceLineAndAlignment(trackNumberId, segment(Point(0.0, 0.0), Point(10.0, 0.0)), draft = false)
@@ -1422,11 +1422,11 @@ constructor(
     }
 
     private fun publishAndPush(
-        trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
+        trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
         referenceLines: List<IntId<ReferenceLine>> = listOf(),
         locationTracks: List<IntId<LocationTrack>> = listOf(),
-        switches: List<IntId<TrackLayoutSwitch>> = listOf(),
-        kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
+        switches: List<IntId<LayoutSwitch>> = listOf(),
+        kmPosts: List<IntId<LayoutKmPost>> = listOf(),
     ) {
         val ids =
             PublicationRequestIds(
@@ -1450,16 +1450,16 @@ constructor(
     }
 
     private data class EstablishedTrackNumber(
-        val daoResponse: LayoutRowVersion<TrackLayoutTrackNumber>,
-        val externalId: Oid<TrackLayoutTrackNumber>,
-        val trackNumberObject: TrackLayoutTrackNumber,
+        val daoResponse: LayoutRowVersion<LayoutTrackNumber>,
+        val externalId: Oid<LayoutTrackNumber>,
+        val trackNumberObject: LayoutTrackNumber,
     ) {
         val number = trackNumberObject.number
         val id = daoResponse.id
     }
 
     private fun establishedTrackNumber(oidString: String = "1.1.1.1.1"): EstablishedTrackNumber {
-        val oid = Oid<TrackLayoutTrackNumber>(oidString)
+        val oid = Oid<LayoutTrackNumber>(oidString)
         val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberVersion = layoutTrackNumberDao.save(trackNumber(trackNumber, draft = false))
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberVersion.id, Oid(oidString))

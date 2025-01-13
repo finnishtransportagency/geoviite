@@ -19,8 +19,8 @@ import fi.fta.geoviite.infra.util.FileName
 data class GeometryPlanLayout(
     val fileName: FileName,
     val alignments: List<PlanLayoutAlignment>,
-    val switches: List<TrackLayoutSwitch>,
-    val kmPosts: List<TrackLayoutKmPost>,
+    val switches: List<LayoutSwitch>,
+    val kmPosts: List<LayoutKmPost>,
     val id: DomainId<GeometryPlan>,
     val planHidden: Boolean,
     val planDataType: DataType,
@@ -50,8 +50,8 @@ data class GeometryPlanLayout(
         logFormat(
             "plan" to id,
             "alignments" to alignments.map(PlanLayoutAlignment::toLog),
-            "switches" to switches.map(TrackLayoutSwitch::toLog),
-            "kmPosts" to kmPosts.map(TrackLayoutKmPost::toLog),
+            "switches" to switches.map(LayoutSwitch::toLog),
+            "kmPosts" to kmPosts.map(LayoutKmPost::toLog),
         )
 }
 

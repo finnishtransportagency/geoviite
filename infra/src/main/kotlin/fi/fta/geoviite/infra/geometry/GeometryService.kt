@@ -32,24 +32,24 @@ import fi.fta.geoviite.infra.tracklayout.ElementListingFileDao
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.toAlignmentHeader
-import fi.fta.geoviite.infra.tracklayout.toTrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.toLayoutSwitch
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -162,13 +162,13 @@ constructor(
         return geometryDao.getSwitch(switchId)
     }
 
-    fun getSwitchLayout(switchId: IntId<GeometrySwitch>): TrackLayoutSwitch? {
+    fun getSwitchLayout(switchId: IntId<GeometrySwitch>): LayoutSwitch? {
         val switch = getSwitch(switchId)
         val srid =
             geometryDao.getSwitchSrid(switchId)
                 ?: throw IllegalStateException("Coordinate system not found for geometry switch $switchId!")
         val transformation = coordinateTransformationService.getTransformation(srid, LAYOUT_SRID)
-        return toTrackLayoutSwitch(switch, transformation)
+        return toLayoutSwitch(switch, transformation)
     }
 
     fun getKmPost(kmPostId: IntId<GeometryKmPost>): GeometryKmPost {
@@ -202,7 +202,7 @@ constructor(
         return geometryDao.fetchDuplicateGeometryPlanVersion(newFile, source)?.let(geometryDao::getPlanHeader)
     }
 
-    private fun getSwitchName(context: LayoutContext, switchId: IntId<TrackLayoutSwitch>): SwitchName =
+    private fun getSwitchName(context: LayoutContext, switchId: IntId<LayoutSwitch>): SwitchName =
         switchService.get(context, switchId)?.name ?: unknownSwitchName
 
     @Transactional(readOnly = true)

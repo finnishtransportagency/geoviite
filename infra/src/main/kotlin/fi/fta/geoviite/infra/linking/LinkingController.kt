@@ -13,19 +13,22 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.linking.switches.GeometrySwitchSuggestionResult
 import fi.fta.geoviite.infra.linking.switches.SamplingGridPoints
+import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchesAtGridPoints
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.switches.SwitchPlacingRequest
+import fi.fta.geoviite.infra.linking.switches.SwitchRelinkingValidationResult
 import fi.fta.geoviite.infra.linking.switches.SwitchTrackRelinkingValidationService
 import fi.fta.geoviite.infra.linking.switches.matchSamplingGridToQueryPoints
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.SwitchPlacingRequest
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
@@ -154,7 +157,7 @@ constructor(
     fun getSingleSuggestedSwitchForLayoutSwitchPlacing(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestParam("location") location: Point,
-        @RequestParam("layoutSwitchId") layoutSwitchId: IntId<TrackLayoutSwitch>,
+        @RequestParam("layoutSwitchId") layoutSwitchId: IntId<LayoutSwitch>,
     ): ResponseEntity<SuggestedSwitch> =
         toResponse(switchLinkingService.getSuggestedSwitch(branch, location, layoutSwitchId))
 
@@ -163,7 +166,7 @@ constructor(
     fun getSuggestedSwitchesForLayoutSwitchPlacing(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestParam("points") points: List<Point>,
-        @RequestParam("switchId") switchId: IntId<TrackLayoutSwitch>,
+        @RequestParam("switchId") switchId: IntId<LayoutSwitch>,
     ): SuggestedSwitchesAtGridPoints {
         val suggestedSwitches =
             switchLinkingService
@@ -176,9 +179,9 @@ constructor(
     @PostMapping("/{$LAYOUT_BRANCH}/switches/{switchId}/geometry")
     fun saveSwitchLinking(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable switchId: IntId<TrackLayoutSwitch>,
+        @PathVariable switchId: IntId<LayoutSwitch>,
         @RequestBody suggestedSwitch: SuggestedSwitch,
-    ): IntId<TrackLayoutSwitch> {
+    ): IntId<LayoutSwitch> {
         return switchLinkingService.saveSwitchLinking(branch, suggestedSwitch, switchId).id
     }
 
@@ -187,7 +190,7 @@ constructor(
     fun saveKmPostLinking(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody linkingParameters: KmPostLinkingParameters,
-    ): IntId<TrackLayoutKmPost> {
+    ): IntId<LayoutKmPost> {
         return linkingService.saveKmPostLinking(branch, linkingParameters).id
     }
 

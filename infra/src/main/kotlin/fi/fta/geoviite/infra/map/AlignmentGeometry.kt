@@ -11,11 +11,11 @@ import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import kotlin.math.roundToInt
 
 enum class MapAlignmentSource {
@@ -30,7 +30,7 @@ enum class MapAlignmentType {
 
 sealed class AlignmentHeader<AlignmentType, StateType> {
     abstract val id: DomainId<AlignmentType>
-    abstract val trackNumberId: DomainId<TrackLayoutTrackNumber>?
+    abstract val trackNumberId: DomainId<LayoutTrackNumber>?
     abstract val name: AlignmentName
     abstract val state: StateType
     abstract val alignmentSource: MapAlignmentSource
@@ -42,7 +42,7 @@ sealed class AlignmentHeader<AlignmentType, StateType> {
 
 data class GeometryAlignmentHeader(
     override val id: DomainId<GeometryAlignment>,
-    override val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
+    override val trackNumberId: DomainId<LayoutTrackNumber>?,
     override val name: AlignmentName,
     override val state: LayoutState,
     override val alignmentType: MapAlignmentType,
@@ -56,7 +56,7 @@ data class GeometryAlignmentHeader(
 data class ReferenceLineHeader(
     override val id: IntId<ReferenceLine>,
     val version: LayoutRowVersion<ReferenceLine>,
-    override val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    override val trackNumberId: IntId<LayoutTrackNumber>,
     override val name: AlignmentName,
     override val state: LayoutState,
     override val length: Double,
@@ -70,7 +70,7 @@ data class ReferenceLineHeader(
 data class LocationTrackHeader(
     override val id: IntId<LocationTrack>,
     val version: LayoutRowVersion<LocationTrack>,
-    override val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    override val trackNumberId: IntId<LayoutTrackNumber>,
     val duplicateOf: IntId<LocationTrack>?,
     override val name: AlignmentName,
     override val state: LocationTrackState,
@@ -91,7 +91,7 @@ data class AlignmentPolyLine<T>(
     override fun toLog(): String = logFormat("id" to id, "type" to alignmentType, "points" to points.size)
 }
 
-fun toAlignmentHeader(trackNumber: TrackLayoutTrackNumber, referenceLine: ReferenceLine, alignment: LayoutAlignment?) =
+fun toAlignmentHeader(trackNumber: LayoutTrackNumber, referenceLine: ReferenceLine, alignment: LayoutAlignment?) =
     ReferenceLineHeader(
         id = referenceLine.id.also { require(it is IntId) } as IntId,
         version = requireNotNull(referenceLine.version),

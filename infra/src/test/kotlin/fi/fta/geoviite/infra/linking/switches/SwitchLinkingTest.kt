@@ -1,9 +1,8 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.linking.switches.*
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
@@ -11,19 +10,35 @@ import fi.fta.geoviite.infra.math.interpolate
 import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackWithTwoSwitches
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.segmentPoint
+import fi.fta.geoviite.infra.tracklayout.someSegment
+import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
+import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
+import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 
 class SwitchLinkingTest {
-    private var testLayoutSwitchId = IntId<TrackLayoutSwitch>(0)
-    private var otherLayoutSwitchId = IntId<TrackLayoutSwitch>(99)
+    private var testLayoutSwitchId = IntId<LayoutSwitch>(0)
+    private var otherLayoutSwitchId = IntId<LayoutSwitch>(99)
 
     private fun assertSwitchLinkingInfoEquals(
         segment: LayoutSegment,
-        layoutSwitchId: IntId<TrackLayoutSwitch>?,
+        layoutSwitchId: IntId<LayoutSwitch>?,
         startJointNumber: JointNumber?,
         endJointNumber: JointNumber?,
         segmentName: String = "",
@@ -307,7 +322,7 @@ class SwitchLinkingTest {
             )
 
         listOf(1, 5, 2, 3).forEach { jointNumber ->
-            assertTrue(suggestedSwitch.joints.any { it.number.intValue == jointNumber })
+            Assertions.assertTrue(suggestedSwitch.joints.any { it.number.intValue == jointNumber })
         }
 
         val joint1 = getJoint(suggestedSwitch, 1)
@@ -316,13 +331,13 @@ class SwitchLinkingTest {
         val joint3 = getJoint(suggestedSwitch, 3)
 
         // Line 1-5-2
-        assertTrue(joint1.matches.any { it.locationTrackId == locationTrack1.id })
-        assertTrue(joint5.matches.any { it.locationTrackId == locationTrack1.id })
-        assertTrue(joint2.matches.any { it.locationTrackId == locationTrack1.id })
+        Assertions.assertTrue(joint1.matches.any { it.locationTrackId == locationTrack1.id })
+        Assertions.assertTrue(joint5.matches.any { it.locationTrackId == locationTrack1.id })
+        Assertions.assertTrue(joint2.matches.any { it.locationTrackId == locationTrack1.id })
 
         // Line 1-3
-        assertTrue(joint1.matches.any { it.locationTrackId == locationTrack2.id })
-        assertTrue(joint3.matches.any { it.locationTrackId == locationTrack2.id })
+        Assertions.assertTrue(joint1.matches.any { it.locationTrackId == locationTrack2.id })
+        Assertions.assertTrue(joint3.matches.any { it.locationTrackId == locationTrack2.id })
     }
 
     @Test
@@ -456,7 +471,7 @@ class SwitchLinkingTest {
 
         val joint1 = getJoint(suggestedSwitch, 1)
         assertEquals(1, joint1.matches.size)
-        assertTrue(
+        Assertions.assertTrue(
             joint1.matches.none {
                 it.locationTrackId == locationTrack.id && it.matchType == SuggestedSwitchJointMatchType.END
             }
@@ -486,7 +501,7 @@ class SwitchLinkingTest {
 
         val joint2 = getJoint(suggestedSwitch, 2)
         assertEquals(1, joint2.matches.size)
-        assertTrue(
+        Assertions.assertTrue(
             joint2.matches.none {
                 it.locationTrackId == locationTrack.id && it.matchType == SuggestedSwitchJointMatchType.START
             }
@@ -639,7 +654,7 @@ class SwitchLinkingTest {
 
         val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(origAlignment, IntId(100), linkingJoints)
 
-        assertTrue { updatedAlignment.segments.none { it.switchId == testLayoutSwitchId } }
+        Assertions.assertTrue { updatedAlignment.segments.none { it.switchId == testLayoutSwitchId } }
     }
 
     @Test
@@ -678,7 +693,7 @@ class SwitchLinkingTest {
             locationTrackAndAlignment(segment(points = arrayOf(Point(-5.0, 0.0), Point(5.0, 5.0))), draft = false)
         val croppedAlignment = cropPoints(locationTrack.second, bbox)
 
-        assertTrue(bbox.intersects(locationTrack.second.segments.first().boundingBox))
+        Assertions.assertTrue(bbox.intersects(locationTrack.second.segments.first().boundingBox))
         assertEquals(0, croppedAlignment.segments.size)
     }
 
@@ -768,14 +783,14 @@ class SwitchLinkingTest {
 
     @Test
     fun noSwitchBoundsAreFoundWhenNotLinkedToTracks() {
-        val switchId = IntId<TrackLayoutSwitch>(1)
+        val switchId = IntId<LayoutSwitch>(1)
         assertEquals(null, getSwitchBoundsFromTracks(listOf(), switchId))
     }
 
     @Test
     fun switchBoundsAreFoundFromTracks() {
-        val tnId = IntId<TrackLayoutTrackNumber>(1)
-        val switchId = IntId<TrackLayoutSwitch>(1)
+        val tnId = IntId<LayoutTrackNumber>(1)
+        val switchId = IntId<LayoutSwitch>(1)
 
         val point1 = Point(10.0, 10.0)
         val point2 = Point(12.0, 10.0)
