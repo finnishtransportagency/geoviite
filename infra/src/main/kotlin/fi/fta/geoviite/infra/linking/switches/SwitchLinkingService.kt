@@ -58,9 +58,9 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
 import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
 import fi.fta.geoviite.infra.tracklayout.collectAllSwitches
-import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 private val temporarySwitchId: IntId<TrackLayoutSwitch> = IntId(-1)
 
@@ -328,6 +328,8 @@ constructor(
     ): List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>> {
         val alignment = track.getAlignmentVersionOrThrow().let(alignmentDao::fetch)
 
+        // TODO: GVT-1727 Should be able to just use track.switchIds here, unless something funky about the args
+        // Check use places to be sure that the alignment isn't adjusted from track alignment version
         val switchIds = collectAllSwitches(track, alignment)
         val replacementSwitchLocations =
             switchIds.map { switchId ->
@@ -396,6 +398,10 @@ fun matchFittedSwitchToTracks(
             .mapNotNull { (id, trackAndAlignment) ->
                 val segmentLink = segmentLinks[id] ?: listOf()
                 val topologyLink = topologyLinks[id]
+
+                // TODO: GVT-1727 Should be able to just use track.switchIds here, unless something funky about the args
+                // Check use places to be sure that the alignment isn't adjusted from track alignment version
+                //                val hadOriginalLink = trackAndAlignment.first.switchIds.contains(switchId)
                 val hadOriginalLink =
                     collectAllSwitches(trackAndAlignment.first, trackAndAlignment.second).contains(switchId)
 

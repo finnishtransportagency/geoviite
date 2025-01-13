@@ -838,11 +838,11 @@ class LocationTrackService(
         //        )
     }
 
-//    override fun cancelInternal(asset: LocationTrack, designBranch: DesignBranch) =
-//        cancelled(
-//            asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())),
-//            designBranch.designId,
-//        )
+    //    override fun cancelInternal(asset: LocationTrack, designBranch: DesignBranch) =
+    //        cancelled(
+    //            asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())),
+    //            designBranch.designId,
+    //        )
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 
@@ -852,7 +852,7 @@ class LocationTrackService(
     }
 }
 
-@Deprecated("")
+@Deprecated("use track.switchIds")
 fun collectAllSwitches(locationTrack: LocationTrack, alignment: LayoutAlignment): List<IntId<TrackLayoutSwitch>> {
     val topologySwitches =
         listOfNotNull(locationTrack.topologyStartSwitch?.switchId, locationTrack.topologyEndSwitch?.switchId)
