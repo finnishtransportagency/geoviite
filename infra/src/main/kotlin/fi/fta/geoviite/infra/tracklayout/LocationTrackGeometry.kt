@@ -85,11 +85,19 @@ sealed class LocationTrackGeometry : IAlignment {
 
     // TODO: GVT-2947 when switch links contain presentation joint info, these won't need the lambda
     // Instead, they can become like the vals above
-    /** The primary switch link at track start */
+    /**
+     * The primary switch link at track start
+     * - The inside-switch (whose geometry this track is) primarily
+     * - The outside-switch (that continues after this track) secondarily
+     */
     fun getStartSwitchLink(isPresentationJoint: (SwitchLink) -> Boolean): SwitchLink? =
         startNode?.let { node -> pickEndJoint(node.switchOut, node.switchIn, isPresentationJoint) }
 
-    /** The primary switch link at track end */
+    /**
+     * The primary switch link at track end
+     * - The inside-switch (whose geometry this track is) primarily
+     * - The outside-switch (that continues after this track) secondarily
+     */
     fun getEndSwitchLink(isPresentationJoint: (SwitchLink) -> Boolean): SwitchLink? =
         endNode?.let { node -> pickEndJoint(node.switchIn, node.switchOut, isPresentationJoint) }
 
@@ -213,7 +221,6 @@ interface ILayoutEdge : IAlignment {
 
     override val boundingBox: BoundingBox
 
-    //    override val segmentMs: List<Range<Double>>
     val contentHash: Int
 }
 
@@ -221,8 +228,8 @@ data class LayoutEdgeContent(
     override val startNode: ILayoutNodeContent,
     override val endNode: ILayoutNodeContent,
     override val segments: List<LayoutEdgeSegment>,
-    override val segmentMs: List<Range<Double>>,
 ) : ILayoutEdge {
+    override val segmentMs: List<Range<Double>> = calculateSegmentMs(segments)
 
     override val segmentsWithM: List<Pair<LayoutEdgeSegment, Range<Double>>>
         get() = segments.zip(segmentMs)
