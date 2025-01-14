@@ -66,14 +66,14 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.formatForException
 import fi.fta.geoviite.infra.util.formatForLog
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.BigDecimal.ZERO
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 const val INFRAMODEL_SWITCH_CODE = "IM_switch"
 const val INFRAMODEL_SWITCH_TYPE = "switchType"
@@ -89,7 +89,7 @@ val defaultTimeZone: ZoneId = ZoneId.of("Europe/Helsinki")
 
 val logger: Logger = LoggerFactory.getLogger(InfraModel::class.java)
 
-val findPartsToRemoveFromFileName = Regex("^B|(\\.[a-z]{1,3})*\$")
+val findPartsToRemoveFromFileName = Regex("(\\.[a-z]{1,3})*\$")
 
 fun getPlanNameByFileName(fileName: FileName): PlanName {
     return PlanName(fileName.toString().replace(findPartsToRemoveFromFileName, ""))
