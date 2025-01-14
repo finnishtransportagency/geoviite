@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.dataproducts
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementIfExists
+import getNonNullAttribute
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import org.openqa.selenium.By
@@ -74,7 +75,7 @@ class E2EDataProductLayoutElementListPage : E2EElementListPage() {
     val resultList: E2EDataProductLayoutElementList = E2EDataProductLayoutElementList()
 
     val downloadUrl: String
-        get() = childElement(byQaId("location-track-element-list-csv-download")).getAttribute("href")
+        get() = childElement(byQaId("location-track-element-list-csv-download")).getNonNullAttribute("href")
 
     val locationTrackLayoutGeometryRadioButton by lazy { getElementIfExists(byQaId("select-layout-geometry")) }
     val layoutPlanGeometryRadioButton by lazy { getElementIfExists(byQaId("select-plan-geometry")) }
@@ -91,7 +92,7 @@ class E2EDataProductLayoutElementListPage : E2EElementListPage() {
 
 class E2EDataProductEntireNetworkElementListPage : E2EElementListPage() {
     val downloadUrl: String
-        get() = childElement(byQaId("element-list-csv-download")).getAttribute("href")
+        get() = childElement(byQaId("element-list-csv-download")).getNonNullAttribute("href")
 }
 
 abstract class E2EDataProductElementList<Item : E2EDataProductElementListItem> :

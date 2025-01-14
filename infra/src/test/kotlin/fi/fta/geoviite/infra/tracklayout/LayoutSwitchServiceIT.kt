@@ -77,8 +77,8 @@ constructor(
             switch(
                 joints =
                     listOf(
-                        switchJoint(1, Point(428423.66891764296, 7210292.096537605)),
-                        switchJoint(5, Point(428412.6499928745, 7210278.867815434)),
+                        switchJoint(1, SwitchJointType.MAIN, Point(428423.66891764296, 7210292.096537605)),
+                        switchJoint(5, SwitchJointType.OTHER, Point(428412.6499928745, 7210278.867815434)),
                     ),
                 draft = false,
                 stateCategory = EXISTING,
@@ -98,8 +98,8 @@ constructor(
             switch(
                 joints =
                     listOf(
-                        switchJoint(1, Point(428423.66891764296, 7210292.096537605)),
-                        switchJoint(5, Point(428412.6499928745, 7210278.867815434)),
+                        switchJoint(1, SwitchJointType.MAIN, Point(428423.66891764296, 7210292.096537605)),
+                        switchJoint(5, SwitchJointType.OTHER, Point(428412.6499928745, 7210278.867815434)),
                     ),
                 draft = false,
             )
@@ -212,12 +212,14 @@ constructor(
                     joints =
                         listOf(
                             LayoutSwitchJoint(
-                                JointNumber(1),
+                                number = JointNumber(1),
+                                type = SwitchJointType.MAIN,
                                 location = Point(428305.33617941965, 7210146.458099049),
                                 locationAccuracy = null,
                             ),
                             LayoutSwitchJoint(
-                                JointNumber(5),
+                                number = JointNumber(5),
+                                type = SwitchJointType.OTHER,
                                 location = Point(422222.2, 7222222.2),
                                 locationAccuracy = null,
                             ),
@@ -234,12 +236,14 @@ constructor(
                         joints =
                             listOf(
                                 LayoutSwitchJoint(
-                                    JointNumber(1),
+                                    number = JointNumber(1),
+                                    type = SwitchJointType.MAIN,
                                     location = Point(422222.2, 7222222.2),
                                     locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED,
                                 ),
                                 LayoutSwitchJoint(
-                                    JointNumber(5),
+                                    number = JointNumber(5),
+                                    type = SwitchJointType.OTHER,
                                     location = Point(428305.33617941965, 7210146.458099049),
                                     locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED,
                                 ),
@@ -406,7 +410,8 @@ constructor(
 
     @Test
     fun getSwitchLinksTopologicalConnections() {
-        val switch = switch(IntId(1), joints = listOf(switchJoint(1, Point(1.0, 1.0))), draft = false)
+        val switch =
+            switch(IntId(1), joints = listOf(switchJoint(1, SwitchJointType.MAIN, Point(1.0, 1.0))), draft = false)
         val switchVersion = switchDao.save(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
         val (locationTrack, alignment) =

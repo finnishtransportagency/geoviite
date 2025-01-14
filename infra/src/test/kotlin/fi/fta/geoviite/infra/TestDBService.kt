@@ -49,22 +49,24 @@ import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.SwitchJointType
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import java.time.Instant
-import kotlin.reflect.KClass
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
+import kotlin.reflect.KClass
+import kotlin.test.assertEquals
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -492,16 +494,19 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         name: String,
         vararg alignmentJointPositions: List<Pair<JointNumber, Point>>,
     ): Pair<IntId<LayoutSwitch>, List<IntId<LocationTrack>>> {
+        val structure = switchStructureYV60_300_1_9()
         val switchId =
             insert(
                     switch(
                         name = name,
+                        structureId = structure.id as IntId,
                         joints =
                             alignmentJointPositions
                                 .flatMap { it }
                                 .map { (jointNumber, position) ->
                                     LayoutSwitchJoint(
                                         number = jointNumber,
+                                        type = SwitchJointType.of(structure, jointNumber),
                                         location = position,
                                         locationAccuracy = null,
                                     )

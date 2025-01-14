@@ -588,6 +588,7 @@ constructor(
                             listOf(
                                 LayoutSwitchJoint(
                                     JointNumber(1),
+                                    SwitchJointType.MAIN,
                                     Point(100.0, 0.0),
                                     LocationAccuracy.DIGITIZED_AERIAL_IMAGE,
                                 )

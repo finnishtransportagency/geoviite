@@ -38,6 +38,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.NearbyTracks
+import fi.fta.geoviite.infra.tracklayout.SwitchJointType
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
@@ -317,10 +318,7 @@ constructor(
         val replacementSwitchLocations =
             switchIds.map { switchId ->
                 val switch = switchService.getOrThrow(layoutContext, switchId)
-                SwitchPlacingRequest(
-                    SamplingGridPoints(switchService.getPresentationJointOrThrow(switch).location),
-                    switchId,
-                )
+                SwitchPlacingRequest(SamplingGridPoints(switch.presentationJointOrThrow.location), switchId)
             }
         val switchSuggestions = getSuggestedSwitches(layoutContext.branch, replacementSwitchLocations)
         return switchIds.mapIndexed { index, id -> id to switchSuggestions[index].keys().firstOrNull() }
@@ -395,7 +393,15 @@ fun matchFittedSwitchToTracks(
             .associate { it }
 
     return SuggestedSwitch(
-        joints = fittedSwitch.joints.map { sj -> LayoutSwitchJoint(sj.number, sj.location, sj.locationAccuracy) },
+        joints =
+            fittedSwitch.joints.map { sj ->
+                LayoutSwitchJoint(
+                    number = sj.number,
+                    type = SwitchJointType.of(fittedSwitch.switchStructure, sj.number),
+                    location = sj.location,
+                    locationAccuracy = sj.locationAccuracy,
+                )
+            },
         trackLinks = trackLinks,
         switchStructureId = fittedSwitch.switchStructure.id as IntId,
         name = name ?: SwitchName(fittedSwitch.switchStructure.baseType.name),

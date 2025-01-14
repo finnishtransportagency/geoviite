@@ -43,6 +43,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.SwitchJointType
 import fi.fta.geoviite.infra.tracklayout.addTopologyEndSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.addTopologyStartSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -1025,7 +1026,10 @@ constructor(
             switchService
                 .saveDraft(
                     LayoutBranch.main,
-                    switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)), draft = true),
+                    switch(
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(0.0, 0.0), null)),
+                        draft = true,
+                    ),
                 )
                 .id
         val wibblyTrack =
@@ -1057,7 +1061,11 @@ constructor(
             mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
         val switch =
             mainOfficialContext
-                .insert(switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
+                .insert(
+                    switch(
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(7.0, 0.0), null))
+                    )
+                )
                 .id
         val locationTrack =
             mainOfficialContext
@@ -1125,7 +1133,11 @@ constructor(
             mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
         val switch =
             designDraftContext
-                .insert(switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
+                .insert(
+                    switch(
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(7.0, 0.0), null))
+                    )
+                )
                 .id
         val locationTrack =
             designDraftContext
@@ -1187,7 +1199,11 @@ constructor(
             mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
         val switch =
             mainOfficialContext
-                .insert(switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
+                .insert(
+                    switch(
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(7.0, 0.0), null))
+                    )
+                )
                 .id
         val locationTrack =
             mainOfficialContext

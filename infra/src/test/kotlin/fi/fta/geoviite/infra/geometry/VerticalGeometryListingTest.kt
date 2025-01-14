@@ -96,10 +96,9 @@ class VerticalGeometryListingTest {
                 linearSegment(Point(2.0, 0.0), Point(4.0, 0.0)),
                 segment,
             )
-        val (curved, linear) = entireProfile.partition { it is CurvedProfileSegment }
+        val (curved, linear) = partitionByType(entireProfile)
+        val previous = previousLinearSection(segment, curved, linear)
 
-        val previous =
-            previousLinearSection(segment, curved as List<CurvedProfileSegment>, linear as List<LinearProfileSegment>)
         assertEquals(previous.linearSegmentLength!!.toDouble(), 2.0, 0.001)
         assertEquals(previous.stationValueDistance!!.toDouble(), 4.0, 0.001)
     }
@@ -108,10 +107,9 @@ class VerticalGeometryListingTest {
     fun `Backwards linear section is calculated correctly if no previous curved section`() {
         val segment = curvedSegment(Point(4.0, 0.0), Point(6.0, 0.0), Point(5.0, -1.0))
         val entireProfile = listOf(linearSegment(Point(2.0, 0.0), Point(4.0, 0.0)), segment)
-        val (curved, linear) = entireProfile.partition { it is CurvedProfileSegment }
+        val (curved, linear) = partitionByType(entireProfile)
+        val previous = previousLinearSection(segment, curved, linear)
 
-        val previous =
-            previousLinearSection(segment, curved as List<CurvedProfileSegment>, linear as List<LinearProfileSegment>)
         assertEquals(previous.linearSegmentLength!!.toDouble(), 2.0, 0.001)
         assertEquals(previous.stationValueDistance!!.toDouble(), 3.0, 0.001)
     }
@@ -120,8 +118,8 @@ class VerticalGeometryListingTest {
     fun `Backwards linear section has no values if there is no linear section`() {
         val segment = curvedSegment(Point(4.0, 0.0), Point(6.0, 0.0), Point(5.0, -1.0))
         val entireProfile = listOf(curvedSegment(Point(0.0, 0.0), Point(2.0, 0.0), Point(1.0, -1.0)), segment)
-
         val previous = previousLinearSection(segment, entireProfile, emptyList())
+
         assertNull(previous.linearSegmentLength)
         assertNull(previous.stationValueDistance)
     }
@@ -135,10 +133,9 @@ class VerticalGeometryListingTest {
                 linearSegment(Point(6.0, 0.0), Point(8.0, 0.0)),
                 curvedSegment(Point(8.0, 0.0), Point(10.0, 0.0), Point(9.0, -1.0)),
             )
-        val (curved, linear) = entireProfile.partition { it is CurvedProfileSegment }
+        val (curved, linear) = partitionByType(entireProfile)
+        val next = nextLinearSection(segment, curved, linear)
 
-        val next =
-            nextLinearSection(segment, curved as List<CurvedProfileSegment>, linear as List<LinearProfileSegment>)
         assertEquals(next.linearSegmentLength!!.toDouble(), 2.0, 0.001)
         assertEquals(next.stationValueDistance!!.toDouble(), 4.0, 0.001)
     }
@@ -147,10 +144,9 @@ class VerticalGeometryListingTest {
     fun `Forwards linear section is calculated correctly if no next curved section`() {
         val segment = curvedSegment(Point(4.0, 0.0), Point(6.0, 0.0), Point(5.0, -1.0))
         val entireProfile = listOf(segment, linearSegment(Point(6.0, 0.0), Point(8.0, 0.0)))
-        val (curved, linear) = entireProfile.partition { it is CurvedProfileSegment }
+        val (curved, linear) = partitionByType(entireProfile)
+        val next = nextLinearSection(segment, curved, linear)
 
-        val next =
-            nextLinearSection(segment, curved as List<CurvedProfileSegment>, linear as List<LinearProfileSegment>)
         assertEquals(next.linearSegmentLength!!.toDouble(), 2.0, 0.001)
         assertEquals(next.stationValueDistance!!.toDouble(), 3.0, 0.001)
     }
@@ -159,8 +155,8 @@ class VerticalGeometryListingTest {
     fun `Forwards linear section is null if no next linear section`() {
         val segment = curvedSegment(Point(4.0, 0.0), Point(6.0, 0.0), Point(5.0, -1.0))
         val entireProfile = listOf(segment, curvedSegment(Point(8.0, 0.0), Point(10.0, 0.0), Point(9.0, -1.0)))
-
         val next = nextLinearSection(segment, entireProfile, emptyList())
+
         assertNull(next.linearSegmentLength)
         assertNull(next.stationValueDistance)
     }
@@ -176,7 +172,7 @@ class VerticalGeometryListingTest {
                 linearSegment(Point(6.0, 0.0), Point(8.0, 0.0)),
                 curvedSegment(Point(8.0, 0.0), Point(10.0, 0.0), Point(9.0, -1.0), 1.0),
             )
-        val (curved, linear) = entireProfile.partition { it is CurvedProfileSegment }
+        val (curved, linear) = partitionByType(entireProfile)
 
         val verticalGeometryEntry =
             toVerticalGeometryListing(
@@ -194,8 +190,8 @@ class VerticalGeometryListingTest {
                 null,
                 planHeader(fileName = FileName("test")),
                 null,
-                curved as List<CurvedProfileSegment>,
-                linear as List<LinearProfileSegment>,
+                curved,
+                linear,
                 TrackMeter.ZERO,
                 TrackMeter.ZERO,
             )
@@ -218,7 +214,7 @@ class VerticalGeometryListingTest {
     @Test
     fun `Returns right coordinate at the intersection of elements`() {
         val alignment = createAlignment(GeometryElementType.LINE, GeometryElementType.LINE)
-        val element = alignment.elements.get(0)
+        val element = alignment.elements[0]
         val coordinate = alignment.getCoordinateAt(element.calculatedLength)!!
         assertEquals(coordinate.x, element.end.x, 0.0001)
         assertEquals(coordinate.y, element.end.y, 0.0001)
@@ -227,7 +223,7 @@ class VerticalGeometryListingTest {
     @Test
     fun `Returns right coordinate at the beginning of alignment`() {
         val alignment = createAlignment(GeometryElementType.LINE)
-        val element = alignment.elements.get(0)
+        val element = alignment.elements[0]
         val coordinate = alignment.getCoordinateAt(0.0)!!
         assertEquals(coordinate.x, element.start.x, 0.0001)
         assertEquals(coordinate.y, element.start.y, 0.0001)
@@ -236,7 +232,7 @@ class VerticalGeometryListingTest {
     @Test
     fun `Returns right coordinate mid-element`() {
         val alignment = createAlignment(GeometryElementType.LINE, GeometryElementType.LINE)
-        val element = alignment.elements.get(1)
+        val element = alignment.elements[1]
         val coordinate =
             alignment.getCoordinateAt(alignment.elements.first().calculatedLength + element.calculatedLength * 0.5)!!
         assertEquals(coordinate.x, 1.5, 0.0001)
@@ -261,4 +257,12 @@ class VerticalGeometryListingTest {
         CurvedProfileSegment(PlanElementName(""), start, end, center, radius)
 
     private fun linearSegment(start: Point, end: Point) = LinearProfileSegment(PlanElementName(""), start, end, true)
+
+    private fun partitionByType(
+        segments: List<ProfileSegment>
+    ): Pair<List<CurvedProfileSegment>, List<LinearProfileSegment>> {
+        val linear = segments.mapNotNull { s -> s as? LinearProfileSegment }
+        val curved = segments.mapNotNull { s -> s as? CurvedProfileSegment }
+        return curved to linear
+    }
 }

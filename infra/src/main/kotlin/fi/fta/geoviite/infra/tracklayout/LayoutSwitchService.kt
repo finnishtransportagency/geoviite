@@ -106,16 +106,6 @@ constructor(
         return dao.fetchSegmentSwitchJointConnections(layoutContext, switchId)
     }
 
-    fun getPresentationJoint(switch: LayoutSwitch): LayoutSwitchJoint? {
-        val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-        return switch.getJoint(structure.presentationJointNumber)
-    }
-
-    fun getPresentationJointOrThrow(switch: LayoutSwitch): LayoutSwitchJoint {
-        return getPresentationJoint(switch)
-            ?: throw IllegalArgumentException("Switch ${switch.id} has no presentation joint")
-    }
-
     @Transactional(readOnly = true)
     fun listWithStructure(
         layoutContext: LayoutContext,

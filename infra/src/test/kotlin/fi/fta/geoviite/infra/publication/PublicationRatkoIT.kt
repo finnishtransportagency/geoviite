@@ -30,6 +30,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.SwitchJointType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -124,11 +125,11 @@ constructor(
 
         val switchAtStart =
             mainOfficialContext.insert(
-                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)))
+                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(0.0, 0.0), null)))
             )
         val switchAtEnd =
             mainOfficialContext.insert(
-                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(10.0, 0.0), null)))
+                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(10.0, 0.0), null)))
             )
         switchDao.insertExternalId(switchAtStart.id, LayoutBranch.main, Oid("2.2.3.4.5"))
         switchDao.insertExternalId(switchAtEnd.id, LayoutBranch.main, Oid("2.2.3.4.6"))

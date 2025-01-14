@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.SwitchJointType
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -36,16 +37,16 @@ import fi.fta.geoviite.infra.ui.testdata.pointsFromIncrementList
 import fi.fta.geoviite.infra.ui.testdata.referenceLine
 import fi.fta.geoviite.infra.ui.util.metersToDouble
 import fi.fta.geoviite.infra.ui.util.pointToCoordinateString
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 
 // the point where the map opens up by default
 val DEFAULT_BASE_POINT = Point(385782.89, 6672277.83)
@@ -664,8 +665,8 @@ constructor(
                 name = "switch to delete",
                 joints =
                     listOf(
-                        switchJoint(1, Point(DEFAULT_BASE_POINT + Point(1.0, 1.0))),
-                        switchJoint(3, Point(DEFAULT_BASE_POINT + Point(3.0, 3.0))),
+                        switchJoint(1, SwitchJointType.MAIN, Point(DEFAULT_BASE_POINT + Point(1.0, 1.0))),
+                        switchJoint(3, SwitchJointType.END, Point(DEFAULT_BASE_POINT + Point(3.0, 3.0))),
                     ),
                 draft = false,
             )
@@ -675,7 +676,7 @@ constructor(
         switchDao.save(
             switch(
                 name = "unrelated switch",
-                joints = listOf(switchJoint(1, Point(DEFAULT_BASE_POINT + Point(10.0, 10.0)))),
+                joints = listOf(switchJoint(1, SwitchJointType.MAIN, Point(DEFAULT_BASE_POINT + Point(10.0, 10.0)))),
                 draft = false,
             )
         )

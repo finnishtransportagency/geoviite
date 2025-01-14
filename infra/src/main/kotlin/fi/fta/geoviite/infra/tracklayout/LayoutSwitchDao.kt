@@ -31,13 +31,13 @@ import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 const val SWITCH_CACHE_SIZE = 10000L
 
@@ -296,6 +296,7 @@ class LayoutSwitchDao(
                        and (official_sv.design_id is null or official_sv.design_id = sv.design_id)
                        and not official_sv.draft) as has_official,
               coalesce(joint_numbers, '{}') as joint_numbers,
+              coalesce(joint_types, '{}') as joint_types,
               coalesce(joint_x_values, '{}') as joint_x_values,
               coalesce(joint_y_values, '{}') as joint_y_values,
               coalesce(joint_location_accuracies, '{}') as joint_location_accuracies
@@ -303,6 +304,7 @@ class LayoutSwitchDao(
               left join lateral (
                 select 
                   array_agg(jv.number order by jv.number) as joint_numbers,
+                  array_agg(jv.type order by jv.number) as joint_types,
                   array_agg(postgis.st_x(jv.location) order by jv.number) as joint_x_values,
                   array_agg(postgis.st_y(jv.location) order by jv.number) as joint_y_values,
                   array_agg(jv.location_accuracy order by jv.number) as joint_location_accuracies
@@ -343,6 +345,7 @@ class LayoutSwitchDao(
               s.owner_id,
               s.source,
               joint_numbers,
+              joint_types,
               joint_x_values,
               joint_y_values,
               joint_location_accuracies,
@@ -355,6 +358,7 @@ class LayoutSwitchDao(
             from layout.switch s
               left join lateral
                 (select coalesce(array_agg(jv.number order by jv.number), '{}') as joint_numbers,
+                        coalesce(array_agg(jv.type order by jv.number), '{}') as joint_types,
                         coalesce(array_agg(postgis.st_x(jv.location) order by jv.number), '{}') as joint_x_values,
                         coalesce(array_agg(postgis.st_y(jv.location) order by jv.number), '{}') as joint_y_values,
                         coalesce(array_agg(jv.location_accuracy order by jv.number), '{}') as joint_location_accuracies
@@ -382,6 +386,7 @@ class LayoutSwitchDao(
             joints =
                 parseJoints(
                     numbers = rs.getNullableIntArray("joint_numbers"),
+                    jointTypes = rs.getNullableEnumArray<SwitchJointType>("joint_types"),
                     xValues = rs.getNullableDoubleArray("joint_x_values"),
                     yValues = rs.getNullableDoubleArray("joint_y_values"),
                     accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
@@ -405,6 +410,7 @@ class LayoutSwitchDao(
 
     private fun parseJoints(
         numbers: List<Int?>,
+        jointTypes: List<SwitchJointType?>,
         xValues: List<Double?>,
         yValues: List<Double?>,
         accuracies: List<LocationAccuracy?>,
@@ -416,6 +422,7 @@ class LayoutSwitchDao(
             numbers[i]?.let(::JointNumber)?.let { jointNumber ->
                 LayoutSwitchJoint(
                     number = jointNumber,
+                    type = requireNotNull(jointTypes[i]) { "Joint should have a type: number=$jointNumber" },
                     location =
                         Point(
                             requireNotNull(xValues[i]) { "Joint should have an x-coordinate: number=$jointNumber" },

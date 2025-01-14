@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import clickWhenClickable
 import getElementWhenVisible
+import getNonNullAttribute
 import org.openqa.selenium.By
 import org.openqa.selenium.Keys
 import org.openqa.selenium.WebElement
@@ -16,7 +17,7 @@ class E2ETextInput(private val inputBy: By) {
         get() = getElementWhenVisible(inputBy)
 
     val value: String
-        get() = webElement.getAttribute("value")
+        get() = webElement.getNonNullAttribute("value")
 
     fun replaceValue(text: String): E2ETextInput = apply {
         clear()

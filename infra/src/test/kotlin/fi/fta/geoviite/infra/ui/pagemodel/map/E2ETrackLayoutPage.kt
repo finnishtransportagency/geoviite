@@ -13,13 +13,14 @@ import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.javaScriptExecutor
 import getElementIfExists
 import getElementWhenExists
-import java.time.Instant
-import kotlin.math.roundToInt
+import getNonNullAttribute
 import org.openqa.selenium.By
 import org.openqa.selenium.interactions.Actions
 import tryWait
 import waitUntilExists
 import waitUntilNotExist
+import java.time.Instant
+import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
@@ -61,7 +62,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     val verticalGeometryDiagram: E2EVerticalGeometryDiagram by lazy { E2EVerticalGeometryDiagram(this) }
 
     private val resolution: Double
-        get() = childElement(By.className("map__ol-map")).getAttribute("qa-resolution").toDouble()
+        get() = childElement(By.className("map__ol-map")).getNonNullAttribute("qa-resolution").toDouble()
 
     val switchToDraftModeButton = getElementIfExists(byQaId("draft-mode-tab"))
     val switchToDesignModeButton = getElementIfExists(byQaId("design-mode-tab"))
@@ -102,8 +103,9 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     fun clickAtCoordinates(xPoint: Double, yPoint: Double, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
         finishLoading()
         val pxlCoordinates =
-            javaScriptExecutor()
-                .executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])")
+            requireNotNull(javaScriptExecutor().executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])")) {
+                    "Could not get pixel coordinates: ($xPoint,$yPoint)"
+                }
                 .toString()
                 .replace("[^0-9.,]".toRegex(), "")
                 .split(",")
