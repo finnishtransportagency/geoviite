@@ -119,31 +119,29 @@ constructor(
 
     private fun createLocationTrack(
         branch: LayoutBranch,
-        layoutLocationTrack: LocationTrack,
+        locationTrack: LocationTrack,
         locationTrackOid: Oid<LocationTrack>,
         moment: Instant,
     ) {
         try {
-            val (addresses, jointPoints) = getLocationTrackPoints(branch, layoutLocationTrack, moment)
+            val (addresses, jointPoints) = getLocationTrackPoints(branch, locationTrack, moment)
 
             val ratkoNodes = convertToRatkoNodeCollection(addresses)
-            val trackNumberOid = getTrackNumberOid(branch, layoutLocationTrack.trackNumberId)
+            val trackNumberOid = getTrackNumberOid(branch, locationTrack.trackNumberId)
 
             val duplicateOfOidLocationTrack =
-                layoutLocationTrack.duplicateOf?.let { duplicateId -> getExternalId(branch, duplicateId) }
-            val owner = locationTrackService.getLocationTrackOwner(layoutLocationTrack.ownerId)
+                locationTrack.duplicateOf?.let { duplicateId -> getExternalId(branch, duplicateId) }
+            val owner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId)
 
             val ratkoLocationTrack =
                 convertToRatkoLocationTrack(
-                    locationTrack = layoutLocationTrack,
+                    locationTrack = locationTrack,
                     locationTrackOid = locationTrackOid,
                     trackNumberOid = trackNumberOid,
                     nodeCollection = ratkoNodes,
                     duplicateOfOid = duplicateOfOidLocationTrack,
-                    descriptionGetter = { locationTrack ->
-                        locationTrackService
-                            .getFullDescription(branch.official, locationTrack, LocalizationLanguage.FI)
-                            .toString()
+                    descriptionGetter = { track ->
+                        locationTrackService.getFullDescription(branch.official, track, LocalizationLanguage.FI)
                     },
                     owner = owner,
                 )
@@ -160,7 +158,7 @@ constructor(
             val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
             createLocationTrackMetadata(
                 branch,
-                layoutLocationTrack,
+                locationTrack,
                 Oid(locationTrackOid.id),
                 allPoints,
                 trackNumberOid,
@@ -402,7 +400,7 @@ constructor(
                 nodeCollection = changedNodeCollection,
                 duplicateOfOid = duplicateOfOidLocationTrack,
                 descriptionGetter = { track ->
-                    locationTrackService.getFullDescription(branch.official, track, LocalizationLanguage.FI).toString()
+                    locationTrackService.getFullDescription(branch.official, track, LocalizationLanguage.FI)
                 },
                 owner = owner,
             )

@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.FreeText
 import java.time.ZoneId
 
 fun mapToRatkoLocationTrackState(layoutState: LocationTrackState) =
@@ -159,14 +160,14 @@ fun convertToRatkoLocationTrack(
     trackNumberOid: Oid<LayoutTrackNumber>?,
     nodeCollection: RatkoNodes? = null,
     duplicateOfOid: Oid<LocationTrack>?,
-    descriptionGetter: (LocationTrack) -> String,
+    descriptionGetter: (LocationTrack) -> FreeText,
     owner: LocationTrackOwner,
 ) =
     RatkoLocationTrack(
         id = locationTrackOid?.toString(),
         name = locationTrack.name.toString(),
         routenumber = trackNumberOid?.let(::RatkoOid),
-        description = descriptionGetter(locationTrack),
+        description = descriptionGetter(locationTrack).toString(),
         state = mapToRatkoLocationTrackState(locationTrack.state),
         type = mapToRatkoLocationTrackType(locationTrack.type),
         nodecollection = nodeCollection,
