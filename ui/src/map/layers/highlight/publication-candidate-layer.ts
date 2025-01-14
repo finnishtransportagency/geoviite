@@ -77,7 +77,7 @@ export function colorByStage(
     isDeletion: boolean,
 ): string {
     return stage === PublicationStage.STAGED
-        ? changeType === ChangeType.EXPLICIT && !isDeletion
+        ? changeType === ChangeType.EXPLICIT
             ? '#0066cc'
             : '#99c2ea'
         : isDeletion
@@ -402,7 +402,7 @@ const createPointCandidateFeatures = (
                       candidate,
                       candidate.location,
                       type,
-                      false,
+                      candidate.operation === 'DELETE',
                       getZIndexByStage({
                           stage: candidate.stage,
                           changeType: ChangeType.EXPLICIT,
@@ -635,7 +635,7 @@ export function createPublicationCandidateLayer(
                               stroke: new Stroke({
                                   color: colorByStage(
                                       publishCandidate.stage,
-                                      ChangeType.EXPLICIT,
+                                      ChangeType.IMPLICIT,
                                       true,
                                   ),
                                   width:
@@ -682,7 +682,7 @@ export function createPublicationCandidateLayer(
                               stroke: new Stroke({
                                   color: colorByStage(
                                       publishCandidate.stage,
-                                      ChangeType.EXPLICIT,
+                                      ChangeType.IMPLICIT,
                                       true,
                                   ),
                                   width: 15,

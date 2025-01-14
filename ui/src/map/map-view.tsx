@@ -90,7 +90,6 @@ import { createPublicationCandidateLayer } from 'map/layers/highlight/publicatio
 import { PublicationCandidate } from 'publication/publication-model';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
-import { createDeletedPreviewPointFeaturesLayer } from 'map/layers/alignment/preview-deleted-point-features-layer';
 import { createDeletedPreviewPointIconFeaturesLayer } from 'map/layers/alignment/preview-deleted-point-icon-features-layer';
 
 declare global {
@@ -376,19 +375,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'preview-official-location-track-alignment-layer':
                         return undefined;
                     case 'preview-deleted-point-features-layer':
-                        return designPublicationMode
-                            ? createDeletedPreviewPointFeaturesLayer(
-                                  mapTiles,
-                                  existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
-                                  publicationCandidates ?? [],
-                                  designPublicationMode,
-                                  !!splittingState,
-                                  layoutContext,
-                                  changeTimes,
-                                  onShownLayerItemsChange,
-                                  (loading) => onLayerLoading(layerName, loading),
-                              )
-                            : undefined;
+                        return undefined;
                     case 'preview-deleted-point-icon-features-layer':
                         return designPublicationMode
                             ? createDeletedPreviewPointIconFeaturesLayer(
