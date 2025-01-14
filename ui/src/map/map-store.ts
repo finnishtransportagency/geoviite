@@ -118,6 +118,7 @@ export const initialMapState: Map = {
         'publication-candidate-layer',
         'preview-official-location-track-alignment-layer',
         'preview-deleted-point-features-layer',
+        'preview-deleted-point-icon-features-layer',
         'location-track-background-layer',
         'reference-line-background-layer',
         'location-track-badge-layer',

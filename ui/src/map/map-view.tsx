@@ -89,10 +89,9 @@ import Feature from 'ol/Feature';
 import { createPublicationCandidateLayer } from 'map/layers/highlight/publication-candidate-layer';
 import { PublicationCandidate } from 'publication/publication-model';
 import { measurementTool } from 'map/tools/measurement-tool';
-import { areaSelectTool } from 'map/tools/area-select-tool';
-import { createPreviewOfficialLocationTrackAlignmentLayer } from 'map/layers/alignment/preview-official-location-track-alignment-layer';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { createDeletedPreviewPointFeaturesLayer } from 'map/layers/alignment/preview-deleted-point-features-layer';
+import { createDeletedPreviewPointIconFeaturesLayer } from 'map/layers/alignment/preview-deleted-point-icon-features-layer';
 
 declare global {
     interface Window {
@@ -375,8 +374,10 @@ const MapView: React.FC<MapViewProps> = ({
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'preview-official-location-track-alignment-layer':
+                        return undefined;
+                    case 'preview-deleted-point-features-layer':
                         return designPublicationMode
-                            ? createPreviewOfficialLocationTrackAlignmentLayer(
+                            ? createDeletedPreviewPointFeaturesLayer(
                                   mapTiles,
                                   existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
                                   publicationCandidates ?? [],
@@ -384,14 +385,13 @@ const MapView: React.FC<MapViewProps> = ({
                                   !!splittingState,
                                   layoutContext,
                                   changeTimes,
-                                  olView,
                                   onShownLayerItemsChange,
                                   (loading) => onLayerLoading(layerName, loading),
                               )
                             : undefined;
-                    case 'preview-deleted-point-features-layer':
+                    case 'preview-deleted-point-icon-features-layer':
                         return designPublicationMode
-                            ? createDeletedPreviewPointFeaturesLayer(
+                            ? createDeletedPreviewPointIconFeaturesLayer(
                                   mapTiles,
                                   existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
                                   publicationCandidates ?? [],
@@ -414,6 +414,7 @@ const MapView: React.FC<MapViewProps> = ({
                                   // map.layerSettings['track-number-diagram-layer'],
                                   (loading) => onLayerLoading(layerName, loading),
                                   publicationCandidates?.length ? publicationCandidates : [],
+                                  designPublicationMode,
                               )
                             : undefined;
                     case 'track-number-addresses-layer':
@@ -807,14 +808,16 @@ const MapView: React.FC<MapViewProps> = ({
                     )}>
                     <Icons.Measure color={IconColor.INHERIT} />
                 </li>
-                <li
-                    onClick={() => _setActiveTool(areaSelectTool)}
-                    className={createClassName(
-                        styles['map__map-tool'],
-                        activeTool === areaSelectTool && styles['map__map-tool--active'],
-                    )}>
-                    <Icons.Edit color={IconColor.INHERIT} />
-                </li>
+                {!!designPublicationMode && (
+                    <li
+                        onClick={() => _setActiveTool(customActiveMapTool)}
+                        className={createClassName(
+                            styles['map__map-tool'],
+                            activeTool === customActiveMapTool && styles['map__map-tool--active'],
+                        )}>
+                        <Icons.Edit color={IconColor.INHERIT} />
+                    </li>
+                )}
             </ol>
             ‚
             <div

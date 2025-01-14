@@ -29,7 +29,6 @@ import {
     SwitchPublicationCandidate,
 } from 'publication/publication-model';
 import {
-    createPointCandidateFeature,
     KM_POST_CANDIDATE_DATA_PROPERTY,
     SWITCH_CANDIDATE_DATA_PROPERTY,
 } from 'map/layers/highlight/publication-candidate-layer';
@@ -44,9 +43,9 @@ import { createKmPostBadgeFeature } from 'map/layers/utils/km-post-layer-utils';
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
 
-const layerName: MapLayerName = 'preview-deleted-point-features-layer';
+const layerName: MapLayerName = 'preview-deleted-point-icon-features-layer';
 
-export function createDeletedPreviewPointFeaturesLayer(
+export function createDeletedPreviewPointIconFeaturesLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<Feature<LineString | OlPoint | Rectangle>> | undefined,
     publicationCandidates: PublicationCandidate[],
@@ -162,9 +161,6 @@ export function createDeletedPreviewPointFeaturesLayer(
                     (structure) => structure.id === s.switchStructureId,
                 );
                 const presentationJointNumber = structure?.presentationJointNumber;
-                const presentationJointLocation = s.joints.find(
-                    (j) => j.number === presentationJointNumber,
-                )?.location;
                 const feature = candidate
                     ? createSwitchFeature(
                           s,
@@ -179,38 +175,16 @@ export function createDeletedPreviewPointFeaturesLayer(
                           undefined,
                       )
                     : undefined;
-                const highlightFeature =
-                    candidate && presentationJointLocation
-                        ? createPointCandidateFeature(
-                              candidate,
-                              presentationJointLocation,
-                              DraftChangeType.SWITCH,
-                              true,
-                              -1,
-                          )
-                        : undefined;
-                highlightFeature?.set(SWITCH_CANDIDATE_DATA_PROPERTY, candidate);
 
-                return [feature, [highlightFeature]];
+                return [feature];
             })
             .flat()
             .filter(filterNotEmpty);
         const kpFeatures = alignments.kmPosts
-            .flatMap(({ kmPost, candidate }) => {
+            .flatMap(({ kmPost }) => {
                 const feature = createKmPostBadgeFeature(kmPost);
-                const highlightFeature =
-                    candidate && kmPost.layoutLocation
-                        ? createPointCandidateFeature(
-                              candidate,
-                              kmPost.layoutLocation,
-                              DraftChangeType.SWITCH,
-                              true,
-                              -1,
-                          )
-                        : undefined;
-                highlightFeature?.set(KM_POST_CANDIDATE_DATA_PROPERTY, candidate);
 
-                return [feature, [highlightFeature]];
+                return [feature];
             })
             .flat()
             .filter(filterNotEmpty);

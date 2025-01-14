@@ -28,6 +28,7 @@ import {
     DraftChangeType,
     LocationTrackPublicationCandidate,
     PublicationCandidate,
+    PublicationStage,
     ReferenceLinePublicationCandidate,
     TrackNumberPublicationCandidate,
 } from 'publication/publication-model';
@@ -180,7 +181,7 @@ export function createPreviewOfficialLocationTrackAlignmentLayer(
                           new Style({
                               stroke: new Stroke({
                                   color: colorByStage(candidate.stage, ChangeType.EXPLICIT, true),
-                                  width: 15,
+                                  width: candidate.stage === PublicationStage.UNSTAGED ? 23 : 11,
                                   lineCap: 'butt',
                               }),
                               zIndex: -1,
