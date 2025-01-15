@@ -6,6 +6,7 @@ import {
     LayoutStateCategory,
     LayoutSwitch,
     LayoutSwitchId,
+    LayoutSwitchJoint,
     LayoutTrackNumberId,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
@@ -26,7 +27,6 @@ import { Point } from 'model/geometry';
 import {
     JointNumber,
     KmNumber,
-    LocationAccuracy,
     LocationTrackOwnerId,
     Range,
     Srid,
@@ -226,8 +226,6 @@ export function toIntervalRequest(
     };
 }
 
-export type LinkPointType = 'geometry' | 'layout';
-
 export type GeometryPlanLinkStatus = {
     id: GeometryPlanId;
     alignments: GeometryAlignmentLinkStatus[];
@@ -262,29 +260,9 @@ export type GeometryKmPostLinkStatus = {
 
 export type SuggestedSwitchId = string;
 
-export type SuggestedSwitchJointMatch = {
-    locationTrackId: LocationTrackId;
-    layoutSwitchId?: LayoutSwitchId;
-    segmentIndex: number;
-    m: number;
-};
-
-export type SuggestedSwitchJoint = {
-    number: JointNumber;
-    location: Point;
-    matches: SuggestedSwitchJointMatch[];
-    locationAccuracy?: LocationAccuracy;
-};
-
 export type TopologicalJointConnection = {
     jointNumber: JointNumber;
     locationTrackIds: LocationTrackId[];
-};
-
-export type SuggestedLayoutSwitchJoint = {
-    number: JointNumber;
-    location: Point;
-    locationAccuracy?: LocationAccuracy;
 };
 
 export type SwitchLinkingJoint = {
@@ -309,7 +287,7 @@ export type SwitchLinkingTopologicalTrackLink = {
 export type SuggestedSwitch = {
     id: SuggestedSwitchId;
     switchStructureId: SwitchStructureId;
-    joints: SuggestedLayoutSwitchJoint[];
+    joints: LayoutSwitchJoint[];
     trackLinks: Record<LocationTrackId, SwitchLinkingTrackLinks>;
     geometryPlanId?: GeometryPlanId;
     geometrySwitchId?: GeometrySwitchId;

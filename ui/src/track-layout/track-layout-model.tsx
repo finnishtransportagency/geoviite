@@ -273,7 +273,7 @@ export type LayoutSwitch = {
 export type LayoutSwitchJoint = {
     number: JointNumber;
     location: Point;
-    locationAccuracy: LocationAccuracy;
+    locationAccuracy?: LocationAccuracy;
 };
 
 export type LayoutKmPostGkLocation = {
