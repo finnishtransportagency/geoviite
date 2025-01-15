@@ -21,8 +21,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -31,8 +33,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.time.Instant
 import org.postgresql.util.PSQLException
@@ -87,7 +87,7 @@ constructor(
             referenceLineService.getMany(branch.draft, requestIds.referenceLines).map { rlId -> rlId.trackNumberId }
         val trackNumbers =
             trackNumberService.getMany(branch.draft, referenceLineTrackNumberIds + requestIds.trackNumbers)
-        val revertTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isDraft).map { it.id as IntId }
+        val revertTrackNumberIds = trackNumbers.filter(LayoutTrackNumber::isDraft).map { it.id as IntId }
         // If revert breaks other draft row references, they should be reverted too
         val draftOnlyTrackNumberIds =
             trackNumbers.filter { tn -> tn.isDraft && !tn.contextData.hasOfficial }.map { it.id as IntId }
@@ -205,13 +205,13 @@ constructor(
         locationTrackOid?.let { oid -> locationTrackService.insertExternalId(branch, locationTrackId, Oid(oid.id)) }
     }
 
-    private fun insertExternalIdForTrackNumber(branch: LayoutBranch, trackNumberId: IntId<TrackLayoutTrackNumber>) {
+    private fun insertExternalIdForTrackNumber(branch: LayoutBranch, trackNumberId: IntId<LayoutTrackNumber>) {
         val routeNumberOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewRouteNumberOid()) { "No OID received from RATKO" } }
         routeNumberOid?.let { oid -> trackNumberService.insertExternalId(branch, trackNumberId, Oid(oid.id)) }
     }
 
-    private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<TrackLayoutSwitch>) {
+    private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<LayoutSwitch>) {
         val switchOid = ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()) { "No OID received from RATKO" } }
         switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(oid.id)) }
     }
@@ -429,7 +429,7 @@ constructor(
             val trackIdString = match.groups[1]?.value
             val nameString = match.groups[2]?.value
             val layoutContextIdString = match.groups[3]?.value
-            val trackId = IntId<TrackLayoutTrackNumber>(Integer.parseInt(trackIdString))
+            val trackId = IntId<LayoutTrackNumber>(Integer.parseInt(trackIdString))
             if (trackIdString != null && nameString != null && layoutContextIdString != null) {
                 val branch =
                     requireNotNull(

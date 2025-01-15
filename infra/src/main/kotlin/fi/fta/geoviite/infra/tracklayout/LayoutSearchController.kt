@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.RequestParam
 
 data class TrackLayoutSearchResult(
     val locationTracks: List<LocationTrack>,
-    val switches: List<TrackLayoutSwitch>,
-    val trackNumbers: List<TrackLayoutTrackNumber>,
+    val switches: List<LayoutSwitch>,
+    val trackNumbers: List<LayoutTrackNumber>,
     val operatingPoints: List<RatkoOperatingPoint>,
 )
 

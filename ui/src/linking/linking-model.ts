@@ -281,7 +281,7 @@ export type TopologicalJointConnection = {
     locationTrackIds: LocationTrackId[];
 };
 
-export type TrackLayoutSwitchJoint = {
+export type LayoutSwitchJoint = {
     number: JointNumber;
     location: Point;
     locationAccuracy?: LocationAccuracy;
@@ -309,7 +309,7 @@ export type SwitchLinkingTopologicalTrackLink = {
 export type SuggestedSwitch = {
     id: SuggestedSwitchId;
     switchStructureId: SwitchStructureId;
-    joints: TrackLayoutSwitchJoint[];
+    joints: LayoutSwitchJoint[];
     trackLinks: Record<LocationTrackId, SwitchLinkingTrackLinks>;
     geometryPlanId?: GeometryPlanId;
     geometrySwitchId?: GeometrySwitchId;
@@ -333,7 +333,7 @@ export type KmPostLinkingParameters = {
     layoutKmPostId: LayoutKmPostId;
 };
 
-export type TrackLayoutSwitchSaveRequest = {
+export type LayoutSwitchSaveRequest = {
     name: string;
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;

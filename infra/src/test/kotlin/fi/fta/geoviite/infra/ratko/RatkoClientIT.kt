@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.switch
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -74,7 +74,7 @@ constructor(
         ratkoClient.updateAssetProperties(RatkoOid(oid), basicUpdateSwitch.properties)
     }
 
-    private fun createRatkoBasicUpdateSwitch(layoutSwitch: TrackLayoutSwitch, oid: String): RatkoSwitchAsset {
+    private fun createRatkoBasicUpdateSwitch(layoutSwitch: LayoutSwitch, oid: String): RatkoSwitchAsset {
         val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
         fakeRatko.hasSwitch(ratkoSwitch(oid))
         val ratkoSwitch = ratkoClient.getSwitchAsset(RatkoOid(oid))

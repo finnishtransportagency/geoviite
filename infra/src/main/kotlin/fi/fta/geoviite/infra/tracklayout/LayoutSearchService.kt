@@ -40,25 +40,21 @@ constructor(
             .take(limit)
     }
 
-    fun searchAllSwitches(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<TrackLayoutSwitch> {
+    fun searchAllSwitches(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LayoutSwitch> {
         return switchService
             .list(layoutContext, true)
             .let { list -> switchService.filterBySearchTerm(list, searchTerm, switchService.idMatches(layoutContext)) }
-            .sortedBy(TrackLayoutSwitch::name)
+            .sortedBy(LayoutSwitch::name)
             .take(limit)
     }
 
-    fun searchAllTrackNumbers(
-        layoutContext: LayoutContext,
-        searchTerm: FreeText,
-        limit: Int,
-    ): List<TrackLayoutTrackNumber> {
+    fun searchAllTrackNumbers(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LayoutTrackNumber> {
         return trackNumberService
             .list(layoutContext, true)
             .let { list ->
                 trackNumberService.filterBySearchTerm(list, searchTerm, trackNumberService.idMatches(layoutContext))
             }
-            .sortedBy(TrackLayoutTrackNumber::number)
+            .sortedBy(LayoutTrackNumber::number)
             .take(limit)
     }
 
@@ -85,7 +81,7 @@ constructor(
                 switchService.getMany(layoutContext, ids)
             }
         val locationTracks = getLocationTrackAndDuplicatesByScope(layoutContext, locationTrackSearchScope)
-        val trackNumbers = emptyList<TrackLayoutTrackNumber>()
+        val trackNumbers = emptyList<LayoutTrackNumber>()
         val switchIdMatch = switchService.idMatches(layoutContext, switches.map { it.id as IntId })
         val ltIdMatch = locationTrackService.idMatches(layoutContext, locationTracks.map { it.id as IntId })
         val trackNumberIdMatch = trackNumberService.idMatches(layoutContext, trackNumbers.map { it.id as IntId })

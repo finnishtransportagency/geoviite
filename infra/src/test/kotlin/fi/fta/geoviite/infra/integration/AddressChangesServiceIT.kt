@@ -21,7 +21,9 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -31,8 +33,6 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.fixMValues
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -626,7 +626,7 @@ constructor(
         val locationTrackGeometry: LayoutAlignment,
         val referenceLine: ReferenceLine,
         val referenceLineGeometry: LayoutAlignment,
-        val kmPosts: List<TrackLayoutKmPost>,
+        val kmPosts: List<LayoutKmPost>,
     )
 
     fun createAndInsertTrackNumberAndLocationTrack(): SetupData {
@@ -666,7 +666,7 @@ constructor(
             referenceLineDao.fetch(
                 referenceLineDao.save(
                     referenceLine(
-                        trackNumber.id as IntId<TrackLayoutTrackNumber>,
+                        trackNumber.id as IntId<LayoutTrackNumber>,
                         alignment = referenceLineGeometry,
                         alignmentVersion = referenceLineGeometryVersion,
                         draft = false,
@@ -740,10 +740,7 @@ constructor(
         referenceLineService.publish(LayoutBranch.main, version)
     }
 
-    fun moveKmPostGkLocationAndUpdate(
-        kmPost: TrackLayoutKmPost,
-        moveFunc: (point: IPoint) -> Point,
-    ): TrackLayoutKmPost {
+    fun moveKmPostGkLocationAndUpdate(kmPost: LayoutKmPost, moveFunc: (point: IPoint) -> Point): LayoutKmPost {
         return layoutKmPostDao.fetch(
             layoutKmPostDao.save(
                 kmPost.copy(
@@ -830,6 +827,6 @@ constructor(
     fun getTrackAtMoment(locationTrackId: IntId<LocationTrack>, moment: Instant) =
         locationTrackService.getOfficialAtMoment(LayoutBranch.main, locationTrackId, moment)
 
-    fun getContextKeyAtMoment(trackNumberId: IntId<TrackLayoutTrackNumber>, moment: Instant) =
+    fun getContextKeyAtMoment(trackNumberId: IntId<LayoutTrackNumber>, moment: Instant) =
         geocodingService.getGeocodingContextCacheKey(LayoutBranch.main, trackNumberId, moment)
 }

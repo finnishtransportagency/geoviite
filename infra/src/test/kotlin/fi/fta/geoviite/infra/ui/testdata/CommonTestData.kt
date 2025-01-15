@@ -42,15 +42,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -113,7 +113,7 @@ fun createGeometryAlignment(
 
 fun locationTrack(
     name: String,
-    trackNumber: IntId<TrackLayoutTrackNumber>,
+    trackNumber: IntId<LayoutTrackNumber>,
     layoutAlignmentType: LocationTrackType = LocationTrackType.MAIN,
     basePoint: Point,
     incrementPoints: List<Point>,
@@ -135,7 +135,7 @@ fun locationTrack(
 }
 
 fun referenceLine(
-    trackNumber: IntId<TrackLayoutTrackNumber>,
+    trackNumber: IntId<LayoutTrackNumber>,
     basePoint: Point,
     incrementPoints: List<Point>,
     draft: Boolean,
@@ -157,8 +157,8 @@ private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: L
     return alignment(segments)
 }
 
-fun trackLayoutSwitch(name: String, jointPoints: List<Point>, switchStructure: SwitchStructure) =
-    TrackLayoutSwitch(
+fun layoutSwitch(name: String, jointPoints: List<Point>, switchStructure: SwitchStructure) =
+    LayoutSwitch(
         sourceId = null,
         name = SwitchName(name),
         stateCategory = LayoutStateCategory.EXISTING,
@@ -171,7 +171,7 @@ fun trackLayoutSwitch(name: String, jointPoints: List<Point>, switchStructure: S
     )
 
 fun switchJoint(location: Point) =
-    TrackLayoutSwitchJoint(
+    LayoutSwitchJoint(
         number = JointNumber(1),
         location = location,
         locationAccuracy = getSomeNullableValue<LocationAccuracy>(1),
@@ -192,7 +192,7 @@ fun pointsFromIncrementList(basePoint: Point, incrementPoints: List<Point>) =
     incrementPoints.scan(basePoint) { prevPoint, pointIncr -> prevPoint + pointIncr }
 
 fun locationTrackAndAlignmentForGeometryAlignment(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     geometryAlignment: GeometryAlignment,
     transformation: Transformation,
     draft: Boolean,

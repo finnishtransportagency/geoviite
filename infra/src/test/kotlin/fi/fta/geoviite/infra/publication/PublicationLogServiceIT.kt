@@ -18,10 +18,10 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.GeographyService
+import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
-import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
-import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
@@ -30,11 +30,14 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
@@ -48,9 +51,6 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -477,7 +477,7 @@ constructor(
                 MainLayoutContext.draft,
                 kmPostService.insertKmPost(
                     LayoutBranch.main,
-                    TrackLayoutKmPostSaveRequest(
+                    LayoutKmPostSaveRequest(
                         KmNumber(0),
                         LayoutState.IN_USE,
                         trackNumberId,
@@ -497,7 +497,7 @@ constructor(
                 kmPostService.updateKmPost(
                     LayoutBranch.main,
                     kmPost.id as IntId,
-                    TrackLayoutKmPostSaveRequest(
+                    LayoutKmPostSaveRequest(
                         KmNumber(1),
                         LayoutState.NOT_IN_USE,
                         trackNumber2Id,
@@ -546,7 +546,7 @@ constructor(
     }
 
     private fun getLatestPublicationDiffForKmPost(
-        id: IntId<TrackLayoutKmPost>
+        id: IntId<LayoutKmPost>
     ): List<PublicationChange<out Comparable<Nothing>?>> {
         val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
@@ -565,7 +565,7 @@ constructor(
     @Test
     fun `Changing specific KM Post field returns only that field`() {
         val saveReq =
-            TrackLayoutKmPostSaveRequest(
+            LayoutKmPostSaveRequest(
                 KmNumber(0),
                 LayoutState.IN_USE,
                 mainOfficialContext.createLayoutTrackNumber().id,
@@ -625,13 +625,7 @@ constructor(
                 MainLayoutContext.draft,
                 switchService.insertSwitch(
                     LayoutBranch.main,
-                    TrackLayoutSwitchSaveRequest(
-                        SwitchName("TEST"),
-                        IntId(1),
-                        LayoutStateCategory.EXISTING,
-                        IntId(1),
-                        false,
-                    ),
+                    LayoutSwitchSaveRequest(SwitchName("TEST"), IntId(1), LayoutStateCategory.EXISTING, IntId(1), false),
                 ),
             )
         publish(publicationService, switches = listOf(switch.id as IntId), trackNumbers = listOf(tn1, tn2))
@@ -641,7 +635,7 @@ constructor(
                 switchService.updateSwitch(
                     LayoutBranch.main,
                     switch.id as IntId,
-                    TrackLayoutSwitchSaveRequest(
+                    LayoutSwitchSaveRequest(
                         SwitchName("TEST 2"),
                         IntId(2),
                         LayoutStateCategory.NOT_EXISTING,
@@ -679,7 +673,7 @@ constructor(
     @Test
     fun `Changing specific switch field returns only that field`() {
         val saveReq =
-            TrackLayoutSwitchSaveRequest(SwitchName("TEST"), IntId(1), LayoutStateCategory.EXISTING, IntId(1), false)
+            LayoutSwitchSaveRequest(SwitchName("TEST"), IntId(1), LayoutStateCategory.EXISTING, IntId(1), false)
 
         val switch =
             switchService.getOrThrow(MainLayoutContext.draft, switchService.insertSwitch(LayoutBranch.main, saveReq))
@@ -861,8 +855,8 @@ constructor(
         locationTrackId: IntId<LocationTrack>
     ): (
         publicationId: IntId<Publication>,
-        old: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
-        new: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
+        old: Map<IntId<LayoutSwitch>, SwitchChangeIds>,
+        new: Map<IntId<LayoutSwitch>, SwitchChangeIds>,
     ) -> Pair<IntId<Publication>, Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>> =
         { publicationId, old, new ->
             publicationId to mapOf(locationTrackId to LocationTrackPublicationSwitchLinkChanges(old, new))
@@ -1207,7 +1201,7 @@ constructor(
         )
         val switch =
             switchDao.save(
-                switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
+                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
             )
         val originalAlignment =
             alignment(
@@ -1220,7 +1214,7 @@ constructor(
             )
         switchService.saveDraft(
             LayoutBranch.main,
-            switchDao.fetch(switch).copy(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
+            switchDao.fetch(switch).copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
         )
         val updatedAlignment =
             alignment(
@@ -1271,7 +1265,7 @@ constructor(
         )
         val switch =
             switchDao.save(
-                switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
+                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
             )
         val originalAlignment =
             alignment(
@@ -1287,7 +1281,7 @@ constructor(
 
         switchService.saveDraft(
             testBranch,
-            switchDao.fetch(switch).copy(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
+            switchDao.fetch(switch).copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
         )
         val updatedAlignment =
             alignment(
@@ -1339,10 +1333,7 @@ constructor(
             )
         val switch =
             mainDraftContext.insert(
-                switch(
-                    name = "original",
-                    joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(5.0, 5.0), null)),
-                )
+                switch(name = "original", joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(5.0, 5.0), null)))
             )
         val locationTrack =
             mainDraftContext.insert(
@@ -1512,7 +1503,7 @@ constructor(
         )
 }
 
-private fun alignmentWithSwitchLinks(vararg switchIds: IntId<TrackLayoutSwitch>?): LayoutAlignment =
+private fun alignmentWithSwitchLinks(vararg switchIds: IntId<LayoutSwitch>?): LayoutAlignment =
     alignment(
         switchIds.mapIndexed { index, switchId ->
             segment(Point(0.0, index * 1.0), Point(0.0, index * 1.0 + 1.0)).let { segment ->

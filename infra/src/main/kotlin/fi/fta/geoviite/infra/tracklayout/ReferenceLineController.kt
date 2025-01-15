@@ -48,7 +48,7 @@ class ReferenceLineController(private val referenceLineService: ReferenceLineSer
     fun getTrackNumberReferenceLine(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
+        @PathVariable("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
     ): ResponseEntity<ReferenceLine> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return toResponse(referenceLineService.getByTrackNumber(layoutContext, trackNumberId))

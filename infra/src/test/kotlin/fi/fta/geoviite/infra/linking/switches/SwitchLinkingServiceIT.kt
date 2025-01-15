@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
@@ -18,9 +18,8 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.testFile
-import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
-import fi.fta.geoviite.infra.linking.switches.SwitchTrackRelinkingValidationService
-import fi.fta.geoviite.infra.linking.switches.matchFittedSwitchToTracks
+import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResult
+import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.math.Point
@@ -37,14 +36,14 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -339,7 +338,7 @@ constructor(
         )
     }
 
-    private fun createAndLinkSwitch(linkedJoints: List<FittedSwitchJoint>): TrackLayoutSwitch {
+    private fun createAndLinkSwitch(linkedJoints: List<FittedSwitchJoint>): LayoutSwitch {
         return switch(joints = listOf(), stateCategory = LayoutStateCategory.EXISTING)
             .let(mainOfficialContext::insertAndFetch)
             .let { storedSwitch ->
@@ -370,7 +369,7 @@ constructor(
         val straightTrackAlignment: LayoutAlignment,
         val divertingTrack: LocationTrack,
         val divertingTrackAlignment: LayoutAlignment,
-        val linkedSwitch: TrackLayoutSwitch,
+        val linkedSwitch: LayoutSwitch,
     )
 
     private fun createLocationTracksWithLinkedSwitch(seed: Int = 12345): LocationTracksWithLinkedSwitch {
@@ -909,7 +908,7 @@ constructor(
 
     private fun shiftSegmentGeometry(
         source: LayoutSegment,
-        switchId: IntId<TrackLayoutSwitch>?,
+        switchId: IntId<LayoutSwitch>?,
         shiftVector: Point,
     ): LayoutSegment =
         source.copy(
@@ -925,14 +924,14 @@ constructor(
             endJointNumber = null,
         )
 
-    private fun shiftSwitch(source: TrackLayoutSwitch, name: String, shiftVector: Point) =
+    private fun shiftSwitch(source: LayoutSwitch, name: String, shiftVector: Point) =
         source.copy(
             contextData = LayoutContextData.newOfficial(LayoutBranch.main),
             joints = source.joints.map { joint -> joint.copy(location = joint.location + shiftVector) },
             name = SwitchName(name),
         )
 
-    private fun shiftTrack(template: List<LayoutSegment>, switchId: IntId<TrackLayoutSwitch>?, shiftVector: Point) =
+    private fun shiftTrack(template: List<LayoutSegment>, switchId: IntId<LayoutSwitch>?, shiftVector: Point) =
         template.map { segment -> shiftSegmentGeometry(segment, switchId, shiftVector) }
 
     @Test
@@ -1491,11 +1490,11 @@ constructor(
         // arrangement realistically slightly asymmetric
         val leftSwitchJoints =
             switchStructure.joints.map { joint ->
-                TrackLayoutSwitchJoint(joint.number, Point(-joint.location.x, -joint.location.y * 0.99), null)
+                LayoutSwitchJoint(joint.number, Point(-joint.location.x, -joint.location.y * 0.99), null)
             }
         val rightSwitchJoints =
             switchStructure.joints.map { joint ->
-                TrackLayoutSwitchJoint(joint.number, Point(joint.location.x, joint.location.y), null)
+                LayoutSwitchJoint(joint.number, Point(joint.location.x, joint.location.y), null)
             }
 
         val leftSwitch =
@@ -1579,7 +1578,7 @@ constructor(
     }
 
     private fun setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox():
-        Triple<IntId<LocationTrack>, IntId<LocationTrack>, IntId<TrackLayoutSwitch>> {
+        Triple<IntId<LocationTrack>, IntId<LocationTrack>, IntId<LayoutSwitch>> {
         val trackNumberId =
             mainOfficialContext
                 .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
@@ -1630,9 +1629,9 @@ constructor(
 
     private fun assertTrackDraftVersionSwitchLinks(
         trackId: IntId<LocationTrack>,
-        topologyStartSwitchId: IntId<TrackLayoutSwitch>?,
-        topologyEndSwitchId: IntId<TrackLayoutSwitch>?,
-        segmentSwitchesByMRange: List<Pair<ClosedRange<Double>, IntId<TrackLayoutSwitch>?>>,
+        topologyStartSwitchId: IntId<LayoutSwitch>?,
+        topologyEndSwitchId: IntId<LayoutSwitch>?,
+        segmentSwitchesByMRange: List<Pair<ClosedRange<Double>, IntId<LayoutSwitch>?>>,
     ) {
         val track = locationTrackService.get(MainLayoutContext.draft, trackId)!!
         val (_, alignment) = locationTrackService.getWithAlignment(track.version!!)
@@ -1700,7 +1699,7 @@ constructor(
         return acc.map { ss -> ss.map { s -> s.copy(id = StringId(), geometry = s.geometry.copy(id = StringId())) } }
     }
 
-    private fun setSwitchId(segments: List<LayoutSegment>, switchId: IntId<TrackLayoutSwitch>?) =
+    private fun setSwitchId(segments: List<LayoutSegment>, switchId: IntId<LayoutSwitch>?) =
         segments.map { segment ->
             segment.copy(
                 switchId = switchId,

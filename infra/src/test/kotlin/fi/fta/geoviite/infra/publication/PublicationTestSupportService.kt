@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -29,7 +30,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -108,7 +108,7 @@ constructor(
     fun saveSplit(
         sourceTrackVersion: LayoutRowVersion<LocationTrack>,
         targetTracks: List<Pair<IntId<LocationTrack>, IntRange>> = listOf(),
-        switches: List<IntId<TrackLayoutSwitch>> = listOf(),
+        switches: List<IntId<LayoutSwitch>> = listOf(),
     ): IntId<Split> {
         return splitDao.saveSplit(
             sourceTrackVersion,

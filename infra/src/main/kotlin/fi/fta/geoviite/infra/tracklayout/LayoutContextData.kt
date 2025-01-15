@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.StringId
-import fi.fta.geoviite.infra.logging.Loggable
 
 interface LayoutContextAware<T : LayoutAsset<T>> {
     val id: DomainId<T>
@@ -65,16 +64,6 @@ data class EditedAssetId<T : LayoutAsset<T>>(val sourceRowVersion: LayoutRowVers
 data class StoredAssetId<T : LayoutAsset<T>>(override val version: LayoutRowVersion<T>) : LayoutAssetId<T>() {
     override val id: IntId<T>
         get() = version.id
-}
-
-sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) :
-    LayoutContextAware<T> by contextData, Loggable {
-    @get:JsonIgnore abstract val contextData: LayoutContextData<T>
-
-    val hasOfficial: Boolean
-        get() = contextData.hasOfficial
-
-    abstract fun withContext(contextData: LayoutContextData<T>): T
 }
 
 sealed class LayoutContextData<T : LayoutAsset<T>> : LayoutContextAware<T> {

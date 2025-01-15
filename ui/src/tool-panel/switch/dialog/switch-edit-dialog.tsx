@@ -17,7 +17,7 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
-import { TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
+import { LayoutSwitchSaveRequest } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
     draftLayoutContext,
@@ -214,7 +214,7 @@ export const SwitchEditDialog = ({
 
     function save() {
         if (switchName && switchStateCategory && switchStructureId && switchOwnerId) {
-            const newSwitch: TrackLayoutSwitchSaveRequest = {
+            const newSwitch: LayoutSwitchSaveRequest = {
                 name: switchName,
                 switchStructureId: switchStructureId,
                 stateCategory: switchStateCategory,
@@ -227,7 +227,7 @@ export const SwitchEditDialog = ({
         }
     }
 
-    function saveNewSwitch(newSwitch: TrackLayoutSwitchSaveRequest) {
+    function saveNewSwitch(newSwitch: LayoutSwitchSaveRequest) {
         setIsSaving(true);
         insertSwitch(newSwitch, layoutContext)
             .then(
@@ -243,7 +243,7 @@ export const SwitchEditDialog = ({
 
     function saveUpdatedSwitch(
         existingSwitch: LayoutSwitch,
-        updatedSwitch: TrackLayoutSwitchSaveRequest,
+        updatedSwitch: LayoutSwitchSaveRequest,
     ) {
         setIsSaving(true);
         updateSwitch(existingSwitch.id, updatedSwitch, layoutContext)
@@ -265,11 +265,11 @@ export const SwitchEditDialog = ({
         ...validateSwitchOwnerId(switchOwnerId),
     ];
 
-    function hasErrors(prop: keyof TrackLayoutSwitchSaveRequest) {
+    function hasErrors(prop: keyof LayoutSwitchSaveRequest) {
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
-    function getVisibleErrorsByProp(prop: keyof TrackLayoutSwitchSaveRequest) {
+    function getVisibleErrorsByProp(prop: keyof LayoutSwitchSaveRequest) {
         if (visitedFields.includes(prop)) {
             return validationIssues
                 .filter((error) => error.field == prop)
@@ -517,8 +517,8 @@ export const SwitchEditDialog = ({
     );
 };
 
-function validateSwitchName(name: string): FieldValidationIssue<TrackLayoutSwitchSaveRequest>[] {
-    const errors: FieldValidationIssue<TrackLayoutSwitchSaveRequest>[] = [];
+function validateSwitchName(name: string): FieldValidationIssue<LayoutSwitchSaveRequest>[] {
+    const errors: FieldValidationIssue<LayoutSwitchSaveRequest>[] = [];
     if (!name) {
         errors.push({
             field: 'name',
@@ -545,7 +545,7 @@ function validateSwitchName(name: string): FieldValidationIssue<TrackLayoutSwitc
 
 function validateSwitchStateCategory(
     stateCategory?: LayoutStateCategory,
-): FieldValidationIssue<TrackLayoutSwitchSaveRequest>[] {
+): FieldValidationIssue<LayoutSwitchSaveRequest>[] {
     if (!stateCategory)
         return [
             {
@@ -559,7 +559,7 @@ function validateSwitchStateCategory(
 
 function validateSwitchStructureId(
     structureId?: SwitchStructureId,
-): FieldValidationIssue<TrackLayoutSwitchSaveRequest>[] {
+): FieldValidationIssue<LayoutSwitchSaveRequest>[] {
     if (!structureId)
         return [
             {
@@ -573,7 +573,7 @@ function validateSwitchStructureId(
 
 function validateSwitchOwnerId(
     ownerId?: SwitchStructureId,
-): FieldValidationIssue<TrackLayoutSwitchSaveRequest>[] {
+): FieldValidationIssue<LayoutSwitchSaveRequest>[] {
     if (!ownerId)
         return [
             {

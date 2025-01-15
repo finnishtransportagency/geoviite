@@ -28,7 +28,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -37,8 +39,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.assertMatches
@@ -469,8 +469,8 @@ constructor(
     }
 
     private fun insertAndCheck(
-        trackNumber: TrackLayoutTrackNumber
-    ): Pair<LayoutRowVersion<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> {
+        trackNumber: LayoutTrackNumber
+    ): Pair<LayoutRowVersion<LayoutTrackNumber>, LayoutTrackNumber> {
         val official = trackNumberDao.save(trackNumber)
         val fromDb = trackNumberDao.fetch(official)
         assertEquals(official.id, fromDb.id)
@@ -481,9 +481,7 @@ constructor(
         return official to fromDb
     }
 
-    private fun insertAndCheck(
-        switch: TrackLayoutSwitch
-    ): Pair<LayoutRowVersion<TrackLayoutSwitch>, TrackLayoutSwitch> {
+    private fun insertAndCheck(switch: LayoutSwitch): Pair<LayoutRowVersion<LayoutSwitch>, LayoutSwitch> {
         val official = switchDao.save(switch)
         val fromDb = switchDao.fetch(official)
         assertEquals(official.id, fromDb.id)

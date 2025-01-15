@@ -120,7 +120,7 @@ class MapAlignmentService(
         val trackNumbers =
             trackNumberService
                 .getMany(layoutContext, referenceLines.map { (rl, _) -> rl.trackNumberId })
-                .associateBy(TrackLayoutTrackNumber::id)
+                .associateBy(LayoutTrackNumber::id)
         return referenceLines.map { (line, alignment) ->
             val trackNumber =
                 requireNotNull(trackNumbers[line.trackNumberId]) {

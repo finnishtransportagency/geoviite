@@ -1,5 +1,5 @@
 import fi.fta.geoviite.infra.geometry.*
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 
@@ -64,7 +64,7 @@ fun assertMatches(original: GeometrySwitch, fromDb: GeometrySwitch) {
     assertEquals(original.joints, fromDb.joints)
 }
 
-fun assertMatches(original: TrackLayoutTrackNumber?, fromDb: TrackLayoutTrackNumber?) {
+fun assertMatches(original: LayoutTrackNumber?, fromDb: LayoutTrackNumber?) {
     if (original != null || fromDb != null) {
         assertEquals(original?.number, fromDb?.number)
         assertEquals(original?.description, fromDb?.description)

@@ -5,11 +5,11 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -278,7 +278,7 @@ class SwitchTopologicalConnectivityTest {
 
     // might be a segment's start and/or end joint, might be a track's topology start or end link
     private data class SwitchLinkPair(
-        val switchId: IntId<TrackLayoutSwitch>,
+        val switchId: IntId<LayoutSwitch>,
         val startJointNumber: JointNumber?,
         val endJointNumber: JointNumber?,
     )
@@ -288,7 +288,7 @@ class SwitchTopologicalConnectivityTest {
         operator fun invoke(start: Int?, end: Int?): SwitchLinkPair
     }
 
-    private fun switchLink(switchId: IntId<TrackLayoutSwitch>) = MakeSwitchLinkPair { startJoint, endJoint ->
+    private fun switchLink(switchId: IntId<LayoutSwitch>) = MakeSwitchLinkPair { startJoint, endJoint ->
         SwitchLinkPair(
             switchId,
             startJointNumber = startJoint?.let(::JointNumber),
@@ -338,13 +338,13 @@ class SwitchTopologicalConnectivityTest {
 
     private fun switchAndLink(
         switchStructure: SwitchStructure = switchStructureYV60_300_1_9()
-    ): Pair<TrackLayoutSwitch, MakeSwitchLinkPair> {
-        val switchId: IntId<TrackLayoutSwitch> = IntId(idCounter++)
+    ): Pair<LayoutSwitch, MakeSwitchLinkPair> {
+        val switchId: IntId<LayoutSwitch> = IntId(idCounter++)
         val switch =
             switch(
                 id = switchId,
                 structureId = switchStructure.id as IntId,
-                joints = switchStructure.joints.map { j -> TrackLayoutSwitchJoint(j.number, j.location, null) },
+                joints = switchStructure.joints.map { j -> LayoutSwitchJoint(j.number, j.location, null) },
             )
         val link = switchLink(switchId)
         return switch to link

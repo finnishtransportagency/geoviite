@@ -9,8 +9,8 @@ import fi.fta.geoviite.infra.publication.VALIDATION
 import fi.fta.geoviite.infra.publication.validate
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.produceIf
 import kotlin.math.min
 
@@ -39,7 +39,7 @@ internal fun validateSourceGeometry(
 
 internal fun validateSplitContent(
     trackVersions: List<LayoutRowVersion<LocationTrack>>,
-    switchVersions: List<LayoutRowVersion<TrackLayoutSwitch>>,
+    switchVersions: List<LayoutRowVersion<LayoutSwitch>>,
     publicationSplits: Collection<Split>,
     allowMultipleSplits: Boolean,
 ): List<Pair<Split, LayoutValidationIssue>> {

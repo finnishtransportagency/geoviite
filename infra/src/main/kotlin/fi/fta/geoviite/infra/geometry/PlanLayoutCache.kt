@@ -16,8 +16,8 @@ import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.toTrackLayout
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -132,7 +132,7 @@ data class PlanLayoutCacheKey(val planVersion: RowVersion<GeometryPlan>, val inc
 
 private fun transformToLayoutPlan(
     geometryPlan: GeometryPlan,
-    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    trackNumberId: IntId<LayoutTrackNumber>?,
     includeGeometryData: Boolean,
     pointListStepLength: Int,
     planToLayoutTransformation: Transformation,

@@ -14,10 +14,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -287,10 +287,10 @@ constructor(
 
         val kmPostLinkingInfoBox = toolPanel.geometryKmPostLinking
         kmPostLinkingInfoBox.initiateLinking()
-        val firstTrackLayoutKmPost = kmPostLinkingInfoBox.trackLayoutKmPosts.first()
-        assertEquals("012", firstTrackLayoutKmPost.substring(0, 3))
+        val firstLayoutKmPost = kmPostLinkingInfoBox.layoutKmPosts.first()
+        assertEquals("012", firstLayoutKmPost.substring(0, 3))
 
-        kmPostLinkingInfoBox.linkTo(firstTrackLayoutKmPost)
+        kmPostLinkingInfoBox.linkTo(firstLayoutKmPost)
         kmPostLinkingInfoBox.link()
         waitAndClearToast("linking-succeed-msg")
 
@@ -326,7 +326,7 @@ constructor(
 
         val newKmPostNumber = "0003NW"
         kmPostLinkingInfoBox
-            .createNewTrackLayoutKmPost()
+            .createNewLayoutKmPost()
             .setName(newKmPostNumber)
             .selectState(E2EKmPostEditDialog.State.IN_USE)
             .save()
@@ -390,7 +390,7 @@ constructor(
         val switchLinkingInfoBox = toolPanel.geometrySwitchLinking
         switchLinkingInfoBox.initiateLinking()
         switchLinkingInfoBox
-            .createNewTrackLayoutSwitch()
+            .createNewLayoutSwitch()
             .setName(layoutSwitchName)
             .selectStateCategory(E2ELayoutSwitchEditDialog.StateCategory.EXISTING)
             .save()
@@ -734,7 +734,7 @@ constructor(
         waitAndClearToast("linking-succeeded")
     }
 
-    private fun createAndInsertCommonReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): LayoutAlignment {
+    private fun createAndInsertCommonReferenceLine(trackNumber: IntId<LayoutTrackNumber>): LayoutAlignment {
         val points =
             pointsFromIncrementList(
                 DEFAULT_BASE_POINT + Point(1.0, 1.0),

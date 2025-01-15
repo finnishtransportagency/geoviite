@@ -270,22 +270,19 @@ class LayoutKmPostDaoIT @Autowired constructor(private val kmPostDao: LayoutKmPo
         assertEquals(listOf(changeTrackNumberChanged), kmPostDao.fetchVersions(MainLayoutContext.draft, true, tnId2))
     }
 
-    private fun insertOfficial(
-        tnId: IntId<TrackLayoutTrackNumber>,
-        kmNumber: Int,
-    ): LayoutRowVersion<TrackLayoutKmPost> {
+    private fun insertOfficial(tnId: IntId<LayoutTrackNumber>, kmNumber: Int): LayoutRowVersion<LayoutKmPost> {
         return kmPostDao.save(kmPost(tnId, KmNumber(kmNumber), draft = false))
     }
 
     private fun insertDraft(
-        tnId: IntId<TrackLayoutTrackNumber>,
+        tnId: IntId<LayoutTrackNumber>,
         kmNumber: Int,
         state: LayoutState = IN_USE,
-    ): LayoutRowVersion<TrackLayoutKmPost> {
+    ): LayoutRowVersion<LayoutKmPost> {
         return kmPostDao.save(kmPost(tnId, KmNumber(kmNumber), state = state, draft = true))
     }
 
-    fun insertAndVerify(post: TrackLayoutKmPost) {
+    fun insertAndVerify(post: LayoutKmPost) {
         val rowVersion = kmPostDao.save(post)
         val fromDb = kmPostDao.fetch(rowVersion)
         assertEquals(DataType.TEMP, post.dataType)
@@ -295,8 +292,8 @@ class LayoutKmPostDaoIT @Autowired constructor(private val kmPostDao: LayoutKmPo
 
     private fun fetchTrackNumberKmPosts(
         publicationState: PublicationState,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): List<TrackLayoutKmPost> {
+        trackNumberId: IntId<LayoutTrackNumber>,
+    ): List<LayoutKmPost> {
         return kmPostDao.fetchVersions(MainLayoutContext.of(publicationState), false, trackNumberId, null).map {
             rowVersion ->
             kmPostDao.fetch(rowVersion)

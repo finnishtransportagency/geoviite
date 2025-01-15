@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.MetaDataName
-import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -211,12 +211,12 @@ constructor(
                 .createSwitch(
                     joints =
                         listOf(
-                            TrackLayoutSwitchJoint(
+                            LayoutSwitchJoint(
                                 JointNumber(1),
                                 location = Point(428305.33617941965, 7210146.458099049),
                                 locationAccuracy = null,
                             ),
-                            TrackLayoutSwitchJoint(
+                            LayoutSwitchJoint(
                                 JointNumber(5),
                                 location = Point(422222.2, 7222222.2),
                                 locationAccuracy = null,
@@ -233,12 +233,12 @@ constructor(
                         stateCategory = EXISTING,
                         joints =
                             listOf(
-                                TrackLayoutSwitchJoint(
+                                LayoutSwitchJoint(
                                     JointNumber(1),
                                     location = Point(422222.2, 7222222.2),
                                     locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED,
                                 ),
-                                TrackLayoutSwitchJoint(
+                                LayoutSwitchJoint(
                                     JointNumber(5),
                                     location = Point(428305.33617941965, 7210146.458099049),
                                     locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED,
@@ -424,7 +424,7 @@ constructor(
         val connections = switchService.getSwitchJointConnections(MainLayoutContext.draft, switchVersion.id)
 
         assertEquals(
-            listOf(TrackLayoutSwitchJointMatch(locationTrackVersion.id, joint1Point)),
+            listOf(LayoutSwitchJointMatch(locationTrackVersion.id, joint1Point)),
             connections.first { connection -> connection.number == JointNumber(1) }.accurateMatches,
         )
     }
@@ -432,13 +432,7 @@ constructor(
     @Test
     fun switchIdIsReturnedWhenAddingNewSwitch() {
         val switch =
-            TrackLayoutSwitchSaveRequest(
-                SwitchName("XYZ-987"),
-                IntId(5),
-                LayoutStateCategory.EXISTING,
-                ownerId = IntId(3),
-                trapPoint = null,
-            )
+            LayoutSwitchSaveRequest(SwitchName("XYZ-987"), IntId(5), EXISTING, ownerId = IntId(3), trapPoint = null)
         val switchId = switchService.insertSwitch(LayoutBranch.main, switch)
         val fetchedSwitch = switchService.get(MainLayoutContext.draft, switchId)!!
         assertNull(switchService.get(MainLayoutContext.official, switchId))
@@ -463,7 +457,7 @@ constructor(
         return track to identifiers
     }
 
-    private fun getSwitches(filter: (Pair<TrackLayoutSwitch, SwitchStructure>) -> Boolean): List<TrackLayoutSwitch> =
+    private fun getSwitches(filter: (Pair<LayoutSwitch, SwitchStructure>) -> Boolean): List<LayoutSwitch> =
         switchService.listWithStructure(MainLayoutContext.official).filter(filter).map { (s, _) -> s }
 
     private fun getSwitches() = switchService.listWithStructure(MainLayoutContext.official)

@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.FreeText
 import java.time.ZoneId
 
 fun mapToRatkoLocationTrackState(layoutState: LocationTrackState) =
@@ -63,7 +64,7 @@ fun mapToRatkoSwitchState(layoutStateCategory: LayoutStateCategory, ratkoSwitchS
         }
     else ratkoSwitchState
 
-fun convertToRatkoAssetGeometries(joints: Collection<TrackLayoutSwitchJoint>, switchType: SwitchBaseType) =
+fun convertToRatkoAssetGeometries(joints: Collection<LayoutSwitchJoint>, switchType: SwitchBaseType) =
     joints.map { joint ->
         RatkoAssetGeometry(
             geometry = RatkoGeometry(joint.location),
@@ -156,17 +157,17 @@ fun mapJointNumberToGeometryType(number: JointNumber, baseType: SwitchBaseType):
 fun convertToRatkoLocationTrack(
     locationTrack: LocationTrack,
     locationTrackOid: Oid<LocationTrack>?,
-    trackNumberOid: Oid<TrackLayoutTrackNumber>?,
+    trackNumberOid: Oid<LayoutTrackNumber>?,
     nodeCollection: RatkoNodes? = null,
     duplicateOfOid: Oid<LocationTrack>?,
-    descriptionGetter: (LocationTrack) -> String,
+    descriptionGetter: (LocationTrack) -> FreeText,
     owner: LocationTrackOwner,
 ) =
     RatkoLocationTrack(
         id = locationTrackOid?.toString(),
         name = locationTrack.name.toString(),
         routenumber = trackNumberOid?.let(::RatkoOid),
-        description = descriptionGetter(locationTrack),
+        description = descriptionGetter(locationTrack).toString(),
         state = mapToRatkoLocationTrackState(locationTrack.state),
         type = mapToRatkoLocationTrackType(locationTrack.type),
         nodecollection = nodeCollection,
@@ -176,8 +177,8 @@ fun convertToRatkoLocationTrack(
     )
 
 fun convertToRatkoRouteNumber(
-    trackNumber: TrackLayoutTrackNumber,
-    trackNumberOid: Oid<TrackLayoutTrackNumber>?,
+    trackNumber: LayoutTrackNumber,
+    trackNumberOid: Oid<LayoutTrackNumber>?,
     nodeCollection: RatkoNodes? = null,
 ) =
     RatkoRouteNumber(
@@ -212,7 +213,7 @@ fun convertToRatkoNode(
 ) = RatkoNode(nodeType, convertToRatkoPoint(addressPoint, state))
 
 fun convertToRatkoMetadataAsset(
-    trackNumberOid: Oid<TrackLayoutTrackNumber>,
+    trackNumberOid: Oid<LayoutTrackNumber>,
     locationTrackOid: Oid<LocationTrack>,
     segmentMetadata: LayoutSegmentMetadata,
     startTrackMeter: TrackMeter,
@@ -274,8 +275,8 @@ fun convertToRatkoMetadataAsset(
     )
 
 fun convertToRatkoSwitch(
-    layoutSwitch: TrackLayoutSwitch,
-    layoutSwitchOid: Oid<TrackLayoutSwitch>?,
+    layoutSwitch: LayoutSwitch,
+    layoutSwitchOid: Oid<LayoutSwitch>?,
     switchStructure: SwitchStructure,
     switchOwner: SwitchOwner?,
     existingRatkoSwitch: RatkoSwitchAsset? = null,

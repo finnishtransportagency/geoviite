@@ -42,14 +42,14 @@ const val MIN_POINT_DISTANCE = 0.01
 
 fun toTrackLayout(
     geometryPlan: GeometryPlan,
-    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    trackNumberId: IntId<LayoutTrackNumber>?,
     heightTriangles: List<HeightTriangle>,
     planToLayout: Transformation,
     pointListStepLength: Int,
     includeGeometryData: Boolean,
     planToGkTransformation: ToGkFinTransformation,
 ): GeometryPlanLayout {
-    val switches = toTrackLayoutSwitches(geometryPlan.switches, planToLayout)
+    val switches = toLayoutSwitches(geometryPlan.switches, planToLayout)
 
     val alignments: List<PlanLayoutAlignment> =
         toMapAlignments(
@@ -62,7 +62,7 @@ fun toTrackLayout(
             includeGeometryData,
         )
 
-    val kmPosts = toTrackLayoutKmPosts(trackNumberId, geometryPlan.kmPosts, planToGkTransformation)
+    val kmPosts = toLayoutKmPosts(trackNumberId, geometryPlan.kmPosts, planToGkTransformation)
     val startAddress = getPlanStartAddress(geometryPlan.kmPosts)
 
     return GeometryPlanLayout(
@@ -77,22 +77,22 @@ fun toTrackLayout(
     )
 }
 
-fun toTrackLayoutKmPosts(
-    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+fun toLayoutKmPosts(
+    trackNumberId: IntId<LayoutTrackNumber>?,
     kmPosts: List<GeometryKmPost>,
     planToGkTransformation: ToGkFinTransformation,
-): List<TrackLayoutKmPost> {
+): List<LayoutKmPost> {
     return kmPosts.mapIndexedNotNull { _, kmPost ->
         if (
             kmPost.location != null && kmPost.kmNumber != null && (kmPost.location.x != 0.0 || kmPost.location.y != 0.0)
         ) {
-            TrackLayoutKmPost(
+            LayoutKmPost(
                 kmNumber = kmPost.kmNumber,
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
                 trackNumberId = trackNumberId,
                 gkLocation =
-                    TrackLayoutKmPostGkLocation(
+                    LayoutKmPostGkLocation(
                         location = planToGkTransformation.transform(kmPost.location),
                         source = KmPostGkLocationSource.FROM_GEOMETRY,
                         confirmed = true,
@@ -105,16 +105,16 @@ fun toTrackLayoutKmPosts(
     }
 }
 
-fun toTrackLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation): TrackLayoutSwitch? =
+fun toLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation): LayoutSwitch? =
     if (switch.switchStructureId == null) null
     else
-        TrackLayoutSwitch(
+        LayoutSwitch(
             name = switch.name,
             switchStructureId = switch.switchStructureId,
             stateCategory = getLayoutStateOrDefault(switch.state).category,
             joints =
                 switch.joints.map { j ->
-                    TrackLayoutSwitchJoint(
+                    LayoutSwitchJoint(
                         number = j.number,
                         location = toMapCoordinate.transform(j.location),
                         locationAccuracy = LocationAccuracy.DESIGNED_GEOLOCATION,
@@ -127,14 +127,14 @@ fun toTrackLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation)
             contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
         )
 
-fun toTrackLayoutSwitches(
+fun toLayoutSwitches(
     geometrySwitches: List<GeometrySwitch>,
     planToLayout: Transformation,
-): Map<DomainId<GeometrySwitch>, TrackLayoutSwitch> =
-    geometrySwitches.mapNotNull { s -> toTrackLayoutSwitch(s, planToLayout)?.let { s.id to it } }.associate { it }
+): Map<DomainId<GeometrySwitch>, LayoutSwitch> =
+    geometrySwitches.mapNotNull { s -> toLayoutSwitch(s, planToLayout)?.let { s.id to it } }.associate { it }
 
 fun toMapAlignments(
-    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    trackNumberId: IntId<LayoutTrackNumber>?,
     geometryAlignments: List<GeometryAlignment>,
     planToLayout: Transformation,
     pointListStepLength: Int,
@@ -167,7 +167,7 @@ fun toMapAlignments(
 }
 
 fun toAlignmentHeader(
-    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    trackNumberId: IntId<LayoutTrackNumber>?,
     alignment: GeometryAlignment,
     boundingBoxInLayoutSpace: BoundingBox? = null,
 ) =

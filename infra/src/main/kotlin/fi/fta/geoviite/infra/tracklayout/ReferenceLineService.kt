@@ -25,7 +25,7 @@ class ReferenceLineService(
     @Transactional
     fun addTrackNumberReferenceLine(
         branch: LayoutBranch,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         startAddress: TrackMeter,
     ): LayoutRowVersion<ReferenceLine> {
         return saveDraftInternal(
@@ -43,7 +43,7 @@ class ReferenceLineService(
     @Transactional
     fun updateTrackNumberReferenceLine(
         branch: LayoutBranch,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         startAddress: TrackMeter,
     ): LayoutRowVersion<ReferenceLine>? {
         val originalVersion =
@@ -126,7 +126,7 @@ class ReferenceLineService(
     @Transactional
     fun deleteDraftByTrackNumberId(
         branch: LayoutBranch,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): LayoutRowVersion<ReferenceLine>? {
         val referenceLine =
             requireNotNull(referenceLineDao.getByTrackNumber(branch.draft, trackNumberId)) {
@@ -135,14 +135,14 @@ class ReferenceLineService(
         return if (referenceLine.isDraft) deleteDraft(branch, referenceLine.id as IntId) else null
     }
 
-    fun getByTrackNumber(layoutContext: LayoutContext, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? {
+    fun getByTrackNumber(layoutContext: LayoutContext, trackNumberId: IntId<LayoutTrackNumber>): ReferenceLine? {
         return dao.getByTrackNumber(layoutContext, trackNumberId)
     }
 
     @Transactional(readOnly = true)
     fun getByTrackNumberWithAlignment(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): Pair<ReferenceLine, LayoutAlignment>? {
         return dao.fetchVersionByTrackNumberId(layoutContext, trackNumberId)?.let(::getWithAlignmentInternal)
     }

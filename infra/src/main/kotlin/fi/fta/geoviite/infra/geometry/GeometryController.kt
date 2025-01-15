@@ -21,8 +21,8 @@ import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.NAME
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.CombinedComparator
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.KnownFileSuffix.CSV
@@ -113,7 +113,7 @@ constructor(private val geometryService: GeometryService, private val planLayout
     @GetMapping("/switches/{switchId}/layout")
     fun getGeometrySwitchLayout(
         @PathVariable("switchId") switchId: IntId<GeometrySwitch>
-    ): ResponseEntity<TrackLayoutSwitch> {
+    ): ResponseEntity<LayoutSwitch> {
         return toResponse(geometryService.getSwitchLayout(switchId))
     }
 

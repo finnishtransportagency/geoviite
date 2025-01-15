@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -13,7 +14,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service
 
 data class GeocodableTrack(
     val layoutContext: LayoutContext,
-    val trackNumber: TrackLayoutTrackNumber,
+    val trackNumber: LayoutTrackNumber,
     val referenceLine: ReferenceLine,
     val locationTrack: LocationTrack,
 )
@@ -67,7 +67,7 @@ constructor(
 
     fun insertGeocodableTrack(
         layoutContext: TestLayoutContext = mainOfficialContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
         referenceLineId: IntId<ReferenceLine>? = null,
         locationTrackName: String = "Test track-${UUID.randomUUID()}",
         locationTrackType: LocationTrackType = LocationTrackType.MAIN,

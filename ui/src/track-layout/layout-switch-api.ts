@@ -31,7 +31,7 @@ import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
-import { TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
+import { LayoutSwitchSaveRequest } from 'linking/linking-model';
 import { filterNotEmpty, first, indexIntoMap } from 'utils/array-utils';
 import { ValidatedSwitch } from 'publication/publication-model';
 import { getMaxTimestamp } from 'utils/date-utils';
@@ -122,10 +122,10 @@ export async function getSwitchJointConnections(
 }
 
 export async function insertSwitch(
-    newSwitch: TrackLayoutSwitchSaveRequest,
+    newSwitch: LayoutSwitchSaveRequest,
     layoutContext: LayoutContext,
 ): Promise<LayoutSwitchId> {
-    const result = await postNonNull<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
+    const result = await postNonNull<LayoutSwitchSaveRequest, LayoutSwitchId>(
         layoutUri('switches', draftLayoutContext(layoutContext)),
         newSwitch,
     );
@@ -137,10 +137,10 @@ export async function insertSwitch(
 
 export async function updateSwitch(
     id: LayoutSwitchId,
-    updatedSwitch: TrackLayoutSwitchSaveRequest,
+    updatedSwitch: LayoutSwitchSaveRequest,
     layoutContext: LayoutContext,
 ): Promise<LayoutSwitchId> {
-    const result = await putNonNull<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
+    const result = await putNonNull<LayoutSwitchSaveRequest, LayoutSwitchId>(
         layoutUri('switches', draftLayoutContext(layoutContext), id),
         updatedSwitch,
     );

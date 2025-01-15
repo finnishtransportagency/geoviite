@@ -22,9 +22,9 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
@@ -87,7 +87,7 @@ constructor(
 
     private fun updateSwitch(
         layoutBranch: LayoutBranch,
-        layoutSwitch: TrackLayoutSwitch,
+        layoutSwitch: LayoutSwitch,
         existingRatkoSwitch: RatkoSwitchAsset,
         jointChanges: List<SwitchJointChange>,
         moment: Instant,
@@ -154,7 +154,7 @@ constructor(
 
     private fun getBaseRatkoSwitchLocations(
         layoutBranch: LayoutBranch,
-        switchId: IntId<TrackLayoutSwitch>,
+        switchId: IntId<LayoutSwitch>,
         existingRatkoLocations: List<RatkoAssetLocation>,
         jointChanges: Collection<SwitchJointChange>,
         switchStructure: SwitchStructure,
@@ -202,7 +202,7 @@ constructor(
     private fun updateSwitchGeoms(
         switchOid: RatkoOid<RatkoSwitchAsset>,
         switchBaseType: SwitchBaseType,
-        joints: Collection<TrackLayoutSwitchJoint>,
+        joints: Collection<LayoutSwitchJoint>,
     ) {
         val switchGeometries = convertToRatkoAssetGeometries(joints, switchBaseType)
         ratkoClient.replaceAssetGeoms(switchOid, switchGeometries)
@@ -247,8 +247,8 @@ constructor(
     }
 
     private fun createSwitch(
-        layoutSwitch: TrackLayoutSwitch,
-        layoutSwitchOid: Oid<TrackLayoutSwitch>?,
+        layoutSwitch: LayoutSwitch,
+        layoutSwitchOid: Oid<LayoutSwitch>?,
         jointChanges: List<SwitchJointChange>,
     ) {
         try {

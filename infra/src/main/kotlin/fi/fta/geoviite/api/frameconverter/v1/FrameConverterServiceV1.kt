@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -34,7 +35,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.Either
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.Left
@@ -111,7 +111,7 @@ constructor(
     private fun getTrackNumberInfoForLocationTrackHits(
         closestTracks: List<LocationTrackCacheHit?>,
         layoutContext: LayoutContext,
-    ): Map<IntId<TrackLayoutTrackNumber>, TrackNumberDetails> =
+    ): Map<IntId<LayoutTrackNumber>, TrackNumberDetails> =
         closestTracks
             .mapNotNull { it?.track?.trackNumberId }
             .distinct()
@@ -140,7 +140,7 @@ constructor(
 
     private fun filterByRequest(
         track: LocationTrack,
-        trackNumbers: Map<DomainId<TrackLayoutTrackNumber>, TrackLayoutTrackNumber>,
+        trackNumbers: Map<DomainId<LayoutTrackNumber>, LayoutTrackNumber>,
         request: ValidCoordinateToTrackAddressRequestV1,
     ): Boolean =
         all(
@@ -160,7 +160,7 @@ constructor(
         closestTrack: LocationTrackCacheHit,
         locationTrackDetails: LocationTrackDetails?,
         params: FrameConverterQueryParamsV1,
-        trackNumberInfo: Map<IntId<TrackLayoutTrackNumber>, TrackNumberDetails>,
+        trackNumberInfo: Map<IntId<LayoutTrackNumber>, TrackNumberDetails>,
     ): List<GeoJsonFeature> {
         val (trackNumberDetails, geocodedAddress) =
             trackNumberInfo.getValue(closestTrack.track.trackNumberId).let { details ->
@@ -391,7 +391,7 @@ constructor(
 
     fun validateTrackAddressToCoordinateRequest(
         request: TrackAddressToCoordinateRequestV1,
-        trackNumberLookup: Map<TrackNumber, TrackLayoutTrackNumber?>,
+        trackNumberLookup: Map<TrackNumber, LayoutTrackNumber?>,
     ): Either<List<GeoJsonFeatureErrorResponseV1>, ValidTrackAddressToCoordinateRequestV1> {
         val errors =
             mutableListOf(
@@ -580,9 +580,9 @@ constructor(
         }
 
     private data class TrackNumberDetails(
-        val trackNumber: TrackLayoutTrackNumber,
+        val trackNumber: LayoutTrackNumber,
         val geocodingContext: GeocodingContext?,
-        val oid: Oid<TrackLayoutTrackNumber>?,
+        val oid: Oid<LayoutTrackNumber>?,
     )
 
     private data class LocationTrackDetails(val description: FreeText, val oid: Oid<LocationTrack>?)

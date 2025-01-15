@@ -35,7 +35,7 @@ class LayoutKmPostDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<TrackLayoutKmPost>(
+    LayoutAssetDao<LayoutKmPost>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_KM_POST,
         cacheEnabled,
@@ -48,16 +48,16 @@ class LayoutKmPostDao(
     fun list(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
-    ): List<TrackLayoutKmPost> = fetchVersions(layoutContext, includeDeleted, trackNumberId, bbox).map(::fetch)
+    ): List<LayoutKmPost> = fetchVersions(layoutContext, includeDeleted, trackNumberId, bbox).map(::fetch)
 
     fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
-    ): List<LayoutRowVersion<TrackLayoutKmPost>> {
+    ): List<LayoutRowVersion<LayoutKmPost>> {
         val sql =
             """
             select id, design_id, draft, version 
@@ -88,9 +88,9 @@ class LayoutKmPostDao(
 
     fun fetchVersionsForPublication(
         target: ValidationTarget,
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
-        kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>,
-    ): Map<IntId<TrackLayoutTrackNumber>, List<LayoutRowVersion<TrackLayoutKmPost>>> {
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
+        kmPostIdsToPublish: List<IntId<LayoutKmPost>>,
+    ): Map<IntId<LayoutTrackNumber>, List<LayoutRowVersion<LayoutKmPost>>> {
         if (trackNumberIds.isEmpty()) return emptyMap()
         val sql =
             """
@@ -117,8 +117,8 @@ class LayoutKmPostDao(
             ) + target.sqlParameters()
         val versions =
             jdbcTemplate.query(sql, params) { rs, _ ->
-                val trackNumberId = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
-                val version = rs.getLayoutRowVersion<TrackLayoutKmPost>("id", "design_id", "draft", "version")
+                val trackNumberId = rs.getIntId<LayoutTrackNumber>("track_number_id")
+                val version = rs.getLayoutRowVersion<LayoutKmPost>("id", "design_id", "draft", "version")
                 trackNumberId to version
             }
         return trackNumberIds.associateWith { trackNumberId ->
@@ -128,10 +128,10 @@ class LayoutKmPostDao(
 
     fun fetchVersion(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         kmNumber: KmNumber,
         includeDeleted: Boolean,
-    ): LayoutRowVersion<TrackLayoutKmPost>? {
+    ): LayoutRowVersion<LayoutKmPost>? {
         val sql =
             """
             select id, design_id, draft, version 
@@ -151,12 +151,12 @@ class LayoutKmPostDao(
             )
         val result =
             jdbcTemplate.query(sql, params) { rs, _ ->
-                rs.getLayoutRowVersion<TrackLayoutKmPost>("id", "design_id", "draft", "version")
+                rs.getLayoutRowVersion<LayoutKmPost>("id", "design_id", "draft", "version")
             }
         return result.firstOrNull()
     }
 
-    override fun fetchInternal(version: LayoutRowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
+    override fun fetchInternal(version: LayoutRowVersion<LayoutKmPost>): LayoutKmPost {
         val sql =
             """
             select 
@@ -193,17 +193,17 @@ class LayoutKmPostDao(
                 "layout_context_id" to version.context.toSqlString(),
             )
         return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) }).also {
-            logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, version)
+            logger.daoAccess(AccessType.FETCH, LayoutKmPost::class, version)
         }
     }
 
-    private fun getKmPostGkLocation(rs: ResultSet): TrackLayoutKmPostGkLocation? {
+    private fun getKmPostGkLocation(rs: ResultSet): LayoutKmPostGkLocation? {
         val location = rs.getGeometryPointOrNull("gk_point_x", "gk_point_y", "gk_srid")
         val locationSource = rs.getEnumOrNull<KmPostGkLocationSource>("gk_location_source")
         val locationConfirmed = rs.getBoolean("gk_location_confirmed")
 
         return if (location != null && locationSource != null)
-            TrackLayoutKmPostGkLocation(location, locationSource, locationConfirmed)
+            LayoutKmPostGkLocation(location, locationSource, locationConfirmed)
         else null
     }
 
@@ -234,15 +234,15 @@ class LayoutKmPostDao(
         """
                 .trimIndent()
 
-        val posts = jdbcTemplate.query(sql) { rs, _ -> getLayoutKmPost(rs) }.associateBy(TrackLayoutKmPost::version)
-        logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, posts.keys)
+        val posts = jdbcTemplate.query(sql) { rs, _ -> getLayoutKmPost(rs) }.associateBy(LayoutKmPost::version)
+        logger.daoAccess(AccessType.FETCH, LayoutKmPost::class, posts.keys)
         cache.putAll(posts)
         return posts.size
     }
 
-    private fun getLayoutKmPost(rs: ResultSet): TrackLayoutKmPost {
+    private fun getLayoutKmPost(rs: ResultSet): LayoutKmPost {
 
-        return TrackLayoutKmPost(
+        return LayoutKmPost(
             trackNumberId = rs.getIntId("track_number_id"),
             kmNumber = rs.getKmNumber("km_number"),
             gkLocation = getKmPostGkLocation(rs),
@@ -262,7 +262,7 @@ class LayoutKmPostDao(
     }
 
     @Transactional
-    override fun save(item: TrackLayoutKmPost): LayoutRowVersion<TrackLayoutKmPost> {
+    override fun save(item: LayoutKmPost): LayoutRowVersion<LayoutKmPost> {
         val id = item.id as? IntId ?: createId()
         val trackNumberId =
             toDbId(requireNotNull(item.trackNumberId) { "KM post not linked to TrackNumber: kmPost=$item" })
@@ -337,19 +337,19 @@ class LayoutKmPostDao(
             )
 
         jdbcTemplate.setUser()
-        val response: LayoutRowVersion<TrackLayoutKmPost> =
+        val response: LayoutRowVersion<LayoutKmPost> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ ->
                 LayoutRowVersion(id, item.layoutContext, rs.getInt("version"))
             } ?: throw IllegalStateException("Failed to save new km-post")
-        logger.daoAccess(AccessType.INSERT, TrackLayoutKmPost::class, response)
+        logger.daoAccess(AccessType.INSERT, LayoutKmPost::class, response)
         return response
     }
 
     fun fetchOnlyDraftVersions(
         branch: LayoutBranch,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
-    ): List<LayoutRowVersion<TrackLayoutKmPost>> {
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
+    ): List<LayoutRowVersion<LayoutKmPost>> {
         val sql =
             """
             select id, design_id, draft, version
@@ -369,17 +369,17 @@ class LayoutKmPostDao(
                     "design_id" to branch.designId?.intValue,
                 ),
             ) { rs, _ ->
-                rs.getLayoutRowVersion<TrackLayoutKmPost>("id", "design_id", "draft", "version")
+                rs.getLayoutRowVersion<LayoutKmPost>("id", "design_id", "draft", "version")
             }
             .also { ids -> logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids) }
     }
 
     fun fetchNextWithLocationAfter(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         kmNumber: KmNumber,
         state: LayoutState,
-    ): LayoutRowVersion<TrackLayoutKmPost>? {
+    ): LayoutRowVersion<LayoutKmPost>? {
         val sql =
             """
             select id, design_id, draft, version

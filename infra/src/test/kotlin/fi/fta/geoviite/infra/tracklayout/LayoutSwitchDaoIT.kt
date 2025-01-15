@@ -35,7 +35,7 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
 
     @Test
     fun switchExternalIdIsUnique() {
-        val oid = Oid<TrackLayoutSwitch>("99.99.99.99.99.99")
+        val oid = Oid<LayoutSwitch>("99.99.99.99.99.99")
 
         // If the OID is already in use, remove it
         transactional {

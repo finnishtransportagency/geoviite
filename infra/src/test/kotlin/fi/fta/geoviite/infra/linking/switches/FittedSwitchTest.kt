@@ -1,9 +1,7 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.linking.switches.cropNothing
-import fi.fta.geoviite.infra.linking.switches.fitSwitch
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.degreesToRads

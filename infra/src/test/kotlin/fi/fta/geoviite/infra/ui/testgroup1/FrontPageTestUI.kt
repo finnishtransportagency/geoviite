@@ -16,9 +16,9 @@ import fi.fta.geoviite.infra.ratko.FakeRatkoService
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.ratko.ratkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -139,7 +139,7 @@ constructor(
         fakeRatko.stop()
     }
 
-    private fun changesTouchingTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): CalculatedChanges =
+    private fun changesTouchingTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): CalculatedChanges =
         CalculatedChanges(
             DirectChanges(
                 trackNumberChanges =

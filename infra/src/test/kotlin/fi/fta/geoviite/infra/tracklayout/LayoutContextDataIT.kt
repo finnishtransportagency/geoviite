@@ -269,7 +269,7 @@ constructor(
         return draft to dbAlignment
     }
 
-    private fun createAndVerifyDraft(dbSwitch: TrackLayoutSwitch): TrackLayoutSwitch {
+    private fun createAndVerifyDraft(dbSwitch: LayoutSwitch): LayoutSwitch {
         assertTrue(dbSwitch.id is IntId)
         assertFalse(dbSwitch.isDraft)
         val draft = asMainDraft(dbSwitch)
@@ -279,7 +279,7 @@ constructor(
         return draft
     }
 
-    private fun createAndVerifyDraft(dbKmPost: TrackLayoutKmPost): TrackLayoutKmPost {
+    private fun createAndVerifyDraft(dbKmPost: LayoutKmPost): LayoutKmPost {
         assertTrue(dbKmPost.id is IntId)
         assertFalse(dbKmPost.isDraft)
         val draft = asMainDraft(dbKmPost)
@@ -297,9 +297,9 @@ constructor(
         trackAndAlignment.first.copy(name = AlignmentName("${trackAndAlignment.first.name}-D")) to
             trackAndAlignment.second
 
-    private fun alter(switch: TrackLayoutSwitch): TrackLayoutSwitch = switch.copy(name = SwitchName("${switch.name}-D"))
+    private fun alter(switch: LayoutSwitch): LayoutSwitch = switch.copy(name = SwitchName("${switch.name}-D"))
 
-    private fun alter(kmPost: TrackLayoutKmPost): TrackLayoutKmPost =
+    private fun alter(kmPost: LayoutKmPost): LayoutKmPost =
         kmPost.copy(kmNumber = KmNumber(kmPost.kmNumber.number, (kmPost.kmNumber.extension ?: "") + "B"))
 
     private fun insertAndVerifyLine(
@@ -336,7 +336,7 @@ constructor(
         return trackFromDb to alignmentFromDb
     }
 
-    private fun insertAndVerify(switch: TrackLayoutSwitch): TrackLayoutSwitch {
+    private fun insertAndVerify(switch: LayoutSwitch): LayoutSwitch {
         assertEquals(DataType.TEMP, switch.dataType)
         val response = switchDao.save(switch)
         val fromDb = switchDao.fetch(response)
@@ -346,7 +346,7 @@ constructor(
         return fromDb
     }
 
-    private fun insertAndVerify(kmPost: TrackLayoutKmPost): TrackLayoutKmPost {
+    private fun insertAndVerify(kmPost: LayoutKmPost): LayoutKmPost {
         assertEquals(DataType.TEMP, kmPost.dataType)
         val response = kmPostDao.save(kmPost)
         val fromDb = kmPostDao.fetch(response)
@@ -356,7 +356,7 @@ constructor(
         return fromDb
     }
 
-    private fun insertAndVerify(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber {
+    private fun insertAndVerify(trackNumber: LayoutTrackNumber): LayoutTrackNumber {
         assertEquals(DataType.TEMP, trackNumber.dataType)
         val response = trackNumberDao.save(trackNumber)
         val fromDb = trackNumberDao.fetch(response)

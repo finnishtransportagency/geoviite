@@ -26,11 +26,11 @@ import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.time.Duration
 import java.time.Instant
 import org.slf4j.Logger
@@ -41,13 +41,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
     RuntimeException(cause)
 
-class RatkoSwitchPushException(exception: RatkoPushException, val switch: TrackLayoutSwitch) :
+class RatkoSwitchPushException(exception: RatkoPushException, val switch: LayoutSwitch) :
     RatkoPushException(exception.type, exception.operation, exception)
 
 class RatkoLocationTrackPushException(exception: RatkoPushException, val locationTrack: LocationTrack) :
     RatkoPushException(exception.type, exception.operation, exception)
 
-class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: TrackLayoutTrackNumber) :
+class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: LayoutTrackNumber) :
     RatkoPushException(exception.type, exception.operation, exception)
 
 @GeoviiteService

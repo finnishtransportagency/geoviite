@@ -506,7 +506,7 @@ data class LayoutSegment(
     override val sourceId: IndexedId<GeometryElement>?,
     override val sourceStart: Double?,
     override val startM: Double,
-    val switchId: IntId<TrackLayoutSwitch>?,
+    val switchId: IntId<LayoutSwitch>?,
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,
     override val source: GeometrySource,

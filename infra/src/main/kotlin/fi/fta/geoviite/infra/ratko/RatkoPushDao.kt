@@ -10,9 +10,9 @@ import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstant
@@ -210,9 +210,9 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         return jdbcTemplate
             .queryOptional(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
                 val errorId = rs.getIntId<RatkoPushError<*>>("id")
-                val trackNumberId = rs.getIntIdOrNull<TrackLayoutTrackNumber>("track_number_id")
+                val trackNumberId = rs.getIntIdOrNull<LayoutTrackNumber>("track_number_id")
                 val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
-                val switchId = rs.getIntIdOrNull<TrackLayoutSwitch>("switch_id")
+                val switchId = rs.getIntIdOrNull<LayoutSwitch>("switch_id")
                 RatkoPushError(
                     id = errorId,
                     ratkoPushId = rs.getIntId("ratko_push_id"),

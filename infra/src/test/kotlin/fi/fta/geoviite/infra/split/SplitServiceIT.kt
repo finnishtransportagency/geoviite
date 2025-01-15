@@ -13,11 +13,11 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -461,7 +461,7 @@ constructor(
     }
 
     private data class SwitchesAndSegments(
-        val switchIds: List<IntId<TrackLayoutSwitch>> = emptyList(),
+        val switchIds: List<IntId<LayoutSwitch>> = emptyList(),
         val switchStartPoints: List<Point> = emptyList(),
         val segments: List<LayoutSegment> = emptyList(),
     )

@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.ratko.model
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 
 enum class OperationalPointType {
     LP, // Liikennepaikka
@@ -39,7 +39,7 @@ data class RatkoOperatingPoint(
     override val uicCode: String,
     override val type: OperationalPointType,
     override val location: Point,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val trackNumberId: IntId<LayoutTrackNumber>,
 ) : AbstractRatkoOperatingPoint(name, abbreviation, uicCode, type, location)
 
 fun parseAsset(asset: RatkoOperatingPointAsset): RatkoOperatingPointParse? {

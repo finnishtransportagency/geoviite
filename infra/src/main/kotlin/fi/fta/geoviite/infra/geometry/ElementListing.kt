@@ -26,8 +26,8 @@ import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
@@ -107,7 +107,7 @@ fun toElementListing(
     startAddress: TrackMeter?,
     endAddress: TrackMeter?,
     getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
-    getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
+    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
 ): List<ElementListing> {
     val linkedElementIds = collectLinkedElements(layoutAlignment.segments, context, startAddress, endAddress)
     val lengthOfSegmentsConnectedToSameElement =
@@ -168,7 +168,7 @@ fun toElementListing(
     getTransformation: (srid: Srid) -> Transformation,
     plan: GeometryPlan,
     elementTypes: List<GeometryElementType>,
-    getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
+    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
 ) =
     plan.alignments.flatMap { alignment ->
         alignment.elements
@@ -181,7 +181,7 @@ private fun toMissingElementListing(
     trackNumber: TrackNumber?,
     segment: LayoutSegment,
     locationTrack: LocationTrack,
-    getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
+    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
 ) =
     ElementListing(
         id = StringId("MEL_${segment.id}"),
@@ -213,7 +213,7 @@ private fun toElementListing(
     trackNumber: TrackNumber?,
     element: GeometryElement,
     segment: LayoutSegment,
-    getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
+    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
 ) =
     elementListing(
         context = context,
@@ -238,7 +238,7 @@ private fun toElementListing(
     plan: GeometryPlan,
     alignment: GeometryAlignment,
     element: GeometryElement,
-    getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
+    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
 ) =
     elementListing(
         context = context,
@@ -334,7 +334,7 @@ private fun elementListing(
     locationTrack: LocationTrack?,
     element: GeometryElement,
     segment: LayoutSegment?,
-    getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
+    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
     planTime: Instant?,
 ) =
     units.coordinateSystemSrid?.let(getTransformation).let { transformation ->

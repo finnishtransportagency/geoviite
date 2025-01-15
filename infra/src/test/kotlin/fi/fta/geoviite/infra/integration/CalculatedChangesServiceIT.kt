@@ -13,8 +13,8 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
-import fi.fta.geoviite.infra.linking.FittedSwitch
-import fi.fta.geoviite.infra.linking.FittedSwitchJoint
+import fi.fta.geoviite.infra.linking.switches.FittedSwitch
+import fi.fta.geoviite.infra.linking.switches.FittedSwitchJoint
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.switches.matchFittedSwitchToTracks
 import fi.fta.geoviite.infra.math.IPoint
@@ -27,10 +27,14 @@ import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -39,10 +43,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.addTopologyEndSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.addTopologyStartSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -1025,7 +1025,7 @@ constructor(
             switchService
                 .saveDraft(
                     LayoutBranch.main,
-                    switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)), draft = true),
+                    switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)), draft = true),
                 )
                 .id
         val wibblyTrack =
@@ -1057,7 +1057,7 @@ constructor(
             mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
         val switch =
             mainOfficialContext
-                .insert(switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
+                .insert(switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
                 .id
         val locationTrack =
             mainOfficialContext
@@ -1125,7 +1125,7 @@ constructor(
             mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
         val switch =
             designDraftContext
-                .insert(switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
+                .insert(switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
                 .id
         val locationTrack =
             designDraftContext
@@ -1187,7 +1187,7 @@ constructor(
             mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
         val switch =
             mainOfficialContext
-                .insert(switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
+                .insert(switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(7.0, 0.0), null))))
                 .id
         val locationTrack =
             mainOfficialContext
@@ -1236,11 +1236,11 @@ constructor(
     }
 
     data class TestData(
-        val trackNumber: TrackLayoutTrackNumber,
+        val trackNumber: LayoutTrackNumber,
         val locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
         val referenceLineAndAlignment: Pair<ReferenceLine, LayoutAlignment>,
-        val kmPosts: List<TrackLayoutKmPost>,
-        val switches: List<TrackLayoutSwitch>,
+        val kmPosts: List<LayoutKmPost>,
+        val switches: List<LayoutSwitch>,
         val changeTime: Instant,
     )
 
@@ -1320,7 +1320,7 @@ constructor(
             referenceLineDao.fetch(
                 referenceLineDao.save(
                     referenceLine(
-                            trackNumber.id as IntId<TrackLayoutTrackNumber>,
+                            trackNumber.id as IntId<LayoutTrackNumber>,
                             alignment = referenceLineGeometry,
                             startAddress = TrackMeter(kmNumber = kmPosts.first().kmNumber, meters = BigDecimal.ZERO),
                             draft = false,
@@ -1400,7 +1400,7 @@ constructor(
         trackA: Pair<LocationTrack, LayoutAlignment>,
         trackB: Pair<LocationTrack, LayoutAlignment>,
         name: String?,
-    ): TrackLayoutSwitch {
+    ): LayoutSwitch {
         val switch =
             switchDao.fetch(
                 switchDao.save(
@@ -1472,7 +1472,7 @@ constructor(
 
     private fun assertContainsSwitchJoint152Change(
         changes: List<SwitchChange>,
-        switchId: DomainId<TrackLayoutSwitch>,
+        switchId: DomainId<LayoutSwitch>,
         locationTrackId: DomainId<LocationTrack>,
     ) {
         val switchChange = changes.find { it.switchId == switchId }
@@ -1489,7 +1489,7 @@ constructor(
 
     private fun assertContainsSwitchJoint13Change(
         changes: List<SwitchChange>,
-        switchId: DomainId<TrackLayoutSwitch>,
+        switchId: DomainId<LayoutSwitch>,
         locationTrackId: DomainId<LocationTrack>,
     ) {
         val switchChange = changes.find { it.switchId == switchId }
@@ -1507,10 +1507,10 @@ constructor(
 
     private fun getCalculatedChanges(
         locationTrackIds: List<IntId<LocationTrack>> = emptyList(),
-        kmPostIds: List<IntId<TrackLayoutKmPost>> = emptyList(),
+        kmPostIds: List<IntId<LayoutKmPost>> = emptyList(),
         referenceLineIds: List<IntId<ReferenceLine>> = emptyList(),
-        switchIds: List<IntId<TrackLayoutSwitch>> = emptyList(),
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>> = emptyList(),
+        switchIds: List<IntId<LayoutSwitch>> = emptyList(),
+        trackNumberIds: List<IntId<LayoutTrackNumber>> = emptyList(),
     ): CalculatedChanges {
         val target = draftTransitionOrOfficialState(PublicationState.DRAFT, LayoutBranch.main)
         val publicationVersions =

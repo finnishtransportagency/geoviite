@@ -12,15 +12,6 @@ import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
-import fi.fta.geoviite.infra.linking.FittedSwitch
-import fi.fta.geoviite.infra.linking.FittedSwitchJoint
-import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
-import fi.fta.geoviite.infra.linking.GeometrySwitchFittingException
-import fi.fta.geoviite.infra.linking.GeometrySwitchFittingFailure
-import fi.fta.geoviite.infra.linking.GeometrySwitchFittingResult
-import fi.fta.geoviite.infra.linking.GeometrySwitchFittingSuccess
-import fi.fta.geoviite.infra.linking.GeometrySwitchSuggestionFailureReason
-import fi.fta.geoviite.infra.linking.SuggestedSwitchJointMatchType
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
@@ -49,11 +40,10 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.SwitchPlacingRequest
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import kotlin.math.max
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
@@ -764,7 +754,7 @@ private fun selectBestSuggestedSwitch(
 }
 
 fun createFittedSwitchByPoint(
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
     location: IPoint,
     switchStructure: SwitchStructure,
     nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
@@ -824,7 +814,7 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
 
 private fun getOriginallyLinkedAlignmentsJoints(
     alignments: List<CroppedAlignment>,
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
 ): Set<Pair<DomainId<LayoutAlignment>, JointNumber>> =
     alignments
         .flatMap { alignment ->
