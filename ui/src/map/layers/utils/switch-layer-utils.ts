@@ -15,7 +15,11 @@ import Style, { RenderFunction } from 'ol/style/Style';
 import SwitchIcon from 'vayla-design-lib/icon/glyphs/misc/switch.svg';
 import SwitchErrorIcon from 'vayla-design-lib/icon/glyphs/misc/switch-error.svg';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
-import { GeometryPlanLinkStatus, LayoutSwitchJoint, SuggestedSwitch } from 'linking/linking-model';
+import {
+    GeometryPlanLinkStatus,
+    SuggestedLayoutSwitchJoint,
+    SuggestedSwitch,
+} from 'linking/linking-model';
 import { JointNumber, SwitchStructure } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import Feature from 'ol/Feature';
@@ -272,7 +276,7 @@ export function suggestedSwitchHasMatchOnJoint(
 }
 
 export function getLinkingJointRenderer(
-    joint: LayoutSwitchJoint,
+    joint: SuggestedLayoutSwitchJoint,
     hasMatch: boolean,
     linked = false,
 ): RenderFunction {

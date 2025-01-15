@@ -281,7 +281,7 @@ export type TopologicalJointConnection = {
     locationTrackIds: LocationTrackId[];
 };
 
-export type LayoutSwitchJoint = {
+export type SuggestedLayoutSwitchJoint = {
     number: JointNumber;
     location: Point;
     locationAccuracy?: LocationAccuracy;
@@ -309,7 +309,7 @@ export type SwitchLinkingTopologicalTrackLink = {
 export type SuggestedSwitch = {
     id: SuggestedSwitchId;
     switchStructureId: SwitchStructureId;
-    joints: LayoutSwitchJoint[];
+    joints: SuggestedLayoutSwitchJoint[];
     trackLinks: Record<LocationTrackId, SwitchLinkingTrackLinks>;
     geometryPlanId?: GeometryPlanId;
     geometrySwitchId?: GeometrySwitchId;
