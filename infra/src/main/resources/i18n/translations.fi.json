@@ -1074,7 +1074,7 @@
         "name-is-mandatory-field": "Nimi on pakollinen kenttä",
         "name-field": "Nimi",
         "project-field": "Projekti",
-        "project-name-field": "Projektin nimi",
+        "file-field": "Tiedosto",
         "file-name": "Tiedoston nimi",
         "name-help": "Jos suunnitteluprojekti ei löydy listalta, luo uusi.",
         "observations-field": "Huomiot",

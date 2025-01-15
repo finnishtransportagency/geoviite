@@ -16,6 +16,7 @@ type InfoboxFieldProps = {
     onClose?: () => void;
     disabled?: boolean;
     errors?: string[];
+    customAction?: React.ReactNode;
 };
 
 const FormgroupField: React.FC<InfoboxFieldProps> = ({
@@ -26,6 +27,7 @@ const FormgroupField: React.FC<InfoboxFieldProps> = ({
     qaId,
     disabled = false,
     errors = [],
+    customAction,
     ...props
 }: InfoboxFieldProps) => {
     const className = createClassName(
@@ -69,6 +71,7 @@ const FormgroupField: React.FC<InfoboxFieldProps> = ({
                         onClick={() => props.onClose && props.onClose()}
                     />
                 )}
+                {customAction}
             </div>
         </div>
     );

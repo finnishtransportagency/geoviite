@@ -57,6 +57,8 @@ import { ManualTrackNumberDialog } from 'infra-model/view/dialogs/manual-track-n
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { formatWithSrid } from 'utils/geography-utils';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
+import { ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { InfraModelDownloadButton } from 'geoviite-design-lib/infra-model-download/infra-model-download-button';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -364,25 +366,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                     </FormgroupField>
 
                     <FormgroupField
-                        label={t('im-form.project-field')}
-                        qaId="project-im-field"
-                        inEditMode={fieldInEdit === 'project'}
-                        onEdit={() => setFieldInEdit('project')}
-                        onClose={() => setFieldInEdit(undefined)}>
-                        {fieldInEdit !== 'project' ? (
-                            project?.name
-                        ) : (
-                            <ProjectDropdown
-                                id={geometryPlan.project.id}
-                                setProject={(projectId) =>
-                                    changeInOverrideParametersField(projectId, 'projectId')
-                                }
-                                onAddProject={() => setShowNewProjectDialog(true)}
-                            />
-                        )}
-                    </FormgroupField>
-
-                    <FormgroupField
                         label={t('im-form.company')}
                         qaId="author-im-field"
                         inEditMode={fieldInEdit === 'author'}
@@ -416,6 +399,39 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         ) : (
                             geometryPlan.author?.companyName
                         )}
+                    </FormgroupField>
+
+                    <FormgroupField
+                        label={t('im-form.project-field')}
+                        qaId="project-im-field"
+                        inEditMode={fieldInEdit === 'project'}
+                        onEdit={() => setFieldInEdit('project')}
+                        onClose={() => setFieldInEdit(undefined)}>
+                        {fieldInEdit !== 'project' ? (
+                            project?.name
+                        ) : (
+                            <ProjectDropdown
+                                id={geometryPlan.project.id}
+                                setProject={(projectId) =>
+                                    changeInOverrideParametersField(projectId, 'projectId')
+                                }
+                                onAddProject={() => setShowNewProjectDialog(true)}
+                            />
+                        )}
+                    </FormgroupField>
+
+                    <FormgroupField
+                        label={t('im-form.file-field')}
+                        qaId="file-im-field"
+                        inEditMode={false}
+                        customAction={
+                            <InfraModelDownloadButton
+                                planId={geometryPlan.id}
+                                variant={ButtonVariant.GHOST}
+                                size={ButtonSize.SMALL}
+                            />
+                        }>
+                        {geometryPlan.fileName}
                     </FormgroupField>
                 </FormgroupContent>
             </Formgroup>

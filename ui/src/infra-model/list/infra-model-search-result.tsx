@@ -15,7 +15,6 @@ import { Table, Th } from 'vayla-design-lib/table/table';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
 import { ConfirmHideInfraModel } from './confirm-hide-infra-model-dialog';
-import { ConfirmDownloadUnreliableInfraModelDialog } from './confirm-download-unreliable-infra-model-dialog';
 import { InfraModelSearchResultRow } from 'infra-model/list/infra-model-search-result-row';
 
 export type InfraModelSearchResultProps = Pick<
@@ -59,9 +58,6 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     const [linkingSummaries, setLinkingSummaries] = useState<
         Map<GeometryPlanId, GeometryPlanLinkingSummary | undefined>
     >(() => new Map());
-    const [confirmDownloadPlan, setConfirmDownloadPlan] = React.useState<
-        GeometryPlanHeader | undefined
-    >();
     const [confirmHidePlan, setConfirmHidePlan] = React.useState<GeometryPlanHeader | undefined>();
 
     useEffect(() => {
@@ -157,7 +153,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                 onClick={() => setFilter(GeometrySortBy.PROJECT_NAME)}
                                 className={'infra-model-list-search-result__project-name'}
                                 qa-id="im-form.project-name-header">
-                                {t('im-form.project-name-field')}
+                                {t('im-form.project-field')}
                             </Th>
                             <Th
                                 icon={
@@ -168,7 +164,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                 onClick={() => setFilter(GeometrySortBy.FILE_NAME)}
                                 className={'infra-model-list-search-result__file-name'}
                                 qa-id="im-form.file-name-header">
-                                {t('im-form.file-name')}
+                                {t('im-form.file-field')}
                             </Th>
                             <Th
                                 icon={
@@ -279,7 +275,6 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             return (
                                 <InfraModelSearchResultRow
                                     setConfirmHidePlan={setConfirmHidePlan}
-                                    setConfirmDownloadPlan={setConfirmDownloadPlan}
                                     onSelectPlan={props.onSelectPlan}
                                     linkingSummaries={linkingSummaries}
                                     plan={plan}
@@ -290,12 +285,6 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                     </tbody>
                 </Table>
             </div>
-            {confirmDownloadPlan && (
-                <ConfirmDownloadUnreliableInfraModelDialog
-                    onClose={() => setConfirmDownloadPlan(undefined)}
-                    plan={confirmDownloadPlan}
-                />
-            )}
             {confirmHidePlan && (
                 <ConfirmHideInfraModel
                     onClose={() => setConfirmHidePlan(undefined)}
