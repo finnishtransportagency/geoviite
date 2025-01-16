@@ -207,8 +207,7 @@ const MapView: React.FC<MapViewProps> = ({
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
-    // const [measurementToolActive, _setMeasurementToolActive] = React.useState(false);
-    const [activeTool, _setActiveTool] = React.useState<MapTool | undefined>(customActiveMapTool);
+    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(customActiveMapTool);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
@@ -370,10 +369,6 @@ const MapView: React.FC<MapViewProps> = ({
                             map.layerSettings['track-number-diagram-layer'],
                             (loading) => onLayerLoading(layerName, loading),
                         );
-                    case 'preview-official-location-track-alignment-layer':
-                        return undefined;
-                    case 'preview-deleted-point-features-layer':
-                        return undefined;
                     case 'preview-deleted-point-icon-features-layer':
                         return designPublicationMode
                             ? createDeletedPreviewPointIconFeaturesLayer(
@@ -742,7 +737,7 @@ const MapView: React.FC<MapViewProps> = ({
     }, [olMap, visibleLayers, activeTool]);
 
     React.useEffect(() => {
-        _setActiveTool(customActiveMapTool);
+        setActiveTool(customActiveMapTool);
     }, [customActiveMapTool]);
 
     React.useEffect(() => {
@@ -769,7 +764,7 @@ const MapView: React.FC<MapViewProps> = ({
                     {mapTools.map((tool) =>
                         tool.component({
                             isActive: activeTool === tool,
-                            setActiveTool: _setActiveTool,
+                            setActiveTool: setActiveTool,
                         }),
                     )}
                 </ol>

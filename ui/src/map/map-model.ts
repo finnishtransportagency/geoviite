@@ -22,7 +22,6 @@ export type MapLayerName =
     | 'track-number-diagram-layer'
     | 'track-number-addresses-layer'
     | 'location-track-alignment-layer'
-    | 'preview-official-location-track-alignment-layer'
     | 'reference-line-alignment-layer'
     | 'missing-profile-highlight-layer'
     | 'missing-linking-highlight-layer'
@@ -51,7 +50,6 @@ export type MapLayerName =
     | 'virtual-km-post-linking-layer'
     | 'virtual-hide-geometry-layer'
     | 'publication-candidate-layer'
-    | 'preview-deleted-point-features-layer'
     | 'preview-deleted-point-icon-features-layer';
 
 export type MapViewportSource = 'Map';
