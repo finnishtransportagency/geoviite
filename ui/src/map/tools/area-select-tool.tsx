@@ -1,5 +1,6 @@
+import * as React from 'react';
 import { LineString, Polygon } from 'ol/geom';
-import { MapTool } from 'map/tools/tool-model';
+import { SelectableMapTool } from 'map/tools/tool-model';
 import { Draw } from 'ol/interaction';
 import { createBox } from 'ol/interaction/Draw.js';
 import { altKeyOnly, noModifierKeys, primaryAction } from 'ol/events/condition';
@@ -14,6 +15,8 @@ import { LayerItemSearchResult, MapLayer } from 'map/layers/utils/layer-model';
 import { BoundingBox, boundingBoxAroundPoints, coordsToPoint } from 'model/geometry';
 import { expectDefined } from 'utils/type-utils';
 import { searchItemsFromLayers } from 'map/tools/tool-utils';
+import { createClassName } from 'vayla-design-lib/utils';
+import { Icons, IconColor } from 'vayla-design-lib/icon/Icon';
 
 export enum SelectMode {
     Add,
@@ -38,8 +41,8 @@ function getItemsFromLayers(bbox: BoundingBox, layers: MapLayer[]): LayerItemSea
 }
 
 export function createAreaSelectTool(
-    onSelect?: (items: LayerItemSearchResult, mode: SelectMode) => void,
-) {
+    onSelect: (items: LayerItemSearchResult, mode: SelectMode) => void,
+): SelectableMapTool {
     return {
         customCursor: 'crosshair',
         activate: (map: OlMap, layers: MapLayer[]) => {
@@ -74,15 +77,6 @@ export function createAreaSelectTool(
                         fill: new Fill({
                             color: '#0066cc22',
                         }),
-                        // image: new RegularShape({
-                        //     stroke: new Stroke({
-                        //         color: mapStyles.measurementTooltipCircle,
-                        //     }),
-                        //     points: 4,
-                        //     radius: 10,
-                        //     radius2: 0,
-                        //     angle: 0,
-                        // }),
                     }),
                     new Style({
                         image: new RegularShape({
@@ -132,7 +126,21 @@ export function createAreaSelectTool(
                 map.removeOverlay(tooltip);
             };
         },
+        component: ({ isActive, setActiveTool }) => {
+            return (
+                <li
+                    onClick={() => setActiveTool(createAreaSelectTool(onSelect))}
+                    className={createClassName(
+                        mapStyles['map__map-tool'],
+                        isActive && mapStyles['map__map-tool--active'],
+                    )}>
+                    <Icons.Edit color={IconColor.INHERIT} />
+                </li>
+            );
+        },
     };
 }
 
-export const areaSelectTool: MapTool = createAreaSelectTool();
+export const areaSelectTool = (
+    onSelect: (items: LayerItemSearchResult, mode: SelectMode) => void,
+): SelectableMapTool => createAreaSelectTool(onSelect);

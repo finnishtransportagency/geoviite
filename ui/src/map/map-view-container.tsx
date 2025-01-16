@@ -13,7 +13,7 @@ import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-
 import { GeometryPlanLayout } from 'track-layout/track-layout-model';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { PublicationCandidate } from 'publication/publication-model';
-import { MapTool } from 'map/tools/tool-model';
+import { MapTool, SelectableMapTool } from 'map/tools/tool-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 
 const emptyFn = () => void 0;
@@ -85,6 +85,7 @@ type MapViewContainerProps = {
     publicationCandidates?: PublicationCandidate[];
     customActiveMapTool?: MapTool;
     designPublicationMode?: DesignPublicationMode;
+    mapTools: SelectableMapTool[];
 };
 export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     layoutContext,
@@ -93,6 +94,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     publicationCandidates,
     customActiveMapTool,
     designPublicationMode,
+    mapTools,
 }) => {
     const mapContext = React.useContext(MapContext);
 
@@ -104,6 +106,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     mapProps.publicationCandidates = publicationCandidates;
     mapProps.customActiveMapTool = customActiveMapTool;
     mapProps.designPublicationMode = designPublicationMode;
+    mapProps.mapTools = mapTools;
 
     return <MapView {...mapProps} />;
 };

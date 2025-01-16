@@ -65,7 +65,7 @@ import {
 import { debounceAsync } from 'utils/async-utils';
 import { DesignDraftsExistError } from 'preview/preview-view-design-drafts-exist-error';
 import { createClassName } from 'vayla-design-lib/utils';
-import { createAreaSelectTool, SelectMode } from 'map/tools/area-select-tool';
+import { areaSelectTool, SelectMode } from 'map/tools/area-select-tool';
 import { filterNotEmpty, filterUniqueById, first } from 'utils/array-utils';
 import { expectDefined } from 'utils/type-utils';
 import { cancelLocationTrack } from 'track-layout/layout-location-track-api';
@@ -74,6 +74,8 @@ import { cancelSwitch } from 'track-layout/layout-switch-api';
 import { cancelTrackNumber } from 'track-layout/layout-track-number-api';
 import { cancelKmPost } from 'track-layout/layout-km-post-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
+import { measurementTool } from 'map/tools/measurement-tool';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -482,7 +484,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
     const publishCandidateSelectTool = React.useMemo(
         () =>
-            createAreaSelectTool((items, mode) => {
+            areaSelectTool((items, mode) => {
                 const newStage =
                     mode === SelectMode.Add ? PublicationStage.STAGED : PublicationStage.UNSTAGED;
 
@@ -656,6 +658,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                   : officialLayoutContext(props.layoutContext)
                         }
                         publicationCandidates={diplayedOnMapPublicationCandidates}
+                        mapTools={[
+                            selectOrHighlightComboTool,
+                            measurementTool,
+                            publishCandidateSelectTool,
+                        ]}
                         customActiveMapTool={publishCandidateSelectTool}
                         designPublicationMode={designPublicationMode}
                     />

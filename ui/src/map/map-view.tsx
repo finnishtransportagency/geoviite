@@ -21,11 +21,9 @@ import {
 } from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
-import { selectTool } from './tools/select-tool';
-import { MapTool, MapToolActivateOptions } from './tools/tool-model';
+import { MapTool, MapToolActivateOptions, SelectableMapTool } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
-import { highlightTool } from 'map/tools/highlight-tool';
 import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
@@ -37,7 +35,6 @@ import { useTranslation } from 'react-i18next';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
 import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
 import { createClassName } from 'vayla-design-lib/utils';
-import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
 import { createTrackNumberDiagramLayer } from 'map/layers/highlight/track-number-diagram-layer';
 import VectorLayer from 'ol/layer/Vector';
@@ -88,7 +85,6 @@ import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import Feature from 'ol/Feature';
 import { createPublicationCandidateLayer } from 'map/layers/highlight/publication-candidate-layer';
 import { PublicationCandidate } from 'publication/publication-model';
-import { measurementTool } from 'map/tools/measurement-tool';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { createDeletedPreviewPointIconFeaturesLayer } from 'map/layers/alignment/preview-deleted-point-icon-features-layer';
 
@@ -124,6 +120,7 @@ export type MapViewProps = {
     publicationCandidates?: PublicationCandidate[];
     customActiveMapTool?: MapTool;
     designPublicationMode?: DesignPublicationMode;
+    mapTools?: SelectableMapTool[];
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -203,6 +200,7 @@ const MapView: React.FC<MapViewProps> = ({
     publicationCandidates,
     customActiveMapTool,
     designPublicationMode,
+    mapTools,
 }: MapViewProps) => {
     const { t } = useTranslation();
     // State to store OpenLayers map object between renders
@@ -723,30 +721,19 @@ const MapView: React.FC<MapViewProps> = ({
         publicationCandidates,
     ]);
 
+    const toolActivateOptions: MapToolActivateOptions = {
+        onSelect: onSelect,
+        onHighlightItems: onHighlightItems,
+        onHoverLocation: (p) => setHoveredLocation(p),
+        onClickLocation: onClickLocation,
+    };
+
     React.useEffect(() => {
         if (!olMap) return;
-
-        // Activate current tool
-        const toolActivateOptions: MapToolActivateOptions = {
-            onSelect: onSelect,
-            onHighlightItems: onHighlightItems,
-            onHoverLocation: (p) => setHoveredLocation(p),
-            onClickLocation: onClickLocation,
-        };
 
         const deactivateCallbacks = [
             pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
         ];
-
-        if (activeTool === undefined) {
-            deactivateCallbacks.push(
-                selectTool.activate(olMap, visibleLayers, toolActivateOptions),
-            );
-
-            deactivateCallbacks.push(
-                highlightTool.activate(olMap, visibleLayers, toolActivateOptions),
-            );
-        }
 
         // Return function to clean up initialized stuff
         return () => {
@@ -760,7 +747,7 @@ const MapView: React.FC<MapViewProps> = ({
 
     React.useEffect(() => {
         if (activeTool && olMap) {
-            return activeTool.activate(olMap, visibleLayers);
+            return activeTool.activate(olMap, visibleLayers, toolActivateOptions);
         } else {
             return () => undefined;
         }
@@ -777,35 +764,16 @@ const MapView: React.FC<MapViewProps> = ({
 
     return (
         <div className={mapClassNames} style={cssProperties}>
-            <ol className="map__map-tools">
-                <li
-                    onClick={() => _setActiveTool(undefined)}
-                    className={createClassName(
-                        styles['map__map-tool'],
-                        activeTool === undefined && styles['map__map-tool--active'],
-                    )}>
-                    <Icons.Select color={IconColor.INHERIT} />
-                </li>
-                <li
-                    onClick={() => _setActiveTool(measurementTool)}
-                    className={createClassName(
-                        styles['map__map-tool'],
-                        activeTool === measurementTool && styles['map__map-tool--active'],
-                    )}>
-                    <Icons.Measure color={IconColor.INHERIT} />
-                </li>
-                {!!designPublicationMode && (
-                    <li
-                        onClick={() => _setActiveTool(customActiveMapTool)}
-                        className={createClassName(
-                            styles['map__map-tool'],
-                            activeTool === customActiveMapTool && styles['map__map-tool--active'],
-                        )}>
-                        <Icons.Edit color={IconColor.INHERIT} />
-                    </li>
-                )}
-            </ol>
-            ‚
+            {mapTools && (
+                <ol className="map__map-tools">
+                    {mapTools.map((tool) =>
+                        tool.component({
+                            isActive: activeTool === tool,
+                            setActiveTool: _setActiveTool,
+                        }),
+                    )}
+                </ol>
+            )}
             <div
                 ref={olMapContainer}
                 qa-resolution={olMap?.getView()?.getResolution()}

@@ -1,3 +1,4 @@
+import * as React from 'react';
 import OlMap from 'ol/Map';
 import {
     OnClickLocationFunction,
@@ -17,11 +18,17 @@ export type MapToolActivateOptions = {
     onClickLocation: OnClickLocationFunction;
 };
 
+export type MapToolProps = {
+    isActive: boolean;
+    setActiveTool: (tool: MapTool) => void;
+};
+
 export type MapTool = {
-    activate: (
-        map: OlMap,
-        layers?: MapLayer[],
-        options?: MapToolActivateOptions,
-    ) => DeactivateToolFn;
+    activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => DeactivateToolFn;
     customCursor?: CssType.Property.Cursor;
+    component?: React.FC<MapToolProps>;
+};
+
+export type SelectableMapTool = MapTool & {
+    component: React.FC<MapToolProps>;
 };
