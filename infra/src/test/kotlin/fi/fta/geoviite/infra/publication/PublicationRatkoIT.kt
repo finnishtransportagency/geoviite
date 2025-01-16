@@ -13,10 +13,8 @@ import fi.fta.geoviite.infra.ratko.FakeRatko
 import fi.fta.geoviite.infra.ratko.FakeRatkoService
 import fi.fta.geoviite.infra.ratko.ratkoSwitch
 import fi.fta.geoviite.infra.split.SplitDao
-import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
-import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -60,9 +58,6 @@ class PublicationRatkoIT
 @Autowired
 constructor(
     val publicationService: PublicationService,
-    val publicationValidationService: PublicationValidationService,
-    val publicationLogService: PublicationLogService,
-    val publicationTestSupportService: PublicationTestSupportService,
     val publicationDao: PublicationDao,
     val alignmentDao: LayoutAlignmentDao,
     val trackNumberDao: LayoutTrackNumberDao,
@@ -78,8 +73,6 @@ constructor(
     val switchStructureDao: SwitchStructureDao,
     val splitDao: SplitDao,
     val fakeRatkoService: FakeRatkoService,
-    val splitService: SplitService,
-    val layoutDesignDao: LayoutDesignDao,
 ) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
@@ -237,7 +230,7 @@ constructor(
                 .insert(
                     switch(
                         draftOid = Oid("1.2.3.4.5"),
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(0.0, 1.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(0.0, 1.0), null)),
                     )
                 )
                 .id

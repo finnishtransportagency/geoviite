@@ -19,8 +19,6 @@ import fi.fta.geoviite.infra.math.rotateAroundPoint
 import fi.fta.geoviite.infra.util.formatForException
 import kotlin.math.abs
 
-class InvalidJointsException(msg: String) : IllegalArgumentException(msg)
-
 enum class SwitchBaseType(val nationality: SwitchNationality = SwitchNationality.FINNISH) {
     // Finnish
     YV,
@@ -224,6 +222,7 @@ interface ISwitchStructure {
     val baseType
         get() = type.parts.baseType
 
+    val endJointNumbers: Set<JointNumber>
     val alignmentJoints: List<SwitchStructureJoint>
     val bbox: BoundingBox
 
@@ -254,11 +253,13 @@ data class SwitchStructureData(
 ) : ISwitchStructure {
     override val data = this
 
-    val endJointNumbers by lazy {
-        alignments.flatMap { a -> listOf(a.jointNumbers.first(), a.jointNumbers.last()) }.distinct()
+    override val endJointNumbers: Set<JointNumber> by lazy {
+        alignments.flatMap { a -> listOf(a.jointNumbers.first(), a.jointNumbers.last()) }.toSet()
     }
     override val alignmentJoints: List<SwitchStructureJoint> by lazy {
-        joints.filter { joint -> alignments.any { alignment -> alignment.jointNumbers.contains(joint.number) } }
+        joints
+            .filter { joint -> alignments.any { alignment -> alignment.jointNumbers.contains(joint.number) } }
+            .sortedBy { joint -> joint.number }
     }
 
     override val bbox: BoundingBox by lazy { boundingBoxAroundPoints(joints.map { joint -> joint.location }) }
@@ -314,9 +315,9 @@ fun calculateSwitchLocationDelta(
 ): SwitchPositionTransformation? {
     val jointPairs =
         joints.mapNotNull { joint ->
-            val matchingStructureJoint =
-                switchStructure.alignmentJoints.find { structureJoint -> joint.number == structureJoint.number }
-            if (matchingStructureJoint != null) Pair(joint, matchingStructureJoint) else null
+            switchStructure.alignmentJoints
+                .find { structureJoint -> joint.number == structureJoint.number }
+                ?.let { match -> joint to match }
         }
 
     if (

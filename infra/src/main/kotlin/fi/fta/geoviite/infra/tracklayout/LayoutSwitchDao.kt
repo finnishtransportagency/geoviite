@@ -91,7 +91,7 @@ class LayoutSwitchDao(
             select number, location_accuracy, location_track_id, postgis.st_x(point) x, postgis.st_y(point) y
               from layout.switch_in_layout_context(:publication_state::layout.publication_state,
                                                    :design_id) switch
-                join layout.switch_joint_version jv on switch.id = jv.switch_id
+                join layout.switch_version_joint jv on switch.id = jv.switch_id
                   and switch.layout_context_id = jv.switch_layout_context_id
                   and switch.version = jv.switch_version
                 left join (
@@ -236,13 +236,14 @@ class LayoutSwitchDao(
         if (joints.isNotEmpty()) {
             val sql =
                 """
-              insert into layout.switch_joint_version(
+              insert into layout.switch_version_joint(
                 switch_id,
                 switch_layout_context_id,
                 switch_version,
                 number, 
                 location, 
-                location_accuracy
+                location_accuracy,
+                type
                 )
               values (
                 :switch_id,
@@ -250,7 +251,8 @@ class LayoutSwitchDao(
                 :switch_version,
                 :number, 
                 postgis.st_setsrid(postgis.st_point(:location_x, :location_y), :srid), 
-                :location_accuracy::common.location_accuracy
+                :location_accuracy::common.location_accuracy,
+                :type::common.switch_joint_type
                 )
           """
                     .trimIndent()
@@ -266,6 +268,7 @@ class LayoutSwitchDao(
                             "location_y" to joint.location.y,
                             "srid" to LAYOUT_SRID.code,
                             "location_accuracy" to joint.locationAccuracy?.name,
+                            "type" to joint.type.name,
                         )
                     }
                     .toTypedArray()
@@ -308,7 +311,7 @@ class LayoutSwitchDao(
                   array_agg(postgis.st_x(jv.location) order by jv.number) as joint_x_values,
                   array_agg(postgis.st_y(jv.location) order by jv.number) as joint_y_values,
                   array_agg(jv.location_accuracy order by jv.number) as joint_location_accuracies
-                from layout.switch_joint_version jv
+                from layout.switch_version_joint jv
                   where jv.switch_id = sv.id
                     and jv.switch_layout_context_id = sv.layout_context_id
                     and jv.switch_version = sv.version
@@ -362,7 +365,7 @@ class LayoutSwitchDao(
                         coalesce(array_agg(postgis.st_x(jv.location) order by jv.number), '{}') as joint_x_values,
                         coalesce(array_agg(postgis.st_y(jv.location) order by jv.number), '{}') as joint_y_values,
                         coalesce(array_agg(jv.location_accuracy order by jv.number), '{}') as joint_location_accuracies
-                 from layout.switch_joint_version jv
+                 from layout.switch_version_joint jv
                  where jv.switch_id = s.id
                    and jv.switch_layout_context_id = s.layout_context_id
                    and jv.switch_version = s.version
@@ -597,7 +600,7 @@ class LayoutSwitchDao(
             select distinct switch.id as switch_id
               from layout.segment_version
                 join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                join layout.switch_joint_version jv on
+                join layout.switch_version_joint jv on
                   postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), jv.location)
                   and postgis.st_dwithin(segment_geometry.geometry, jv.location, :dist)
                 inner join layout.switch_in_layout_context('DRAFT', :design_id) switch
