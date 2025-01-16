@@ -383,11 +383,11 @@ const MapView: React.FC<MapViewProps> = ({
                                   existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
                                   publicationCandidates ?? [],
                                   designPublicationMode,
-                                  !!splittingState,
                                   layoutContext,
                                   changeTimes,
                                   onShownLayerItemsChange,
                                   (loading) => onLayerLoading(layerName, loading),
+                                  resolution,
                               )
                             : undefined;
                     case 'publication-candidate-layer':
@@ -398,7 +398,6 @@ const MapView: React.FC<MapViewProps> = ({
                                   changeTimes,
                                   layoutContext,
                                   resolution,
-                                  // map.layerSettings['track-number-diagram-layer'],
                                   (loading) => onLayerLoading(layerName, loading),
                                   publicationCandidates?.length ? publicationCandidates : [],
                                   designPublicationMode,

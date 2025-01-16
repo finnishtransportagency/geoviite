@@ -39,7 +39,6 @@ import {
 import { Point, rangesIntersectInclusive, Rectangle } from 'model/geometry';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
-import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { createAlignmentFeature } from 'map/layers/utils/alignment-layer-utils';
@@ -94,18 +93,8 @@ type Change = {
     changeType: ChangeType;
     isDeletion: boolean | undefined;
 };
-type ImplicitChange = Change & {
-    stage: PublicationStage;
-    changeType: ChangeType.IMPLICIT;
-    isDeletion: undefined;
-};
-type ExplicitChange = Change & {
-    stage: PublicationStage;
-    changeType: ChangeType.EXPLICIT;
-    isDeletion: boolean;
-};
 
-const zIndexOrder: (ImplicitChange | ExplicitChange)[] = [
+const zIndexOrder: Change[] = [
     {
         stage: PublicationStage.UNSTAGED,
         changeType: ChangeType.EXPLICIT,
@@ -114,7 +103,12 @@ const zIndexOrder: (ImplicitChange | ExplicitChange)[] = [
     {
         stage: PublicationStage.UNSTAGED,
         changeType: ChangeType.IMPLICIT,
-        isDeletion: undefined,
+        isDeletion: true,
+    },
+    {
+        stage: PublicationStage.UNSTAGED,
+        changeType: ChangeType.IMPLICIT,
+        isDeletion: false,
     },
     {
         stage: PublicationStage.UNSTAGED,
@@ -129,7 +123,12 @@ const zIndexOrder: (ImplicitChange | ExplicitChange)[] = [
     {
         stage: PublicationStage.STAGED,
         changeType: ChangeType.IMPLICIT,
-        isDeletion: undefined,
+        isDeletion: true,
+    },
+    {
+        stage: PublicationStage.STAGED,
+        changeType: ChangeType.IMPLICIT,
+        isDeletion: false,
     },
     {
         stage: PublicationStage.STAGED,
@@ -478,7 +477,7 @@ export function createPublicationCandidateLayer(
                 alignments
                     .map((alignment) => {
                         const publishCandidate = locationTrackCandidates.find(
-                            (c) => c.id === alignment.header.id && c.geometryChanges.length > 0,
+                            (c) => c.id === alignment.header.id,
                         );
 
                         return publishCandidate
@@ -493,14 +492,13 @@ export function createPublicationCandidateLayer(
     const officialReferenceLineLineAlignmentsPromise: Promise<
         ReferenceLineCandidateAndAlignment[]
     > =
-        metersPerPixel <= ALL_ALIGNMENTS && publicationCandidates.length > 0
+        publicationCandidates.length > 0
             ? getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, targetLayoutContext).then(
                   (alignments) =>
                       alignments
                           .map((alignment) => {
                               const publishCandidate = referenceLineCandidates.find(
-                                  (c) =>
-                                      c.id === alignment.header.id && c.geometryChanges.length > 0,
+                                  (c) => c.id === alignment.header.id,
                               );
                               return publishCandidate
                                   ? {
@@ -635,7 +633,9 @@ export function createPublicationCandidateLayer(
                               stroke: new Stroke({
                                   color: colorByStage(
                                       publishCandidate.stage,
-                                      ChangeType.IMPLICIT,
+                                      publishCandidate.operation === 'DELETE'
+                                          ? ChangeType.EXPLICIT
+                                          : ChangeType.IMPLICIT,
                                       true,
                                   ),
                                   width:
@@ -682,7 +682,9 @@ export function createPublicationCandidateLayer(
                               stroke: new Stroke({
                                   color: colorByStage(
                                       publishCandidate.stage,
-                                      ChangeType.IMPLICIT,
+                                      publishCandidate.operation === 'DELETE'
+                                          ? ChangeType.EXPLICIT
+                                          : ChangeType.IMPLICIT,
                                       true,
                                   ),
                                   width: 15,
@@ -783,8 +785,6 @@ export function createPublicationCandidateLayer(
                 KM_POST_CANDIDATE_DATA_PROPERTY,
                 options,
             );
-
-            console.log(locationTrackPublicationCandidates, referenceLinePublicationCandidates);
 
             return {
                 locationTrackPublicationCandidates,

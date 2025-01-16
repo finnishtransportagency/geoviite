@@ -4,10 +4,6 @@ import { createLayer, findMatchingEntities, loadLayerData } from 'map/layers/uti
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
-    NORMAL_ALIGNMENT_OPACITY,
-    OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
-} from 'map/layers/utils/alignment-layer-utils';
-import {
     LayoutKmPost,
     LayoutKmPostId,
     LayoutSwitch,
@@ -39,6 +35,7 @@ import { createSwitchFeature } from 'map/layers/utils/switch-layer-utils';
 import { getSwitchStructures } from 'common/common-api';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { createKmPostBadgeFeature } from 'map/layers/utils/km-post-layer-utils';
+import { SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
@@ -50,21 +47,17 @@ export function createDeletedPreviewPointIconFeaturesLayer(
     existingOlLayer: VectorLayer<Feature<LineString | OlPoint | Rectangle>> | undefined,
     publicationCandidates: PublicationCandidate[],
     designPublicationMode: DesignPublicationMode,
-    isSplitting: boolean,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     onViewContentChanged: (items: OptionalShownItems) => void,
     onLoadingData: (loading: boolean) => void,
+    resolution: number,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
     const layerLayoutContext =
         designPublicationMode === 'PUBLISH_CHANGES'
             ? officialLayoutContext(layoutContext)
             : draftMainLayoutContext();
-
-    layer.setOpacity(
-        isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
-    );
 
     function updateShownSwitches(switchIds: LayoutSwitchId[]) {
         const compare = switchIds.sort().join();
@@ -85,7 +78,7 @@ export function createDeletedPreviewPointIconFeaturesLayer(
     }
 
     const switchesPromise =
-        publicationCandidates.length > 0
+        resolution <= SWITCH_SHOW && publicationCandidates.length > 0
             ? Promise.all(
                   mapTiles.map((t) =>
                       getSwitchesByTile(changeTimes.layoutSwitch, t, layerLayoutContext),
@@ -111,7 +104,7 @@ export function createDeletedPreviewPointIconFeaturesLayer(
               })
             : Promise.resolve([]);
     const kmPostPromise =
-        publicationCandidates.length > 0
+        resolution < SWITCH_SHOW && publicationCandidates.length > 0
             ? Promise.all(
                   mapTiles.map((t) =>
                       getKmPostsByTile(layerLayoutContext, changeTimes.layoutKmPost, t.area, 0),
