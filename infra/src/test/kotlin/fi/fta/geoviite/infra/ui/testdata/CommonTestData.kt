@@ -32,10 +32,10 @@ import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointDistanceToLine
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchElement
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureElement
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -282,11 +282,11 @@ fun switchStructureToGeometryAlignment(
 }
 
 private fun alignmentElementsFromSwitchAlignment(
-    switchAlignment: SwitchAlignment,
+    switchAlignment: SwitchStructureAlignment,
     switchAngle: Double,
     switchOrig: Point,
     switchId: DomainId<GeometrySwitch>,
-    switchJoints: List<SwitchJoint>,
+    switchJoints: Set<SwitchStructureJoint>,
 ): List<GeometryElement> {
     val switchJointsByNumber = switchJoints.associateBy { it.number }
     val switchJointData =
@@ -311,7 +311,7 @@ private fun alignmentElementsFromSwitchAlignment(
 }
 
 private fun matchSwitchDataToElement(
-    switchElement: SwitchElement,
+    switchElement: SwitchStructureElement,
     switchJointData: List<SwitchJointData>,
     switchId: DomainId<GeometrySwitch>,
 ): SwitchData {
@@ -337,10 +337,10 @@ fun getTransformedPoint(
 
 data class SwitchJointData(
     val switchId: DomainId<GeometrySwitch>,
-    val startSwitchJoint: SwitchJoint,
-    val endSwitchJoint: SwitchJoint,
+    val startSwitchJoint: SwitchStructureJoint,
+    val endSwitchJoint: SwitchStructureJoint,
 ) {
-    fun isInsideSwitchJoint(switchElement: SwitchElement): Boolean {
+    fun isInsideSwitchJoint(switchElement: SwitchStructureElement): Boolean {
         logger.info(
             "Matching switch element (${switchElement.start},${switchElement.end}) to ${startSwitchJoint.number}-${endSwitchJoint.number}"
         )

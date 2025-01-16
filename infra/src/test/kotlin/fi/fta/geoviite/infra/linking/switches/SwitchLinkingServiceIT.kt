@@ -25,11 +25,11 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -81,7 +81,7 @@ constructor(
 ) : DBTestBase() {
 
     lateinit var switchStructure: SwitchStructure
-    lateinit var switchAlignment_1_5_2: SwitchAlignment
+    lateinit var switchAlignment_1_5_2: SwitchStructureAlignment
 
     @BeforeEach
     fun setup() {
@@ -1806,7 +1806,7 @@ fun suggestedSwitchJointMatch(
         locationTrackId,
         segmentIndex,
         m,
-        SwitchJoint(JointNumber(1), Point(1.0, 2.0)),
+        SwitchStructureJoint(JointNumber(1), Point(1.0, 2.0)),
         SuggestedSwitchJointMatchType.START,
         0.1,
         0.1,

@@ -10,9 +10,9 @@ import fi.fta.geoviite.infra.linking.TrackEnd
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -37,7 +37,7 @@ data class FittedSwitchJointMatch(
     val locationTrackId: IntId<LocationTrack>,
     val segmentIndex: Int,
     val m: Double,
-    val switchJoint: SwitchJoint,
+    val switchJoint: SwitchStructureJoint,
     val matchType: SuggestedSwitchJointMatchType,
     val distance: Double,
     val distanceToAlignment: Double,

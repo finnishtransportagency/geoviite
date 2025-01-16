@@ -48,7 +48,7 @@ constructor(
 ) : DBTestBase() {
     private val coordinateSystemNameToSrid = geographyService.getCoordinateSystemNameToSridMapping()
     private val switchStructuresByType = switchStructureDao.fetchSwitchStructures().associateBy { it.type }
-    private val switchTypeNameAliases = switchStructureDao.getInframodelAliases()
+    private val switchTypeNameAliases = switchStructureDao.getInfraModelAliases()
 
     @Test
     fun decodeFile1() {
