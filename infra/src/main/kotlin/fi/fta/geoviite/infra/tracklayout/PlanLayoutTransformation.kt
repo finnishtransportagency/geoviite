@@ -125,6 +125,7 @@ fun toLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation): Lay
             ownerId = null,
             source = GeometrySource.PLAN,
             contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
+            draftOid = null,
         )
 
 fun toLayoutSwitches(

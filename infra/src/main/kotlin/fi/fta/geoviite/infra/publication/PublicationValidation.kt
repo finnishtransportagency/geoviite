@@ -176,6 +176,12 @@ fun validateSwitchNameDuplication(
     }
 }
 
+fun validateSwitchOidDuplication(switch: LayoutSwitch, oidDuplicate: LayoutSwitch?): List<LayoutValidationIssue> {
+    return if (oidDuplicate != null && oidDuplicate.id != switch.id) {
+        listOf(validationError("$VALIDATION_SWITCH.duplicate-oid"))
+    } else listOf()
+}
+
 fun validateLocationTrackNameDuplication(
     track: LocationTrack,
     trackNumber: TrackNumber?,

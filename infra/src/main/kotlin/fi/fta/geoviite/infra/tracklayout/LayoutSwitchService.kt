@@ -7,10 +7,14 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.linking.switches.GeoviiteSwitchOidPresence
 import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.switches.SwitchOidPresence
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.ratko.RatkoClient
+import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.Page
@@ -26,6 +30,7 @@ constructor(
     dao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
+    private val ratkoClient: RatkoClient?,
 ) : LayoutAssetService<LayoutSwitch, LayoutSwitchDao>(dao) {
 
     @Transactional
@@ -41,6 +46,7 @@ constructor(
                 ownerId = request.ownerId,
                 source = GeometrySource.GENERATED,
                 contextData = LayoutContextData.newDraft(branch, id = null),
+                draftOid = request.draftOid,
             )
 
         return saveDraftInternal(branch, switch).id
@@ -68,6 +74,7 @@ constructor(
                 trapPoint = switch.trapPoint,
                 joints = switchJoints,
                 ownerId = switch.ownerId,
+                draftOid = switch.draftOid,
             )
         return saveDraftInternal(branch, updatedLayoutSwitch).id
     }
@@ -115,6 +122,25 @@ constructor(
         includeDeleted: Boolean = false,
     ): List<Pair<LayoutSwitch, SwitchStructure>> {
         return dao.list(layoutContext, includeDeleted).map(::withStructure)
+    }
+
+    fun checkOidPresence(oid: Oid<LayoutSwitch>) =
+        SwitchOidPresence(
+            existsInRatko = checkRatkoOidPresence(oid),
+            existsInGeoviiteAs =
+                dao.lookupByExternalId(oid)?.let { rowByOid ->
+                    dao.get(rowByOid.context, rowByOid.id)?.let { existingSwitch ->
+                        GeoviiteSwitchOidPresence(rowByOid.id, existingSwitch.stateCategory, existingSwitch.name)
+                    }
+                },
+        )
+
+    private fun checkRatkoOidPresence(oid: Oid<LayoutSwitch>): Boolean? {
+        return try {
+            ratkoClient?.getSwitchAsset(RatkoOid(oid.toString())) != null
+        } catch (_: Exception) {
+            null
+        }
     }
 
     fun idMatches(

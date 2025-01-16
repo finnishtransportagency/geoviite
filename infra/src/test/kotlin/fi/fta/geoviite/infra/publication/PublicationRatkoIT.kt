@@ -7,9 +7,11 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.ratko.FakeRatko
 import fi.fta.geoviite.infra.ratko.FakeRatkoService
+import fi.fta.geoviite.infra.ratko.ratkoSwitch
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
@@ -36,14 +38,17 @@ import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -220,5 +225,58 @@ constructor(
                 rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
             }
         assertEquals(setOf(shortLocationTrack, longLocationTrack), publishedLocationTracks.toSet())
+    }
+
+    @Test
+    fun `switch draft oid existence is checked upon publication`() {
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        mainOfficialContext.insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val switch =
+            mainDraftContext
+                .insert(
+                    switch(
+                        draftOid = Oid("1.2.3.4.5"),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(0.0, 1.0), null)),
+                    )
+                )
+                .id
+        val locationTrack =
+            mainDraftContext
+                .insert(
+                    locationTrack(trackNumber),
+                    alignment(
+                        segment(Point(0.0, 0.0), Point(1.0, 0.0)),
+                        segment(Point(1.0, 0.0), Point(10.0, 0.0))
+                            .copy(startJointNumber = JointNumber(1), switchId = switch),
+                    ),
+                )
+                .id
+        fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
+        fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
+
+        // Ratko was ready to give a new switch OID, but we wanted a specific one that doesn't exist
+        // -> should fail
+        assertThrows<PublicationFailureException> {
+            publicationService.publishManualPublication(
+                LayoutBranch.main,
+                PublicationRequest(
+                    publicationRequestIds(switches = listOf(switch), locationTracks = listOf(locationTrack)),
+                    FreeTextWithNewLines.of(""),
+                ),
+            )
+        }
+        // ... and the OID we tried to use didn't get recorded as being a proper OID
+        assertNull(switchDao.fetchExternalId(LayoutBranch.main, switch))
+        // ... however, if Ratko does have a switch by the draft OID we used...
+        fakeRatko.hasSwitch(ratkoSwitch("1.2.3.4.5"))
+        // ... then publication does succeed
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            PublicationRequest(
+                publicationRequestIds(switches = listOf(switch), locationTracks = listOf(locationTrack)),
+                FreeTextWithNewLines.of(""),
+            ),
+        )
+        assertEquals(Oid("1.2.3.4.5"), switchDao.fetchExternalId(LayoutBranch.main, switch))
     }
 }

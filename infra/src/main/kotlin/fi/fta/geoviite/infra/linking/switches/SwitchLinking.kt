@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.linking.switches
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
@@ -31,6 +32,7 @@ data class LayoutSwitchSaveRequest(
     val stateCategory: LayoutStateCategory,
     val ownerId: IntId<SwitchOwner>,
     val trapPoint: Boolean?,
+    val draftOid: Oid<LayoutSwitch>?,
 )
 
 data class FittedSwitchJointMatch(
@@ -117,3 +119,11 @@ data class GeometrySwitchFittingFailure(val failure: GeometrySwitchSuggestionFai
     GeometrySwitchFittingResult()
 
 data class GeometrySwitchFittingException(val failure: GeometrySwitchSuggestionFailureReason) : RuntimeException()
+
+data class SwitchOidPresence(val existsInRatko: Boolean?, val existsInGeoviiteAs: GeoviiteSwitchOidPresence?)
+
+data class GeoviiteSwitchOidPresence(
+    val id: IntId<LayoutSwitch>,
+    val stateCategory: LayoutStateCategory,
+    val name: SwitchName,
+)

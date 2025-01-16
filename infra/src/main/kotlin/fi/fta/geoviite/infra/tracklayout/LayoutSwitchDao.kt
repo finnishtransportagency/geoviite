@@ -170,6 +170,7 @@ class LayoutSwitchDao(
                 cancelled,
                 design_id,
                 source,
+                draft_oid,
                 origin_design_id
             )
             values (
@@ -185,6 +186,7 @@ class LayoutSwitchDao(
               :cancelled,
               :design_id,
               :source::layout.geometry_source,
+              :draft_oid,
               :origin_design_id
             )
             on conflict (id, layout_context_id) do update set
@@ -196,6 +198,7 @@ class LayoutSwitchDao(
               owner_id = excluded.owner_id,
               cancelled = excluded.cancelled,
               source = excluded.source,
+              draft_oid = excluded.draft_oid,
               origin_design_id = excluded.origin_design_id
             returning id, design_id, draft, version
         """
@@ -217,6 +220,7 @@ class LayoutSwitchDao(
                     "cancelled" to item.isCancelled,
                     "design_id" to item.contextData.designId?.intValue,
                     "source" to item.source.name,
+                    "draft_oid" to item.draftOid?.toString(),
                     "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
                 ),
             ) { rs, _ ->
@@ -308,6 +312,7 @@ class LayoutSwitchDao(
               sv.owner_id,
               sv.source,
               origin_design_id,
+              sv.draft_oid,
               exists(select * from layout.switch official_sv
                      where official_sv.id = sv.id
                        and (official_sv.design_id is null or official_sv.design_id = sv.design_id)
@@ -363,6 +368,7 @@ class LayoutSwitchDao(
               joint_x_values,
               joint_y_values,
               joint_location_accuracies,
+              s.draft_oid,
               exists(select * from layout.switch official_sv
                      where official_sv.id = s.id
                        and (official_sv.design_id is null or official_sv.design_id = s.design_id)
@@ -405,6 +411,7 @@ class LayoutSwitchDao(
             trapPoint = rs.getBooleanOrNull("trap_point"),
             ownerId = rs.getIntIdOrNull("owner_id"),
             source = rs.getEnum("source"),
+            draftOid = rs.getOidOrNull("draft_oid"),
             contextData =
                 rs.getLayoutContextData(
                     "id",

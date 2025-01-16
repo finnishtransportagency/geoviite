@@ -268,6 +268,7 @@ export type LayoutSwitch = {
     sourceId?: GeometrySwitchId;
     trapPoint?: boolean;
     ownerId?: SwitchOwnerId;
+    draftOid?: Oid;
 } & LayoutAssetFields;
 
 export type LayoutSwitchJoint = {

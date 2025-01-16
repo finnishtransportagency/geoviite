@@ -928,6 +928,7 @@ fun switch(
     draft: Boolean = false,
     ownerId: IntId<SwitchOwner>? = switchOwnerVayla().id,
     contextData: LayoutContextData<LayoutSwitch> = createMainContext(id, draft),
+    draftOid: Oid<LayoutSwitch>? = null,
 ) =
     LayoutSwitch(
         sourceId = null,
@@ -939,6 +940,7 @@ fun switch(
         ownerId = ownerId,
         source = GENERATED,
         contextData = contextData,
+        draftOid = draftOid,
     )
 
 fun <T : LayoutAsset<T>> createMainContext(id: IntId<T>?, draft: Boolean): LayoutContextData<T> =
