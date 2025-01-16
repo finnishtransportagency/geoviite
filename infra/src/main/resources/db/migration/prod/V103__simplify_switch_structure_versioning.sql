@@ -71,7 +71,6 @@ alter table common.switch_structure
   enable trigger version_row_trigger,
   enable trigger version_update_trigger;
 
--- select common.create_timed_fetch_function('common', 'switch_structure');
 select common.create_timed_fetch_function('common', 'switch_joint');
 select common.create_timed_fetch_function('common', 'switch_alignment');
 select common.create_timed_fetch_function('common', 'switch_element');
