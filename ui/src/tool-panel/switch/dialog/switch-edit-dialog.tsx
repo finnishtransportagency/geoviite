@@ -282,7 +282,6 @@ export const SwitchEditDialog = ({
         ...validateSwitchStructureId(switchStructureId),
         ...validateSwitchOwnerId(switchOwnerId),
     ];
-    console.log({ validationIssues, visitedFields, switchDraftOid });
 
     function hasErrors(prop: keyof LayoutSwitchSaveRequest) {
         return getVisibleErrorsByProp(prop).length > 0;
