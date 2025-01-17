@@ -71,7 +71,7 @@ type TrackNumberCandidateAndAlignment = {
     alignment: ReferenceLineAlignmentDataHolder;
 };
 
-export function colorByStage(
+export function getHighlightColor(
     stage: PublicationStage,
     changeType: ChangeType,
     operation: Operation,
@@ -85,68 +85,23 @@ export function colorByStage(
     }
 }
 
-/*const zIndexOrder: Change[] = [
-    {
-        stage: PublicationStage.UNSTAGED,
-        changeType: ChangeType.EXPLICIT,
-        isDeletion: true,
-    },
-    {
-        stage: PublicationStage.UNSTAGED,
-        changeType: ChangeType.IMPLICIT,
-        isDeletion: true,
-    },
-    {
-        stage: PublicationStage.UNSTAGED,
-        changeType: ChangeType.IMPLICIT,
-        isDeletion: false,
-    },
-    {
-        stage: PublicationStage.UNSTAGED,
-        changeType: ChangeType.EXPLICIT,
-        isDeletion: false,
-    },
-    {
-        stage: PublicationStage.STAGED,
-        changeType: ChangeType.EXPLICIT,
-        isDeletion: true,
-    },
-    {
-        stage: PublicationStage.STAGED,
-        changeType: ChangeType.IMPLICIT,
-        isDeletion: true,
-    },
-    {
-        stage: PublicationStage.STAGED,
-        changeType: ChangeType.IMPLICIT,
-        isDeletion: false,
-    },
-    {
-        stage: PublicationStage.STAGED,
-        changeType: ChangeType.EXPLICIT,
-        isDeletion: false,
-    },
-];*/
-
-function getZIndexByStage(
+function getHighlightZIndex(
     operation: Operation,
     assetType: DraftChangeType,
     stage: PublicationStage,
     type: ChangeType,
 ): number {
+    // Deletions go below everything else
     const operationPriority = operation === 'DELETE' ? 0 : 8;
+    // Point features go below lines
     const typePriority =
         assetType === DraftChangeType.KM_POST || assetType === DraftChangeType.SWITCH ? 0 : 4;
+    // Unstaged changes go below staged changes
     const stagePriority = stage === PublicationStage.UNSTAGED ? 0 : 2;
+    // Explicit changes go above implicit changes
     const explicitPriority = type === ChangeType.IMPLICIT ? 0 : 1;
-    return typePriority + operationPriority + stagePriority + explicitPriority;
 
-    /*return zIndexOrder.findIndex(
-        (sample) =>
-            sample.stage === change.stage &&
-            sample.changeType === change.changeType &&
-            sample.isDeletion === change.isDeletion,
-    );*/
+    return operationPriority + typePriority + stagePriority + explicitPriority;
 }
 
 type PointRange = {
@@ -292,11 +247,16 @@ function createAlignmentLineStringFeature(
     const rangeLengthInPixels = rangeLengthInMeters / metersPerPixel;
     const style = new Style({
         stroke: new Stroke({
-            color: colorByStage(candidate.stage, changeType, candidate.operation),
+            color: getHighlightColor(candidate.stage, changeType, candidate.operation),
             width: candidate.stage === PublicationStage.UNSTAGED ? 23 : 11,
             lineCap: rangeLengthInPixels < 15 ? 'square' : 'butt',
         }),
-        zIndex: getZIndexByStage(candidate.operation, candidate.type, candidate.stage, changeType),
+        zIndex: getHighlightZIndex(
+            candidate.operation,
+            candidate.type,
+            candidate.stage,
+            changeType,
+        ),
     });
     const feature = new Feature({
         geometry: new LineString(points.map(pointToCoords)),
@@ -365,7 +325,7 @@ export function createPointCandidateFeature(
     type: DraftChangeType,
     zIndex: number,
 ): Feature<OlPoint> | undefined {
-    const color = colorByStage(candidate.stage, ChangeType.EXPLICIT, candidate.operation);
+    const color = getHighlightColor(candidate.stage, ChangeType.EXPLICIT, candidate.operation);
     const style = new Style({
         image: new Circle({
             radius: candidate.stage == PublicationStage.STAGED ? 18 : 25,
@@ -395,7 +355,7 @@ const createPointCandidateFeatures = (
                       candidate,
                       candidate.location,
                       type,
-                      getZIndexByStage(
+                      getHighlightZIndex(
                           candidate.operation,
                           candidate.type,
                           candidate.stage,
@@ -566,11 +526,8 @@ export function createPublicationCandidateLayer(
         officialLocationTracks: LocationTrackCandidateAndAlignment[];
         officialReferenceLines: ReferenceLineCandidateAndAlignment[];
     }) => {
-        // // const showAll = Object.values(layerSettings).every((s) => !s.selected);
         const filteredLocationTracks = data.locationTrackCandidates.filter((c) => {
             return locationTrackIds.includes(c.alignment.header.id);
-            // const trackNumberId = a.trackNumber?.id;
-            // return trackNumberId ? !!layerSettings[trackNumberId]?.selected : false;
         });
         const filteredReferenceLines = data.referenceLineCandidates.filter((c) => {
             return referenceLineIds.includes(c.alignment.header.id);
@@ -625,7 +582,7 @@ export function createPublicationCandidateLayer(
                           false,
                           new Style({
                               stroke: new Stroke({
-                                  color: colorByStage(
+                                  color: getHighlightColor(
                                       publishCandidate.stage,
                                       publishCandidate.operation === 'DELETE'
                                           ? ChangeType.EXPLICIT
@@ -638,7 +595,7 @@ export function createPublicationCandidateLayer(
                                           : 11,
                                   lineCap: 'butt',
                               }),
-                              zIndex: getZIndexByStage(
+                              zIndex: getHighlightZIndex(
                                   'DELETE',
                                   publishCandidate.type,
                                   publishCandidate.stage,
@@ -675,7 +632,7 @@ export function createPublicationCandidateLayer(
                           false,
                           new Style({
                               stroke: new Stroke({
-                                  color: colorByStage(
+                                  color: getHighlightColor(
                                       publishCandidate.stage,
                                       publishCandidate.operation === 'DELETE'
                                           ? ChangeType.EXPLICIT
@@ -685,7 +642,7 @@ export function createPublicationCandidateLayer(
                                   width: 15,
                                   lineCap: 'butt',
                               }),
-                              zIndex: getZIndexByStage(
+                              zIndex: getHighlightZIndex(
                                   'DELETE',
                                   publishCandidate.type,
                                   publishCandidate.stage,
