@@ -73,4 +73,6 @@ abstract class E2EViewFragment(protected val viewBy: By) {
     protected fun childExists(by: By) = exists(childBy(by))
 
     fun waitUntilInvisible() = waitUntilInvisible(viewBy)
+
+    fun scrollIntoView(alignToTop: Boolean) = apply { fi.fta.geoviite.infra.ui.util.scrollIntoView(viewBy, alignToTop) }
 }

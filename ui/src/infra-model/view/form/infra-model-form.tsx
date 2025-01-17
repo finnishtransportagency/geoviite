@@ -425,11 +425,13 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         qaId="file-im-field"
                         inEditMode={false}
                         customAction={
-                            <InfraModelDownloadButton
-                                planId={geometryPlan.id}
-                                variant={ButtonVariant.GHOST}
-                                size={ButtonSize.SMALL}
-                            />
+                            geometryPlan.dataType === 'STORED' && (
+                                <InfraModelDownloadButton
+                                    planId={geometryPlan.id}
+                                    variant={ButtonVariant.GHOST}
+                                    size={ButtonSize.SMALL}
+                                />
+                            )
                         }>
                         {geometryPlan.fileName}
                     </FormgroupField>
