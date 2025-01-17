@@ -75,6 +75,7 @@ export type PublicationCandidateId =
     | LayoutKmPostId;
 
 export type BasePublicationCandidate = {
+    type: DraftChangeType;
     draftChangeTime: TimeStamp;
     userName: string;
     operation: Operation;

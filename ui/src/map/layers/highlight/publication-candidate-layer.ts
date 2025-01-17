@@ -29,6 +29,7 @@ import {
     DraftChangeType,
     KmPostPublicationCandidate,
     LocationTrackPublicationCandidate,
+    Operation,
     PublicationCandidate,
     PublicationStage,
     ReferenceLinePublicationCandidate,
@@ -73,77 +74,79 @@ type TrackNumberCandidateAndAlignment = {
 export function colorByStage(
     stage: PublicationStage,
     changeType: ChangeType,
-    isDeletion: boolean,
+    operation: Operation,
 ): string {
-    return stage === PublicationStage.STAGED
-        ? changeType === ChangeType.EXPLICIT
-            ? '#0066cc'
-            : '#99c2ea'
-        : isDeletion
-          ? changeType === ChangeType.EXPLICIT
-              ? '#ff6903'
-              : '#f0b6b3'
-          : changeType === ChangeType.EXPLICIT
-            ? '#ffc300'
-            : '#cdc8b9';
+    if (stage === PublicationStage.STAGED) {
+        return changeType === ChangeType.EXPLICIT ? '#0066cc' : '#99c2ea';
+    } else if (operation === 'DELETE') {
+        return changeType === ChangeType.EXPLICIT ? '#ff6903' : '#f0b6b3';
+    } else {
+        return changeType === ChangeType.EXPLICIT ? '#ffc300' : '#cdc8b9';
+    }
 }
 
-type Change = {
-    stage: PublicationStage;
-    changeType: ChangeType;
-    isDeletion: boolean | undefined;
-};
+/*const zIndexOrder: Change[] = [
+    {
+        stage: PublicationStage.UNSTAGED,
+        changeType: ChangeType.EXPLICIT,
+        isDeletion: true,
+    },
+    {
+        stage: PublicationStage.UNSTAGED,
+        changeType: ChangeType.IMPLICIT,
+        isDeletion: true,
+    },
+    {
+        stage: PublicationStage.UNSTAGED,
+        changeType: ChangeType.IMPLICIT,
+        isDeletion: false,
+    },
+    {
+        stage: PublicationStage.UNSTAGED,
+        changeType: ChangeType.EXPLICIT,
+        isDeletion: false,
+    },
+    {
+        stage: PublicationStage.STAGED,
+        changeType: ChangeType.EXPLICIT,
+        isDeletion: true,
+    },
+    {
+        stage: PublicationStage.STAGED,
+        changeType: ChangeType.IMPLICIT,
+        isDeletion: true,
+    },
+    {
+        stage: PublicationStage.STAGED,
+        changeType: ChangeType.IMPLICIT,
+        isDeletion: false,
+    },
+    {
+        stage: PublicationStage.STAGED,
+        changeType: ChangeType.EXPLICIT,
+        isDeletion: false,
+    },
+];*/
 
-const zIndexOrder: Change[] = [
-    {
-        stage: PublicationStage.UNSTAGED,
-        changeType: ChangeType.EXPLICIT,
-        isDeletion: true,
-    },
-    {
-        stage: PublicationStage.UNSTAGED,
-        changeType: ChangeType.IMPLICIT,
-        isDeletion: true,
-    },
-    {
-        stage: PublicationStage.UNSTAGED,
-        changeType: ChangeType.IMPLICIT,
-        isDeletion: false,
-    },
-    {
-        stage: PublicationStage.UNSTAGED,
-        changeType: ChangeType.EXPLICIT,
-        isDeletion: false,
-    },
-    {
-        stage: PublicationStage.STAGED,
-        changeType: ChangeType.EXPLICIT,
-        isDeletion: true,
-    },
-    {
-        stage: PublicationStage.STAGED,
-        changeType: ChangeType.IMPLICIT,
-        isDeletion: true,
-    },
-    {
-        stage: PublicationStage.STAGED,
-        changeType: ChangeType.IMPLICIT,
-        isDeletion: false,
-    },
-    {
-        stage: PublicationStage.STAGED,
-        changeType: ChangeType.EXPLICIT,
-        isDeletion: false,
-    },
-];
+function getZIndexByStage(
+    operation: Operation,
+    assetType: DraftChangeType,
+    stage: PublicationStage,
+    type: ChangeType,
+): number {
+    const operationPriority = operation === 'DELETE' ? 0 : 8;
+    const typePriority =
+        assetType === DraftChangeType.KM_POST || assetType === DraftChangeType.SWITCH ? 0 : 4;
+    const stagePriority = stage === PublicationStage.UNSTAGED ? 0 : 2;
+    const explicitPriority = type === ChangeType.IMPLICIT ? 0 : 1;
+    return typePriority + operationPriority + stagePriority + explicitPriority;
 
-function getZIndexByStage(change: Change): number {
-    return zIndexOrder.findIndex(
+    /*return zIndexOrder.findIndex(
         (sample) =>
             sample.stage === change.stage &&
             sample.changeType === change.changeType &&
             sample.isDeletion === change.isDeletion,
-    );
+    );*/
 }
 
 type PointRange = {
@@ -276,7 +279,6 @@ function createAlignmentLineStringFeature(
         | DraftChangeType.REFERENCE_LINE
         | DraftChangeType.LOCATION_TRACK
         | DraftChangeType.TRACK_NUMBER,
-    isDeletion: boolean,
 ): Feature<LineString> {
     const changeType = pointRange?.changeType ?? ChangeType.IMPLICIT;
 
@@ -290,15 +292,11 @@ function createAlignmentLineStringFeature(
     const rangeLengthInPixels = rangeLengthInMeters / metersPerPixel;
     const style = new Style({
         stroke: new Stroke({
-            color: colorByStage(candidate.stage, changeType, false),
+            color: colorByStage(candidate.stage, changeType, candidate.operation),
             width: candidate.stage === PublicationStage.UNSTAGED ? 23 : 11,
             lineCap: rangeLengthInPixels < 15 ? 'square' : 'butt',
         }),
-        zIndex: getZIndexByStage({
-            stage: candidate.stage,
-            changeType,
-            isDeletion,
-        }),
+        zIndex: getZIndexByStage(candidate.operation, candidate.type, candidate.stage, changeType),
     });
     const feature = new Feature({
         geometry: new LineString(points.map(pointToCoords)),
@@ -323,7 +321,6 @@ function createLocationTrackCandidateFeatures(
                     candidate.publishCandidate,
                     metersPerPixel,
                     DraftChangeType.LOCATION_TRACK,
-                    false,
                 ),
         ),
     );
@@ -342,7 +339,6 @@ function createReferenceLineCandidateFeatures(
                     candidate.publishCandidate,
                     metersPerPixel,
                     DraftChangeType.REFERENCE_LINE,
-                    false,
                 ),
         ),
     );
@@ -359,7 +355,6 @@ function createTrackNumberCandidateFeatures(
             candidate.publishCandidate,
             metersPerPixel,
             DraftChangeType.TRACK_NUMBER,
-            false,
         ),
     );
 }
@@ -368,10 +363,9 @@ export function createPointCandidateFeature(
     candidate: BasePublicationCandidate & WithLocation,
     location: Point,
     type: DraftChangeType,
-    isDeletion: boolean,
     zIndex: number,
 ): Feature<OlPoint> | undefined {
-    const color = colorByStage(candidate.stage, ChangeType.EXPLICIT, isDeletion);
+    const color = colorByStage(candidate.stage, ChangeType.EXPLICIT, candidate.operation);
     const style = new Style({
         image: new Circle({
             radius: candidate.stage == PublicationStage.STAGED ? 18 : 25,
@@ -401,12 +395,12 @@ const createPointCandidateFeatures = (
                       candidate,
                       candidate.location,
                       type,
-                      candidate.operation === 'DELETE',
-                      getZIndexByStage({
-                          stage: candidate.stage,
-                          changeType: ChangeType.EXPLICIT,
-                          isDeletion: candidate.operation === 'DELETE',
-                      }),
+                      getZIndexByStage(
+                          candidate.operation,
+                          candidate.type,
+                          candidate.stage,
+                          ChangeType.EXPLICIT,
+                      ),
                   )
                 : undefined,
         )
@@ -636,7 +630,7 @@ export function createPublicationCandidateLayer(
                                       publishCandidate.operation === 'DELETE'
                                           ? ChangeType.EXPLICIT
                                           : ChangeType.IMPLICIT,
-                                      true,
+                                      publishCandidate.operation,
                                   ),
                                   width:
                                       publishCandidate.stage === PublicationStage.UNSTAGED
@@ -644,11 +638,12 @@ export function createPublicationCandidateLayer(
                                           : 11,
                                   lineCap: 'butt',
                               }),
-                              zIndex: getZIndexByStage({
-                                  stage: publishCandidate.stage,
-                                  changeType: ChangeType.EXPLICIT,
-                                  isDeletion: true,
-                              }),
+                              zIndex: getZIndexByStage(
+                                  'DELETE',
+                                  publishCandidate.type,
+                                  publishCandidate.stage,
+                                  ChangeType.EXPLICIT,
+                              ),
                           }),
                       )
                     : undefined;
@@ -685,16 +680,17 @@ export function createPublicationCandidateLayer(
                                       publishCandidate.operation === 'DELETE'
                                           ? ChangeType.EXPLICIT
                                           : ChangeType.IMPLICIT,
-                                      true,
+                                      publishCandidate.operation,
                                   ),
                                   width: 15,
                                   lineCap: 'butt',
                               }),
-                              zIndex: getZIndexByStage({
-                                  stage: publishCandidate.stage,
-                                  changeType: ChangeType.EXPLICIT,
-                                  isDeletion: true,
-                              }),
+                              zIndex: getZIndexByStage(
+                                  'DELETE',
+                                  publishCandidate.type,
+                                  publishCandidate.stage,
+                                  ChangeType.EXPLICIT,
+                              ),
                           }),
                       )
                     : undefined;
