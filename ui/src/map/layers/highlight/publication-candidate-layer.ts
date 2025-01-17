@@ -297,7 +297,7 @@ function createAlignmentLineStringFeature(
         zIndex: getZIndexByStage({
             stage: candidate.stage,
             changeType,
-            isDeletion: changeType === ChangeType.IMPLICIT ? undefined : isDeletion,
+            isDeletion,
         }),
     });
     const feature = new Feature({
@@ -405,7 +405,7 @@ const createPointCandidateFeatures = (
                       getZIndexByStage({
                           stage: candidate.stage,
                           changeType: ChangeType.EXPLICIT,
-                          isDeletion: false,
+                          isDeletion: candidate.operation === 'DELETE',
                       }),
                   )
                 : undefined,

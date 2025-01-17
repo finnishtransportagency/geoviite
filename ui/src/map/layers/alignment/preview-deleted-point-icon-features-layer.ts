@@ -1,6 +1,11 @@
 import { LineString, Point as OlPoint } from 'ol/geom';
 import { MapLayerName, MapTile, OptionalShownItems } from 'map/map-model';
-import { createLayer, findMatchingEntities, loadLayerData } from 'map/layers/utils/layer-utils';
+import {
+    createLayer,
+    findMatchingEntities,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
@@ -9,7 +14,7 @@ import {
     LayoutSwitch,
     LayoutSwitchId,
 } from 'track-layout/track-layout-model';
-import { Rectangle } from 'model/geometry';
+import { Point, Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import Feature from 'ol/Feature';
 import {
@@ -35,12 +40,54 @@ import { createSwitchFeature } from 'map/layers/utils/switch-layer-utils';
 import { getSwitchStructures } from 'common/common-api';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { createKmPostBadgeFeature } from 'map/layers/utils/km-post-layer-utils';
-import { SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
+import { SWITCH_LARGE_SYMBOLS, SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
+import { Style } from 'ol/style';
+import { drawCircle, getCanvasRenderer } from 'map/layers/utils/rendering';
+import { expectCoordinate } from 'utils/type-utils';
+import styles from 'map/map.module.scss';
+import { State } from 'ol/render';
 
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
 
 const layerName: MapLayerName = 'preview-deleted-point-icon-features-layer';
+
+function deletedIconBadgeFeature(location: Point, isLarge: boolean): Feature<OlPoint> {
+    const deletedIconFeature = new Feature({
+        geometry: new OlPoint(pointToCoords(location)),
+    });
+    deletedIconFeature.setStyle(
+        new Style({
+            zIndex: 10,
+            renderer: getCanvasRenderer(
+                undefined,
+                (ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
+                    ctx.lineWidth = pixelRatio;
+                },
+                [
+                    (_, coord, ctx, { pixelRatio }) => {
+                        ctx.fillStyle = styles.unlinkedSwitchJoint;
+                        ctx.strokeStyle = styles.switchMainJointTextColor;
+                        ctx.lineWidth = pixelRatio;
+                        const offset = 0;
+
+                        const [x, y] = expectCoordinate(coord);
+                        const offsetX = x + offset * pixelRatio;
+                        const offsetY = y - offset * pixelRatio;
+                        drawCircle(ctx, offsetX, offsetY, (isLarge ? 6.5 : 4.5) * pixelRatio);
+                        ctx.moveTo(offsetX - 2 * pixelRatio, offsetY - 2 * pixelRatio);
+                        ctx.lineTo(offsetX + 2 * pixelRatio, offsetY + 2 * pixelRatio);
+
+                        ctx.moveTo(offsetX - 2 * pixelRatio, offsetY + 2 * pixelRatio);
+                        ctx.lineTo(offsetX + 2 * pixelRatio, offsetY - 2 * pixelRatio);
+                        ctx.stroke();
+                    },
+                ],
+            ),
+        }),
+    );
+    return deletedIconFeature;
+}
 
 export function createDeletedPreviewPointIconFeaturesLayer(
     mapTiles: MapTile[],
@@ -54,6 +101,7 @@ export function createDeletedPreviewPointIconFeaturesLayer(
     resolution: number,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
+
     const layerLayoutContext =
         designPublicationMode === 'PUBLISH_CHANGES'
             ? officialLayoutContext(layoutContext)
@@ -154,28 +202,41 @@ export function createDeletedPreviewPointIconFeaturesLayer(
                     (structure) => structure.id === s.switchStructureId,
                 );
                 const presentationJointNumber = structure?.presentationJointNumber;
+                const presentationJoint = s.joints.find(
+                    (joint) => joint.number == presentationJointNumber,
+                );
+
                 const feature = candidate
                     ? createSwitchFeature(
                           s,
                           false,
                           false,
                           false,
-                          true,
+                          resolution <= SWITCH_LARGE_SYMBOLS,
                           false,
-                          true,
+                          false,
                           undefined,
                           presentationJointNumber,
                           undefined,
                       )
                     : undefined;
+                const deletedIconFeature = presentationJoint
+                    ? deletedIconBadgeFeature(
+                          presentationJoint.location,
+                          resolution <= SWITCH_LARGE_SYMBOLS,
+                      )
+                    : undefined;
 
-                return [feature];
+                return [feature, deletedIconFeature];
             })
             .flat()
             .filter(filterNotEmpty);
         const kpFeatures = alignments.kmPosts
             .flatMap(({ kmPost }) => {
-                const feature = createKmPostBadgeFeature(kmPost);
+                const feature = createKmPostBadgeFeature(kmPost, true);
+                const _deletedIconFeature = kmPost.layoutLocation
+                    ? deletedIconBadgeFeature(kmPost.layoutLocation, true)
+                    : undefined;
 
                 return [feature];
             })

@@ -4,6 +4,7 @@ import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
 import Style, { RenderFunction } from 'ol/style/Style';
 import KmPost from 'vayla-design-lib/icon/glyphs/misc/kmpost.svg';
+import DeletedKmPost from 'vayla-design-lib/icon/glyphs/misc/kmpost-deleted.svg';
 import {
     drawCircle,
     drawRect,
@@ -22,6 +23,9 @@ import { expectCoordinate } from 'utils/type-utils';
 
 const kmPostImg: HTMLImageElement = new Image();
 kmPostImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(KmPost)}`;
+
+const deletedKmPostImg: HTMLImageElement = new Image();
+deletedKmPostImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(DeletedKmPost)}`;
 
 export type KmPostType = 'layoutKmPost' | 'geometryKmPost';
 
@@ -74,14 +78,14 @@ export function createKmPostFeature(
     return [feature, hitAreaFeature];
 }
 
-export const createKmPostBadgeFeature = (kmPost: LayoutKmPost) => {
+export const createKmPostBadgeFeature = (kmPost: LayoutKmPost, isDeleted: boolean) => {
     const location = kmPost.layoutLocation as Point;
     const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
 
     feature.setStyle(
         new Style({
             zIndex: 2,
-            renderer: getRenderer(kmPost, 14, [kmPostIconDrawFunction(6, 12)]),
+            renderer: getRenderer(kmPost, 14, [kmPostIconDrawFunction(6, 12, isDeleted)]),
         }),
     );
 
@@ -215,11 +219,11 @@ function getSelectedKmPostRenderer(
 }
 
 const kmPostIconDrawFunction =
-    (iconRadius: number, iconSize: number) =>
+    (iconRadius: number, iconSize: number, isDeleted: boolean) =>
     (_: LayoutKmPost, coord: Coordinate, ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
         const [x, y] = expectCoordinate(coord);
         ctx.drawImage(
-            kmPostImg,
+            isDeleted ? deletedKmPostImg : kmPostImg,
             x - iconRadius * pixelRatio,
             y - iconRadius * pixelRatio,
             iconSize * pixelRatio,
@@ -231,6 +235,7 @@ function getKmPostRenderer(
     kmPost: LayoutKmPost,
     kmPostType: KmPostType,
     isLinked = false,
+    isDeleted = false,
 ): RenderFunction {
     const dFunctions: PointRenderFunction<LayoutKmPost>[] = [];
 
@@ -276,7 +281,7 @@ function getKmPostRenderer(
         },
     );
 
-    dFunctions.push(kmPostIconDrawFunction(iconRadius, iconSize));
+    dFunctions.push(kmPostIconDrawFunction(iconRadius, iconSize, isDeleted));
 
     dFunctions.push(
         (
