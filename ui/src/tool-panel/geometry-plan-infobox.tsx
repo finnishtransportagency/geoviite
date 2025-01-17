@@ -13,22 +13,18 @@ import { differenceInYears } from 'date-fns';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useAppNavigate } from 'common/navigate';
-import { inframodelDownloadUri } from 'infra-model/infra-model-api';
-import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getCoordinateSystem } from 'common/common-api';
 import { useLoader } from 'utils/react-utils';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import MeasurementMethod from 'geoviite-design-lib/measurement-method/measurement-method';
 import { officialMainLayoutContext, TimeStamp, TrackNumber } from 'common/common-model';
 import { GeometryPlanInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { ConfirmDownloadUnreliableInfraModelDialog } from 'infra-model/list/confirm-download-unreliable-infra-model-dialog';
 import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
-import { PrivilegeRequired } from 'user/privilege-required';
-import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
+import { InfraModelDownloadButton } from 'geoviite-design-lib/infra-model-download/infra-model-download-button';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
@@ -90,8 +86,6 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
             undefined,
         [planHeader.units.coordinateSystemSrid],
     );
-
-    const [downloadConfirmPlan, setDownloadConfirmPlan] = React.useState<GeometryPlanHeader>();
 
     const generalInfobox = (
         <Infobox
@@ -220,38 +214,22 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                             />
                         }
                     />
-                    <InfoboxButtons>
+                    <InfoboxButtons verticalLayout>
                         <Button
                             size={ButtonSize.SMALL}
                             variant={ButtonVariant.SECONDARY}
                             onClick={() => navigate('inframodel-edit', planHeader.id)}>
                             {t('tool-panel.geometry-plan.open-inframodel')}
                         </Button>
-                        <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
-                            <Button
-                                size={ButtonSize.SMALL}
-                                variant={ButtonVariant.SECONDARY}
-                                className={styles['geometry-plan-tool-panel__download-link']}
-                                onClick={() => {
-                                    if (planHeader.source === 'PAIKANNUSPALVELU') {
-                                        setDownloadConfirmPlan(planHeader);
-                                    } else {
-                                        location.href = inframodelDownloadUri(planHeader.id);
-                                    }
-                                }}>
-                                <Icons.Download size={IconSize.SMALL} />{' '}
-                                {t('tool-panel.geometry-plan.download-file')}
-                            </Button>
-                        </PrivilegeRequired>
+                        <InfraModelDownloadButton
+                            planHeader={planHeader}
+                            size={ButtonSize.SMALL}
+                            variant={ButtonVariant.SECONDARY}>
+                            {t('tool-panel.geometry-plan.download-file')}
+                        </InfraModelDownloadButton>
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>
-            {downloadConfirmPlan && (
-                <ConfirmDownloadUnreliableInfraModelDialog
-                    onClose={() => setDownloadConfirmPlan(undefined)}
-                    plan={downloadConfirmPlan}
-                />
-            )}
         </React.Fragment>
     );
 
