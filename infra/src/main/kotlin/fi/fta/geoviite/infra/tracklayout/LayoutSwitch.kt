@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.Point
@@ -22,6 +23,7 @@ data class LayoutSwitch(
     val trapPoint: Boolean?,
     val ownerId: IntId<SwitchOwner>?,
     val source: GeometrySource,
+    val draftOid: Oid<LayoutSwitch>?,
     @JsonIgnore override val contextData: LayoutContextData<LayoutSwitch>,
 ) : LayoutAsset<LayoutSwitch>(contextData) {
     @JsonIgnore val exists = !stateCategory.isRemoved()

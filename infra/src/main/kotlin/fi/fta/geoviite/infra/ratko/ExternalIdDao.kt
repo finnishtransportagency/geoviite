@@ -4,9 +4,11 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutBranch
+import fi.fta.geoviite.infra.util.getLayoutRowId
 import fi.fta.geoviite.infra.util.getOid
 import fi.fta.geoviite.infra.util.queryOptional
 import java.time.Instant
@@ -22,6 +24,8 @@ interface IExternalIdDao<T : LayoutAsset<T>> {
     fun fetchExternalIds(branch: LayoutBranch, ids: List<IntId<T>>? = null): Map<IntId<T>, Oid<T>>
 
     fun fetchExternalIdsByBranch(id: IntId<T>): Map<LayoutBranch, Oid<T>>
+
+    fun lookupByExternalId(oid: Oid<T>): LayoutRowId<T>?
 }
 
 class ExternalIdDao<T : LayoutAsset<T>>(
@@ -83,5 +87,12 @@ class ExternalIdDao<T : LayoutAsset<T>>(
                 rs.getLayoutBranch("design_id") to rs.getOid<T>("external_id")
             }
             .associate { it }
+    }
+
+    override fun lookupByExternalId(oid: Oid<T>): LayoutRowId<T>? {
+        val sql = """select id, design_id, false as draft from $extIdTable where external_id = :external_id"""
+        return jdbcTemplate.queryOptional(sql, mapOf("external_id" to oid.toString())) { rs, _ ->
+            rs.getLayoutRowId("id", "design_id", "draft")
+        }
     }
 }

@@ -625,7 +625,14 @@ constructor(
                 MainLayoutContext.draft,
                 switchService.insertSwitch(
                     LayoutBranch.main,
-                    LayoutSwitchSaveRequest(SwitchName("TEST"), IntId(1), LayoutStateCategory.EXISTING, IntId(1), false),
+                    LayoutSwitchSaveRequest(
+                        SwitchName("TEST"),
+                        IntId(1),
+                        LayoutStateCategory.EXISTING,
+                        IntId(1),
+                        false,
+                        draftOid = null,
+                    ),
                 ),
             )
         publish(publicationService, switches = listOf(switch.id as IntId), trackNumbers = listOf(tn1, tn2))
@@ -641,6 +648,7 @@ constructor(
                         LayoutStateCategory.NOT_EXISTING,
                         IntId(2),
                         true,
+                        draftOid = null,
                     ),
                 ),
             )
@@ -673,7 +681,14 @@ constructor(
     @Test
     fun `Changing specific switch field returns only that field`() {
         val saveReq =
-            LayoutSwitchSaveRequest(SwitchName("TEST"), IntId(1), LayoutStateCategory.EXISTING, IntId(1), false)
+            LayoutSwitchSaveRequest(
+                SwitchName("TEST"),
+                IntId(1),
+                LayoutStateCategory.EXISTING,
+                IntId(1),
+                false,
+                draftOid = null,
+            )
 
         val switch =
             switchService.getOrThrow(MainLayoutContext.draft, switchService.insertSwitch(LayoutBranch.main, saveReq))

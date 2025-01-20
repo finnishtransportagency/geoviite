@@ -28,6 +28,7 @@ import {
     JointNumber,
     KmNumber,
     LocationTrackOwnerId,
+    Oid,
     Range,
     Srid,
     SwitchOwnerId,
@@ -317,6 +318,7 @@ export type LayoutSwitchSaveRequest = {
     stateCategory: LayoutStateCategory;
     ownerId: SwitchOwnerId;
     trapPoint?: boolean;
+    draftOid?: Oid;
 };
 
 export type SwitchRelinkingValidationResult = {

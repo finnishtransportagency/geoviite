@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.IndirectChanges
 import fi.fta.geoviite.infra.ratko.RatkoClient
+import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
@@ -212,8 +213,16 @@ constructor(
     }
 
     private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<LayoutSwitch>) {
-        val switchOid = ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()) { "No OID received from RATKO" } }
-        switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(oid.id)) }
+        val switchOid =
+            switchDao.get(branch.draft, switchId)?.draftOid?.also(::ensureDraftIdExists)?.toString()
+                ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()?.id) { "No OID received from RATKO" } }
+        switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(switchOid)) }
+    }
+
+    private fun ensureDraftIdExists(draftOid: Oid<LayoutSwitch>) {
+        requireNotNull(ratkoClient?.getSwitchAsset(RatkoOid(draftOid.toString()))) {
+            "OID $draftOid does not exist in Ratko"
+        }
     }
 
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =

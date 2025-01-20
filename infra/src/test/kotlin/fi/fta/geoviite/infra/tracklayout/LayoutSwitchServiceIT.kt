@@ -432,7 +432,14 @@ constructor(
     @Test
     fun switchIdIsReturnedWhenAddingNewSwitch() {
         val switch =
-            LayoutSwitchSaveRequest(SwitchName("XYZ-987"), IntId(5), EXISTING, ownerId = IntId(3), trapPoint = null)
+            LayoutSwitchSaveRequest(
+                SwitchName("XYZ-987"),
+                IntId(5),
+                EXISTING,
+                ownerId = IntId(3),
+                trapPoint = null,
+                draftOid = null,
+            )
         val switchId = switchService.insertSwitch(LayoutBranch.main, switch)
         val fetchedSwitch = switchService.get(MainLayoutContext.draft, switchId)!!
         assertNull(switchService.get(MainLayoutContext.official, switchId))

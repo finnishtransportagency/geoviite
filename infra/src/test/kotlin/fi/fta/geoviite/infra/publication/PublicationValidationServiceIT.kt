@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
@@ -1691,6 +1692,23 @@ constructor(
                 )
             ),
             validateCancellation.validatedAsPublicationUnit.switches[0].issues,
+        )
+    }
+
+    @Test
+    fun `switch draft OIDs are checked for uniqueness vs existing OIDs`() {
+        testDBService.deleteFromTables("layout", "switch_external_id")
+        switchDao.insertExternalId(mainOfficialContext.insert(switch()).id, LayoutBranch.main, Oid("1.2.3.4.5"))
+        val draftSwitch = mainDraftContext.insert(switch(draftOid = Oid("1.2.3.4.5"))).id
+        assertContains(
+            publicationValidationService
+                .validateSwitches(ValidateTransition(PublicationInMain), listOf(draftSwitch))[0]
+                .errors,
+            LayoutValidationIssue(
+                localizationKey = LocalizationKey("validation.layout.switch.duplicate-oid"),
+                type = LayoutValidationIssueType.ERROR,
+                params = LocalizationParams(mapOf()),
+            ),
         )
     }
 

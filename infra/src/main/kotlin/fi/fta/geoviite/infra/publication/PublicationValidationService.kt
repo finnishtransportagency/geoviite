@@ -396,7 +396,14 @@ constructor(
                     validationContext.getSwitchesByName(switch.name),
                     validationContext.target.type,
                 )
-            return referenceIssues + structureIssues + duplicationIssues
+            val oidDuplicationIssues =
+                validateSwitchOidDuplication(
+                    switch,
+                    switch.draftOid?.let(switchDao::lookupByExternalId)?.let { row ->
+                        switchDao.get(row.context, row.id)
+                    },
+                )
+            return referenceIssues + structureIssues + duplicationIssues + oidDuplicationIssues
         }
 
     private fun validateReferenceLine(

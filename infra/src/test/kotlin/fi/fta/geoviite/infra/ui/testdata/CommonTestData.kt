@@ -168,6 +168,7 @@ fun layoutSwitch(name: String, jointPoints: List<Point>, switchStructure: Switch
         ownerId = switchOwnerVayla().id,
         source = GeometrySource.GENERATED,
         contextData = LayoutContextData.newOfficial(LayoutBranch.main),
+        draftOid = null,
     )
 
 fun switchJoint(location: Point) =

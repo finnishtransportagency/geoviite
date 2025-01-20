@@ -9,6 +9,7 @@ import {
     TimeStamp,
 } from 'common/common-model';
 import {
+    LayoutStateCategory,
     LayoutSwitch,
     LayoutSwitchId,
     LayoutSwitchJointConnection,
@@ -26,6 +27,7 @@ import {
     layoutUri,
     layoutUriByBranch,
     layoutUriWithoutContext,
+    TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
@@ -222,3 +224,17 @@ export async function getSwitchOids(
     );
     return oids ?? {};
 }
+
+export async function getSwitchOidPresence(oid: Oid): Promise<SwitchOidPresence> {
+    return getNonNull<SwitchOidPresence>(`${TRACK_LAYOUT_URI}/switches/oid_presence/${oid}`);
+}
+
+export type SwitchOidPresence = {
+    existsInRatko?: boolean;
+    existsInGeoviiteAs?: GeoviiteSwitchOidPresence;
+};
+export type GeoviiteSwitchOidPresence = {
+    id: LayoutSwitchId;
+    stateCategory: LayoutStateCategory;
+    name: string;
+};

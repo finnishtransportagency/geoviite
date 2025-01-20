@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.switches.SwitchOidPresence
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationValidationService
@@ -164,4 +165,9 @@ class LayoutSwitchController(
     fun getSwitchOids(@PathVariable("id") id: IntId<LayoutSwitch>): Map<LayoutBranch, Oid<LayoutSwitch>> {
         return switchService.getExternalIdsByBranch(id)
     }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/oid_presence/{oid}")
+    fun getSwitchOidPresence(@PathVariable("oid") oid: Oid<LayoutSwitch>): SwitchOidPresence =
+        switchService.checkOidPresence(oid)
 }
