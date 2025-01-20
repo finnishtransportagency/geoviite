@@ -15,7 +15,6 @@ import styles from './split-details-dialog.scss';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { SplitTargetOperation } from 'tool-panel/location-track/split-store';
 import { TrackMeter } from 'common/common-model';
 
 export type SplitDetailsViewProps = {
@@ -85,7 +84,7 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
                                             <td>{target.name}</td>
                                             <td>{target.oid}</td>
                                             <td>
-                                                {t(getOperationLocalizationKey(target.operation))}
+                                                {t(`enum.SplitTargetOperation.${target.operation}`)}
                                             </td>
                                             <td>{formatAddress(target.startAddress)}</td>
                                             <td>{formatAddress(target.endAddress)}</td>
@@ -103,15 +102,4 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
 
 function formatAddress(address: TrackMeter | undefined): string | undefined {
     return address ? formatTrackMeter(address) : undefined;
-}
-
-function getOperationLocalizationKey(operation: SplitTargetOperation): string {
-    switch (operation) {
-        case 'CREATE':
-            return 'split-details-dialog.newly-created';
-        case 'OVERWRITE':
-            return 'split-details-dialog.replaces-duplicate';
-        case 'TRANSFER':
-            return 'split-details-dialog.transfers-assets';
-    }
 }
