@@ -5,32 +5,32 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.*
 
 fun YV43_300_1_9_514_O() =
-    SwitchStructure(
+    SwitchStructureData(
         type = SwitchType("YV43-300-1:9,514-O"),
         presentationJointNumber = JointNumber(1),
         joints =
-            listOf(
-                SwitchJoint(JointNumber(1), Point(0.0, 0.0)),
-                SwitchJoint(JointNumber(5), Point(11.31, 0.0)),
-                SwitchJoint(JointNumber(2), Point(28.85, 0.0)),
-                SwitchJoint(JointNumber(3), Point(28.754, -1.833)),
+            setOf(
+                SwitchStructureJoint(JointNumber(1), Point(0.0, 0.0)),
+                SwitchStructureJoint(JointNumber(5), Point(11.31, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(28.85, 0.0)),
+                SwitchStructureJoint(JointNumber(3), Point(28.754, -1.833)),
             ),
         alignments =
             listOf(
-                SwitchAlignment(
+                SwitchStructureAlignment(
                     jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
                     elements =
                         listOf(
-                            SwitchElementLine(start = Point(0.0, 0.0), end = Point(11.31, 0.0)),
-                            SwitchElementLine(start = Point(11.31, 0.0), end = Point(28.85, 0.0)),
+                            SwitchStructureLine(start = Point(0.0, 0.0), end = Point(11.31, 0.0)),
+                            SwitchStructureLine(start = Point(11.31, 0.0), end = Point(28.85, 0.0)),
                         ),
                 ),
-                SwitchAlignment(
+                SwitchStructureAlignment(
                     jointNumbers = listOf(JointNumber(1), JointNumber(3)),
                     elements =
                         listOf(
-                            SwitchElementCurve(start = Point(0.0, 0.0), end = Point(23.35, -1.265), radius = 231.0),
-                            SwitchElementLine(start = Point(23.35, -1.265), end = Point(28.754, -1.833)),
+                            SwitchStructureCurve(start = Point(0.0, 0.0), end = Point(23.35, -1.265), radius = 231.0),
+                            SwitchStructureLine(start = Point(23.35, -1.265), end = Point(28.754, -1.833)),
                         ),
                 ),
             ),

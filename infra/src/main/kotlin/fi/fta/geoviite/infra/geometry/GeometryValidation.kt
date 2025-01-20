@@ -8,8 +8,8 @@ import fi.fta.geoviite.infra.geometry.GeometryIssueType.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.switchLibrary.calculateSwitchLocationDelta
 import fi.fta.geoviite.infra.switchLibrary.transformSwitchPoint
 import fi.fta.geoviite.infra.tracklayout.REFERENCE_LINE_TYPE_CODE
@@ -754,7 +754,7 @@ fun validateSwitch(
     alignmentSwitches: List<AlignmentSwitch>,
 ): List<GeometryValidationIssue> {
     val jointNumbers = switch.joints.map(GeometrySwitchJoint::number)
-    val structureJointNumbers = structure?.joints?.map(SwitchJoint::number) ?: listOf()
+    val structureJointNumbers = structure?.joints?.map(SwitchStructureJoint::number) ?: listOf()
 
     val fieldErrors =
         listOfNotNull(

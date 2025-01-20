@@ -14,7 +14,7 @@ class SwitchLibraryService(
     private val structures: List<SwitchStructure> by lazy { switchStructureDao.fetchSwitchStructures() }
 
     private val structuresById: Map<IntId<SwitchStructure>, SwitchStructure> by lazy {
-        structures.associateBy { switchStructure -> switchStructure.id as IntId }
+        structures.associateBy { switchStructure -> switchStructure.id }
     }
 
     fun getSwitchStructures(): List<SwitchStructure> = structures
@@ -38,26 +38,14 @@ class SwitchLibraryService(
     }
 
     fun getInframodelAliases(): Map<String, String> {
-        return switchStructureDao.getInframodelAliases()
+        return switchStructureDao.getInfraModelAliases()
     }
 
     private fun getOrThrow(id: IntId<SwitchStructure>) =
         structuresById[id] ?: throw NoSuchEntityException(SwitchStructure::class, id)
 
     @Transactional
-    fun upsertSwitchStructure(newSwitchStructure: SwitchStructure, existingSwitchStructure: SwitchStructure?) {
-        if (existingSwitchStructure == null) {
-            switchStructureDao.insertSwitchStructure(newSwitchStructure)
-        } else {
-            val switchStructureWithExistingId = newSwitchStructure.copy(id = existingSwitchStructure.id)
-            if (!existingSwitchStructure.isSame(switchStructureWithExistingId)) {
-                switchStructureDao.updateSwitchStructure(switchStructureWithExistingId)
-            }
-        }
-    }
-
-    @Transactional
-    fun replaceExistingSwitchStructures(newSwitchStructures: List<SwitchStructure>) {
+    fun replaceExistingSwitchStructures(newSwitchStructures: List<SwitchStructureData>) {
         val existingSwitchStructures = switchStructureDao.fetchSwitchStructures()
         existingSwitchStructures.forEach { existingSwitchStructure ->
             val existsInNewSet =
@@ -65,7 +53,7 @@ class SwitchLibraryService(
                     newSwitchStructure.type == existingSwitchStructure.type
                 }
             if (!existsInNewSet) {
-                switchStructureDao.delete(existingSwitchStructure.id as IntId)
+                switchStructureDao.delete(existingSwitchStructure.id)
             }
         }
 
@@ -73,5 +61,25 @@ class SwitchLibraryService(
             val existingSwitchStructure = existingSwitchStructures.find { it.type == newSwitchStructure.type }
             upsertSwitchStructure(newSwitchStructure, existingSwitchStructure)
         }
+    }
+
+    @Transactional
+    fun upsertSwitchStructure(modifiedSwitchStructure: SwitchStructureData, existingSwitchStructure: SwitchStructure?) {
+        if (existingSwitchStructure?.data != modifiedSwitchStructure) {
+            switchStructureDao.upsertSwitchStructure(modifiedSwitchStructure)
+        }
+    }
+
+    @Transactional
+    fun replaceExistingInfraModelAliases(infraModelAliases: Map<String, String>) {
+        val oldAliases = switchStructureDao.getInfraModelAliases()
+        infraModelAliases.forEach { (key, value) ->
+            if (oldAliases[key] != value) {
+                switchStructureDao.upsertInfraModelAlias(key, value)
+            }
+        }
+        oldAliases
+            .filterNot { (key, _) -> infraModelAliases.containsKey(key) }
+            .forEach { (key, _) -> switchStructureDao.deleteInfraModelAlias(key) }
     }
 }

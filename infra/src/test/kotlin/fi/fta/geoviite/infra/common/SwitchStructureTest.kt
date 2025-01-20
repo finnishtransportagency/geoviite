@@ -1,11 +1,19 @@
 package fi.fta.geoviite.infra.common
 
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.*
-import kotlin.test.assertEquals
+import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
+import fi.fta.geoviite.infra.switchLibrary.SwitchHand
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
+import fi.fta.geoviite.infra.switchLibrary.SwitchTypeParts
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import kotlin.test.assertEquals
 
 class SwitchStructureTest {
     private val knownSwitchTypes =
@@ -113,50 +121,32 @@ class SwitchStructureTest {
         )
 
     private val validSwitchStructure by lazy {
-        SwitchStructure(
-            id = IntId(0),
+        SwitchStructureData(
             type = SwitchType("YV60-300-1:9-O"),
             presentationJointNumber = JointNumber(1),
             joints =
-                listOf(
-                    SwitchJoint(number = JointNumber(1), location = Point(0.0, 0.0)),
-                    SwitchJoint(number = JointNumber(5), location = Point(16.615, 0.0)),
-                    SwitchJoint(number = JointNumber(2), location = Point(34.430, 0.0)),
-                    SwitchJoint(number = JointNumber(3), location = Point(34.430, 3.825)),
+                setOf(
+                    SwitchStructureJoint(number = JointNumber(1), location = Point(0.0, 0.0)),
+                    SwitchStructureJoint(number = JointNumber(5), location = Point(16.615, 0.0)),
+                    SwitchStructureJoint(number = JointNumber(2), location = Point(34.430, 0.0)),
+                    SwitchStructureJoint(number = JointNumber(3), location = Point(34.430, 3.825)),
                 ),
             alignments =
                 listOf(
-                    SwitchAlignment(
+                    SwitchStructureAlignment(
                         jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
                         elements =
                             listOf(
-                                SwitchElementLine(
-                                    id = IndexedId(0, 0),
-                                    start = Point(0.0, 0.0),
-                                    end = Point(16.615, 0.0),
-                                ),
-                                SwitchElementLine(
-                                    id = IndexedId(0, 0),
-                                    start = Point(16.615, 0.0),
-                                    end = Point(34.430, 0.0),
-                                ),
+                                SwitchStructureLine(start = Point(0.0, 0.0), end = Point(16.615, 0.0)),
+                                SwitchStructureLine(start = Point(16.615, 0.0), end = Point(34.430, 0.0)),
                             ),
                     ),
-                    SwitchAlignment(
+                    SwitchStructureAlignment(
                         jointNumbers = listOf(JointNumber(1), JointNumber(3)),
                         elements =
                             listOf(
-                                SwitchElementCurve(
-                                    id = IndexedId(0, 0),
-                                    start = Point(0.0, 0.0),
-                                    end = Point(34.0, 3.777),
-                                    radius = 300.0,
-                                ),
-                                SwitchElementLine(
-                                    id = IndexedId(0, 0),
-                                    start = Point(34.0, 3.5),
-                                    end = Point(34.430, 3.825),
-                                ),
+                                SwitchStructureCurve(start = Point(0.0, 0.0), end = Point(34.0, 3.777), radius = 300.0),
+                                SwitchStructureLine(start = Point(34.0, 3.5), end = Point(34.430, 3.825)),
                             ),
                     ),
                 ),
@@ -211,8 +201,7 @@ class SwitchStructureTest {
     @Test
     fun switchStructureDeniesInvalidPresentationJointNumber() {
         assertThrows<IllegalArgumentException> {
-            SwitchStructure(
-                validSwitchStructure.id,
+            SwitchStructureData(
                 validSwitchStructure.type,
                 presentationJointNumber = nonExistingJointNumber,
                 validSwitchStructure.joints,
@@ -224,8 +213,7 @@ class SwitchStructureTest {
     @Test
     fun switchStructureDeniesEmptyAlignments() {
         assertThrows<IllegalArgumentException> {
-            SwitchStructure(
-                validSwitchStructure.id,
+            SwitchStructureData(
                 validSwitchStructure.type,
                 validSwitchStructure.presentationJointNumber,
                 validSwitchStructure.joints,
@@ -237,22 +225,21 @@ class SwitchStructureTest {
     @Test
     fun switchAlignmentDeniesEmptyJoints() {
         assertThrows<IllegalArgumentException> {
-            SwitchAlignment(jointNumbers = listOf(), validSwitchStructure.alignments[0].elements)
+            SwitchStructureAlignment(jointNumbers = listOf(), validSwitchStructure.alignments[0].elements)
         }
     }
 
     @Test
     fun switchAlignmentDeniesEmptyElements() {
         assertThrows<IllegalArgumentException> {
-            SwitchAlignment(validSwitchStructure.alignments[0].jointNumbers, elements = listOf())
+            SwitchStructureAlignment(validSwitchStructure.alignments[0].jointNumbers, elements = listOf())
         }
     }
 
     @Test
     fun switchStructureDeniesInvalidAlignmentJointNumber() {
         assertThrows<IllegalArgumentException> {
-            SwitchStructure(
-                validSwitchStructure.id,
+            SwitchStructureData(
                 validSwitchStructure.type,
                 validSwitchStructure.presentationJointNumber,
                 validSwitchStructure.joints,
@@ -269,9 +256,9 @@ class SwitchStructureTest {
     @Test
     fun flipAlongYAxisProducesValidValues() {
         val flipped = validSwitchStructure.flipAlongYAxis()
-        validSwitchStructure.joints.forEachIndexed { index, switchJoint ->
-            assertEquals(switchJoint.location.x, flipped.joints[index].location.x)
-            assertEquals(switchJoint.location.y, -flipped.joints[index].location.y)
+        validSwitchStructure.joints.forEach { joint ->
+            assertEquals(joint.location.x, flipped.getJoint(joint.number).location.x)
+            assertEquals(joint.location.y, -flipped.getJoint(joint.number).location.y)
         }
         validSwitchStructure.alignments.forEachIndexed { alignmentIndex, alignment ->
             alignment.elements.forEachIndexed { elementIndex, switchElement ->
@@ -287,6 +274,6 @@ class SwitchStructureTest {
     fun allBaseTypesAreValidAsSwitchName() {
         // For suggestions without name, we generate a temp-name from the basetype. Ensure that
         // works
-        SwitchBaseType.values().forEach { type -> assertDoesNotThrow { SwitchName(type.name) } }
+        SwitchBaseType.entries.forEach { type -> assertDoesNotThrow { SwitchName(type.name) } }
     }
 }

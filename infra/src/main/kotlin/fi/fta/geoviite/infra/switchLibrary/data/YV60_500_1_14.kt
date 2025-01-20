@@ -2,35 +2,40 @@ package fi.fta.geoviite.infra.switchLibrary.data
 
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun YV60_500_1_14_O() =
-    SwitchStructure(
+    SwitchStructureData(
         type = SwitchType("YV60-500-1:14-O"),
         presentationJointNumber = JointNumber(1),
         joints =
-            listOf(
-                SwitchJoint(JointNumber(1), Point(0.0, 0.0)),
-                SwitchJoint(JointNumber(5), Point(17.834, 0.0)),
-                SwitchJoint(JointNumber(2), Point(44.943, 0.0)),
-                SwitchJoint(JointNumber(3), Point(44.874, -1.931)),
+            setOf(
+                SwitchStructureJoint(JointNumber(1), Point(0.0, 0.0)),
+                SwitchStructureJoint(JointNumber(5), Point(17.834, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(44.943, 0.0)),
+                SwitchStructureJoint(JointNumber(3), Point(44.874, -1.931)),
             ),
         alignments =
             listOf(
-                SwitchAlignment(
+                SwitchStructureAlignment(
                     jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
                     elements =
                         listOf(
-                            SwitchElementLine(start = Point(0.0, 0.0), end = Point(17.834, 0.0)),
-                            SwitchElementLine(start = Point(17.834, 0.0), end = Point(44.943, 0.0)),
+                            SwitchStructureLine(start = Point(0.0, 0.0), end = Point(17.834, 0.0)),
+                            SwitchStructureLine(start = Point(17.834, 0.0), end = Point(44.943, 0.0)),
                         ),
                 ),
-                SwitchAlignment(
+                SwitchStructureAlignment(
                     jointNumbers = listOf(JointNumber(1), JointNumber(3)),
                     elements =
                         listOf(
-                            SwitchElementCurve(start = Point(0.0, 0.0), end = Point(35.623, -1.271), radius = 500.0),
-                            SwitchElementLine(start = Point(35.623, -1.271), end = Point(44.874, -1.931)),
+                            SwitchStructureCurve(start = Point(0.0, 0.0), end = Point(35.623, -1.271), radius = 500.0),
+                            SwitchStructureLine(start = Point(35.623, -1.271), end = Point(44.874, -1.931)),
                         ),
                 ),
             ),

@@ -26,11 +26,11 @@ import fi.fta.geoviite.infra.math.lineIntersection
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.pointDistanceToLine
 import fi.fta.geoviite.infra.math.radsToDegrees
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchPositionTransformation
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.switchLibrary.calculateSwitchLocationDelta
 import fi.fta.geoviite.infra.switchLibrary.transformSwitchPoint
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
@@ -93,7 +93,7 @@ constructor(
         switchStructure: SwitchStructure,
         tracksLinkedThroughGeometry: List<LayoutRowVersion<LocationTrack>>,
         branch: LayoutBranch,
-        jointsInLayoutSpace: List<SwitchJoint>,
+        jointsInLayoutSpace: List<SwitchStructureJoint>,
         locationAccuracy: LocationAccuracy?,
     ): FittedSwitch {
         val tracks =
@@ -149,15 +149,18 @@ private fun calculateLayoutSwitchJoints(
     geomSwitch: GeometrySwitch,
     switchStructure: SwitchStructure,
     toLayoutCoordinate: Transformation,
-): List<SwitchJoint> {
+): List<SwitchStructureJoint> {
     val layoutJointPoints =
         geomSwitch.joints.map { geomJoint ->
-            SwitchJoint(number = geomJoint.number, location = toLayoutCoordinate.transform(geomJoint.location))
+            SwitchStructureJoint(number = geomJoint.number, location = toLayoutCoordinate.transform(geomJoint.location))
         }
     val switchLocationDelta = calculateSwitchLocationDelta(layoutJointPoints, switchStructure)
     return if (switchLocationDelta != null) {
         switchStructure.alignmentJoints.map { joint ->
-            SwitchJoint(number = joint.number, location = transformSwitchPoint(switchLocationDelta, joint.location))
+            SwitchStructureJoint(
+                number = joint.number,
+                location = transformSwitchPoint(switchLocationDelta, joint.location),
+            )
         }
     } else {
         throw GeometrySwitchFittingException(GeometrySwitchSuggestionFailureReason.INVALID_JOINTS)
@@ -173,7 +176,7 @@ private data class PossibleSegment(
 )
 
 private fun findSuggestedSwitchJointMatches(
-    joint: SwitchJoint,
+    joint: SwitchStructureJoint,
     locationTrack: LocationTrack,
     alignment: CroppedAlignment,
     tolerance: Double,
@@ -305,7 +308,7 @@ fun takeSegmentLineMatches(
         .takeWhile { (_, d) -> d < tolerance }
 
 private fun findSuggestedSwitchJointMatches(
-    joints: List<SwitchJoint>,
+    joints: List<SwitchStructureJoint>,
     locationTrackAlignment: Pair<LocationTrack, CroppedAlignment>,
     tolerance: Double,
 ): List<FittedSwitchJointMatch> {
@@ -320,7 +323,7 @@ private fun findSuggestedSwitchJointMatches(
 }
 
 fun fitSwitch(
-    jointsInLayoutSpace: List<SwitchJoint>,
+    jointsInLayoutSpace: List<SwitchStructureJoint>,
     switchStructure: SwitchStructure,
     alignments: List<Pair<LocationTrack, CroppedAlignment>>,
     locationAccuracy: LocationAccuracy?,
@@ -361,7 +364,7 @@ fun fitSwitch(
 
 private fun getBestMatchByJoint(
     matchesByLocationTrack: Map<LocationTrack, List<FittedSwitchJointMatch>>,
-    endJoints: Map<LocationTrack, Pair<SwitchJoint, SwitchJoint>>,
+    endJoints: Map<LocationTrack, Pair<SwitchStructureJoint, SwitchStructureJoint>>,
 ) =
     matchesByLocationTrack
         .flatMap { (lt, matches) ->
@@ -560,9 +563,9 @@ private fun orderIntersectionsWithDesiredPoint(
 
 private fun findFarthestJoint(
     switchStructure: SwitchStructure,
-    joint: SwitchJoint,
-    switchAlignment: SwitchAlignment,
-): SwitchJoint {
+    joint: SwitchStructureJoint,
+    switchAlignment: SwitchStructureAlignment,
+): SwitchStructureJoint {
     val jointNumber =
         requireNotNull(
             switchAlignment.jointNumbers.maxByOrNull { jointNumber ->
@@ -600,8 +603,8 @@ private fun findPointsOnTrack(from: IPoint, distance: Double, alignment: IAlignm
 private fun findTransformations(
     point: IPoint,
     alignment: IAlignment,
-    switchAlignment: SwitchAlignment,
-    joint: SwitchJoint,
+    switchAlignment: SwitchStructureAlignment,
+    joint: SwitchStructureJoint,
     switchStructure: SwitchStructure,
 ): List<SwitchPositionTransformation> {
     val farthestJoint = findFarthestJoint(switchStructure, joint, switchAlignment)
@@ -621,9 +624,9 @@ private fun findTransformations(
     point: IPoint,
     alignment1: IAlignment,
     alignment2: IAlignment,
-    switchAlignment1: SwitchAlignment,
-    switchAlignment2: SwitchAlignment,
-    joint: SwitchJoint,
+    switchAlignment1: SwitchStructureAlignment,
+    switchAlignment2: SwitchStructureAlignment,
+    joint: SwitchStructureJoint,
     switchStructure: SwitchStructure,
 ): List<SwitchPositionTransformation> {
     return findTransformations(point, alignment1, switchAlignment1, joint, switchStructure) +
@@ -651,7 +654,7 @@ fun fitSwitch(
     )
 }
 
-fun getSharedSwitchJoint(switchStructure: SwitchStructure): Pair<SwitchJoint, List<SwitchAlignment>> {
+fun getSharedSwitchJoint(switchStructure: SwitchStructure): Pair<SwitchStructureJoint, List<SwitchStructureAlignment>> {
     val sortedSwitchJoints =
         switchStructure.joints.sortedWith { jointA, jointB ->
             when {
@@ -687,7 +690,7 @@ data class SuggestedSwitchJointScore(
 fun getSuggestedSwitchScore(
     switchSuggestion: FittedSwitch,
     switchStructure: SwitchStructure,
-    farthestJoint: SwitchJoint,
+    farthestJoint: SwitchStructureJoint,
     maxFarthestJointDistance: Double,
     desiredLocation: IPoint,
     originallyLinkedAlignments: Set<Pair<DomainId<LayoutAlignment>, JointNumber>>,
@@ -725,7 +728,7 @@ fun getSuggestedSwitchScore(
 private fun selectBestSuggestedSwitch(
     switchSuggestions: Set<FittedSwitch>,
     switchStructure: SwitchStructure,
-    farthestJoint: SwitchJoint,
+    farthestJoint: SwitchStructureJoint,
     desiredLocation: IPoint,
     originallyLinkedAlignments: Set<Pair<DomainId<LayoutAlignment>, JointNumber>>,
 ): FittedSwitch {

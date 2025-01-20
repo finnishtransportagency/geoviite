@@ -40,12 +40,13 @@ import fi.fta.geoviite.infra.math.Point4DZM
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublishedVersions
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchElementCurve
-import fi.fta.geoviite.infra.switchLibrary.SwitchElementLine
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
@@ -60,69 +61,75 @@ private val rand = Random(SEED)
 
 fun switchStructureYV60_300_1_9(): SwitchStructure {
     return SwitchStructure(
-        id = IntId(55),
-        type = SwitchType("YV60-300-1:9-O"),
-        presentationJointNumber = JointNumber(1),
-        joints =
-            listOf(
-                SwitchJoint(JointNumber(1), Point(0.0, 0.0)),
-                SwitchJoint(JointNumber(5), Point(16.615, 0.0)),
-                SwitchJoint(JointNumber(2), Point(34.430, 0.0)),
-                SwitchJoint(JointNumber(3), Point(34.321, -1.967)),
-            ),
-        alignments =
-            listOf(
-                SwitchAlignment(
-                    jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
-                    elements =
-                        listOf(
-                            SwitchElementLine(IndexedId(1, 1), Point(0.0, 0.0), Point(16.615, 0.0)),
-                            SwitchElementLine(IndexedId(1, 2), Point(16.615, 0.0), Point(34.430, 0.0)),
+        version = RowVersion(IntId(55), 1),
+        data =
+            SwitchStructureData(
+                type = SwitchType("YV60-300-1:9-O"),
+                presentationJointNumber = JointNumber(1),
+                joints =
+                    setOf(
+                        SwitchStructureJoint(JointNumber(1), Point(0.0, 0.0)),
+                        SwitchStructureJoint(JointNumber(5), Point(16.615, 0.0)),
+                        SwitchStructureJoint(JointNumber(2), Point(34.430, 0.0)),
+                        SwitchStructureJoint(JointNumber(3), Point(34.321, -1.967)),
+                    ),
+                alignments =
+                    listOf(
+                        SwitchStructureAlignment(
+                            jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
+                            elements =
+                                listOf(
+                                    SwitchStructureLine(Point(0.0, 0.0), Point(16.615, 0.0)),
+                                    SwitchStructureLine(Point(16.615, 0.0), Point(34.430, 0.0)),
+                                ),
                         ),
-                ),
-                SwitchAlignment(
-                    jointNumbers = listOf(JointNumber(1), JointNumber(3)),
-                    elements =
-                        listOf(
-                            SwitchElementCurve(IndexedId(2, 1), Point(0.0, 0.0), Point(33.128, -1.835), radius = 300.0),
-                            SwitchElementLine(IndexedId(2, 2), Point(33.128, -1.835), Point(34.321, -1.967)),
+                        SwitchStructureAlignment(
+                            jointNumbers = listOf(JointNumber(1), JointNumber(3)),
+                            elements =
+                                listOf(
+                                    SwitchStructureCurve(Point(0.0, 0.0), Point(33.128, -1.835), radius = 300.0),
+                                    SwitchStructureLine(Point(33.128, -1.835), Point(34.321, -1.967)),
+                                ),
                         ),
-                ),
+                    ),
             ),
     )
 }
 
 fun switchStructureRR54_4x1_9() =
     SwitchStructure(
-        id = IntId(133),
-        type = SwitchType("RR54-4x1:9"),
-        presentationJointNumber = JointNumber(5),
-        joints =
-            listOf(
-                SwitchJoint(JointNumber(1), Point(-5.075, -1.142)),
-                SwitchJoint(JointNumber(5), Point(0.0, 0.0)),
-                SwitchJoint(JointNumber(2), Point(5.075, 1.142)),
-                SwitchJoint(JointNumber(4), Point(-5.075, 1.142)),
-                SwitchJoint(JointNumber(3), Point(5.075, -1.142)),
-            ),
-        alignments =
-            listOf(
-                SwitchAlignment(
-                    jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
-                    elements =
-                        listOf(
-                            SwitchElementLine(IndexedId(3, 1), Point(-5.075, -1.142), Point(0.0, 0.0)),
-                            SwitchElementLine(IndexedId(3, 2), Point(0.0, 0.0), Point(5.075, 1.142)),
+        version = RowVersion(IntId(133), 1),
+        data =
+            SwitchStructureData(
+                type = SwitchType("RR54-4x1:9"),
+                presentationJointNumber = JointNumber(5),
+                joints =
+                    setOf(
+                        SwitchStructureJoint(JointNumber(1), Point(-5.075, -1.142)),
+                        SwitchStructureJoint(JointNumber(5), Point(0.0, 0.0)),
+                        SwitchStructureJoint(JointNumber(2), Point(5.075, 1.142)),
+                        SwitchStructureJoint(JointNumber(4), Point(-5.075, 1.142)),
+                        SwitchStructureJoint(JointNumber(3), Point(5.075, -1.142)),
+                    ),
+                alignments =
+                    listOf(
+                        SwitchStructureAlignment(
+                            jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
+                            elements =
+                                listOf(
+                                    SwitchStructureLine(Point(-5.075, -1.142), Point(0.0, 0.0)),
+                                    SwitchStructureLine(Point(0.0, 0.0), Point(5.075, 1.142)),
+                                ),
                         ),
-                ),
-                SwitchAlignment(
-                    jointNumbers = listOf(JointNumber(4), JointNumber(5), JointNumber(3)),
-                    elements =
-                        listOf(
-                            SwitchElementLine(IndexedId(4, 1), Point(-5.075, 1.142), Point(0.0, 0.0)),
-                            SwitchElementLine(IndexedId(4, 2), Point(0.0, 0.0), Point(-5.075, 1.142)),
+                        SwitchStructureAlignment(
+                            jointNumbers = listOf(JointNumber(4), JointNumber(5), JointNumber(3)),
+                            elements =
+                                listOf(
+                                    SwitchStructureLine(Point(-5.075, 1.142), Point(0.0, 0.0)),
+                                    SwitchStructureLine(Point(0.0, 0.0), Point(-5.075, 1.142)),
+                                ),
                         ),
-                ),
+                    ),
             ),
     )
 
@@ -185,7 +192,7 @@ fun segmentsFromSwitchStructure(
 fun segmentsFromSwitchAlignment(
     start: IPoint,
     switchId: IntId<LayoutSwitch>,
-    alignment: SwitchAlignment,
+    alignment: SwitchStructureAlignment,
 ): List<LayoutSegment> {
     val jointNumbers = alignment.jointNumbers
     val elements = alignment.elements
@@ -1121,7 +1128,7 @@ fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int,
         m = m,
         alignmentId = null,
         distance = 0.1,
-        switchJoint = SwitchJoint(JointNumber(jointNumber), Point(0.0, 0.0)),
+        switchJoint = SwitchStructureJoint(JointNumber(jointNumber), Point(0.0, 0.0)),
         distanceToAlignment = 0.1,
         matchType = SuggestedSwitchJointMatchType.LINE,
     )
