@@ -13,15 +13,15 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -104,11 +104,11 @@ class LayoutAlignmentDao(
                     LayoutNodeType.SWITCH -> {
                         LayoutNodeSwitch(
                             switchIn =
-                                rs.getIntIdOrNull<TrackLayoutSwitch>("switch_in_id")?.let { id ->
+                                rs.getIntIdOrNull<LayoutSwitch>("switch_in_id")?.let { id ->
                                     SwitchLink(id, rs.getJointNumber("switch_in_joint_number"))
                                 },
                             switchOut =
-                                rs.getIntIdOrNull<TrackLayoutSwitch>("switch_out_id")?.let { id ->
+                                rs.getIntIdOrNull<LayoutSwitch>("switch_out_id")?.let { id ->
                                     SwitchLink(id, rs.getJointNumber("switch_out_joint_number"))
                                 },
                         )

@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
@@ -43,8 +42,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import java.time.Instant
 import org.springframework.transaction.annotation.Transactional
 
@@ -562,9 +559,9 @@ private fun asDirectSwitchChanges(switchIds: Collection<IntId<LayoutSwitch>>) =
 private fun getSwitchJointChanges(
     geometry: LocationTrackGeometry,
     geocodingContext: GeocodingContext,
-    fetchSwitch: (switchId: IntId<TrackLayoutSwitch>) -> TrackLayoutSwitch?,
+    fetchSwitch: (switchId: IntId<LayoutSwitch>) -> LayoutSwitch?,
     fetchStructure: (structureId: IntId<SwitchStructure>) -> SwitchStructure,
-): List<Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>> {
+): List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>> {
     // TODO: GVT-2929 previously this filtered topology links out if they were not presentation joints - check vs main
     // TODO: GVT-2929 it never did the same to segment joints, so the solution might have been partial
     // TODO: (comment from main) Use presentation joint to filter joints to update because
@@ -642,7 +639,7 @@ private fun calculateOverlappingLocationTracks(
         .filter { (_, alignment) -> geometryContainsKilometer(geocodingContext, alignment, kilometers) }
         .map { (locationTrack, _) -> locationTrack.id as IntId }
 
-private data class SwitchJointDataHolder(val joint: TrackLayoutSwitchJoint, val address: TrackMeter, val point: Point)
+private data class SwitchJointDataHolder(val joint: LayoutSwitchJoint, val address: TrackMeter, val point: Point)
 
 private fun findSwitchJointDifferences(
     list1: List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>>,

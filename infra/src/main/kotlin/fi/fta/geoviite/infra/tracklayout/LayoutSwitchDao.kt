@@ -595,7 +595,7 @@ class LayoutSwitchDao(
         branch: LayoutBranch,
         trackVersion: LayoutRowVersion<LocationTrack>,
         maxDistance: Double = 1.0,
-    ): List<IntId<TrackLayoutSwitch>> {
+    ): List<IntId<LayoutSwitch>> {
         TODO()
     }
 

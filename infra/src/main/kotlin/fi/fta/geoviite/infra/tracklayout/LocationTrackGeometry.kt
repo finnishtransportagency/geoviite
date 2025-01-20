@@ -13,7 +13,7 @@ import java.util.*
 import kotlin.math.abs
 
 data class TrackSwitchLink(
-    val switchId: IntId<TrackLayoutSwitch>,
+    val switchId: IntId<LayoutSwitch>,
     val jointNumber: JointNumber,
     val location: AlignmentPoint,
 )
@@ -350,4 +350,4 @@ data class LayoutNodeSwitch(override val switchIn: SwitchLink?, override val swi
     }
 }
 
-data class SwitchLink(val id: IntId<TrackLayoutSwitch>, val jointNumber: JointNumber)
+data class SwitchLink(val id: IntId<LayoutSwitch>, val jointNumber: JointNumber)
