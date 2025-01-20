@@ -5,8 +5,7 @@ alter table publication.reference_line
   drop constraint publication_reference_line_reference_line_version_fk;
 
 alter table layout.reference_line_version
-  drop constraint reference_line_version_pkey,
-  add constraint reference_line_version_pkey primary key (id, layout_context_id, version);
+  drop constraint reference_line_version_pkey;
 
 alter table publication.reference_line
   add column layout_context_id text;
@@ -38,6 +37,9 @@ set version = reference_line_version_change.new_version, id = official_id
   where reference_line_version.layout_context_id = reference_line_version_change.layout_context_id
     and reference_line_version.id = reference_line_version_change.id
     and reference_line_version.version = reference_line_version_change.old_version;
+
+alter table layout.reference_line_version
+  add constraint reference_line_version_pkey primary key (id, layout_context_id, version);
 
 alter table publication.reference_line
   add constraint publication_reference_line_reference_line_version_fk
