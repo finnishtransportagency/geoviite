@@ -245,7 +245,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                             grouping == GeometryPlanGrouping.ByProject && !isSameAsPrevProject;
                         const projectIsVisible = visibleProjectIds.includes(h.project.id);
                         return (
-                            <React.Fragment>
+                            <React.Fragment key={h.id}>
                                 {showProjectRow && (
                                     <div className={styles['selection-panel__project']}>
                                         <span className={styles['selection-panel__project-title']}>
