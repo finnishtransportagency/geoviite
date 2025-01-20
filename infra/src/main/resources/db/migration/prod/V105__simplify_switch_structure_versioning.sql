@@ -41,39 +41,95 @@ create table common.switch_structure_version_element
 comment on table common.switch_structure_version_element
   is 'Switch structure element, versioned with parent structure. Describes a piece of geometry within an alignment.';
 
+select common.create_timed_fetch_function('common', 'switch_structure');
+select common.create_timed_fetch_function('common', 'switch_joint');
+select common.create_timed_fetch_function('common', 'switch_alignment');
+select common.create_timed_fetch_function('common', 'switch_element');
+
+-- Build a new set of main table versions from all the verioned components
+-- Use a temp table, as we'll still need the main table to build this
+create temporary table new_structure_version_tmp as with
+  all_versions as (
+    select distinct id, change_time, change_user, deleted
+      from common.switch_structure_version
+    union all
+    select distinct switch_structure_id as id, change_time, change_user, false as deleted
+      from common.switch_joint_version
+    union all
+    select distinct switch_structure_id as id, change_time, change_user, false as deleted
+      from common.switch_alignment_version
+    union all
+    select distinct a.switch_structure_id as id, e.change_time, e.change_user, false as deleted
+      from common.switch_element_version e
+        inner join common.switch_alignment_version a on e.alignment_id = a.id
+  ),
+  new_versions as (
+    select
+      id,
+      bool_or(deleted) as deleted,
+      row_number() over (partition by id order by change_time) as version,
+      count(*) over (partition by id) as total_versions,
+      change_time,
+      change_user
+      from all_versions
+      group by id, change_time, change_user
+  )
+select
+  nv.id,
+  ov.type,
+  ov.presentation_joint_number,
+  nv.version,
+  nv.change_user,
+  nv.change_time,
+  nv.deleted,
+  case when nv.total_versions = nv.version then true else false end as is_last_version
+  from new_versions nv
+    left join common.switch_structure_at(nv.change_time) ov on nv.id = ov.id
+  order by id, version;
+
+-- Disable triggers for editing the actual data
 alter table common.switch_structure
   disable trigger version_row_trigger,
   disable trigger version_update_trigger;
 
--- These are the only cases of updating switch structures thus far. Here, only the joints were updated.
--- In the new structure-based versioning, we need to have separate parent versions for the change as well.
+-- Replace version table contents with the new set. Use upsert instead of truncate-insert to retain foreign key refs
 insert into common.switch_structure_version
   (id, type, presentation_joint_number, version, change_user, change_time, deleted)
-select distinct on (structure.id)
-  structure.id,
-  structure.type,
-  structure.presentation_joint_number,
-  2 as version,
-  joint.change_user as change_user,
-  joint.change_time as change_time,
-  false as deleted
-  from common.switch_structure structure
-    inner join common.switch_joint_version joint
-               on structure.id = joint.switch_structure_id and joint.version = 2;
+select id, type, presentation_joint_number, version, change_user, change_time, deleted
+  from new_structure_version_tmp
+on conflict (id, version) do update set
+  type = excluded.type,
+  presentation_joint_number = excluded.presentation_joint_number,
+  change_user = excluded.change_user,
+  change_time = excluded.change_time,
+  deleted = excluded.deleted;
 
--- Update the main table to match the new versions as well
+-- In the main table, delete the rows whose last version is deleted...
+delete from common.switch_structure
+       where id in (
+         select tmp.id
+           from new_structure_version_tmp tmp
+           where tmp.deleted = true
+             and tmp.is_last_version = true
+       );
+
+-- ... and update the rest by the last version
 update common.switch_structure
-set version = sv.version, change_time = sv.change_time, change_user = sv.change_user
-  from common.switch_structure_version sv
-  where sv.version = 2 and switch_structure.id = sv.id;
+set
+  type = sv.type,
+  presentation_joint_number = sv.presentation_joint_number,
+  version = sv.version,
+  change_time = sv.change_time,
+  change_user = sv.change_user
+  from new_structure_version_tmp sv
+  where switch_structure.id = sv.id
+    and sv.deleted = false
+    and sv.is_last_version = true;
 
+-- Re-enable triggers
 alter table common.switch_structure
   enable trigger version_row_trigger,
   enable trigger version_update_trigger;
-
-select common.create_timed_fetch_function('common', 'switch_joint');
-select common.create_timed_fetch_function('common', 'switch_alignment');
-select common.create_timed_fetch_function('common', 'switch_element');
 
 -- Insert new switch joint versions by structure versions
 insert into common.switch_structure_version_joint
