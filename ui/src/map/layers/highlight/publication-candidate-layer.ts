@@ -393,7 +393,7 @@ const createOfficialLocationTrackFeatures = (
                     publishCandidate.operation === 'DELETE'
                         ? ChangeType.EXPLICIT
                         : ChangeType.IMPLICIT,
-                    publishCandidate.operation,
+                    'DELETE',
                 ),
                 width:
                     publishCandidate.stage === PublicationStage.UNSTAGED
@@ -441,7 +441,7 @@ const createOfficialReferenceLineFeatures = (
                     publishCandidate.operation === 'DELETE'
                         ? ChangeType.EXPLICIT
                         : ChangeType.IMPLICIT,
-                    publishCandidate.operation,
+                    'DELETE',
                 ),
                 width:
                     publishCandidate.stage === PublicationStage.UNSTAGED
