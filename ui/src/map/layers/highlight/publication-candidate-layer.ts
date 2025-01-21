@@ -96,6 +96,8 @@ const STAGED_ALIGNMENT_HIGHLIGHT_WIDTH = 11;
 const UNSTAGED_POINT_FEATURE_RADIUS = 25;
 const STAGED_POINT_FEATURE_RADIUS = 18;
 
+// The range for highlight z-indexes is 0-15, deleted alignment lines should go above them.
+// Reference lines go under location tracks.
 const DELETED_LOCATION_TRACK_Z_INDEX = 17;
 const DELETED_REFERENCE_LINE_Z_INDEX = 16;
 
@@ -105,11 +107,17 @@ const getHighlightColor = (
     operation: Operation,
 ): string => {
     if (stage === PublicationStage.STAGED) {
-        return changeType === ChangeType.EXPLICIT ? '#0066cc' : '#99c2ea';
+        return changeType === ChangeType.EXPLICIT
+            ? mapStyles.previewHighlightStagedExplicit
+            : mapStyles.previewHighlightStagedImplicit;
     } else if (operation === 'DELETE') {
-        return changeType === ChangeType.EXPLICIT ? '#ff6903' : '#f0b6b3';
+        return changeType === ChangeType.EXPLICIT
+            ? mapStyles.previewHighlightDeletedExplicit
+            : mapStyles.previewHighlightDeletedImplicit;
     } else {
-        return changeType === ChangeType.EXPLICIT ? '#ffc300' : '#cdc8b9';
+        return changeType === ChangeType.EXPLICIT
+            ? mapStyles.previewHighlightModifiedExplicit
+            : mapStyles.previewHighlightModifiedImplicit;
     }
 };
 
@@ -461,7 +469,7 @@ export function createPointCandidateFeature(
     candidate: PointFeatureCandidate,
     location: Point,
     type: DraftChangeType,
-    zIndex: number,
+    explicitness: ChangeType,
 ): Feature<OlPoint> | undefined {
     const color = getHighlightColor(candidate.stage, ChangeType.EXPLICIT, candidate.operation);
     const style = new Style({
@@ -473,7 +481,7 @@ export function createPointCandidateFeature(
             stroke: new Stroke({ color: color }),
             fill: new Fill({ color: color }),
         }),
-        zIndex,
+        zIndex: getHighlightZIndex(candidate.operation, type, candidate.stage, explicitness),
     });
 
     const feature = new Feature({
@@ -496,12 +504,7 @@ const createPointCandidateFeatures = (
                       candidate,
                       candidate.location,
                       type,
-                      getHighlightZIndex(
-                          candidate.operation,
-                          candidate.type,
-                          candidate.stage,
-                          ChangeType.EXPLICIT,
-                      ),
+                      ChangeType.EXPLICIT,
                   )
                 : undefined,
         )

@@ -130,6 +130,16 @@
     measurementTooltipCircle: vayla-design.$color-black-light;
 }
 
+// Preview highlight styling
+:export {
+    previewHighlightDeletedExplicit: #ff6903;
+    previewHighlightDeletedImplicit: #f0b6b3;
+    previewHighlightModifiedExplicit: #ffc300;
+    previewHighlightModifiedImplicit: #cdc8b9;
+    previewHighlightStagedExplicit: #0066cc;
+    previewHighlightStagedImplicit: #99c2ea;
+}
+
 .map {
     position: relative;
     color: vayla-design.$color-black-default;

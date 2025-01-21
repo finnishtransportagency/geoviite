@@ -24,7 +24,6 @@ import {
     SwitchStructure,
 } from 'common/common-model';
 import {
-    DraftChangeType,
     KmPostPublicationCandidate,
     PublicationCandidate,
     SwitchPublicationCandidate,
@@ -46,15 +45,12 @@ import { getDeletedSwitchRenderer } from 'map/layers/utils/switch-layer-utils';
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
 
-const layerName: MapLayerName = 'preview-deleted-point-icon-features-layer';
-
 function deletedSwitchFeature(location: Point, isLarge: boolean): Feature<OlPoint> {
     const deletedIconFeature = new Feature({
         geometry: new OlPoint(pointToCoords(location)),
     });
     deletedIconFeature.setStyle(
         new Style({
-            zIndex: 10,
             renderer: getDeletedSwitchRenderer(isLarge),
         }),
     );
@@ -74,6 +70,7 @@ function createDeletedSwitchIconFeature(
         : undefined;
 }
 
+const layerName: MapLayerName = 'preview-deleted-point-icon-features-layer';
 export function createDeletedPreviewPointIconFeaturesLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<Feature<LineString | OlPoint | Rectangle>> | undefined,
@@ -110,9 +107,15 @@ export function createDeletedPreviewPointIconFeaturesLayer(
         }
     }
 
-    const switchesPromise =
-        resolution <= SWITCH_SHOW &&
-        publicationCandidates.filter((c) => c.type === 'SWITCH').length > 0
+    const deletedKmPostCandidates = publicationCandidates.filter(
+        (c) => c.type === 'KM_POST' && c.operation === 'DELETE',
+    );
+    const deletedSwitchCandidates = publicationCandidates.filter(
+        (c) => c.type === 'SWITCH' && c.operation === 'DELETE',
+    );
+
+    const deletedSwitchesPromise =
+        resolution <= SWITCH_SHOW && deletedSwitchCandidates.length > 0
             ? Promise.all(
                   mapTiles.map((t) =>
                       getSwitchesByTile(changeTimes.layoutSwitch, t, layerLayoutContext),
@@ -122,18 +125,12 @@ export function createDeletedPreviewPointIconFeaturesLayer(
                       .flat()
                       .filter(filterUniqueById((s) => s.id))
                       .filter((s) =>
-                          publicationCandidates.some(
-                              (candidate) =>
-                                  candidate.type === DraftChangeType.SWITCH &&
-                                  candidate.operation === 'DELETE' &&
-                                  candidate.id === s.id,
-                          ),
+                          deletedSwitchCandidates.some((candidate) => candidate.id === s.id),
                       );
               })
             : Promise.resolve([]);
     const kmPostPromise =
-        resolution < SWITCH_SHOW &&
-        publicationCandidates.filter((c) => c.type === 'KM_POST').length > 0
+        resolution < SWITCH_SHOW && deletedKmPostCandidates.length > 0
             ? Promise.all(
                   mapTiles.map((t) =>
                       getKmPostsByTile(layerLayoutContext, changeTimes.layoutKmPost, t.area, 0),
@@ -143,23 +140,20 @@ export function createDeletedPreviewPointIconFeaturesLayer(
                       .flat()
                       .filter(filterUniqueById((s) => s.id))
                       .filter((kp) =>
-                          publicationCandidates.some(
-                              (candidate) =>
-                                  candidate.type === DraftChangeType.KM_POST &&
-                                  candidate.operation === 'DELETE' &&
-                                  candidate.id === kp.id,
-                          ),
+                          deletedKmPostCandidates.some((candidate) => candidate.id === kp.id),
                       );
               })
             : Promise.resolve([]);
 
-    const allPromises = Promise.all([switchesPromise, kmPostPromise, getSwitchStructures()]).then(
-        ([switches, kmPosts, switchStructures]) => ({
-            switches,
-            kmPosts,
-            switchStructures,
-        }),
-    );
+    const allPromises = Promise.all([
+        deletedSwitchesPromise,
+        kmPostPromise,
+        getSwitchStructures(),
+    ]).then(([switches, kmPosts, switchStructures]) => ({
+        switches,
+        kmPosts,
+        switchStructures,
+    }));
 
     const createFeatures = (alignments: {
         switches: LayoutSwitch[];
