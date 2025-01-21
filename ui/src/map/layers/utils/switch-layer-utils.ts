@@ -205,6 +205,37 @@ export function getSwitchRenderer(
     );
 }
 
+export const getDeletedSwitchRenderer = (large: boolean): RenderFunction =>
+    getCanvasRenderer(
+        undefined,
+        (ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
+            ctx.lineWidth = pixelRatio;
+        },
+        [
+            (_, coord, ctx, { pixelRatio }) => {
+                ctx.fillStyle = styles.deletedSwitchJoint;
+                ctx.strokeStyle = styles.deletedSwitchJointBorder;
+                ctx.lineWidth = pixelRatio;
+
+                const [x, y] = expectCoordinate(coord);
+                drawCircle(
+                    ctx,
+                    x,
+                    y,
+                    (large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL) * pixelRatio,
+                );
+
+                // Draw cross
+                ctx.moveTo(x - 2 * pixelRatio, y - 2 * pixelRatio);
+                ctx.lineTo(x + 2 * pixelRatio, y + 2 * pixelRatio);
+
+                ctx.moveTo(x - 2 * pixelRatio, y + 2 * pixelRatio);
+                ctx.lineTo(x + 2 * pixelRatio, y - 2 * pixelRatio);
+                ctx.stroke();
+            },
+        ],
+    );
+
 function getSwitchJointFillStyle(disabled: boolean, mainJoint: boolean): string {
     if (disabled) {
         return styles.switchJointDisabled;

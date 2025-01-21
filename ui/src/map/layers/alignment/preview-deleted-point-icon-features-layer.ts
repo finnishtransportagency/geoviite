@@ -36,57 +36,42 @@ import {
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { getSwitchesByTile } from 'track-layout/layout-switch-api';
-import { createSwitchFeature } from 'map/layers/utils/switch-layer-utils';
 import { getSwitchStructures } from 'common/common-api';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { createKmPostBadgeFeature } from 'map/layers/utils/km-post-layer-utils';
 import { SWITCH_LARGE_SYMBOLS, SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { Style } from 'ol/style';
-import { drawCircle, getCanvasRenderer } from 'map/layers/utils/rendering';
-import { expectCoordinate } from 'utils/type-utils';
-import styles from 'map/map.module.scss';
-import { State } from 'ol/render';
+import { getDeletedSwitchRenderer } from 'map/layers/utils/switch-layer-utils';
 
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
 
 const layerName: MapLayerName = 'preview-deleted-point-icon-features-layer';
 
-function deletedIconBadgeFeature(location: Point, isLarge: boolean): Feature<OlPoint> {
+function deletedSwitchFeature(location: Point, isLarge: boolean): Feature<OlPoint> {
     const deletedIconFeature = new Feature({
         geometry: new OlPoint(pointToCoords(location)),
     });
     deletedIconFeature.setStyle(
         new Style({
             zIndex: 10,
-            renderer: getCanvasRenderer(
-                undefined,
-                (ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
-                    ctx.lineWidth = pixelRatio;
-                },
-                [
-                    (_, coord, ctx, { pixelRatio }) => {
-                        ctx.fillStyle = styles.unlinkedSwitchJoint;
-                        ctx.strokeStyle = styles.switchMainJointTextColor;
-                        ctx.lineWidth = pixelRatio;
-                        const offset = 0;
-
-                        const [x, y] = expectCoordinate(coord);
-                        const offsetX = x + offset * pixelRatio;
-                        const offsetY = y - offset * pixelRatio;
-                        drawCircle(ctx, offsetX, offsetY, (isLarge ? 6.5 : 4.5) * pixelRatio);
-                        ctx.moveTo(offsetX - 2 * pixelRatio, offsetY - 2 * pixelRatio);
-                        ctx.lineTo(offsetX + 2 * pixelRatio, offsetY + 2 * pixelRatio);
-
-                        ctx.moveTo(offsetX - 2 * pixelRatio, offsetY + 2 * pixelRatio);
-                        ctx.lineTo(offsetX + 2 * pixelRatio, offsetY - 2 * pixelRatio);
-                        ctx.stroke();
-                    },
-                ],
-            ),
+            renderer: getDeletedSwitchRenderer(isLarge),
         }),
     );
     return deletedIconFeature;
+}
+
+function createDeletedSwitchIconFeature(
+    s: LayoutSwitch,
+    structure: SwitchStructure,
+    resolution: number,
+): Feature<OlPoint> | undefined {
+    const presentationJointNumber = structure?.presentationJointNumber;
+    const presentationJoint = s.joints.find((joint) => joint.number === presentationJointNumber);
+
+    return presentationJoint
+        ? deletedSwitchFeature(presentationJoint.location, resolution <= SWITCH_LARGE_SYMBOLS)
+        : undefined;
 }
 
 export function createDeletedPreviewPointIconFeaturesLayer(
@@ -126,7 +111,8 @@ export function createDeletedPreviewPointIconFeaturesLayer(
     }
 
     const switchesPromise =
-        resolution <= SWITCH_SHOW && publicationCandidates.length > 0
+        resolution <= SWITCH_SHOW &&
+        publicationCandidates.filter((c) => c.type === 'SWITCH').length > 0
             ? Promise.all(
                   mapTiles.map((t) =>
                       getSwitchesByTile(changeTimes.layoutSwitch, t, layerLayoutContext),
@@ -142,17 +128,12 @@ export function createDeletedPreviewPointIconFeaturesLayer(
                                   candidate.operation === 'DELETE' &&
                                   candidate.id === s.id,
                           ),
-                      )
-                      .map((s) => ({
-                          switch: s,
-                          candidate: publicationCandidates.find(
-                              (c) => c.type === DraftChangeType.SWITCH && c.id === s.id,
-                          ) as SwitchPublicationCandidate | undefined,
-                      }));
+                      );
               })
             : Promise.resolve([]);
     const kmPostPromise =
-        resolution < SWITCH_SHOW && publicationCandidates.length > 0
+        resolution < SWITCH_SHOW &&
+        publicationCandidates.filter((c) => c.type === 'KM_POST').length > 0
             ? Promise.all(
                   mapTiles.map((t) =>
                       getKmPostsByTile(layerLayoutContext, changeTimes.layoutKmPost, t.area, 0),
@@ -168,15 +149,10 @@ export function createDeletedPreviewPointIconFeaturesLayer(
                                   candidate.operation === 'DELETE' &&
                                   candidate.id === kp.id,
                           ),
-                      )
-                      .map((s) => ({
-                          kmPost: s,
-                          candidate: publicationCandidates.find(
-                              (c) => c.type === DraftChangeType.KM_POST && c.id === s.id,
-                          ) as KmPostPublicationCandidate | undefined,
-                      }));
+                      );
               })
             : Promise.resolve([]);
+
     const allPromises = Promise.all([switchesPromise, kmPostPromise, getSwitchStructures()]).then(
         ([switches, kmPosts, switchStructures]) => ({
             switches,
@@ -186,61 +162,22 @@ export function createDeletedPreviewPointIconFeaturesLayer(
     );
 
     const createFeatures = (alignments: {
-        switches: {
-            switch: LayoutSwitch;
-            candidate: SwitchPublicationCandidate | undefined;
-        }[];
-        kmPosts: {
-            kmPost: LayoutKmPost;
-            candidate: KmPostPublicationCandidate | undefined;
-        }[];
+        switches: LayoutSwitch[];
+        kmPosts: LayoutKmPost[];
         switchStructures: SwitchStructure[];
     }) => {
         const swFeatures = alignments.switches
-            .flatMap(({ switch: s, candidate }) => {
+            .flatMap((s) => {
                 const structure = alignments.switchStructures.find(
-                    (structure) => structure.id === s.switchStructureId,
+                    (str) => str.id === s.switchStructureId,
                 );
-                const presentationJointNumber = structure?.presentationJointNumber;
-                const presentationJoint = s.joints.find(
-                    (joint) => joint.number == presentationJointNumber,
-                );
-
-                const feature = candidate
-                    ? createSwitchFeature(
-                          s,
-                          false,
-                          false,
-                          false,
-                          resolution <= SWITCH_LARGE_SYMBOLS,
-                          false,
-                          false,
-                          undefined,
-                          presentationJointNumber,
-                          undefined,
-                      )
+                return structure
+                    ? createDeletedSwitchIconFeature(s, structure, resolution)
                     : undefined;
-                const deletedIconFeature = presentationJoint
-                    ? deletedIconBadgeFeature(
-                          presentationJoint.location,
-                          resolution <= SWITCH_LARGE_SYMBOLS,
-                      )
-                    : undefined;
-
-                return [feature, deletedIconFeature];
             })
-            .flat()
             .filter(filterNotEmpty);
         const kpFeatures = alignments.kmPosts
-            .flatMap(({ kmPost }) => {
-                const feature = createKmPostBadgeFeature(kmPost, true);
-                const _deletedIconFeature = kmPost.layoutLocation
-                    ? deletedIconBadgeFeature(kmPost.layoutLocation, true)
-                    : undefined;
-
-                return [feature];
-            })
-            .flat()
+            .flatMap((kmPost) => createKmPostBadgeFeature(kmPost, 'DELETED'))
             .filter(filterNotEmpty);
 
         return [...swFeatures, ...kpFeatures];
@@ -250,21 +187,15 @@ export function createDeletedPreviewPointIconFeaturesLayer(
         loading: boolean,
         data:
             | {
-                  switches: {
-                      switch: LayoutSwitch;
-                      candidate: SwitchPublicationCandidate | undefined;
-                  }[];
-                  kmPosts: {
-                      kmPost: LayoutKmPost;
-                      candidate: KmPostPublicationCandidate | undefined;
-                  }[];
+                  switches: LayoutSwitch[];
+                  kmPosts: LayoutKmPost[];
                   switchStructures: SwitchStructure[];
               }
             | undefined,
     ) => {
         if (!loading) {
-            updateShownKmPosts(data?.kmPosts?.map(({ kmPost }) => kmPost.id) ?? []);
-            updateShownSwitches(data?.switches?.map(({ switch: sw }) => sw.id) ?? []);
+            updateShownKmPosts(data?.kmPosts?.map((kmPost) => kmPost.id) ?? []);
+            updateShownSwitches(data?.switches?.map((sw) => sw.id) ?? []);
         }
         onLoadingData(loading);
     };

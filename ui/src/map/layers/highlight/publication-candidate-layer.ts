@@ -25,7 +25,6 @@ import {
 } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import {
-    BasePublicationCandidate,
     DraftChangeType,
     KmPostPublicationCandidate,
     LocationTrackPublicationCandidate,
@@ -35,14 +34,17 @@ import {
     ReferenceLinePublicationCandidate,
     SwitchPublicationCandidate,
     TrackNumberPublicationCandidate,
-    WithLocation,
 } from 'publication/publication-model';
 import { Point, rangesIntersectInclusive, Rectangle } from 'model/geometry';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { createAlignmentFeature } from 'map/layers/utils/alignment-layer-utils';
+import {
+    createAlignmentFeature,
+    LOCATION_TRACK_ALIGNMENT_WIDTH,
+    REFERENCE_LINE_ALIGNMENT_WIDTH,
+} from 'map/layers/utils/alignment-layer-utils';
 import mapStyles from 'map/map.module.scss';
 
 export const TRACK_NUMBER_CANDIDATE_DATA_PROPERTY = 'track-number-candidate-data';
@@ -71,11 +73,37 @@ type TrackNumberCandidateAndAlignment = {
     alignment: ReferenceLineAlignmentDataHolder;
 };
 
-export function getHighlightColor(
+type LineStringFeatureChangeType =
+    | DraftChangeType.REFERENCE_LINE
+    | DraftChangeType.LOCATION_TRACK
+    | DraftChangeType.TRACK_NUMBER;
+type LineStringFeatureCandidate =
+    | ReferenceLinePublicationCandidate
+    | LocationTrackPublicationCandidate
+    | TrackNumberPublicationCandidate;
+
+type PointFeatureChangeType = DraftChangeType.SWITCH | DraftChangeType.KM_POST;
+type PointFeatureCandidate = SwitchPublicationCandidate | KmPostPublicationCandidate;
+
+type PointRange = {
+    indexRange: Range<number>;
+    changeType: ChangeType;
+};
+
+const UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH = 23;
+const STAGED_ALIGNMENT_HIGHLIGHT_WIDTH = 11;
+
+const UNSTAGED_POINT_FEATURE_RADIUS = 25;
+const STAGED_POINT_FEATURE_RADIUS = 18;
+
+const DELETED_LOCATION_TRACK_Z_INDEX = 17;
+const DELETED_REFERENCE_LINE_Z_INDEX = 16;
+
+const getHighlightColor = (
     stage: PublicationStage,
     changeType: ChangeType,
     operation: Operation,
-): string {
+): string => {
     if (stage === PublicationStage.STAGED) {
         return changeType === ChangeType.EXPLICIT ? '#0066cc' : '#99c2ea';
     } else if (operation === 'DELETE') {
@@ -83,14 +111,14 @@ export function getHighlightColor(
     } else {
         return changeType === ChangeType.EXPLICIT ? '#ffc300' : '#cdc8b9';
     }
-}
+};
 
-function getHighlightZIndex(
+const getHighlightZIndex = (
     operation: Operation,
     assetType: DraftChangeType,
     stage: PublicationStage,
     type: ChangeType,
-): number {
+): number => {
     // Deletions go below everything else
     const operationPriority = operation === 'DELETE' ? 0 : 8;
     // Point features go below lines
@@ -102,11 +130,23 @@ function getHighlightZIndex(
     const explicitPriority = type === ChangeType.IMPLICIT ? 0 : 1;
 
     return operationPriority + typePriority + stagePriority + explicitPriority;
-}
+};
 
-type PointRange = {
-    indexRange: Range<number>;
-    changeType: ChangeType;
+const dataPropertyByType = (type: DraftChangeType) => {
+    switch (type) {
+        case DraftChangeType.TRACK_NUMBER:
+            return TRACK_NUMBER_CANDIDATE_DATA_PROPERTY;
+        case DraftChangeType.REFERENCE_LINE:
+            return REFERENCE_LINE_CANDIDATE_DATA_PROPERTY;
+        case DraftChangeType.LOCATION_TRACK:
+            return LOCATION_TRACK_CANDIDATE_DATA_PROPERTY;
+        case DraftChangeType.SWITCH:
+            return SWITCH_CANDIDATE_DATA_PROPERTY;
+        case DraftChangeType.KM_POST:
+            return KM_POST_CANDIDATE_DATA_PROPERTY;
+        default:
+            return exhaustiveMatchingGuard(type);
+    }
 };
 
 /**
@@ -228,12 +268,9 @@ function splitByRanges(points: AlignmentPoint[], mRanges: Range<number>[]): Poin
 function createAlignmentLineStringFeature(
     pointRange: PointRange | undefined,
     alignmentPoints: AlignmentPoint[],
-    candidate: PublicationCandidate,
+    candidate: LineStringFeatureCandidate,
     metersPerPixel: number,
-    type:
-        | DraftChangeType.REFERENCE_LINE
-        | DraftChangeType.LOCATION_TRACK
-        | DraftChangeType.TRACK_NUMBER,
+    type: LineStringFeatureChangeType,
 ): Feature<LineString> {
     const changeType = pointRange?.changeType ?? ChangeType.IMPLICIT;
 
@@ -248,7 +285,10 @@ function createAlignmentLineStringFeature(
     const style = new Style({
         stroke: new Stroke({
             color: getHighlightColor(candidate.stage, changeType, candidate.operation),
-            width: candidate.stage === PublicationStage.UNSTAGED ? 23 : 11,
+            width:
+                candidate.stage === PublicationStage.UNSTAGED
+                    ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
+                    : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH,
             lineCap: rangeLengthInPixels < 15 ? 'square' : 'butt',
         }),
         zIndex: getHighlightZIndex(
@@ -258,13 +298,13 @@ function createAlignmentLineStringFeature(
             changeType,
         ),
     });
+
     const feature = new Feature({
         geometry: new LineString(points.map(pointToCoords)),
     });
     feature.setStyle(style);
-    //if (pointRange.isChanged) {
     feature.set(dataPropertyByType(type), candidate);
-    //}
+
     return feature;
 }
 
@@ -319,8 +359,106 @@ function createTrackNumberCandidateFeatures(
     );
 }
 
+const createOfficialLocationTrackFeatures = (
+    publishCandidate: LocationTrackPublicationCandidate,
+    alignment: LocationTrackAlignmentDataHolder,
+    showEndPointTicks: boolean,
+): Feature<LineString | OlPoint>[] => {
+    const lineFeatures = createAlignmentFeature(
+        alignment,
+        showEndPointTicks,
+        new Style({
+            stroke: new Stroke({
+                color: mapStyles.alignmentPreviewOfficialLine,
+                width: LOCATION_TRACK_ALIGNMENT_WIDTH,
+            }),
+            zIndex: DELETED_LOCATION_TRACK_Z_INDEX,
+        }),
+    );
+    const highlightFeatures = createAlignmentFeature(
+        alignment,
+        false,
+        new Style({
+            stroke: new Stroke({
+                color: getHighlightColor(
+                    publishCandidate.stage,
+                    publishCandidate.operation === 'DELETE'
+                        ? ChangeType.EXPLICIT
+                        : ChangeType.IMPLICIT,
+                    publishCandidate.operation,
+                ),
+                width:
+                    publishCandidate.stage === PublicationStage.UNSTAGED
+                        ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
+                        : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH,
+                lineCap: 'butt',
+            }),
+            zIndex: getHighlightZIndex(
+                'DELETE',
+                publishCandidate.type,
+                publishCandidate.stage,
+                ChangeType.EXPLICIT,
+            ),
+        }),
+    );
+
+    highlightFeatures.map((f) => f.set(LOCATION_TRACK_CANDIDATE_DATA_PROPERTY, publishCandidate));
+    return [...lineFeatures, ...highlightFeatures];
+};
+
+const createOfficialReferenceLineFeatures = (
+    publishCandidate: ReferenceLinePublicationCandidate,
+    alignment: ReferenceLineAlignmentDataHolder,
+    trackNumberCandidate: TrackNumberPublicationCandidate | undefined,
+    showEndPointTicks: boolean,
+): Feature<LineString | OlPoint>[] => {
+    const lineFeatures = createAlignmentFeature(
+        alignment,
+        showEndPointTicks,
+        new Style({
+            stroke: new Stroke({
+                color: mapStyles.alignmentPreviewOfficialLine,
+                width: REFERENCE_LINE_ALIGNMENT_WIDTH,
+            }),
+            zIndex: DELETED_REFERENCE_LINE_Z_INDEX,
+        }),
+    );
+    const highlightFeatures = createAlignmentFeature(
+        alignment,
+        false,
+        new Style({
+            stroke: new Stroke({
+                color: getHighlightColor(
+                    publishCandidate.stage,
+                    publishCandidate.operation === 'DELETE'
+                        ? ChangeType.EXPLICIT
+                        : ChangeType.IMPLICIT,
+                    publishCandidate.operation,
+                ),
+                width:
+                    publishCandidate.stage === PublicationStage.UNSTAGED
+                        ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
+                        : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH,
+                lineCap: 'butt',
+            }),
+            zIndex: getHighlightZIndex(
+                'DELETE',
+                publishCandidate.type,
+                publishCandidate.stage,
+                ChangeType.EXPLICIT,
+            ),
+        }),
+    );
+
+    highlightFeatures.forEach((f) => {
+        f.set(REFERENCE_LINE_CANDIDATE_DATA_PROPERTY, publishCandidate);
+        if (trackNumberCandidate) f.set(TRACK_NUMBER_CANDIDATE_DATA_PROPERTY, trackNumberCandidate);
+    });
+    return [...lineFeatures, ...highlightFeatures];
+};
+
 export function createPointCandidateFeature(
-    candidate: BasePublicationCandidate & WithLocation,
+    candidate: PointFeatureCandidate,
     location: Point,
     type: DraftChangeType,
     zIndex: number,
@@ -328,7 +466,10 @@ export function createPointCandidateFeature(
     const color = getHighlightColor(candidate.stage, ChangeType.EXPLICIT, candidate.operation);
     const style = new Style({
         image: new Circle({
-            radius: candidate.stage == PublicationStage.STAGED ? 18 : 25,
+            radius:
+                candidate.stage == PublicationStage.STAGED
+                    ? STAGED_POINT_FEATURE_RADIUS
+                    : UNSTAGED_POINT_FEATURE_RADIUS,
             stroke: new Stroke({ color: color }),
             fill: new Fill({ color: color }),
         }),
@@ -345,10 +486,10 @@ export function createPointCandidateFeature(
 }
 
 const createPointCandidateFeatures = (
-    switchCandidates: (BasePublicationCandidate & WithLocation)[],
-    type: DraftChangeType,
+    candidates: PointFeatureCandidate[],
+    type: PointFeatureChangeType,
 ): Feature<OlPoint>[] =>
-    switchCandidates
+    candidates
         .map((candidate) =>
             candidate.location
                 ? createPointCandidateFeature(
@@ -365,23 +506,6 @@ const createPointCandidateFeatures = (
                 : undefined,
         )
         .filter(filterNotEmpty);
-
-const dataPropertyByType = (type: DraftChangeType) => {
-    switch (type) {
-        case DraftChangeType.TRACK_NUMBER:
-            return TRACK_NUMBER_CANDIDATE_DATA_PROPERTY;
-        case DraftChangeType.REFERENCE_LINE:
-            return REFERENCE_LINE_CANDIDATE_DATA_PROPERTY;
-        case DraftChangeType.LOCATION_TRACK:
-            return LOCATION_TRACK_CANDIDATE_DATA_PROPERTY;
-        case DraftChangeType.SWITCH:
-            return SWITCH_CANDIDATE_DATA_PROPERTY;
-        case DraftChangeType.KM_POST:
-            return KM_POST_CANDIDATE_DATA_PROPERTY;
-        default:
-            return exhaustiveMatchingGuard(type);
-    }
-};
 
 const layerName: MapLayerName = 'publication-candidate-layer';
 
@@ -407,6 +531,49 @@ export function createPublicationCandidateLayer(
     );
     const locationTrackIds = locationTrackCandidates.map((c) => c.id);
 
+    const trackNumberCandidates = publicationCandidates.filter(
+        (c) => c.type === DraftChangeType.TRACK_NUMBER,
+    );
+    const trackNumberIds = trackNumberCandidates.map((c) => c.id);
+
+    const referenceLineCandidates = publicationCandidates.filter(
+        (c) => c.type === DraftChangeType.REFERENCE_LINE,
+    );
+    const referenceLineIds = referenceLineCandidates.map((c) => c.id);
+
+    const referenceLineAlignmentPromise = getReferenceLineMapAlignmentsByTiles(
+        changeTimes,
+        mapTiles,
+        layoutContext,
+    ).then((rlAlignments) => {
+        const rlCandidates = rlAlignments
+            .map((alignment) => {
+                const candidate = referenceLineCandidates.find((c) => c.id == alignment.header.id);
+                return candidate
+                    ? {
+                          alignment: alignment,
+                          publishCandidate: candidate,
+                      }
+                    : undefined;
+            })
+            .filter(filterNotEmpty);
+        const tnCandidates = rlAlignments
+            .map((alignment) => {
+                const candidate = trackNumberCandidates.find(
+                    (c) => c.id == alignment.header.trackNumberId,
+                );
+                return candidate
+                    ? {
+                          alignment: alignment,
+                          publishCandidate: candidate,
+                      }
+                    : undefined;
+            })
+            .filter(filterNotEmpty);
+
+        return { trackNumberCandidates: tnCandidates, referenceLineCandidates: rlCandidates };
+    });
+
     const locationTrackAlignmentPromise = getLocationTrackMapAlignmentsByTiles(
         changeTimes,
         mapTiles,
@@ -425,28 +592,29 @@ export function createPublicationCandidateLayer(
             .filter(filterNotEmpty),
     );
 
-    const officialLocationTrackAlignmentsPromise: Promise<LocationTrackCandidateAndAlignment[]> =
-        getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, targetLayoutContext).then(
-            (alignments) =>
-                alignments
-                    .map((alignment) => {
-                        const publishCandidate = locationTrackCandidates.find(
-                            (c) => c.id === alignment.header.id,
-                        );
+    const officialLocationTrackAlignmentsPromise =
+        locationTrackCandidates.length > 0
+            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, targetLayoutContext).then(
+                  (alignments) =>
+                      alignments
+                          .map((alignment) => {
+                              const publishCandidate = locationTrackCandidates.find(
+                                  (c) => c.id === alignment.header.id,
+                              );
 
-                        return publishCandidate
-                            ? {
-                                  alignment,
-                                  publishCandidate,
-                              }
-                            : undefined;
-                    })
-                    .filter(filterNotEmpty),
-        );
-    const officialReferenceLineLineAlignmentsPromise: Promise<
-        ReferenceLineCandidateAndAlignment[]
-    > =
-        publicationCandidates.length > 0
+                              return publishCandidate
+                                  ? {
+                                        alignment,
+                                        publishCandidate,
+                                    }
+                                  : undefined;
+                          })
+                          .filter(filterNotEmpty),
+              )
+            : Promise.resolve([]);
+
+    const officialReferenceLineLineAlignmentsPromise =
+        referenceLineCandidates.length > 0
             ? getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, targetLayoutContext).then(
                   (alignments) =>
                       alignments
@@ -464,49 +632,6 @@ export function createPublicationCandidateLayer(
                           .filter(filterNotEmpty),
               )
             : Promise.resolve([]);
-
-    const trackNumberCandidates = publicationCandidates.filter(
-        (c) => c.type === DraftChangeType.TRACK_NUMBER,
-    );
-    const trackNumberIds = trackNumberCandidates.map((c) => c.id);
-
-    const referenceLineCandidates = publicationCandidates.filter(
-        (c) => c.type === DraftChangeType.REFERENCE_LINE,
-    );
-    const referenceLineIds = referenceLineCandidates.map((c) => c.id);
-    const referenceLineAlignmentPromise = getReferenceLineMapAlignmentsByTiles(
-        changeTimes,
-        mapTiles,
-        layoutContext,
-    ).then((rlAlignments) => {
-        const rlCandidates = rlAlignments
-            .map((alignment) => {
-                const candidate = referenceLineCandidates.find((c) => c.id == alignment.header.id);
-                return candidate
-                    ? ({
-                          alignment: alignment,
-                          publishCandidate: candidate,
-                      } as ReferenceLineCandidateAndAlignment)
-                    : undefined;
-            })
-            .filter(filterNotEmpty);
-        const tnCandidates = rlAlignments
-            .map((alignment) => {
-                const candidate = trackNumberCandidates.find(
-                    (c) => c.id == alignment.header.trackNumberId,
-                );
-                return candidate
-                    ? ({
-                          alignment: alignment,
-                          publishCandidate: candidate,
-                      } as TrackNumberCandidateAndAlignment)
-                    : undefined;
-            })
-            .filter(filterNotEmpty);
-
-        return { trackNumberCandidates: tnCandidates, referenceLineCandidates: rlCandidates };
-    });
-
     const switchCandidates = publicationCandidates
         .map((c) =>
             c.type == DraftChangeType.SWITCH ? (c as SwitchPublicationCandidate) : undefined,
@@ -561,109 +686,28 @@ export function createPublicationCandidateLayer(
 
         const showEndPointTicks = metersPerPixel <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
-        const ltFeatures = data.officialLocationTracks
-            .flatMap(({ alignment, publishCandidate }) => {
-                const lineFeature = publishCandidate
-                    ? createAlignmentFeature(
-                          alignment,
-                          showEndPointTicks,
-                          new Style({
-                              stroke: new Stroke({
-                                  color: mapStyles.alignmentPreviewOfficialLine,
-                                  width: 1,
-                              }),
-                              zIndex: 8,
-                          }),
-                      )
-                    : undefined;
-                const highlightFeature = publicationCandidates
-                    ? createAlignmentFeature(
-                          alignment,
-                          false,
-                          new Style({
-                              stroke: new Stroke({
-                                  color: getHighlightColor(
-                                      publishCandidate.stage,
-                                      publishCandidate.operation === 'DELETE'
-                                          ? ChangeType.EXPLICIT
-                                          : ChangeType.IMPLICIT,
-                                      publishCandidate.operation,
-                                  ),
-                                  width:
-                                      publishCandidate.stage === PublicationStage.UNSTAGED
-                                          ? 23
-                                          : 11,
-                                  lineCap: 'butt',
-                              }),
-                              zIndex: getHighlightZIndex(
-                                  'DELETE',
-                                  publishCandidate.type,
-                                  publishCandidate.stage,
-                                  ChangeType.EXPLICIT,
-                              ),
-                          }),
-                      )
-                    : undefined;
-                highlightFeature?.map((f) =>
-                    f.set(LOCATION_TRACK_CANDIDATE_DATA_PROPERTY, publishCandidate),
-                );
-                return [lineFeature, highlightFeature];
-            })
+        const officialLocationTrackFeatures = data.officialLocationTracks
+            .flatMap(({ alignment, publishCandidate }) =>
+                createOfficialLocationTrackFeatures(publishCandidate, alignment, showEndPointTicks),
+            )
             .flat()
             .filter(filterNotEmpty);
-        const rlFeatures: Feature<LineString | OlPoint>[] = data.officialReferenceLines
-            .flatMap(({ alignment, publishCandidate }) => {
-                const lineFeature = publishCandidate
-                    ? createAlignmentFeature(
-                          alignment,
-                          showEndPointTicks,
-                          new Style({
-                              stroke: new Stroke({
-                                  color: mapStyles.alignmentPreviewOfficialLine,
-                                  width: 3,
-                              }),
-                              zIndex: 7,
-                          }),
-                      )
-                    : undefined;
-                const highlightFeature = publishCandidate
-                    ? createAlignmentFeature(
-                          alignment,
-                          false,
-                          new Style({
-                              stroke: new Stroke({
-                                  color: getHighlightColor(
-                                      publishCandidate.stage,
-                                      publishCandidate.operation === 'DELETE'
-                                          ? ChangeType.EXPLICIT
-                                          : ChangeType.IMPLICIT,
-                                      publishCandidate.operation,
-                                  ),
-                                  width: 15,
-                                  lineCap: 'butt',
-                              }),
-                              zIndex: getHighlightZIndex(
-                                  'DELETE',
-                                  publishCandidate.type,
-                                  publishCandidate.stage,
-                                  ChangeType.EXPLICIT,
-                              ),
-                          }),
-                      )
-                    : undefined;
+        const officialReferenceLineFeatures: Feature<LineString | OlPoint>[] =
+            data.officialReferenceLines
+                .flatMap(({ alignment, publishCandidate }) => {
+                    const tnCandidate = trackNumberCandidates.find(
+                        (tn) => tn.id === publishCandidate.trackNumberId,
+                    );
 
-                const tnCandidate = trackNumberCandidates.find(
-                    (tn) => tn.id === publishCandidate.trackNumberId,
-                );
-
-                highlightFeature?.forEach((f) => {
-                    f.set(REFERENCE_LINE_CANDIDATE_DATA_PROPERTY, publishCandidate);
-                    tnCandidate && f.set(TRACK_NUMBER_CANDIDATE_DATA_PROPERTY, tnCandidate);
-                });
-                return [lineFeature, highlightFeature];
-            })
-            .flat()
-            .filter(filterNotEmpty);
+                    return createOfficialReferenceLineFeatures(
+                        publishCandidate,
+                        alignment,
+                        tnCandidate,
+                        showEndPointTicks,
+                    );
+                })
+                .flat()
+                .filter(filterNotEmpty);
 
         return [
             ...locationTrackAlignmentFeatures,
@@ -671,8 +715,8 @@ export function createPublicationCandidateLayer(
             ...trackNumberAlignmentFeatures,
             ...switchFeatures,
             ...kmPostFeatures,
-            ...ltFeatures,
-            ...rlFeatures,
+            ...officialLocationTrackFeatures,
+            ...officialReferenceLineFeatures,
         ];
     };
 

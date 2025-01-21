@@ -40,6 +40,30 @@ function getItemsFromLayers(bbox: BoundingBox, layers: MapLayer[]): LayerItemSea
     return searchItemsFromLayers(polygon, layers, {});
 }
 
+const selectedAreaStyle = new Style({
+    stroke: new Stroke({
+        color: '#0066cc',
+        lineDash: [8, 8],
+        width: 1,
+    }),
+    fill: new Fill({
+        color: '#0066cc22',
+    }),
+});
+
+const subtractCursor = new Style({
+    image: new RegularShape({
+        stroke: new Stroke({
+            color: mapStyles.measurementTooltipCircle,
+        }),
+        points: 2,
+        radius: 4,
+        radius2: 0,
+        angle: Math.PI / 2,
+        displacement: [12, -12],
+    }),
+});
+
 export function createAreaSelectTool(
     onSelect: (items: LayerItemSearchResult, mode: SelectMode) => void,
 ): SelectableMapTool {
@@ -61,36 +85,16 @@ export function createAreaSelectTool(
             let currentBoundingBox: BoundingBox | undefined = undefined;
             let mode: SelectMode = SelectMode.Add;
 
+            const getStyles = () =>
+                mode === SelectMode.Add ? [selectedAreaStyle] : [selectedAreaStyle, subtractCursor];
+
             const tooltipDraw = new Draw({
                 type: 'Circle',
                 freehandCondition: (e: MapBrowserEvent<UIEvent>) => {
                     mode = altKeyOnly(e) ? SelectMode.Subtract : SelectMode.Add;
                     return (noModifierKeys(e) || altKeyOnly(e)) && primaryAction(e);
                 },
-                style: () => [
-                    new Style({
-                        stroke: new Stroke({
-                            color: '#0066cc', //mapStyles.measurementTooltipLine,
-                            lineDash: [8, 8],
-                            width: 1,
-                        }),
-                        fill: new Fill({
-                            color: '#0066cc22',
-                        }),
-                    }),
-                    new Style({
-                        image: new RegularShape({
-                            stroke: new Stroke({
-                                color: mapStyles.measurementTooltipCircle,
-                            }),
-                            points: mode == SelectMode.Add ? 4 : 2,
-                            radius: 4,
-                            radius2: 0,
-                            angle: mode == SelectMode.Add ? 0 : Math.PI / 2,
-                            displacement: [12, -12],
-                        }),
-                    }),
-                ],
+                style: getStyles,
                 geometryFunction: function (
                     coordinates: Coordinate[],
                     existingGeom: LineString,
@@ -111,7 +115,6 @@ export function createAreaSelectTool(
             tooltipDraw.on('drawend', function () {
                 if (currentBoundingBox !== undefined && onSelect != undefined) {
                     const items = getItemsFromLayers(currentBoundingBox, layers);
-                    console.log(items);
                     onSelect(items, mode);
                 }
                 tooltip.setPosition(undefined);

@@ -28,6 +28,7 @@ const deletedKmPostImg: HTMLImageElement = new Image();
 deletedKmPostImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(DeletedKmPost)}`;
 
 export type KmPostType = 'layoutKmPost' | 'geometryKmPost';
+export type KmPostIconType = 'NORMAL' | 'DELETED';
 
 /**
  * Steps of km post skip step
@@ -78,14 +79,17 @@ export function createKmPostFeature(
     return [feature, hitAreaFeature];
 }
 
-export const createKmPostBadgeFeature = (kmPost: LayoutKmPost, isDeleted: boolean) => {
+export const createKmPostBadgeFeature = (
+    kmPost: LayoutKmPost,
+    iconType: KmPostIconType = 'NORMAL',
+) => {
     const location = kmPost.layoutLocation as Point;
     const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
 
     feature.setStyle(
         new Style({
             zIndex: 2,
-            renderer: getRenderer(kmPost, 14, [kmPostIconDrawFunction(6, 12, isDeleted)]),
+            renderer: getRenderer(kmPost, 14, [kmPostIconDrawFunction(6, 12, iconType)]),
         }),
     );
 
@@ -219,11 +223,11 @@ function getSelectedKmPostRenderer(
 }
 
 const kmPostIconDrawFunction =
-    (iconRadius: number, iconSize: number, isDeleted: boolean) =>
+    (iconRadius: number, iconSize: number, iconType: KmPostIconType = 'NORMAL') =>
     (_: LayoutKmPost, coord: Coordinate, ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
         const [x, y] = expectCoordinate(coord);
         ctx.drawImage(
-            isDeleted ? deletedKmPostImg : kmPostImg,
+            iconType === 'NORMAL' ? kmPostImg : deletedKmPostImg,
             x - iconRadius * pixelRatio,
             y - iconRadius * pixelRatio,
             iconSize * pixelRatio,
@@ -235,7 +239,7 @@ function getKmPostRenderer(
     kmPost: LayoutKmPost,
     kmPostType: KmPostType,
     isLinked = false,
-    isDeleted = false,
+    iconType: KmPostIconType = 'NORMAL',
 ): RenderFunction {
     const dFunctions: PointRenderFunction<LayoutKmPost>[] = [];
 
@@ -281,7 +285,7 @@ function getKmPostRenderer(
         },
     );
 
-    dFunctions.push(kmPostIconDrawFunction(iconRadius, iconSize, isDeleted));
+    dFunctions.push(kmPostIconDrawFunction(iconRadius, iconSize, iconType));
 
     dFunctions.push(
         (
