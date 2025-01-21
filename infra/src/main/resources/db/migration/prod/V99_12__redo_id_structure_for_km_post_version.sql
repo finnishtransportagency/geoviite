@@ -5,8 +5,7 @@ alter table publication.km_post
   drop constraint publication_km_post_km_post_version_fk;
 
 alter table layout.km_post_version
-  drop constraint km_post_version_pkey,
-  add constraint km_post_version_pkey primary key (id, layout_context_id, version);
+  drop constraint km_post_version_pkey;
 
 alter table publication.km_post
   add column layout_context_id text;
@@ -37,6 +36,9 @@ set version = km_post_version_change.new_version, id = official_id
   where km_post_version.layout_context_id = km_post_version_change.layout_context_id
     and km_post_version.id = km_post_version_change.id
     and km_post_version.version = km_post_version_change.old_version;
+
+alter table layout.km_post_version
+  add constraint km_post_version_pkey primary key (id, layout_context_id, version);
 
 alter table publication.km_post
   add constraint publication_km_post_km_post_version_fk

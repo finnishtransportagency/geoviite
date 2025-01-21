@@ -7,8 +7,7 @@ alter table publication.switch_location_tracks
   drop constraint publication_switch_location_tracks_location_track_version_fk;
 
 alter table layout.location_track_version
-  drop constraint location_track_version_pkey,
-  add constraint location_track_version_pkey primary key (id, layout_context_id, version);
+  drop constraint location_track_version_pkey;
 
 alter table publication.location_track
   add column layout_context_id text;
@@ -51,6 +50,9 @@ set version = location_track_version_change.new_version, id = official_id
   where location_track_version.layout_context_id = location_track_version_change.layout_context_id
     and location_track_version.id = location_track_version_change.id
     and location_track_version.version = location_track_version_change.old_version;
+
+alter table layout.location_track_version
+  add constraint location_track_version_pkey primary key (id, layout_context_id, version);
 
 alter table publication.location_track
   add constraint publication_location_track_location_track_version_fk
