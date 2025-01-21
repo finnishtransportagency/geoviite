@@ -12,6 +12,7 @@ create temporary table node_point_version_temp as (
         lt.id as location_track_id,
         lt.layout_context_id as location_track_layout_context_id,
         lt.version as location_track_version,
+        lt.change_time as location_track_change_time,
         s.switch_id,
         s.switch_start_joint_number,
         s.switch_end_joint_number,
@@ -36,6 +37,7 @@ create temporary table node_point_version_temp as (
         location_track_id,
         location_track_layout_context_id,
         location_track_version,
+        location_track_change_time,
         alignment_id,
         alignment_version,
         null as switch_in_id,
@@ -54,6 +56,7 @@ create temporary table node_point_version_temp as (
         location_track_id,
         location_track_layout_context_id,
         location_track_version,
+        location_track_change_time,
         alignment_id,
         alignment_version,
         switch_id as switch_in_id,
@@ -73,6 +76,7 @@ create temporary table node_point_version_temp as (
         lt.id as location_track_id,
         lt.layout_context_id as location_track_layout_context_id,
         lt.version as location_track_version,
+        lt.change_time as location_track_change_time,
         lt.alignment_id,
         lt.alignment_version,
         lt.topology_start_switch_id as switch_in_id,
@@ -94,6 +98,7 @@ create temporary table node_point_version_temp as (
         lt.id as location_track_id,
         lt.layout_context_id as location_track_layout_context_id,
         lt.version as location_track_version,
+        lt.change_time as location_track_change_time,
         lt.alignment_id,
         lt.alignment_version,
         null as switch_in_id,
@@ -116,6 +121,7 @@ create temporary table node_point_version_temp as (
         location_track_id,
         location_track_layout_context_id,
         location_track_version,
+        location_track_change_time,
         alignment_id,
         alignment_version,
         -- Node ordering within the alignment version
@@ -136,12 +142,13 @@ create temporary table node_point_version_temp as (
         start_segment_index,
         end_segment_index
         from node_points
-        group by location_track_id, location_track_layout_context_id, location_track_version, alignment_id, alignment_version, start_segment_index, end_segment_index
+        group by location_track_id, location_track_layout_context_id, location_track_version, location_track_change_time, alignment_id, alignment_version, start_segment_index, end_segment_index
     )
     select
       location_track_id,
       location_track_layout_context_id,
       location_track_version,
+      location_track_change_time,
       alignment_id,
       alignment_version,
       node_index,
@@ -152,10 +159,99 @@ create temporary table node_point_version_temp as (
       case when switch_in_id is null and switch_out_id is null then start_track_link end as start_track_link,
       case when switch_in_id is null and switch_out_id is null then end_track_link end as end_track_link,
       start_segment_index,
-      end_segment_index,
-      layout.calculate_node_key(switch_in_id, switch_in_joint_number, switch_out_id, switch_out_joint_number, start_track_link, end_track_link) as node_key
+      end_segment_index
+--       ,
+--       layout.calculate_node_key(switch_in_id, switch_in_joint_number, switch_out_id, switch_out_joint_number, start_track_link, end_track_link) as node_key
     from track_node_version_candidate
 );
+
+
+drop table switch_version_temp;
+create temp table switch_version_temp as
+select id, layout_context_id, version, switch_structure_id, start_time, end_time
+  from (
+    select
+      id,
+      layout_context_id,
+      version,
+      switch_structure_id,
+      change_time as start_time,
+          lead(change_time) over (partition by id, layout_context_id order by version) as end_time,
+      deleted
+      from layout.switch_version
+  ) tmp
+  where tmp.deleted = false
+;
+alter table switch_version_temp add primary key (id, layout_context_id, version);
+create index temp_switch_version_index on switch_version_temp (id, layout_context_id, start_time, end_time, version);
+
+drop table missing_tmp;
+create temp table missing_tmp as (
+  select
+    n.location_track_id,
+    n.location_track_layout_context_id,
+    n.location_track_version,
+    n.location_track_change_time,
+    n.switch_in_id,
+    n.switch_in_joint_number,
+    coalesce(s_in_d.switch_structure_id, s_in_o.switch_structure_id) as switch_in_structure_id,
+    j_in.type as switch_in_joint_type,
+    n.switch_out_id,
+    n.switch_out_joint_number,
+    coalesce(s_out_d.switch_structure_id, s_out_o.switch_structure_id) as switch_out_structure_id,
+    j_out.type as switch_out_joint_type
+    from node_point_version_temp n
+      left join switch_version_temp s_in_d
+                on s_in_d.id = n.switch_in_id
+                  and n.location_track_layout_context_id = 'main_draft'
+                  and s_in_d.layout_context_id = 'main_draft'
+                  and s_in_d.start_time <= n.location_track_change_time
+                  and (s_in_d.end_time is null or s_in_d.end_time > n.location_track_change_time)
+      left join switch_version_temp s_in_o
+                on s_in_o.id = n.switch_in_id
+                  and s_in_o.layout_context_id = 'main_official'
+                  and s_in_o.start_time <= n.location_track_change_time
+                  and (s_in_o.end_time is null or s_in_o.end_time > n.location_track_change_time)
+      left join switch_version_temp s_out_d
+                on s_out_d.id = n.switch_out_id
+                  and n.location_track_layout_context_id = 'main_draft'
+                  and s_out_d.layout_context_id = 'main_draft'
+                  and s_out_d.start_time <= n.location_track_change_time
+                  and (s_out_d.end_time is null or s_out_d.end_time > n.location_track_change_time)
+      left join switch_version_temp s_out_o
+                on s_out_o.id = n.switch_out_id
+                  and s_out_o.layout_context_id = 'main_official'
+                  and s_out_o.start_time <= n.location_track_change_time
+                  and (s_out_o.end_time is null or s_out_o.end_time > n.location_track_change_time)
+      left join layout.switch_version_joint j_in
+                on j_in.switch_id = n.switch_in_id
+                  and j_in.switch_layout_context_id = coalesce(s_in_d.layout_context_id, s_in_o.layout_context_id)
+                  and j_in.switch_version = coalesce(s_in_d.version, s_in_o.version)
+                  and j_in.number = n.switch_in_joint_number
+      left join layout.switch_version_joint j_out
+                on j_out.switch_id = n.switch_out_id
+                  and j_out.switch_layout_context_id = coalesce(s_out_d.layout_context_id, s_out_o.layout_context_id)
+                  and j_out.switch_version = coalesce(s_out_d.version, s_out_o.version)
+                  and j_out.number = n.switch_out_joint_number
+    where (switch_in_id is not null and j_in.type is null) or (switch_out_id is not null and j_out.type is null)
+)
+ ;
+
+with
+  s_in as (select switch_in_id id, switch_in_structure_id structure_id, switch_in_joint_number joint from missing_tmp where switch_in_id is not null),
+  s_out as (select switch_out_id id, switch_out_structure_id structure_id, switch_out_joint_number joint from missing_tmp where switch_out_id is not null),
+  s_all as (select * from s_in union all select * from s_out)
+select
+  s.id,
+  array_agg(distinct s.joint) joints,
+  s.structure_id,
+  structure.type,
+  array_agg(distinct ssj.number) structure_joints
+  from s_all s
+    left join common.switch_structure structure on structure.id = s.structure_id
+    left join common.switch_structure_version_joint ssj on ssj.switch_structure_id = structure.id and ssj.switch_structure_version = structure.version
+  group by s.id, s.structure_id, structure.type, structure.type
+;
 
 -- select * from node_point_version_temp where start_track_link=1790;
 

@@ -1,46 +1,10 @@
-create type layout.node_type as enum ('SWITCH', 'TRACK_START', 'TRACK_END');
-create table layout.node
-(
-  id                         int primary key generated always as identity,
-  type                       layout.node_type not null generated always as (
-    case
-      when starting_location_track_id is not null then 'TRACK_START'::layout.node_type
-      when ending_location_track_id is not null then 'TRACK_END'::layout.node_type
-      when switch_in_id is not null or switch_out_id is not null then 'SWITCH'::layout.node_type
-      -- This fallback will fail the insert as the value cannot be null
-      else null::layout.node_type
-    end
-    ) stored,
-  key                        uuid             not null unique,
-  -- This cannot be an actual foreign key reference, as tracks are sometimes deleted and this table is immutable, like version tables
-  switch_in_id int null,
-  switch_in_joint_number int null,
-  switch_out_id int null,
-  switch_out_joint_number int null,
-  starting_location_track_id int              null unique,
-  ending_location_track_id   int              null unique,
-  -- Unique constraint for enforcing type through foreign key references
-  constraint node_type_unique unique (id, type),
-  constraint chk_node_type check (
-    -- Switch link must have a joint number (if id exists, joint must exist)
-    ((switch_in_id is null) = (switch_in_joint_number is null)) and
-    ((switch_out_id is null) = (switch_out_joint_number is null)) and
-    -- Track end nodes cant be start and end at the same time
-    (starting_location_track_id is null or ending_location_track_id is null) and
-    -- Switch nodes are not track ends
-    (
-      (switch_in_id is null and switch_out_id is null) or
-      (starting_location_track_id is null and ending_location_track_id is null)
-    )
-  )
-);
-comment on table layout.node is 'Layout node: a connecting point in the layout graph. Immutable and un-versioned, this is really just an identity with no data.';
-
 create or replace function layout.calculate_node_key(
   switch_in_id int,
   switch_in_joint_number int,
+  switch_in_type common.switch_joint_type,
   switch_out_id int,
   switch_out_joint_number int,
+  switch_out_type common.switch_joint_type,
   start_track int,
   end_track int
 ) returns uuid
@@ -50,13 +14,73 @@ select
   case
     -- Key by type so we don't need the nulls in the rows: this allows adding more types without changing existing keys
     when switch_in_id is not null or switch_out_id is not null then
-      md5(row ('SWITCH', switch_in_id, switch_in_joint_number, switch_out_id, switch_out_joint_number)::text)::uuid
+      md5(row
+        (
+        'SWITCH',
+        switch_in_id,
+        switch_in_joint_number,
+        switch_in_type,
+        switch_out_id,
+        switch_out_joint_number,
+        switch_out_type
+        )::text
+      )::uuid
     when start_track is not null then
       md5(row ('TRACK_START', start_track)::text)::uuid
     when end_track is not null then
       md5(row ('TRACK_END', end_track)::text)::uuid
   end
 $$ immutable;
+
+create type layout.node_type as enum ('SWITCH', 'TRACK_START', 'TRACK_END');
+create table layout.node
+(
+  id                         int primary key generated always as identity,
+  type                       layout.node_type         not null generated always as (
+    case
+      when starting_location_track_id is not null then 'TRACK_START'::layout.node_type
+      when ending_location_track_id is not null then 'TRACK_END'::layout.node_type
+      when switch_in_id is not null or switch_out_id is not null then 'SWITCH'::layout.node_type
+      -- This fallback will fail the insert as the value cannot be null
+      else null::layout.node_type
+    end
+    ) stored,
+  key                        uuid                     not null unique generated always as (
+    layout.calculate_node_key(
+        switch_in_id,
+        switch_in_joint_number,
+        switch_in_type,
+        switch_out_id,
+        switch_out_joint_number,
+        switch_out_type,
+        starting_location_track_id,
+        ending_location_track_id
+    )) stored,
+  -- This cannot be an actual foreign key reference, as tracks are sometimes deleted and this table is immutable, like version tables
+  switch_in_id               int                      null,
+  switch_in_joint_number     int                      null,
+  switch_in_type             common.switch_joint_type null,
+  switch_out_id              int                      null,
+  switch_out_joint_number    int                      null,
+  switch_out_type            common.switch_joint_type null,
+  starting_location_track_id int                      null unique,
+  ending_location_track_id   int                      null unique,
+  -- Unique constraint for enforcing type through foreign key references
+  constraint node_type_unique unique (id, type),
+  constraint chk_node_type check (
+    -- Switch link must have a joint number (if id exists, joint must exist)
+    ((switch_in_id is null) = (switch_in_joint_number is null)) and
+    ((switch_out_id is null) = (switch_out_joint_number is null)) and
+      -- Track end nodes cant be start and end at the same time
+    (starting_location_track_id is null or ending_location_track_id is null) and
+      -- Switch nodes are not track ends
+    (
+      (switch_in_id is null and switch_out_id is null) or
+      (starting_location_track_id is null and ending_location_track_id is null)
+      )
+    )
+);
+comment on table layout.node is 'Layout node: a connecting point in the layout graph. Immutable and un-versioned, this is really just an identity with no data.';
 
 create table layout.edge
 (
@@ -79,17 +103,17 @@ create or replace function layout.calculate_segment_hash(
 ) returns uuid
   language sql as
 $$
-select md5(row(geometry_alignment_id, geometry_element_index, source_start, source, geometry_id)::text)::uuid
+select md5(row (geometry_alignment_id, geometry_element_index, source_start, source, geometry_id)::text)::uuid
 $$ immutable;
 
 create or replace function layout.calculate_edge_hash(
   start_node_id int,
-  end_node_id   int,
+  end_node_id int,
   segment_hashes uuid[]
 ) returns uuid
   language sql as
 $$
-select md5(row(start_node_id, end_node_id, segment_hashes)::text)::uuid
+select md5(row (start_node_id, end_node_id, segment_hashes)::text)::uuid
 $$ immutable;
 
 create table layout.edge_segment
@@ -121,13 +145,15 @@ comment on table layout.edge_segment is 'A geometry segment (length with a unifi
 -- This is a direct version-table under location_track versioning. It maintains a 1-many list of edges
 create table layout.location_track_version_edge
 (
-  location_track_id      int not null,
-  location_track_layout_context_id varchar not null,
-  location_track_version int not null,
-  edge_index             int not null,
-  edge_id                int not null references layout.edge (id),
-  start_m                decimal(13, 6) not null,
-  constraint location_track_edge_version_location_track_fkey foreign key (location_track_id, location_track_layout_context_id, location_track_version)
+  location_track_id                int            not null,
+  location_track_layout_context_id varchar        not null,
+  location_track_version           int            not null,
+  edge_index                       int            not null,
+  edge_id                          int            not null references layout.edge (id),
+  start_m                          decimal(13, 6) not null,
+  constraint location_track_edge_version_location_track_fkey foreign key (location_track_id,
+                                                                          location_track_layout_context_id,
+                                                                          location_track_version)
     references layout.location_track_version (id, layout_context_id, version)
 );
 comment on table layout.location_track_version_edge is 'Versioned 1-to-many linking for edges composing a location track version';
