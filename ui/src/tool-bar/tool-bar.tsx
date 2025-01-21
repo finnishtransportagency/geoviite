@@ -595,7 +595,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
             {showNewAssetMenu && (
                 <Menu
-                    positionRef={menuRef}
+                    anchorElementRef={menuRef}
                     items={newMenuItems}
                     onClickOutside={() => setShowNewAssetMenu(false)}
                     onClose={() => setShowNewAssetMenu(false)}

@@ -167,7 +167,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
                         {menuOpen && (
                             <div ref={menuRef}>
                                 <Menu
-                                    positionRef={menuRef}
+                                    anchorElementRef={menuRef}
                                     onClickOutside={() => setMenuOpen(true)}
                                     items={actions}
                                     qa-id={'publication-actions-menu'}

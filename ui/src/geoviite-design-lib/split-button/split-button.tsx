@@ -34,7 +34,7 @@ export const SplitButton = function ({
             />
             {menuOpen && (
                 <Menu
-                    positionRef={ref}
+                    anchorElementRef={ref}
                     onClickOutside={() => setMenuOpen(false)}
                     onClose={() => setMenuOpen(false)}
                     items={menuItems}

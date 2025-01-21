@@ -6,7 +6,7 @@ import styles from './app-bar.scss';
 import { Menu, menuOption } from 'vayla-design-lib/menu/menu';
 import { createClassName } from 'vayla-design-lib/utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { VIEW_GEOMETRY_FILE, userHasPrivilege, VIEW_GEOMETRY } from 'user/user-model';
+import { userHasPrivilege, VIEW_GEOMETRY, VIEW_GEOMETRY_FILE } from 'user/user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 
 const DataProductsMenu: React.FC = () => {
@@ -72,7 +72,7 @@ const DataProductsMenu: React.FC = () => {
 
                     {showMenu && (
                         <Menu
-                            positionRef={menuRef}
+                            anchorElementRef={menuRef}
                             items={dataProducts}
                             className={styles['app-bar__data-products-menu']}
                             onClickOutside={() => setShowMenu(false)}

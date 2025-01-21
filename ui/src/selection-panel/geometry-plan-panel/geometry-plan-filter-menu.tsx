@@ -80,7 +80,7 @@ export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({
             </div>
             {popupVisible && (
                 <Menu
-                    positionRef={ref}
+                    anchorElementRef={ref}
                     onClickOutside={closePopup}
                     items={menuItems}
                     onClose={closePopup}

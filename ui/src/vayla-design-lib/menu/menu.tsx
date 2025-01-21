@@ -48,7 +48,7 @@ export const menuDivider = (): MenuDividerOption => ({
 });
 
 type MenuProps = {
-    positionRef: React.MutableRefObject<HTMLElement | null>;
+    anchorElementRef: React.MutableRefObject<HTMLElement | null>;
     onClickOutside: () => void;
     items: MenuOption[];
     opensTowards?: OpenTowards;
@@ -56,7 +56,7 @@ type MenuProps = {
 } & Omit<React.HTMLAttributes<HTMLElement>, 'onSelect'>;
 
 export const Menu = function ({
-    positionRef,
+    anchorElementRef,
     onClickOutside,
     items,
     className,
@@ -76,7 +76,7 @@ export const Menu = function ({
         <CloseableModal
             className={menuClassName}
             onClickOutside={onClickOutside}
-            anchorElementRef={positionRef}
+            anchorElementRef={anchorElementRef}
             openTowards={opensTowards}>
             <ol className={styles['menu__items']} {...props}>
                 {items.map((item, index) => {

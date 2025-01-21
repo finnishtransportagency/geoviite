@@ -27,7 +27,7 @@ import {
     sortPVTableColumns,
 } from 'infra-model/projektivelho/pv-file-list-utils';
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
-import { Menu, MenuSelectOption, menuOption } from 'vayla-design-lib/menu/menu';
+import { Menu, menuOption, MenuSelectOption } from 'vayla-design-lib/menu/menu';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { PrivilegedLink } from 'user/privileged-link';
@@ -464,7 +464,7 @@ const PVFileListRow = ({
                         </div>
                         {fileActionMenuVisible && (
                             <Menu
-                                positionRef={actionMenuRef}
+                                anchorElementRef={actionMenuRef}
                                 items={fileActions}
                                 onClickOutside={() => setFileActionMenuVisible(false)}
                                 onClose={() => setFileActionMenuVisible(false)}

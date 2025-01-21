@@ -57,7 +57,7 @@ export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
 
             {fileMenuVisible && (
                 <Menu
-                    positionRef={fileMenuRef}
+                    anchorElementRef={fileMenuRef}
                     items={items}
                     onClickOutside={() => setFileMenuVisible(false)}
                     onClose={() => setFileMenuVisible(false)}
