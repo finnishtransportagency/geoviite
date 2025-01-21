@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Dimensions, Point } from 'model/geometry';
 import useResizeObserver from 'use-resize-observer';
 
-const DEFAULT_GAP_BETWEEN_ANCHOR_ELEMENT_AND_MODAL = 6;
+const DEFAULT_MARGIN_BETWEEN_ANCHOR_ELEMENT_AND_MODAL = 6;
 
 export type ModalPosition = 'LEFT' | 'RIGHT' | 'ABOVE' | 'BELOW';
 
@@ -265,7 +265,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     modalPosition = 'BELOW',
     openTowards = 'RIGHT',
     allowReposition = true,
-    margin = DEFAULT_GAP_BETWEEN_ANCHOR_ELEMENT_AND_MODAL,
+    margin = DEFAULT_MARGIN_BETWEEN_ANCHOR_ELEMENT_AND_MODAL,
 }: CloseableModalProps) => {
     const [modalRect, setModalRect] = React.useState<Rect>();
     const [lockedWidth, setLockedWidth] = React.useState<number>();
