@@ -473,15 +473,14 @@ export const Dropdown = function <TItemValue>({
             {openOrOverridden &&
                 (popupMode === DropdownPopupMode.Modal ? (
                     <CloseableModal
-                        useRefWidth
+                        useAnchorElementWidth
                         onClickOutside={() => setOpen(false)}
                         className={createClassName(
                             styles['dropdown__list-container'],
                             styles['dropdown__list-container--modal'],
                         )}
-                        offsetY={36}
-                        maxHeight={270}
-                        positionRef={menuRef}>
+                        anchorElementRef={menuRef}
+                        margin={2}>
                         {renderMenuItems()}
                     </CloseableModal>
                 ) : (

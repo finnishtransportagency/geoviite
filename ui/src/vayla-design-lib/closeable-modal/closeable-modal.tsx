@@ -3,35 +3,24 @@ import { createPortal } from 'react-dom';
 import { Dimensions, Point } from 'model/geometry';
 import useResizeObserver from 'use-resize-observer';
 
+const DEFAULT_GAP_BETWEEN_ANCHOR_ELEMENT_AND_MODAL = 6;
+
+export type ModalPosition = 'LEFT' | 'RIGHT' | 'ABOVE' | 'BELOW';
+
 export type OpenTowards = 'LEFT' | 'RIGHT';
 
 type CloseableModalProps = {
-    positionRef: React.MutableRefObject<HTMLElement | null>;
-    openingRef?: React.RefObject<HTMLElement | SVGSVGElement | null>;
+    anchorElementRef: React.MutableRefObject<HTMLElement | null>;
+    openingElementRef?: React.RefObject<HTMLElement | SVGSVGElement | null>;
     onClickOutside: () => void;
-    offsetX?: number;
-    offsetY?: number;
     children: React.ReactNode;
     className?: string;
-    useRefWidth?: boolean;
-    refWidthOffset?: number;
-    maxHeight?: number;
+    useAnchorElementWidth?: boolean;
+    modalPosition?: ModalPosition;
     openTowards?: OpenTowards;
+    allowReposition?: boolean;
+    margin?: number;
 };
-
-// const WINDOW_MARGIN = 6;
-
-const SPAN_BETWEEN_ANCHOR_AND_MODAL = 6;
-
-// type ModalPosition = {
-//     top: number;
-//     left: number;
-// };
-//
-// type ModalSize = {
-//     width?: number;
-//     maxHeight?: number;
-// };
 
 type Rect = {
     position: Point;
@@ -39,6 +28,7 @@ type Rect = {
 };
 
 type HorizontalAnchor = 'LEFT' | 'RIGHT';
+
 type VerticalAnchor = 'TOP' | 'BOTTOM';
 
 type Anchor = {
@@ -46,7 +36,7 @@ type Anchor = {
     vertical: VerticalAnchor;
 };
 
-type OverhangSolveMethod = 'NONE' | 'REPOSITION';
+type OverflowSolvingMethod = 'NONE' | 'REPOSITION';
 
 function oppositeHorizontalAnchor(anchor: HorizontalAnchor): HorizontalAnchor {
     return anchor == 'LEFT' ? 'RIGHT' : 'LEFT';
@@ -56,12 +46,7 @@ function oppositeVerticalAnchor(anchor: VerticalAnchor): VerticalAnchor {
     return anchor == 'TOP' ? 'BOTTOM' : 'TOP';
 }
 
-// const emptyRect = {
-//     position: { x: 0, y: 0 },
-//     size: { width: 0, height: 0 },
-// };
-
-function getRect(domRect: DOMRect): Rect {
+function getRectByDOMRect(domRect: DOMRect): Rect {
     return {
         position: {
             x: domRect.x,
@@ -90,20 +75,23 @@ function calculateAnchorPosition(rect: Rect, anchor: Anchor): Point {
 }
 
 function calculateModalPosition(
-    parentRect: Rect,
-    parentAnchor: Anchor,
+    anchorElementRect: Rect,
+    anchorElementAnchor: Anchor,
     modalSize: Dimensions,
     modalAnchor: Anchor,
-    span: number = SPAN_BETWEEN_ANCHOR_AND_MODAL,
+    margin: number,
 ): Point {
-    const parentAnchorPosition = calculateAnchorPosition(parentRect, parentAnchor);
+    const anchorElementAnchorPosition = calculateAnchorPosition(
+        anchorElementRect,
+        anchorElementAnchor,
+    );
     const spanDirection = {
         x: modalAnchor.horizontal === 'LEFT' ? 1 : -1,
         y: modalAnchor.vertical === 'TOP' ? 1 : -1,
     };
     const spanPerAxis = {
-        x: parentAnchor.horizontal == modalAnchor.horizontal ? 0 : spanDirection.x * span,
-        y: parentAnchor.vertical == modalAnchor.vertical ? 0 : spanDirection.y * span,
+        x: anchorElementAnchor.horizontal == modalAnchor.horizontal ? 0 : spanDirection.x * margin,
+        y: anchorElementAnchor.vertical == modalAnchor.vertical ? 0 : spanDirection.y * margin,
     };
     const modalPositionOffset = calculateAnchorPosition(
         {
@@ -113,95 +101,188 @@ function calculateModalPosition(
         modalAnchor,
     );
     return {
-        x: parentAnchorPosition.x - modalPositionOffset.x + spanPerAxis.x,
-        y: parentAnchorPosition.y - modalPositionOffset.y + spanPerAxis.y,
+        x: anchorElementAnchorPosition.x - modalPositionOffset.x + spanPerAxis.x,
+        y: anchorElementAnchorPosition.y - modalPositionOffset.y + spanPerAxis.y,
     };
 }
 
-function calculateOverhang(viewportSize: Dimensions, rect: Rect): Point {
+function calculateOverflow(viewportSize: Dimensions, rect: Rect): Dimensions {
     const zeroSideCrossing = {
-        x: Math.max(0, -rect.position.x),
-        y: Math.max(0, -rect.position.y),
+        width: Math.max(0, -rect.position.x),
+        height: Math.max(0, -rect.position.y),
     };
     const otherSideCrossing = {
-        x: Math.max(0, rect.position.x + rect.size.width - viewportSize.width),
-        y: Math.max(0, rect.position.y + rect.size.height - viewportSize.height),
+        width: Math.max(0, rect.position.x + rect.size.width - viewportSize.width),
+        height: Math.max(0, rect.position.y + rect.size.height - viewportSize.height),
     };
     return {
-        x: Math.max(zeroSideCrossing.x, otherSideCrossing.x),
-        y: Math.max(zeroSideCrossing.y, otherSideCrossing.y),
+        width: Math.max(zeroSideCrossing.width, otherSideCrossing.width),
+        height: Math.max(zeroSideCrossing.height, otherSideCrossing.height),
     };
 }
 
-function getOppositeAnchorByOverhang(anchor: Anchor, overhang: Point) {
+function getOppositeAnchorByOverflow(anchor: Anchor, overflow: Dimensions) {
     return {
         horizontal:
-            overhang.x > 0 ? oppositeHorizontalAnchor(anchor.horizontal) : anchor.horizontal,
-        vertical: overhang.y > 0 ? oppositeVerticalAnchor(anchor.vertical) : anchor.vertical,
+            overflow.width > 0 ? oppositeHorizontalAnchor(anchor.horizontal) : anchor.horizontal,
+        vertical: overflow.height > 0 ? oppositeVerticalAnchor(anchor.vertical) : anchor.vertical,
     };
 }
 
-function calculatePositionAndSize(
+function calculateModalRectAndOverflow(
     viewportSize: Dimensions,
-    parentRect: Rect,
-    parentAnchor: Anchor,
+    anchorElementRect: Rect,
+    anchorElementAnchor: Anchor,
     modalSize: Dimensions,
     modalAnchor: Anchor,
-    overhangSolveMethod: OverhangSolveMethod,
-    span: number = SPAN_BETWEEN_ANCHOR_AND_MODAL,
-): { position: Point; size: Dimensions } {
+    margin: number,
+): { rect: Rect; overflow: Dimensions } {
     const modalPosition = calculateModalPosition(
-        parentRect,
-        parentAnchor,
+        anchorElementRect,
+        anchorElementAnchor,
         modalSize,
         modalAnchor,
-        span,
+        margin,
     );
 
-    const modelRect = {
+    const modalRect = {
         position: modalPosition,
         size: modalSize,
     };
 
-    const overhang = calculateOverhang(viewportSize, modelRect);
+    const overflow = calculateOverflow(viewportSize, modalRect);
 
-    if (overhangSolveMethod === 'REPOSITION' && (overhang.x > 0 || overhang.y > 0)) {
-        return calculatePositionAndSize(
-            viewportSize,
-            parentRect,
-            getOppositeAnchorByOverhang(parentAnchor, overhang),
-            modalSize,
-            getOppositeAnchorByOverhang(modalAnchor, overhang),
-            'NONE',
-            span,
-        );
-    } else {
-        return modelRect;
+    return {
+        rect: modalRect,
+        overflow,
+    };
+}
+
+function findOptimalModalPosition(
+    viewportSize: Dimensions,
+    anchorElementRect: Rect,
+    anchorElementAnchor: Anchor,
+    modalSize: Dimensions,
+    modalAnchor: Anchor,
+    margin: number,
+    overflowSolvingMethod: OverflowSolvingMethod,
+) {
+    const { rect: defaultRect, overflow: defaultOverflow } = calculateModalRectAndOverflow(
+        viewportSize,
+        anchorElementRect,
+        anchorElementAnchor,
+        modalSize,
+        modalAnchor,
+        margin,
+    );
+
+    if (
+        overflowSolvingMethod === 'REPOSITION' &&
+        (defaultOverflow.width > 0 || defaultOverflow.height > 0)
+    ) {
+        const { rect: repositionedRect, overflow: repositionedOverflow } =
+            calculateModalRectAndOverflow(
+                viewportSize,
+                anchorElementRect,
+                getOppositeAnchorByOverflow(anchorElementAnchor, defaultOverflow),
+                modalSize,
+                getOppositeAnchorByOverflow(modalAnchor, defaultOverflow),
+                margin,
+            );
+
+        if (
+            repositionedOverflow.width < defaultOverflow.width ||
+            repositionedOverflow.height < defaultOverflow.height
+        ) {
+            return repositionedRect;
+        } else {
+            return defaultRect;
+        }
     }
+
+    return defaultRect;
+}
+
+function getDefaultAnchors(
+    modalPosition: ModalPosition,
+    openTowards: OpenTowards,
+): [Anchor, Anchor] {
+    const horizontalEdgeToAlign = openTowards === 'RIGHT' ? 'LEFT' : 'RIGHT';
+    if (modalPosition === 'BELOW') {
+        return [
+            {
+                horizontal: horizontalEdgeToAlign,
+                vertical: 'BOTTOM',
+            },
+            {
+                horizontal: horizontalEdgeToAlign,
+                vertical: 'TOP',
+            },
+        ];
+    } else if (modalPosition === 'ABOVE') {
+        return [
+            {
+                horizontal: horizontalEdgeToAlign,
+                vertical: 'TOP',
+            },
+            {
+                horizontal: horizontalEdgeToAlign,
+                vertical: 'BOTTOM',
+            },
+        ];
+    } else if (modalPosition === 'LEFT') {
+        return [
+            {
+                horizontal: 'LEFT',
+                vertical: 'TOP',
+            },
+            {
+                horizontal: 'RIGHT',
+                vertical: 'TOP',
+            },
+        ];
+    } else if (modalPosition === 'RIGHT') {
+        return [
+            {
+                horizontal: 'RIGHT',
+                vertical: 'TOP',
+            },
+            {
+                horizontal: 'LEFT',
+                vertical: 'TOP',
+            },
+        ];
+    } else throw new Error('Unhandled modal position');
 }
 
 export const CloseableModal: React.FC<CloseableModalProps> = ({
-    positionRef: parentRef,
-    openingRef,
+    anchorElementRef,
+    openingElementRef,
     onClickOutside,
     children,
     className,
-    // maxHeight,
-    // offsetX = 0,
-    // offsetY = 0,
-    refWidthOffset = 0,
-    useRefWidth = false,
-    // openTowards = 'RIGHT',
+    useAnchorElementWidth = false,
+    modalPosition = 'BELOW',
+    openTowards = 'RIGHT',
+    allowReposition = true,
+    margin = DEFAULT_GAP_BETWEEN_ANCHOR_ELEMENT_AND_MODAL,
 }: CloseableModalProps) => {
-    const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
+    const [modalRect, setModalRect] = React.useState<Rect>();
+    const [lockedWidth, setLockedWidth] = React.useState<number>();
     const [modalRef, setModalRef] = React.useState<HTMLDivElement | null>();
+
+    const [defaultAnchorElementAnchor, defaultModalAnchor] = getDefaultAnchors(
+        modalPosition,
+        openTowards,
+    );
 
     React.useEffect(() => {
         function clickHandler(event: MouseEvent) {
             if (
-                parentRef.current &&
-                !parentRef.current.contains(event.target as HTMLElement) &&
-                (!openingRef?.current || !openingRef.current?.contains(event.target as HTMLElement))
+                anchorElementRef.current &&
+                !anchorElementRef.current.contains(event.target as HTMLElement) &&
+                (!openingElementRef?.current ||
+                    !openingElementRef.current?.contains(event.target as HTMLElement))
             ) {
                 onClickOutside();
             }
@@ -212,55 +293,57 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
         return () => {
             document.removeEventListener('click', clickHandler);
         };
-    }, [parentRef]);
+    }, [anchorElementRef]);
 
-    const parentDOMRect = parentRef.current?.getBoundingClientRect();
-    const parentRect = parentDOMRect && getRect(parentDOMRect);
-    const modalDOMRect = modalRef?.getBoundingClientRect();
-    const modalSize = parentRect &&
-        modalDOMRect && {
-            width: useRefWidth ? parentRect.size.width : modalDOMRect.width,
-            height: modalDOMRect.height,
-        };
-    const windowSize = {
-        width: window.innerWidth,
-        height: window.innerHeight,
-    };
-    // console.log('rerender');
-    // console.log('modalRef.current', modalRef);
-    // console.log(parentDOMRect, modalDOMRect);
-    const { position, size: modalRefittedSize } =
-        parentRect && modalSize
-            ? calculatePositionAndSize(
-                  windowSize,
-                  parentRect,
-                  {
-                      horizontal: 'LEFT',
-                      vertical: 'BOTTOM',
-                  },
-                  modalSize,
-                  {
-                      horizontal: 'LEFT',
-                      vertical: 'TOP',
-                  },
-                  'REPOSITION',
-              )
-            : { position: undefined, size: undefined };
+    function updateModalPosition() {
+        const anchorDOMRect = anchorElementRef.current?.getBoundingClientRect();
+        const modalDOMRect = modalRef?.getBoundingClientRect();
+
+        if (anchorDOMRect && modalDOMRect) {
+            const anchorElementRect = getRectByDOMRect(anchorDOMRect);
+            const lockedWidth = useAnchorElementWidth ? anchorElementRect.size.width : undefined;
+
+            const modalSize = {
+                width: lockedWidth ? lockedWidth : modalDOMRect.width,
+                height: modalDOMRect.height,
+            };
+
+            const windowSize = {
+                width: window.innerWidth,
+                height: window.innerHeight,
+            };
+            const newModalRect = findOptimalModalPosition(
+                windowSize,
+                anchorElementRect,
+                defaultAnchorElementAnchor,
+                modalSize,
+                defaultModalAnchor,
+                margin,
+                allowReposition ? 'REPOSITION' : 'NONE',
+            );
+
+            setLockedWidth(lockedWidth);
+            setModalRect(newModalRect);
+        }
+    }
+
+    React.useEffect(updateModalPosition, [anchorElementRef, modalRef, children]);
 
     useResizeObserver({
         ref: document.body,
-        onResize: forceUpdate,
+        onResize: updateModalPosition,
     });
 
     return createPortal(
         <div
-            ref={(x) => setModalRef(x)}
+            ref={setModalRef}
             style={{
                 position: 'absolute',
-                visibility: position === undefined ? 'hidden' : undefined,
-                left: position?.x,
-                top: position?.y,
-                ...modalRefittedSize,
+                boxSizing: 'border-box',
+                visibility: modalRect === undefined ? 'hidden' : undefined,
+                left: modalRect?.position?.x,
+                top: modalRect?.position?.y,
+                width: lockedWidth !== undefined ? lockedWidth : 'auto',
             }}
             className={className}
             onClick={(e) => e.stopPropagation()}>

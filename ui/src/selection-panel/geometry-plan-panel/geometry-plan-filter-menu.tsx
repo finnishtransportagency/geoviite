@@ -84,7 +84,6 @@ export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({
                     onClickOutside={closePopup}
                     items={menuItems}
                     onClose={closePopup}
-                    opensTowards={'LEFT'}
                 />
             )}
         </React.Fragment>

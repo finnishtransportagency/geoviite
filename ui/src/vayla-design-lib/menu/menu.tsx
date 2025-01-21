@@ -64,8 +64,6 @@ export const Menu = function ({
     onClose,
     ...props
 }: MenuProps) {
-    const { height: offsetY } = positionRef.current?.getBoundingClientRect() ?? { height: 0 };
-
     const hasIcons = items.some((item) => isMenuSelectOption(item) && item.icon);
 
     const menuClassName = createClassName(
@@ -78,9 +76,8 @@ export const Menu = function ({
         <CloseableModal
             className={menuClassName}
             onClickOutside={onClickOutside}
-            positionRef={positionRef}
-            openTowards={opensTowards}
-            offsetY={offsetY + 6}>
+            anchorElementRef={positionRef}
+            openTowards={opensTowards}>
             <ol className={styles['menu__items']} {...props}>
                 {items.map((item, index) => {
                     if (item.type === 'DIVIDER') {
