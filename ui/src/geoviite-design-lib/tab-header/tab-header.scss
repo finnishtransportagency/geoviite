@@ -4,19 +4,22 @@
     @include vayla-design.typography-caption;
     display: inline-flex;
     align-items: center;
-    padding: 6px 8px 6px 8px;
+    padding: 0;
     border-top: 0;
     border-left: 0;
     border-right: 0;
     border-bottom: 3px solid transparent;
     background-color: transparent;
     cursor: pointer;
-    max-width: 190px;
     box-sizing: border-box;
     text-overflow: ellipsis;
     overflow-x: hidden;
     white-space: nowrap;
     vertical-align: top;
+
+    &:hover {
+        background-color: vayla-design.$color-blue-lighter;
+    }
 
     &--selected {
         border-color: vayla-design.$color-blue-light;
@@ -26,4 +29,17 @@
         cursor: default;
         color: vayla-design.$color-black-lighter;
     }
+}
+
+.tab-header--size-small {
+    height: 32px;
+    padding-left: 8px;
+    padding-right: 8px;
+    max-width: 190px;
+}
+
+.tab-header--size-large {
+    height: 48px;
+    padding-left: 16px;
+    padding-right: 16px;
 }

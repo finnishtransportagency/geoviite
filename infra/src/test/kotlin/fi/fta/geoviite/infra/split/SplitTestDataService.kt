@@ -11,23 +11,25 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
+import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
 import kotlin.test.assertEquals
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
 data class SwitchAndSegments(
-    val switch: LayoutRowVersion<TrackLayoutSwitch>,
+    val switch: LayoutRowVersion<LayoutSwitch>,
     val straightSwitchSegments: List<LayoutSegment>,
     val turningSwitchSegments: List<LayoutSegment>,
 )
@@ -40,6 +42,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val splitDao: SplitDao,
     private val splitService: SplitService,
+    private val switchDao: LayoutSwitchDao,
 ) : DBTestBase() {
 
     fun clearSplits() {
@@ -59,7 +62,7 @@ constructor(
     }
 
     fun insertSplit(
-        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id
+        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id
     ): IntId<Split> {
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
@@ -81,17 +84,15 @@ constructor(
     fun createSwitchAndGeometry(
         startPoint: IPoint,
         structure: SwitchStructure = getYvStructure(),
-        externalId: Oid<TrackLayoutSwitch>? = null,
+        externalId: Oid<LayoutSwitch>? = null,
     ): SwitchAndSegments {
         val switchInsertResponse =
             mainOfficialContext.insert(
-                switchFromDbStructure(
-                    testDBService.getUnusedSwitchName().toString(),
-                    startPoint,
-                    structure,
-                    externalId = externalId?.toString(),
-                )
+                switchFromDbStructure(testDBService.getUnusedSwitchName().toString(), startPoint, structure)
             )
+        if (externalId != null) {
+            switchDao.insertExternalId(switchInsertResponse.id, LayoutBranch.main, externalId)
+        }
         return SwitchAndSegments(
             switchInsertResponse,
             segmentsFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 5, 2)),
@@ -110,7 +111,7 @@ constructor(
     fun insertAsTrack(
         segments: List<LayoutSegment>,
         duplicateOf: IntId<LocationTrack>? = null,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): IntId<LocationTrack> {
         val alignment = alignment(segments)
         return mainOfficialContext
@@ -120,7 +121,7 @@ constructor(
 
     fun createAsMainTrack(
         segments: List<LayoutSegment>,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): LayoutRowVersion<LocationTrack> {
         val alignment = alignment(segments)
         mainOfficialContext.insert(referenceLine(trackNumberId), alignment)
@@ -130,6 +131,7 @@ constructor(
             assertEquals(trackNumberId, dbTrack.trackNumberId)
             assertEquals(segments.size, dbAlignment.segments.size)
             assertEquals(segments.sumOf { s -> s.length }, dbAlignment.length, 0.001)
+            locationTrackService.insertExternalId(LayoutBranch.main, dbTrack.id as IntId, someOid())
         }
     }
 

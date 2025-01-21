@@ -65,7 +65,7 @@ export const Dialog: React.FC<DialogProps> = ({
             setDialogPositionX((window.innerWidth - dialogBounds.width) / 2);
             setDialogPositionY((window.innerHeight - dialogBounds.height) / 2);
         }
-    });
+    }, [dialogHeaderRef.current]);
 
     function close() {
         props.onClose && props.onClose();

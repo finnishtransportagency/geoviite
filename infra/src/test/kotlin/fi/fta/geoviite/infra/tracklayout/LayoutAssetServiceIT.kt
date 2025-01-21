@@ -216,11 +216,11 @@ constructor(
         val switch = designOfficialContext.insert(switch())
         val kmPost = designOfficialContext.insert(kmPost(trackNumber.id, KmNumber(123)))
 
-        designDraftContext.insert(cancelled(designOfficialContext.fetch(trackNumber.id)!!))
-        designDraftContext.insert(cancelled(designOfficialContext.fetch(referenceLine.id)!!))
-        designDraftContext.insert(cancelled(designOfficialContext.fetch(locationTrack.id)!!))
-        designDraftContext.insert(cancelled(designOfficialContext.fetch(switch.id)!!))
-        designDraftContext.insert(cancelled(designOfficialContext.fetch(kmPost.id)!!))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(trackNumber.id)!!, someDesignBranch.designId))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(referenceLine.id)!!, someDesignBranch.designId))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(locationTrack.id)!!, someDesignBranch.designId))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(switch.id)!!, someDesignBranch.designId))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(kmPost.id)!!, someDesignBranch.designId))
 
         assertEquals(trackNumber, designOfficialContext.fetchVersion(trackNumber.id))
         assertEquals(referenceLine, designOfficialContext.fetchVersion(referenceLine.id))
@@ -278,11 +278,11 @@ constructor(
                 )
             )
 
-        designDraftContext.insert(cancelled(designOfficialContext.fetch(trackNumber.id)!!))
-        designDraftContext.insert(cancelled(designOfficialContext.fetch(referenceLine.id)!!))
-        designDraftContext.insert(cancelled(designOfficialContext.fetch(locationTrack.id)!!))
-        designDraftContext.insert(cancelled(designOfficialContext.fetch(switch.id)!!))
-        designDraftContext.insert(cancelled(designOfficialContext.fetch(kmPost.id)!!))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(trackNumber.id)!!, someDesignBranch.designId))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(referenceLine.id)!!, someDesignBranch.designId))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(locationTrack.id)!!, someDesignBranch.designId))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(switch.id)!!, someDesignBranch.designId))
+        designDraftContext.insert(cancelled(designOfficialContext.fetch(kmPost.id)!!, someDesignBranch.designId))
 
         assertEquals(designOfficialTrackNumber, designOfficialContext.fetchVersion(trackNumber.id))
         assertEquals(designOfficialReferenceLine, designOfficialContext.fetchVersion(referenceLine.id))
@@ -328,11 +328,11 @@ constructor(
     }
 
     private data class AllAssetTypes(
-        val trackNumber: IntId<TrackLayoutTrackNumber>,
+        val trackNumber: IntId<LayoutTrackNumber>,
         val referenceLine: IntId<ReferenceLine>,
         val locationTrack: IntId<LocationTrack>,
-        val switch: IntId<TrackLayoutSwitch>,
-        val kmPost: IntId<TrackLayoutKmPost>,
+        val switch: IntId<LayoutSwitch>,
+        val kmPost: IntId<LayoutKmPost>,
     ) {
         companion object {
             fun createIn(context: TestLayoutContext): AllAssetTypes {

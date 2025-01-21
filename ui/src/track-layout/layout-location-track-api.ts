@@ -12,7 +12,9 @@ import {
     DesignBranch,
     draftLayoutContext,
     LayoutAssetChangeInfo,
+    LayoutBranch,
     LayoutContext,
+    Oid,
     TimeStamp,
     TrackMeter,
 } from 'common/common-model';
@@ -24,7 +26,12 @@ import {
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeInfoUri, layoutUri, layoutUriByBranch } from 'track-layout/track-layout-api';
+import {
+    changeInfoUri,
+    layoutUri,
+    layoutUriByBranch,
+    layoutUriWithoutContext,
+} from 'track-layout/track-layout-api';
 import { asyncCache } from 'cache/cache';
 import { BoundingBox } from 'model/geometry';
 import { bboxString } from 'common/common-api';
@@ -45,6 +52,10 @@ const locationTrackInfoboxExtrasCache = asyncCache<
     LocationTrackInfoboxExtras | undefined
 >();
 const locationTrackStartAndEndCache = asyncCache<string, AlignmentStartAndEnd | undefined>();
+const locationTrackOidsCache = asyncCache<
+    LocationTrackId,
+    { [key in LayoutBranch]?: Oid } | undefined
+>();
 
 type PlanSectionPoint = {
     address: TrackMeter;
@@ -320,4 +331,16 @@ export async function cancelLocationTrack(
     id: LocationTrackId,
 ): Promise<void> {
     return postNonNull(`${layoutUriByBranch('location-tracks', design)}/${id}/cancel`, '');
+}
+
+export async function getLocationTrackOids(
+    id: LocationTrackId,
+    changeTime: TimeStamp,
+): Promise<{ [key in LayoutBranch]?: Oid }> {
+    const oids = await locationTrackOidsCache.get(changeTime, id, () =>
+        getNullable<{ [key in LayoutBranch]?: Oid }>(
+            `${layoutUriWithoutContext('location-tracks', id)}/oids`,
+        ),
+    );
+    return oids ?? {};
 }

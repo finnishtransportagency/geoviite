@@ -1,13 +1,18 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialogWithTextField
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.localDateFromString
 import fi.fta.geoviite.infra.ui.util.localDateTimeFromString
-import java.time.LocalDateTime
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import waitUntilTextIs
+import java.time.LocalDateTime
 
 class E2EInfraModelTable(tableBy: By) :
     E2ETable<E2EInfraModelTableRow>(
@@ -42,13 +47,15 @@ data class E2EInfraModelTableRow(
     val planTime: LocalDateTime,
     val created: LocalDateTime,
     val linked: LocalDateTime?,
+    val name: String,
 ) {
 
     constructor(
         columns: List<WebElement>,
         headers: List<WebElement>,
     ) : this(
-        projectName = getColumnContent("im-form.name-header", columns, headers),
+        name = getColumnContent("im-form.name-header", columns, headers),
+        projectName = getColumnContent("im-form.project-name-header", columns, headers),
         fileName = getColumnContent("im-form.file-name-header", columns, headers),
         trackNumber = getColumnContent("im-form.track-number-header", columns, headers),
         startKmNumber = getColumnContent("im-form.km-start-header", columns, headers),

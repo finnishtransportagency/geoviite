@@ -368,6 +368,7 @@ export type SplitInPublication = {
     id: PublicationId;
     splitId: string;
     locationTrack: LayoutLocationTrack;
+    locationTrackOid: Oid;
     targetLocationTracks: SplitTargetInPublication[];
 };
 

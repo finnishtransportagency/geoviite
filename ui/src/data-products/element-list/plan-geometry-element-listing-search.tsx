@@ -16,6 +16,7 @@ import { Radio } from 'vayla-design-lib/radio/radio';
 import {
     debouncedGetGeometryPlanHeaders,
     getGeometryPlanOptions,
+    getPlanFullName,
     getVisibleErrorsByProp,
 } from 'data-products/data-products-utils';
 import { PlanGeometrySearchState, selectedElementTypes } from 'data-products/data-products-slice';
@@ -110,7 +111,7 @@ const PlanGeometryElementListingSearch = ({
                         value={
                             <Dropdown
                                 value={state.plan}
-                                getName={(item: GeometryPlanHeader) => item.fileName}
+                                getName={(item: GeometryPlanHeader) => getPlanFullName(item)}
                                 placeholder={t('data-products.search.search')}
                                 options={geometryPlanHeaders}
                                 searchable

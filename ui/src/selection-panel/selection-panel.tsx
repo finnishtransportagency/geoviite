@@ -48,6 +48,8 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_GEOMETRY } from 'user/user-model';
 import { objectEntries } from 'utils/array-utils';
+import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
+import { PlanSource } from 'geometry/geometry-model';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -75,6 +77,8 @@ type SelectionPanelProps = {
     onMapLayerMenuItemChange: (change: MapLayerMenuChange) => void;
     mapLayoutMenu: MapLayerMenuItem[];
     splittingState: SplittingState | undefined;
+    grouping: GeometryPlanGrouping;
+    visibleSources: PlanSource[];
 };
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
@@ -103,6 +107,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     onMapLayerMenuItemChange,
     mapLayoutMenu,
     splittingState,
+    grouping,
+    visibleSources,
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -252,6 +258,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     togglePlanOpen={togglePlanOpen}
                     onSelect={onSelect}
                     disabled={!!splittingState}
+                    grouping={grouping}
+                    visibleSources={visibleSources}
                 />
             </PrivilegeRequired>
             <section>

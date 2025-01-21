@@ -5,17 +5,17 @@ import {
     emptyLinkInterval,
     GeometryLinkingAlignmentLockParameters,
     GeometryPreliminaryLinkingParameters,
+    LayoutAlignmentTypeAndId,
     LinkingAlignment,
+    LinkingAssetSource,
     LinkingGeometryWithAlignment,
     LinkingGeometryWithEmptyAlignment,
-    LayoutAlignmentTypeAndId,
     LinkingState,
     LinkingSwitch,
     LinkingType,
     LinkInterval,
     LinkPoint,
     SuggestedSwitch,
-    LinkingAssetSource,
 } from 'linking/linking-model';
 import {
     AlignmentId,
@@ -263,7 +263,11 @@ export const linkingReducers = {
 };
 
 export const inferLayoutContextMode = (layoutContext: LayoutContext): LayoutContextMode =>
-    layoutContext.branch === 'MAIN' ? 'MAIN_DRAFT' : 'MAIN_DRAFT';
+    layoutContext.branch === 'MAIN'
+        ? layoutContext.publicationState === 'OFFICIAL'
+            ? 'MAIN_OFFICIAL'
+            : 'MAIN_DRAFT'
+        : 'DESIGN';
 
 export function createUpdatedIntervalRemovePoint(
     interval: LinkInterval,

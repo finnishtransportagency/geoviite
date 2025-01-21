@@ -33,7 +33,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.configuration.Configuration
 import org.mockserver.integration.ClientAndServer
@@ -72,6 +72,10 @@ class FakeRatko(port: Int) {
 
     fun isOffline() {
         get("/api/versions/v1.0/version").withId("version-check").respond(HttpResponse.response().withStatusCode(500))
+    }
+
+    fun acceptsNewPlansGivingThemIds(ids: List<Int>) {
+        ids.forEach { id -> post("/api/plan/v1.0/plans", times = Times.once()).respond(okJson(mapOf("id" to id))) }
     }
 
     fun acceptsNewRouteNumbersGivingThemOids(oids: List<String>) {
@@ -157,7 +161,7 @@ class FakeRatko(port: Int) {
         put("/api/assets/v1.2/${switchAsset.id}/properties").respond(ok())
     }
 
-    fun getPushedRouteNumber(oid: Oid<TrackLayoutTrackNumber>): List<RatkoRouteNumber> =
+    fun getPushedRouteNumber(oid: Oid<LayoutTrackNumber>): List<RatkoRouteNumber> =
         mockServer
             .retrieveRecordedRequests(request("/api/infra/v1.0/routenumbers").withMethod("POST|PUT"))
             .map { request -> request.bodyAsString }

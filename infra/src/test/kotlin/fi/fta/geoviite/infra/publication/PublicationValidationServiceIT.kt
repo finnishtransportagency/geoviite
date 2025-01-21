@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
@@ -24,8 +25,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -36,9 +40,6 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -190,14 +191,7 @@ constructor(
                 .id
 
         // two new location tracks stepping over each other's names
-        val newLt =
-            locationTrack(
-                draftTrackNumberId,
-                name = "NLT",
-                alignmentVersion = someAlignment,
-                externalId = null,
-                draft = true,
-            )
+        val newLt = locationTrack(draftTrackNumberId, name = "NLT", alignmentVersion = someAlignment, draft = true)
         val newLocationTrack1 = locationTrackDao.save(newLt).id
         val newLocationTrack2 = locationTrackDao.save(newLt).id
 
@@ -559,11 +553,7 @@ constructor(
                         name = "TV123",
                         joints =
                             listOf(
-                                TrackLayoutSwitchJoint(
-                                    JointNumber(1),
-                                    location = Point(0.0, 0.0),
-                                    locationAccuracy = null,
-                                )
+                                LayoutSwitchJoint(JointNumber(1), location = Point(0.0, 0.0), locationAccuracy = null)
                             ),
                         structureId = switchStructureYV60_300_1_9().id as IntId,
                         stateCategory = LayoutStateCategory.EXISTING,
@@ -780,7 +770,7 @@ constructor(
 
     private fun getLocationTrackValidationResult(
         locationTrackId: IntId<LocationTrack>,
-        stagedSwitches: List<IntId<TrackLayoutSwitch>> = listOf(),
+        stagedSwitches: List<IntId<LayoutSwitch>> = listOf(),
         stagedTracks: List<IntId<LocationTrack>> = listOf(locationTrackId),
     ): LocationTrackPublicationCandidate {
         val publicationRequestIds =
@@ -978,7 +968,7 @@ constructor(
                     LayoutBranch.main,
                     switch(
                         name = "TV123",
-                        joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)),
                         structureId =
                             switchStructureDao
                                 .fetchSwitchStructures()
@@ -1046,7 +1036,7 @@ constructor(
                     LayoutBranch.main,
                     switch(
                         name = "TV123",
-                        joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)),
                         structureId = switchStructureYV60_300_1_9().id as IntId,
                         stateCategory = LayoutStateCategory.EXISTING,
                         draft = true,
@@ -1632,9 +1622,9 @@ constructor(
                         name = "some switch",
                         joints =
                             listOf(
-                                TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null),
-                                TrackLayoutSwitchJoint(JointNumber(2), Point(34.4, 0.0), null),
-                                TrackLayoutSwitchJoint(JointNumber(3), Point(34.3, 2.0), null),
+                                LayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null),
+                                LayoutSwitchJoint(JointNumber(2), Point(34.4, 0.0), null),
+                                LayoutSwitchJoint(JointNumber(3), Point(34.3, 2.0), null),
                             ),
                     )
                 )
@@ -1705,8 +1695,25 @@ constructor(
         )
     }
 
+    @Test
+    fun `switch draft OIDs are checked for uniqueness vs existing OIDs`() {
+        testDBService.deleteFromTables("layout", "switch_external_id")
+        switchDao.insertExternalId(mainOfficialContext.insert(switch()).id, LayoutBranch.main, Oid("1.2.3.4.5"))
+        val draftSwitch = mainDraftContext.insert(switch(draftOid = Oid("1.2.3.4.5"))).id
+        assertContains(
+            publicationValidationService
+                .validateSwitches(ValidateTransition(PublicationInMain), listOf(draftSwitch))[0]
+                .errors,
+            LayoutValidationIssue(
+                localizationKey = LocalizationKey("validation.layout.switch.duplicate-oid"),
+                type = LayoutValidationIssueType.ERROR,
+                params = LocalizationParams(mapOf()),
+            ),
+        )
+    }
+
     private fun getTopologicalSwitchConnectionTestCases(
-        trackNumberGenerator: () -> IntId<TrackLayoutTrackNumber>,
+        trackNumberGenerator: () -> IntId<LayoutTrackNumber>,
         topologyStartSwitch: TopologyLocationTrackSwitch,
         topologyEndSwitch: TopologyLocationTrackSwitch,
     ): List<LocationTrack> {
@@ -1736,7 +1743,7 @@ constructor(
 
     private data class TopologicalSwitchConnectionTestData(
         val locationTracksUnderTest: List<Pair<IntId<LocationTrack>, LocationTrack>>,
-        val switchIdsUnderTest: List<IntId<TrackLayoutSwitch>>,
+        val switchIdsUnderTest: List<IntId<LayoutSwitch>>,
         val switchInnerTrackIds: List<IntId<LocationTrack>>,
     )
 

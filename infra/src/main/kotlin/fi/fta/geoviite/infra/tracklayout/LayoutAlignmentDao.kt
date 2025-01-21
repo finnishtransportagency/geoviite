@@ -829,7 +829,7 @@ private data class SegmentData(
     val start: Double,
     val sourceId: IndexedId<GeometryElement>?,
     val sourceStart: Double?,
-    val switchId: IntId<TrackLayoutSwitch>?,
+    val switchId: IntId<LayoutSwitch>?,
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,
     val source: GeometrySource,

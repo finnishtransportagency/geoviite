@@ -5,30 +5,32 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull
-import java.time.Instant
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -40,7 +42,7 @@ constructor(
     val publicationDao: PublicationDao,
     val locationTrackDao: LocationTrackDao,
 ) : DBTestBase() {
-    lateinit var trackNumberId: IntId<TrackLayoutTrackNumber>
+    lateinit var trackNumberId: IntId<LayoutTrackNumber>
     lateinit var publicationId: IntId<Publication>
     lateinit var locationTrackId: IntId<LocationTrack>
     lateinit var publicationMoment: Instant
@@ -65,7 +67,7 @@ constructor(
         val locationTrackResponse = insertAndPublishLocationTrack()
         locationTrackId = locationTrackResponse.id
         val beforePublish = ratkoPushDao.getLatestPublicationMoment()
-        publicationId = createPublication(locationTracks = listOf(locationTrackResponse.id))
+        publicationId = createPublication(locationTracks = listOf(locationTrackResponse))
         publicationMoment = publicationDao.getPublication(publicationId).publicationTime
         assertTrue(publicationMoment > beforePublish)
         assertEquals(publicationMoment, ratkoPushDao.getLatestPublicationMoment())
@@ -180,7 +182,7 @@ constructor(
     @Test
     fun shouldReturnMultipleUnpublishedLayoutPublishes() {
         val locationTrack2Response = insertAndPublishLocationTrack()
-        val publicationId2 = createPublication(locationTracks = listOf(locationTrack2Response.id), message = "Test")
+        val publicationId2 = createPublication(locationTracks = listOf(locationTrack2Response), message = "Test")
 
         val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment()
         assertTrue(latestPushedMoment < publicationMoment)
@@ -205,9 +207,9 @@ constructor(
     @Test
     fun `Should return latest publications`() {
         val locationTrack1Response = insertAndPublishLocationTrack()
-        val publicationId1 = createPublication(locationTracks = listOf(locationTrack1Response.id), message = "Test")
+        val publicationId1 = createPublication(locationTracks = listOf(locationTrack1Response), message = "Test")
         val locationTrack2Response = insertAndPublishLocationTrack()
-        val publicationId2 = createPublication(locationTracks = listOf(locationTrack2Response.id), message = "Test")
+        val publicationId2 = createPublication(locationTracks = listOf(locationTrack2Response), message = "Test")
 
         val publications = publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, 2)
 
@@ -249,26 +251,30 @@ constructor(
 
     fun createPublication(
         layoutBranch: LayoutBranch = LayoutBranch.main,
-        trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
-        referenceLines: List<IntId<ReferenceLine>> = listOf(),
-        locationTracks: List<IntId<LocationTrack>> = listOf(),
-        switches: List<IntId<TrackLayoutSwitch>> = listOf(),
-        kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
+        trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>> = listOf(),
+        referenceLines: List<LayoutRowVersion<ReferenceLine>> = listOf(),
+        locationTracks: List<LayoutRowVersion<LocationTrack>> = listOf(),
+        switches: List<LayoutRowVersion<LayoutSwitch>> = listOf(),
+        kmPosts: List<LayoutRowVersion<LayoutKmPost>> = listOf(),
         message: String = "",
     ): IntId<Publication> =
         publicationDao
-            .createPublication(layoutBranch = layoutBranch, message = FreeTextWithNewLines.of(message))
+            .createPublication(
+                layoutBranch = layoutBranch,
+                message = FreeTextWithNewLines.of(message),
+                cause = PublicationCause.MANUAL,
+            )
             .also { publicationId ->
                 val calculatedChanges =
                     CalculatedChanges(
                         directChanges =
                             DirectChanges(
-                                kmPostChanges = kmPosts,
-                                referenceLineChanges = referenceLines,
+                                kmPostChanges = kmPosts.map { it.id },
+                                referenceLineChanges = referenceLines.map { it.id },
                                 trackNumberChanges =
                                     trackNumbers.map {
                                         TrackNumberChange(
-                                            trackNumberId = it,
+                                            trackNumberId = it.id,
                                             changedKmNumbers = emptySet(),
                                             isStartChanged = false,
                                             isEndChanged = false,
@@ -277,13 +283,13 @@ constructor(
                                 locationTrackChanges =
                                     locationTracks.map {
                                         LocationTrackChange(
-                                            locationTrackId = it,
+                                            locationTrackId = it.id,
                                             changedKmNumbers = emptySet(),
                                             isStartChanged = false,
                                             isEndChanged = false,
                                         )
                                     },
-                                switchChanges = switches.map { SwitchChange(it, emptyList()) },
+                                switchChanges = switches.map { SwitchChange(it.id, emptyList()) },
                             ),
                         indirectChanges =
                             IndirectChanges(
@@ -292,6 +298,10 @@ constructor(
                                 switchChanges = emptyList(),
                             ),
                     )
-                publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
+                publicationDao.insertCalculatedChanges(
+                    publicationId,
+                    calculatedChanges,
+                    publishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts),
+                )
             }
 }

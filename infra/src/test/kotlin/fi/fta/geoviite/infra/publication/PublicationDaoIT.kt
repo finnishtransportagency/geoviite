@@ -28,7 +28,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -37,13 +39,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -234,8 +235,17 @@ constructor(
                     ),
                 indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList()),
             )
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of(""))
-        publicationDao.insertCalculatedChanges(publicationId, changes)
+        val publicationId =
+            publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of(""), PublicationCause.MANUAL)
+        publicationDao.insertCalculatedChanges(
+            publicationId,
+            changes,
+            publishedVersions(
+                trackNumbers = listOf(trackNumberDao.fetchVersion(MainLayoutContext.official, trackNumberId)!!),
+                locationTracks = listOf(locationTrackDao.fetchVersion(MainLayoutContext.official, locationTrackId)!!),
+                switches = listOf(switchDao.fetchVersion(MainLayoutContext.official, switchId)!!),
+            ),
+        )
 
         val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(publicationId)
         val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(publicationId)
@@ -259,7 +269,7 @@ constructor(
     @Test
     fun `Publication message is stored and fetched correctly`() {
         val message = FreeTextWithNewLines.of("Test")
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, message)
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, message, PublicationCause.MANUAL)
         assertEquals(message, publicationDao.getPublication(publicationId).message)
     }
 
@@ -436,10 +446,18 @@ constructor(
     fun `fetchLatestPublicationDetails lists design publications in design mode`() {
         val someDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("one")))
         val anotherDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("two")))
-        publicationDao.createPublication(someDesign, FreeTextWithNewLines.of("in someDesign"))
-        publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("in main"))
-        publicationDao.createPublication(anotherDesign, FreeTextWithNewLines.of("in anotherDesign"))
-        publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("again in main"))
+        publicationDao.createPublication(someDesign, FreeTextWithNewLines.of("in someDesign"), PublicationCause.MANUAL)
+        publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("in main"), PublicationCause.MANUAL)
+        publicationDao.createPublication(
+            anotherDesign,
+            FreeTextWithNewLines.of("in anotherDesign"),
+            PublicationCause.MANUAL,
+        )
+        publicationDao.createPublication(
+            LayoutBranch.main,
+            FreeTextWithNewLines.of("again in main"),
+            PublicationCause.MANUAL,
+        )
         assertEquals(
             listOf("in anotherDesign", "in someDesign"),
             publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 2).map { it.message.toString() },
@@ -451,8 +469,8 @@ constructor(
     }
 
     private fun insertAndCheck(
-        trackNumber: TrackLayoutTrackNumber
-    ): Pair<LayoutRowVersion<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> {
+        trackNumber: LayoutTrackNumber
+    ): Pair<LayoutRowVersion<LayoutTrackNumber>, LayoutTrackNumber> {
         val official = trackNumberDao.save(trackNumber)
         val fromDb = trackNumberDao.fetch(official)
         assertEquals(official.id, fromDb.id)
@@ -463,9 +481,7 @@ constructor(
         return official to fromDb
     }
 
-    private fun insertAndCheck(
-        switch: TrackLayoutSwitch
-    ): Pair<LayoutRowVersion<TrackLayoutSwitch>, TrackLayoutSwitch> {
+    private fun insertAndCheck(switch: LayoutSwitch): Pair<LayoutRowVersion<LayoutSwitch>, LayoutSwitch> {
         val official = switchDao.save(switch)
         val fromDb = switchDao.fetch(official)
         assertEquals(official.id, fromDb.id)

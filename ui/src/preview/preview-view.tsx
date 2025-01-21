@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import styles from './preview-view.scss';
 import { useTranslation } from 'react-i18next';
-import { useLoader, useTwoPartEffectWithStatus } from 'utils/react-utils';
+import { useLoader, useTwoPartEffect } from 'utils/react-utils';
 import {
     getCalculatedChanges,
     getPublicationCandidates,
@@ -205,7 +205,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             [props.changeTimes, props.layoutContext.branch, designPublicationMode],
         ) ?? false;
 
-    useTwoPartEffectWithStatus(
+    useTwoPartEffect(
         () =>
             getPublicationCandidates(
                 props.layoutContext.branch,

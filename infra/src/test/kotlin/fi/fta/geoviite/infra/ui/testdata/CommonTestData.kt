@@ -32,25 +32,25 @@ import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointDistanceToLine
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchElement
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureElement
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -113,7 +113,7 @@ fun createGeometryAlignment(
 
 fun locationTrack(
     name: String,
-    trackNumber: IntId<TrackLayoutTrackNumber>,
+    trackNumber: IntId<LayoutTrackNumber>,
     layoutAlignmentType: LocationTrackType = LocationTrackType.MAIN,
     basePoint: Point,
     incrementPoints: List<Point>,
@@ -135,7 +135,7 @@ fun locationTrack(
 }
 
 fun referenceLine(
-    trackNumber: IntId<TrackLayoutTrackNumber>,
+    trackNumber: IntId<LayoutTrackNumber>,
     basePoint: Point,
     incrementPoints: List<Point>,
     draft: Boolean,
@@ -157,9 +157,8 @@ private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: L
     return alignment(segments)
 }
 
-fun trackLayoutSwitch(name: String, jointPoints: List<Point>, switchStructure: SwitchStructure) =
-    TrackLayoutSwitch(
-        externalId = null,
+fun layoutSwitch(name: String, jointPoints: List<Point>, switchStructure: SwitchStructure) =
+    LayoutSwitch(
         sourceId = null,
         name = SwitchName(name),
         stateCategory = LayoutStateCategory.EXISTING,
@@ -169,10 +168,11 @@ fun trackLayoutSwitch(name: String, jointPoints: List<Point>, switchStructure: S
         ownerId = switchOwnerVayla().id,
         source = GeometrySource.GENERATED,
         contextData = LayoutContextData.newOfficial(LayoutBranch.main),
+        draftOid = null,
     )
 
 fun switchJoint(location: Point) =
-    TrackLayoutSwitchJoint(
+    LayoutSwitchJoint(
         number = JointNumber(1),
         location = location,
         locationAccuracy = getSomeNullableValue<LocationAccuracy>(1),
@@ -193,7 +193,7 @@ fun pointsFromIncrementList(basePoint: Point, incrementPoints: List<Point>) =
     incrementPoints.scan(basePoint) { prevPoint, pointIncr -> prevPoint + pointIncr }
 
 fun locationTrackAndAlignmentForGeometryAlignment(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     geometryAlignment: GeometryAlignment,
     transformation: Transformation,
     draft: Boolean,
@@ -283,11 +283,11 @@ fun switchStructureToGeometryAlignment(
 }
 
 private fun alignmentElementsFromSwitchAlignment(
-    switchAlignment: SwitchAlignment,
+    switchAlignment: SwitchStructureAlignment,
     switchAngle: Double,
     switchOrig: Point,
     switchId: DomainId<GeometrySwitch>,
-    switchJoints: List<SwitchJoint>,
+    switchJoints: Set<SwitchStructureJoint>,
 ): List<GeometryElement> {
     val switchJointsByNumber = switchJoints.associateBy { it.number }
     val switchJointData =
@@ -312,7 +312,7 @@ private fun alignmentElementsFromSwitchAlignment(
 }
 
 private fun matchSwitchDataToElement(
-    switchElement: SwitchElement,
+    switchElement: SwitchStructureElement,
     switchJointData: List<SwitchJointData>,
     switchId: DomainId<GeometrySwitch>,
 ): SwitchData {
@@ -338,10 +338,10 @@ fun getTransformedPoint(
 
 data class SwitchJointData(
     val switchId: DomainId<GeometrySwitch>,
-    val startSwitchJoint: SwitchJoint,
-    val endSwitchJoint: SwitchJoint,
+    val startSwitchJoint: SwitchStructureJoint,
+    val endSwitchJoint: SwitchStructureJoint,
 ) {
-    fun isInsideSwitchJoint(switchElement: SwitchElement): Boolean {
+    fun isInsideSwitchJoint(switchElement: SwitchStructureElement): Boolean {
         logger.info(
             "Matching switch element (${switchElement.start},${switchElement.end}) to ${startSwitchJoint.number}-${endSwitchJoint.number}"
         )

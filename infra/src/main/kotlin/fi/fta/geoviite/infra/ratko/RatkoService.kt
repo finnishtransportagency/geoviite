@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.assertMainBranch
+import fi.fta.geoviite.infra.integration.AllOids
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LocationTrackChange
@@ -25,11 +26,11 @@ import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.time.Duration
 import java.time.Instant
 import org.slf4j.Logger
@@ -40,13 +41,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
     RuntimeException(cause)
 
-class RatkoSwitchPushException(exception: RatkoPushException, val switch: TrackLayoutSwitch) :
+class RatkoSwitchPushException(exception: RatkoPushException, val switch: LayoutSwitch) :
     RatkoPushException(exception.type, exception.operation, exception)
 
 class RatkoLocationTrackPushException(exception: RatkoPushException, val locationTrack: LocationTrack) :
     RatkoPushException(exception.type, exception.operation, exception)
 
-class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: TrackLayoutTrackNumber) :
+class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: LayoutTrackNumber) :
     RatkoPushException(exception.type, exception.operation, exception)
 
 @GeoviiteService
@@ -102,7 +103,7 @@ constructor(
                         .map { publicationLogService.getPublicationDetails(it.id) }
 
                 if (publications.isNotEmpty()) {
-                    pushChanges(layoutBranch, publications)
+                    pushChanges(layoutBranch, publications, calculatedChangesService.getAllOids(layoutBranch))
                 }
 
                 if (ratkoClientConfiguration.bulkTransfersEnabled) {
@@ -173,8 +174,13 @@ constructor(
             ratkoPushDao.updatePushStatus(previousPush.id, RatkoPushStatus.MANUAL_RETRY)
         }
 
-    fun pushLocationTracksToRatko(branch: LayoutBranch, locationTrackChanges: Collection<LocationTrackChange>) {
+    fun pushLocationTracksToRatko(
+        branch: LayoutBranch,
+        locationTrackChanges: Collection<LocationTrackChange>,
+        extIdsProvided: AllOids?,
+    ) {
         assertMainBranch(branch)
+        val extIds = extIdsProvided ?: calculatedChangesService.getAllOids(branch)
 
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
             val previousPush = ratkoPushDao.fetchPreviousPush()
@@ -197,6 +203,7 @@ constructor(
                             locationTrackId = locationTrackChange.locationTrackId,
                             filterByKmNumbers = locationTrackChange.changedKmNumbers,
                             moment = latestPublicationMoment,
+                            extIds = extIds,
                         )
                     }
                     .map { switchChange -> toFakePublishedSwitch(branch, switchChange, latestPublicationMoment) }
@@ -259,7 +266,7 @@ constructor(
         return states.any { state -> previousPush.status == state }
     }
 
-    private fun pushChanges(layoutBranch: LayoutBranch, publications: List<PublicationDetails>) {
+    private fun pushChanges(layoutBranch: LayoutBranch, publications: List<PublicationDetails>, extIds: AllOids) {
         val ratkoPushId = ratkoPushDao.startPushing(publications.map { it.id })
         logger.info("Starting ratko push id=$ratkoPushId")
 
@@ -284,6 +291,7 @@ constructor(
                 publishedSwitches = publications.flatMap { it.allPublishedSwitches },
                 publishedLocationTracks = publications.flatMap { it.allPublishedLocationTracks },
                 publicationTime = lastPublicationTime,
+                extIds = extIds,
             )
 
             ratkoPushDao.updatePushStatus(ratkoPushId, RatkoPushStatus.IN_PROGRESS_M_VALUES)
@@ -352,6 +360,7 @@ constructor(
         publishedSwitches: Collection<PublishedSwitch>,
         publishedLocationTracks: List<PublishedLocationTrack>,
         publicationTime: Instant,
+        extIds: AllOids,
     ) {
         // Location track points are always removed per kilometre.
         // However, there is a slight chance that points used by switches (according to Geoviite)
@@ -365,6 +374,7 @@ constructor(
                         locationTrackId = locationTrack.id,
                         filterByKmNumbers = locationTrack.changedKmNumbers,
                         moment = publicationTime,
+                        extIds = extIds,
                     )
                 }
                 .map { switchChange -> toFakePublishedSwitch(layoutBranch, switchChange, publicationTime) }
@@ -378,9 +388,10 @@ constructor(
         locationTrackId: IntId<LocationTrack>,
         filterByKmNumbers: Collection<KmNumber>,
         moment: Instant,
+        extIds: AllOids,
     ) =
         calculatedChangesService
-            .getAllSwitchChangesByLocationTrackAtMoment(layoutBranch, locationTrackId, moment)
+            .getAllSwitchChangesByLocationTrackAtMoment(layoutBranch, locationTrackId, moment, extIds)
             .map { switchChanges ->
                 switchChanges.copy(
                     changedJoints =

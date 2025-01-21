@@ -13,14 +13,14 @@ import fi.fta.geoviite.infra.geometry.PlanLayoutService
 import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
@@ -30,10 +30,10 @@ import org.springframework.transaction.annotation.Transactional
 sealed interface GeocodingContextCacheKey
 
 data class LayoutGeocodingContextCacheKey(
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    val trackNumberVersion: LayoutRowVersion<TrackLayoutTrackNumber>,
+    val trackNumberId: IntId<LayoutTrackNumber>,
+    val trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
     val referenceLineVersion: LayoutRowVersion<ReferenceLine>,
-    val kmPostVersions: List<LayoutRowVersion<TrackLayoutKmPost>>,
+    val kmPostVersions: List<LayoutRowVersion<LayoutKmPost>>,
 ) : GeocodingContextCacheKey {
     init {
         kmPostVersions.forEachIndexed { index, version ->
@@ -112,7 +112,7 @@ class GeocodingCacheService(
     @Transactional(readOnly = true)
     fun getGeocodingContextCreateResult(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): GeocodingContextCreateResult? =
         geocodingDao
             .getLayoutGeocodingContextCacheKey(layoutContext, trackNumberId)
@@ -121,7 +121,7 @@ class GeocodingCacheService(
     @Transactional(readOnly = true)
     fun getGeocodingContextAtMoment(
         branch: LayoutBranch,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         moment: Instant,
     ): GeocodingContext? =
         geocodingDao

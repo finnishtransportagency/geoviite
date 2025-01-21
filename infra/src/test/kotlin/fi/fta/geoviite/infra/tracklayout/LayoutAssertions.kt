@@ -9,7 +9,7 @@ private const val LENGTH_DELTA: Double = 0.00001
 private const val HEIGHT_DELTA: Double = 0.000001
 private const val CANT_DELTA: Double = 0.000001
 
-fun assertMatches(expected: TrackLayoutTrackNumber, actual: TrackLayoutTrackNumber, contextMatch: Boolean = false) {
+fun assertMatches(expected: LayoutTrackNumber, actual: LayoutTrackNumber, contextMatch: Boolean = false) {
     if (contextMatch) {
         assertEquals(expected, actual)
     } else {
@@ -78,7 +78,7 @@ fun assertMatches(expected: AlignmentPoint, actual: AlignmentPoint) {
     if (expected.cant == null) assertNull(actual.cant) else assertEquals(expected.cant!!, actual.cant!!, CANT_DELTA)
 }
 
-fun assertMatches(expected: TrackLayoutKmPost, actual: TrackLayoutKmPost, contextMatch: Boolean = false) {
+fun assertMatches(expected: LayoutKmPost, actual: LayoutKmPost, contextMatch: Boolean = false) {
     if (contextMatch) {
         assertEquals(expected, actual)
     } else {
@@ -88,7 +88,7 @@ fun assertMatches(expected: TrackLayoutKmPost, actual: TrackLayoutKmPost, contex
     }
 }
 
-fun assertMatches(expected: TrackLayoutSwitch, actual: TrackLayoutSwitch, contextMatch: Boolean = false) {
+fun assertMatches(expected: LayoutSwitch, actual: LayoutSwitch, contextMatch: Boolean = false) {
     val expectedWithSameFloats = expected.copy(joints = actual.joints, switchStructureId = actual.switchStructureId)
     if (contextMatch) {
         assertEquals(expectedWithSameFloats, actual)
@@ -98,11 +98,11 @@ fun assertMatches(expected: TrackLayoutSwitch, actual: TrackLayoutSwitch, contex
     }
     assertEquals(expected.switchStructureId, actual.switchStructureId)
     assertEquals(expected.joints.size, actual.joints.size)
-    val expectedJoints = expected.joints.sortedBy(TrackLayoutSwitchJoint::number)
+    val expectedJoints = expected.joints.sortedBy(LayoutSwitchJoint::number)
     expectedJoints.forEachIndexed { index, expJoint -> assertMatches(expJoint, actual.joints[index]) }
 }
 
-fun assertMatches(expected: TrackLayoutSwitchJoint, actual: TrackLayoutSwitchJoint) {
+fun assertMatches(expected: LayoutSwitchJoint, actual: LayoutSwitchJoint) {
     assertEquals(expected, actual.copy(location = expected.location))
     assertApproximatelyEquals(expected.location, actual.location, COORDINATE_DELTA)
 }

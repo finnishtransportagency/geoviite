@@ -30,8 +30,8 @@ import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
@@ -90,7 +90,12 @@ data class AlignmentStartAndEnd<T>(val id: IntId<T>, val start: AlignmentEndPoin
 
 data class AlignmentEndPoint(val point: AlignmentPoint, val address: TrackMeter?)
 
-data class ProjectionLine(val address: TrackMeter, val projection: Line, val distance: Double)
+data class ProjectionLine(
+    val address: TrackMeter,
+    val projection: Line,
+    val distance: Double,
+    val referenceDirection: Double,
+)
 
 data class GeocodingReferencePoint(
     val kmNumber: KmNumber,
@@ -124,12 +129,12 @@ private const val PROJECTION_LINE_MAX_ANGLE_DELTA = PI / 16
 
 private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.java)
 
-data class KmPostWithRejectedReason(val kmPost: TrackLayoutKmPost, val rejectedReason: KmPostRejectedReason)
+data class KmPostWithRejectedReason(val kmPost: LayoutKmPost, val rejectedReason: KmPostRejectedReason)
 
 data class GeocodingContextCreateResult(
     val geocodingContext: GeocodingContext,
     val rejectedKmPosts: List<KmPostWithRejectedReason>,
-    val validKmPosts: List<TrackLayoutKmPost>,
+    val validKmPosts: List<LayoutKmPost>,
     val startPointRejectedReason: StartPointRejectedReason?,
 )
 
@@ -177,6 +182,7 @@ data class GeocodingContext(
                 "alignment=${referenceLineGeometry.id} " +
                 "edgeMValues=${polyLineEdges.map { e -> e.startM..e.endM }}"
         }
+        // TODO: GVT-1727 The validation claims to filter out bad projections, but we use the un-filtered here
         createProjectionLines(referencePoints, polyLineEdges).also { lines ->
             validateProjectionLines(lines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
         }
@@ -189,7 +195,7 @@ data class GeocodingContext(
         else {
             val address = TrackMeter(referencePoints.first().kmNumber, referencePoints.first().meters)
             val projectionLine = polyLineEdges.first().crossSectionAt(0.0)
-            ProjectionLine(address, projectionLine, 0.0)
+            ProjectionLine(address, projectionLine, 0.0, polyLineEdges.first().referenceDirection)
         }
     }
 
@@ -199,7 +205,12 @@ data class GeocodingContext(
         else {
             val address = TrackMeter(referencePoints.last().kmNumber, meters, referencePoints.first().meters.scale())
             val projectionLine = polyLineEdges.last().crossSectionAt(referenceLineGeometry.length)
-            ProjectionLine(address, projectionLine, referenceLineGeometry.length)
+            ProjectionLine(
+                address,
+                projectionLine,
+                referenceLineGeometry.length,
+                polyLineEdges.last().referenceDirection,
+            )
         }
     }
 
@@ -225,7 +236,7 @@ data class GeocodingContext(
             findCachedProjectionLine(address.floor())?.let { previous ->
                 val distance = previous.distance + (address.meters.toDouble() - previous.address.meters.toDouble())
                 findEdge(distance, polyLineEdges)?.let { edge ->
-                    ProjectionLine(address, edge.crossSectionAt(distance), distance)
+                    ProjectionLine(address, edge.crossSectionAt(distance), distance, edge.referenceDirection)
                 }
             }
     }
@@ -250,7 +261,7 @@ data class GeocodingContext(
             trackNumber: TrackNumber,
             startAddress: TrackMeter,
             referenceLineGeometry: IAlignment,
-            kmPosts: List<TrackLayoutKmPost>,
+            kmPosts: List<LayoutKmPost>,
         ): GeocodingContextCreateResult {
             val (validatedKmPosts, invalidKmPosts) = validateKmPosts(kmPosts, startAddress)
 
@@ -291,7 +302,7 @@ data class GeocodingContext(
 
         private fun createReferencePoints(
             startAddress: TrackMeter,
-            kmPosts: List<TrackLayoutKmPost>,
+            kmPosts: List<LayoutKmPost>,
             referenceLineGeometry: IAlignment,
         ): Pair<List<GeocodingReferencePoint>, List<KmPostWithRejectedReason>> {
             val kpReferencePoints =
@@ -308,9 +319,9 @@ data class GeocodingContext(
         }
 
         private fun validateKmPosts(
-            kmPosts: List<TrackLayoutKmPost>,
+            kmPosts: List<LayoutKmPost>,
             startAddress: TrackMeter,
-        ): Pair<List<TrackLayoutKmPost>, List<KmPostWithRejectedReason>> {
+        ): Pair<List<LayoutKmPost>, List<KmPostWithRejectedReason>> {
             val (withoutLocations, withLocations) = kmPosts.partition { it.layoutLocation == null }
 
             val (invalidStartAddresses, validKmPosts) =
@@ -328,7 +339,7 @@ data class GeocodingContext(
 
         private fun validateReferencePoints(
             referencePoints: List<GeocodingReferencePoint>,
-            kmPosts: List<TrackLayoutKmPost>,
+            kmPosts: List<LayoutKmPost>,
         ): Pair<List<GeocodingReferencePoint>, List<KmPostWithRejectedReason>> {
             val (withinPoints, beforePoints, afterPoints) =
                 referencePoints
@@ -580,10 +591,17 @@ fun getProjectedAddressPoints(projectionLines: List<ProjectionLine>, alignment: 
     while (edgeIndex <= alignmentEdges.lastIndex && projectionIndex <= projectionLines.lastIndex) {
         val edge = alignmentEdges[edgeIndex]
         val projection = projectionLines[projectionIndex]
+        // Check if the edge goes in the same direction as the reference line at projection point
+        // This affects how we should hande BEFORE/AFTER cases (missed intersections)
+        val isEdgeAligned = angleDiffRads(edge.referenceDirection, projection.referenceDirection) <= PI / 2
         val intersection = intersection(edge, projection.projection)
         when (intersection.inSegment1) {
             BEFORE -> {
-                projectionIndex += 1
+                // If the we're going the correct way, a projection hitting behind the current edge is an invalid
+                // address for the track -> move on to the next one
+                if (isEdgeAligned) projectionIndex += 1
+                // If the edge is reversed, a "BEFORE" actually means we need to move on to the next edge
+                else edgeIndex += 1
             }
 
             WITHIN -> {
@@ -597,7 +615,11 @@ fun getProjectedAddressPoints(projectionLines: List<ProjectionLine>, alignment: 
             }
 
             AFTER -> {
-                edgeIndex += 1
+                // If going the correct way, the projection intersection is after the current edge -> move on
+                if (isEdgeAligned) edgeIndex += 1
+                // Otherwise, "AFTER" is actually before the current point, so the address is invalid for the track ->
+                // move on to the next projection
+                else projectionIndex += 1
             }
         }
     }
@@ -632,7 +654,9 @@ private fun createProjectionLines(
                             "minMeter=$minMeter maxMeter=$maxMeter maxDistance=$maxDistance" +
                             "edges=${edges.filter { e -> e.startM in distance - 10.0..distance + 10.0 }}"
                     )
-            ProjectionLine(TrackMeter(point.kmNumber, meter), edge.crossSectionAt(distance), distance)
+
+            val address = TrackMeter(point.kmNumber, meter)
+            ProjectionLine(address, edge.crossSectionAt(distance), distance, edge.referenceDirection)
         }
     }
 }
@@ -729,15 +753,18 @@ private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Doubl
                     directionBetweenPoints(previous, point)
                 } else if (prevDir == null || nextDir == null) {
                     // Generated connection segments can have a sideways offset, but the real line
-                    // doesn't
-                    // change direction. To compensate, we want to project with the direction of
-                    // previous/next segments
+                    // doesn't change direction. To compensate, we want to project with the direction
+                    // of previous/next segments
                     prevDir ?: nextDir ?: directionBetweenPoints(previous, point)
                 } else {
                     angleAvgRads(prevDir, nextDir)
                 }
-            val direction = PI / 2 + pointDirection
-            PolyLineEdge(previous, point, segment.startM, direction)
+            PolyLineEdge(
+                start = previous,
+                end = point,
+                segmentStart = segment.startM,
+                referenceDirection = pointDirection,
+            )
         }
     }
 }
@@ -765,8 +792,11 @@ data class PolyLineEdge(
     val start: SegmentPoint,
     val end: SegmentPoint,
     val segmentStart: Double,
-    val projectionDirection: Double,
+    val referenceDirection: Double,
 ) {
+    // Direction for projection lines from the edge: 90 degrees turned from edge direction
+    val projectionDirection by lazy { PI / 2 + referenceDirection }
+
     val startM: Double
         get() = start.m + segmentStart
 

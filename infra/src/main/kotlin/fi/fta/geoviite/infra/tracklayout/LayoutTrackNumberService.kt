@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.printCsv
+import java.time.Instant
 import java.util.stream.Collectors
 import org.springframework.transaction.annotation.Transactional
 
@@ -44,18 +45,17 @@ class LayoutTrackNumberService(
     private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
-) : LayoutAssetService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
+) : LayoutAssetService<LayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
-    fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutRowVersion<TrackLayoutTrackNumber> {
+    fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutRowVersion<LayoutTrackNumber> {
         val draftSaveResponse =
             saveDraftInternal(
                 branch,
-                TrackLayoutTrackNumber(
+                LayoutTrackNumber(
                     number = saveRequest.number,
                     description = saveRequest.description,
                     state = saveRequest.state,
-                    externalId = null,
                     contextData = LayoutContextData.newDraft(branch, dao.createId()),
                 ),
             )
@@ -66,9 +66,9 @@ class LayoutTrackNumberService(
     @Transactional
     fun update(
         branch: LayoutBranch,
-        id: IntId<TrackLayoutTrackNumber>,
+        id: IntId<LayoutTrackNumber>,
         saveRequest: TrackNumberSaveRequest,
-    ): LayoutRowVersion<TrackLayoutTrackNumber> {
+    ): LayoutRowVersion<LayoutTrackNumber> {
         val original = dao.getOrThrow(branch.draft, id)
         val draftSaveResponse =
             saveDraftInternal(
@@ -84,31 +84,17 @@ class LayoutTrackNumberService(
     }
 
     @Transactional
-    fun updateExternalId(
-        branch: LayoutBranch,
-        id: IntId<TrackLayoutTrackNumber>,
-        oid: Oid<TrackLayoutTrackNumber>,
-    ): LayoutRowVersion<TrackLayoutTrackNumber> {
-        val original = dao.getOrThrow(branch.draft, id)
-        val trackLayoutTrackNumber = original.copy(externalId = oid)
-
-        return saveDraftInternal(branch, trackLayoutTrackNumber)
-    }
+    fun insertExternalId(branch: LayoutBranch, id: IntId<LayoutTrackNumber>, oid: Oid<LayoutTrackNumber>) =
+        dao.insertExternalId(id, branch, oid)
 
     @Transactional
-    fun deleteDraftAndReferenceLine(
-        branch: LayoutBranch,
-        id: IntId<TrackLayoutTrackNumber>,
-    ): IntId<TrackLayoutTrackNumber> {
+    fun deleteDraftAndReferenceLine(branch: LayoutBranch, id: IntId<LayoutTrackNumber>): IntId<LayoutTrackNumber> {
         referenceLineService.deleteDraftByTrackNumberId(branch, id)
         return deleteDraft(branch, id).id
     }
 
     @Transactional
-    override fun cancel(
-        branch: DesignBranch,
-        id: IntId<TrackLayoutTrackNumber>,
-    ): LayoutRowVersion<TrackLayoutTrackNumber>? =
+    override fun cancel(branch: DesignBranch, id: IntId<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber>? =
         dao.get(branch.official, id)?.let { trackNumber ->
             referenceLineService.getByTrackNumber(branch.official, trackNumber.id as IntId)?.let {
                 referenceLineService.cancel(branch, it.id as IntId)
@@ -116,23 +102,28 @@ class LayoutTrackNumberService(
             super.cancel(branch, id)
         }
 
-    override fun idMatches(term: String, item: TrackLayoutTrackNumber) =
-        item.externalId.toString() == term || item.id.toString() == term
+    fun idMatches(
+        layoutContext: LayoutContext,
+        possibleIds: List<IntId<LayoutTrackNumber>>? = null,
+    ): ((term: String, item: LayoutTrackNumber) -> Boolean) =
+        dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
+            { term, item -> externalIds[item.id]?.toString() == term || item.id.toString() == term }
+        }
 
-    override fun contentMatches(term: String, item: TrackLayoutTrackNumber) =
+    override fun contentMatches(term: String, item: LayoutTrackNumber) =
         item.exists && item.number.toString().replace("  ", " ").contains(term, true)
 
-    fun mapById(context: LayoutContext): Map<IntId<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> =
+    fun mapById(context: LayoutContext): Map<IntId<LayoutTrackNumber>, LayoutTrackNumber> =
         list(context).associateBy { tn -> tn.id as IntId }
 
-    fun find(context: LayoutContext, trackNumber: TrackNumber): List<TrackLayoutTrackNumber> {
+    fun find(context: LayoutContext, trackNumber: TrackNumber): List<LayoutTrackNumber> {
         return dao.list(context, trackNumber)
     }
 
     fun getKmLengths(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): List<TrackLayoutKmLengthDetails>? {
+        trackNumberId: IntId<LayoutTrackNumber>,
+    ): List<LayoutKmLengthDetails>? {
         return geocodingService.getGeocodingContextCreateResult(layoutContext, trackNumberId)?.let { contextResult ->
             contextResult.geocodingContext.referenceLineAddresses?.startPoint?.let { startPoint ->
                 extractTrackKmLengths(contextResult.geocodingContext, contextResult, startPoint)
@@ -142,7 +133,7 @@ class LayoutTrackNumberService(
 
     fun getKmLengthsAsCsv(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         startKmNumber: KmNumber? = null,
         endKmNumber: KmNumber? = null,
         precision: KmLengthsLocationPrecision,
@@ -167,7 +158,7 @@ class LayoutTrackNumberService(
 
     fun getAllKmLengthsAsCsv(
         layoutContext: LayoutContext,
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
         lang: LocalizationLanguage,
     ): String {
         val kmLengths =
@@ -188,7 +179,7 @@ class LayoutTrackNumberService(
     @Transactional(readOnly = true)
     fun getMetadataSections(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         boundingBox: BoundingBox?,
     ): List<AlignmentPlanSection> {
         return get(layoutContext, trackNumberId)?.let { trackNumber ->
@@ -199,7 +190,7 @@ class LayoutTrackNumberService(
             if (geocodingContext != null && referenceLine.alignmentVersion != null) {
                 alignmentService.getGeometryMetadataSections(
                     referenceLine.alignmentVersion,
-                    trackNumber.externalId,
+                    dao.fetchExternalId(layoutContext.branch, trackNumberId),
                     boundingBox,
                     geocodingContext,
                 )
@@ -208,16 +199,23 @@ class LayoutTrackNumberService(
             }
         } ?: listOf()
     }
+
+    fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
+
+    @Transactional(readOnly = true)
+    fun getExternalIdsByBranch(id: IntId<LayoutTrackNumber>): Map<LayoutBranch, Oid<LayoutTrackNumber>> {
+        return dao.fetchExternalIdsByBranch(id)
+    }
 }
 
 private fun asCsvFile(
-    items: List<TrackLayoutKmLengthDetails>,
+    items: List<LayoutKmLengthDetails>,
     precision: KmLengthsLocationPrecision,
     translation: Translation,
     getCoordinateSystem: (srid: Srid) -> CoordinateSystem,
 ): String {
     val columns =
-        mapOf<String, (item: TrackLayoutKmLengthDetails) -> Any?>(
+        mapOf<String, (item: LayoutKmLengthDetails) -> Any?>(
                 "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.track-number" to { it.trackNumber },
                 "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.kilometer" to { it.kmNumber },
                 "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-start" to { it.startM },
@@ -280,11 +278,11 @@ private fun asCsvFile(
     return printCsv(columns, items)
 }
 
-private fun isGeneratedRow(kmPost: TrackLayoutKmLengthDetails): Boolean =
+private fun isGeneratedRow(kmPost: LayoutKmLengthDetails): Boolean =
     kmPost.layoutGeometrySource == GeometrySource.GENERATED
 
 private fun locationSourceTranslationKey(
-    kmPost: TrackLayoutKmLengthDetails,
+    kmPost: LayoutKmLengthDetails,
     precision: KmLengthsLocationPrecision,
 ): LocalizationKey? {
     return if (isGeneratedRow(kmPost)) {
@@ -307,7 +305,7 @@ private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): LocalizationK
         else -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed"
     }.let(::LocalizationKey)
 
-private fun getLocationByPrecision(kmPost: TrackLayoutKmLengthDetails, precision: KmLengthsLocationPrecision): IPoint? =
+private fun getLocationByPrecision(kmPost: LayoutKmLengthDetails, precision: KmLengthsLocationPrecision): IPoint? =
     when (precision) {
         KmLengthsLocationPrecision.PRECISE_LOCATION -> kmPost.gkLocation?.location
         KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> kmPost.layoutLocation
@@ -317,14 +315,14 @@ private fun extractTrackKmLengths(
     context: GeocodingContext,
     contextResult: GeocodingContextCreateResult,
     startPoint: AddressPoint,
-): List<TrackLayoutKmLengthDetails> {
+): List<LayoutKmLengthDetails> {
     val distances = getKmPostDistances(context, contextResult.validKmPosts)
     val referenceLineLength = context.referenceLineGeometry.length
     val trackNumber = context.trackNumber
 
     // First km post is usually on another reference line, and therefore it has to be generated here
     return listOf(
-        TrackLayoutKmLengthDetails(
+        LayoutKmLengthDetails(
             trackNumber = trackNumber,
             kmNumber = startPoint.address.kmNumber,
             startM = roundTo3Decimals(context.startAddress.meters.negate()),
@@ -338,7 +336,7 @@ private fun extractTrackKmLengths(
         distances.mapIndexed { index, (kmPost, startM) ->
             val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
 
-            TrackLayoutKmLengthDetails(
+            LayoutKmLengthDetails(
                 trackNumber = trackNumber,
                 kmNumber = kmPost.kmNumber,
                 startM = roundTo3Decimals(startM),
@@ -353,8 +351,8 @@ private fun extractTrackKmLengths(
 
 private fun getKmPostDistances(
     context: GeocodingContext,
-    kmPosts: List<TrackLayoutKmPost>,
-): List<Pair<TrackLayoutKmPost, Double>> =
+    kmPosts: List<LayoutKmPost>,
+): List<Pair<LayoutKmPost, Double>> =
     kmPosts.map { kmPost ->
         val distance = kmPost.layoutLocation?.let { loc -> context.getM(loc)?.first }
         checkNotNull(distance) {

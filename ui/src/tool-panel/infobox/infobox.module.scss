@@ -97,6 +97,16 @@
         .button {
             margin-right: 12px;
         }
+
+        &--vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: start;
+
+            > *:not(:last-child) {
+                margin-bottom: 12px;
+            }
+        }
     }
 
     &--blue {

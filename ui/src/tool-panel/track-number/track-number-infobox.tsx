@@ -39,6 +39,7 @@ import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { TrackNumberOid } from 'track-layout/oid';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -166,7 +167,13 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     <InfoboxField
                         qaId="track-number-oid"
                         label={t('tool-panel.track-number.oid')}
-                        value={trackNumber.externalId}
+                        value={
+                            <TrackNumberOid
+                                id={trackNumber.id}
+                                branch={layoutContext.branch}
+                                changeTimes={changeTimes}
+                            />
+                        }
                     />
                     <InfoboxField
                         qaId="track-number-name"

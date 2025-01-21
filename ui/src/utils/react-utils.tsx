@@ -146,11 +146,8 @@ export function useImmediateLoader<TEntity>(setter: (result: TEntity) => void): 
     };
 }
 
-/**
- * Load/fetch something asynchronously and, if the load finishes, call the given onceOnFulfilled callback with its
- * result.
- */
-export function useTwoPartEffectWithStatus<TEntity>(
+function useTwoPartEffectWithHook<TEntity>(
+    useEffect: (effect: EffectCallback, deps?: DependencyList) => void,
     loadFunc: () => Promise<TEntity> | undefined,
     onceOnFulfilled: (result: TEntity) => void,
     deps: unknown[],
@@ -182,6 +179,32 @@ export function useTwoPartEffectWithStatus<TEntity>(
     }, deps);
 
     return loaderStatus;
+}
+
+/**
+ * Load/fetch something asynchronously and, if the load finishes, call the given onceOnFulfilled callback with its
+ * result.
+ */
+export function useTwoPartEffect<TEntity>(
+    loadFunc: () => Promise<TEntity> | undefined,
+    onceOnFulfilled: (result: TEntity) => void,
+    deps: unknown[],
+): LoaderStatus {
+    return useTwoPartEffectWithHook(useEffect, loadFunc, onceOnFulfilled, deps);
+}
+
+export function useRateLimitedTwoPartEffect<TEntity>(
+    loadFunc: () => Promise<TEntity> | undefined,
+    onceOnFulfilled: (result: TEntity) => void,
+    waitBetweenCalls: number,
+    deps: unknown[],
+): LoaderStatus {
+    return useTwoPartEffectWithHook(
+        (cb, deps) => useRateLimitedEffect(cb, waitBetweenCalls, deps),
+        loadFunc,
+        onceOnFulfilled,
+        deps,
+    );
 }
 
 export function useLoaderWithTimer<TEntity>(

@@ -2,19 +2,18 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { GeometryPlanHeader, GeometryPlanId } from 'geometry/geometry-model';
 import { formatDateFull, formatDateShort } from 'utils/date-utils';
-import { inframodelDownloadUri } from 'infra-model/infra-model-api';
 import PlanPhase from 'geoviite-design-lib/geometry-plan/plan-phase';
 import DecisionPhase from 'geoviite-design-lib/geometry-plan/plan-decision-phase';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { DOWNLOAD_GEOMETRY, EDIT_GEOMETRY_FILE } from 'user/user-model';
+import { EDIT_GEOMETRY_FILE } from 'user/user-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { GeometryPlanLinkingSummary } from 'geometry/geometry-api';
+import { InfraModelDownloadButton } from 'geoviite-design-lib/infra-model-download/infra-model-download-button';
 
 type InfraModelSearchResultRowProps = {
     plan: GeometryPlanHeader;
     linkingSummaries: Map<GeometryPlanId, GeometryPlanLinkingSummary | undefined>;
-    setConfirmDownloadPlan: (planId: GeometryPlanHeader | undefined) => void;
     setConfirmHidePlan: (planId: GeometryPlanHeader | undefined) => void;
     onSelectPlan: (planId: GeometryPlanId) => void;
 };
@@ -22,7 +21,6 @@ type InfraModelSearchResultRowProps = {
 export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps> = ({
     plan,
     linkingSummaries,
-    setConfirmDownloadPlan,
     setConfirmHidePlan,
     onSelectPlan,
 }) => {
@@ -42,14 +40,6 @@ export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps>
     const isCurrentlyLinked = (planId: GeometryPlanId) =>
         linkingSummaries.get(planId)?.currentlyLinked;
 
-    const downloadPlan = (plan: GeometryPlanHeader) => {
-        if (plan.source === 'PAIKANNUSPALVELU') {
-            setConfirmDownloadPlan(plan);
-        } else {
-            location.href = inframodelDownloadUri(plan.id);
-        }
-    };
-
     const targetWithinButton = (target: EventTarget) =>
         downloadButtonRef.current?.contains(target as HTMLElement) ||
         hideButtonRef.current?.contains(target as HTMLElement);
@@ -63,9 +53,10 @@ export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps>
                     onSelectPlan(plan.id);
                 }
             }}>
+            <td>{plan.name}</td>
             <td>
                 {plan.project.name}
-                {plan.source == 'PAIKANNUSPALVELU' && (
+                {plan.source === 'PAIKANNUSPALVELU' && (
                     <div className="infra-model-list-search-result__plan-paikannuspalvelu">
                         {t(`enum.PlanSource.${plan.source}`)}
                     </div>
@@ -86,16 +77,13 @@ export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps>
             <td>{linkingSummaryDate(plan.id)}</td>
             <td>{linkingSummaryUsers(plan.id)}</td>
             <td>
-                <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
-                    <Button
-                        title={t('im-form.download-file')}
-                        onClick={() => downloadPlan(plan)}
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SMALL}
-                        icon={Icons.Download}
-                        ref={downloadButtonRef}
-                    />
-                </PrivilegeRequired>
+                <InfraModelDownloadButton
+                    planHeader={plan}
+                    title={t('im-form.download-file')}
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.SMALL}
+                    ref={downloadButtonRef}
+                />
             </td>
             <td>
                 <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>

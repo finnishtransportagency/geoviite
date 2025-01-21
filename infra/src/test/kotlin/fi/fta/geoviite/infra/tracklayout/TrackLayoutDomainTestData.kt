@@ -24,12 +24,11 @@ import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
-import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
-import fi.fta.geoviite.infra.linking.SuggestedSwitchJointMatchType
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
-import fi.fta.geoviite.infra.map.AlignmentHeader
-import fi.fta.geoviite.infra.map.MapAlignmentSource
+import fi.fta.geoviite.infra.linking.switches.FittedSwitchJointMatch
+import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchJointMatchType
+import fi.fta.geoviite.infra.map.GeometryAlignmentHeader
 import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IPoint3DM
@@ -40,12 +39,14 @@ import fi.fta.geoviite.infra.math.Point3DZ
 import fi.fta.geoviite.infra.math.Point4DZM
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.lineLength
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchElementCurve
-import fi.fta.geoviite.infra.switchLibrary.SwitchElementLine
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.publication.PublishedVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
@@ -60,78 +61,84 @@ private val rand = Random(SEED)
 
 fun switchStructureYV60_300_1_9(): SwitchStructure {
     return SwitchStructure(
-        id = IntId(55),
-        type = SwitchType("YV60-300-1:9-O"),
-        presentationJointNumber = JointNumber(1),
-        joints =
-            listOf(
-                SwitchJoint(JointNumber(1), Point(0.0, 0.0)),
-                SwitchJoint(JointNumber(5), Point(16.615, 0.0)),
-                SwitchJoint(JointNumber(2), Point(34.430, 0.0)),
-                SwitchJoint(JointNumber(3), Point(34.321, -1.967)),
-            ),
-        alignments =
-            listOf(
-                SwitchAlignment(
-                    jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
-                    elements =
-                        listOf(
-                            SwitchElementLine(IndexedId(1, 1), Point(0.0, 0.0), Point(16.615, 0.0)),
-                            SwitchElementLine(IndexedId(1, 2), Point(16.615, 0.0), Point(34.430, 0.0)),
+        version = RowVersion(IntId(55), 1),
+        data =
+            SwitchStructureData(
+                type = SwitchType("YV60-300-1:9-O"),
+                presentationJointNumber = JointNumber(1),
+                joints =
+                    setOf(
+                        SwitchStructureJoint(JointNumber(1), Point(0.0, 0.0)),
+                        SwitchStructureJoint(JointNumber(5), Point(16.615, 0.0)),
+                        SwitchStructureJoint(JointNumber(2), Point(34.430, 0.0)),
+                        SwitchStructureJoint(JointNumber(3), Point(34.321, -1.967)),
+                    ),
+                alignments =
+                    listOf(
+                        SwitchStructureAlignment(
+                            jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
+                            elements =
+                                listOf(
+                                    SwitchStructureLine(Point(0.0, 0.0), Point(16.615, 0.0)),
+                                    SwitchStructureLine(Point(16.615, 0.0), Point(34.430, 0.0)),
+                                ),
                         ),
-                ),
-                SwitchAlignment(
-                    jointNumbers = listOf(JointNumber(1), JointNumber(3)),
-                    elements =
-                        listOf(
-                            SwitchElementCurve(IndexedId(2, 1), Point(0.0, 0.0), Point(33.128, -1.835), radius = 300.0),
-                            SwitchElementLine(IndexedId(2, 2), Point(33.128, -1.835), Point(34.321, -1.967)),
+                        SwitchStructureAlignment(
+                            jointNumbers = listOf(JointNumber(1), JointNumber(3)),
+                            elements =
+                                listOf(
+                                    SwitchStructureCurve(Point(0.0, 0.0), Point(33.128, -1.835), radius = 300.0),
+                                    SwitchStructureLine(Point(33.128, -1.835), Point(34.321, -1.967)),
+                                ),
                         ),
-                ),
+                    ),
             ),
     )
 }
 
 fun switchStructureRR54_4x1_9() =
     SwitchStructure(
-        id = IntId(133),
-        type = SwitchType("RR54-4x1:9"),
-        presentationJointNumber = JointNumber(5),
-        joints =
-            listOf(
-                SwitchJoint(JointNumber(1), Point(-5.075, -1.142)),
-                SwitchJoint(JointNumber(5), Point(0.0, 0.0)),
-                SwitchJoint(JointNumber(2), Point(5.075, 1.142)),
-                SwitchJoint(JointNumber(4), Point(-5.075, 1.142)),
-                SwitchJoint(JointNumber(3), Point(5.075, -1.142)),
-            ),
-        alignments =
-            listOf(
-                SwitchAlignment(
-                    jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
-                    elements =
-                        listOf(
-                            SwitchElementLine(IndexedId(3, 1), Point(-5.075, -1.142), Point(0.0, 0.0)),
-                            SwitchElementLine(IndexedId(3, 2), Point(0.0, 0.0), Point(5.075, 1.142)),
+        version = RowVersion(IntId(133), 1),
+        data =
+            SwitchStructureData(
+                type = SwitchType("RR54-4x1:9"),
+                presentationJointNumber = JointNumber(5),
+                joints =
+                    setOf(
+                        SwitchStructureJoint(JointNumber(1), Point(-5.075, -1.142)),
+                        SwitchStructureJoint(JointNumber(5), Point(0.0, 0.0)),
+                        SwitchStructureJoint(JointNumber(2), Point(5.075, 1.142)),
+                        SwitchStructureJoint(JointNumber(4), Point(-5.075, 1.142)),
+                        SwitchStructureJoint(JointNumber(3), Point(5.075, -1.142)),
+                    ),
+                alignments =
+                    listOf(
+                        SwitchStructureAlignment(
+                            jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
+                            elements =
+                                listOf(
+                                    SwitchStructureLine(Point(-5.075, -1.142), Point(0.0, 0.0)),
+                                    SwitchStructureLine(Point(0.0, 0.0), Point(5.075, 1.142)),
+                                ),
                         ),
-                ),
-                SwitchAlignment(
-                    jointNumbers = listOf(JointNumber(4), JointNumber(5), JointNumber(3)),
-                    elements =
-                        listOf(
-                            SwitchElementLine(IndexedId(4, 1), Point(-5.075, 1.142), Point(0.0, 0.0)),
-                            SwitchElementLine(IndexedId(4, 2), Point(0.0, 0.0), Point(-5.075, 1.142)),
+                        SwitchStructureAlignment(
+                            jointNumbers = listOf(JointNumber(4), JointNumber(5), JointNumber(3)),
+                            elements =
+                                listOf(
+                                    SwitchStructureLine(Point(-5.075, 1.142), Point(0.0, 0.0)),
+                                    SwitchStructureLine(Point(0.0, 0.0), Point(-5.075, 1.142)),
+                                ),
                         ),
-                ),
+                    ),
             ),
     )
 
 fun switchAndMatchingAlignments(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     structure: SwitchStructure,
     draft: Boolean,
-): Pair<TrackLayoutSwitch, List<Pair<LocationTrack, LayoutAlignment>>> {
-    val switchId = IntId<TrackLayoutSwitch>(1)
+): Pair<LayoutSwitch, List<Pair<LocationTrack, LayoutAlignment>>> {
+    val switchId = IntId<LayoutSwitch>(1)
     val jointLocations = mutableMapOf<JointNumber, Point>()
     val alignments =
         structure.alignments.map { alignment ->
@@ -164,7 +171,7 @@ fun switchAndMatchingAlignments(
         switch(
             id = switchId,
             structureId = structure.id as IntId,
-            joints = jointLocations.map { (number, point) -> TrackLayoutSwitchJoint(number, point, null) },
+            joints = jointLocations.map { (number, point) -> LayoutSwitchJoint(number, point, null) },
             draft = draft,
             stateCategory = LayoutStateCategory.EXISTING,
         )
@@ -173,7 +180,7 @@ fun switchAndMatchingAlignments(
 
 fun segmentsFromSwitchStructure(
     start: IPoint,
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
     structure: SwitchStructure,
     line: List<Int>,
 ): List<LayoutSegment> {
@@ -184,8 +191,8 @@ fun segmentsFromSwitchStructure(
 
 fun segmentsFromSwitchAlignment(
     start: IPoint,
-    switchId: IntId<TrackLayoutSwitch>,
-    alignment: SwitchAlignment,
+    switchId: IntId<LayoutSwitch>,
+    alignment: SwitchStructureAlignment,
 ): List<LayoutSegment> {
     val jointNumbers = alignment.jointNumbers
     val elements = alignment.elements
@@ -277,16 +284,14 @@ fun trackNumber(
     number: TrackNumber = TrackNumber("100"),
     description: String = "Test Track number $number",
     draft: Boolean = false,
-    externalId: Oid<TrackLayoutTrackNumber>? = someOid(),
     state: LayoutState = LayoutState.IN_USE,
-    id: IntId<TrackLayoutTrackNumber>? = null,
-    contextData: LayoutContextData<TrackLayoutTrackNumber> = createMainContext(id, draft),
+    id: IntId<LayoutTrackNumber>? = null,
+    contextData: LayoutContextData<LayoutTrackNumber> = createMainContext(id, draft),
 ) =
-    TrackLayoutTrackNumber(
+    LayoutTrackNumber(
         number = number,
         description = TrackNumberDescription(description),
         state = state,
-        externalId = externalId,
         contextData = contextData,
     )
 
@@ -304,7 +309,7 @@ fun trackNumberSaveRequest(
     )
 
 fun referenceLineAndAlignment(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     vararg segments: LayoutSegment,
     startAddress: TrackMeter = TrackMeter.ZERO,
     draft: Boolean = false,
@@ -312,7 +317,7 @@ fun referenceLineAndAlignment(
     referenceLineAndAlignment(trackNumberId, segments.toList(), startAddress = startAddress, draft = draft)
 
 fun referenceLineAndAlignment(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     segments: List<LayoutSegment>,
     startAddress: TrackMeter = TrackMeter.ZERO,
     draft: Boolean = false,
@@ -324,7 +329,7 @@ fun referenceLineAndAlignment(
 }
 
 fun referenceLine(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     alignment: LayoutAlignment? = null,
     startAddress: TrackMeter = TrackMeter.ZERO,
     id: IntId<ReferenceLine>? = null,
@@ -362,7 +367,7 @@ fun locationTrackAndAlignment(
     )
 
 fun locationTrackAndAlignment(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     vararg segments: LayoutSegment,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
@@ -370,7 +375,6 @@ fun locationTrackAndAlignment(
     state: LocationTrackState = LocationTrackState.IN_USE,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
-    externalId: Oid<LocationTrack>? = someOid(),
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
 ): Pair<LocationTrack, LayoutAlignment> =
@@ -383,13 +387,12 @@ fun locationTrackAndAlignment(
         state = state,
         id = id,
         draft = draft,
-        externalId = externalId,
         topologyStartSwitch = topologyStartSwitch,
         topologyEndSwitch = topologyEndSwitch,
     )
 
 fun locationTrackAndAlignment(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     segments: List<LayoutSegment>,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
@@ -398,7 +401,6 @@ fun locationTrackAndAlignment(
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    externalId: Oid<LocationTrack>? = someOid(),
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
 ): Pair<LocationTrack, LayoutAlignment> {
@@ -414,7 +416,6 @@ fun locationTrackAndAlignment(
             description = description,
             duplicateOf = duplicateOf,
             state = state,
-            externalId = externalId,
             topologyStartSwitch = topologyStartSwitch,
             topologyEndSwitch = topologyEndSwitch,
         )
@@ -422,7 +423,7 @@ fun locationTrackAndAlignment(
 }
 
 fun locationTrack(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     alignment: LayoutAlignment? = null,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
@@ -430,7 +431,6 @@ fun locationTrack(
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    externalId: Oid<LocationTrack>? = someOid(),
     alignmentVersion: RowVersion<LayoutAlignment>? = if (id != null) someRowVersion() else null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
@@ -448,7 +448,6 @@ fun locationTrack(
         description = description,
         type = type,
         state = state,
-        externalId = externalId,
         alignmentVersion = alignmentVersion,
         topologicalConnectivity = topologicalConnectivity,
         topologyStartSwitch = topologyStartSwitch,
@@ -459,14 +458,13 @@ fun locationTrack(
     )
 
 fun locationTrack(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     alignment: LayoutAlignment? = null,
     contextData: LayoutContextData<LocationTrack>,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    externalId: Oid<LocationTrack>? = someOid(),
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
@@ -481,7 +479,6 @@ fun locationTrack(
         descriptionSuffix = descriptionSuffix,
         type = type,
         state = state,
-        externalId = externalId,
         trackNumberId = trackNumberId,
         sourceId = null,
         boundingBox = alignment?.boundingBox,
@@ -511,17 +508,13 @@ fun mapAlignment(vararg segments: PlanLayoutSegment) = mapAlignment(segments.toL
 fun mapAlignment(segments: List<PlanLayoutSegment>) =
     PlanLayoutAlignment(
         header =
-            AlignmentHeader(
+            GeometryAlignmentHeader(
                 id = StringId(),
                 name = AlignmentName("test-alignment"),
-                alignmentSource = MapAlignmentSource.GEOMETRY,
                 alignmentType = MapAlignmentType.LOCATION_TRACK,
-                trackType = LocationTrackType.MAIN,
                 state = LayoutState.IN_USE,
                 segmentCount = segments.size,
                 trackNumberId = IntId(1),
-                version = null,
-                duplicateOf = null,
                 length = segments.map(PlanLayoutSegment::length).sum(),
                 boundingBox = boundingBoxCombining(segments.mapNotNull(PlanLayoutSegment::boundingBox)),
             ),
@@ -529,9 +522,9 @@ fun mapAlignment(segments: List<PlanLayoutSegment>) =
     )
 
 fun locationTrackWithTwoSwitches(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
-    layoutSwitchId: IntId<TrackLayoutSwitch>,
-    otherLayoutSwitchId: IntId<TrackLayoutSwitch>,
+    trackNumberId: IntId<LayoutTrackNumber>,
+    layoutSwitchId: IntId<LayoutSwitch>,
+    otherLayoutSwitchId: IntId<LayoutSwitch>,
     locationTrackId: IntId<LocationTrack>? = null,
     draft: Boolean,
 ): Pair<LocationTrack, LayoutAlignment> {
@@ -556,14 +549,14 @@ fun locationTrackWithTwoSwitches(
 
 fun attachSwitchToStart(
     locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
 ): Pair<LocationTrack, LayoutAlignment> =
     attachSwitchToStart(locationTrackAndAlignment.first, locationTrackAndAlignment.second, switchId)
 
 fun attachSwitchToStart(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
 ): Pair<LocationTrack, LayoutAlignment> {
     if (alignment.segments.count() < 3) throw IllegalArgumentException("Alignment must contain at least 3 segments")
     return locationTrack to
@@ -585,14 +578,14 @@ fun attachSwitchToStart(
 
 fun attachSwitchToEnd(
     locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
 ): Pair<LocationTrack, LayoutAlignment> =
     attachSwitchToEnd(locationTrackAndAlignment.first, locationTrackAndAlignment.second, switchId)
 
 fun attachSwitchToEnd(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
 ): Pair<LocationTrack, LayoutAlignment> {
     val segmentCount = alignment.segments.count()
     if (segmentCount < 3) throw IllegalArgumentException("Alignment must contain at least 3 segments")
@@ -615,16 +608,12 @@ fun attachSwitchToEnd(
 
 fun attachSwitchToIndex(
     locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
     segmentIndex: Int,
 ): Pair<LocationTrack, LayoutAlignment> =
     locationTrackAndAlignment.first to attachSwitchToIndex(locationTrackAndAlignment.second, switchId, segmentIndex)
 
-fun attachSwitchToIndex(
-    alignment: LayoutAlignment,
-    switchId: IntId<TrackLayoutSwitch>,
-    segmentIndex: Int,
-): LayoutAlignment {
+fun attachSwitchToIndex(alignment: LayoutAlignment, switchId: IntId<LayoutSwitch>, segmentIndex: Int): LayoutAlignment {
     if (alignment.segments.count() < segmentIndex + 3)
         throw IllegalArgumentException("Alignment must contain at least ${segmentIndex + 3} segments")
     return alignment.copy(
@@ -643,7 +632,7 @@ fun attachSwitchToIndex(
     )
 }
 
-fun attachSwitchToIndex(alignment: LayoutAlignment, switch: TrackLayoutSwitch, segmentIndex: Int): LayoutAlignment {
+fun attachSwitchToIndex(alignment: LayoutAlignment, switch: LayoutSwitch, segmentIndex: Int): LayoutAlignment {
     if (alignment.segments.count() < segmentIndex + 3) {
         throw IllegalArgumentException("Alignment must contain at least ${segmentIndex + 3} segments")
     }
@@ -668,7 +657,7 @@ fun geocodingContext(
     referenceLinePoints: List<Point>,
     trackNumber: TrackNumber = TrackNumber("001"),
     startAddress: TrackMeter = TrackMeter.ZERO,
-    kmPosts: List<TrackLayoutKmPost> = listOf(),
+    kmPosts: List<LayoutKmPost> = listOf(),
 ) =
     alignment(segment(*referenceLinePoints.toTypedArray())).let { alignment ->
         GeocodingContext.create(
@@ -690,7 +679,7 @@ class TargetSegmentEnd : TargetSegment()
 
 fun attachSwitches(
     locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
-    vararg switchInfos: Pair<IntId<TrackLayoutSwitch>, TargetSegment>,
+    vararg switchInfos: Pair<IntId<LayoutSwitch>, TargetSegment>,
 ): Pair<LocationTrack, LayoutAlignment> {
     return switchInfos.fold(locationTrackAndAlignment) { accLocationTrackAndAlignment, (switchId, targetSegment) ->
         when (targetSegment) {
@@ -707,7 +696,7 @@ fun segment(
     startM: Double = 0.0,
     source: GeometrySource = PLAN,
     sourceId: GeometryElement? = null,
-    switchId: IntId<TrackLayoutSwitch>? = null,
+    switchId: IntId<LayoutSwitch>? = null,
     startJointNumber: JointNumber? = null,
     endJointNumber: JointNumber? = null,
     sourceStart: Double? = null,
@@ -744,7 +733,7 @@ fun segment(
     sourceId: GeometryElement? = null,
     sourceStart: Double? = null,
     resolution: Int = 1,
-    switchId: IntId<TrackLayoutSwitch>? = null,
+    switchId: IntId<LayoutSwitch>? = null,
     startJointNumber: JointNumber? = null,
     endJointNumber: JointNumber? = null,
 ) =
@@ -924,16 +913,14 @@ fun switchFromDbStructure(
     switchStart: IPoint,
     structure: SwitchStructure,
     draft: Boolean = false,
-    externalId: String? = null,
-): TrackLayoutSwitch =
+): LayoutSwitch =
     switch(
         name = name,
-        externalId = externalId,
         structureId = structure.id as IntId,
         draft = draft,
         joints =
             structure.joints.map { j ->
-                TrackLayoutSwitchJoint(number = j.number, location = switchStart + j.location, locationAccuracy = null)
+                LayoutSwitchJoint(number = j.number, location = switchStart + j.location, locationAccuracy = null)
             },
     )
 
@@ -941,17 +928,16 @@ private var switchNameCounter = 0
 
 fun switch(
     structureId: IntId<SwitchStructure> = switchStructureYV60_300_1_9().id as IntId,
-    joints: List<TrackLayoutSwitchJoint> = listOf(),
+    joints: List<LayoutSwitchJoint> = listOf(),
     name: String = "TV${switchNameCounter++}",
-    externalId: String? = null,
     stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
-    id: IntId<TrackLayoutSwitch>? = null,
+    id: IntId<LayoutSwitch>? = null,
     draft: Boolean = false,
     ownerId: IntId<SwitchOwner>? = switchOwnerVayla().id,
-    contextData: LayoutContextData<TrackLayoutSwitch> = createMainContext(id, draft),
+    contextData: LayoutContextData<LayoutSwitch> = createMainContext(id, draft),
+    draftOid: Oid<LayoutSwitch>? = null,
 ) =
-    TrackLayoutSwitch(
-        externalId = if (externalId != null) Oid(externalId) else null,
+    LayoutSwitch(
         sourceId = null,
         name = SwitchName(name),
         stateCategory = stateCategory,
@@ -961,9 +947,10 @@ fun switch(
         ownerId = ownerId,
         source = GENERATED,
         contextData = contextData,
+        draftOid = draftOid,
     )
 
-fun <T> createMainContext(id: IntId<T>?, draft: Boolean): LayoutContextData<T> =
+fun <T : LayoutAsset<T>> createMainContext(id: IntId<T>?, draft: Boolean): LayoutContextData<T> =
     if (draft) {
         MainDraftContextData(
             if (id != null) IdentifiedAssetId(id) else TemporaryAssetId(),
@@ -977,17 +964,17 @@ fun <T> createMainContext(id: IntId<T>?, draft: Boolean): LayoutContextData<T> =
 fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
 
 fun switchJoint(seed: Int) =
-    TrackLayoutSwitchJoint(
+    LayoutSwitchJoint(
         number = JointNumber(1 + seed % 5),
         location = Point(seed * 0.01, 1000.0 + seed * 0.01),
         locationAccuracy = getSomeNullableValue<LocationAccuracy>(seed),
     )
 
 fun switchJoint(number: Int, location: Point) =
-    TrackLayoutSwitchJoint(number = JointNumber(number), location = location, locationAccuracy = null)
+    LayoutSwitchJoint(number = JointNumber(number), location = location, locationAccuracy = null)
 
 fun kmPost(
-    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    trackNumberId: IntId<LayoutTrackNumber>?,
     km: KmNumber,
     roughLayoutLocation: Point? = Point(1.0, 1.0),
     gkLocation: GeometryPoint? = null,
@@ -996,10 +983,10 @@ fun kmPost(
     gkLocationConfirmed: Boolean = false,
     gkLocationSource: KmPostGkLocationSource = KmPostGkLocationSource.MANUAL,
     sourceId: IntId<GeometryKmPost>? = null,
-    contextData: LayoutContextData<TrackLayoutKmPost> = createMainContext(null, draft),
-): TrackLayoutKmPost {
+    contextData: LayoutContextData<LayoutKmPost> = createMainContext(null, draft),
+): LayoutKmPost {
 
-    return TrackLayoutKmPost(
+    return LayoutKmPost(
         trackNumberId = trackNumberId,
         kmNumber = km,
         state = state,
@@ -1007,7 +994,7 @@ fun kmPost(
         contextData = contextData,
         gkLocation =
             if (gkLocation != null || roughLayoutLocation != null)
-                TrackLayoutKmPostGkLocation(
+                LayoutKmPostGkLocation(
                     location =
                         if (gkLocation == null && roughLayoutLocation != null) {
                             transformFromLayoutToGKCoordinate(roughLayoutLocation)
@@ -1077,7 +1064,7 @@ fun externalIdForLocationTrack(): Oid<LocationTrack> {
     return Oid("$first.$second.$third.$fourth")
 }
 
-fun externalIdForTrackNumber(): Oid<TrackLayoutTrackNumber> {
+fun externalIdForTrackNumber(): Oid<LayoutTrackNumber> {
     val first = nextInt(100, 999)
     val second = nextInt(100, 999)
     val third = nextInt(100, 999)
@@ -1141,7 +1128,7 @@ fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int,
         m = m,
         alignmentId = null,
         distance = 0.1,
-        switchJoint = SwitchJoint(JointNumber(jointNumber), Point(0.0, 0.0)),
+        switchJoint = SwitchStructureJoint(JointNumber(jointNumber), Point(0.0, 0.0)),
         distanceToAlignment = 0.1,
         matchType = SuggestedSwitchJointMatchType.LINE,
     )
@@ -1155,10 +1142,10 @@ fun layoutDesign(
 fun <T> someRowVersion() = RowVersion(IntId<T>(1), 1)
 
 fun geocodingContextCacheKey(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
-    trackNumberVersion: LayoutRowVersion<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
+    trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
     referenceLineVersion: LayoutRowVersion<ReferenceLine>,
-    vararg kmPostVersions: LayoutRowVersion<TrackLayoutKmPost>,
+    vararg kmPostVersions: LayoutRowVersion<LayoutKmPost>,
 ) =
     LayoutGeocodingContextCacheKey(
         trackNumberId = trackNumberId,
@@ -1166,3 +1153,11 @@ fun geocodingContextCacheKey(
         referenceLineVersion = referenceLineVersion,
         kmPostVersions = kmPostVersions.toList().sortedBy { rv -> rv.id.intValue },
     )
+
+fun publishedVersions(
+    trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>> = listOf(),
+    referenceLines: List<LayoutRowVersion<ReferenceLine>> = listOf(),
+    locationTracks: List<LayoutRowVersion<LocationTrack>> = listOf(),
+    switches: List<LayoutRowVersion<LayoutSwitch>> = listOf(),
+    kmPosts: List<LayoutRowVersion<LayoutKmPost>> = listOf(),
+) = PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts)

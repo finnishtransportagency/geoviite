@@ -43,6 +43,10 @@ $icon-size-large: 30px;
     @include icon-size($icon-size-large);
 }
 
+.icon--size-inherit {
+    @include icon-size(100%);
+}
+
 .icon--rotate-180 {
     -webkit-transform: rotate(180deg);
     -moz-transform: rotate(180deg);

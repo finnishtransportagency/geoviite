@@ -6,12 +6,12 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.NONE
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -61,7 +61,6 @@ class SplitTest {
         assertEquals(targets.size, resultTracks.size)
         resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
         assertEquals(dupTrack.id, resultTracks[0].locationTrack.id)
-        assertEquals(dupTrack.externalId, resultTracks[0].locationTrack.externalId)
         assertSegmentsMatch(alignment.segments.subList(0, 1), resultTracks[0].alignment)
         assertSegmentsMatch(alignment.segments.subList(1, 2), resultTracks[1].alignment)
     }
@@ -103,7 +102,7 @@ class SplitTest {
 
 fun linearSegment(
     points: IntRange,
-    switchId: IntId<TrackLayoutSwitch>? = null,
+    switchId: IntId<LayoutSwitch>? = null,
     startJoint: Int? = null,
     endJoint: Int? = null,
 ): LayoutSegment =

@@ -15,10 +15,10 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.min
@@ -191,7 +191,7 @@ private fun firstPoint(segments: List<LayoutSegment>) = segments.firstOrNull()?.
 
 private fun lastPoint(segments: List<LayoutSegment>) = segments.lastOrNull()?.segmentEnd
 
-fun removeSwitches(segments: List<LayoutSegment>, switchIds: Set<IntId<TrackLayoutSwitch>>): List<LayoutSegment> =
+fun removeSwitches(segments: List<LayoutSegment>, switchIds: Set<IntId<LayoutSwitch>>): List<LayoutSegment> =
     segments.map { s -> if (switchIds.contains(s.switchId)) s.withoutSwitch() else s }
 
 fun getSwitchIdsInside(segments: List<LayoutSegment>, mRange: Range<Double>) =

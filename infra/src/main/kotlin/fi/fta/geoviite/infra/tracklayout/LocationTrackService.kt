@@ -20,7 +20,7 @@ import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
-import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
+import fi.fta.geoviite.infra.linking.switches.TopologyLinkFindingSwitch
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -31,6 +31,8 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.split.SplitDao
+import fi.fta.geoviite.infra.split.SplitDuplicateTrack
+import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
@@ -44,7 +46,7 @@ const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
 
 @GeoviiteService
 class LocationTrackService(
-    locationTrackDao: LocationTrackDao,
+    val locationTrackDao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val geocodingService: GeocodingService,
@@ -67,7 +69,6 @@ class LocationTrackService(
                 descriptionSuffix = request.descriptionSuffix,
                 type = request.type,
                 state = request.state,
-                externalId = null,
                 trackNumberId = request.trackNumberId,
                 sourceId = null,
                 length = alignment.length,
@@ -198,17 +199,8 @@ class LocationTrackService(
     }
 
     @Transactional
-    fun updateExternalId(
-        branch: LayoutBranch,
-        id: IntId<LocationTrack>,
-        oid: Oid<LocationTrack>,
-    ): LayoutRowVersion<LocationTrack> {
-        val original = dao.getOrThrow(branch.draft, id)
-        return saveDraftInternal(
-            branch,
-            original.copy(externalId = oid, alignmentVersion = updatedAlignmentVersion(original)),
-        )
-    }
+    fun insertExternalId(branch: LayoutBranch, id: IntId<LocationTrack>, oid: Oid<LocationTrack>) =
+        dao.insertExternalId(id, branch, oid)
 
     @Transactional
     override fun publish(
@@ -259,14 +251,19 @@ class LocationTrackService(
     fun list(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         names: List<AlignmentName>,
     ): List<LocationTrack> {
         return dao.list(layoutContext, includeDeleted, trackNumberId, names)
     }
 
-    override fun idMatches(term: String, item: LocationTrack) =
-        item.externalId.toString() == term || item.id.toString() == term
+    fun idMatches(
+        layoutContext: LayoutContext,
+        possibleIds: List<IntId<LocationTrack>>? = null,
+    ): ((term: String, item: LocationTrack) -> Boolean) =
+        dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
+            return { term, item -> externalIds[item.id]?.toString() == term || item.id.toString() == term }
+        }
 
     override fun contentMatches(term: String, item: LocationTrack) =
         item.exists && (item.name.contains(term, true) || item.descriptionBase.contains(term, true))
@@ -278,7 +275,7 @@ class LocationTrackService(
     @Transactional(readOnly = true)
     fun listWithAlignments(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
         includeDeleted: Boolean = false,
         boundingBox: BoundingBox? = null,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
@@ -375,7 +372,7 @@ class LocationTrackService(
         return if (geocodingContext != null && locationTrack.alignmentVersion != null) {
             alignmentService.getGeometryMetadataSections(
                 locationTrack.alignmentVersion,
-                locationTrack.externalId,
+                dao.fetchExternalId(layoutContext.branch, locationTrackId),
                 boundingBox,
                 geocodingContext,
             )
@@ -408,7 +405,7 @@ class LocationTrackService(
                 .getMany(layoutContext, startAndEndSwitchIds.flatMap { listOfNotNull(it.first, it.second) })
                 .associateBy { switch -> switch.id }
 
-        fun getSwitchShortName(switchId: IntId<TrackLayoutSwitch>) = switches[switchId]?.shortName
+        fun getSwitchShortName(switchId: IntId<LayoutSwitch>) = switches[switchId]?.shortName
         val translation = localizationService.getLocalization(lang)
 
         return locationTracks.zip(startAndEndSwitchIds) { locationTrack, startAndEndSwitch ->
@@ -532,7 +529,7 @@ class LocationTrackService(
 
     private fun createSplitPoint(
         point: AlignmentPoint?,
-        switchId: IntId<TrackLayoutSwitch>?,
+        switchId: IntId<LayoutSwitch>?,
         endPointType: DuplicateEndPointType,
         geocodingContext: GeocodingContext?,
     ): SplitPoint? {
@@ -563,7 +560,7 @@ class LocationTrackService(
 
     private fun isPresentationJointNumber(
         layoutContext: LayoutContext,
-        switchId: IntId<TrackLayoutSwitch>,
+        switchId: IntId<LayoutSwitch>,
         jointNumber: JointNumber,
     ): Boolean {
         return switchDao.get(layoutContext, switchId)?.let { switch ->
@@ -573,8 +570,8 @@ class LocationTrackService(
 
     private fun createFunIsPresentationJointNumberInContext(
         layoutContext: LayoutContext
-    ): (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean {
-        return { switchId: IntId<TrackLayoutSwitch>, jointNumber: JointNumber ->
+    ): (IntId<LayoutSwitch>, JointNumber) -> Boolean {
+        return { switchId: IntId<LayoutSwitch>, jointNumber: JointNumber ->
             isPresentationJointNumber(layoutContext, switchId, jointNumber)
         }
     }
@@ -622,10 +619,7 @@ class LocationTrackService(
             }
         }
 
-    private fun fetchSwitchAtEndById(
-        layoutContext: LayoutContext,
-        id: IntId<TrackLayoutSwitch>,
-    ): LayoutSwitchIdAndName? =
+    private fun fetchSwitchAtEndById(layoutContext: LayoutContext, id: IntId<LayoutSwitch>): LayoutSwitchIdAndName? =
         switchDao.get(layoutContext, id)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
 
     fun fetchNearbyLocationTracksWithAlignments(
@@ -725,7 +719,7 @@ class LocationTrackService(
     fun getSwitchesForLocationTrack(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
-    ): List<IntId<TrackLayoutSwitch>> {
+    ): List<IntId<LayoutSwitch>> {
         return getWithAlignment(layoutContext, locationTrackId)?.let { (track, alignment) ->
             collectAllSwitches(track, alignment)
         } ?: emptyList()
@@ -753,11 +747,21 @@ class LocationTrackService(
         )
     }
 
-    override fun cancelInternal(asset: LocationTrack) =
-        cancelled(asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())))
+    override fun cancelInternal(asset: LocationTrack, designBranch: DesignBranch) =
+        cancelled(
+            asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())),
+            designBranch.designId,
+        )
+
+    fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
+
+    @Transactional(readOnly = true)
+    fun getExternalIdsByBranch(id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
+        return locationTrackDao.fetchExternalIdsByBranch(id)
+    }
 }
 
-fun collectAllSwitches(locationTrack: LocationTrack, alignment: LayoutAlignment): List<IntId<TrackLayoutSwitch>> {
+fun collectAllSwitches(locationTrack: LocationTrack, alignment: LayoutAlignment): List<IntId<LayoutSwitch>> {
     val topologySwitches =
         listOfNotNull(locationTrack.topologyStartSwitch?.switchId, locationTrack.topologyEndSwitch?.switchId)
     val segmentSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }
@@ -823,7 +827,7 @@ fun calculateLocationTrackTopology(
 
 fun findBestTopologySwitchMatch(
     target: IPoint,
-    ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+    ownSwitches: Set<DomainId<LayoutSwitch>>,
     nearbyTracksForSearch: List<Pair<LocationTrack, LayoutAlignment>>,
     currentTopologySwitch: TopologyLocationTrackSwitch?,
     newSwitch: TopologyLinkFindingSwitch?,
@@ -841,7 +845,7 @@ fun findBestTopologySwitchMatch(
 
 private fun findBestTopologySwitchFromSegments(
     target: IPoint,
-    ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+    ownSwitches: Set<DomainId<LayoutSwitch>>,
     nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     newSwitch: TopologyLinkFindingSwitch?,
 ): TopologyLocationTrackSwitch? =
@@ -873,7 +877,7 @@ private fun findBestTopologySwitchFromSegments(
 
 private fun findBestTopologySwitchFromOtherTopology(
     target: IPoint,
-    ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+    ownSwitches: Set<DomainId<LayoutSwitch>>,
     nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): TopologyLocationTrackSwitch? =
     nearbyTracks
@@ -886,14 +890,14 @@ private fun findBestTopologySwitchFromOtherTopology(
         .minByOrNull { (_, distance) -> distance }
         ?.first
 
-private fun pickIfClose(switchId: IntId<TrackLayoutSwitch>, number: JointNumber, target: IPoint, reference: IPoint?) =
+private fun pickIfClose(switchId: IntId<LayoutSwitch>, number: JointNumber, target: IPoint, reference: IPoint?) =
     pickIfClose(TopologyLocationTrackSwitch(switchId, number), target, reference, setOf())
 
 private fun pickIfClose(
     topologyMatch: TopologyLocationTrackSwitch?,
     target: IPoint,
     reference: IPoint?,
-    ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+    ownSwitches: Set<DomainId<LayoutSwitch>>,
 ): Pair<TopologyLocationTrackSwitch, Double>? =
     if (reference != null && topologyMatch != null && !ownSwitches.contains(topologyMatch.switchId)) {
         val distance = lineLength(target, reference)

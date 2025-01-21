@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.integration.SwitchJointChange
@@ -21,9 +22,9 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
@@ -60,19 +61,21 @@ constructor(
             .sortedBy { (switch, _) -> sortByDeletedStateFirst(switch.stateCategory) }
             .forEach { (layoutSwitch, changedJoints) ->
                 try {
-                    requireNotNull(layoutSwitch.externalId) { "OID required for switch, sw=${layoutSwitch.id}" }
-                        .let { oid -> ratkoClient.getSwitchAsset(RatkoOid<RatkoSwitchAsset>(oid)) }
-                        ?.also { existingRatkoSwitch ->
-                            updateSwitch(
-                                layoutBranch = layoutBranch,
-                                layoutSwitch = layoutSwitch,
-                                existingRatkoSwitch = existingRatkoSwitch,
-                                jointChanges = changedJoints,
-                                moment = publicationTime,
-                            )
+                    val externalId =
+                        requireNotNull(switchDao.fetchExternalId(layoutBranch, layoutSwitch.id as IntId)) {
+                            "OID required for switch, sw=${layoutSwitch.id}"
                         }
+                    ratkoClient.getSwitchAsset(RatkoOid<RatkoSwitchAsset>(externalId))?.also { existingRatkoSwitch ->
+                        updateSwitch(
+                            layoutBranch = layoutBranch,
+                            layoutSwitch = layoutSwitch,
+                            existingRatkoSwitch = existingRatkoSwitch,
+                            jointChanges = changedJoints,
+                            moment = publicationTime,
+                        )
+                    }
                         ?: if (layoutSwitch.stateCategory == LayoutStateCategory.EXISTING) {
-                            createSwitch(layoutSwitch, changedJoints)
+                            createSwitch(layoutSwitch, externalId, changedJoints)
                         } else {
                             null
                         }
@@ -84,15 +87,16 @@ constructor(
 
     private fun updateSwitch(
         layoutBranch: LayoutBranch,
-        layoutSwitch: TrackLayoutSwitch,
+        layoutSwitch: LayoutSwitch,
         existingRatkoSwitch: RatkoSwitchAsset,
         jointChanges: List<SwitchJointChange>,
         moment: Instant,
     ) {
         try {
             require(layoutSwitch.id is IntId) { "Cannot push draft switches to Ratko, $layoutSwitch" }
-            requireNotNull(layoutSwitch.externalId) { "Cannot update switch without oid, id=${layoutSwitch.id}" }
-            val switchOid = RatkoOid<RatkoSwitchAsset>(layoutSwitch.externalId)
+            val externalId = switchDao.fetchExternalId(layoutBranch, layoutSwitch.id)
+            requireNotNull(externalId) { "Cannot update switch without oid, id=${layoutSwitch.id}" }
+            val switchOid = RatkoOid<RatkoSwitchAsset>(externalId)
 
             val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
             val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
@@ -100,6 +104,7 @@ constructor(
             val updatedRatkoSwitch =
                 convertToRatkoSwitch(
                     layoutSwitch = layoutSwitch,
+                    layoutSwitchOid = externalId,
                     switchStructure = switchStructure,
                     switchOwner = switchOwner,
                     existingRatkoSwitch = existingRatkoSwitch,
@@ -149,7 +154,7 @@ constructor(
 
     private fun getBaseRatkoSwitchLocations(
         layoutBranch: LayoutBranch,
-        switchId: IntId<TrackLayoutSwitch>,
+        switchId: IntId<LayoutSwitch>,
         existingRatkoLocations: List<RatkoAssetLocation>,
         jointChanges: Collection<SwitchJointChange>,
         switchStructure: SwitchStructure,
@@ -197,7 +202,7 @@ constructor(
     private fun updateSwitchGeoms(
         switchOid: RatkoOid<RatkoSwitchAsset>,
         switchBaseType: SwitchBaseType,
-        joints: Collection<TrackLayoutSwitchJoint>,
+        joints: Collection<LayoutSwitchJoint>,
     ) {
         val switchGeometries = convertToRatkoAssetGeometries(joints, switchBaseType)
         ratkoClient.replaceAssetGeoms(switchOid, switchGeometries)
@@ -241,7 +246,11 @@ constructor(
         }
     }
 
-    private fun createSwitch(layoutSwitch: TrackLayoutSwitch, jointChanges: List<SwitchJointChange>) {
+    private fun createSwitch(
+        layoutSwitch: LayoutSwitch,
+        layoutSwitchOid: Oid<LayoutSwitch>?,
+        jointChanges: List<SwitchJointChange>,
+    ) {
         try {
             val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
             val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
@@ -249,6 +258,7 @@ constructor(
             val ratkoSwitch =
                 convertToRatkoSwitch(
                     layoutSwitch = layoutSwitch,
+                    layoutSwitchOid = layoutSwitchOid,
                     switchStructure = switchStructure,
                     switchOwner = switchOwner,
                 )

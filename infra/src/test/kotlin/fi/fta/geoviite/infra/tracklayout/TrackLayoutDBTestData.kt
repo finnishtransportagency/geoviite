@@ -9,9 +9,12 @@ import fi.fta.geoviite.infra.math.IPoint3DM
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
 
-fun moveKmPostLocation(kmPost: TrackLayoutKmPost, layoutLocation: Point, kmPostService: LayoutKmPostService) {
+fun moveKmPostLocation(kmPost: LayoutKmPost, layoutLocation: Point, kmPostService: LayoutKmPostService) {
     val gkPoint = transformFromLayoutToGKCoordinate(layoutLocation)
-    kmPostService.saveDraft(LayoutBranch.main, kmPost.copy(gkLocation = kmPost.gkLocation?.copy(location = gkPoint)))
+    kmPostService.saveDraft(
+        kmPost.layoutContext.branch,
+        kmPost.copy(gkLocation = kmPost.gkLocation?.copy(location = gkPoint)),
+    )
 }
 
 fun moveLocationTrackGeometryPointsAndUpdate(
@@ -24,7 +27,7 @@ fun moveLocationTrackGeometryPointsAndUpdate(
 fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService,
 ) =
@@ -50,7 +53,7 @@ fun removeTopologySwitchesFromLocationTrackAndUpdate(
 fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService,
 ): LayoutRowVersion<LocationTrack> =
@@ -89,11 +92,8 @@ fun moveAlignmentPoints(alignment: LayoutAlignment, moveFunc: (point: IPoint3DM)
     )
 }
 
-fun moveSwitchPoints(
-    switch: TrackLayoutSwitch,
-    moveFunc: (point: IPoint) -> IPoint,
-    switchService: LayoutSwitchService,
-) = switchService.saveDraft(LayoutBranch.main, moveSwitchPoints(switch, moveFunc))
+fun moveSwitchPoints(switch: LayoutSwitch, moveFunc: (point: IPoint) -> IPoint, switchService: LayoutSwitchService) =
+    switchService.saveDraft(LayoutBranch.main, moveSwitchPoints(switch, moveFunc))
 
-fun moveSwitchPoints(switch: TrackLayoutSwitch, moveFunc: (point: IPoint) -> IPoint) =
+fun moveSwitchPoints(switch: LayoutSwitch, moveFunc: (point: IPoint) -> IPoint) =
     switch.copy(joints = switch.joints.map { joint -> joint.copy(location = Point(moveFunc(joint.location))) })

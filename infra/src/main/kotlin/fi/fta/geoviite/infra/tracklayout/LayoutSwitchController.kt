@@ -3,15 +3,18 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.switches.SwitchOidPresence
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationValidationService
@@ -36,7 +39,7 @@ class LayoutSwitchController(
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}")
-    fun getTrackLayoutSwitches(
+    fun getSwitches(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox?,
@@ -48,7 +51,7 @@ class LayoutSwitchController(
         @RequestParam("switchType") switchType: String?,
         @RequestParam("includeSwitchesWithNoJoints") includeSwitchesWithNoJoints: Boolean = false,
         @RequestParam("includeDeleted") includeDeleted: Boolean = false,
-    ): List<TrackLayoutSwitch> {
+    ): List<LayoutSwitch> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         val filter = switchFilter(namePart, exactName, switchType, bbox, includeSwitchesWithNoJoints)
         val switches = switchService.listWithStructure(layoutContext, includeDeleted).filter(filter)
@@ -57,22 +60,22 @@ class LayoutSwitchController(
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/{id}")
-    fun getTrackLayoutSwitch(
+    fun getSwitch(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<TrackLayoutSwitch>,
-    ): ResponseEntity<TrackLayoutSwitch> {
+        @PathVariable("id") id: IntId<LayoutSwitch>,
+    ): ResponseEntity<LayoutSwitch> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return toResponse(switchService.get(layoutContext, id))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}", params = ["ids"])
-    fun getTrackLayoutSwitches(
+    fun getSwitches(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("ids", required = true) ids: List<IntId<TrackLayoutSwitch>>,
-    ): List<TrackLayoutSwitch> {
+        @RequestParam("ids", required = true) ids: List<IntId<LayoutSwitch>>,
+    ): List<LayoutSwitch> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return switchService.getMany(layoutContext, ids)
     }
@@ -82,8 +85,8 @@ class LayoutSwitchController(
     fun getSwitchJointConnections(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<TrackLayoutSwitch>,
-    ): List<TrackLayoutSwitchJointConnection> {
+        @PathVariable("id") id: IntId<LayoutSwitch>,
+    ): List<LayoutSwitchJointConnection> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return switchService.getSwitchJointConnections(layoutContext, id)
     }
@@ -93,9 +96,9 @@ class LayoutSwitchController(
     fun validateSwitches(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("ids") ids: List<IntId<TrackLayoutSwitch>>?,
+        @RequestParam("ids") ids: List<IntId<LayoutSwitch>>?,
         @RequestParam("bbox") bbox: BoundingBox?,
-    ): List<ValidatedAsset<TrackLayoutSwitch>> {
+    ): List<ValidatedAsset<LayoutSwitch>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         val switches =
             if (ids != null) {
@@ -113,10 +116,10 @@ class LayoutSwitchController(
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/{${LAYOUT_BRANCH}}/draft")
-    fun insertTrackLayoutSwitch(
+    fun insertSwitch(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @RequestBody request: TrackLayoutSwitchSaveRequest,
-    ): IntId<TrackLayoutSwitch> {
+        @RequestBody request: LayoutSwitchSaveRequest,
+    ): IntId<LayoutSwitch> {
         return switchService.insertSwitch(branch, request)
     }
 
@@ -124,9 +127,9 @@ class LayoutSwitchController(
     @PutMapping("/{${LAYOUT_BRANCH}}/draft/{id}")
     fun updateSwitch(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
-        @RequestBody switch: TrackLayoutSwitchSaveRequest,
-    ): IntId<TrackLayoutSwitch> {
+        @PathVariable("id") switchId: IntId<LayoutSwitch>,
+        @RequestBody switch: LayoutSwitchSaveRequest,
+    ): IntId<LayoutSwitch> {
         return switchService.updateSwitch(branch, switchId, switch)
     }
 
@@ -134,8 +137,8 @@ class LayoutSwitchController(
     @DeleteMapping("/{${LAYOUT_BRANCH}}/draft/{id}")
     fun deleteDraftSwitch(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
-    ): IntId<TrackLayoutSwitch> {
+        @PathVariable("id") switchId: IntId<LayoutSwitch>,
+    ): IntId<LayoutSwitch> {
         return switchService.deleteDraft(branch, switchId).id
     }
 
@@ -143,17 +146,28 @@ class LayoutSwitchController(
     @PostMapping("/{$LAYOUT_BRANCH}/{id}/cancel")
     fun cancelSwitch(
         @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
-        @PathVariable("id") id: IntId<TrackLayoutSwitch>,
-    ): ResponseEntity<IntId<TrackLayoutSwitch>> = toResponse(switchService.cancel(branch, id)?.id)
+        @PathVariable("id") id: IntId<LayoutSwitch>,
+    ): ResponseEntity<IntId<LayoutSwitch>> = toResponse(switchService.cancel(branch, id)?.id)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/{id}/change-info")
     fun getSwitchChangeInfo(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
+        @PathVariable("id") switchId: IntId<LayoutSwitch>,
     ): ResponseEntity<LayoutAssetChangeInfo> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return toResponse(switchService.getLayoutAssetChangeInfo(layoutContext, switchId))
     }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/{id}/oids")
+    fun getSwitchOids(@PathVariable("id") id: IntId<LayoutSwitch>): Map<LayoutBranch, Oid<LayoutSwitch>> {
+        return switchService.getExternalIdsByBranch(id)
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/oid_presence/{oid}")
+    fun getSwitchOidPresence(@PathVariable("oid") oid: Oid<LayoutSwitch>): SwitchOidPresence =
+        switchService.checkOidPresence(oid)
 }

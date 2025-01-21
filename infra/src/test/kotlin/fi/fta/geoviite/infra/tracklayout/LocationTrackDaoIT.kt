@@ -93,30 +93,26 @@ constructor(
 
         // If the OID is already in use, remove it
         transactional {
-            val deleteSql = "delete from layout.location_track where external_id = :external_id"
+            val deleteSql = "delete from layout.location_track_external_id where external_id = :external_id"
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion1 = alignmentDao.insert(alignment())
         val locationTrack1 =
-            locationTrack(
-                trackNumberId = trackNumberId,
-                externalId = oid,
-                alignmentVersion = alignmentVersion1,
-                draft = false,
-            )
+            locationTrackDao
+                .save(locationTrack(trackNumberId = trackNumberId, alignmentVersion = alignmentVersion1, draft = false))
+                .id
         val alignmentVersion2 = alignmentDao.insert(alignment())
         val locationTrack2 =
-            locationTrack(
-                trackNumberId = trackNumberId,
-                externalId = oid,
-                alignmentVersion = alignmentVersion2,
-                draft = false,
-            )
+            locationTrackDao
+                .save(locationTrack(trackNumberId = trackNumberId, alignmentVersion = alignmentVersion2, draft = false))
+                .id
 
-        locationTrackDao.save(locationTrack1)
-        assertThrows<DuplicateKeyException> { locationTrackDao.save(locationTrack2) }
+        locationTrackDao.insertExternalId(locationTrack1, LayoutBranch.main, oid)
+        assertThrows<DuplicateKeyException> {
+            locationTrackDao.insertExternalId(locationTrack2, LayoutBranch.main, oid)
+        }
     }
 
     @Test
@@ -703,7 +699,7 @@ constructor(
 
     private fun getTrackNameSetByLayoutContextAndTrackNumber(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): Set<String> {
         val names =
             locationTrackDao.list(layoutContext, includeDeleted = false, trackNumberId = trackNumberId).map {
@@ -714,14 +710,14 @@ constructor(
         return nameSet
     }
 
-    private fun insertOfficialLocationTrack(tnId: IntId<TrackLayoutTrackNumber>): LayoutRowVersion<LocationTrack> {
+    private fun insertOfficialLocationTrack(tnId: IntId<LayoutTrackNumber>): LayoutRowVersion<LocationTrack> {
         val (track, alignment) = locationTrackAndAlignment(tnId, draft = false)
         val alignmentVersion = alignmentDao.insert(alignment)
         return locationTrackDao.save(track.copy(alignmentVersion = alignmentVersion))
     }
 
     private fun insertDraftLocationTrack(
-        tnId: IntId<TrackLayoutTrackNumber>,
+        tnId: IntId<LayoutTrackNumber>,
         state: LocationTrackState = LocationTrackState.IN_USE,
     ): LayoutRowVersion<LocationTrack> {
         val (track, alignment) = locationTrackAndAlignment(trackNumberId = tnId, state = state, draft = true)
@@ -731,7 +727,7 @@ constructor(
 
     private fun createDraftWithNewTrackNumber(
         trackVersion: LayoutRowVersion<LocationTrack>,
-        newTrackNumber: IntId<TrackLayoutTrackNumber>,
+        newTrackNumber: IntId<LayoutTrackNumber>,
     ): LayoutRowVersion<LocationTrack> {
         val track = locationTrackDao.fetch(trackVersion)
         assertFalse(track.isDraft)

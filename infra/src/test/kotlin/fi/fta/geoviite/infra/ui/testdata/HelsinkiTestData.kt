@@ -1,11 +1,39 @@
 package fi.fta.geoviite.infra.ui.testdata
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.geometry.GeometryKmPost
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
+import fi.fta.geoviite.infra.geometry.PlanName
+import fi.fta.geoviite.infra.geometry.PlanPhase
+import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.geometry.PlanState
+import fi.fta.geoviite.infra.geometry.application
+import fi.fta.geoviite.infra.geometry.geometryLine
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
@@ -46,6 +74,7 @@ class HelsinkiTestData private constructor() {
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = null,
                 uploadTime = Instant.now(),
+                name = PlanName("ratapiha"),
             )
         }
 
@@ -80,7 +109,7 @@ class HelsinkiTestData private constructor() {
         }
 
         fun westMainLocationTrack(
-            trackNumber: IntId<TrackLayoutTrackNumber>,
+            trackNumber: IntId<LayoutTrackNumber>,
             draft: Boolean = false,
         ): Pair<LocationTrack, LayoutAlignment> {
             return locationTrack(
@@ -93,7 +122,7 @@ class HelsinkiTestData private constructor() {
         }
 
         fun westReferenceLine(
-            trackNumber: IntId<TrackLayoutTrackNumber>,
+            trackNumber: IntId<LayoutTrackNumber>,
             draft: Boolean = false,
         ): Pair<ReferenceLine, LayoutAlignment> {
             val points =
@@ -111,7 +140,7 @@ class HelsinkiTestData private constructor() {
             ) to alignment
         }
 
-        fun eastReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
+        fun eastReferenceLine(trackNumber: IntId<LayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
             val points =
                 toSegmentPoints(
                     Point(x = HKI_BASE_POINT_X + 675.00, y = HKI_BASE_POINT_Y + 410.00), // etelä
@@ -127,7 +156,7 @@ class HelsinkiTestData private constructor() {
             ) to alignment
         }
 
-        fun eastLocationTrack(trackNumberId: IntId<TrackLayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> {
+        fun eastLocationTrack(trackNumberId: IntId<LayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> {
             return locationTrack(
                 name = "east",
                 trackNumber = trackNumberId,
@@ -137,7 +166,7 @@ class HelsinkiTestData private constructor() {
             )
         }
 
-        fun westTrackLayoutKmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
+        fun westLayoutKmPosts(trackNumberId: IntId<LayoutTrackNumber>): List<LayoutKmPost> {
             val point1 = HKI_BASE_POINT + Point(x = 690.00, y = 410.00)
             val point2 = HKI_BASE_POINT + Point(x = 690.00, y = 485.00)
             val point3 = HKI_BASE_POINT + Point(x = 690.00, y = 560.00)
@@ -164,7 +193,7 @@ class HelsinkiTestData private constructor() {
             )
         }
 
-        fun eastTrackLayoutKmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
+        fun eastLayoutKmPosts(trackNumberId: IntId<LayoutTrackNumber>): List<LayoutKmPost> {
             val point1 = HKI_BASE_POINT + Point(x = 752.00, y = 410.00)
             val point2 = HKI_BASE_POINT + Point(x = 752.00, y = 485.00)
             val point3 = HKI_BASE_POINT + Point(x = 752.00, y = 560.00)
@@ -191,14 +220,14 @@ class HelsinkiTestData private constructor() {
             )
         }
 
-        fun westTrackLayoutSwitch(): TrackLayoutSwitch {
+        fun westLayoutSwitch(): LayoutSwitch {
             val location = HKI_BASE_POINT + Point(x = 690.00, y = 450.00)
-            return trackLayoutSwitch("west-switch", listOf(location), switchStructureYV60_300_1_9())
+            return layoutSwitch("west-switch", listOf(location), switchStructureYV60_300_1_9())
         }
 
-        fun eastTrackLayoutSwitch(): TrackLayoutSwitch {
+        fun eastLayoutSwitch(): LayoutSwitch {
             val location = HKI_BASE_POINT + Point(x = 752.00, y = 500.00)
-            return trackLayoutSwitch("east-switch", listOf(location), switchStructureYV60_300_1_9())
+            return layoutSwitch("east-switch", listOf(location), switchStructureYV60_300_1_9())
         }
     }
 }

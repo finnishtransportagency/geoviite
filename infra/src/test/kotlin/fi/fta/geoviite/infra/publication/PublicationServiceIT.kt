@@ -32,12 +32,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetService
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -48,9 +51,6 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.StoredAssetId
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asDesignDraft
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
@@ -184,7 +184,7 @@ constructor(
         assertCandidatesContainCorrectVersions(candidates.kmPosts, kmPost)
     }
 
-    private fun <T> assertCandidatesContainCorrectVersions(
+    private fun <T : LayoutAsset<T>> assertCandidatesContainCorrectVersions(
         candidates: List<PublicationCandidate<T>>,
         vararg responses: LayoutRowVersion<T>,
     ) {
@@ -702,6 +702,7 @@ constructor(
                             versions,
                             publicationTestSupportService.getCalculatedChangesInRequest(versions),
                             FreeTextWithNewLines.of(""),
+                            PublicationCause.MANUAL,
                         )
                         .publicationId
                 }
@@ -835,13 +836,7 @@ constructor(
         referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = someAlignment, draft = true)).id
 
         val lt1 =
-            locationTrack(
-                trackNumberId = trackNumberId,
-                name = "LT1",
-                alignmentVersion = someAlignment,
-                externalId = null,
-                draft = false,
-            )
+            locationTrack(trackNumberId = trackNumberId, name = "LT1", alignmentVersion = someAlignment, draft = false)
         val lt1OriginalVersion = locationTrackDao.save(lt1)
         val lt1RenamedDraft =
             locationTrackDao.save(
@@ -849,13 +844,7 @@ constructor(
             )
 
         val lt2 =
-            locationTrack(
-                trackNumberId = trackNumberId,
-                name = "LT2",
-                alignmentVersion = someAlignment,
-                externalId = null,
-                draft = false,
-            )
+            locationTrack(trackNumberId = trackNumberId, name = "LT2", alignmentVersion = someAlignment, draft = false)
         val lt2OriginalVersion = locationTrackDao.save(lt2)
         val lt2RenamedDraft =
             locationTrackDao.save(
@@ -1571,7 +1560,7 @@ constructor(
         val sourceLocationTrackId: IntId<LocationTrack>,
         val allLocationTrackIds: List<IntId<LocationTrack>>,
         val duplicateLocationTrackIds: List<IntId<LocationTrack>>,
-        val switchIds: List<IntId<TrackLayoutSwitch>>,
+        val switchIds: List<IntId<LayoutSwitch>>,
     )
 
     private fun insertPublicationGroupTestData(): PublicationGroupTestData {
@@ -1621,11 +1610,11 @@ constructor(
 }
 
 fun publicationRequestIds(
-    trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
+    trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
     locationTracks: List<IntId<LocationTrack>> = listOf(),
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
-    switches: List<IntId<TrackLayoutSwitch>> = listOf(),
-    kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
+    switches: List<IntId<LayoutSwitch>> = listOf(),
+    kmPosts: List<IntId<LayoutKmPost>> = listOf(),
 ): PublicationRequestIds = PublicationRequestIds(trackNumbers, locationTracks, referenceLines, switches, kmPosts)
 
 private fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublishingWorks(

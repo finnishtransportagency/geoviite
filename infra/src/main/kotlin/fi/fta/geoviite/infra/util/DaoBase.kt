@@ -120,11 +120,14 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
         return jdbcTemplate.query(table.rowVersionsSql, mapOf<String, Any>(), ::toRowVersion)
     }
 
-    protected fun fetchLatestChangeTime(table: DbTable): Instant {
-        return jdbcTemplate
-            .query(table.changeTimeSql, mapOf<String, Any>()) { rs, _ -> rs.getInstantOrNull("change_time") }
+    protected fun fetchLatestChangeTimeFromTable(table: String): Instant =
+        jdbcTemplate
+            .query("select max(change_time) change_time from $table", mapOf<String, Any>()) { rs, _ ->
+                rs.getInstantOrNull("change_time")
+            }
             .firstOrNull() ?: Instant.EPOCH
-    }
+
+    protected fun fetchLatestChangeTime(table: DbTable): Instant = fetchLatestChangeTimeFromTable(table.versionTable)
 
     protected fun <T> createListString(items: List<T>, mapping: (t: T) -> Double?) =
         when {

@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationGroup
+import fi.fta.geoviite.infra.ratko.FakeRatko
 import fi.fta.geoviite.infra.ratko.FakeRatkoService
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
@@ -22,6 +23,8 @@ import getElementWhenExists
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -37,6 +40,19 @@ constructor(
     private val splitTestDataService: SplitTestDataService,
     private val fakeRatkoService: FakeRatkoService,
 ) : SeleniumTest() {
+
+    lateinit var fakeRatko: FakeRatko
+
+    @BeforeEach
+    fun startServer() {
+        fakeRatko = fakeRatkoService.start()
+        fakeRatko.isOnline()
+    }
+
+    @AfterEach
+    fun stopServer() {
+        fakeRatko.stop()
+    }
 
     @Test
     fun `Split can be created and published`() {
@@ -70,9 +86,6 @@ constructor(
         val sourceTrackName = locationTrackService.get(MainLayoutContext.official, sourceTrackId)!!.name.toString()
         splitTestDataService.insertAsTrack(trackNumberId = trackNumberId, segments = turningSegments1)
         splitTestDataService.insertAsTrack(trackNumberId = trackNumberId, segments = turningSegments2)
-
-        val fakeRatko = fakeRatkoService.start()
-        fakeRatko.isOnline()
 
         startGeoviite()
 
@@ -143,8 +156,6 @@ constructor(
             getElementWhenExists(byQaId("start-splitting")).isEnabled,
             "splitting a target track again should be possible after setting the bulk transfer to be completed",
         )
-
-        fakeRatko.stop()
     }
 }
 

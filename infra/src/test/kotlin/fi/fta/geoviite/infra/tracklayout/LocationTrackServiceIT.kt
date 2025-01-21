@@ -199,16 +199,11 @@ constructor(
         val id = locationTrackService.insert(LayoutBranch.main, insertRequest).id
         val locationTrack = locationTrackService.get(MainLayoutContext.draft, id)!!
 
-        assertNull(locationTrack.externalId)
+        assertNull(locationTrackDao.fetchExternalId(LayoutBranch.main, id))
 
-        locationTrackService.updateExternalId(
-            LayoutBranch.main,
-            locationTrack.id as IntId,
-            externalIdForLocationTrack(),
-        )
+        locationTrackService.insertExternalId(LayoutBranch.main, id, externalIdForLocationTrack())
 
-        val updatedLocationTrack = locationTrackService.get(MainLayoutContext.draft, id)!!
-        assertNotNull(updatedLocationTrack.externalId)
+        assertNotNull(locationTrackDao.fetchExternalId(LayoutBranch.main, id))
     }
 
     @Test
@@ -591,7 +586,7 @@ constructor(
                     switch(
                         joints =
                             listOf(
-                                TrackLayoutSwitchJoint(
+                                LayoutSwitchJoint(
                                     JointNumber(1),
                                     Point(100.0, 0.0),
                                     LocationAccuracy.DIGITIZED_AERIAL_IMAGE,
@@ -719,7 +714,7 @@ constructor(
         assertEquals(listOf("track 1 V123 - V456", "track 2 V456 - Puskin"), descriptions)
     }
 
-    private fun insertAndFetchDraft(switch: TrackLayoutSwitch): TrackLayoutSwitch =
+    private fun insertAndFetchDraft(switch: LayoutSwitch): LayoutSwitch =
         switchDao.fetch(switchService.saveDraft(LayoutBranch.main, switch))
 
     private fun insertAndFetchDraft(
@@ -737,7 +732,7 @@ constructor(
     }
 
     private fun createAndVerifyTrack(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         seed: Int,
     ): Pair<LayoutRowVersion<LocationTrack>, LocationTrack> {
         val insertRequest = saveRequest(trackNumberId, seed)
@@ -797,7 +792,7 @@ constructor(
         assertEquals(saveRequest.ownerId, locationTrack.ownerId)
     }
 
-    private fun saveRequest(trackNumberId: IntId<TrackLayoutTrackNumber>, seed: Int) =
+    private fun saveRequest(trackNumberId: IntId<LayoutTrackNumber>, seed: Int) =
         LocationTrackSaveRequest(
             name = AlignmentName("TST-TRACK$seed"),
             descriptionBase = LocationTrackDescriptionBase("Description - $seed"),

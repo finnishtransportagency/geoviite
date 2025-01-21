@@ -16,9 +16,12 @@ import org.springframework.web.bind.annotation.GetMapping
 
 data class CollectedChangeTimes(
     val layoutTrackNumber: Instant,
+    val layoutTrackNumberExtId: Instant,
     val layoutLocationTrack: Instant,
+    val layoutLocationTrackExtId: Instant,
     val layoutReferenceLine: Instant,
     val layoutSwitch: Instant,
+    val layoutSwitchExtId: Instant,
     val layoutKmPost: Instant,
     val geometryPlan: Instant,
     val project: Instant,
@@ -53,10 +56,13 @@ class ChangeTimeController(
     fun getCollectedChangeTimes(): CollectedChangeTimes {
         return CollectedChangeTimes(
             layoutTrackNumber = trackNumberService.getChangeTime(),
+            layoutTrackNumberExtId = trackNumberService.getExternalIdChangeTime(),
             layoutLocationTrack = locationTrackService.getChangeTime(),
+            layoutLocationTrackExtId = locationTrackService.getExternalIdChangeTime(),
             layoutReferenceLine = referenceLineService.getChangeTime(),
             layoutKmPost = kmPostService.getChangeTime(),
             layoutSwitch = switchService.getChangeTime(),
+            layoutSwitchExtId = switchService.getExternalIdChangeTime(),
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
             project = geometryService.getProjectChangeTime(),
             author = geometryService.getAuthorChangeTime(),
@@ -71,31 +77,31 @@ class ChangeTimeController(
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/track-numbers")
-    fun getTrackLayoutTrackNumberChangeTime(): Instant {
+    fun getLayoutTrackNumberChangeTime(): Instant {
         return trackNumberService.getChangeTime()
     }
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/location-tracks")
-    fun getTrackLayoutLocationTrackChangeTime(): Instant {
+    fun getLayoutLocationTrackChangeTime(): Instant {
         return locationTrackService.getChangeTime()
     }
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/reference-lines")
-    fun getTrackLayoutReferenceLineChangeTime(): Instant {
+    fun getLayoutReferenceLineChangeTime(): Instant {
         return referenceLineService.getChangeTime()
     }
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/switches")
-    fun getTrackLayoutSwitchChangeTime(): Instant {
+    fun getLayoutSwitchChangeTime(): Instant {
         return switchService.getChangeTime()
     }
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/km-posts")
-    fun getTrackLayoutKmPostChangeTime(): Instant {
+    fun getLayoutKmPostChangeTime(): Instant {
         return kmPostService.getChangeTime()
     }
 

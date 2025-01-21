@@ -228,7 +228,7 @@ constructor(
     }
 
     private fun publishAndVerify(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         referenceLineId: IntId<ReferenceLine>,
     ): Pair<LayoutRowVersion<ReferenceLine>, ReferenceLine> {
         val (draft, draftAlignment) =

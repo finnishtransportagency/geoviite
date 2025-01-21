@@ -6,12 +6,12 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.time.Instant
 import kotlin.reflect.KClass
 
@@ -23,21 +23,20 @@ class LazyMap<K, V>(private val compute: (K) -> V) {
 
 class ChangeContext(
     private val geocodingService: GeocodingService,
-    val trackNumbers: TypedChangeContext<TrackLayoutTrackNumber>,
+    val trackNumbers: TypedChangeContext<LayoutTrackNumber>,
     val referenceLines: TypedChangeContext<ReferenceLine>,
-    val kmPosts: TypedChangeContext<TrackLayoutKmPost>,
+    val kmPosts: TypedChangeContext<LayoutKmPost>,
     val locationTracks: TypedChangeContext<LocationTrack>,
-    val switches: TypedChangeContext<TrackLayoutSwitch>,
-    val geocodingKeysBefore: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
-    val geocodingKeysAfter: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
-    val getTrackNumberTracksBefore:
-        (trackNumberId: IntId<TrackLayoutTrackNumber>) -> List<LayoutRowVersion<LocationTrack>>,
+    val switches: TypedChangeContext<LayoutSwitch>,
+    val geocodingKeysBefore: LazyMap<IntId<LayoutTrackNumber>, GeocodingContextCacheKey?>,
+    val geocodingKeysAfter: LazyMap<IntId<LayoutTrackNumber>, GeocodingContextCacheKey?>,
+    val getTrackNumberTracksBefore: (trackNumberId: IntId<LayoutTrackNumber>) -> List<LayoutRowVersion<LocationTrack>>,
 ) {
 
-    fun getGeocodingContextBefore(id: IntId<TrackLayoutTrackNumber>) =
+    fun getGeocodingContextBefore(id: IntId<LayoutTrackNumber>) =
         geocodingKeysBefore[id]?.let(geocodingService::getGeocodingContext)
 
-    fun getGeocodingContextAfter(id: IntId<TrackLayoutTrackNumber>) =
+    fun getGeocodingContextAfter(id: IntId<LayoutTrackNumber>) =
         geocodingKeysAfter[id]?.let(geocodingService::getGeocodingContext)
 }
 

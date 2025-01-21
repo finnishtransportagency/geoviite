@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -29,12 +30,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -90,6 +91,7 @@ constructor(
         val startSegment = segment(Point(0.0, 0.0), Point(5.0, 0.0))
         val endSegment = segment(Point(5.0, 0.0), Point(10.0, 0.0))
         val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment(startSegment, endSegment))
+        locationTrackDao.insertExternalId(sourceTrack.id, LayoutBranch.main, someOid())
 
         val draftSource =
             locationTrackDao.fetch(sourceTrack).copy(state = sourceLocationTrackState).let { d ->
@@ -106,7 +108,7 @@ constructor(
     fun saveSplit(
         sourceTrackVersion: LayoutRowVersion<LocationTrack>,
         targetTracks: List<Pair<IntId<LocationTrack>, IntRange>> = listOf(),
-        switches: List<IntId<TrackLayoutSwitch>> = listOf(),
+        switches: List<IntId<LayoutSwitch>> = listOf(),
     ): IntId<Split> {
         return splitDao.saveSplit(
             sourceTrackVersion,
@@ -175,6 +177,7 @@ constructor(
             versions,
             calculatedChanges,
             FreeTextWithNewLines.of("${this::class.simpleName}"),
+            PublicationCause.MANUAL,
         )
 }
 

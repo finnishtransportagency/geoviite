@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
+import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationValidationService
@@ -39,8 +39,8 @@ class LayoutKmPostController(
     fun getKmPost(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<TrackLayoutKmPost>,
-    ): ResponseEntity<TrackLayoutKmPost> {
+        @PathVariable("id") id: IntId<LayoutKmPost>,
+    ): ResponseEntity<LayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
         return toResponse(kmPostService.get(context, id))
     }
@@ -50,8 +50,8 @@ class LayoutKmPostController(
     fun getKmPosts(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("ids", required = true) ids: List<IntId<TrackLayoutKmPost>>,
-    ): List<TrackLayoutKmPost> {
+        @RequestParam("ids", required = true) ids: List<IntId<LayoutKmPost>>,
+    ): List<LayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
         return kmPostService.getMany(context, ids)
     }
@@ -61,8 +61,8 @@ class LayoutKmPostController(
     fun getKmPostsOnTrackNumber(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("trackNumberId") id: IntId<TrackLayoutTrackNumber>,
-    ): List<TrackLayoutKmPost> {
+        @PathVariable("trackNumberId") id: IntId<LayoutTrackNumber>,
+    ): List<LayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
         return kmPostService.list(context, id)
     }
@@ -74,7 +74,7 @@ class LayoutKmPostController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("step") step: Int,
-    ): List<TrackLayoutKmPost> {
+    ): List<LayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
         return kmPostService.list(context, bbox, step)
     }
@@ -84,11 +84,11 @@ class LayoutKmPostController(
     fun findKmPosts(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>?,
+        @RequestParam("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>?,
         @RequestParam("location") location: Point,
         @RequestParam("offset") offset: Int,
         @RequestParam("limit") limit: Int,
-    ): List<TrackLayoutKmPost> {
+    ): List<LayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
         return kmPostService.listNearbyOnTrackPaged(
             layoutContext = context,
@@ -104,10 +104,10 @@ class LayoutKmPostController(
     fun getKmPost(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
+        @RequestParam("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
         @RequestParam("kmNumber") kmNumber: KmNumber,
         @RequestParam("includeDeleted") includeDeleted: Boolean,
-    ): ResponseEntity<TrackLayoutKmPost> {
+    ): ResponseEntity<LayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
         return kmPostService.getByKmNumber(context, trackNumberId, kmNumber, includeDeleted).let(::toResponse)
     }
@@ -117,8 +117,8 @@ class LayoutKmPostController(
     fun validateKmPost(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<TrackLayoutKmPost>,
-    ): ResponseEntity<ValidatedAsset<TrackLayoutKmPost>> {
+        @PathVariable("id") id: IntId<LayoutKmPost>,
+    ): ResponseEntity<ValidatedAsset<LayoutKmPost>> {
         return publicationValidationService
             .validateKmPosts(draftTransitionOrOfficialState(publicationState, branch), listOf(id))
             .firstOrNull()
@@ -127,10 +127,10 @@ class LayoutKmPostController(
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/{$LAYOUT_BRANCH}/draft")
-    fun insertTrackLayoutKmPost(
+    fun insertKmPost(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @RequestBody request: TrackLayoutKmPostSaveRequest,
-    ): IntId<TrackLayoutKmPost> {
+        @RequestBody request: LayoutKmPostSaveRequest,
+    ): IntId<LayoutKmPost> {
         return kmPostService.insertKmPost(branch, request)
     }
 
@@ -138,9 +138,9 @@ class LayoutKmPostController(
     @PutMapping("/{$LAYOUT_BRANCH}/draft/{id}")
     fun updateKmPost(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
-        @RequestBody request: TrackLayoutKmPostSaveRequest,
-    ): IntId<TrackLayoutKmPost> {
+        @PathVariable("id") kmPostId: IntId<LayoutKmPost>,
+        @RequestBody request: LayoutKmPostSaveRequest,
+    ): IntId<LayoutKmPost> {
         return kmPostService.updateKmPost(branch, kmPostId, request)
     }
 
@@ -148,8 +148,8 @@ class LayoutKmPostController(
     @DeleteMapping("/{$LAYOUT_BRANCH}/draft/{id}")
     fun deleteDraftKmPost(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
-    ): IntId<TrackLayoutKmPost> {
+        @PathVariable("id") kmPostId: IntId<LayoutKmPost>,
+    ): IntId<LayoutKmPost> {
         return kmPostService.deleteDraft(branch, kmPostId).id
     }
 
@@ -157,14 +157,14 @@ class LayoutKmPostController(
     @PostMapping("/{$LAYOUT_BRANCH}/{id}/cancel")
     fun cancelKmPost(
         @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
-        @PathVariable("id") id: IntId<TrackLayoutKmPost>,
-    ): ResponseEntity<IntId<TrackLayoutKmPost>> = toResponse(kmPostService.cancel(branch, id)?.id)
+        @PathVariable("id") id: IntId<LayoutKmPost>,
+    ): ResponseEntity<IntId<LayoutKmPost>> = toResponse(kmPostService.cancel(branch, id)?.id)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/change-info")
     fun getKmPostChangeInfo(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
+        @PathVariable("id") kmPostId: IntId<LayoutKmPost>,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
     ): ResponseEntity<LayoutAssetChangeInfo> {
         val context = LayoutContext.of(branch, publicationState)
@@ -176,7 +176,7 @@ class LayoutKmPostController(
     fun getKmPostInfoboxExtras(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
+        @PathVariable("id") kmPostId: IntId<LayoutKmPost>,
     ): ResponseEntity<KmPostInfoboxExtras> {
         val context = LayoutContext.of(branch, publicationState)
         return toResponse(kmPostService.getKmPostInfoboxExtras(context, kmPostId))

@@ -8,6 +8,7 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { LayoutBranchType } from 'publication/publication-model';
+import { updateAllChangeTimes } from 'common/change-time-api';
 
 type RatkoPublishButtonProps = {
     size?: ButtonSize;
@@ -23,7 +24,9 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled,
         setShowingConfirmation(false);
         setIsPublishing(true);
         // TODO Catch cases where RatkoAPI is not online
-        pushToRatko(branchType).finally(() => setIsPublishing(false));
+        pushToRatko(branchType)
+            .then(() => updateAllChangeTimes())
+            .catch(() => setIsPublishing(false));
     };
 
     return (

@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublication
@@ -13,15 +14,20 @@ import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
+import fi.fta.geoviite.infra.integration.IndirectChanges
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.ratko.RatkoClient
+import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -30,8 +36,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.time.Instant
 import org.postgresql.util.PSQLException
@@ -61,6 +65,8 @@ constructor(
     private val transactionTemplate: TransactionTemplate,
     private val publicationGeometryChangeRemarksUpdateService: PublicationGeometryChangeRemarksUpdateService,
     private val splitService: SplitService,
+    private val publicationValidationService: PublicationValidationService,
+    private val layoutDesignDao: LayoutDesignDao,
 ) {
     @Transactional(readOnly = true)
     fun collectPublicationCandidates(transition: LayoutContextTransition): PublicationCandidates {
@@ -84,12 +90,7 @@ constructor(
         val added = segments.filter { s -> segments2.none { s2 -> s.geometry.id == s2.geometry.id } }
         val removed = segments2.filter { s -> segments.none { s2 -> s.geometry.id == s2.geometry.id } }
         val ranges = (added + removed).map { s -> Range(s.startM, s.endM) }
-        //        return ranges.reduce{acc, range ->
-        //            if (acc.overlaps(range))
-        //                acc.copy(max = range.max)
-        //            else
-        //                range
-        //        }
+
         return ranges.fold(listOf<Range<Double>>()) { list, r ->
             val previous = list.lastOrNull()
             if (previous?.overlaps(r) == true) {
@@ -98,8 +99,6 @@ constructor(
                 list + r
             }
         }
-        // ranges.reduce(mutableListOf<Range<Double>>()) {(list,r) -> }
-        //        return (added + removed).map { s -> Range(s.startM, s.endM) }
     }
 
     fun fetchChangedLocationTrackGeometryRanges(
@@ -136,7 +135,7 @@ constructor(
             referenceLineService.getMany(branch.draft, requestIds.referenceLines).map { rlId -> rlId.trackNumberId }
         val trackNumbers =
             trackNumberService.getMany(branch.draft, referenceLineTrackNumberIds + requestIds.trackNumbers)
-        val revertTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isDraft).map { it.id as IntId }
+        val revertTrackNumberIds = trackNumbers.filter(LayoutTrackNumber::isDraft).map { it.id as IntId }
         // If revert breaks other draft row references, they should be reverted too
         val draftOnlyTrackNumberIds =
             trackNumbers.filter { tn -> tn.isDraft && !tn.contextData.hasOfficial }.map { it.id as IntId }
@@ -207,19 +206,16 @@ constructor(
      * want to store it, even if the rest fail
      */
     fun updateExternalId(branch: LayoutBranch, request: PublicationRequestIds) {
-        val draftContext = branch.draft
         try {
             request.locationTracks
-                .filter { trackId -> locationTrackService.getOrThrow(draftContext, trackId).externalId == null }
-                .forEach { trackId -> updateExternalIdForLocationTrack(branch, trackId) }
+                .filter { trackId -> locationTrackDao.fetchExternalId(branch, trackId) == null }
+                .forEach { trackId -> insertExternalIdForLocationTrack(branch, trackId) }
             request.trackNumbers
-                .filter { trackNumberId ->
-                    trackNumberService.getOrThrow(draftContext, trackNumberId).externalId == null
-                }
-                .forEach { trackNumberId -> updateExternalIdForTrackNumber(branch, trackNumberId) }
+                .filter { trackNumberId -> trackNumberDao.fetchExternalId(branch, trackNumberId) == null }
+                .forEach { trackNumberId -> insertExternalIdForTrackNumber(branch, trackNumberId) }
             request.switches
-                .filter { switchId -> switchService.getOrThrow(draftContext, switchId).externalId == null }
-                .forEach { switchId -> updateExternalIdForSwitch(branch, switchId) }
+                .filter { switchId -> switchDao.fetchExternalId(branch, switchId) == null }
+                .forEach { switchId -> insertExternalIdForSwitch(branch, switchId) }
         } catch (e: Exception) {
             throw PublicationFailureException(
                 message = "Failed to update external IDs for publication candidates",
@@ -251,44 +247,148 @@ constructor(
         )
     }
 
-    private fun updateExternalIdForLocationTrack(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>) {
+    private fun insertExternalIdForLocationTrack(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>) {
         val locationTrackOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewLocationTrackOid()) { "No OID received from RATKO" } }
-        locationTrackOid?.let { oid -> locationTrackService.updateExternalId(branch, locationTrackId, Oid(oid.id)) }
+        locationTrackOid?.let { oid -> locationTrackService.insertExternalId(branch, locationTrackId, Oid(oid.id)) }
     }
 
-    private fun updateExternalIdForTrackNumber(branch: LayoutBranch, trackNumberId: IntId<TrackLayoutTrackNumber>) {
+    private fun insertExternalIdForTrackNumber(branch: LayoutBranch, trackNumberId: IntId<LayoutTrackNumber>) {
         val routeNumberOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewRouteNumberOid()) { "No OID received from RATKO" } }
-        routeNumberOid?.let { oid -> trackNumberService.updateExternalId(branch, trackNumberId, Oid(oid.id)) }
+        routeNumberOid?.let { oid -> trackNumberService.insertExternalId(branch, trackNumberId, Oid(oid.id)) }
     }
 
-    private fun updateExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<TrackLayoutSwitch>) {
-        val switchOid = ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()) { "No OID received from RATKO" } }
-        switchOid?.let { oid -> switchService.updateExternalIdForSwitch(branch, switchId, Oid(oid.id)) }
+    private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<LayoutSwitch>) {
+        val switchOid =
+            switchDao.get(branch.draft, switchId)?.draftOid?.also(::ensureDraftIdExists)?.toString()
+                ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()?.id) { "No OID received from RATKO" } }
+        switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(switchOid)) }
+    }
+
+    private fun ensureDraftIdExists(draftOid: Oid<LayoutSwitch>) {
+        requireNotNull(ratkoClient?.getSwitchAsset(RatkoOid(draftOid.toString()))) {
+            "OID $draftOid does not exist in Ratko"
+        }
     }
 
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =
         calculatedChangesService.getCalculatedChanges(versions)
+
+    fun publishManualPublication(branch: LayoutBranch, request: PublicationRequest): PublicationResult {
+        val versions = requireNotNull(transactionTemplate.execute { getValidationVersions(branch, request.content) })
+        publicationValidationService.validatePublicationRequest(versions)
+        val (inheritedPublications, inheritedChangeIds) =
+            if (branch is MainBranch) {
+                getInheritedDesignPublicationsFromMainPublication(versions, request) to PublicationRequestIds.empty()
+            } else {
+                listOf<PreparedPublicationRequest>() to getInheritedCalculatedChangeIds(versions)
+            }
+        updateExternalId(branch, request.content + inheritedChangeIds)
+        val calculatedChanges = calculatedChangesService.getCalculatedChanges(versions)
+        val mainPublication =
+            PreparedPublicationRequest(branch, versions, calculatedChanges, request.message, PublicationCause.MANUAL)
+        // publication results already only include direct changes, and all inherited changes are
+        // indirect, so all but the first publication result are empty -> can be thrown out
+        return publishPublicationRequests(listOf(mainPublication) + inheritedPublications).first()
+    }
 
     fun publishChanges(
         branch: LayoutBranch,
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
         message: FreeTextWithNewLines,
-    ): PublicationResult {
-        try {
-            val result =
+        cause: PublicationCause,
+    ): PublicationResult =
+        publishPublicationRequests(
+                listOf(PreparedPublicationRequest(branch, versions, calculatedChanges, message, cause))
+            )
+            .first()
+
+    fun publishPublicationRequests(publications: List<PreparedPublicationRequest>): List<PublicationResult> {
+        val results =
+            try {
                 requireNotNull(
                     transactionTemplate.execute {
-                        publishChangesTransaction(branch, versions, calculatedChanges, message)
+                        publications.map { publication ->
+                            publishChangesTransaction(
+                                publication.branch,
+                                publication.versions,
+                                publication.calculatedChanges,
+                                publication.message,
+                                publication.cause,
+                            )
+                        }
                     }
                 )
+            } catch (exception: DataIntegrityViolationException) {
+                enrichDuplicateNameExceptionOrRethrow(publications.map { it.branch }.distinct(), exception)
+            }
+        results.forEach { result ->
             result.publicationId?.let { publicationGeometryChangeRemarksUpdateService.processPublication(it) }
-            return result
-        } catch (exception: DataIntegrityViolationException) {
-            enrichDuplicateNameExceptionOrRethrow(branch, exception)
         }
+        return results
+    }
+
+    private fun getInheritedDesignPublicationsFromMainPublication(
+        versions: ValidationVersions,
+        request: PublicationRequest,
+    ): List<PreparedPublicationRequest> =
+        layoutDesignDao.list().mapNotNull { design ->
+            val inheritorBranch = DesignBranch.of(design.id as IntId)
+            val changesInheritedToDesign =
+                calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
+                    inheritorBranch,
+                    versions.trackNumbers,
+                    versions.referenceLines,
+                    versions.locationTracks,
+                    versions.switches,
+                    versions.kmPosts,
+                )
+
+            if (changesInheritedToDesign.isEmpty()) null
+            else
+                PreparedPublicationRequest(
+                    inheritorBranch,
+                    versions = getInheritedChangeVersions(inheritorBranch, changesInheritedToDesign),
+                    CalculatedChanges.onlyIndirect(changesInheritedToDesign),
+                    request.message,
+                    PublicationCause.CALCULATED_CHANGE,
+                )
+        }
+
+    private fun getInheritedChangeVersions(
+        inheritorBranch: DesignBranch,
+        changes: IndirectChanges,
+    ): ValidationVersions =
+        ValidationVersions(
+            ValidateTransition(InheritanceFromPublicationInMain(inheritorBranch)),
+            trackNumbers =
+                trackNumberDao
+                    .getMany(inheritorBranch.official, changes.trackNumberChanges.map { it.trackNumberId })
+                    .map { requireNotNull(it.version) },
+            referenceLines = listOf(),
+            locationTracks =
+                locationTrackDao
+                    .getMany(inheritorBranch.official, changes.locationTrackChanges.map { it.locationTrackId })
+                    .map { requireNotNull(it.version) },
+            switches =
+                switchDao.getMany(inheritorBranch.official, changes.switchChanges.map { it.switchId }).map {
+                    requireNotNull(it.version)
+                },
+            kmPosts = listOf(),
+            splits = listOf(),
+        )
+
+    fun getInheritedCalculatedChangeIds(versions: ValidationVersions): PublicationRequestIds {
+        val indirectChanges = calculatedChangesService.getCalculatedChanges(versions).indirectChanges
+        return PublicationRequestIds(
+            trackNumbers = indirectChanges.trackNumberChanges.map { it.trackNumberId },
+            referenceLines = listOf(),
+            locationTracks = indirectChanges.locationTrackChanges.map { it.locationTrackId },
+            switches = indirectChanges.switchChanges.map { it.switchId },
+            kmPosts = listOf(),
+        )
     }
 
     @Transactional
@@ -302,7 +402,7 @@ constructor(
                 request.kmPosts.forEach { id -> kmPostService.mergeToMainBranch(fromBranch, id) }
             }
         } catch (exception: DataIntegrityViolationException) {
-            enrichDuplicateNameExceptionOrRethrow(fromBranch, exception)
+            enrichDuplicateNameExceptionOrRethrow(listOf(fromBranch), exception)
         }
 
         return PublicationResult(
@@ -320,14 +420,19 @@ constructor(
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
         message: FreeTextWithNewLines,
+        cause: PublicationCause,
     ): PublicationResult {
         val trackNumbers = versions.trackNumbers.map { v -> trackNumberService.publish(branch, v) }
         val kmPosts = versions.kmPosts.map { v -> kmPostService.publish(branch, v) }
         val switches = versions.switches.map { v -> switchService.publish(branch, v) }
         val referenceLines = versions.referenceLines.map { v -> referenceLineService.publish(branch, v) }
         val locationTracks = versions.locationTracks.map { v -> locationTrackService.publish(branch, v) }
-        val publicationId = publicationDao.createPublication(branch, message)
-        publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
+        val publicationId = publicationDao.createPublication(branch, message, cause)
+        publicationDao.insertCalculatedChanges(
+            publicationId,
+            calculatedChanges,
+            PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts),
+        )
 
         splitService.publishSplit(versions.splits, locationTracks, publicationId)
 
@@ -342,7 +447,7 @@ constructor(
     }
 
     private fun enrichDuplicateNameExceptionOrRethrow(
-        branch: LayoutBranch,
+        possibleBranches: List<LayoutBranch>,
         exception: DataIntegrityViolationException,
     ): Nothing {
         val cause = exception.cause
@@ -357,14 +462,14 @@ constructor(
             "track_number_number_layout_context_unique" ->
                 maybeThrowDuplicateTrackNumberNumberException(detail, exception)
             "location_track_unique_official_name" ->
-                maybeThrowDuplicateLocationTrackNameException(branch, detail, exception)
+                maybeThrowDuplicateLocationTrackNameException(possibleBranches, detail, exception)
         }
         throw exception
     }
 
     private val duplicateLocationTrackErrorRegex =
         Regex(
-            """Key \(track_number_id, name, layout_context_id\)=\((\d+), ([^,]+), [^)]+\) conflicts with existing key"""
+            """Key \(track_number_id, name, layout_context_id\)=\((\d+), ([^,]+), ([^)]+)\) conflicts with existing key"""
         )
     private val duplicateTrackNumberErrorRegex =
         Regex("""Key \(number, layout_context_id\)=\(([^,]+), [^)]+\) already exists""")
@@ -372,16 +477,21 @@ constructor(
         Regex("""Key \(name, layout_context_id\)=\(([^,]+), [^)]+\) conflicts with existing key""")
 
     private fun maybeThrowDuplicateLocationTrackNameException(
-        branch: LayoutBranch,
+        possibleBranches: List<LayoutBranch>,
         detail: String,
         exception: DataIntegrityViolationException,
     ) {
         duplicateLocationTrackErrorRegex.matchAt(detail, 0)?.let { match ->
             val trackIdString = match.groups[1]?.value
             val nameString = match.groups[2]?.value
-            val trackId = IntId<TrackLayoutTrackNumber>(Integer.parseInt(trackIdString))
-            if (trackIdString != null && nameString != null) {
-                val trackNumberVersion = trackNumberDao.fetchVersion(branch.official, trackId)
+            val layoutContextIdString = match.groups[3]?.value
+            val trackId = IntId<LayoutTrackNumber>(Integer.parseInt(trackIdString))
+            if (trackIdString != null && nameString != null && layoutContextIdString != null) {
+                val branch =
+                    requireNotNull(
+                        possibleBranches.map { it.official }.find { it.toSqlString() == layoutContextIdString }
+                    )
+                val trackNumberVersion = trackNumberDao.fetchVersion(branch, trackId)
                 if (trackNumberVersion != null) {
                     val trackNumber = trackNumberDao.fetch(trackNumberVersion)
                     throw DuplicateLocationTrackNameInPublicationException(

@@ -5,12 +5,15 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationTarget
+import fi.fta.geoviite.infra.ratko.ExternalIdDao
+import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getEnum
@@ -20,7 +23,6 @@ import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getJointNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
-import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
@@ -43,6 +45,11 @@ class LocationTrackDao(
         LayoutAssetTable.LAYOUT_ASSET_LOCATION_TRACK,
         cacheEnabled,
         LOCATIONTRACK_CACHE_SIZE,
+    ),
+    IExternalIdDao<LocationTrack> by ExternalIdDao(
+        jdbcTemplateParam,
+        "layout.location_track_external_id",
+        "layout.location_track_external_id_version",
     ) {
 
     fun fetchDuplicateVersions(
@@ -117,7 +124,6 @@ class LocationTrackDao(
               ltv.alignment_id,
               ltv.alignment_version,
               ltv.track_number_id, 
-              ltv.external_id, 
               ltv.name, 
               ltv.description_base,
               ltv.description_suffix,
@@ -178,7 +184,6 @@ class LocationTrackDao(
               lt.alignment_id,
               lt.alignment_version,
               lt.track_number_id, 
-              lt.external_id, 
               lt.name, 
               lt.description_base,
               lt.description_suffix,
@@ -222,7 +227,6 @@ class LocationTrackDao(
         LocationTrack(
             alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
             sourceId = null,
-            externalId = rs.getOidOrNull("external_id"),
             trackNumberId = rs.getIntId("track_number_id"),
             name = rs.getString("name").let(::AlignmentName),
             descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),
@@ -236,11 +240,11 @@ class LocationTrackDao(
             topologicalConnectivity = rs.getEnum("topological_connectivity"),
             ownerId = rs.getIntId("owner_id"),
             topologyStartSwitch =
-                rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")?.let { id ->
+                rs.getIntIdOrNull<LayoutSwitch>("topology_start_switch_id")?.let { id ->
                     TopologyLocationTrackSwitch(id, rs.getJointNumber("topology_start_switch_joint_number"))
                 },
             topologyEndSwitch =
-                rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")?.let { id ->
+                rs.getIntIdOrNull<LayoutSwitch>("topology_end_switch_id")?.let { id ->
                     TopologyLocationTrackSwitch(id, rs.getJointNumber("topology_end_switch_joint_number"))
                 },
             segmentSwitchIds = rs.getIntIdArray("segment_switch_ids"),
@@ -266,7 +270,6 @@ class LocationTrackDao(
               layout_context_id,
               id,
               track_number_id,
-              external_id,
               alignment_id,
               alignment_version,
               name,
@@ -290,7 +293,6 @@ class LocationTrackDao(
               :layout_context_id,
               :id,
               :track_number_id,
-              :external_id,
               :alignment_id,
               :alignment_version,
               :name,
@@ -311,7 +313,6 @@ class LocationTrackDao(
               :origin_design_id
             ) on conflict (id, layout_context_id) do update set
               track_number_id = excluded.track_number_id,
-              external_id = excluded.external_id ,
               alignment_id = excluded.alignment_id,
               alignment_version = excluded.alignment_version,
               name = excluded.name,
@@ -336,7 +337,6 @@ class LocationTrackDao(
                 "layout_context_id" to item.layoutContext.toSqlString(),
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
-                "external_id" to item.externalId,
                 "alignment_id" to item.getAlignmentVersionOrThrow().id.intValue,
                 "alignment_version" to item.getAlignmentVersionOrThrow().version,
                 "name" to item.name,
@@ -372,14 +372,14 @@ class LocationTrackDao(
     fun list(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
     ): List<LocationTrack> = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).map(::fetch)
 
     fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
@@ -412,7 +412,7 @@ class LocationTrackDao(
         context: LayoutContext,
         bbox: BoundingBox,
         includeDeleted: Boolean = false,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
@@ -484,7 +484,7 @@ class LocationTrackDao(
     fun fetchOnlyDraftVersions(
         branch: LayoutBranch,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
@@ -511,9 +511,9 @@ class LocationTrackDao(
 
     fun fetchVersionsForPublication(
         target: ValidationTarget,
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
         trackIdsToPublish: List<IntId<LocationTrack>>,
-    ): Map<IntId<TrackLayoutTrackNumber>, List<LayoutRowVersion<LocationTrack>>> {
+    ): Map<IntId<LayoutTrackNumber>, List<LayoutRowVersion<LocationTrack>>> {
         if (trackNumberIds.isEmpty()) return emptyMap()
 
         val sql =
@@ -543,12 +543,18 @@ class LocationTrackDao(
             ) + target.sqlParameters()
         val versions =
             jdbcTemplate.query(sql, params) { rs, _ ->
-                val trackNumberId = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
+                val trackNumberId = rs.getIntId<LayoutTrackNumber>("track_number_id")
                 val daoResponse = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
                 trackNumberId to daoResponse
             }
         return trackNumberIds.associateWith { trackNumberId ->
             versions.filter { (tnId, _) -> tnId == trackNumberId }.map { (_, trackVersions) -> trackVersions }
         }
+    }
+
+    @Transactional
+    fun insertExternalId(id: IntId<LocationTrack>, branch: LayoutBranch, oid: Oid<LocationTrack>) {
+        jdbcTemplate.setUser()
+        insertExternalIdInExistingTransaction(branch, id, oid)
     }
 }

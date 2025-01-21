@@ -66,6 +66,8 @@ export const SelectionPanelContainer: React.FC = () => {
             mapLayoutMenu={state.map.layerMenu.layout}
             onMapLayerMenuItemChange={delegates.onLayerMenuItemChange}
             splittingState={state.splittingState}
+            grouping={state.geometryPlanViewSettings.grouping}
+            visibleSources={state.geometryPlanViewSettings.visibleSources}
         />
     );
 };

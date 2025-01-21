@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 import org.apache.commons.io.FileUtils
 import org.json.JSONObject
+import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.OutputType
 import org.openqa.selenium.TakesScreenshot
@@ -133,6 +134,9 @@ fun closeBrowser() = setBrowser { null }
 fun browser() = requireNotNull(webDriver.get()) { "Browser null: not initialized, or already destroyed." }
 
 fun javaScriptExecutor(): JavascriptExecutor = browser() as JavascriptExecutor
+
+fun scrollIntoView(by: By, alignToTop: Boolean) =
+    javaScriptExecutor().executeScript("arguments[0].scrollIntoView(arguments[1]);", browser().findElement(by))
 
 const val SCREENSHOTS_PATH = "build/reports/screenshots"
 

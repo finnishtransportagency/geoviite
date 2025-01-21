@@ -24,21 +24,21 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.FATAL
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
 import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivity
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import kotlin.math.PI
 
@@ -56,9 +56,9 @@ const val MAX_LAYOUT_METER_LENGTH = 2.0
 const val MAX_KM_POST_OFFSET = 10.0
 
 fun validateTrackNumberReferences(
-    trackNumber: TrackLayoutTrackNumber,
+    trackNumber: LayoutTrackNumber,
     referenceLine: ReferenceLine?,
-    kmPosts: List<TrackLayoutKmPost>,
+    kmPosts: List<LayoutKmPost>,
     locationTracks: List<LocationTrack>,
 ): List<LayoutValidationIssue> =
     listOfNotNull(
@@ -70,7 +70,7 @@ fun validateTrackNumberReferences(
                     localizationParams("locationTracks" to existingNames)
             }
         },
-        kmPosts.filter(TrackLayoutKmPost::exists).let { existingKmPosts ->
+        kmPosts.filter(LayoutKmPost::exists).let { existingKmPosts ->
             validateWithParams(trackNumber.exists || existingKmPosts.isEmpty()) {
                 val existingNames = existingKmPosts.joinToString(", ") { post -> post.kmNumber.toString() }
                 "$VALIDATION_TRACK_NUMBER.km-post.reference-deleted" to localizationParams("kmPosts" to existingNames)
@@ -79,8 +79,8 @@ fun validateTrackNumberReferences(
     )
 
 fun validateTrackNumberNumberDuplication(
-    trackNumber: TrackLayoutTrackNumber,
-    duplicates: List<TrackLayoutTrackNumber>,
+    trackNumber: LayoutTrackNumber,
+    duplicates: List<LayoutTrackNumber>,
     validationTargetType: ValidationTargetType,
 ): List<LayoutValidationIssue> {
     return if (trackNumber.exists) {
@@ -97,8 +97,8 @@ fun validateTrackNumberNumberDuplication(
 }
 
 fun validateKmPostReferences(
-    kmPost: TrackLayoutKmPost,
-    trackNumber: TrackLayoutTrackNumber?,
+    kmPost: LayoutKmPost,
+    trackNumber: LayoutTrackNumber?,
     referenceLine: ReferenceLine?,
     trackNumberNumber: TrackNumber?,
 ): List<LayoutValidationIssue> =
@@ -123,7 +123,7 @@ fun validateKmPostReferences(
     )
 
 fun validateSwitchLocationTrackLinkReferences(
-    switch: TrackLayoutSwitch,
+    switch: LayoutSwitch,
     locationTracks: List<LocationTrack>,
 ): List<LayoutValidationIssue> {
     return listOfNotNull(
@@ -137,7 +137,7 @@ fun validateSwitchLocationTrackLinkReferences(
     )
 }
 
-fun validateSwitchLocation(switch: TrackLayoutSwitch): List<LayoutValidationIssue> =
+fun validateSwitchLocation(switch: LayoutSwitch): List<LayoutValidationIssue> =
     listOfNotNull(validate(switch.joints.isNotEmpty()) { "$VALIDATION_SWITCH.no-location" })
 
 private fun validateNameDuplication(
@@ -159,8 +159,8 @@ private fun validateNameDuplication(
 }
 
 fun validateSwitchNameDuplication(
-    switch: TrackLayoutSwitch,
-    duplicates: List<TrackLayoutSwitch>,
+    switch: LayoutSwitch,
+    duplicates: List<LayoutSwitch>,
     validationTargetType: ValidationTargetType,
 ): List<LayoutValidationIssue> {
     return if (switch.exists) {
@@ -174,6 +174,12 @@ fun validateSwitchNameDuplication(
     } else {
         emptyList()
     }
+}
+
+fun validateSwitchOidDuplication(switch: LayoutSwitch, oidDuplicate: LayoutSwitch?): List<LayoutValidationIssue> {
+    return if (oidDuplicate != null && oidDuplicate.id != switch.id) {
+        listOf(validationError("$VALIDATION_SWITCH.duplicate-oid"))
+    } else listOf()
 }
 
 fun validateLocationTrackNameDuplication(
@@ -197,7 +203,7 @@ fun validateLocationTrackNameDuplication(
 }
 
 fun validateSwitchLocationTrackLinkStructure(
-    switch: TrackLayoutSwitch,
+    switch: LayoutSwitch,
     structure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): List<LayoutValidationIssue> {
@@ -317,7 +323,7 @@ fun validateLocationTrackSwitchConnectivity(
 }
 
 fun validateSwitchTopologicalConnectivity(
-    switch: TrackLayoutSwitch,
+    switch: LayoutSwitch,
     structure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     validatingTrack: LocationTrack?,
@@ -336,7 +342,7 @@ fun switchOrTrackLinkageKey(validatingTrack: LocationTrack?) =
 private fun getTracksThroughJoints(
     structure: SwitchStructure,
     tracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    switch: TrackLayoutSwitch,
+    switch: LayoutSwitch,
 ): Map<JointNumber, List<LocationTrack>> =
     structure.joints
         .map { it.number }
@@ -344,7 +350,7 @@ private fun getTracksThroughJoints(
 
 private fun getTracksThroughJoint(
     tracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    switch: TrackLayoutSwitch,
+    switch: LayoutSwitch,
     jointNumber: JointNumber,
 ) =
     tracks
@@ -353,7 +359,7 @@ private fun getTracksThroughJoint(
 
 private fun trackPassesThroughJoint(
     alignment: LayoutAlignment,
-    switch: TrackLayoutSwitch,
+    switch: LayoutSwitch,
     jointNumber: JointNumber,
 ): Boolean {
     val startJointLinkIndex =
@@ -368,7 +374,7 @@ private fun trackPassesThroughJoint(
 }
 
 private fun validateFrontJointTopology(
-    switch: TrackLayoutSwitch,
+    switch: LayoutSwitch,
     switchStructure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     validatingTrack: LocationTrack?,
@@ -405,11 +411,11 @@ private fun validateFrontJointTopology(
 }
 
 private fun findValidatingTrackSwitchAlignment(
-    switchId: DomainId<TrackLayoutSwitch>,
+    switchId: DomainId<LayoutSwitch>,
     validatingTrack: LocationTrack?,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     connectivity: SwitchConnectivity,
-): SwitchAlignment? =
+): SwitchStructureAlignment? =
     locationTracks
         .find { (track) -> track.id == validatingTrack?.id }
         ?.let { trackAndAlignment ->
@@ -422,7 +428,9 @@ private fun findValidatingTrackSwitchAlignment(
                 ?.originalAlignment
         }
 
-private fun summarizeSwitchAlignmentLocationTrackLinks(links: List<Pair<LocationTrack, SwitchAlignment>>): String =
+private fun summarizeSwitchAlignmentLocationTrackLinks(
+    links: List<Pair<LocationTrack, SwitchStructureAlignment>>
+): String =
     links
         .groupBy { it.second }
         .entries
@@ -433,7 +441,7 @@ private fun summarizeSwitchAlignmentLocationTrackLinks(links: List<Pair<Location
         }
 
 fun validateSwitchAlignmentTopology(
-    switchId: DomainId<TrackLayoutSwitch>,
+    switchId: DomainId<LayoutSwitch>,
     switchStructure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switchName: SwitchName,
@@ -525,7 +533,7 @@ private data class SwitchAlignmentLinkingQuality(
 }
 
 private fun alignmentLinkingQuality(
-    switchId: DomainId<TrackLayoutSwitch>,
+    switchId: DomainId<LayoutSwitch>,
     switchAlignment: LinkableSwitchAlignment,
     tracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): SwitchAlignmentLinkingQuality {
@@ -637,7 +645,7 @@ fun validateDuplicateOfState(
 fun validateReferenceLineReference(
     referenceLine: ReferenceLine,
     trackNumberNumber: TrackNumber?,
-    trackNumber: TrackLayoutTrackNumber?,
+    trackNumber: LayoutTrackNumber?,
     trackNumberIsCancelled: Boolean,
 ): List<LayoutValidationIssue> {
     val numberParams = localizationParams("trackNumber" to trackNumberNumber)
@@ -654,7 +662,7 @@ fun validateReferenceLineReference(
 
 fun validateLocationTrackReference(
     locationTrack: LocationTrack,
-    trackNumber: TrackLayoutTrackNumber?,
+    trackNumber: LayoutTrackNumber?,
     trackNumberName: TrackNumber?,
     trackNumberIsCancelled: Boolean,
 ): List<LayoutValidationIssue> {
@@ -679,9 +687,9 @@ fun validateLocationTrackReference(
 }
 
 data class SegmentSwitch(
-    val switchId: IntId<TrackLayoutSwitch>,
+    val switchId: IntId<LayoutSwitch>,
     val switchName: SwitchName?,
-    val switch: TrackLayoutSwitch?,
+    val switch: LayoutSwitch?,
     val switchStructure: SwitchStructure?,
     val segments: List<LayoutSegment>,
 )
@@ -742,7 +750,7 @@ fun validateSegmentSwitchReferences(
 
 fun validateTopologicallyConnectedSwitchReferences(
     locationTrack: LocationTrack,
-    topologicallyConnectedSwitches: List<Pair<SwitchName, TrackLayoutSwitch?>>,
+    topologicallyConnectedSwitches: List<Pair<SwitchName, LayoutSwitch?>>,
 ): List<LayoutValidationIssue> =
     topologicallyConnectedSwitches.mapNotNull { (name, switch) ->
         val nameParams = localizationParams("switch" to name)
@@ -848,7 +856,7 @@ private fun isOrderOk(previous: GeocodingReferencePoint?, next: GeocodingReferen
     if (previous == null || next == null) true else previous.distance < next.distance
 
 fun validateAddressPoints(
-    trackNumber: TrackLayoutTrackNumber,
+    trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,
     geocode: () -> AlignmentAddresses?,
@@ -861,7 +869,7 @@ fun validateAddressPoints(
     }
 
 fun validateAddressPoints(
-    trackNumber: TrackLayoutTrackNumber,
+    trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
     addresses: AlignmentAddresses,
 ): List<LayoutValidationIssue> {
@@ -929,10 +937,10 @@ private fun validateAlignment(errorParent: String, alignment: LayoutAlignment) =
         },
     )
 
-private fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segmentGroup: List<LayoutSegment>): Boolean =
+private fun segmentAndJointLocationsAgree(switch: LayoutSwitch, segmentGroup: List<LayoutSegment>): Boolean =
     segmentGroup.all { segment -> segmentAndJointLocationsAgree(switch, segment) }
 
-private fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segment: LayoutSegment): Boolean {
+private fun segmentAndJointLocationsAgree(switch: LayoutSwitch, segment: LayoutSegment): Boolean {
     val jointLocations =
         listOfNotNull(
             segment.startJointNumber?.let { jn -> segment.segmentStart to jn },
@@ -944,7 +952,7 @@ private fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segment: La
     }
 }
 
-private fun topologyLinkAndJointLocationsAgree(switch: TrackLayoutSwitch, endLinks: List<TopologyEndLink>): Boolean {
+private fun topologyLinkAndJointLocationsAgree(switch: LayoutSwitch, endLinks: List<TopologyEndLink>): Boolean {
     return endLinks.all { topologyEndLink ->
         val switchJoint = switch.getJoint(topologyEndLink.topologySwitch.jointNumber)
         switchJoint != null && switchJoint.location.isSame(topologyEndLink.point, JOINT_LOCATION_DELTA)
@@ -1038,7 +1046,7 @@ data class TopologyEndLink(val topologySwitch: TopologyLocationTrackSwitch, val 
 
 private fun collectTopologyEndLinks(
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    switch: TrackLayoutSwitch,
+    switch: LayoutSwitch,
 ): List<Pair<LocationTrack, List<TopologyEndLink>>> =
     locationTracks
         .map { (track, alignment) ->

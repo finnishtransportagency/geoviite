@@ -7,8 +7,7 @@ import {
 } from 'map/map-model';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import styles from './map-layer-menu.scss';
-import { Icons } from 'vayla-design-lib/icon/Icon';
-import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
 import { EnvRestricted } from 'environment/env-restricted';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
@@ -19,6 +18,7 @@ import {
 } from 'map/map-store';
 import { VIEW_GEOMETRY } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
 type MapLayerMenuProps = {
     onMenuChange: (change: MapLayerMenuChange) => void;
@@ -138,7 +138,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
 };
 
 //Aligns map layer menu with the map
-const layerOffset = 48;
+const layerOffset = 38;
 
 export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
     mapLayerMenuGroups,
@@ -154,13 +154,17 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
         <React.Fragment>
             <div ref={buttonRef}>
                 <Button
-                    variant={ButtonVariant.SECONDARY}
-                    icon={Icons.Layers}
-                    size={ButtonSize.X_SMALL}
-                    title={t('map-layer-menu.title')}
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.BY_CONTENT}
                     onClick={() => setShowMapLayerMenu(!showMapLayerMenu)}
                     qa-id="map-layers-button"
-                />
+                    title={t('map-layer-menu.title')}>
+                    <div className={styles['map-layer-button-content']}>
+                        <div className={styles['map-layer-button-content__icon']}>
+                            <Icons.Layers color={IconColor.INHERIT} size={IconSize.INHERIT} />
+                        </div>
+                    </div>
+                </Button>
             </div>
             {showMapLayerMenu && (
                 <CloseableModal

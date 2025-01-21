@@ -2,43 +2,18 @@
 
 .tabs {
     &__tab-container {
-        background: vayla-design.$color-white-darker;
-        width: 100%;
-        padding-top: 10px;
         display: flex;
         flex-direction: column;
         flex: 1;
     }
 
     &__nav {
+        @include vayla-design.shadow-4dp;
+        position: relative;
         display: flex;
         margin: 0;
         padding: 0;
-
-        li {
-            padding: 1rem;
-            list-style: none;
-            text-align: center;
-            cursor: pointer;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-            margin-left: 10px;
-            inline-size: min-content;
-            white-space: nowrap;
-        }
-
-        li.active {
-            background: vayla-design.$color-white-default;
-            padding-left: 30px;
-            padding-right: 30px;
-        }
-
-        li.inactive {
-            box-shadow: inset 0 -10px 8px -10px vayla-design.$color-white-darker;
-            background: vayla-design.$color-white-dark;
-            padding-left: 30px;
-            padding-right: 30px;
-        }
+        background: vayla-design.$color-white-dark;
     }
 
     &__outlet {
@@ -49,7 +24,7 @@
 
     &__exclamation-point-container {
         position: relative;
-        top: -12px;
+        top: -10px;
         left: 8px;
     }
 }

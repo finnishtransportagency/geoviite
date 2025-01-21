@@ -84,8 +84,8 @@ constructor(
         val trackNumbers = listOf(TrackNumber("track number 1"), TrackNumber("track number 11"))
 
         saveTrackNumbersWithSaveRequests(trackNumbers, LayoutState.DELETED).forEachIndexed { index, trackNumberId ->
-            val oid = Oid<TrackLayoutTrackNumber>("1.2.3.4.5.6.$index")
-            trackNumberService.updateExternalId(LayoutBranch.main, trackNumberId, oid)
+            val oid = Oid<LayoutTrackNumber>("1.2.3.4.5.6.$index")
+            trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, oid)
 
             assertEquals(
                 1,
@@ -204,7 +204,7 @@ constructor(
     private fun saveTrackNumbersWithSaveRequests(
         trackNumbers: List<TrackNumber>,
         layoutState: LayoutState,
-    ): List<IntId<TrackLayoutTrackNumber>> {
+    ): List<IntId<LayoutTrackNumber>> {
         return trackNumbers
             .map { trackNumber ->
                 TrackNumberSaveRequest(

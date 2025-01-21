@@ -60,12 +60,12 @@ constructor(
         val id = trackNumberService.insert(LayoutBranch.main, saveRequest).id
         val trackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
 
-        assertNull(trackNumber.externalId)
+        assertNull(trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id as IntId))
 
-        trackNumberService.updateExternalId(LayoutBranch.main, trackNumber.id as IntId, externalIdForTrackNumber())
+        val newExternalId = externalIdForTrackNumber()
+        trackNumberService.insertExternalId(LayoutBranch.main, trackNumber.id, newExternalId)
 
-        val updatedTrackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
-        assertNotNull(updatedTrackNumber.externalId)
+        assertEquals(newExternalId, trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id))
     }
 
     @Test
@@ -134,7 +134,7 @@ constructor(
         assertEquals(3, kmLengths.size)
 
         assertEquals(
-            TrackLayoutKmLengthDetails(
+            LayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(1),
                 startM = BigDecimal(-0.5).setScale(3),
@@ -149,7 +149,7 @@ constructor(
 
         val kmPostLocation1 = kmPostDao.fetch(kmPostVersions[0]).layoutLocation
         assertEquals(
-            TrackLayoutKmLengthDetails(
+            LayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(2),
                 startM = BigDecimal(1).setScale(3),
@@ -169,7 +169,7 @@ constructor(
 
         val kmPostLocation2 = kmPostDao.fetch(kmPostVersions[1]).layoutLocation
         assertEquals(
-            TrackLayoutKmLengthDetails(
+            LayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(3),
                 startM = BigDecimal(3).setScale(3),
@@ -231,7 +231,7 @@ constructor(
         assertEquals(2, kmLengths.size)
 
         assertEquals(
-            TrackLayoutKmLengthDetails(
+            LayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(1),
                 startM = BigDecimal(-0.5).setScale(3),
@@ -246,7 +246,7 @@ constructor(
 
         val kmPostLocation = kmPostDao.fetch(kmPostVersions[0]).layoutLocation
         assertEquals(
-            TrackLayoutKmLengthDetails(
+            LayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(2),
                 startM = BigDecimal(1).setScale(3),
@@ -392,11 +392,11 @@ constructor(
 
     private fun assertVersionReferences(
         designBranch: DesignBranch,
-        id: IntId<TrackLayoutTrackNumber>,
-        mainOfficial: LayoutRowVersion<TrackLayoutTrackNumber>? = null,
-        mainDraft: LayoutRowVersion<TrackLayoutTrackNumber>? = null,
-        designOfficial: LayoutRowVersion<TrackLayoutTrackNumber>? = null,
-        designDraft: LayoutRowVersion<TrackLayoutTrackNumber>? = null,
+        id: IntId<LayoutTrackNumber>,
+        mainOfficial: LayoutRowVersion<LayoutTrackNumber>? = null,
+        mainDraft: LayoutRowVersion<LayoutTrackNumber>? = null,
+        designOfficial: LayoutRowVersion<LayoutTrackNumber>? = null,
+        designDraft: LayoutRowVersion<LayoutTrackNumber>? = null,
     ) {
         val description =
             "expectedVersions={mainOfficial=$mainOfficial mainDraft=$mainDraft designOfficial=$designOfficial designDraft=$designDraft}"
@@ -438,12 +438,15 @@ constructor(
         }
     }
 
-    fun <T> assertVersionMatch(description: String, expected: LayoutRowVersion<T>?, actual: LayoutRowVersion<T>?) {
+    fun <T : LayoutAsset<T>> assertVersionMatch(
+        description: String,
+        expected: LayoutRowVersion<T>?,
+        actual: LayoutRowVersion<T>?,
+    ) {
         assertEquals(expected = expected, actual = actual, message = "$description expected=$expected actual=$actual")
     }
 
-    fun createTrackNumberAndReferenceLineAndAlignment():
-        Triple<TrackLayoutTrackNumber, ReferenceLine, LayoutAlignment> {
+    fun createTrackNumberAndReferenceLineAndAlignment(): Triple<LayoutTrackNumber, ReferenceLine, LayoutAlignment> {
         val saveRequest =
             TrackNumberSaveRequest(
                 testDBService.getUnusedTrackNumber(),
@@ -457,13 +460,13 @@ constructor(
         val (referenceLine, alignment) =
             referenceLineService.getByTrackNumberWithAlignment(
                 MainLayoutContext.draft,
-                trackNumber.id as IntId<TrackLayoutTrackNumber>,
+                trackNumber.id as IntId<LayoutTrackNumber>,
             )!! // Always exists, since we just created it
 
         return Triple(trackNumber, referenceLine, alignment)
     }
 
-    private fun publishTrackNumber(id: IntId<TrackLayoutTrackNumber>) =
+    private fun publishTrackNumber(id: IntId<LayoutTrackNumber>) =
         trackNumberDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
             trackNumberService.publish(LayoutBranch.main, version)
         }

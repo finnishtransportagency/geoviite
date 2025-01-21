@@ -36,6 +36,11 @@ export function layoutUriByBranch(
     return id ? `${baseUri}/${id}` : baseUri;
 }
 
+export function layoutUriWithoutContext(dataType: LayoutDataType, id?: string): string {
+    const baseUri = `${TRACK_LAYOUT_URI}/${dataType}`;
+    return id ? `${baseUri}/${id}` : baseUri;
+}
+
 export function contextInUri(layoutContext: LayoutContext): string {
     return `${layoutContext.branch.toLowerCase()}/${layoutContext.publicationState.toLowerCase()}`;
 }

@@ -192,12 +192,12 @@ class ReferenceLineDao(
         return version
     }
 
-    fun getByTrackNumber(context: LayoutContext, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? =
+    fun getByTrackNumber(context: LayoutContext, trackNumberId: IntId<LayoutTrackNumber>): ReferenceLine? =
         fetchVersionByTrackNumberId(context, trackNumberId)?.let(::fetch)
 
     fun fetchVersionByTrackNumberId(
         layoutContext: LayoutContext,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): LayoutRowVersion<ReferenceLine>? {
         // language=SQL
         val sql =

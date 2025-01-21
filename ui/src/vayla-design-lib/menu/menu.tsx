@@ -23,7 +23,7 @@ export type MenuDividerOption = {
 };
 
 export function isMenuSelectOption(item: MenuOption): item is MenuSelectOption {
-    return item.type == 'SELECT';
+    return item.type === 'SELECT';
 }
 
 export const menuOption = (

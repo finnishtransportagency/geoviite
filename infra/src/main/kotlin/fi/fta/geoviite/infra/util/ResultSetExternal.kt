@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.parse2DPolygon
+import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
@@ -28,8 +29,12 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
+import fi.fta.geoviite.infra.publication.PublishedInBranch
+import fi.fta.geoviite.infra.publication.PublishedInDesign
+import fi.fta.geoviite.infra.publication.PublishedInMain
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
@@ -74,10 +79,10 @@ fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T
     }
 }
 
-fun <T> ResultSet.getLayoutRowId(idName: String, designIdName: String, draftFlagName: String) =
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowId(idName: String, designIdName: String, draftFlagName: String) =
     LayoutRowId(getIntId<T>(idName), getLayoutContext(designIdName, draftFlagName))
 
-fun <T> ResultSet.getLayoutRowIdOrNull(idName: String, designIdName: String, draftFlagName: String) =
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowIdOrNull(idName: String, designIdName: String, draftFlagName: String) =
     getIntIdOrNull<T>(idName)?.let { id ->
         getLayoutContextOrNull(designIdName, draftFlagName)?.let { layoutContext -> LayoutRowId(id, layoutContext) }
     }
@@ -217,7 +222,7 @@ fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowV
     return if (rowId != null && version != null) RowVersion(rowId, version) else null
 }
 
-fun <T> ResultSet.getLayoutRowVersion(
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersion(
     idName: String,
     layoutBranchName: String,
     publicationStateName: String,
@@ -225,7 +230,7 @@ fun <T> ResultSet.getLayoutRowVersion(
 ): LayoutRowVersion<T> =
     LayoutRowVersion(getLayoutRowId(idName, layoutBranchName, publicationStateName), getIntNonNull(versionName))
 
-fun <T> ResultSet.getLayoutRowVersionOrNull(
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionOrNull(
     idName: String,
     layoutBranchName: String,
     publicationStateName: String,
@@ -236,7 +241,7 @@ fun <T> ResultSet.getLayoutRowVersionOrNull(
     return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
 }
 
-fun <T> ResultSet.getLayoutRowVersionArray(
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionArray(
     idsName: String,
     designIdsName: String,
     publicationStatesName: String,
@@ -272,6 +277,8 @@ fun ResultSet.getFreeTextWithNewLinesOrNull(name: String): FreeTextWithNewLines?
 fun ResultSet.getFileName(name: String): FileName = verifyNotNull(name, ::getFileNameOrNull)
 
 fun ResultSet.getFileNameOrNull(name: String): FileName? = getString(name)?.let(::FileName)
+
+fun ResultSet.getPlanName(name: String): PlanName = verifyNotNull<PlanName>(name) { getString(name)?.let(::PlanName) }
 
 fun ResultSet.getBbox(name: String): BoundingBox = verifyNotNull(name, ::getBboxOrNull)
 
@@ -350,6 +357,11 @@ fun ResultSet.getPublicationStateOrNull(draftFlagName: String): PublicationState
 fun ResultSet.getLayoutBranch(designIdName: String): LayoutBranch =
     getIntIdOrNull<LayoutDesign>(designIdName).let { id -> if (id == null) LayoutBranch.main else DesignBranch.of(id) }
 
+fun ResultSet.getPublicationPublishedIn(designIdName: String, designVersionName: String): PublishedInBranch =
+    getIntIdOrNull<LayoutDesign>(designIdName).let { id ->
+        if (id == null) PublishedInMain else PublishedInDesign(DesignBranch.of(id), getInt(designVersionName))
+    }
+
 // no getLayoutBranchOrNull, as we couldn't distinguish between when to return the main branch and
 // when null
 
@@ -370,7 +382,7 @@ inline fun <reified T> verifyType(value: Any?): T =
         v
     }
 
-fun <T> ResultSet.getLayoutContextData(
+fun <T : LayoutAsset<T>> ResultSet.getLayoutContextData(
     idName: String,
     designIdName: String,
     draftFlagName: String,

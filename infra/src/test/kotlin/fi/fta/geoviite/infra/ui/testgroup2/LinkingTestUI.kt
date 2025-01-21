@@ -14,10 +14,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -36,16 +36,16 @@ import fi.fta.geoviite.infra.ui.testdata.pointsFromIncrementList
 import fi.fta.geoviite.infra.ui.testdata.referenceLine
 import fi.fta.geoviite.infra.ui.util.metersToDouble
 import fi.fta.geoviite.infra.ui.util.pointToCoordinateString
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 // the point where the map opens up by default
 val DEFAULT_BASE_POINT = Point(385782.89, 6672277.83)
@@ -97,7 +97,7 @@ constructor(
         val selectionPanel = trackLayoutPage.selectionPanel
         val toolPanel = trackLayoutPage.toolPanel
 
-        selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "geo-alignment-a")
+        selectionPanel.selectPlanAlignment(geometryPlan.name.toString(), "geo-alignment-a")
 
         val alignmentA = getGeometryAlignmentFromPlan("geo-alignment-a", geometryPlan)
 
@@ -147,7 +147,7 @@ constructor(
         toolPanel.locationTrackGeneralInfo.zoomTo()
         val locationTrackLengthBeforeLinking = toolPanel.locationTrackLocation.trueLengthDouble
 
-        selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "replacement alignment")
+        selectionPanel.selectPlanAlignment(plan.name.toString(), "replacement alignment")
 
         val linkingBox = toolPanel.geometryAlignmentLinking
         linkingBox.initiateLinking()
@@ -264,14 +264,15 @@ constructor(
         kmPostDao.save(kmPost(trackNumberId, KmNumber("0123"), DEFAULT_BASE_POINT + Point(5.0, 5.0), draft = false))
         kmPostDao.save(kmPost(trackNumberId, KmNumber("0124"), DEFAULT_BASE_POINT + Point(17.0, 18.0), draft = false))
 
-        testGeometryPlanService
-            .buildPlan(trackNumber)
-            .alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
-            .kmPost("0123G", Point(4.0, 4.0))
-            .kmPost("0124G", Point(14.0, 14.0))
-            .kmPost("0125G", Point(24.0, 21.0))
-            .kmPost("0126G", Point(34.0, 30.0))
-            .save()
+        val plan =
+            testGeometryPlanService
+                .buildPlan(trackNumber)
+                .alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
+                .kmPost("0123G", Point(4.0, 4.0))
+                .kmPost("0124G", Point(14.0, 14.0))
+                .kmPost("0125G", Point(24.0, 21.0))
+                .kmPost("0126G", Point(34.0, 30.0))
+                .save()
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val selectionPanel = trackLayoutPage.selectionPanel
@@ -282,14 +283,14 @@ constructor(
         toolPanel.layoutKmPostGeneral.zoomTo()
         val layoutKmPostCoordinatesBeforeLinking = toolPanel.layoutKmPostLocation.coordinates
 
-        selectionPanel.selectPlanKmPost(LINKING_TEST_PLAN_NAME, "0123G")
+        selectionPanel.selectPlanKmPost(plan.name.toString(), "0123G")
 
         val kmPostLinkingInfoBox = toolPanel.geometryKmPostLinking
         kmPostLinkingInfoBox.initiateLinking()
-        val firstTrackLayoutKmPost = kmPostLinkingInfoBox.trackLayoutKmPosts.first()
-        assertEquals("012", firstTrackLayoutKmPost.substring(0, 3))
+        val firstLayoutKmPost = kmPostLinkingInfoBox.layoutKmPosts.first()
+        assertEquals("012", firstLayoutKmPost.substring(0, 3))
 
-        kmPostLinkingInfoBox.linkTo(firstTrackLayoutKmPost)
+        kmPostLinkingInfoBox.linkTo(firstLayoutKmPost)
         kmPostLinkingInfoBox.link()
         waitAndClearToast("linking-succeed-msg")
 
@@ -303,20 +304,21 @@ constructor(
         val trackNumber = mainOfficialContext.createAndFetchLayoutTrackNumber().number
         val lastKmPostLocation = Point(34.0, 30.0)
 
-        testGeometryPlanService
-            .buildPlan(trackNumber)
-            .alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
-            .kmPost("0123", Point(4.0, 4.0))
-            .kmPost("0124", Point(14.0, 14.0))
-            .kmPost("0125", Point(24.0, 21.0))
-            .kmPost("0126", lastKmPostLocation)
-            .save()
+        val plan =
+            testGeometryPlanService
+                .buildPlan(trackNumber)
+                .alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
+                .kmPost("0123", Point(4.0, 4.0))
+                .kmPost("0124", Point(14.0, 14.0))
+                .kmPost("0125", Point(24.0, 21.0))
+                .kmPost("0126", lastKmPostLocation)
+                .save()
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val selectionPanel = trackLayoutPage.selectionPanel
         val toolPanel = trackLayoutPage.toolPanel
 
-        val geometryPlan = selectionPanel.geometryPlanByName(LINKING_TEST_PLAN_NAME)
+        val geometryPlan = selectionPanel.geometryPlanByName(plan.name.toString())
         geometryPlan.selectKmPost("0126")
 
         val kmPostLinkingInfoBox = toolPanel.geometryKmPostLinking
@@ -324,7 +326,7 @@ constructor(
 
         val newKmPostNumber = "0003NW"
         kmPostLinkingInfoBox
-            .createNewTrackLayoutKmPost()
+            .createNewLayoutKmPost()
             .setName(newKmPostNumber)
             .selectState(E2EKmPostEditDialog.State.IN_USE)
             .save()
@@ -364,7 +366,7 @@ constructor(
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
 
-        val planPanel = trackLayoutPage.selectionPanel.geometryPlanByName(LINKING_TEST_PLAN_NAME)
+        val planPanel = trackLayoutPage.selectionPanel.geometryPlanByName(plan.name.toString())
         planPanel.selectSwitch("switch to link")
         toolPanel.geometrySwitchGeneral.zoomTo()
 
@@ -388,7 +390,7 @@ constructor(
         val switchLinkingInfoBox = toolPanel.geometrySwitchLinking
         switchLinkingInfoBox.initiateLinking()
         switchLinkingInfoBox
-            .createNewTrackLayoutSwitch()
+            .createNewLayoutSwitch()
             .setName(layoutSwitchName)
             .selectStateCategory(E2ELayoutSwitchEditDialog.StateCategory.EXISTING)
             .save()
@@ -451,7 +453,7 @@ constructor(
         toolPanel.locationTrackGeneralInfo.zoomTo()
         trackLayoutPage.zoomToScale(E2ETrackLayoutPage.MapScale.M_10)
 
-        trackLayoutPage.selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "extending track")
+        trackLayoutPage.selectionPanel.selectPlanAlignment(plan.name.toString(), "extending track")
         val alignmentLinkinInfobox = toolPanel.geometryAlignmentLinking
         alignmentLinkinInfobox.initiateLinking()
         alignmentLinkinInfobox.linkTo("lt-track to extend")
@@ -523,7 +525,7 @@ constructor(
         toolPanel.locationTrackGeneralInfo.zoomTo()
         trackLayoutPage.zoomToScale(E2ETrackLayoutPage.MapScale.M_10)
 
-        trackLayoutPage.selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "extending track")
+        trackLayoutPage.selectionPanel.selectPlanAlignment(plan.name.toString(), "extending track")
         val alignmentLinkinInfobox = toolPanel.geometryAlignmentLinking
         alignmentLinkinInfobox.initiateLinking()
         alignmentLinkinInfobox.linkTo("lt-track to extend")
@@ -580,7 +582,7 @@ constructor(
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
 
-        trackLayoutPage.selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "replacement alignment")
+        trackLayoutPage.selectionPanel.selectPlanAlignment(plan.name.toString(), "replacement alignment")
         val alignmentLinkingInfobox = toolPanel.geometryAlignmentLinking
         toolPanel.geometryAlignmentGeneral.zoomTo()
         alignmentLinkingInfobox.initiateLinking()
@@ -732,7 +734,7 @@ constructor(
         waitAndClearToast("linking-succeeded")
     }
 
-    private fun createAndInsertCommonReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): LayoutAlignment {
+    private fun createAndInsertCommonReferenceLine(trackNumber: IntId<LayoutTrackNumber>): LayoutAlignment {
         val points =
             pointsFromIncrementList(
                 DEFAULT_BASE_POINT + Point(1.0, 1.0),

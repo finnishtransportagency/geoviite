@@ -6,9 +6,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.SuggestedSwitch
-import fi.fta.geoviite.infra.linking.SwitchRelinkingSuggestion
-import fi.fta.geoviite.infra.linking.SwitchRelinkingValidationResult
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
@@ -20,11 +17,10 @@ import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.SwitchPlacingRequest
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.asDraft
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
@@ -75,7 +71,7 @@ constructor(
         }
     }
 
-    private fun getOriginalSwitches(branch: LayoutBranch, switchIds: List<IntId<TrackLayoutSwitch>>) =
+    private fun getOriginalSwitches(branch: LayoutBranch, switchIds: List<IntId<LayoutSwitch>>) =
         switchService.getMany(branch.draft, switchIds).also { foundSwitches ->
             require(switchIds.size == foundSwitches.size) {
                 val notFoundSwitches = switchIds.filterNot { id -> foundSwitches.any { found -> found.id == id } }
@@ -131,16 +127,16 @@ private fun draft(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
     tracks.map { (track, alignment) -> asDraft(track.branch, track) to alignment }
 
 private fun currentSwitchLocationsAsSwitchPlacingRequests(
-    switchIds: List<IntId<TrackLayoutSwitch>>,
+    switchIds: List<IntId<LayoutSwitch>>,
     locations: List<Point>,
 ) = locations.zip(switchIds) { location, switchId -> SwitchPlacingRequest(SamplingGridPoints(location), switchId) }
 
 private fun validateChangeFromSwitchRelinking(
     track: LocationTrack,
     geocodingContext: GeocodingContext,
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
     suggestedSwitchWithOriginallyLinkedTracks: SuggestedSwitchWithOriginallyLinkedTracks?,
-    originalSwitch: TrackLayoutSwitch,
+    originalSwitch: LayoutSwitch,
     switchStructure: SwitchStructure,
     changedTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): SwitchRelinkingValidationResult {
@@ -171,7 +167,7 @@ private fun validateChangeFromSwitchRelinking(
 
 private fun validateForSplit(
     suggestedSwitch: SuggestedSwitch,
-    originalSwitch: TrackLayoutSwitch,
+    originalSwitch: LayoutSwitch,
     switchStructure: SwitchStructure,
     track: LocationTrack,
     changedTracksFromSwitchSuggestion: List<Pair<LocationTrack, LayoutAlignment>>,
@@ -217,7 +213,7 @@ private fun validateRelinkingRetainsLocationTrackConnections(
     )
 }
 
-private fun failRelinkingValidationFor(switchId: IntId<TrackLayoutSwitch>, originalSwitch: TrackLayoutSwitch) =
+private fun failRelinkingValidationFor(switchId: IntId<LayoutSwitch>, originalSwitch: LayoutSwitch) =
     SwitchRelinkingValidationResult(
         switchId,
         null,
@@ -230,7 +226,7 @@ private fun failRelinkingValidationFor(switchId: IntId<TrackLayoutSwitch>, origi
         ),
     )
 
-private fun getOriginalLocations(originalSwitches: List<TrackLayoutSwitch>, switchStructures: List<SwitchStructure>) =
+private fun getOriginalLocations(originalSwitches: List<LayoutSwitch>, switchStructures: List<SwitchStructure>) =
     originalSwitches.zip(switchStructures) { switch, structure ->
         checkNotNull(switch.getJoint(structure.presentationJointNumber)) {
                 "expected switch ${switch.id} to have a location"
@@ -239,7 +235,7 @@ private fun getOriginalLocations(originalSwitches: List<TrackLayoutSwitch>, swit
     }
 
 private fun getSuggestedLocation(
-    switchId: IntId<TrackLayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
     suggestedSwitch: SuggestedSwitch,
     switchStructure: SwitchStructure,
 ) =

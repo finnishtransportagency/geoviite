@@ -9,17 +9,17 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -92,10 +92,7 @@ constructor(
             validationContext(trackNumbers = listOf(tn1Id)).getTrackNumbersByNumber(trackNumber1.number),
         )
 
-        assertEquals(
-            emptyList<TrackLayoutTrackNumber>(),
-            validationContext().getTrackNumbersByNumber(trackNumber2.number),
-        )
+        assertEquals(emptyList<LayoutTrackNumber>(), validationContext().getTrackNumbersByNumber(trackNumber2.number))
         assertEquals(
             listOf(trackNumberDao.fetch(tn2DraftVersion)),
             validationContext(trackNumbers = listOf(tn2Id)).getTrackNumbersByNumber(trackNumber2.number),
@@ -144,7 +141,7 @@ constructor(
             listOf(switchDao.fetch(s1DraftVersion)),
             validationContext(switches = listOf(s1Id)).getSwitchesByName(switchName1),
         )
-        assertEquals(emptyList<TrackLayoutSwitch>(), validationContext().getSwitchesByName(switchName2))
+        assertEquals(emptyList<LayoutSwitch>(), validationContext().getSwitchesByName(switchName2))
         assertEquals(
             listOf(switchDao.fetch(s2DraftVersion)),
             validationContext(switches = listOf(s2Id)).getSwitchesByName(switchName2),
@@ -167,11 +164,11 @@ constructor(
 
     private fun validationContext(
         branch: LayoutBranch = LayoutBranch.main,
-        trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
+        trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
         locationTracks: List<IntId<LocationTrack>> = listOf(),
         referenceLines: List<IntId<ReferenceLine>> = listOf(),
-        switches: List<IntId<TrackLayoutSwitch>> = listOf(),
-        kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
+        switches: List<IntId<LayoutSwitch>> = listOf(),
+        kmPosts: List<IntId<LayoutKmPost>> = listOf(),
     ): ValidationContext {
         val target = draftTransitionOrOfficialState(PublicationState.DRAFT, branch)
         val candidateContext = target.candidateContext

@@ -32,11 +32,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAssetId
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -45,10 +49,6 @@ import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -85,10 +85,10 @@ interface TestDB {
     fun <T : LayoutAsset<T>> getDao(clazz: KClass<T>): LayoutAssetDao<T> =
         when (clazz) {
             LocationTrack::class -> locationTrackDao
-            TrackLayoutSwitch::class -> switchDao
-            TrackLayoutTrackNumber::class -> trackNumberDao
+            LayoutSwitch::class -> switchDao
+            LayoutTrackNumber::class -> trackNumberDao
             ReferenceLine::class -> referenceLineDao
-            TrackLayoutKmPost::class -> kmPostDao
+            LayoutKmPost::class -> kmPostDao
             else -> error("Unsupported asset type: ${clazz.simpleName}")
         }
             as LayoutAssetDao<T>
@@ -97,10 +97,10 @@ interface TestDB {
     fun <T : LayoutAsset<T>> getDao(asset: LayoutAsset<T>): LayoutAssetDao<T> =
         when (asset) {
             is LocationTrack -> locationTrackDao
-            is TrackLayoutSwitch -> switchDao
-            is TrackLayoutTrackNumber -> trackNumberDao
+            is LayoutSwitch -> switchDao
+            is LayoutTrackNumber -> trackNumberDao
             is ReferenceLine -> referenceLineDao
-            is TrackLayoutKmPost -> kmPostDao
+            is LayoutKmPost -> kmPostDao
         }
             as LayoutAssetDao<T>
 }
@@ -141,11 +141,14 @@ class TestDBService(
                     "alignment",
                     "km_post",
                     "location_track",
+                    "location_track_external_id",
                     "reference_line",
                     "switch",
+                    "switch_external_id",
                     "switch_version",
                     "switch_joint",
                     "track_number",
+                    "track_number_external_id",
                     "segment_version",
                     "segment_geometry",
                 ),
@@ -453,34 +456,34 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         vararg assets: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
     ): List<Pair<T, LayoutAlignment>> = assets.map(::insertAndFetch)
 
-    fun createLayoutTrackNumber(): LayoutRowVersion<TrackLayoutTrackNumber> =
+    fun createLayoutTrackNumber(): LayoutRowVersion<LayoutTrackNumber> =
         insert(trackNumber(testService.getUnusedTrackNumber()))
 
-    fun createAndFetchLayoutTrackNumber(): TrackLayoutTrackNumber = trackNumberDao.fetch(createLayoutTrackNumber())
+    fun createAndFetchLayoutTrackNumber(): LayoutTrackNumber = trackNumberDao.fetch(createLayoutTrackNumber())
 
     fun createLayoutTrackNumberAndReferenceLine(
         lineAlignment: LayoutAlignment = alignment()
-    ): LayoutRowVersion<TrackLayoutTrackNumber> =
+    ): LayoutRowVersion<LayoutTrackNumber> =
         createLayoutTrackNumber().also { tnResponse ->
             insert(referenceLine(trackNumberId = tnResponse.id), lineAlignment)
         }
 
-    fun createLayoutTrackNumbers(count: Int): List<LayoutRowVersion<TrackLayoutTrackNumber>> =
+    fun createLayoutTrackNumbers(count: Int): List<LayoutRowVersion<LayoutTrackNumber>> =
         (1..count).map { createLayoutTrackNumber() }
 
-    fun getOrCreateLayoutTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
+    fun getOrCreateLayoutTrackNumber(trackNumber: TrackNumber): LayoutTrackNumber {
         val version =
             trackNumberDao.fetchVersions(context, true, trackNumber).firstOrNull() ?: insert(trackNumber(trackNumber))
         return trackNumberDao.fetch(version)
     }
 
-    fun createTrackNumberAndId(): Pair<TrackNumber, IntId<TrackLayoutTrackNumber>> =
+    fun createTrackNumberAndId(): Pair<TrackNumber, IntId<LayoutTrackNumber>> =
         createAndFetchLayoutTrackNumber().let { tn -> tn.number to tn.id as IntId }
 
     fun createSwitch(
         stateCategory: LayoutStateCategory = EXISTING,
-        joints: List<TrackLayoutSwitchJoint> = emptyList(),
-    ): LayoutRowVersion<TrackLayoutSwitch> =
+        joints: List<LayoutSwitchJoint> = emptyList(),
+    ): LayoutRowVersion<LayoutSwitch> =
         insert(
             switch(name = testService.getUnusedSwitchName().toString(), stateCategory = stateCategory, joints = joints)
         )
@@ -488,7 +491,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     fun createSwitchWithInnerTracks(
         name: String,
         vararg alignmentJointPositions: List<Pair<JointNumber, Point>>,
-    ): Pair<IntId<TrackLayoutSwitch>, List<IntId<LocationTrack>>> {
+    ): Pair<IntId<LayoutSwitch>, List<IntId<LocationTrack>>> {
         val switchId =
             insert(
                     switch(
@@ -497,7 +500,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                             alignmentJointPositions
                                 .flatMap { it }
                                 .map { (jointNumber, position) ->
-                                    TrackLayoutSwitchJoint(
+                                    LayoutSwitchJoint(
                                         number = jointNumber,
                                         location = position,
                                         locationAccuracy = null,

@@ -6,6 +6,7 @@ import {
     LayoutStateCategory,
     LayoutSwitch,
     LayoutSwitchId,
+    LayoutSwitchJoint,
     LayoutTrackNumberId,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
@@ -26,8 +27,8 @@ import { Point } from 'model/geometry';
 import {
     JointNumber,
     KmNumber,
-    LocationAccuracy,
     LocationTrackOwnerId,
+    Oid,
     Range,
     Srid,
     SwitchOwnerId,
@@ -226,8 +227,6 @@ export function toIntervalRequest(
     };
 }
 
-export type LinkPointType = 'geometry' | 'layout';
-
 export type GeometryPlanLinkStatus = {
     id: GeometryPlanId;
     alignments: GeometryAlignmentLinkStatus[];
@@ -262,29 +261,9 @@ export type GeometryKmPostLinkStatus = {
 
 export type SuggestedSwitchId = string;
 
-export type SuggestedSwitchJointMatch = {
-    locationTrackId: LocationTrackId;
-    layoutSwitchId?: LayoutSwitchId;
-    segmentIndex: number;
-    m: number;
-};
-
-export type SuggestedSwitchJoint = {
-    number: JointNumber;
-    location: Point;
-    matches: SuggestedSwitchJointMatch[];
-    locationAccuracy?: LocationAccuracy;
-};
-
 export type TopologicalJointConnection = {
     jointNumber: JointNumber;
     locationTrackIds: LocationTrackId[];
-};
-
-export type TrackLayoutSwitchJoint = {
-    number: JointNumber;
-    location: Point;
-    locationAccuracy?: LocationAccuracy;
 };
 
 export type SwitchLinkingJoint = {
@@ -309,7 +288,7 @@ export type SwitchLinkingTopologicalTrackLink = {
 export type SuggestedSwitch = {
     id: SuggestedSwitchId;
     switchStructureId: SwitchStructureId;
-    joints: TrackLayoutSwitchJoint[];
+    joints: LayoutSwitchJoint[];
     trackLinks: Record<LocationTrackId, SwitchLinkingTrackLinks>;
     geometryPlanId?: GeometryPlanId;
     geometrySwitchId?: GeometrySwitchId;
@@ -333,12 +312,13 @@ export type KmPostLinkingParameters = {
     layoutKmPostId: LayoutKmPostId;
 };
 
-export type TrackLayoutSwitchSaveRequest = {
+export type LayoutSwitchSaveRequest = {
     name: string;
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;
     ownerId: SwitchOwnerId;
     trapPoint?: boolean;
+    draftOid?: Oid;
 };
 
 export type SwitchRelinkingValidationResult = {

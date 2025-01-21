@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.testgroup1
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
+import fi.fta.geoviite.infra.ui.util.scrollIntoView
 import java.io.File
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
@@ -132,6 +133,7 @@ class InfraModelTestUI : SeleniumTest() {
 
         // Loki- ja linkitysdata
         val lokiJaLinkitystiedotFormGroup = uploadForm.logFormGroup
+        lokiJaLinkitystiedotFormGroup.scrollIntoView(true)
         lokiJaLinkitystiedotFormGroup.setPlanTime("elokuu", "1999")
         assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.planTime)
 

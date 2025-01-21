@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoSwitchAsset
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoSwitch
@@ -8,7 +9,7 @@ import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.switch
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -68,17 +69,16 @@ constructor(
     fun shouldUpdateRatkoSwitchProperties() {
         val oid = "1.2.3.4.5"
         fakeRatko.hasSwitch(ratkoSwitch(oid))
-        val layoutSwitch = switch(externalId = oid, draft = false)
-        val basicUpdateSwitch = createRatkoBasicUpdateSwitch(layoutSwitch)
+        val layoutSwitch = switch(draft = false)
+        val basicUpdateSwitch = createRatkoBasicUpdateSwitch(layoutSwitch, oid)
         ratkoClient.updateAssetProperties(RatkoOid(oid), basicUpdateSwitch.properties)
     }
 
-    private fun createRatkoBasicUpdateSwitch(layoutSwitch: TrackLayoutSwitch): RatkoSwitchAsset {
+    private fun createRatkoBasicUpdateSwitch(layoutSwitch: LayoutSwitch, oid: String): RatkoSwitchAsset {
         val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
-        val oid = (layoutSwitch.externalId ?: throw IllegalArgumentException("No switch external ID")).toString()
         fakeRatko.hasSwitch(ratkoSwitch(oid))
         val ratkoSwitch = ratkoClient.getSwitchAsset(RatkoOid(oid))
-        return convertToRatkoSwitch(layoutSwitch, switchStructure, switchOwners.firstOrNull(), ratkoSwitch)
+        return convertToRatkoSwitch(layoutSwitch, Oid(oid), switchStructure, switchOwners.firstOrNull(), ratkoSwitch)
     }
 
     @Test

@@ -26,10 +26,11 @@ import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.TrackNumberAndChangeTime
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FreeText
@@ -51,6 +52,7 @@ constructor(
     private val publicationDao: PublicationDao,
     private val geocodingService: GeocodingService,
     private val locationTrackService: LocationTrackService,
+    private val locationTrackDao: LocationTrackDao,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val ratkoPushDao: RatkoPushDao,
     private val splitService: SplitService,
@@ -94,6 +96,7 @@ constructor(
                 ),
             split = split?.let(::SplitHeader),
             layoutBranch = publication.layoutBranch,
+            cause = publication.cause,
         )
     }
 
@@ -103,11 +106,11 @@ constructor(
         translation: Translation,
     ): List<PublicationTableItem> {
         val geocodingContextCache =
-            ConcurrentHashMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>()
+            ConcurrentHashMap<Instant, MutableMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext>>>()
         return getPublicationDetails(id).let { publication ->
             val previousPublication =
                 publicationDao
-                    .fetchPublicationTimes(publication.layoutBranch)
+                    .fetchPublicationTimes(publication.layoutBranch.branch)
                     .entries
                     .sortedByDescending { it.key }
                     .find { it.key < publication.publicationTime }
@@ -116,8 +119,13 @@ constructor(
                 publication,
                 publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(publication.id),
                 previousPublication?.key ?: publication.publicationTime.minusMillis(1),
-                { trackNumberId: IntId<TrackLayoutTrackNumber>, timestamp: Instant ->
-                    getOrPutGeocodingContext(geocodingContextCache, publication.layoutBranch, trackNumberId, timestamp)
+                { trackNumberId: IntId<LayoutTrackNumber>, timestamp: Instant ->
+                    getOrPutGeocodingContext(
+                        geocodingContextCache,
+                        publication.layoutBranch.branch,
+                        trackNumberId,
+                        timestamp,
+                    )
                 },
             )
         }
@@ -154,9 +162,9 @@ constructor(
             .sortedBy { it.publicationTime }
             .let { publications ->
                 val geocodingContextCache =
-                    ConcurrentHashMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>()
+                    ConcurrentHashMap<Instant, MutableMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext>>>()
                 val trackNumbersCache = trackNumberDao.fetchTrackNumberNames()
-                val getGeocodingContextOrNull = { trackNumberId: IntId<TrackLayoutTrackNumber>, timestamp: Instant ->
+                val getGeocodingContextOrNull = { trackNumberId: IntId<LayoutTrackNumber>, timestamp: Instant ->
                     getOrPutGeocodingContext(geocodingContextCache, layoutBranch, trackNumberId, timestamp)
                 }
 
@@ -189,6 +197,15 @@ constructor(
                 val split = splitService.getOrThrow(splitId)
                 val (sourceLocationTrack, sourceAlignment) =
                     locationTrackService.getWithAlignment(split.sourceLocationTrackVersion)
+                val oid =
+                    requireNotNull(
+                        locationTrackDao.fetchExternalId(
+                            publication.layoutBranch.branch,
+                            sourceLocationTrack.id as IntId,
+                        )
+                    ) {
+                        "expected to find oid for published location track ${sourceLocationTrack.id} in publication ${id}"
+                    }
                 val targetLocationTracks =
                     publicationDao
                         .fetchPublishedLocationTracks(id)
@@ -198,7 +215,7 @@ constructor(
                             createSplitTargetInPublication(
                                 sourceAlignment = sourceAlignment,
                                 rowVersion = v,
-                                publicationBranch = publication.layoutBranch,
+                                publicationBranch = publication.layoutBranch.branch,
                                 publicationTime = publication.publicationTime,
                                 split = split,
                             )
@@ -208,6 +225,7 @@ constructor(
                     id = publication.id,
                     splitId = split.id,
                     locationTrack = sourceLocationTrack,
+                    locationTrackOid = oid,
                     targetLocationTracks = targetLocationTracks,
                 )
             }
@@ -246,7 +264,7 @@ constructor(
             return SplitTargetInPublication(
                 id = track.id,
                 name = track.name,
-                oid = track.externalId,
+                oid = locationTrackDao.fetchExternalId(publicationBranch, track.id),
                 startAddress = startAddress,
                 endAddress = endAddress,
                 operation = target.operation,
@@ -257,9 +275,7 @@ constructor(
     @Transactional(readOnly = true)
     fun getSplitInPublicationCsv(id: IntId<Publication>, lang: LocalizationLanguage): Pair<String, AlignmentName?> {
         return getSplitInPublication(id).let { splitInPublication ->
-            val data =
-                splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication.locationTrack to lt }
-                    ?: emptyList()
+            val data = splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication to lt } ?: emptyList()
             printCsv(splitCsvColumns(localizationService.getLocalization(lang)), data) to
                 splitInPublication?.locationTrack?.name
         }
@@ -293,7 +309,7 @@ constructor(
         trackNumberChanges: TrackNumberChanges,
         newTimestamp: Instant,
         oldTimestamp: Instant,
-        geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
+        geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
         val oldEndAddress =
             trackNumberChanges.endPoint.old?.let { point ->
@@ -339,7 +355,7 @@ constructor(
         previousPublicationTime: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
         changedKmNumbers: Set<KmNumber>,
-        getGeocodingContext: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
+        getGeocodingContext: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
         val oldAndTime = locationTrackChanges.duplicateOf.old to previousPublicationTime
         val newAndTime = locationTrackChanges.duplicateOf.new to publicationTime
@@ -495,7 +511,7 @@ constructor(
         newTimestamp: Instant,
         oldTimestamp: Instant,
         changedKmNumbers: Set<KmNumber>,
-        getGeocodingContext: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
+        getGeocodingContext: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
         return listOfNotNull(
             compareLength(
@@ -544,7 +560,7 @@ constructor(
         newTimestamp: Instant,
         oldTimestamp: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
-        geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
+        geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext?,
         crsNameGetter: (srid: Srid) -> String,
     ) =
         listOfNotNull(
@@ -593,8 +609,8 @@ constructor(
     private fun projectPointToReferenceLineAtTime(
         timestamp: Instant,
         location: Point?,
-        trackNumberId: IntId<TrackLayoutTrackNumber>?,
-        geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
+        trackNumberId: IntId<LayoutTrackNumber>?,
+        geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext?,
     ) =
         location?.let {
             trackNumberId?.let {
@@ -611,7 +627,7 @@ constructor(
         oldTimestamp: Instant,
         operation: Operation,
         trackNumberCache: List<TrackNumberAndChangeTime>,
-        geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
+        geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
         val relatedJoints = changes.joints.filterNot { it.removed }.distinctBy { it.trackNumberId }
 
@@ -702,9 +718,9 @@ constructor(
     }
 
     private fun getOrPutGeocodingContext(
-        caches: MutableMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>,
+        caches: MutableMap<Instant, MutableMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext>>>,
         branch: LayoutBranch,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         timestamp: Instant,
     ) =
         caches
@@ -716,7 +732,7 @@ constructor(
 
     private fun latestTrackNumberNamesAtMoment(
         trackNumberNames: List<TrackNumberAndChangeTime>,
-        trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>,
+        trackNumberIds: Set<IntId<LayoutTrackNumber>>,
         publicationTime: Instant,
     ) =
         trackNumberNames
@@ -730,13 +746,13 @@ constructor(
         publication: PublicationDetails,
         switchLinkChanges: Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>,
         previousComparisonTime: Instant,
-        geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
+        geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext?,
         trackNumberNamesCache: List<TrackNumberAndChangeTime> = trackNumberDao.fetchTrackNumberNames(),
     ): List<PublicationTableItem> {
         val publicationLocationTrackChanges = publicationDao.fetchPublicationLocationTrackChanges(publication.id)
         val publicationTrackNumberChanges =
             publicationDao.fetchPublicationTrackNumberChanges(
-                publication.layoutBranch,
+                publication.layoutBranch.branch,
                 publication.id,
                 previousComparisonTime,
             )
@@ -811,7 +827,7 @@ constructor(
                                 error("Location track changes not found: id=${lt.id} version=${lt.version}")
                             },
                             switchLinkChanges[lt.id],
-                            publication.layoutBranch,
+                            publication.layoutBranch.branch,
                             publication.publicationTime,
                             previousComparisonTime,
                             trackNumberNamesCache,
@@ -890,7 +906,7 @@ constructor(
                                 error("Location track changes not found: id=${lt.id} version=${lt.version}")
                             },
                             switchLinkChanges[lt.id],
-                            publication.layoutBranch,
+                            publication.layoutBranch.branch,
                             publication.publicationTime,
                             previousComparisonTime,
                             trackNumberNamesCache,
@@ -963,10 +979,10 @@ constructor(
 
     private fun splitCsvColumns(
         translation: Translation
-    ): List<CsvEntry<Pair<LocationTrack, SplitTargetInPublication>>> =
-        mapOf<String, (item: Pair<LocationTrack, SplitTargetInPublication>) -> Any?>(
-                "split-details-csv.source-name" to { (lt, _) -> lt.name },
-                "split-details-csv.source-oid" to { (lt, _) -> lt.externalId },
+    ): List<CsvEntry<Pair<SplitInPublication, SplitTargetInPublication>>> =
+        mapOf<String, (item: Pair<SplitInPublication, SplitTargetInPublication>) -> Any?>(
+                "split-details-csv.source-name" to { (split, _) -> split.locationTrack.name },
+                "split-details-csv.source-oid" to { (split, _) -> split.locationTrackOid },
                 "split-details-csv.target-name" to { (_, split) -> split.name },
                 "split-details-csv.target-oid" to { (_, split) -> split.oid },
                 "split-details-csv.operation" to { (_, split) -> translation.enum(split.operation) },

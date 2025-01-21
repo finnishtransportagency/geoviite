@@ -17,11 +17,13 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
+import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.NAME
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.util.CombinedComparator
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.KnownFileSuffix.CSV
 import fi.fta.geoviite.infra.util.SortOrder
@@ -59,7 +61,12 @@ constructor(private val geometryService: GeometryService, private val planLayout
     ): GeometryPlanHeadersSearchResult {
         val filter = geometryService.getFilter(freeText, trackNumbers ?: listOf())
         val headers = geometryService.getPlanHeaders(sources, bbox, filter)
-        val comparator = geometryService.getComparator(sortField ?: ID, sortOrder ?: ASCENDING, lang)
+
+        val comparator =
+            CombinedComparator(
+                geometryService.getComparator(sortField ?: ID, sortOrder ?: ASCENDING, lang),
+                geometryService.getComparator(NAME, ASCENDING, lang),
+            )
         val results = pageAndRest(items = headers, offset = offset ?: 0, limit = limit ?: 50, comparator = comparator)
         return GeometryPlanHeadersSearchResult(
             planHeaders = results.page,
@@ -106,7 +113,7 @@ constructor(private val geometryService: GeometryService, private val planLayout
     @GetMapping("/switches/{switchId}/layout")
     fun getGeometrySwitchLayout(
         @PathVariable("switchId") switchId: IntId<GeometrySwitch>
-    ): ResponseEntity<TrackLayoutSwitch> {
+    ): ResponseEntity<LayoutSwitch> {
         return toResponse(geometryService.getSwitchLayout(switchId))
     }
 
@@ -220,7 +227,7 @@ constructor(private val geometryService: GeometryService, private val planLayout
 
     @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
     @GetMapping("/rail-network/element-listing/file")
-    fun getEntireNetworkElementListingCSV(refresh:Boolean = false): ResponseEntity<ByteArray> {
+    fun getEntireNetworkElementListingCSV(refresh: Boolean = false): ResponseEntity<ByteArray> {
         if (refresh) {
             geometryService.makeElementListingCsv(force = true)
         }

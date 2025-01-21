@@ -18,10 +18,10 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.GeographyService
+import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
-import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
-import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
@@ -30,11 +30,14 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
@@ -48,9 +51,6 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -477,7 +477,7 @@ constructor(
                 MainLayoutContext.draft,
                 kmPostService.insertKmPost(
                     LayoutBranch.main,
-                    TrackLayoutKmPostSaveRequest(
+                    LayoutKmPostSaveRequest(
                         KmNumber(0),
                         LayoutState.IN_USE,
                         trackNumberId,
@@ -497,7 +497,7 @@ constructor(
                 kmPostService.updateKmPost(
                     LayoutBranch.main,
                     kmPost.id as IntId,
-                    TrackLayoutKmPostSaveRequest(
+                    LayoutKmPostSaveRequest(
                         KmNumber(1),
                         LayoutState.NOT_IN_USE,
                         trackNumber2Id,
@@ -546,7 +546,7 @@ constructor(
     }
 
     private fun getLatestPublicationDiffForKmPost(
-        id: IntId<TrackLayoutKmPost>
+        id: IntId<LayoutKmPost>
     ): List<PublicationChange<out Comparable<Nothing>?>> {
         val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
@@ -565,7 +565,7 @@ constructor(
     @Test
     fun `Changing specific KM Post field returns only that field`() {
         val saveReq =
-            TrackLayoutKmPostSaveRequest(
+            LayoutKmPostSaveRequest(
                 KmNumber(0),
                 LayoutState.IN_USE,
                 mainOfficialContext.createLayoutTrackNumber().id,
@@ -625,12 +625,13 @@ constructor(
                 MainLayoutContext.draft,
                 switchService.insertSwitch(
                     LayoutBranch.main,
-                    TrackLayoutSwitchSaveRequest(
+                    LayoutSwitchSaveRequest(
                         SwitchName("TEST"),
                         IntId(1),
                         LayoutStateCategory.EXISTING,
                         IntId(1),
                         false,
+                        draftOid = null,
                     ),
                 ),
             )
@@ -641,12 +642,13 @@ constructor(
                 switchService.updateSwitch(
                     LayoutBranch.main,
                     switch.id as IntId,
-                    TrackLayoutSwitchSaveRequest(
+                    LayoutSwitchSaveRequest(
                         SwitchName("TEST 2"),
                         IntId(2),
                         LayoutStateCategory.NOT_EXISTING,
                         IntId(2),
                         true,
+                        draftOid = null,
                     ),
                 ),
             )
@@ -679,7 +681,14 @@ constructor(
     @Test
     fun `Changing specific switch field returns only that field`() {
         val saveReq =
-            TrackLayoutSwitchSaveRequest(SwitchName("TEST"), IntId(1), LayoutStateCategory.EXISTING, IntId(1), false)
+            LayoutSwitchSaveRequest(
+                SwitchName("TEST"),
+                IntId(1),
+                LayoutStateCategory.EXISTING,
+                IntId(1),
+                false,
+                draftOid = null,
+            )
 
         val switch =
             switchService.getOrThrow(MainLayoutContext.draft, switchService.insertSwitch(LayoutBranch.main, saveReq))
@@ -719,7 +728,8 @@ constructor(
 
     @Test
     fun `fetchPublicationLocationTrackSwitchLinkChanges() in main does not include switch changes in designs`() {
-        val switch = switchDao.save(switch(name = "sw", externalId = "1.1.1.1.2", draft = false)).id
+        val switch = switchDao.save(switch(name = "sw", draft = false)).id
+        switchDao.insertExternalId(switch, LayoutBranch.main, Oid("1.1.1.1.2"))
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrackId =
             locationTrackService
@@ -782,12 +792,13 @@ constructor(
 
     @Test
     fun `fetchPublicationLocationTrackSwitchLinkChanges() can filter by design branch and is not confused by design publications`() {
-        val switchAddedAndRemoved =
-            switchDao.save(switch(name = "sw-added-and-later-removed", externalId = "1.1.1.1.2", draft = false)).id
-        val switchFurtherAddedInMain =
-            switchDao.save(switch(name = "sw-later-added-in-main", externalId = "1.1.1.1.5", draft = false)).id
-        val switchFurtherAddedInDesign =
-            switchDao.save(switch(name = "sw-later-added-in-design", externalId = "1.1.1.1.6", draft = false)).id
+        val switchAddedAndRemoved = switchDao.save(switch(name = "sw-added-and-later-removed", draft = false)).id
+        val switchFurtherAddedInMain = switchDao.save(switch(name = "sw-later-added-in-main", draft = false)).id
+        val switchFurtherAddedInDesign = switchDao.save(switch(name = "sw-later-added-in-design", draft = false)).id
+        switchDao.insertExternalId(switchAddedAndRemoved, LayoutBranch.main, Oid("1.1.1.1.2"))
+        switchDao.insertExternalId(switchFurtherAddedInMain, LayoutBranch.main, Oid("1.1.1.1.5"))
+        switchDao.insertExternalId(switchFurtherAddedInDesign, LayoutBranch.main, Oid("1.1.1.1.6"))
+
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrackId =
             locationTrackService
@@ -859,8 +870,8 @@ constructor(
         locationTrackId: IntId<LocationTrack>
     ): (
         publicationId: IntId<Publication>,
-        old: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
-        new: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
+        old: Map<IntId<LayoutSwitch>, SwitchChangeIds>,
+        new: Map<IntId<LayoutSwitch>, SwitchChangeIds>,
     ) -> Pair<IntId<Publication>, Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>> =
         { publicationId, old, new ->
             publicationId to mapOf(locationTrackId to LocationTrackPublicationSwitchLinkChanges(old, new))
@@ -868,21 +879,24 @@ constructor(
 
     @Test
     fun `Location track switch link changes are reported`() {
-        val switchUnlinkedFromTopology =
-            switchDao.save(switch(name = "sw-unlinked-from-topology", externalId = "1.1.1.1.1", draft = false))
-        val switchUnlinkedFromAlignment =
-            switchDao.save(switch(name = "sw-unlinked-from-alignment", externalId = "1.1.1.1.2", draft = false))
-        val switchAddedToTopologyStart =
-            switchDao.save(switch(name = "sw-added-to-topo-start", externalId = "1.1.1.1.3", draft = false))
-        val switchAddedToTopologyEnd =
-            switchDao.save(switch(name = "sw-added-to-topo-end", externalId = "1.1.1.1.4", draft = false))
-        val switchAddedToAlignment =
-            switchDao.save(switch(name = "sw-added-to-alignment", externalId = "1.1.1.1.5", draft = false))
-        val switchDeleted = switchDao.save(switch(name = "sw-deleted", externalId = "1.1.1.1.6", draft = false))
-        val switchMerelyRenamed =
-            switchDao.save(switch(name = "sw-merely-renamed", externalId = "1.1.1.1.7", draft = false))
+        val switchUnlinkedFromTopology = switchDao.save(switch(name = "sw-unlinked-from-topology", draft = false))
+        val switchUnlinkedFromAlignment = switchDao.save(switch(name = "sw-unlinked-from-alignment", draft = false))
+        val switchAddedToTopologyStart = switchDao.save(switch(name = "sw-added-to-topo-start", draft = false))
+        val switchAddedToTopologyEnd = switchDao.save(switch(name = "sw-added-to-topo-end", draft = false))
+        val switchAddedToAlignment = switchDao.save(switch(name = "sw-added-to-alignment", draft = false))
+        val switchDeleted = switchDao.save(switch(name = "sw-deleted", draft = false))
+        val switchMerelyRenamed = switchDao.save(switch(name = "sw-merely-renamed", draft = false))
         val originalSwitchReplacedWithNewSameName =
-            switchDao.save(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.8", draft = false))
+            switchDao.save(switch(name = "sw-replaced-with-new-same-name", draft = false))
+
+        switchDao.insertExternalId(switchUnlinkedFromTopology.id, LayoutBranch.main, Oid("1.1.1.1.1"))
+        switchDao.insertExternalId(switchUnlinkedFromAlignment.id, LayoutBranch.main, Oid("1.1.1.1.2"))
+        switchDao.insertExternalId(switchAddedToTopologyStart.id, LayoutBranch.main, Oid("1.1.1.1.3"))
+        switchDao.insertExternalId(switchAddedToTopologyEnd.id, LayoutBranch.main, Oid("1.1.1.1.4"))
+        switchDao.insertExternalId(switchAddedToAlignment.id, LayoutBranch.main, Oid("1.1.1.1.5"))
+        switchDao.insertExternalId(switchDeleted.id, LayoutBranch.main, Oid("1.1.1.1.6"))
+        switchDao.insertExternalId(switchMerelyRenamed.id, LayoutBranch.main, Oid("1.1.1.1.7"))
+        switchDao.insertExternalId(originalSwitchReplacedWithNewSameName.id, LayoutBranch.main, Oid("1.1.1.1.8"))
 
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
 
@@ -917,10 +931,8 @@ constructor(
             switchDao.fetch(switchMerelyRenamed).copy(name = SwitchName("sw-with-new-name")),
         )
         val newSwitchReplacingOldWithSameName =
-            switchService.saveDraft(
-                LayoutBranch.main,
-                switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.9", draft = true),
-            )
+            switchService.saveDraft(LayoutBranch.main, switch(name = "sw-replaced-with-new-same-name", draft = true))
+        switchDao.insertExternalId(newSwitchReplacingOldWithSameName.id, LayoutBranch.main, Oid("1.1.1.1.9"))
 
         locationTrackService.saveDraft(
             LayoutBranch.main,
@@ -937,142 +949,6 @@ constructor(
                 null,
             ),
         )
-        publish(
-            publicationService,
-            locationTracks = listOf(originalLocationTrack.id),
-            switches =
-                listOf(
-                    switchDeleted.id,
-                    switchMerelyRenamed.id,
-                    originalSwitchReplacedWithNewSameName.id,
-                    newSwitchReplacingOldWithSameName.id,
-                ),
-        )
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
-        val latestPub = latestPubs[0]
-        val previousPub = latestPubs[1]
-        val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
-
-        val diff =
-            publicationLogService.diffLocationTrack(
-                localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(originalLocationTrack.id),
-                publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
-                LayoutBranch.main,
-                latestPub.publicationTime,
-                previousPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(),
-                setOf(),
-            ) { _, _ ->
-                null
-            }
-        assertEquals(1, diff.size)
-        assertEquals("linked-switches", diff[0].propKey.key.toString())
-        assertEquals(
-            """
-                Vaihteiden sw-deleted, sw-replaced-with-new-same-name (1.1.1.1.8), sw-unlinked-from-alignment,
-                sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end,
-                sw-added-to-topo-start, sw-replaced-with-new-same-name (1.1.1.1.9) linkitetty.
-            """
-                .trimIndent()
-                .replace("\n", " "),
-            diff[0].remark,
-        )
-    }
-
-    @Test
-    fun `Location track switch link changes made in design are reported`() {
-        val switchUnlinkedFromTopology =
-            switchDao.save(switch(name = "sw-unlinked-from-topology", externalId = "1.1.1.1.1", draft = false))
-        val switchUnlinkedFromAlignment =
-            switchDao.save(switch(name = "sw-unlinked-from-alignment", externalId = "1.1.1.1.2", draft = false))
-        val switchAddedToTopologyStart =
-            switchDao.save(switch(name = "sw-added-to-topo-start", externalId = "1.1.1.1.3", draft = false))
-        val switchAddedToTopologyEnd =
-            switchDao.save(switch(name = "sw-added-to-topo-end", externalId = "1.1.1.1.4", draft = false))
-        val switchAddedToAlignment =
-            switchDao.save(switch(name = "sw-added-to-alignment", externalId = "1.1.1.1.5", draft = false))
-        val switchDeleted = switchDao.save(switch(name = "sw-deleted", externalId = "1.1.1.1.6", draft = false))
-        val switchMerelyRenamed =
-            switchDao.save(switch(name = "sw-merely-renamed", externalId = "1.1.1.1.7", draft = false))
-        val originalSwitchReplacedWithNewSameName =
-            switchDao.save(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.8", draft = false))
-
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-
-        val originalLocationTrack =
-            locationTrackService.saveDraft(
-                LayoutBranch.main,
-                locationTrack(
-                    trackNumberId,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1)),
-                    draft = true,
-                ),
-                alignmentWithSwitchLinks(
-                    switchUnlinkedFromAlignment.id,
-                    switchDeleted.id,
-                    switchMerelyRenamed.id,
-                    originalSwitchReplacedWithNewSameName.id,
-                ),
-            )
-        publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
-
-        val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
-
-        switchService.saveDraft(
-            testBranch,
-            switchDao.fetch(switchDeleted).copy(stateCategory = LayoutStateCategory.NOT_EXISTING),
-        )
-        switchService.saveDraft(
-            testBranch,
-            switchDao
-                .fetch(originalSwitchReplacedWithNewSameName)
-                .copy(stateCategory = LayoutStateCategory.NOT_EXISTING),
-        )
-        switchService.saveDraft(
-            testBranch,
-            switchDao.fetch(switchMerelyRenamed).copy(name = SwitchName("sw-with-new-name")),
-        )
-        val newSwitchReplacingOldWithSameName =
-            testDBService
-                .testContext(testBranch, DRAFT)
-                .insert(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.9"))
-
-        locationTrackService.saveDraft(
-            testBranch,
-            locationTrackDao
-                .getOrThrow(MainLayoutContext.official, originalLocationTrack.id)
-                .copy(
-                    topologyStartSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyStart.id, JointNumber(1)),
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1)),
-                ),
-            alignmentWithSwitchLinks(
-                switchAddedToAlignment.id,
-                switchMerelyRenamed.id,
-                newSwitchReplacingOldWithSameName.id,
-                null,
-            ),
-        )
-        publish(
-            publicationService,
-            testBranch,
-            locationTracks = listOf(originalLocationTrack.id),
-            switches =
-                listOf(
-                    switchDeleted.id,
-                    switchMerelyRenamed.id,
-                    originalSwitchReplacedWithNewSameName.id,
-                    newSwitchReplacingOldWithSameName.id,
-                ),
-        )
-        locationTrackService.mergeToMainBranch(testBranch, originalLocationTrack.id)
-        listOf(
-                switchDeleted.id,
-                switchMerelyRenamed.id,
-                originalSwitchReplacedWithNewSameName.id,
-                newSwitchReplacingOldWithSameName.id,
-            )
-            .forEach { id -> switchService.mergeToMainBranch(testBranch, id) }
         publish(
             publicationService,
             locationTracks = listOf(originalLocationTrack.id),
@@ -1340,7 +1216,7 @@ constructor(
         )
         val switch =
             switchDao.save(
-                switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
+                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
             )
         val originalAlignment =
             alignment(
@@ -1353,7 +1229,7 @@ constructor(
             )
         switchService.saveDraft(
             LayoutBranch.main,
-            switchDao.fetch(switch).copy(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
+            switchDao.fetch(switch).copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
         )
         val updatedAlignment =
             alignment(
@@ -1404,7 +1280,7 @@ constructor(
         )
         val switch =
             switchDao.save(
-                switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
+                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
             )
         val originalAlignment =
             alignment(
@@ -1420,7 +1296,7 @@ constructor(
 
         switchService.saveDraft(
             testBranch,
-            switchDao.fetch(switch).copy(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
+            switchDao.fetch(switch).copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
         )
         val updatedAlignment =
             alignment(
@@ -1472,10 +1348,7 @@ constructor(
             )
         val switch =
             mainDraftContext.insert(
-                switch(
-                    name = "original",
-                    joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(5.0, 5.0), null)),
-                )
+                switch(name = "original", joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(5.0, 5.0), null)))
             )
         val locationTrack =
             mainDraftContext.insert(
@@ -1645,7 +1518,7 @@ constructor(
         )
 }
 
-private fun alignmentWithSwitchLinks(vararg switchIds: IntId<TrackLayoutSwitch>?): LayoutAlignment =
+private fun alignmentWithSwitchLinks(vararg switchIds: IntId<LayoutSwitch>?): LayoutAlignment =
     alignment(
         switchIds.mapIndexed { index, switchId ->
             segment(Point(0.0, index * 1.0), Point(0.0, index * 1.0 + 1.0)).let { segment ->

@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IndexedId
@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.geometry.geometryLine
 import fi.fta.geoviite.infra.geometry.geometrySwitch
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.testFile
-import fi.fta.geoviite.infra.linking.switches.SwitchFittingService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchType

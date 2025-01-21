@@ -5,6 +5,7 @@ import { ExclamationPoint } from 'geoviite-design-lib/exclamation-point/exclamat
 import styles from './infra-model-tabs.scss';
 import { createDelegates } from 'store/store-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 
 export type TabNavItemProps = {
     tabId: InfraModelTabType;
@@ -37,17 +38,17 @@ const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({
     };
 
     return (
-        <li
+        <TabHeader
+            selected={activeTab === tabId}
             onClick={handleClick}
-            className={activeTab === tabId ? styles['active'] : styles['inactive']}
-            qa-id={`infra-model-nav-tab-${tabId}`}>
+            qaId={`infra-model-nav-tab-${tabId}`}>
             {title}
             {exclamationPointVisible && (
                 <span className={styles['tabs__exclamation-point-container']}>
                     <ExclamationPoint />
                 </span>
             )}
-        </li>
+        </TabHeader>
     );
 };
 export default InfraModelTabNavItem;

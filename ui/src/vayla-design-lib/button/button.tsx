@@ -19,6 +19,7 @@ export enum ButtonVariant {
 export enum ButtonSize {
     SMALL = 'button--size-small',
     X_SMALL = 'button--size-x-small',
+    BY_CONTENT = 'button--size-by-content',
 }
 
 export enum ButtonIconPosition {
@@ -76,7 +77,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
         wide && styles['button--wide'],
         inheritTypography && styles['button--inherit-typography'],
     );
-    
+
     return (
         <button id={id} className={classes} ref={ref} {...props}>
             <span className={styles['button__icon-and-animation']}>

@@ -10,15 +10,17 @@ import fi.fta.geoviite.infra.integration.IndirectChanges
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.ratko.FakeRatkoService
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.ratko.ratkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
@@ -56,22 +58,42 @@ constructor(
     @Disabled
     @Test
     fun `Retry failed publication`() {
-        val originalTrackNumber =
-            trackNumberDao.save(trackNumber(TrackNumber("original name"), externalId = Oid("1.2.3.4.5"), draft = false))
+        val originalTrackNumber = trackNumberDao.save(trackNumber(TrackNumber("original name"), draft = false))
+        trackNumberDao.insertExternalId(originalTrackNumber.id, LayoutBranch.main, Oid("1.2.3.4.5"))
         val trackNumberId = originalTrackNumber.id
         val alignmentVersion =
             alignmentDao.insert(alignment(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0)))))
         referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
 
         val successfulPublicationId =
-            publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("successful"))
-        publicationDao.insertCalculatedChanges(successfulPublicationId, changesTouchingTrackNumber(trackNumberId))
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of("successful"),
+                PublicationCause.MANUAL,
+            )
+        publicationDao.insertCalculatedChanges(
+            successfulPublicationId,
+            changesTouchingTrackNumber(trackNumberId),
+            publishedVersions(trackNumbers = listOf(originalTrackNumber)),
+        )
 
-        trackNumberDao.fetch(originalTrackNumber).copy(number = TrackNumber("updated name")).let(trackNumberDao::save)
+        val updatedTrackNumberVersion =
+            trackNumberDao
+                .fetch(originalTrackNumber)
+                .copy(number = TrackNumber("updated name"))
+                .let(trackNumberDao::save)
 
         val failingPublicationId =
-            publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("failing test publication"))
-        publicationDao.insertCalculatedChanges(failingPublicationId, changesTouchingTrackNumber(trackNumberId))
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of("failing test publication"),
+                PublicationCause.MANUAL,
+            )
+        publicationDao.insertCalculatedChanges(
+            failingPublicationId,
+            changesTouchingTrackNumber(trackNumberId),
+            publishedVersions(trackNumbers = listOf(updatedTrackNumberVersion)),
+        )
 
         val failedRatkoPushId = ratkoPushDao.startPushing(listOf(failingPublicationId))
         ratkoPushDao.updatePushStatus(failedRatkoPushId, RatkoPushStatus.FAILED)
@@ -117,7 +139,7 @@ constructor(
         fakeRatko.stop()
     }
 
-    private fun changesTouchingTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): CalculatedChanges =
+    private fun changesTouchingTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): CalculatedChanges =
         CalculatedChanges(
             DirectChanges(
                 trackNumberChanges =

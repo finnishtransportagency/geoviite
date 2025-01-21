@@ -217,7 +217,11 @@
         left: 10px;
 
         background-color: rgba(vayla-design.$color-white-default, 0.6);
-        padding: 2px 4px;
+        border-radius: 4px;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
 
         button {
             border-radius: 2px;

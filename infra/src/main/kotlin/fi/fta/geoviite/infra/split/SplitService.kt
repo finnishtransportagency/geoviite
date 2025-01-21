@@ -11,8 +11,8 @@ import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
+import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
@@ -27,15 +27,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.produceIf
 import java.time.Instant
@@ -66,7 +66,7 @@ class SplitService(
     fun findUnpublishedSplits(
         branch: LayoutBranch,
         locationTrackIds: List<IntId<LocationTrack>>? = null,
-        switchIds: List<IntId<TrackLayoutSwitch>>? = null,
+        switchIds: List<IntId<LayoutSwitch>>? = null,
     ): List<Split> =
         findUnfinishedSplits(branch, locationTrackIds, switchIds).filter { split -> split.publicationId == null }
 
@@ -77,7 +77,7 @@ class SplitService(
     fun findUnfinishedSplits(
         branch: LayoutBranch,
         locationTrackIds: List<IntId<LocationTrack>>? = null,
-        switchIds: List<IntId<TrackLayoutSwitch>>? = null,
+        switchIds: List<IntId<LayoutSwitch>>? = null,
     ): List<Split> =
         splitDao.fetchUnfinishedSplits(branch).filter { split ->
             val containsTrack = locationTrackIds?.any(split::containsLocationTrack)
@@ -93,7 +93,7 @@ class SplitService(
     fun fetchPublicationVersions(
         branch: LayoutBranch,
         locationTracks: List<IntId<LocationTrack>>,
-        switches: List<IntId<TrackLayoutSwitch>>,
+        switches: List<IntId<LayoutSwitch>>,
     ): List<RowVersion<Split>> =
         findUnpublishedSplits(branch, locationTracks, switches).map { split -> split.rowVersion }
 
@@ -367,7 +367,7 @@ class SplitService(
     }
 
     private fun validateSplitReferencesByTrackNumber(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         context: ValidationContext,
     ): LayoutValidationIssue? {
         val affectedTracks = context.getLocationTracksByTrackNumber(trackNumberId)
@@ -512,7 +512,7 @@ class SplitService(
     private fun collectSplitTargetParams(
         branch: LayoutBranch,
         targets: List<SplitRequestTarget>,
-        suggestions: List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch>>,
+        suggestions: List<Pair<IntId<LayoutSwitch>, SuggestedSwitch>>,
     ): List<SplitTargetParams> {
         return targets.map { target ->
             val startSwitch =
@@ -542,7 +542,7 @@ class SplitService(
     }
 }
 
-data class SplitPointSwitch(val id: IntId<TrackLayoutSwitch>, val jointNumber: JointNumber, val name: SwitchName)
+data class SplitPointSwitch(val id: IntId<LayoutSwitch>, val jointNumber: JointNumber, val name: SwitchName)
 
 data class SplitTargetParams(
     val request: SplitRequestTarget,
@@ -701,8 +701,6 @@ private fun createSplitTarget(
             descriptionBase = request.descriptionBase,
             descriptionSuffix = request.descriptionSuffix,
 
-            // New track -> no external ID
-            externalId = null,
             // After split, tracks are not duplicates
             duplicateOf = null,
             // Topology is re-resolved after tracks and switches are updated
@@ -771,7 +769,7 @@ private fun throwSwitchSegmentMappingFailure(alignment: LayoutAlignment, switch:
     )
 }
 
-private fun findIndex(alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwitch>, joint: JointNumber): Int {
+private fun findIndex(alignment: LayoutAlignment, switchId: IntId<LayoutSwitch>, joint: JointNumber): Int {
     alignment.segments.forEachIndexed { index, segment ->
         if (segment.switchId == switchId && segment.startJointNumber == joint) {
             return index
@@ -784,8 +782,8 @@ private fun cutSegments(alignment: LayoutAlignment, segmentIndices: ClosedRange<
     fixSegmentStarts(alignment.segments.subList(segmentIndices.start, segmentIndices.endInclusive + 1))
 
 private fun verifySwitchSuggestions(
-    suggestions: List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>>
-): List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch>> =
+    suggestions: List<Pair<IntId<LayoutSwitch>, SuggestedSwitch?>>
+): List<Pair<IntId<LayoutSwitch>, SuggestedSwitch>> =
     suggestions.map { (id, suggestion) ->
         if (suggestion == null) {
             throw SplitFailureException(

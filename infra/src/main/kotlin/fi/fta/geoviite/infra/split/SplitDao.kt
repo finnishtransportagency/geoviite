@@ -8,8 +8,8 @@ import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getEnum
@@ -56,7 +56,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     fun saveSplit(
         sourceLocationTrackVersion: LayoutRowVersion<LocationTrack>,
         splitTargets: Collection<SplitTarget>,
-        relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>,
+        relinkedSwitches: Collection<IntId<LayoutSwitch>>,
         updatedDuplicates: Collection<IntId<LocationTrack>>,
     ): IntId<Split> {
         val sql =
@@ -101,7 +101,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         return splitId
     }
 
-    private fun saveRelinkedSwitches(splitId: IntId<Split>, relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>) {
+    private fun saveRelinkedSwitches(splitId: IntId<Split>, relinkedSwitches: Collection<IntId<LayoutSwitch>>) {
         val sql =
             """
             insert into publication.split_relinked_switch(split_id, switch_id)

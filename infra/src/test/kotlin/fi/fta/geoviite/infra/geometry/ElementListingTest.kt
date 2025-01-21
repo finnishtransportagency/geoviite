@@ -22,17 +22,17 @@ import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.geocodingContext
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.util.FileName
-import java.math.BigDecimal
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
+import kotlin.test.assertEquals
 
 private val allElementTypes = GeometryElementType.values().toList()
 private val allTrackElementTypes = TrackGeometryElementType.values().toList()
@@ -130,7 +130,7 @@ class ElementListingTest {
         val gk27CoordinateBase = Point(7059000.0, 27480000.0)
         val layoutCoordinateBase = transformNonKKJCoordinate(gk27, LAYOUT_SRID, gk27CoordinateBase)
 
-        val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
+        val trackNumberId = IntId<LayoutTrackNumber>(1)
         val trackNumber = TrackNumber("4646")
         val (referenceLine, alignment) =
             referenceLineAndAlignment(

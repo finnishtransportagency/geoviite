@@ -12,17 +12,18 @@ import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -61,8 +62,8 @@ constructor(
     @Transactional(readOnly = true)
     fun validateTrackNumbersAndReferenceLines(
         target: ValidationTarget,
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
-    ): List<ValidatedAsset<TrackLayoutTrackNumber>> {
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
+    ): List<ValidatedAsset<LayoutTrackNumber>> {
         if (trackNumberIds.isEmpty()) return emptyList()
 
         // Switches don't affect tracknumber validity, so they are ignored
@@ -132,8 +133,8 @@ constructor(
     @Transactional(readOnly = true)
     fun validateSwitches(
         target: ValidationTarget,
-        switchIds: List<IntId<TrackLayoutSwitch>>,
-    ): List<ValidatedAsset<TrackLayoutSwitch>> {
+        switchIds: List<IntId<LayoutSwitch>>,
+    ): List<ValidatedAsset<LayoutSwitch>> {
         if (switchIds.isEmpty()) return emptyList()
 
         // Only tracks and switches affect switch validation, so we can ignore the other types in
@@ -161,8 +162,8 @@ constructor(
     @Transactional(readOnly = true)
     fun validateKmPosts(
         target: ValidationTarget,
-        kmPostIds: List<IntId<TrackLayoutKmPost>>,
-    ): List<ValidatedAsset<TrackLayoutKmPost>> {
+        kmPostIds: List<IntId<LayoutKmPost>>,
+    ): List<ValidatedAsset<LayoutKmPost>> {
         if (kmPostIds.isEmpty()) return emptyList()
 
         // We can ignore switches and locationtracks, as they don't affect km-post validity
@@ -191,11 +192,11 @@ constructor(
 
     private fun createValidationContext(
         target: ValidationTarget,
-        trackNumbers: List<LayoutRowVersion<TrackLayoutTrackNumber>> = emptyList(),
+        trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>> = emptyList(),
         locationTracks: List<LayoutRowVersion<LocationTrack>> = emptyList(),
         referenceLines: List<LayoutRowVersion<ReferenceLine>> = emptyList(),
-        switches: List<LayoutRowVersion<TrackLayoutSwitch>> = emptyList(),
-        kmPosts: List<LayoutRowVersion<TrackLayoutKmPost>> = emptyList(),
+        switches: List<LayoutRowVersion<LayoutSwitch>> = emptyList(),
+        kmPosts: List<LayoutRowVersion<LayoutKmPost>> = emptyList(),
     ): ValidationContext =
         createValidationContext(
             ValidationVersions(target, trackNumbers, locationTracks, referenceLines, switches, kmPosts, emptyList())
@@ -299,7 +300,10 @@ constructor(
         }
     }
 
-    private inline fun <reified T> assertNoErrors(version: LayoutRowVersion<T>, issues: List<LayoutValidationIssue>) {
+    private inline fun <reified T : LayoutAsset<T>> assertNoErrors(
+        version: LayoutRowVersion<T>,
+        issues: List<LayoutValidationIssue>,
+    ) {
         val errors = issues.filter { issue -> issue.type == ERROR }
         if (errors.isNotEmpty()) {
             logger.warn("Validation errors in published ${T::class.simpleName}: item=$version errors=$errors")
@@ -323,7 +327,7 @@ constructor(
     }
 
     private fun validateTrackNumber(
-        id: IntId<TrackLayoutTrackNumber>,
+        id: IntId<LayoutTrackNumber>,
         validationContext: ValidationContext,
     ): List<LayoutValidationIssue>? =
         validationContext.getTrackNumber(id)?.let { trackNumber ->
@@ -347,7 +351,7 @@ constructor(
             return referenceIssues + geocodingIssues + duplicateNameIssues
         }
 
-    private fun validateKmPost(id: IntId<TrackLayoutKmPost>, context: ValidationContext): List<LayoutValidationIssue>? =
+    private fun validateKmPost(id: IntId<LayoutKmPost>, context: ValidationContext): List<LayoutValidationIssue>? =
         context.getKmPost(id)?.let { kmPost ->
             val trackNumber = kmPost.trackNumberId?.let(context::getTrackNumber)
             val trackNumberNumber = (trackNumber ?: kmPost.trackNumberId?.let(context::getCandidateTrackNumber))?.number
@@ -370,7 +374,7 @@ constructor(
         }
 
     private fun validateSwitch(
-        id: IntId<TrackLayoutSwitch>,
+        id: IntId<LayoutSwitch>,
         validationContext: ValidationContext,
     ): List<LayoutValidationIssue>? =
         validationContext.getSwitch(id)?.let { switch ->
@@ -392,7 +396,14 @@ constructor(
                     validationContext.getSwitchesByName(switch.name),
                     validationContext.target.type,
                 )
-            return referenceIssues + structureIssues + duplicationIssues
+            val oidDuplicationIssues =
+                validateSwitchOidDuplication(
+                    switch,
+                    switch.draftOid?.let(switchDao::lookupByExternalId)?.let { row ->
+                        switchDao.get(row.context, row.id)
+                    },
+                )
+            return referenceIssues + structureIssues + duplicationIssues + oidDuplicationIssues
         }
 
     private fun validateReferenceLine(
@@ -459,8 +470,7 @@ constructor(
                     validationContext.getTopologicallyConnectedSwitches(track),
                 )
             val trackNetworkTopologyIssues =
-                validationContext.getPotentiallyAffectedSwitches(id).filter(TrackLayoutSwitch::exists).flatMap { switch
-                    ->
+                validationContext.getPotentiallyAffectedSwitches(id).filter(LayoutSwitch::exists).flatMap { switch ->
                     val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
                     val switchTracks = validationContext.getSwitchTracksWithAlignments(switch.id as IntId)
                     validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
@@ -525,7 +535,7 @@ constructor(
         } ?: listOf(noGeocodingContext(localizationKey))
 
     private fun validateAddressPoints(
-        trackNumber: TrackLayoutTrackNumber,
+        trackNumber: LayoutTrackNumber,
         contextKey: GeocodingContextCacheKey,
         track: LocationTrack,
         validationTargetLocalizationPrefix: String,

@@ -22,9 +22,9 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.projektivelho.PVDocument
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.Page
@@ -57,10 +57,11 @@ data class GeometryPlanHeader(
     val hasProfile: Boolean,
     val hasCant: Boolean,
     val isHidden: Boolean,
+    val name: PlanName,
 ) : Loggable {
     @get:JsonIgnore
     val searchParams: List<String> by lazy {
-        listOfNotNull(fileName, project.name, message).map { o -> o.toString().lowercase() }
+        listOfNotNull(fileName, project.name, message, name).map { o -> o.toString().lowercase() }
     }
 
     override fun toLog(): String = logFormat("version" to version, "name" to fileName, "source" to source)
@@ -92,6 +93,7 @@ data class GeometryPlan(
     val measurementMethod: MeasurementMethod?,
     val elevationMeasurementMethod: ElevationMeasurementMethod?,
     val message: FreeTextWithNewLines?,
+    val name: PlanName,
     val isHidden: Boolean = false,
     val id: DomainId<GeometryPlan> = StringId(),
     val dataType: DataType = DataType.TEMP,
@@ -109,7 +111,7 @@ data class GeometryPlan(
         )
 }
 
-data class GeometryPlanArea(val id: DomainId<GeometryPlan>, val fileName: FileName, val polygon: List<Point>)
+data class GeometryPlanArea(val id: DomainId<GeometryPlan>, val name: PlanName, val polygon: List<Point>)
 
 data class GeometryPlanUnits(val id: IntId<GeometryPlan>, val units: GeometryUnits)
 
@@ -129,8 +131,8 @@ data class GeometryPlanLinkingSummary(
 
 data class GeometryPlanLinkedItems(
     val locationTracks: List<IntId<LocationTrack>>,
-    val switches: List<IntId<TrackLayoutSwitch>>,
-    val kmPosts: List<IntId<TrackLayoutKmPost>>,
+    val switches: List<IntId<LayoutSwitch>>,
+    val kmPosts: List<IntId<LayoutKmPost>>,
 ) {
     val isEmpty = locationTracks.isEmpty() && switches.isEmpty() && kmPosts.isEmpty()
 }
