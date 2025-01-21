@@ -127,17 +127,17 @@ const getHighlightZIndex = (
     stage: PublicationStage,
     type: ChangeType,
 ): number => {
-    // Deletions go below everything else
-    const operationPriority = operation === 'DELETE' ? 0 : 8;
+    // Unstaged changes always go below staged changes
+    const stagePriority = stage === PublicationStage.UNSTAGED ? 0 : 8;
+    // Explicit changes go above implicit changes
+    const explicitPriority = type === ChangeType.IMPLICIT ? 0 : 4;
     // Point features go below lines
     const typePriority =
-        assetType === DraftChangeType.KM_POST || assetType === DraftChangeType.SWITCH ? 0 : 4;
-    // Unstaged changes go below staged changes
-    const stagePriority = stage === PublicationStage.UNSTAGED ? 0 : 2;
-    // Explicit changes go above implicit changes
-    const explicitPriority = type === ChangeType.IMPLICIT ? 0 : 1;
+        assetType === DraftChangeType.KM_POST || assetType === DraftChangeType.SWITCH ? 0 : 2;
+    // Deletions go below everything else
+    const operationPriority = operation === 'DELETE' ? 0 : 1;
 
-    return operationPriority + typePriority + stagePriority + explicitPriority;
+    return stagePriority + explicitPriority + typePriority + operationPriority;
 };
 
 const dataPropertyByType = (type: DraftChangeType) => {
@@ -405,7 +405,7 @@ const createOfficialLocationTrackFeatures = (
                 'DELETE',
                 publishCandidate.type,
                 publishCandidate.stage,
-                ChangeType.EXPLICIT,
+                publishCandidate.operation === 'DELETE' ? ChangeType.EXPLICIT : ChangeType.IMPLICIT,
             ),
         }),
     );
@@ -453,7 +453,7 @@ const createOfficialReferenceLineFeatures = (
                 'DELETE',
                 publishCandidate.type,
                 publishCandidate.stage,
-                ChangeType.EXPLICIT,
+                publishCandidate.operation === 'DELETE' ? ChangeType.EXPLICIT : ChangeType.IMPLICIT,
             ),
         }),
     );
