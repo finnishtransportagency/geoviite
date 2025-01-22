@@ -5,8 +5,7 @@ alter table publication.switch
   drop constraint publication_switch_switch_version_fk;
 
 alter table layout.switch_version
-  drop constraint switch_version_pkey,
-  add constraint switch_version_pkey primary key (id, layout_context_id, version);
+  drop constraint switch_version_pkey;
 
 alter table publication.switch
   add column layout_context_id text;
@@ -58,6 +57,9 @@ set version = switch_version_change.new_version, id = official_id
     and switch_version.id = switch_version_change.id
     and switch_version.version = switch_version_change.old_version;
 
+alter table layout.switch_version
+  add constraint switch_version_pkey primary key (id, layout_context_id, version);
+
 update layout.switch_joint_version
 set version = sjvc.new_joint_version, switch_version = sjvc.new_switch_version, switch_id = sjvc.switch_official_id
   from switch_joint_version_change sjvc
@@ -66,6 +68,9 @@ set version = sjvc.new_joint_version, switch_version = sjvc.new_switch_version, 
     and switch_joint_version.switch_version = sjvc.old_switch_version
     and switch_joint_version.version = sjvc.old_joint_version
     and switch_joint_version.number = sjvc.number;
+
+alter table layout.switch_joint_version
+  add constraint switch_joint_version_pkey primary key (switch_id, switch_layout_context_id, number, version);
 
 -- Constraint will be recreated in redo_id_structure_for_switch after we recreate switch's pkey.
 -- We need to update this table here because it's where we have easy access to the switch official IDs.
