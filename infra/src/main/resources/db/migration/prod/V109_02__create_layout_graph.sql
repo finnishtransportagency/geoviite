@@ -1,7 +1,7 @@
--- do $$
---   begin
---       raise exception 'This migration is not yet implemented';
---   end $$;
+do $$
+  begin
+      raise exception 'This migration is not yet implemented';
+  end $$;
 
 drop table if exists node_point_version_temp;
 create temporary table node_point_version_temp as (
@@ -26,8 +26,9 @@ create temporary table node_point_version_temp as (
           inner join layout.alignment_version a on a.id = s.alignment_id and a.version = s.alignment_version
           inner join layout.location_track_version lt on a.id = lt.alignment_id and a.version = lt.alignment_version
           inner join layout.segment_geometry sg on sg.id = s.geometry_id
-        where s.switch_id is not null and (s.switch_start_joint_number is not null or
-                                           s.switch_end_joint_number is not null)
+        where s.switch_id is not null
+          and (s.switch_start_joint_number is not null or s.switch_end_joint_number is not null)
+--           and lt.deleted = false -- TODO: ignore these, right? there wont be any edges/nodes for deleted tracks in the future?
     ),
     -- All potential locations/versions that could produce a node. Note that there will be duplicates here
     node_points as (
@@ -127,10 +128,6 @@ create temporary table node_point_version_temp as (
         -- Node ordering within the alignment version
         row_number() over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by start_segment_index, end_segment_index) as node_index,
         -- The grouping contracts the duplicated locations to a single node which may have multiple switch links
---         -- Duplicate the data into separate arrays for easy unnesting in later processing
---         array_agg(switch_id order by switch_id, joint_number) filter (where switch_id is not null) switch_ids,
---         array_agg(joint_number order by switch_id, joint_number) filter (where switch_id is not null) switch_joints,
---         array_agg(switch_direction order by switch_id, joint_number) filter (where switch_id is not null) switch_directions,
         -- There can only be one or null of these per node
         (array_agg(distinct switch_in_id) filter (where switch_in_id is not null))[1] as switch_in_id,
         (array_agg(distinct switch_in_joint_number) filter (where switch_in_joint_number is not null))[1] as switch_in_joint_number,
@@ -176,7 +173,11 @@ select id, layout_context_id, version, switch_structure_id, start_time, end_time
       version,
       switch_structure_id,
       change_time as start_time,
-          lead(change_time) over (partition by id, layout_context_id order by version) as end_time,
+      case
+        when lead(deleted) over (partition by id, layout_context_id order by version)
+          then (lead(change_time + (interval '1 second')) over (partition by id, layout_context_id order by version))
+        else lead(change_time) over (partition by id, layout_context_id order by version)
+      end as end_time,
       deleted
       from layout.switch_version
   ) tmp
@@ -194,10 +195,14 @@ create temp table missing_tmp as (
     n.location_track_change_time,
     n.switch_in_id,
     n.switch_in_joint_number,
+    coalesce(s_in_d.layout_context_id, s_in_o.layout_context_id) as switch_in_context,
+    coalesce(s_in_d.version, s_in_o.version) as switch_in_version,
     coalesce(s_in_d.switch_structure_id, s_in_o.switch_structure_id) as switch_in_structure_id,
     j_in.type as switch_in_joint_type,
     n.switch_out_id,
     n.switch_out_joint_number,
+    coalesce(s_out_d.layout_context_id, s_out_o.layout_context_id) as switch_out_context,
+    coalesce(s_out_d.version, s_out_o.version) as switch_out_version,
     coalesce(s_out_d.switch_structure_id, s_out_o.switch_structure_id) as switch_out_structure_id,
     j_out.type as switch_out_joint_type
     from node_point_version_temp n
@@ -234,15 +239,57 @@ create temp table missing_tmp as (
                   and j_out.switch_version = coalesce(s_out_d.version, s_out_o.version)
                   and j_out.number = n.switch_out_joint_number
     where (switch_in_id is not null and j_in.type is null) or (switch_out_id is not null and j_out.type is null)
-)
- ;
+);
+
+select
+lt.id,
+lt.layout_context_id,
+lt.version,
+lt.name,
+lt.change_time,
+lt.change_user,
+array_agg(row(s.switch_id, s.switch_start_joint_number, s.switch_end_joint_number)) filter (where s.switch_id = 19) switch_19_links
+  from layout.location_track_version lt
+    inner join layout.segment_version s on s.alignment_id = lt.alignment_id and s.alignment_version = lt.alignment_version
+  where lt.id = 1804 and lt.layout_context_id = 'main_official'
+  group by lt.id, lt.layout_context_id, lt.version;
 
 with
-  s_in as (select switch_in_id id, switch_in_structure_id structure_id, switch_in_joint_number joint from missing_tmp where switch_in_id is not null),
-  s_out as (select switch_out_id id, switch_out_structure_id structure_id, switch_out_joint_number joint from missing_tmp where switch_out_id is not null),
+  s_in as (
+    select
+      location_track_id,
+      location_track_layout_context_id,
+      location_track_version,
+      switch_in_id id,
+      switch_in_context context,
+      switch_in_version version,
+      switch_in_structure_id structure_id,
+      switch_in_joint_number joint
+      from missing_tmp
+      where switch_in_id is not null
+  ),
+  s_out as (
+    select
+      location_track_id,
+      location_track_layout_context_id,
+      location_track_version,
+      switch_out_id id,
+      switch_out_context context,
+      switch_out_version version,
+      switch_out_structure_id structure_id,
+      switch_out_joint_number joint
+      from missing_tmp
+      where switch_out_id is not null
+  ),
   s_all as (select * from s_in union all select * from s_out)
 select
+  array_agg(distinct s.location_track_id) referencing_tracks,
+--   array_agg(distinct ltv.deleted),
+--   array_agg(s.location_track_layout_context_id),
+--   array_agg(s.location_track_version),
   s.id,
+  s.context,
+  s.version,
   array_agg(distinct s.joint) joints,
   s.structure_id,
   structure.type,
@@ -250,10 +297,10 @@ select
   from s_all s
     left join common.switch_structure structure on structure.id = s.structure_id
     left join common.switch_structure_version_joint ssj on ssj.switch_structure_id = structure.id and ssj.switch_structure_version = structure.version
-  group by s.id, s.structure_id, structure.type, structure.type
+    left join layout.location_track_version ltv on ltv.id = s.location_track_id and ltv.layout_context_id = s.location_track_layout_context_id and ltv.version = s.location_track_version
+--   where not ltv.deleted
+  group by s.id, s.context, s.version, s.structure_id, structure.type, structure.type
 ;
-
--- select * from node_point_version_temp where start_track_link=1790;
 
 -- Create immutable nodes
 insert into layout.node (
