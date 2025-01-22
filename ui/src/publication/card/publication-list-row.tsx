@@ -70,7 +70,10 @@ const bulkTransferStateIcon = (bulkTransferState: BulkTransferState | undefined)
 export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publication }) => {
     const { t } = useTranslation();
 
-    const design = useLayoutDesign(getChangeTimes().layoutDesign, publication.layoutBranch)?.name;
+    const design = useLayoutDesign(
+        getChangeTimes().layoutDesign,
+        publication.layoutBranch.branch,
+    )?.name;
 
     const [menuOpen, setMenuOpen] = React.useState(false);
     const [splitDetailsDialogOpen, setSplitDetailsDialogOpen] = React.useState(false);
@@ -123,7 +126,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
                     <span className={styles['publication-list-item__text']}>
                         {(() => {
                             const text = formatDateFull(publication.publicationTime);
-                            return publication.layoutBranch === 'MAIN' ? (
+                            return publication.layoutBranch.branch === 'MAIN' ? (
                                 <Link to={`/publications/${publication.id}`}>{text}</Link>
                             ) : (
                                 text

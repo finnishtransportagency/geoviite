@@ -104,8 +104,8 @@ function latestFailureByLayoutBranch(
     return [
         ...failures
             .reduce((mapByPublication, publication) => {
-                if (!mapByPublication.has(publication.layoutBranch)) {
-                    mapByPublication.set(publication.layoutBranch, publication);
+                if (!mapByPublication.has(publication.layoutBranch.branch)) {
+                    mapByPublication.set(publication.layoutBranch.branch, publication);
                 }
                 return mapByPublication;
             }, new Map<LayoutBranch, PublicationDetails>())
