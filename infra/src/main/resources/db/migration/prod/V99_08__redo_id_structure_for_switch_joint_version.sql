@@ -8,7 +8,7 @@ where switch_joint_version.switch_id = switch_version.id
   and switch_joint_version.switch_version = switch_version.version;
 
 alter table layout.switch_joint_version
-  drop constraint switch_joint_version_pkey,
-  add constraint switch_joint_version_pkey primary key (switch_id, switch_layout_context_id, number, version);
+  drop constraint switch_joint_version_pkey;
 
--- actual re-versioning happens together with switches, as it depends on switch versions
+-- actual re-versioning happens together with switches, as it depends on switch versions; primary key is added back
+-- after re-versioning
