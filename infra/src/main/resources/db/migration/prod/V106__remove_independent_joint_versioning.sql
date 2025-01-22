@@ -13,7 +13,11 @@ alter table layout.switch_joint_version
   drop column change_user,
   drop column change_time,
   -- Add new primary key
-  add primary key (switch_id, switch_layout_context_id, switch_version, number);
+  add primary key (switch_id, switch_layout_context_id, switch_version, number),
+  add constraint switch_joint_version_switch_id_fkey
+    foreign key (switch_id, switch_layout_context_id, switch_version)
+      references layout.switch_version (id, layout_context_id, version);
 
 -- Rename to reflect new versioning under switch version
-alter table layout.switch_joint_version rename to switch_version_joint;
+alter table layout.switch_joint_version
+  rename to switch_version_joint;
