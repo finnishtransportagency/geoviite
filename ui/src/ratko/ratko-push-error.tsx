@@ -47,7 +47,7 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
 
     const design = useLayoutDesign(
         getChangeTimes().layoutDesign,
-        failedPublication.layoutBranch,
+        failedPublication.layoutBranch.branch,
     )?.name;
 
     if (!error) {

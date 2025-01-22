@@ -1,8 +1,10 @@
 import {
     AssetId,
+    DesignBranch,
     JointNumber,
     KmNumber,
-    LayoutBranch,
+    LayoutDesignId,
+    MainBranch,
     Oid,
     Range,
     RowVersion,
@@ -182,11 +184,25 @@ export type Split = SplitHeader & {
     relinkedSwitches: LayoutSwitchId[];
 };
 
+type PublishedInMain = {
+    branch: MainBranch;
+    designBranch: undefined;
+    designVersion: undefined;
+};
+
+type PublishedInDesign = {
+    branch: DesignBranch;
+    designBranch: LayoutDesignId;
+    designVersion: number;
+};
+
+export type PublishedInBranch = PublishedInMain | PublishedInDesign;
+
 export type PublicationDetails = {
     id: PublicationId;
     publicationTime: TimeStamp;
     publicationUser: string;
-    layoutBranch: LayoutBranch;
+    layoutBranch: PublishedInBranch;
     trackNumbers: PublishedTrackNumber[];
     referenceLines: PublishedReferenceLine[];
     locationTracks: PublishedLocationTrack[];
