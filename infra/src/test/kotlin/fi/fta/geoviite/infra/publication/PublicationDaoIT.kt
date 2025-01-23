@@ -468,6 +468,48 @@ constructor(
         )
     }
 
+    @Test
+    fun `getPreviouslyPublishedDesignVersion returns the most recent design version before the given publication`() {
+        val someDesign = layoutDesignDao.insert(layoutDesign(name = "foo"))
+        val pub1 =
+            publicationDao.createPublication(
+                DesignBranch.of(someDesign),
+                FreeTextWithNewLines.of("pub 1"),
+                PublicationCause.MANUAL,
+            )
+        layoutDesignDao.update(someDesign, layoutDesign(name = "bar"))
+        val pub2 =
+            publicationDao.createPublication(
+                DesignBranch.of(someDesign),
+                FreeTextWithNewLines.of("pub 2"),
+                PublicationCause.MANUAL,
+            )
+        layoutDesignDao.update(someDesign, layoutDesign(name = "spam"))
+        val pub3 =
+            publicationDao.createPublication(
+                DesignBranch.of(someDesign),
+                FreeTextWithNewLines.of("pub 3"),
+                PublicationCause.MANUAL,
+            )
+        val pub4 =
+            publicationDao.createPublication(
+                DesignBranch.of(someDesign),
+                FreeTextWithNewLines.of("pub 4"),
+                PublicationCause.MANUAL,
+            )
+        val pub5 =
+            publicationDao.createPublication(
+                DesignBranch.of(someDesign),
+                FreeTextWithNewLines.of("pub 5"),
+                PublicationCause.MANUAL,
+            )
+        assertEquals(null, publicationDao.getPreviouslyPublishedDesignVersion(pub1, someDesign))
+        assertEquals(1, publicationDao.getPreviouslyPublishedDesignVersion(pub2, someDesign))
+        assertEquals(2, publicationDao.getPreviouslyPublishedDesignVersion(pub3, someDesign))
+        assertEquals(3, publicationDao.getPreviouslyPublishedDesignVersion(pub4, someDesign))
+        assertEquals(3, publicationDao.getPreviouslyPublishedDesignVersion(pub5, someDesign))
+    }
+
     private fun insertAndCheck(
         trackNumber: LayoutTrackNumber
     ): Pair<LayoutRowVersion<LayoutTrackNumber>, LayoutTrackNumber> {

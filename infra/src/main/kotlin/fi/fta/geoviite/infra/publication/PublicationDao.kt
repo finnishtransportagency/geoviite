@@ -2097,7 +2097,7 @@ class PublicationDao(
                 and publication_time < (
                 select publication_time from publication.publication where id = :publication_id
               )
-              order by publication_time
+              order by publication_time desc
               limit 1;
         """
                 .trimIndent()
