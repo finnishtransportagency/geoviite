@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.publication.InheritanceFromPublicationInMain
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.publication.getObjectFromValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -354,19 +355,36 @@ class CalculatedChangesService(
             filterKmNumbers = filterKmNumbers,
         )
 
-    fun getSwitchChangesFromChangedLocationTrackKmsByLocationTrackChange(
+    fun getChangedSwitchesFromChangedLocationTrackKms(
         validationVersions: ValidationVersions,
         locationTrackChange: LocationTrackChange,
-    ): List<SwitchChange> {
-        val validationContext = publicationValidationService.createValidationContext(validationVersions)
-        return getSwitchChangesFromChangedLocationTrackKms(
-            fetchLocationTrackById = validationContext::getLocationTrack,
-            fetchSwitchById = validationContext::getSwitch,
-            getGeocodingContext = validationContext::getGeocodingContext,
-            extIds = AllOids.empty(),
-            locationTrackId = locationTrackChange.locationTrackId,
-            filterKmNumbers = locationTrackChange.changedKmNumbers,
-        )
+    ): List<IntId<LayoutSwitch>> {
+        val fetchLocationTrackById = { id: IntId<LocationTrack> ->
+            getObjectFromValidationVersions(
+                validationVersions.locationTracks,
+                locationTrackDao,
+                validationVersions.target,
+                id,
+            )
+        }
+        val fetchSwitchById = { id: IntId<LayoutSwitch> ->
+            getObjectFromValidationVersions(validationVersions.switches, switchDao, validationVersions.target, id)
+        }
+        val getGeocodingContext = { id: IntId<LayoutTrackNumber> ->
+            geocodingService
+                .getGeocodingContextCacheKey(id, validationVersions)
+                ?.let(geocodingService::getGeocodingContext)
+        }
+        val changes =
+            getSwitchChangesFromChangedLocationTrackKms(
+                fetchLocationTrackById,
+                fetchSwitchById,
+                getGeocodingContext,
+                extIds = AllOids.empty(),
+                locationTrackId = locationTrackChange.locationTrackId,
+                filterKmNumbers = locationTrackChange.changedKmNumbers,
+            )
+        return changes.map { it.switchId }
     }
 
     private fun calculateTrackNumberChanges(

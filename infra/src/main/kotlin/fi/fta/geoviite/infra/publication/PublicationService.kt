@@ -338,19 +338,20 @@ constructor(
         val indirectChanges = changes.indirectChanges
         val switchChangesBySameKmLocationTrackChange =
             (changes.directChanges.locationTrackChanges + changes.indirectChanges.locationTrackChanges)
-                .map { locationTrackChange ->
-                    calculatedChangesService.getSwitchChangesFromChangedLocationTrackKmsByLocationTrackChange(
+                .flatMap { locationTrackChange ->
+                    calculatedChangesService.getChangedSwitchesFromChangedLocationTrackKms(
                         versions,
                         locationTrackChange,
                     )
                 }
-                .flatten()
-                .map { it.switchId }
+                .distinct()
         return PublicationRequestIds(
             trackNumbers = indirectChanges.trackNumberChanges.map { it.trackNumberId },
             referenceLines = listOf(),
             locationTracks = indirectChanges.locationTrackChanges.map { it.locationTrackId },
-            switches = indirectChanges.switchChanges.map { it.switchId } + switchChangesBySameKmLocationTrackChange,
+            switches =
+                (indirectChanges.switchChanges.map { it.switchId } + switchChangesBySameKmLocationTrackChange)
+                    .distinct(),
             kmPosts = listOf(),
         )
     }
