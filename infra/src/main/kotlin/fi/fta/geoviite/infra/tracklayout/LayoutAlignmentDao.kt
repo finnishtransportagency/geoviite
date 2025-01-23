@@ -13,15 +13,15 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -236,7 +236,7 @@ class LayoutAlignmentDao(
                             } else {
                                 null
                             }
-                        LayoutEdgeSegment(
+                        LayoutSegment(
                             //                            id = IndexedId(edgeId.intValue, segmentIndex),
                             sourceId = sourceId,
                             sourceStart = sourceStartMValues[i]?.toDouble(),
@@ -688,7 +688,7 @@ class LayoutAlignmentDao(
                     "Fetching geometry failed for segment: id=${data.id} geometryId=$data.geometryId"
                 }
             LayoutSegment(
-                    id = data.id,
+                    //                    id = data.id,
                     sourceId = data.sourceId,
                     sourceStart = data.sourceStart,
                     switchId = data.switchId,
@@ -1042,7 +1042,10 @@ class LayoutAlignmentDao(
                 ps.setString(11, s.source.name)
                 val geometryId =
                     if (s.geometry.id is IntId) s.geometry.id
-                    else requireNotNull(newGeometryIds[s.geometry.id]) { "SegmentGeometry not stored: id=${s.id}" }
+                    else
+                        requireNotNull(newGeometryIds[s.geometry.id]) {
+                            "SegmentGeometry not stored: id=${s.geometry.id}"
+                        }
                 ps.setInt(12, geometryId.intValue)
             }
         }

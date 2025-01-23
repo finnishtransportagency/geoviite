@@ -87,22 +87,22 @@ constructor(
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/{$LAYOUT_BRANCH}/location-tracks/{id}/geometry")
-    fun updateLocationTrackGeometry(
+    fun shortenLocationTrackGeometry(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") alignmentId: IntId<LocationTrack>,
         @RequestBody mRange: Range<Double>,
     ): IntId<LocationTrack> {
-        return linkingService.updateLocationTrackGeometry(branch, alignmentId, mRange)
+        return linkingService.shortenLocationTrackGeometry(branch, alignmentId, mRange)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/{$LAYOUT_BRANCH}/reference-lines/{id}/geometry")
-    fun updateReferenceLineGeometry(
+    fun shortenReferenceLineGeometry(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") alignmentId: IntId<ReferenceLine>,
         @RequestBody mRange: Range<Double>,
     ): IntId<ReferenceLine> {
-        return linkingService.updateReferenceLineGeometry(branch, alignmentId, mRange)
+        return linkingService.shortenReferenceLineGeometry(branch, alignmentId, mRange)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
