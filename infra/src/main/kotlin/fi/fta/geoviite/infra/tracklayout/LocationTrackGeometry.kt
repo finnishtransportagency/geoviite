@@ -1,14 +1,11 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
-import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import java.util.*
 import kotlin.math.abs
 
@@ -21,11 +18,11 @@ data class TrackSwitchLink(
 sealed class LocationTrackGeometry : IAlignment {
     abstract val edges: List<ILayoutEdge>
     val edgeMs: List<Range<Double>> by lazy { calculateEdgeMs(edges) }
-    override val segments: List<LayoutEdgeSegment> by lazy { edges.flatMap(ILayoutEdge::segments) }
+    override val segments: List<LayoutSegment> by lazy { edges.flatMap(ILayoutEdge::segments) }
     override val segmentMs: List<Range<Double>> by lazy { calculateSegmentMs(segments) }
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(edges.mapNotNull(ILayoutEdge::boundingBox)) }
 
-    override val segmentsWithM: List<Pair<LayoutEdgeSegment, Range<Double>>>
+    override val segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>
         get() = segments.zip(segmentMs)
 
     // All edges have segments, all segments have points
@@ -183,7 +180,7 @@ data class DbLocationTrackGeometry(
 interface ILayoutEdge : IAlignment {
     val startNode: ILayoutNodeContent
     val endNode: ILayoutNodeContent
-    override val segments: List<LayoutEdgeSegment>
+    override val segments: List<LayoutSegment>
 
     override val firstSegmentStart: SegmentPoint
         get() = segments.first().segmentStart
@@ -205,11 +202,11 @@ interface ILayoutEdge : IAlignment {
 data class LayoutEdgeContent(
     override val startNode: ILayoutNodeContent,
     override val endNode: ILayoutNodeContent,
-    override val segments: List<LayoutEdgeSegment>,
+    override val segments: List<LayoutSegment>,
 ) : ILayoutEdge {
     override val segmentMs: List<Range<Double>> = calculateSegmentMs(segments)
 
-    override val segmentsWithM: List<Pair<LayoutEdgeSegment, Range<Double>>>
+    override val segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>
         get() = segments.zip(segmentMs)
 
     init {
@@ -241,7 +238,7 @@ data class LayoutEdgeContent(
     }
 
     override val boundingBox: BoundingBox by lazy {
-        requireNotNull(boundingBoxCombining(segments.mapNotNull(LayoutEdgeSegment::boundingBox))) {
+        requireNotNull(boundingBoxCombining(segments.mapNotNull(LayoutSegment::boundingBox))) {
             "An edge must have segments, so it must have a bounding box"
         }
     }
@@ -261,30 +258,30 @@ data class LayoutEdge(val id: IntId<LayoutEdge>, @JsonIgnore val content: Layout
         get() = content.endNode as LayoutNode
 
     override val boundingBox: BoundingBox by lazy {
-        requireNotNull(boundingBoxCombining(segments.mapNotNull(LayoutEdgeSegment::boundingBox))) {
+        requireNotNull(boundingBoxCombining(segments.mapNotNull(LayoutSegment::boundingBox))) {
             "An edge must have segments, so it must have a bounding box"
         }
     }
 }
 
-data class LayoutEdgeSegment(
-    @JsonIgnore override val geometry: SegmentGeometry,
-    override val sourceId: IndexedId<GeometryElement>?,
-    // TODO: GVT-1727 these should be BigDecimals with a limited precision
-    override val sourceStart: Double?,
-    override val source: GeometrySource,
-) : ISegmentGeometry by geometry, ISegment {
-    init {
-        require(source != GENERATED || segmentPoints.size == 2) { "Generated segment can't have more than 2 points" }
-        // These could be combined into a sub-object to enforce this via the type
-        require((sourceId == null) == (sourceStart == null)) {
-            "Source id and start must be either both null or both non-null"
-        }
-        require(sourceStart?.isFinite() != false) { "Invalid source start length: $sourceStart" }
-    }
-    // TODO: GVT-2926 segment edit operations (mostly same as LayoutSegment)
-}
-
+// data class LayoutEdgeSegment(
+//    @JsonIgnore override val geometry: SegmentGeometry,
+//    override val sourceId: IndexedId<GeometryElement>?,
+//    // TODO: GVT-1727 these should be BigDecimals with a limited precision
+//    override val sourceStart: Double?,
+//    override val source: GeometrySource,
+// ) : ISegmentGeometry by geometry, ISegment {
+//    init {
+//        require(source != GENERATED || segmentPoints.size == 2) { "Generated segment can't have more than 2 points" }
+//        // These could be combined into a sub-object to enforce this via the type
+//        require((sourceId == null) == (sourceStart == null)) {
+//            "Source id and start must be either both null or both non-null"
+//        }
+//        require(sourceStart?.isFinite() != false) { "Invalid source start length: $sourceStart" }
+//    }
+//    // TODO: GVT-2926 segment edit operations (mostly same as LayoutSegment)
+// }
+//
 enum class LayoutNodeType {
     SWITCH,
     TRACK_START,

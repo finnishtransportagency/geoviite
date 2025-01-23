@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -112,6 +113,17 @@ constructor(
         return linkLayoutGeometrySection(layoutAlignment, layoutRange, geometryAlignment, geometryRange)
     }
 
+    // TODO: GVT-2928 Implement topology recalculation on node model
+    private fun updateTopology(
+        branch: LayoutBranch,
+        track: LocationTrack,
+        oldGeometry: LocationTrackGeometry,
+        newGeometry: LocationTrackGeometry,
+    ): LocationTrackGeometry {
+        TODO("GVT-2928")
+    }
+
+    @Deprecated("Use the above LocationGeometry-based updateTopology instead")
     private fun updateTopology(
         branch: LayoutBranch,
         track: LocationTrack,
@@ -133,10 +145,10 @@ constructor(
         }
     }
 
-    private fun startChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
+    private fun startChanged(oldAlignment: IAlignment, newAlignment: IAlignment) =
         !equalsXY(oldAlignment.firstSegmentStart, newAlignment.firstSegmentStart)
 
-    private fun endChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
+    private fun endChanged(oldAlignment: IAlignment, newAlignment: IAlignment) =
         !equalsXY(oldAlignment.lastSegmentEnd, newAlignment.lastSegmentEnd)
 
     private fun equalsXY(point1: IPoint?, point2: IPoint?) = point1?.x == point2?.x && point1?.y == point2?.y
@@ -167,16 +179,16 @@ constructor(
     ): IntId<LocationTrack> {
         verifyPlanNotHidden(parameters.geometryPlanId)
 
-        val locationTrackId = parameters.layoutAlignmentId
+        val trackId = parameters.layoutAlignmentId
         val geometryInterval = parameters.geometryInterval
 
-        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, locationTrackId)
+        val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
-        val newAlignment = replaceLayoutGeometry(alignment, geometryAlignment, geometryInterval.mRange)
-        val newLocationTrack = updateTopology(branch, locationTrack, alignment, newAlignment)
+        val geomWithNewSegments = replaceLayoutGeometry(trackId, geometryAlignment, geometryInterval.mRange)
+        val newGeometry = updateTopology(branch, track, geometry, geomWithNewSegments)
 
-        return locationTrackService.saveDraft(branch, newLocationTrack, newAlignment).id
+        return locationTrackService.saveDraft(branch, track, newGeometry).id
     }
 
     private fun getAlignmentLayout(

@@ -251,6 +251,7 @@ interface IAlignment : Loggable {
     override fun toLog(): String = logFormat("segments" to segments.size, "length" to round(length, 3))
 }
 
+// TODO: GVT-2935 this will become reference-line only version: rename
 data class LayoutAlignment(
     override val segments: List<LayoutSegment>,
     val id: DomainId<LayoutAlignment> = StringId(),
@@ -495,16 +496,21 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
 
 data class PointSeekResult<T : IPoint3DM>(val point: T, val index: Int, val isSnapped: Boolean)
 
+// TODO: GVT-2935 this will become reference-line only version: remove switch links & rename...
+// ... or maybe just re-combine with LayoutEdgeSegment, as that doesn't have switches either
 data class LayoutSegment(
     @JsonIgnore override val geometry: SegmentGeometry,
     override val sourceId: IndexedId<GeometryElement>?,
     // TODO: GVT-1727 these should be BigDecimals with a limited precision
     override val sourceStart: Double?,
-    val switchId: IntId<LayoutSwitch>?,
-    val startJointNumber: JointNumber?,
-    val endJointNumber: JointNumber?,
+    @Deprecated("Switches will be removed from segments: use LocationTrackGeometry nodes")
+    val switchId: IntId<LayoutSwitch>? = null,
+    @Deprecated("Switches will be removed from segments: use LocationTrackGeometry nodes")
+    val startJointNumber: JointNumber? = null,
+    @Deprecated("Switches will be removed from segments: use LocationTrackGeometry nodes")
+    val endJointNumber: JointNumber? = null,
     override val source: GeometrySource,
-    val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
+    //    val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
 ) : ISegmentGeometry by geometry, ISegment, Loggable {
 
     init {
@@ -572,7 +578,12 @@ data class LayoutSegment(
         if (switchId == null && startJointNumber == null && endJointNumber == null) this
         else copy(switchId = null, startJointNumber = null, endJointNumber = null)
 
-    override fun toLog(): String = logFormat("id" to id, "source" to source, "geometry" to geometry.toLog())
+    override fun toLog(): String =
+        logFormat(
+            //    "id" to id,
+            "source" to source,
+            "geometry" to geometry.toLog(),
+        )
 }
 
 const val LAYOUT_COORDINATE_DELTA = 0.001

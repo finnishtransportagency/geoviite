@@ -15,11 +15,17 @@ import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutEdgeContent
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeEndTrack
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeStartTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.min
@@ -30,6 +36,15 @@ fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): Layout
     val cutSegments = sliceSegments(alignment, mRange, ALIGNMENT_LINKING_SNAP)
     val newSegments = removeSwitches(cutSegments, getSwitchIdsOutside(alignment, mRange))
     return tryCreateLinkedAlignment(alignment, newSegments)
+}
+
+fun replaceLayoutGeometry(
+    trackId: IntId<LocationTrack>,
+    geometryAlignment: PlanLayoutAlignment,
+    geometryMRange: Range<Double>,
+): LocationTrackGeometry {
+    val geometrySegments = createAlignmentGeometry(geometryAlignment, geometryMRange)
+    return tryCreateLinkedTrackGeometry(trackId, geometrySegments)
 }
 
 fun replaceLayoutGeometry(
@@ -55,6 +70,9 @@ fun linkLayoutGeometrySection(
         }
     return tryCreateLinkedAlignment(layoutAlignment, segments)
 }
+
+private fun createEdgeSegments(geometryAlignment: PlanLayoutAlignment, mRange: Range<Double>): List<LayoutSegment> =
+    sliceSegments(geometryAlignment, mRange, ALIGNMENT_LINKING_SNAP)
 
 private fun createAlignmentGeometry(
     geometryAlignment: PlanLayoutAlignment,
@@ -122,6 +140,16 @@ private fun createLinkingSegment(start: IPoint?, end: IPoint?, tolerance: Double
     else null
 }
 
+// private fun toLayoutEdgeSegment(segment: ISegment): LayoutEdgeSegment =
+//    if (segment is LayoutEdgeSegment) segment
+//    else
+//        LayoutEdgeSegment(
+//            geometry = segment.geometry,
+//            sourceId = segment.sourceId as? IndexedId,
+//            sourceStart = segment.sourceStart,
+//            source = segment.source,
+//        )
+//
 private fun toLayoutSegment(segment: ISegment): LayoutSegment =
     if (segment is LayoutSegment) segment
     else
@@ -134,6 +162,28 @@ private fun toLayoutSegment(segment: ISegment): LayoutSegment =
             endJointNumber = null,
             source = segment.source,
         )
+
+private fun tryCreateLinkedTrackGeometry(
+    trackId: IntId<LocationTrack>,
+    newSegments: List<LayoutSegment>,
+): LocationTrackGeometry =
+    try {
+        TmpLocationTrackGeometry(
+            listOf(
+                LayoutEdgeContent(
+                    startNode = LayoutNodeStartTrack(trackId),
+                    endNode = LayoutNodeEndTrack(trackId),
+                    segments = newSegments,
+                )
+            )
+        )
+    } catch (e: IllegalArgumentException) {
+        throw LinkingFailureException(
+            message = "Linking selection produces invalid location track geometry",
+            cause = e,
+            localizedMessageKey = "alignment-geometry",
+        )
+    }
 
 private fun tryCreateLinkedAlignment(original: LayoutAlignment, newSegments: List<LayoutSegment>): LayoutAlignment =
     try {
@@ -154,12 +204,36 @@ private fun validateSegments(newSegments: List<LayoutSegment>) =
                 throw LinkingFailureException(
                     message =
                         "Linked geometry has over 90 degree angles between segments: " +
-                            "segment=${segment.id} prevEnd=${previous.endDirection} next=${segment.endDirection} angle=${radsToDegrees(diff)} point=${segment.segmentStart}",
+                            "segments=${index-1}-$index prevEnd=${previous.endDirection} next=${segment.endDirection} angle=${radsToDegrees(diff)} point=${segment.segmentStart}",
                     localizedMessageKey = "segments-sharp-angle",
                 )
         }
     }
 
+// fun sliceEdgeSegments(
+//    alignment: IAlignment,
+//    mRange: Range<Double>,
+//    snapDistance: Double = ALIGNMENT_LINKING_SNAP,
+// ): List<LayoutEdgeSegment> =
+//    when (alignment) {
+//        is LocationTrackGeometry -> TODO()
+//        //        is ILayoutEdge -> TODO()
+//        //        is PlanLayoutAlignment -> TODO()
+//        //        is LayoutAlignment -> TODO()
+//        else ->
+//            alignment.segmentsWithM.mapNotNull { (segment, segmentM) ->
+//                if (segmentM.max <= mRange.min || segmentM.min >= mRange.max) {
+//                    null
+//                } else if (segmentM.min >= mRange.min - snapDistance && segmentM.max <= mRange.max + snapDistance) {
+//                    toLayoutEdgeSegment(segment)
+//                } else {
+//                    val range =
+//                        Range(max(mRange.min - segmentM.min, 0.0), min(mRange.max - segmentM.min, segment.length))
+//                    toLayoutEdgeSegment(segment).slice(segmentMRange = range, snapDistance = snapDistance)
+//                }
+//            }
+//    }
+//
 fun sliceSegments(
     alignment: IAlignment,
     mRange: Range<Double>,

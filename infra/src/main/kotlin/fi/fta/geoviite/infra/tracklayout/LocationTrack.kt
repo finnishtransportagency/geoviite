@@ -69,7 +69,9 @@ data class LocationTrack(
     val segmentCount: Int,
     val duplicateOf: IntId<LocationTrack>?,
     val topologicalConnectivity: TopologicalConnectivityType,
+    @Deprecated("Topology links are now just the start/end nodes of the geometry")
     val topologyStartSwitch: TopologyLocationTrackSwitch?,
+    @Deprecated("Topology links are now just the start/end nodes of the geometry")
     val topologyEndSwitch: TopologyLocationTrackSwitch?,
     val ownerId: IntId<LocationTrackOwner>,
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
