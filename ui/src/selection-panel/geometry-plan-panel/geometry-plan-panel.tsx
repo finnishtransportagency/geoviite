@@ -209,7 +209,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     };
 
     const subHeader =
-        planHeader.source == 'PAIKANNUSPALVELU'
+        planHeader.source === 'PAIKANNUSPALVELU'
             ? t(`enum.PlanSource.${planHeader.source}`)
             : undefined;
     return (
@@ -251,7 +251,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                         onToggleKmPostVisibility,
                                     ),
                                 )}
-                                {planLayout.kmPosts.length == 0 && (
+                                {planLayout.kmPosts.length === 0 && (
                                     <span className={styles['geometry-plan-panel__no-entities']}>
                                         {t('selection-panel.no-kmposts')}
                                     </span>
@@ -280,7 +280,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                         onToggleAlignmentVisibility,
                                     ),
                                 )}
-                                {planLayout.alignments.length == 0 && (
+                                {planLayout.alignments.length === 0 && (
                                     <span className={styles['geometry-plan-panel__no-entities']}>
                                         {t('selection-panel.no-alignments')}
                                     </span>
@@ -309,7 +309,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                         onToggleSwitchVisibility,
                                     ),
                                 )}
-                                {planLayout.switches.length == 0 && (
+                                {planLayout.switches.length === 0 && (
                                     <span className={styles['geometry-plan-panel__no-entities']}>
                                         {t('selection-panel.no-switches')}
                                     </span>
@@ -340,7 +340,7 @@ function createKmPostRow(
     );
 
     const kmPostStatus = linkStatus?.kmPosts?.some(
-        (k) => k.id == planKmPost.sourceId && k.linkedKmPosts?.length > 0,
+        (k) => k.id === planKmPost.sourceId && k.linkedKmPosts?.length > 0,
     )
         ? KmPostBadgeStatus.LINKED
         : KmPostBadgeStatus.UNLINKED;
@@ -387,7 +387,7 @@ function createAlignmentRow(
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void,
 ): React.ReactElement {
     const alignmentStatus = linkStatus?.alignments?.some(
-        (s) => s.id == alignment.header.id && s.isLinked,
+        (s) => s.id === alignment.header.id && s.isLinked,
     )
         ? LocationTrackBadgeStatus.LINKED
         : LocationTrackBadgeStatus.UNLINKED;
@@ -440,7 +440,7 @@ function createSwitchRow(
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void,
 ): React.ReactElement {
     const switchStatus = linkStatus?.switches?.some(
-        (s) => s.id == planSwitch.sourceId && s.isLinked,
+        (s) => s.id === planSwitch.sourceId && s.isLinked,
     )
         ? SwitchBadgeStatus.LINKED
         : SwitchBadgeStatus.UNLINKED;

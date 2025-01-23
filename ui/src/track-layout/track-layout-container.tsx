@@ -19,7 +19,7 @@ export const TrackLayoutContainer: React.FC = () => {
         [getChangeTimes().layoutDesign, designId],
     );
     const currentDesignExists =
-        designLoadStatus == LoaderStatus.Ready && currentDesign != undefined;
+        designLoadStatus === LoaderStatus.Ready && currentDesign !== undefined;
     const isEnabled = trackLayoutState.layoutContextMode !== 'DESIGN' || currentDesignExists;
 
     return (

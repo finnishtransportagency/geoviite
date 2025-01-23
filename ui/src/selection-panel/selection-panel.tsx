@@ -197,7 +197,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     }, [changeTimes.layoutTrackNumber, visibleTrackNumberIds.join()]);
 
     const filterByTrackNumberId = (tn: LayoutTrackNumberId) =>
-        selectedTrackNumberIds.length == 0 || selectedTrackNumberIds.some((s) => s === tn);
+        selectedTrackNumberIds.length === 0 || selectedTrackNumberIds.some((s) => s === tn);
 
     const filteredLocationTracks = locationTracks.filter((a) =>
         filterByTrackNumberId(a.trackNumberId),

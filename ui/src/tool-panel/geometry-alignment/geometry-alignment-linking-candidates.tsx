@@ -170,7 +170,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
     }, [selectedLayoutReferenceLine, referenceLines]);
 
     React.useEffect(() => {
-        const ref = referenceLineRefs.find((r) => r.id == selectedLayoutReferenceLine?.id);
+        const ref = referenceLineRefs.find((r) => r.id === selectedLayoutReferenceLine?.id);
 
         if (ref) {
             ref.ref.current?.scrollIntoView({
@@ -181,8 +181,8 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
     }, [selectedLayoutReferenceLine]);
 
     const referenceLineElements = referenceLines?.map((line) => {
-        const isSelected = line.id == selectedLayoutReferenceLine?.id;
-        const ref = referenceLineRefs.find((r) => r.id == line.id);
+        const isSelected = line.id === selectedLayoutReferenceLine?.id;
+        const ref = referenceLineRefs.find((r) => r.id === line.id);
         const trackNumber = trackNumbers?.find((tn) => tn.id === line.trackNumberId);
 
         const trackNumberExists = ref && trackNumber;
@@ -330,7 +330,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
     }, [selectedLayoutLocationTrack, locationTracks]);
 
     React.useEffect(() => {
-        const ref = locationTrackRefs.find((r) => r.id == selectedLayoutLocationTrack?.id);
+        const ref = locationTrackRefs.find((r) => r.id === selectedLayoutLocationTrack?.id);
         if (ref) {
             ref.ref.current?.scrollIntoView({
                 behavior: 'smooth',
@@ -340,8 +340,8 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
     }, [selectedLayoutLocationTrack]);
 
     const locationTrackElements = locationTracks?.map((track) => {
-        const isSelected = track.id == selectedLayoutLocationTrack?.id;
-        const ref = locationTrackRefs.find((r) => r.id == track.id);
+        const isSelected = track.id === selectedLayoutLocationTrack?.id;
+        const ref = locationTrackRefs.find((r) => r.id === track.id);
 
         const alignmentExists = ref;
         const hasSearchInput = layoutLocationTrackSearchInput.length > 0;
@@ -417,7 +417,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
 
                 {isLoading && <Spinner />}
 
-                {!isLoading && displayedLocationTrackElementsAmount == 0 && (
+                {!isLoading && displayedLocationTrackElementsAmount === 0 && (
                     <span className={styles['geometry-alignment-infobox__no-matches']}>
                         {t('tool-panel.alignment.geometry.no-linkable-location-tracks')}
                     </span>

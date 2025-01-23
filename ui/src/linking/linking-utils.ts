@@ -37,9 +37,9 @@ export function getLocationTracksEndingAtJoints(
                         // it is considered as an ending alignment.
                         const existsInOtherJoints = joints.some(
                             (otherJoint) =>
-                                otherJoint.number != outerJoint.number &&
+                                otherJoint.number !== outerJoint.number &&
                                 otherJoint.accurateMatches.some(
-                                    (outerMatch) => outerMatch.locationTrackId == locationTrackId,
+                                    (outerMatch) => outerMatch.locationTrackId === locationTrackId,
                                 ),
                         );
                         return !existsInOtherJoints;
@@ -59,7 +59,7 @@ export function getMatchingLocationTrackIdsForJoints(
         return [first(jointsOfAlignment), last(jointsOfAlignment)]
             .filter(filterNotEmpty)
             .every((joint) =>
-                joint.accurateMatches.some((m) => m.locationTrackId == locationTrackId),
+                joint.accurateMatches.some((m) => m.locationTrackId === locationTrackId),
             );
     });
 }
@@ -135,26 +135,23 @@ export function combineLocationTrackIds(
     }
 
     return Object.values(
-        locationTracks.flat().reduce(
-            (acc, locationTrack) => {
-                const jointNumber = locationTrack.jointNumber;
+        locationTracks.flat().reduce((acc, locationTrack) => {
+            const jointNumber = locationTrack.jointNumber;
 
-                if (acc[jointNumber]) {
-                    acc[jointNumber] = {
-                        jointNumber: jointNumber,
-                        locationTrackIds: expectDefined(
-                            acc[jointNumber]?.locationTrackIds
-                                .concat(locationTrack.locationTrackIds)
-                                .filter(filterUnique),
-                        ),
-                    };
-                } else {
-                    acc[jointNumber] = locationTrack;
-                }
+            if (acc[jointNumber]) {
+                acc[jointNumber] = {
+                    jointNumber: jointNumber,
+                    locationTrackIds: expectDefined(
+                        acc[jointNumber]?.locationTrackIds
+                            .concat(locationTrack.locationTrackIds)
+                            .filter(filterUnique),
+                    ),
+                };
+            } else {
+                acc[jointNumber] = locationTrack;
+            }
 
-                return acc;
-            },
-            {} as { [key: JointNumber]: LocationTracksEndingAtJoint },
-        ),
+            return acc;
+        }, {} as { [key: JointNumber]: LocationTracksEndingAtJoint }),
     );
 }

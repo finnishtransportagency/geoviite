@@ -34,8 +34,8 @@ function addressPointToDebugData(
 }
 
 function createAddressPointFeatures(data: AlignmentAddresses): Feature<OlPoint>[] {
-    const startColor = data.startIntersect == 'WITHIN' ? 'green' : 'red';
-    const endColor = data.endIntersect == 'WITHIN' ? 'green' : 'red';
+    const startColor = data.startIntersect === 'WITHIN' ? 'green' : 'red';
+    const endColor = data.endIntersect === 'WITHIN' ? 'green' : 'red';
     const debugData = [
         addressPointToDebugData('S', startColor, data.startPoint),
         addressPointToDebugData('E', endColor, data.endPoint),

@@ -12,7 +12,7 @@ export const highlightTool: MapTool = {
                 const hitArea = getDefaultHitArea(map, coordinate);
                 const items = searchItemsFromLayers(hitArea, layers, { limit: 1 });
                 const itemsCompare = JSON.stringify(items);
-                if (currentItemsCompare != itemsCompare) {
+                if (currentItemsCompare !== itemsCompare) {
                     options.onHighlightItems(items);
                     currentItemsCompare = itemsCompare;
                 }

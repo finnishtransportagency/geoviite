@@ -175,7 +175,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const [designPublicationMode, setDesignPublicationMode] =
         React.useState<DesignPublicationMode>('PUBLISH_CHANGES');
 
-    const showCalculatedChanges = props.layoutContext.branch == 'MAIN';
+    const showCalculatedChanges = props.layoutContext.branch === 'MAIN';
 
     const onChangeDesignPublicationMode = (newMode: DesignPublicationMode) => {
         setDesignPublicationMode(newMode);
@@ -184,7 +184,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const canRevertChanges =
         props.layoutContext.branch === 'MAIN' || designPublicationMode === 'PUBLISH_CHANGES';
     const canCancelChanges =
-        props.layoutContext.branch !== 'MAIN' && designPublicationMode == 'MERGE_TO_MAIN';
+        props.layoutContext.branch !== 'MAIN' && designPublicationMode === 'MERGE_TO_MAIN';
 
     const [mapDisplayTransitionSide, setMapDisplayTransitionSide] =
         React.useState<MapDisplayTransitionSide>('WITH_CHANGES');
@@ -600,8 +600,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     ? officialLayoutContext(props.layoutContext)
                                     : draftMainLayoutContext()
                                 : mapDisplayTransitionSide === 'WITH_CHANGES'
-                                  ? draftLayoutContext(props.layoutContext)
-                                  : officialLayoutContext(props.layoutContext)
+                                ? draftLayoutContext(props.layoutContext)
+                                : officialLayoutContext(props.layoutContext)
                         }
                     />
                 </MapContext.Provider>

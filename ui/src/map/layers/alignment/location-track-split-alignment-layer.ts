@@ -86,7 +86,7 @@ function splitToParts(
             points: pointsForSplit,
         };
 
-        const splitIsFocused = focusedSplits.some((splitInFocus) => splitInFocus == split.id);
+        const splitIsFocused = focusedSplits.some((splitInFocus) => splitInFocus === split.id);
 
         return createAlignmentFeature(
             alignmentPart,
@@ -139,7 +139,7 @@ export function createLocationTrackSplitAlignmentLayer(
     const splittingEnabled = splittingState ? !splittingState.disabled : false;
 
     const alignmentPromise: Promise<AlignmentDataHolder[]> =
-        splittingState != undefined
+        splittingState !== undefined
             ? getSelectedLocationTrackMapAlignmentByTiles(
                   changeTimes,
                   mapTiles,

@@ -33,7 +33,7 @@ function filterByIdInOrNotIn<T, Id>(
     yesIn: boolean,
 ): (item: T) => boolean {
     const othersSet = new Set(others);
-    return (item: T) => yesIn == othersSet.has(getId(item));
+    return (item: T) => yesIn === othersSet.has(getId(item));
 }
 
 /**
@@ -57,7 +57,7 @@ export function filterUniqueById<T, TId>(getId: (item: T) => TId): (item: T) => 
  * keys.filter(filterUnique)
  */
 export function filterUnique<T>(item: T, index: number, array: T[]): boolean {
-    return array.findIndex((item2) => item2 == item) == index;
+    return array.findIndex((item2) => item2 === item) === index;
 }
 
 export function flatten<T>(list: T[][]): T[] {
@@ -95,7 +95,7 @@ export function timeStampComparator<T>(
         if (!aTime) return 1;
         if (!bTime) return -1;
 
-        return aTime < bTime ? -1 : aTime == bTime ? 0 : 1;
+        return aTime < bTime ? -1 : aTime === bTime ? 0 : 1;
     };
 }
 
@@ -145,9 +145,9 @@ export function compareByField<T, S>(v1: T, v2: T, getter: (obj: T) => S): numbe
 }
 
 export function compare<T>(f1: T, f2: T): number {
-    if (f1 == undefined && f2 == undefined) return 0;
-    else if (f1 == undefined) return -1;
-    else if (f2 == undefined) return 1;
+    if (f1 === undefined && f2 === undefined) return 0;
+    else if (f1 === undefined || f1 === null) return -1;
+    else if (f2 === undefined || f2 === null) return 1;
     else if (f1 < f2) return -1;
     else if (f2 < f1) return 1;
     else return 0;
@@ -177,15 +177,15 @@ export function itemsEqual<T>(
 ): boolean {
     return (
         items1 === items2 || // object equality
-        (items1?.length == 0 && items2?.length == 0) || // empty arrays // contains equal items
-        (items1 != undefined &&
-            items2 != undefined &&
+        (items1?.length === 0 && items2?.length === 0) || // empty arrays // contains equal items
+        (items1 !== undefined &&
+            items2 !== undefined &&
             items1.length === items2.length &&
             // a collection cannot have an item that does not exist in another
             !items1.some(
                 (item1: T) =>
                     !items2.find((item2) =>
-                        itemEqualsFunc ? itemEqualsFunc(item1, item2) : item1 == item2,
+                        itemEqualsFunc ? itemEqualsFunc(item1, item2) : item1 === item2,
                     ),
             ))
     );
@@ -193,7 +193,7 @@ export function itemsEqual<T>(
 
 export function minOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T | undefined {
     return values.reduce<T | undefined>((old, candidate, index) => {
-        if (index == 0 || comparator(old as T, candidate) > 0) {
+        if (index === 0 || comparator(old as T, candidate) > 0) {
             return candidate;
         } else {
             return old;
@@ -203,7 +203,7 @@ export function minOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T |
 
 export function maxOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T | undefined {
     return values.reduce<T | undefined>((old, candidate, index) => {
-        if (index == 0 || comparator(old as T, candidate) < 0) {
+        if (index === 0 || comparator(old as T, candidate) < 0) {
             return candidate;
         } else {
             return old;
@@ -230,7 +230,7 @@ export function indexIntoMap<Id, Obj extends { id: Id }>(objs: Obj[]): Map<Id, O
 }
 
 export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): number | undefined {
-    if (objs.length == 0) {
+    if (objs.length === 0) {
         return undefined;
     }
     const values = objs.map((obj) => by(obj));
@@ -265,7 +265,7 @@ export function findInsertionIndex<T>(
     isInsertBefore: (v: T) => boolean,
 ): number {
     const i = things.findIndex(isInsertBefore);
-    return i == -1 ? things.length : i;
+    return i === -1 ? things.length : i;
 }
 
 export function insertAtIndex<T>(things: readonly T[], thing: T, index: number): T[] {
@@ -273,7 +273,7 @@ export function insertAtIndex<T>(things: readonly T[], thing: T, index: number):
 }
 
 export const findById = <T extends { id: string }>(objs: T[], id: string): T | undefined =>
-    objs.find((obj) => obj.id == id);
+    objs.find((obj) => obj.id === id);
 
 /**
  * Like Object.entries, but with the assumption that the argument doesn't contain any fields not mentioned in its

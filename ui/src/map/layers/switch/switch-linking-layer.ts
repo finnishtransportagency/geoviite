@@ -68,7 +68,7 @@ export function createSwitchLinkingLayer(
         suggestedSwitches.flatMap((suggestedSwitch) =>
             createSwitchFeatures(
                 suggestedSwitch,
-                selectedSwitches.some((switchToCheck) => switchToCheck.id == suggestedSwitch.id),
+                selectedSwitches.some((switchToCheck) => switchToCheck.id === suggestedSwitch.id),
             ),
         );
 

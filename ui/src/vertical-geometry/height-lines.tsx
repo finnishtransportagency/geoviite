@@ -23,7 +23,7 @@ function chooseVerticalTickLength(
         const maxMidTickIndex = Math.floor((topTickHeight - tickLength / 2) / tickLength);
         return maxMidTickIndex - minMidTickIndex < maxVerticalTickCount;
     });
-    return tickHeightIndexR == -1 ? undefined : verticalTickLengthsMeter[tickHeightIndexR];
+    return tickHeightIndexR === -1 ? undefined : verticalTickLengthsMeter[tickHeightIndexR];
 }
 
 function heightTicks(coordinates: Coordinates) {
@@ -34,7 +34,7 @@ function heightTicks(coordinates: Coordinates) {
         coordinates.bottomHeightTick,
         coordinates.topHeightTick,
     );
-    return tickLength == undefined
+    return tickLength === undefined
         ? [coordinates.bottomHeightTick, coordinates.topHeightTick]
         : (() => {
               const firstMidTick =
@@ -59,6 +59,7 @@ function enumerateInStepsUpTo(start: number, stepSize: number, upTo: number) {
 export interface HeightLinesProps {
     coordinates: Coordinates;
 }
+
 export const HeightLabels: React.FC<HeightLinesProps> = ({ coordinates }) => (
     <>
         <rect

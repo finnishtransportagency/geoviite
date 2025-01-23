@@ -320,7 +320,8 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
     const pastRightmostPviInViewR = geometry.findIndex(
         (s) => s.point && s.point.station >= coordinates.endM,
     );
-    const rightPviI = pastRightmostPviInViewR == -1 ? geometry.length - 1 : pastRightmostPviInViewR;
+    const rightPviI =
+        pastRightmostPviInViewR === -1 ? geometry.length - 1 : pastRightmostPviInViewR;
 
     if (leftPviI === 0 && firstItem.start && firstItem.point) {
         pvis.push(
@@ -332,7 +333,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
         );
     }
 
-    if (rightPviI == geometry.length - 1 && lastItem) {
+    if (rightPviI === geometry.length - 1 && lastItem) {
         pvis.push(
             <RightMostEndingLine
                 key={pviKey++}

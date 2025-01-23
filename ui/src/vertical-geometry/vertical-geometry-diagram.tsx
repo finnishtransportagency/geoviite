@@ -142,7 +142,7 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
     const onWheel: (e: WheelEvent) => void = (e) => {
         e.preventDefault();
         const elementLeft = ref.current?.getBoundingClientRect()?.x;
-        if (elementLeft == undefined) {
+        if (elementLeft === undefined) {
             return;
         }
 
@@ -168,7 +168,7 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
 
     const onDoubleClick: React.EventHandler<React.MouseEvent<unknown>> = (e) => {
         const elementLeft = ref.current?.getBoundingClientRect()?.x;
-        if (elementLeft == undefined) {
+        if (elementLeft === undefined) {
             return;
         }
 

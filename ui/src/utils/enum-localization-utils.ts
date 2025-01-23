@@ -156,7 +156,7 @@ export const switchTrapPoints: LocalizedEnum<TrapPoint>[] = [
 ];
 
 export const translateSwitchTrapPoint = (trapPoint: TrapPoint) =>
-    switchTrapPoints.find((option) => option.value == trapPoint)?.name;
+    switchTrapPoints.find((option) => option.value === trapPoint)?.name;
 
 export function switchJointNumberToString(joint: JointNumber): string {
     return joint.substring(6);

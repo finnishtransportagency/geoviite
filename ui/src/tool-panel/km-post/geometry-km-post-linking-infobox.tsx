@@ -72,7 +72,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     const linkedLayoutKmPosts = useLoader(() => {
         if (!planStatus) return undefined;
         const kmPostIds = planStatus.kmPosts
-            .filter((linkStatus) => linkStatus.id == geometryKmPost.sourceId)
+            .filter((linkStatus) => linkStatus.id === geometryKmPost.sourceId)
             .flatMap((linkStatus) => linkStatus.linkedKmPosts);
         return getKmPosts(kmPostIds, layoutContext).then((posts) => posts.filter(filterNotEmpty));
     }, [planStatus, geometryKmPost.sourceId]);
@@ -142,7 +142,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         qaId="geometry-km-post-linked"
                         label={t('tool-panel.km-post.geometry.linking.is-linked-label')}
                         value={
-                            linkedLayoutKmPosts != undefined && (
+                            linkedLayoutKmPosts !== undefined && (
                                 <LinkingStatusLabel isLinked={linkedLayoutKmPosts?.length > 0} />
                             )
                         }
@@ -242,11 +242,11 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                                 kmPost={layoutKmPostOption}
                                                 trackNumber={trackNumbers?.find(
                                                     (tn) =>
-                                                        tn.id == layoutKmPostOption.trackNumberId,
+                                                        tn.id === layoutKmPostOption.trackNumberId,
                                                 )}
                                                 showTrackNumberInBadge={true}
                                                 status={
-                                                    layoutKmPostOption.id == layoutKmPost?.id
+                                                    layoutKmPostOption.id === layoutKmPost?.id
                                                         ? KmPostBadgeStatus.SELECTED
                                                         : KmPostBadgeStatus.DEFAULT
                                                 }

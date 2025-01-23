@@ -141,7 +141,7 @@ export function getErrors(
     key: keyof TrackNumberSaveRequest,
 ): FieldValidationIssue<TrackNumberSaveRequest>[] {
     return state.committedFields.includes(key)
-        ? state.validationIssues.filter((e) => e.field == key)
+        ? state.validationIssues.filter((e) => e.field === key)
         : [];
 }
 

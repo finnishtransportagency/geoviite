@@ -193,7 +193,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
 
     const canLink =
         !linkingCallInProgress &&
-        linkingState?.state == 'allSet' &&
+        linkingState?.state === 'allSet' &&
         !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit;
 
     const canLockAlignment =
@@ -232,6 +232,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             ? LinkingType.LinkingGeometryWithAlignment
             : LinkingType.LinkingGeometryWithEmptyAlignment;
     }
+
     function lockAlignment() {
         if (linkingAlignmentType === 'LOCATION_TRACK' && selectedLayoutLocationTrack) {
             onLockAlignment({
@@ -264,7 +265,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 const linkingParameters =
                     createLinkingGeometryWithAlignmentParameters(linkingState);
 
-                await (linkingState.layoutAlignment.type == 'LOCATION_TRACK'
+                await (linkingState.layoutAlignment.type === 'LOCATION_TRACK'
                     ? linkGeometryWithLocationTrack(layoutContext.branch, linkingParameters)
                     : linkGeometryWithReferenceLine(layoutContext.branch, linkingParameters));
 
@@ -273,10 +274,10 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 );
 
                 onStopLinking();
-            } else if (linkingState?.type == LinkingType.LinkingGeometryWithEmptyAlignment) {
+            } else if (linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
                 const linkingParameters =
                     createLinkingGeometryWithEmptyAlignmentParameters(linkingState);
-                await (linkingState.layoutAlignment.type == 'LOCATION_TRACK'
+                await (linkingState.layoutAlignment.type === 'LOCATION_TRACK'
                     ? linkGeometryWithEmptyLocationTrack(layoutContext.branch, linkingParameters)
                     : linkGeometryWithEmptyReferenceLine(layoutContext.branch, linkingParameters));
 

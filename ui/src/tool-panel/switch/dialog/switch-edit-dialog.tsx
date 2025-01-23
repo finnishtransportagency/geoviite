@@ -127,7 +127,7 @@ export const SwitchEditDialog = ({
     const isExistingSwitch = !!switchId;
 
     const switchStructureChanged =
-        isExistingSwitch && switchStructureId != existingSwitch?.switchStructureId;
+        isExistingSwitch && switchStructureId !== existingSwitch?.switchStructureId;
 
     const canSetDeleted = isExistingSwitch && !!existingSwitch?.hasOfficial;
     const stateCategoryOptions = layoutStateCategories
@@ -135,9 +135,9 @@ export const SwitchEditDialog = ({
         .map((sc) => ({ ...sc, qaId: sc.value }));
 
     const conflictingSwitch = useLoader(async () => {
-        if (validateSwitchName(switchName).length == 0) {
+        if (validateSwitchName(switchName).length === 0) {
             const switches = await getSwitchesByName(draftLayoutContext(layoutContext), switchName);
-            return switches.find((s) => s.id != existingSwitch?.id);
+            return switches.find((s) => s.id !== existingSwitch?.id);
         } else {
             return undefined;
         }
@@ -290,7 +290,7 @@ export const SwitchEditDialog = ({
     function getVisibleErrorsByProp(prop: keyof LayoutSwitchSaveRequest) {
         if (visitedFields.includes(prop)) {
             return validationIssues
-                .filter((error) => error.field == prop)
+                .filter((error) => error.field === prop)
                 .map(({ reason }) => t(`switch-dialog.${reason}`));
         }
         return [];

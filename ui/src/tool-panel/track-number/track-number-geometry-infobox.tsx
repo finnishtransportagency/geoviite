@@ -86,7 +86,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                     indicator={ProgressIndicatorType.Area}
                     inProgress={elementFetchStatus !== LoaderStatus.Ready}
                     inline={false}>
-                    {sections && sections.length == 0 ? (
+                    {sections && sections.length === 0 ? (
                         <p className={'infobox__text'}>
                             {t(
                                 'tool-panel.alignment-plan-sections.no-geometries-for-reference-line',
