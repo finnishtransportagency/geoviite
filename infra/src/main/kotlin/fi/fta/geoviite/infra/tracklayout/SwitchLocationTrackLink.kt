@@ -13,10 +13,9 @@ fun getDuplicateTrackParentStatus(
     parentGeometry: LocationTrackGeometry,
     childTrack: LocationTrack,
     childGeometry: LocationTrackGeometry,
-    isPresentationJointNumber: (SwitchLink) -> Boolean,
 ): LocationTrackDuplicate {
-    val parentTrackSplitPoints = collectSplitPoints(parentGeometry, isPresentationJointNumber)
-    val childTrackSplitPoints = collectSplitPoints(childGeometry, isPresentationJointNumber)
+    val parentTrackSplitPoints = collectSplitPoints(parentGeometry)
+    val childTrackSplitPoints = collectSplitPoints(childGeometry)
     val (_, status) =
         getDuplicateMatches(parentTrackSplitPoints, childTrackSplitPoints, parentTrack.id, childTrack.duplicateOf)
             .first() // There has to at least one found, since we know the duplicateOf is set
@@ -35,9 +34,8 @@ fun getLocationTrackDuplicatesBySplitPoints(
     mainTrack: LocationTrack,
     mainGeometry: LocationTrackGeometry,
     duplicateTracksAndAlignments: List<Pair<LocationTrack, LocationTrackGeometry>>,
-    isPresentationJointNumber: (SwitchLink) -> Boolean,
 ): List<LocationTrackDuplicate> {
-    val mainTrackSplitPoints = collectSplitPoints(mainGeometry, isPresentationJointNumber)
+    val mainTrackSplitPoints = collectSplitPoints(mainGeometry)
     return duplicateTracksAndAlignments
         .asSequence()
         .flatMap { (duplicateTrack, duplicateAlignment) ->
@@ -46,7 +44,6 @@ fun getLocationTrackDuplicatesBySplitPoints(
                 mainTrackSplitPoints,
                 duplicateTrack,
                 duplicateAlignment,
-                isPresentationJointNumber,
             )
         }
         .sortedWith(compareBy({ it.first }, { it.second.name }))
@@ -59,9 +56,8 @@ private fun getLocationTrackDuplicatesBySplitPoints(
     mainTrackSplitPoints: List<SplitPoint>,
     duplicateTrack: LocationTrack,
     duplicateGeometry: LocationTrackGeometry,
-    isPresentationJointNumber: (SwitchLink) -> Boolean,
 ): List<Pair<Int, LocationTrackDuplicate>> {
-    val duplicateTrackSplitPoints = collectSplitPoints(duplicateGeometry, isPresentationJointNumber)
+    val duplicateTrackSplitPoints = collectSplitPoints(duplicateGeometry)
     val statuses =
         getDuplicateMatches(mainTrackSplitPoints, duplicateTrackSplitPoints, mainTrackId, duplicateTrack.duplicateOf)
     return statuses.map { (jointIndex, status) ->
@@ -167,59 +163,7 @@ fun buildDuplicateIndexRanges(matches: List<Pair<Int, Int>>): List<IntRange> {
     return found.filter { r -> r.first != r.last }
 }
 
-fun getEndPointSwitchInfo(
-    segmentSwitchId: IntId<LayoutSwitch>?,
-    segmentJointNumber: JointNumber?,
-    topologySwitchId: IntId<LayoutSwitch>?,
-    topologyJointNumber: JointNumber?,
-    isPresentationJointNumber: (IntId<LayoutSwitch>, JointNumber) -> Boolean,
-): EndPointSwitchInfo? {
-    return if (
-        segmentSwitchId != null &&
-            segmentJointNumber != null &&
-            isPresentationJointNumber(segmentSwitchId, segmentJointNumber)
-    ) {
-        EndPointSwitchInfo(segmentSwitchId, segmentJointNumber)
-    } else if (topologySwitchId != null && topologyJointNumber != null) {
-        EndPointSwitchInfo(topologySwitchId, topologyJointNumber)
-    } else if (segmentSwitchId != null && segmentJointNumber != null) {
-        EndPointSwitchInfo(segmentSwitchId, segmentJointNumber)
-    } else {
-        null
-    }
-}
-
-fun getEndPointSwitchInfos(
-    track: LocationTrack,
-    alignment: LayoutAlignment,
-    isPresentationJointNumber: (IntId<LayoutSwitch>, JointNumber) -> Boolean,
-): EndPointSwitchInfos {
-    val firstSegment = alignment.segments.firstOrNull()
-    val lastSegment = alignment.segments.lastOrNull()
-    return EndPointSwitchInfos(
-        start =
-            getEndPointSwitchInfo(
-                firstSegment?.switchId,
-                firstSegment?.startJointNumber,
-                track.topologyStartSwitch?.switchId,
-                track.topologyStartSwitch?.jointNumber,
-                isPresentationJointNumber,
-            ),
-        end =
-            getEndPointSwitchInfo(
-                lastSegment?.switchId,
-                lastSegment?.endJointNumber,
-                track.topologyEndSwitch?.switchId,
-                track.topologyEndSwitch?.jointNumber,
-                isPresentationJointNumber,
-            ),
-    )
-}
-
-fun collectSplitPoints(
-    geometry: LocationTrackGeometry,
-    isPresentationJointNumber: (SwitchLink) -> Boolean,
-): List<SplitPoint> {
+fun collectSplitPoints(geometry: LocationTrackGeometry): List<SplitPoint> {
     // TODO: GVT-2941 This might be more complex than needed, but it retains the old logic
     // TODO: GVT-2941 Compare to main: it includes all segment links + some endpoint link which is more complex
     // Would it be fine to just include all inner links + topology link if it's a presentation joint?
@@ -229,7 +173,7 @@ fun collectSplitPoints(
             when (index) {
                 0 -> {
                     // The main switch link might be a topology link or an in-track-switch link
-                    val mainLink = geometry.getStartSwitchLink(isPresentationJointNumber)
+                    val mainLink = geometry.startSwitchLink
                     // Inner links need to be included always, unless it's already the main link
                     val innerLink = node.switchOut?.takeIf { it != mainLink }
                     if (mainLink != null || innerLink != null) {
@@ -242,7 +186,7 @@ fun collectSplitPoints(
                 }
                 geometry.nodesWithLocation.size -> {
                     // The main switch link might be a topology link or an in-track-switch link
-                    val mainLink = geometry.getEndSwitchLink(isPresentationJointNumber)
+                    val mainLink = geometry.endSwitchLink
                     // Inner links need to be included always, unless it's already the main link
                     val innerLink = node.switchIn?.takeIf { it != mainLink }
                     if (mainLink != null || innerLink != null) {

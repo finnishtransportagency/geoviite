@@ -23,7 +23,6 @@ import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getJointNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
-import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
@@ -227,7 +226,7 @@ class LocationTrackDao(
 
     private fun getLocationTrack(rs: ResultSet): LocationTrack =
         LocationTrack(
-            //            alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
+            alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
             name = rs.getString("name").let(::AlignmentName),

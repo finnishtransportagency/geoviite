@@ -1,10 +1,10 @@
-create or replace function layout.calculate_node_key(
+create or replace function layout.calculate_node_hash(
   switch_in_id int,
   switch_in_joint_number int,
-  switch_in_type common.switch_joint_type,
+  switch_in_joint_type common.switch_joint_type,
   switch_out_id int,
   switch_out_joint_number int,
-  switch_out_type common.switch_joint_type,
+  switch_out_joint_type common.switch_joint_type,
   start_track int,
   end_track int
 ) returns uuid
@@ -12,17 +12,17 @@ create or replace function layout.calculate_node_key(
 $$
 select
   case
-    -- Key by type so we don't need the nulls in the rows: this allows adding more types without changing existing keys
+    -- Hash by type so we don't need the nulls in the rows: this allows adding more types without changing existing hashes
     when switch_in_id is not null or switch_out_id is not null then
       md5(row
         (
         'SWITCH',
         switch_in_id,
         switch_in_joint_number,
-        switch_in_type,
+        switch_in_joint_type,
         switch_out_id,
         switch_out_joint_number,
-        switch_out_type
+        switch_out_joint_type
         )::text
       )::uuid
     when start_track is not null then
@@ -45,24 +45,27 @@ create table layout.node
       else null::layout.node_type
     end
     ) stored,
-  key                        uuid                     not null unique generated always as (
-    layout.calculate_node_key(
-        switch_in_id,
-        switch_in_joint_number,
-        switch_in_type,
-        switch_out_id,
-        switch_out_joint_number,
-        switch_out_type,
-        starting_location_track_id,
-        ending_location_track_id
-    )) stored,
+  hash                        uuid                     not null unique,
+  -- TODO: GVT-2930: this could as well be a generated column, or even a unique constraint
+  -- That does mean the migration is a little trickier and the insert function more verbose, though
+--   generated always as (
+--     layout.calculate_node_hash(
+--         switch_in_id,
+--         switch_in_joint_number,
+--         switch_in_joint_type,
+--         switch_out_id,
+--         switch_out_joint_number,
+--         switch_out_joint_type,
+--         starting_location_track_id,
+--         ending_location_track_id
+--     )) stored,
   -- This cannot be an actual foreign key reference, as tracks are sometimes deleted and this table is immutable, like version tables
   switch_in_id               int                      null,
   switch_in_joint_number     int                      null,
-  switch_in_type             common.switch_joint_type null,
+  switch_in_joint_type       common.switch_joint_type null,
   switch_out_id              int                      null,
   switch_out_joint_number    int                      null,
-  switch_out_type            common.switch_joint_type null,
+  switch_out_joint_type      common.switch_joint_type null,
   starting_location_track_id int                      null unique,
   ending_location_track_id   int                      null unique,
   -- Unique constraint for enforcing type through foreign key references

@@ -67,39 +67,21 @@ sealed class LocationTrackGeometry : IAlignment {
     open val endNode: ILayoutNodeContent?
         get() = edges.lastOrNull()?.endNode
 
-    //    /**
-    //     * The id for the switch at track start:
-    //     * - The inside-switch (whose geometry this track is) primarily
-    //     * - The outside-switch (that continues after this track) secondarily
-    //     */
-    //    val switchIdAtStart: IntId<TrackLayoutSwitch>?
-    //        get() = startNode?.let { n -> n.switchOut ?: n.switchIn }?.id
-    //
-    //    /**
-    //     * The id for the switch at track end:
-    //     * - The inside-switch (whose geometry this track is) primarily
-    //     * - The outside-switch (that continues after this track) secondarily
-    //     */
-    //    val switchIdAtEnd: IntId<TrackLayoutSwitch>?
-    //        get() = startNode?.let { n -> n.switchIn ?: n.switchOut }?.id
-
-    // TODO: GVT-2947 when switch links contain presentation joint info, these won't need the lambda
-    // Instead, they can become like the vals above
     /**
      * The primary switch link at track start
      * - The inside-switch (whose geometry this track is) primarily
      * - The outside-switch (that continues after this track) secondarily
      */
-    fun getStartSwitchLink(isPresentationJoint: (SwitchLink) -> Boolean): SwitchLink? =
-        startNode?.let { node -> pickEndJoint(node.switchOut, node.switchIn, isPresentationJoint) }
+    val startSwitchLink: SwitchLink?
+        get() = startNode?.let { node -> pickEndJoint(node.switchOut, node.switchIn) }
 
     /**
      * The primary switch link at track end
      * - The inside-switch (whose geometry this track is) primarily
      * - The outside-switch (that continues after this track) secondarily
      */
-    fun getEndSwitchLink(isPresentationJoint: (SwitchLink) -> Boolean): SwitchLink? =
-        endNode?.let { node -> pickEndJoint(node.switchIn, node.switchOut, isPresentationJoint) }
+    val endSwitchLink: SwitchLink?
+        get() = endNode?.let { node -> pickEndJoint(node.switchIn, node.switchOut) }
 
     //    val outerSwitches: Pair<SwitchLink?, SwitchLink?>
     //        get() = startNode?.switchIn to endNode?.switchOut
@@ -133,13 +115,9 @@ sealed class LocationTrackGeometry : IAlignment {
      * one, but in cases where there are two switches following each other, a presentation joint is preferred, as that's
      * the logical node of the topology.
      */
-    private fun pickEndJoint(
-        trackInnerJoint: SwitchLink?,
-        trackOuterJoint: SwitchLink?,
-        isPresentationJoint: (SwitchLink) -> Boolean,
-    ): SwitchLink? =
-        trackInnerJoint?.takeIf(isPresentationJoint)
-            ?: trackOuterJoint?.takeIf(isPresentationJoint)
+    private fun pickEndJoint(trackInnerJoint: SwitchLink?, trackOuterJoint: SwitchLink?): SwitchLink? =
+        trackInnerJoint?.takeIf { j -> j.jointType == SwitchJointType.MAIN }
+            ?: trackOuterJoint?.takeIf { j -> j.jointType == SwitchJointType.MAIN }
             ?: trackInnerJoint
             ?: trackOuterJoint
 }
@@ -350,4 +328,4 @@ data class LayoutNodeSwitch(override val switchIn: SwitchLink?, override val swi
     }
 }
 
-data class SwitchLink(val id: IntId<LayoutSwitch>, val jointNumber: JointNumber)
+data class SwitchLink(val id: IntId<LayoutSwitch>, val jointType: SwitchJointType, val jointNumber: JointNumber)

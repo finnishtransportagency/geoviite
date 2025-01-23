@@ -36,11 +36,11 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -470,11 +470,7 @@ class LocationTrackService(
         val startAndEndSwitchIds =
             locationTracks.map { locationTrack ->
                 alignmentDao.get(locationTrack.versionOrThrow).let { geom ->
-                    // TODO: GVT-2947 when switch links contain presentation joint info, these won't need the lambda
-                    geom.getStartSwitchLink { isPresentationJointNumber(layoutContext, it.id, it.jointNumber) }?.id to
-                        geom.getStartSwitchLink { isPresentationJointNumber(layoutContext, it.id, it.jointNumber) }?.id
-                    // TODO: GVT-2946 bug: this doesn't work like infobox start/end (favor presentation joints).
-                    //                    geom.switchIdAtStart to geom.switchIdAtEnd
+                    geom.startSwitchLink?.id to geom.endSwitchLink?.id
                 }
             }
         val switches =
@@ -594,10 +590,8 @@ class LocationTrackService(
                     .let { dups -> geocodingContext?.let { gc -> fillTrackAddresses(dups, gc) } ?: dups }
                     .sortedBy { dup -> dup.duplicateStatus.startSplitPoint?.address }
 
-            val isPresentationJoint = createFunIsPresentationJointNumberInContext(layoutContext)
-
-            val startSwitchLink = geometry.getStartSwitchLink(isPresentationJoint)
-            val endSwitchLink = geometry.getEndSwitchLink(isPresentationJoint)
+            val startSwitchLink = geometry.startSwitchLink
+            val endSwitchLink = geometry.endSwitchLink
 
             val startSplitPoint = createSplitPoint(start, startSwitchLink?.id, START, geocodingContext)
             val endSplitPoint = createSplitPoint(end, endSwitchLink?.id, END, geocodingContext)
@@ -643,21 +637,6 @@ class LocationTrackService(
             .distinct()
             .size
 
-    private fun isPresentationJointNumber(
-        layoutContext: LayoutContext,
-        switchId: IntId<LayoutSwitch>,
-        jointNumber: JointNumber,
-    ): Boolean {
-        return switchDao.get(layoutContext, switchId)?.let { switch ->
-            switchLibraryService.getPresentationJointNumber(switch.switchStructureId) == jointNumber
-        } ?: false
-    }
-
-    private fun createFunIsPresentationJointNumberInContext(layoutContext: LayoutContext): (SwitchLink) -> Boolean =
-        { link ->
-            isPresentationJointNumber(layoutContext, link.id, link.jointNumber)
-        }
-
     @Transactional(readOnly = true)
     fun getLocationTrackDuplicates(
         layoutContext: LayoutContext,
@@ -676,12 +655,7 @@ class LocationTrackService(
                 (duplicateTrack, _) ->
                 duplicateTrack.id != track.id && duplicateTrack.id != track.duplicateOf
             }
-        return getLocationTrackDuplicatesBySplitPoints(
-            track,
-            alignment,
-            duplicateTracksAndAlignments,
-            createFunIsPresentationJointNumberInContext(layoutContext),
-        )
+        return getLocationTrackDuplicatesBySplitPoints(track, alignment, duplicateTracksAndAlignments)
     }
 
     private fun getDuplicateTrackParent(
@@ -691,13 +665,7 @@ class LocationTrackService(
         childTrack.duplicateOf?.let { parentId ->
             getWithGeometry(layoutContext, parentId)?.let { (parentTrack, parentTrackAlignment) ->
                 val childAlignment = alignmentDao.get(childTrack.versionOrThrow)
-                getDuplicateTrackParentStatus(
-                    parentTrack,
-                    parentTrackAlignment,
-                    childTrack,
-                    childAlignment,
-                    createFunIsPresentationJointNumberInContext(layoutContext),
-                )
+                getDuplicateTrackParentStatus(parentTrack, parentTrackAlignment, childTrack, childAlignment)
             }
         }
 
