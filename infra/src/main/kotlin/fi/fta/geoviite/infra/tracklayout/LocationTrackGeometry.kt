@@ -232,6 +232,12 @@ data class LayoutEdgeContent(
                 "Edge segments should begin where the previous one ends: prev=${prev.segmentEnd} next=${next.segmentStart}"
             }
         }
+        // We shouldn't really have edges between null and a joint, but due to old data, we do
+        require(
+            startNode.switchOut == null || endNode.switchIn == null || startNode.switchOut?.id == endNode.switchIn?.id
+        ) {
+            "An edge that is switch internal geometry, can only be that for one switch: start=${startNode.switchOut} end=${endNode.switchIn}"
+        }
     }
 
     override val boundingBox: BoundingBox by lazy {
