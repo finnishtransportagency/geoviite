@@ -3,6 +3,7 @@ import { expectDefined } from 'utils/type-utils';
 
 export const first = <T>(arr: readonly T[]) => arr[0];
 export const last = <T>(arr: readonly T[]) => arr[arr.length - 1];
+export const init = <T>(arr: readonly T[]) => arr.slice(0, -1);
 
 export const lastIndex = <T>(arr: readonly T[]) => arr.length - 1;
 

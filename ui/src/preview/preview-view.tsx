@@ -65,9 +65,6 @@ import {
 import { debounceAsync } from 'utils/async-utils';
 import { DesignDraftsExistError } from 'preview/preview-view-design-drafts-exist-error';
 import { createClassName } from 'vayla-design-lib/utils';
-import { areaSelectTool, SelectMode } from 'map/tools/area-select-tool';
-import { filterNotEmpty, filterUniqueById, first } from 'utils/array-utils';
-import { expectDefined } from 'utils/type-utils';
 import { cancelLocationTrack } from 'track-layout/layout-location-track-api';
 import { cancelReferenceLine } from 'track-layout/layout-reference-line-api';
 import { cancelSwitch } from 'track-layout/layout-switch-api';
@@ -76,6 +73,7 @@ import { cancelKmPost } from 'track-layout/layout-km-post-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
+import { previewViewAreaSelectTool } from 'map/tools/preview-view-area-select-tool';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -483,46 +481,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     };
 
     const publishCandidateSelectTool = React.useMemo(
-        () =>
-            areaSelectTool((items, mode) => {
-                const newStage =
-                    mode === SelectMode.Add ? PublicationStage.STAGED : PublicationStage.UNSTAGED;
-
-                const selectedCandidates = [
-                    ...(items.locationTrackPublicationCandidates || []),
-                    ...(items.referenceLinePublicationCandidates || []),
-                    ...(items.trackNumberPublicationCandidates || []),
-                    ...(items.switchPublicationCandidates || []),
-                    ...(items.kmPostPublicationCandidates || []),
-                ].flat();
-
-                const groups = selectedCandidates
-                    .map((candidate) => candidate.publicationGroup)
-                    .filter(filterNotEmpty)
-                    .filter(filterUniqueById((group) => group.id));
-                const refinedCandidateCollection =
-                    groups.length === 1
-                        ? publicationCandidates.filter(
-                              (candidate) =>
-                                  candidate.publicationGroup?.id == expectDefined(first(groups)).id,
-                          )
-                        : selectedCandidates;
-                if (
-                    newStage == PublicationStage.STAGED &&
-                    groups.length == 1 &&
-                    selectedCandidates.length !== refinedCandidateCollection.length
-                ) {
-                    Snackbar.info(
-                        'Valittu kaikki samaan kokonaisuuteen kuuluvat muutokset ' +
-                            refinedCandidateCollection.length +
-                            ' kpl',
-                    );
-                }
-
-                if (refinedCandidateCollection.length) {
-                    setStageForSpecificChanges(refinedCandidateCollection, newStage);
-                }
-            }),
+        () => previewViewAreaSelectTool(publicationCandidates, setStageForSpecificChanges),
         [publicationCandidates],
     );
 

@@ -7,6 +7,7 @@ import styles from 'map/map.module.scss';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 
 export const selectOrHighlightComboTool: SelectableMapTool = {
+    id: 'select-or-highlight',
     activate: (map, layers, options) => {
         const deactivateSelect = selectTool.activate(map, layers, options);
         const deactivateHighlight = highlightTool.activate(map, layers, options);

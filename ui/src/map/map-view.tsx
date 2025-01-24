@@ -695,7 +695,6 @@ const MapView: React.FC<MapViewProps> = ({
             .forEach((l) => l.onRemove && l.onRemove());
 
         setVisibleLayers(updatedLayers);
-        console.log(updatedLayers.map((l) => l.name));
 
         // Set converted layers into map object
         const olLayers = updatedLayers.map((l) => l.layer);
@@ -761,12 +760,14 @@ const MapView: React.FC<MapViewProps> = ({
         <div className={mapClassNames} style={cssProperties}>
             {mapTools && (
                 <ol className="map__map-tools">
-                    {mapTools.map((tool) =>
-                        tool.component({
-                            isActive: activeTool === tool,
-                            setActiveTool: setActiveTool,
-                        }),
-                    )}
+                    {mapTools.map((tool) => (
+                        <React.Fragment key={tool.id}>
+                            {tool.component({
+                                isActive: activeTool === tool,
+                                setActiveTool: setActiveTool,
+                            })}
+                        </React.Fragment>
+                    ))}
                 </ol>
             )}
             <div

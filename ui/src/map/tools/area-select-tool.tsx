@@ -17,10 +17,13 @@ import { expectDefined } from 'utils/type-utils';
 import { searchItemsFromLayers } from 'map/tools/tool-utils';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Icons, IconColor } from 'vayla-design-lib/icon/Icon';
+import { PublicationCandidate, PublicationStage } from 'publication/publication-model';
+import { filterNotEmpty, filterUniqueById, first } from 'utils/array-utils';
+import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 
 export enum SelectMode {
-    Add,
-    Subtract,
+    Add = 'add',
+    Subtract = 'subtract',
 }
 
 function getPolygon(bbox: BoundingBox): Polygon {
@@ -68,6 +71,7 @@ export function createAreaSelectTool(
     onSelect: (items: LayerItemSearchResult, mode: SelectMode) => void,
 ): SelectableMapTool {
     return {
+        id: 'area-select',
         customCursor: 'crosshair',
         activate: (map: OlMap, layers: MapLayer[]) => {
             const tooltipElement = document.createElement('div');

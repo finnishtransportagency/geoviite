@@ -70,6 +70,7 @@ function findClosestPoints(
 const hitTolerance = 8;
 
 export const measurementTool: SelectableMapTool = {
+    id: 'measure',
     activate: (map: OlMap) => {
         const tooltipElement = document.createElement('div');
         tooltipElement.className = 'ol-tooltip-measure';

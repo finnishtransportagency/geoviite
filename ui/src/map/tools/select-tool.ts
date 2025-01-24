@@ -4,6 +4,7 @@ import { getDefaultHitArea, searchItemsFromLayers } from 'map/tools/tool-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 
 export const selectTool: MapTool = {
+    id: 'select',
     activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => {
         const clickEvent = map.on('click', ({ coordinate }) => {
             const hitArea = getDefaultHitArea(map, coordinate);

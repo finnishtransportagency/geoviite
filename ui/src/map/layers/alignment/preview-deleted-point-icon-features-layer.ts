@@ -28,10 +28,6 @@ import {
     PublicationCandidate,
     SwitchPublicationCandidate,
 } from 'publication/publication-model';
-import {
-    KM_POST_CANDIDATE_DATA_PROPERTY,
-    SWITCH_CANDIDATE_DATA_PROPERTY,
-} from 'map/layers/highlight/publication-candidate-layer';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { getSwitchesByTile } from 'track-layout/layout-switch-api';
@@ -41,6 +37,10 @@ import { createKmPostBadgeFeature } from 'map/layers/utils/km-post-layer-utils';
 import { SWITCH_LARGE_SYMBOLS, SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { Style } from 'ol/style';
 import { getDeletedSwitchRenderer } from 'map/layers/utils/switch-layer-utils';
+import {
+    KM_POST_CANDIDATE_DATA_PROPERTY,
+    SWITCH_CANDIDATE_DATA_PROPERTY,
+} from 'map/layers/utils/publication-candidate-highlight-utils';
 
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
