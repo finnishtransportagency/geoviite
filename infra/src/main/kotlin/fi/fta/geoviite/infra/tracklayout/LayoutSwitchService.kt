@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.Page
+import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
@@ -148,7 +149,7 @@ constructor(
         possibleIds: List<IntId<LayoutSwitch>>? = null,
     ): ((term: String, item: LayoutSwitch) -> Boolean) =
         dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
-            { term, item -> externalIds[item.id]?.toString() == term || item.id.toString() == term }
+            { term, item -> externalIds[item.id]?.oid?.toString() == term || item.id.toString() == term }
         }
 
     override fun contentMatches(term: String, item: LayoutSwitch) =
@@ -205,9 +206,8 @@ constructor(
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 
     @Transactional(readOnly = true)
-    fun getExternalIdsByBranch(id: IntId<LayoutSwitch>): Map<LayoutBranch, Oid<LayoutSwitch>> {
-        return dao.fetchExternalIdsByBranch(id)
-    }
+    fun getExternalIdsByBranch(id: IntId<LayoutSwitch>): Map<LayoutBranch, Oid<LayoutSwitch>> =
+        mapNonNullValues(dao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
 }
 
 fun pageSwitches(

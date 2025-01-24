@@ -2086,6 +2086,28 @@ class PublicationDao(
                 partitionDirectIndirectChanges(trackNumberRows)
             }
     }
+
+    fun getPreviouslyPublishedDesignVersion(publicationId: IntId<Publication>, designId: IntId<LayoutDesign>): Int? {
+        // language="sql"
+        val sql =
+            """
+            select previous_in_design.design_version
+              from publication.publication previous_in_design
+              where design_id = :design_id
+                and publication_time < (
+                select publication_time from publication.publication where id = :publication_id
+              )
+              order by publication_time desc
+              limit 1;
+        """
+                .trimIndent()
+        return jdbcTemplate.queryOptional(
+            sql,
+            mapOf("publication_id" to publicationId.intValue, "design_id" to designId.intValue),
+        ) { rs, _ ->
+            rs.getInt("design_version")
+        }
+    }
 }
 
 private fun <T> partitionDirectIndirectChanges(rows: List<Pair<Boolean, T>>) =

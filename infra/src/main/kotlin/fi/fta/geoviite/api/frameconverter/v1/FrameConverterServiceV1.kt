@@ -122,7 +122,7 @@ constructor(
                 val oids = trackNumberDao.fetchExternalIds(layoutContext.branch, trackNumberIds)
                 trackNumbers.associate { trackNumber ->
                     trackNumber.id as IntId to
-                        TrackNumberDetails(trackNumber, geocodingContexts[trackNumber.id], oids[trackNumber.id])
+                        TrackNumberDetails(trackNumber, geocodingContexts[trackNumber.id], oids[trackNumber.id]?.oid)
                 }
             }
 
@@ -207,7 +207,7 @@ constructor(
                 allTrackNumberRequests.map { reqs ->
                     val trackNumberId = reqs.first().trackNumber.id
                     val trackNumber = requireNotNull(trackNumbers[trackNumberId])
-                    reqs to TrackNumberDetails(trackNumber, geocodingContexts[trackNumberId], oids[trackNumberId])
+                    reqs to TrackNumberDetails(trackNumber, geocodingContexts[trackNumberId], oids[trackNumberId]?.oid)
                 }
             }
             .map { (trackNumberRequests, trackNumberDetails) ->
@@ -604,7 +604,7 @@ constructor(
                     val extIds =
                         locationTrackDao.fetchExternalIds(LayoutBranch.main, distinctTracks.map { it.id as IntId })
                     distinctTracks.zip(descriptions).associate {
-                        it.first.id to LocationTrackDetails(it.second, extIds[it.first.id])
+                        it.first.id to LocationTrackDetails(it.second, extIds[it.first.id]?.oid)
                     }
                 }
         else null

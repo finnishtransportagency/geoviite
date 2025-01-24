@@ -35,6 +35,7 @@ import fi.fta.geoviite.infra.split.SplitDuplicateTrack
 import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.mapNonNullValues
 import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
@@ -262,7 +263,7 @@ class LocationTrackService(
         possibleIds: List<IntId<LocationTrack>>? = null,
     ): ((term: String, item: LocationTrack) -> Boolean) =
         dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
-            return { term, item -> externalIds[item.id]?.toString() == term || item.id.toString() == term }
+            return { term, item -> externalIds[item.id]?.oid?.toString() == term || item.id.toString() == term }
         }
 
     override fun contentMatches(term: String, item: LocationTrack) =
@@ -372,7 +373,7 @@ class LocationTrackService(
         return if (geocodingContext != null && locationTrack.alignmentVersion != null) {
             alignmentService.getGeometryMetadataSections(
                 locationTrack.alignmentVersion,
-                dao.fetchExternalId(layoutContext.branch, locationTrackId),
+                dao.fetchExternalId(layoutContext.branch, locationTrackId)?.oid,
                 boundingBox,
                 geocodingContext,
             )
@@ -757,7 +758,7 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun getExternalIdsByBranch(id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
-        return locationTrackDao.fetchExternalIdsByBranch(id)
+        return mapNonNullValues(locationTrackDao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
     }
 }
 
