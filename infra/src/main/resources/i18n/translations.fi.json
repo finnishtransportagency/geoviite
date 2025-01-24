@@ -1313,6 +1313,7 @@
         "staged-changes-title": "Julkaistavat muutokset ({{amount}} kpl)",
         "merging-to-main-changes-title": "Valitut muutokset ({{amount}} kpl)",
         "show-only-mine": "Näytä vain omat muutokset ({{amount}} kpl)",
+        "publication-group-selected": "Valinta-alueella olleista kokonaisuuksista ({{groupAmount}} kpl) valittu kaikki muutokset ({{amount}} kpl)",
         "map-crop": "Rajaa kartalta",
         "track-address-changes": "Rataosoitemuutokset",
         "track-number": "Ratanumero {{number}} {{disabled}}",

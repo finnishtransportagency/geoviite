@@ -481,7 +481,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     };
 
     const publishCandidateSelectTool = React.useMemo(
-        () => previewViewAreaSelectTool(publicationCandidates, setStageForSpecificChanges),
+        () => previewViewAreaSelectTool(publicationCandidates, setStageForSpecificChanges, t),
         [publicationCandidates],
     );
 

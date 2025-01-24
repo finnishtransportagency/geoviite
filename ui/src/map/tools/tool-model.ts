@@ -30,7 +30,7 @@ export type MapTool = {
     id: string;
 };
 
-export type SelectableMapTool = MapTool & {
+export type MapToolWithButton = MapTool & {
     component: React.FC<MapToolProps>;
     id: string;
 };

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { LineString, Polygon } from 'ol/geom';
-import { SelectableMapTool } from 'map/tools/tool-model';
+import { MapToolWithButton } from 'map/tools/tool-model';
 import { Draw } from 'ol/interaction';
 import { createBox } from 'ol/interaction/Draw.js';
 import { altKeyOnly, noModifierKeys, primaryAction } from 'ol/events/condition';
@@ -15,11 +15,8 @@ import { LayerItemSearchResult, MapLayer } from 'map/layers/utils/layer-model';
 import { BoundingBox, boundingBoxAroundPoints, coordsToPoint } from 'model/geometry';
 import { expectDefined } from 'utils/type-utils';
 import { searchItemsFromLayers } from 'map/tools/tool-utils';
-import { createClassName } from 'vayla-design-lib/utils';
-import { Icons, IconColor } from 'vayla-design-lib/icon/Icon';
-import { PublicationCandidate, PublicationStage } from 'publication/publication-model';
-import { filterNotEmpty, filterUniqueById, first } from 'utils/array-utils';
-import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { MapToolButton } from 'map/tools/map-tool-button';
 
 export enum SelectMode {
     Add = 'add',
@@ -69,7 +66,7 @@ const subtractCursor = new Style({
 
 export function createAreaSelectTool(
     onSelect: (items: LayerItemSearchResult, mode: SelectMode) => void,
-): SelectableMapTool {
+): MapToolWithButton {
     return {
         id: 'area-select',
         customCursor: 'crosshair',
@@ -135,19 +132,12 @@ export function createAreaSelectTool(
         },
         component: ({ isActive, setActiveTool }) => {
             return (
-                <li
-                    onClick={() => setActiveTool(createAreaSelectTool(onSelect))}
-                    className={createClassName(
-                        mapStyles['map__map-tool'],
-                        isActive && mapStyles['map__map-tool--active'],
-                    )}>
-                    <Icons.Edit color={IconColor.INHERIT} />
-                </li>
+                <MapToolButton
+                    setActive={() => setActiveTool(createAreaSelectTool(onSelect))}
+                    isActive={isActive}
+                    icon={Icons.Edit}
+                />
             );
         },
     };
 }
-
-export const areaSelectTool = (
-    onSelect: (items: LayerItemSearchResult, mode: SelectMode) => void,
-): SelectableMapTool => createAreaSelectTool(onSelect);

@@ -191,49 +191,6 @@ const splitByRanges = (points: AlignmentPoint[], mRanges: Range<number>[]): Poin
             ? createPointRange(currentMin, currentMax, ChangeExplicitness.EXPLICIT)
             : createPointRange(currentMin, currentMax, ChangeExplicitness.IMPLICIT);
     });
-
-    /*if (mergedExplicitIndexRanges.length === 0) {
-        // No explicit changes -> mark entire range as implicit change
-        return [createPointRange(0, lastIndex(points), ChangeExplicitness.IMPLICIT)];
-    } else {
-        return mergedExplicitIndexRanges.reduce(
-            (pointRanges: PointRange[], indexRange, index, indexRanges) => {
-                const prevPointRange = last(pointRanges);
-                const prevIndexMax = prevPointRange?.indexRange.max || 0;
-
-                const implicitRangeBefore =
-                    indexRange.min > 0
-                        ? createPointRange(
-                              prevIndexMax,
-                              indexRange.min,
-                              ChangeExplicitness.IMPLICIT,
-                          )
-                        : undefined;
-
-                const explicitChangeRange = {
-                    indexRange: indexRange,
-                    changeType: ChangeExplicitness.EXPLICIT,
-                };
-
-                const rangeAfter =
-                    index === lastIndex(indexRanges) && indexRange.max < lastIndex(points)
-                        ? createPointRange(
-                              indexRange.max,
-                              lastIndex(points),
-                              ChangeExplicitness.IMPLICIT,
-                          )
-                        : undefined;
-
-                return [
-                    ...pointRanges,
-                    ...[implicitRangeBefore, explicitChangeRange, rangeAfter].filter(
-                        filterNotEmpty,
-                    ),
-                ];
-            },
-            [],
-        );
-    }*/
 };
 
 const getHighlightColor = (

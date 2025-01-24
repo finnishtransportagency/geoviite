@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { SelectableMapTool } from 'map/tools/tool-model';
+import { MapToolWithButton } from 'map/tools/tool-model';
 import { selectTool } from 'map/tools/select-tool';
 import { highlightTool } from 'map/tools/highlight-tool';
-import { createClassName } from 'vayla-design-lib/utils';
-import styles from 'map/map.module.scss';
-import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { MapToolButton } from 'map/tools/map-tool-button';
 
-export const selectOrHighlightComboTool: SelectableMapTool = {
+export const selectOrHighlightComboTool: MapToolWithButton = {
     id: 'select-or-highlight',
     activate: (map, layers, options) => {
         const deactivateSelect = selectTool.activate(map, layers, options);
@@ -20,14 +19,11 @@ export const selectOrHighlightComboTool: SelectableMapTool = {
 
     component: ({ isActive, setActiveTool }) => {
         return (
-            <li
-                onClick={() => setActiveTool(selectOrHighlightComboTool)}
-                className={createClassName(
-                    styles['map__map-tool'],
-                    isActive && styles['map__map-tool--active'],
-                )}>
-                <Icons.Select color={IconColor.INHERIT} />
-            </li>
+            <MapToolButton
+                isActive={isActive}
+                setActive={() => setActiveTool(selectOrHighlightComboTool)}
+                icon={Icons.Select}
+            />
         );
     },
 };

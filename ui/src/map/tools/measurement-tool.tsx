@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { SelectableMapTool } from 'map/tools/tool-model';
+import { MapToolWithButton } from 'map/tools/tool-model';
 import { Draw } from 'ol/interaction';
 import OlMap from 'ol/Map';
 import { Stroke, Style } from 'ol/style';
@@ -15,9 +15,8 @@ import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { ALIGNMENT_FEATURE_DATA_PROPERTY } from 'map/layers/utils/alignment-layer-utils';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 import { expectCoordinate } from 'utils/type-utils';
-import styles from 'map/map.module.scss';
-import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
-import { createClassName } from 'vayla-design-lib/utils';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { MapToolButton } from 'map/tools/map-tool-button';
 
 const MAX_POINTS = 8;
 
@@ -69,7 +68,7 @@ function findClosestPoints(
 //Tolerance for snapping, in pixels
 const hitTolerance = 8;
 
-export const measurementTool: SelectableMapTool = {
+export const measurementTool: MapToolWithButton = {
     id: 'measure',
     activate: (map: OlMap) => {
         const tooltipElement = document.createElement('div');
@@ -173,14 +172,11 @@ export const measurementTool: SelectableMapTool = {
 
     component: ({ isActive, setActiveTool }) => {
         return (
-            <li
-                onClick={() => setActiveTool(measurementTool)}
-                className={createClassName(
-                    styles['map__map-tool'],
-                    isActive && styles['map__map-tool--active'],
-                )}>
-                <Icons.Measure color={IconColor.INHERIT} />
-            </li>
+            <MapToolButton
+                isActive={isActive}
+                setActive={() => setActiveTool(measurementTool)}
+                icon={Icons.Measure}
+            />
         );
     },
 };

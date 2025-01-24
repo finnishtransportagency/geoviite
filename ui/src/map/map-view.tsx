@@ -21,7 +21,7 @@ import {
 } from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
-import { MapTool, MapToolActivateOptions, SelectableMapTool } from './tools/tool-model';
+import { MapTool, MapToolActivateOptions, MapToolWithButton } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
@@ -120,7 +120,7 @@ export type MapViewProps = {
     publicationCandidates?: PublicationCandidate[];
     customActiveMapTool?: MapTool;
     designPublicationMode?: DesignPublicationMode;
-    mapTools?: SelectableMapTool[];
+    mapTools?: MapToolWithButton[];
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
