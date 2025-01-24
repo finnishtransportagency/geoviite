@@ -9,6 +9,8 @@ import { first } from 'utils/array-utils';
 import { useTranslation } from 'react-i18next';
 import { OptionBase } from 'vayla-design-lib/menu/menu';
 
+const MARGIN_BETWEEN_INPUT_AND_POPUP = 2;
+
 export type DropdownOption<TValue> = {
     type: 'VALUE';
     name: string;
@@ -480,7 +482,7 @@ export const Dropdown = function <TItemValue>({
                             styles['dropdown__list-container--modal'],
                         )}
                         anchorElementRef={menuRef}
-                        margin={2}>
+                        margin={MARGIN_BETWEEN_INPUT_AND_POPUP}>
                         {renderMenuItems()}
                     </CloseableModal>
                 ) : (

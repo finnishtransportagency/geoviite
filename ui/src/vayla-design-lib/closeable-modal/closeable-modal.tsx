@@ -2,6 +2,7 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { Dimensions, Point } from 'model/geometry';
 import useResizeObserver from 'use-resize-observer';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 const DEFAULT_MARGIN_BETWEEN_ANCHOR_ELEMENT_AND_MODAL = 6;
 
@@ -39,11 +40,11 @@ type Anchor = {
 type OverflowSolvingMethod = 'NONE' | 'REPOSITION';
 
 function oppositeHorizontalAnchor(anchor: HorizontalAnchor): HorizontalAnchor {
-    return anchor == 'LEFT' ? 'RIGHT' : 'LEFT';
+    return anchor === 'LEFT' ? 'RIGHT' : 'LEFT';
 }
 
 function oppositeVerticalAnchor(anchor: VerticalAnchor): VerticalAnchor {
-    return anchor == 'TOP' ? 'BOTTOM' : 'TOP';
+    return anchor === 'TOP' ? 'BOTTOM' : 'TOP';
 }
 
 function getRectByDOMRect(domRect: DOMRect): Rect {
@@ -90,8 +91,8 @@ function calculateModalPosition(
         y: modalAnchor.vertical === 'TOP' ? 1 : -1,
     };
     const spanPerAxis = {
-        x: anchorElementAnchor.horizontal == modalAnchor.horizontal ? 0 : spanDirection.x * margin,
-        y: anchorElementAnchor.vertical == modalAnchor.vertical ? 0 : spanDirection.y * margin,
+        x: anchorElementAnchor.horizontal === modalAnchor.horizontal ? 0 : spanDirection.x * margin,
+        y: anchorElementAnchor.vertical === modalAnchor.vertical ? 0 : spanDirection.y * margin,
     };
     const modalPositionOffset = calculateAnchorPosition(
         {
@@ -208,51 +209,54 @@ function getDefaultAnchors(
     openTowards: OpenTowards,
 ): [Anchor, Anchor] {
     const horizontalEdgeToAlign = openTowards === 'RIGHT' ? 'LEFT' : 'RIGHT';
-    if (modalPosition === 'BELOW') {
-        return [
-            {
-                horizontal: horizontalEdgeToAlign,
-                vertical: 'BOTTOM',
-            },
-            {
-                horizontal: horizontalEdgeToAlign,
-                vertical: 'TOP',
-            },
-        ];
-    } else if (modalPosition === 'ABOVE') {
-        return [
-            {
-                horizontal: horizontalEdgeToAlign,
-                vertical: 'TOP',
-            },
-            {
-                horizontal: horizontalEdgeToAlign,
-                vertical: 'BOTTOM',
-            },
-        ];
-    } else if (modalPosition === 'LEFT') {
-        return [
-            {
-                horizontal: 'LEFT',
-                vertical: 'TOP',
-            },
-            {
-                horizontal: 'RIGHT',
-                vertical: 'TOP',
-            },
-        ];
-    } else if (modalPosition === 'RIGHT') {
-        return [
-            {
-                horizontal: 'RIGHT',
-                vertical: 'TOP',
-            },
-            {
-                horizontal: 'LEFT',
-                vertical: 'TOP',
-            },
-        ];
-    } else throw new Error('Unhandled modal position');
+    switch (modalPosition) {
+        case 'BELOW':
+            return [
+                {
+                    horizontal: horizontalEdgeToAlign,
+                    vertical: 'BOTTOM',
+                },
+                {
+                    horizontal: horizontalEdgeToAlign,
+                    vertical: 'TOP',
+                },
+            ];
+        case 'ABOVE':
+            return [
+                {
+                    horizontal: horizontalEdgeToAlign,
+                    vertical: 'TOP',
+                },
+                {
+                    horizontal: horizontalEdgeToAlign,
+                    vertical: 'BOTTOM',
+                },
+            ];
+        case 'LEFT':
+            return [
+                {
+                    horizontal: 'LEFT',
+                    vertical: 'TOP',
+                },
+                {
+                    horizontal: 'RIGHT',
+                    vertical: 'TOP',
+                },
+            ];
+        case 'RIGHT':
+            return [
+                {
+                    horizontal: 'RIGHT',
+                    vertical: 'TOP',
+                },
+                {
+                    horizontal: 'LEFT',
+                    vertical: 'TOP',
+                },
+            ];
+        default:
+            return exhaustiveMatchingGuard(modalPosition);
+    }
 }
 
 export const CloseableModal: React.FC<CloseableModalProps> = ({

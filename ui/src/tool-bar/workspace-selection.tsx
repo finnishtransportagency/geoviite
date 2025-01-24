@@ -88,15 +88,13 @@ export const DesignSelection: React.FC<DesignSelectionProps> = ({ designId, onDe
                         popupMode={DropdownPopupMode.Inline}
                         onAddClick={canAddDesigns ? onAddClick : undefined}
                         onChange={(designId) => designId && onDesignSelected(designId)}
-                        options={
-                            designs
-                                ?.map((design) => ({
-                                    value: design.id,
-                                    name: design.name,
-                                    qaId: `workspace-${design.id}`,
-                                }))
-                                .toSorted((a, b) => a.name.localeCompare(b.name)) ?? []
-                        }
+                        options={(designs ?? [])
+                            ?.map((design) => ({
+                                value: design.id,
+                                name: design.name,
+                                qaId: `workspace-${design.id}`,
+                            }))
+                            .toSorted((a, b) => a.name.localeCompare(b.name))}
                         value={designId}
                         qaId={'workspace-selection'}
                         customIcon={Icons.Search}

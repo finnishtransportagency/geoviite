@@ -67,6 +67,9 @@ import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
 import { ALIGNMENT_DESCRIPTION_REGEX } from 'tool-panel/location-track/dialog/location-track-validation';
 
+const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
+const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;
+
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
@@ -529,7 +532,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                             setDesignIdSelectorOpened(false);
                                         }}
                                         className={styles['tool-bar__design-id-selector-popup']}
-                                        margin={currentDesign ? 6 : 3}>
+                                        margin={
+                                            currentDesign
+                                                ? DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED
+                                                : DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED
+                                        }>
                                         <DesignSelectionContainer
                                             onDesignIdChange={() =>
                                                 setDesignIdSelectorOpened(false)
