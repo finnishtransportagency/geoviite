@@ -137,9 +137,6 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
     );
 };
 
-//Aligns map layer menu with the map
-const layerOffset = 38;
-
 export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
     mapLayerMenuGroups,
     onMenuChange,
@@ -168,10 +165,10 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
             </div>
             {showMapLayerMenu && (
                 <CloseableModal
-                    offsetY={layerOffset}
                     className={styles['map-layer-menu']}
-                    positionRef={buttonRef}
-                    onClickOutside={() => setShowMapLayerMenu(false)}>
+                    anchorElementRef={buttonRef}
+                    onClickOutside={() => setShowMapLayerMenu(false)}
+                    allowReposition={false}>
                     <MapLayerGroup
                         title={t('map-layer-menu.layout-title')}
                         menuItemVisibilities={mapLayerMenuGroups.layout}

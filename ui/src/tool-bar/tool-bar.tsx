@@ -67,6 +67,9 @@ import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
 import { ALIGNMENT_DESCRIPTION_REGEX } from 'tool-panel/location-track/dialog/location-track-validation';
 
+const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
+const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;
+
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
@@ -223,8 +226,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [designIdSelectorOpened, setDesignIdSelectorOpened] = React.useState(false);
     const [savingWorkspace, setSavingWorkspace] = React.useState(false);
     const menuRef = React.useRef(null);
-    const designIdSelectorRef = React.useRef(null);
-    const designIdButtonRef = React.useRef(null);
+    const designSelectButtonRef = React.useRef(null);
+    const designTabRef = React.useRef(null);
 
     const [currentDesign, designLoadStatus] = useLoaderWithStatus(
         () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
@@ -455,7 +458,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     </PrivilegeRequired>
                     <EnvRestricted restrictTo={'test'}>
                         <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
-                            <div>
+                            <div ref={designTabRef}>
                                 <TabHeader
                                     qaId={'design-mode-tab'}
                                     selected={layoutContextMode === 'DESIGN'}
@@ -467,13 +470,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                         <span>{currentDesign && `:`}</span>
                                         <div className={styles['tool-bar__design-tab-actions']}>
                                             <Button
+                                                className={styles['tool-bar__design-select-button']}
+                                                title={currentDesign?.name}
                                                 variant={ButtonVariant.GHOST}
-                                                size={ButtonSize.SMALL}
                                                 icon={Icons.Down}
                                                 iconPosition={ButtonIconPosition.END}
                                                 disabled={!!splittingState || !!linkingState}
                                                 inheritTypography={true}
-                                                ref={designIdButtonRef}
+                                                ref={designSelectButtonRef}
                                                 onClick={() => {
                                                     switchToDesign();
                                                     setDesignIdSelectorOpened(
@@ -518,25 +522,27 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                         </div>
                                     </span>
                                 </TabHeader>
-
                                 {showDesignIdSelector && (
-                                    <div ref={designIdSelectorRef}>
-                                        <CloseableModal
-                                            positionRef={designIdSelectorRef}
-                                            openingRef={designIdButtonRef}
-                                            onClickOutside={() => {
-                                                setDesignIdSelectorOpened(false);
-                                            }}
-                                            className={styles['tool-bar__design-id-selector-popup']}
-                                            offsetX={0}
-                                            offsetY={0}>
-                                            <DesignSelectionContainer
-                                                onDesignIdChange={() =>
-                                                    setDesignIdSelectorOpened(false)
-                                                }
-                                            />
-                                        </CloseableModal>
-                                    </div>
+                                    <CloseableModal
+                                        anchorElementRef={
+                                            currentDesign ? designSelectButtonRef : designTabRef
+                                        }
+                                        openingElementRef={designSelectButtonRef}
+                                        onClickOutside={() => {
+                                            setDesignIdSelectorOpened(false);
+                                        }}
+                                        className={styles['tool-bar__design-id-selector-popup']}
+                                        margin={
+                                            currentDesign
+                                                ? DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED
+                                                : DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED
+                                        }>
+                                        <DesignSelectionContainer
+                                            onDesignIdChange={() =>
+                                                setDesignIdSelectorOpened(false)
+                                            }
+                                        />
+                                    </CloseableModal>
                                 )}
                             </div>
                         </PrivilegeRequired>
@@ -596,7 +602,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
             {showNewAssetMenu && (
                 <Menu
-                    positionRef={menuRef}
+                    anchorElementRef={menuRef}
                     items={newMenuItems}
                     onClickOutside={() => setShowNewAssetMenu(false)}
                     onClose={() => setShowNewAssetMenu(false)}

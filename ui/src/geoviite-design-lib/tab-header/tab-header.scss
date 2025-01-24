@@ -22,7 +22,12 @@
     }
 
     &--selected {
+        cursor: default;
         border-color: vayla-design.$color-blue-light;
+
+        &:hover {
+            background-color: transparent;
+        }
     }
 
     &--disabled {
