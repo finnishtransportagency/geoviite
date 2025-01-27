@@ -109,7 +109,7 @@ export const switchToChangeTableEntry = (
     trackNumbers: LayoutTrackNumber[],
 ) => {
     const trackNumber = trackNumbers
-        .filter((tn) => layoutSwitch.trackNumberIds.some((lstn) => lstn == tn.id))
+        .filter((tn) => layoutSwitch.trackNumberIds.some((lstn) => lstn === tn.id))
         .sort()
         .map((tn) => tn.number)
         .join(', ');

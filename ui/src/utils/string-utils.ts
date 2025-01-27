@@ -11,7 +11,7 @@ export function isEqualWithoutWhitespace(str1: string, str2: string): boolean {
 }
 
 export function isEmpty(str: string) {
-    return str.length == 0 || isNilOrBlank(str);
+    return str.length === 0 || isNilOrBlank(str);
 }
 
 export const isEqualIgnoreCase = (str1: string, str2: string): boolean =>

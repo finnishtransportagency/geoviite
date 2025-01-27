@@ -181,7 +181,7 @@ const SvgIcon: SvgIconComponent = ({
 
     const parsedSize = parseSize(svg) || [24, 24];
     const sizeProps =
-        size == IconSize.ORIGINAL
+        size === IconSize.ORIGINAL
             ? {
                   width: parsedSize[0],
                   height: parsedSize[1],

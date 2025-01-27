@@ -52,7 +52,7 @@ export function getTickStyle(
     );
 
     return new Style({
-        geometry: new OlPoint(position == 'start' ? point1 : point2),
+        geometry: new OlPoint(position === 'start' ? point1 : point2),
         image: image,
         zIndex: style.getZIndex(),
     });
@@ -144,7 +144,7 @@ function includes(selection: ItemCollections, alignment: LayoutAlignmentHeader):
     switch (type) {
         case 'REFERENCE_LINE': {
             const tnId = alignment.trackNumberId;
-            return tnId != undefined && selection.trackNumbers.includes(tnId);
+            return tnId !== undefined && selection.trackNumbers.includes(tnId);
         }
         case 'LOCATION_TRACK': {
             return selection.locationTracks.includes(alignment.id);
@@ -165,9 +165,9 @@ export function getAlignmentHeaderStates(
     const selected = includes(selection.selectedItems, header);
     const highlighted = isHighlighted(selection, header);
     const isLinking = linkingState
-        ? (linkingState.type == LinkingType.LinkingGeometryWithAlignment ||
-              linkingState.type == LinkingType.LinkingAlignment) &&
-          linkingState.layoutAlignment.type == header.alignmentType &&
+        ? (linkingState.type === LinkingType.LinkingGeometryWithAlignment ||
+              linkingState.type === LinkingType.LinkingAlignment) &&
+          linkingState.layoutAlignment.type === header.alignmentType &&
           linkingState.layoutAlignmentInterval.start?.alignmentId === header.id
         : false;
 

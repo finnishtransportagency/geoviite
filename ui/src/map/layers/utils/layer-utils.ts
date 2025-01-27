@@ -321,6 +321,6 @@ export async function getPlanAndStatus(
     layoutContext: LayoutContext,
 ): Promise<PlanAndStatus | undefined> {
     if (!plan) return undefined;
-    else if (plan.planDataType == 'TEMP') return { plan, status: undefined };
+    else if (plan.planDataType === 'TEMP') return { plan, status: undefined };
     else return getPlanLinkStatus(plan.id, layoutContext).then((status) => ({ plan, status }));
 }

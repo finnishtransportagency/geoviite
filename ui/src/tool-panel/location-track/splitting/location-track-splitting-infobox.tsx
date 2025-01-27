@@ -384,7 +384,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             const duplicateTrackIsUsedInSplit = allSplits.some(
                 (split) => split.duplicateTrackId === duplicateTrack.id,
             );
-            return duplicateTrack.status.match == 'NONE' && !duplicateTrackIsUsedInSplit;
+            return duplicateTrack.status.match === 'NONE' && !duplicateTrackIsUsedInSplit;
         },
     );
     const unusedNonOverlappingDuplicateNames = unusedNonOverlappingDuplicates.map(

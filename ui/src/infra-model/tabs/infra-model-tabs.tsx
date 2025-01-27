@@ -34,7 +34,7 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
 
     // Handle search plans side effect
     React.useEffect(() => {
-        if (state.searchState == 'start') {
+        if (state.searchState === 'start') {
             infraModelListDelegates.onPlanFetchStart();
             getGeometryPlanHeadersBySearchTerms(
                 state.pageSize,

@@ -122,7 +122,7 @@ const findDuplicateStartingAt = (duplicates: SplitDuplicateTrack[], splitPoint: 
     return duplicates.find((duplicate) => {
         const duplicateSplitPoint = duplicate.status.startSplitPoint;
         return (
-            duplicateSplitPoint != undefined && splitPointsAreSame(splitPoint, duplicateSplitPoint)
+            duplicateSplitPoint !== undefined && splitPointsAreSame(splitPoint, duplicateSplitPoint)
         );
     });
 };
@@ -133,7 +133,7 @@ export function getAllowedSwitchesFromState(state: SplittingState) {
     const endSwitchId =
         state.endSplitPoint.type === 'SWITCH_SPLIT_POINT' && state.endSplitPoint.switchId;
     return state.trackSwitches.filter(
-        (sw) => sw.switchId != startSwitchId && sw.switchId != endSwitchId,
+        (sw) => sw.switchId !== startSwitchId && sw.switchId !== endSwitchId,
     );
 }
 
@@ -319,7 +319,7 @@ export const splitReducers = {
                         ? undefined
                         : state.splittingState.highlightedSplit,
                 highlightedSplitPoint:
-                    splitPoint == state.splittingState.highlightedSplitPoint
+                    splitPoint === state.splittingState.highlightedSplitPoint
                         ? undefined
                         : state.splittingState.highlightedSplitPoint,
             };
@@ -492,11 +492,11 @@ function getNameForTarget(
                 ? getLocationTrackName(startSwitch.name, endSwitch.name)
                 : '',
         descriptionBase:
-            startSwitch != undefined &&
-            startSwitch.nearestOperatingPoint != undefined &&
-            endSwitch != undefined &&
-            endSwitch.nearestOperatingPoint != undefined &&
-            startSwitch.nearestOperatingPoint.name != endSwitch.nearestOperatingPoint.name
+            startSwitch !== undefined &&
+            startSwitch.nearestOperatingPoint !== undefined &&
+            endSwitch !== undefined &&
+            endSwitch.nearestOperatingPoint !== undefined &&
+            startSwitch.nearestOperatingPoint.name !== endSwitch.nearestOperatingPoint.name
                 ? getLocationTrackDescription(
                       startSwitch.nearestOperatingPoint,
                       endSwitch.nearestOperatingPoint,

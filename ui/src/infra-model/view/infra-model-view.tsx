@@ -65,7 +65,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
           ]
         : [];
     const handleFileMenuItemChange = (item: string) => {
-        if (item == 'fix-encoding') setShowChangeCharsetDialog(true);
+        if (item === 'fix-encoding') setShowChangeCharsetDialog(true);
     };
 
     const onSaveClick = async () => {
@@ -105,8 +105,10 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     };
 
     const fileName = geometryPlan?.fileName || '';
-    const toolbarName = `${isNewPlan && fileName.length > 0 ? `${t('im-form.toolbar.upload')}: ` : ''}${fileName}`;
-    const showMap = props.validationResponse?.planLayout != undefined;
+    const toolbarName = `${
+        isNewPlan && fileName.length > 0 ? `${t('im-form.toolbar.upload')}: ` : ''
+    }${fileName}`;
+    const showMap = props.validationResponse?.planLayout !== undefined;
 
     return (
         <div className={styles['infra-model-upload']}>

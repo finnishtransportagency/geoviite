@@ -136,7 +136,7 @@ function validateIsPartialDuplicate(
     const isPartialDuplicate = duplicate.duplicateStatus.match === 'PARTIAL';
     const overLappingLength = duplicate.duplicateStatus.overlappingLength;
     const nonOverlappingLength =
-        (overLappingLength != undefined && duplicate.length - overLappingLength) || undefined;
+        (overLappingLength !== undefined && duplicate.length - overLappingLength) || undefined;
     if (
         isPartialDuplicate &&
         overLappingLength !== undefined &&
@@ -161,12 +161,12 @@ function validateHasShortNonOverlappingLength(
 ): LocationTrackDuplicateNotice | undefined {
     const overLappingLength = duplicate.duplicateStatus.overlappingLength;
     const nonOverlappingLength =
-        (overLappingLength != undefined && duplicate.length - overLappingLength) || undefined;
+        (overLappingLength !== undefined && duplicate.length - overLappingLength) || undefined;
     const shortNonOverlappingLength =
-        nonOverlappingLength != undefined &&
+        nonOverlappingLength !== undefined &&
         nonOverlappingLength <
             PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS;
-    if (shortNonOverlappingLength && nonOverlappingLength != undefined) {
+    if (shortNonOverlappingLength && nonOverlappingLength !== undefined) {
         return {
             translationKey: 'tool-panel.location-track.short-non-overlapping-length-warning',
             translationParams: {

@@ -263,7 +263,7 @@ const MapView: React.FC<MapViewProps> = ({
             const interactions = defaultInteractions();
             //Mouse middle click pan
             interactions.push(
-                new DragPan({ condition: (event) => event.originalEvent.which == 2 }),
+                new DragPan({ condition: (event) => event.originalEvent.which === 2 }),
             );
 
             // use in the browser window.map.getPixelFromCoordinate([x,y])
@@ -314,7 +314,7 @@ const MapView: React.FC<MapViewProps> = ({
         // Without this check the map can get into invalid state if it is
         // quickly panned (moved) back and forth, and surprisingly this
         // happens quite easily in real life.
-        if (map.viewport.source != 'Map') {
+        if (map.viewport.source !== 'Map') {
             olMap.setView(getOlViewByDomainViewport(map.viewport));
         }
     }, [olMap, map.viewport]);

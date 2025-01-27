@@ -117,7 +117,7 @@ export function useRateLimitedLoaderWithStatus<TEntity>(
     // asynchronously and status will then be set to "loading", but it is more precise to set and
     // return "initialize" status synchronously.
     const loaderStatus = depsAreChanged ? LoaderStatus.Initialized : loaderStatusInState;
-    if (loaderStatus != loaderStatusInState) {
+    if (loaderStatus !== loaderStatusInState) {
         setLoaderStatusInState(loaderStatus);
     }
 
@@ -311,14 +311,11 @@ export function useRateLimitedEffect(
             lastFireTime.current = now;
             return effect();
         } else {
-            nextWakeup.current = setTimeout(
-                () => {
-                    lastFireTime.current = Date.now();
-                    lastDestructor.current = effect();
-                    nextWakeup.current = undefined;
-                },
-                waitBetweenCalls - (now - lastFireTime.current),
-            );
+            nextWakeup.current = setTimeout(() => {
+                lastFireTime.current = Date.now();
+                lastDestructor.current = effect();
+                nextWakeup.current = undefined;
+            }, waitBetweenCalls - (now - lastFireTime.current));
             return () => {
                 if (lastDestructor.current !== undefined) {
                     lastDestructor.current();
@@ -373,16 +370,13 @@ export function useTraceProps(componentName: string, props: PropsType) {
     const prev = useRef(props);
 
     useEffect(() => {
-        const changedProps = Object.entries(props).reduce(
-            (acc, [k, v]) => {
-                if (prev.current[k] !== v) {
-                    acc[k] = { old: prev.current[k], new: v };
-                }
+        const changedProps = Object.entries(props).reduce((acc, [k, v]) => {
+            if (prev.current[k] !== v) {
+                acc[k] = { old: prev.current[k], new: v };
+            }
 
-                return acc;
-            },
-            {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } },
-        );
+            return acc;
+        }, {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } });
 
         if (Object.keys(changedProps).length > 0) {
             console.log(`[${componentName}] Changed props:`, changedProps);

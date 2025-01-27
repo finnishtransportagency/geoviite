@@ -41,7 +41,7 @@ export const LocationTrackSplitRelinkingNotice: React.FC<
                         </div>
                     </MessageBox>
                 )}
-            {switchRelinkingLoadingState == LoaderStatus.Loading && (
+            {switchRelinkingLoadingState === LoaderStatus.Loading && (
                 <MessageBox>
                     <span className={styles['location-track-infobox__validate-switch-relinking']}>
                         {t('tool-panel.location-track.splitting.validation-in-progress')}

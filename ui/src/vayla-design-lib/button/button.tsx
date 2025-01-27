@@ -67,7 +67,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
         styles[variant],
         className,
         Icon && styles['button--has-icon'],
-        iconPosition == ButtonIconPosition.END && styles['button--icon-at-end'],
+        iconPosition === ButtonIconPosition.END && styles['button--icon-at-end'],
         size && styles[size],
         !props.children && styles['button--no-label'],
         isProcessing && styles['button--has-animation'],

@@ -15,7 +15,7 @@ export const ButtonExamples: React.FC = () => {
     const [person, setPerson] = React.useState<ExamplePerson | undefined>();
 
     function toggleProcessing(key: string) {
-        setButtonProcessing(key == buttonProcessing ? undefined : key);
+        setButtonProcessing(key === buttonProcessing ? undefined : key);
     }
 
     return (
@@ -60,7 +60,7 @@ export const ButtonExamples: React.FC = () => {
                                                 size={size}
                                                 variant={variant}
                                                 isProcessing={
-                                                    isProcessing || buttonProcessing == key
+                                                    isProcessing || buttonProcessing === key
                                                 }
                                                 onClick={() => toggleProcessing(key)}>
                                                 Button
@@ -81,7 +81,8 @@ export const ButtonExamples: React.FC = () => {
                                                 variant={variant}
                                                 icon={Icons.Append}
                                                 isProcessing={
-                                                    isProcessing || buttonProcessing == key + 'icon'
+                                                    isProcessing ||
+                                                    buttonProcessing === key + 'icon'
                                                 }
                                                 onClick={() => toggleProcessing(key + 'icon')}>
                                                 Button
@@ -104,7 +105,7 @@ export const ButtonExamples: React.FC = () => {
                                                 icon={Icons.Append}
                                                 isProcessing={
                                                     isProcessing ||
-                                                    buttonProcessing == key + 'icon-only'
+                                                    buttonProcessing === key + 'icon-only'
                                                 }
                                                 onClick={() => toggleProcessing(key + 'icon-only')}
                                             />
@@ -117,7 +118,7 @@ export const ButtonExamples: React.FC = () => {
                                                 icon={Icons.Append}
                                                 isProcessing={
                                                     isProcessing ||
-                                                    buttonProcessing == key + 'icon-only'
+                                                    buttonProcessing === key + 'icon-only'
                                                 }
                                             />
                                         </td>

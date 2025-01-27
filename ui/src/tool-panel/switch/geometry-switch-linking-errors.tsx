@@ -27,8 +27,8 @@ export const GeometrySwitchLinkingErrors: React.FC<GeometrySwitchLinkingErrorsPr
         <InfoboxContentSpread>
             <MessageBox
                 pop={
-                    selectedLayoutSwitchStructure != undefined &&
-                    switchTypeMatch == SwitchTypeMatch.Invalid
+                    selectedLayoutSwitchStructure !== undefined &&
+                    switchTypeMatch === SwitchTypeMatch.Invalid
                 }>
                 <div className={styles['geometry-switch-infobox__switch-type-warning-msg']}>
                     {t('tool-panel.switch.geometry.cannot-link-invalid-switch-type', {
@@ -39,8 +39,8 @@ export const GeometrySwitchLinkingErrors: React.FC<GeometrySwitchLinkingErrorsPr
             </MessageBox>
             <MessageBox
                 pop={
-                    selectedLayoutSwitchStructure != undefined &&
-                    switchTypeMatch == SwitchTypeMatch.Similar
+                    selectedLayoutSwitchStructure !== undefined &&
+                    switchTypeMatch === SwitchTypeMatch.Similar
                 }>
                 <div className={styles['geometry-switch-infobox__switch-type-warning-msg']}>
                     {t('tool-panel.switch.geometry.switch-type-differs-warning', {

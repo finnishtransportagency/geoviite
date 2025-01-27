@@ -17,7 +17,7 @@ import { CalculatedChanges } from 'publication/publication-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 const calculatedChangesIsEmpty = (calculatedChanges: GroupedCalculatedChanges) => {
-    return calculatedChanges.switches.length == 0 && calculatedChanges.locationTracks.length == 0;
+    return calculatedChanges.switches.length === 0 && calculatedChanges.locationTracks.length === 0;
 };
 
 type CalculatedChangesProps = {
@@ -83,7 +83,7 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                 }));
 
                 const ltChanges: Change[] = locationTrackChanges
-                    .map((ltc) => locationTracks.find((lt) => lt.id == ltc.locationTrackId))
+                    .map((ltc) => locationTracks.find((lt) => lt.id === ltc.locationTrackId))
                     .filter(filterNotEmpty)
                     .map((lt) => ({
                         trackNumberId: lt.trackNumberId,
@@ -96,7 +96,7 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                         .filter(filterUnique)
                         .map((tn) => ({
                             trackNumberId: tn,
-                            switch: switches.find((s) => s.id == sc.switchId),
+                            switch: switches.find((s) => s.id === sc.switchId),
                         }));
                 });
 
@@ -107,7 +107,7 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
 
                 const calculatedChanges = Object.entries(groupedChanges)
                     .map(([key, changes]) => {
-                        const trackNumber = trackNumbers.find((tn) => tn.id == key);
+                        const trackNumber = trackNumbers.find((tn) => tn.id === key);
                         return trackNumber
                             ? {
                                   trackNumber: trackNumber,
@@ -182,7 +182,7 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                         </Accordion>
                     );
                 })}
-                {groupedCalculatedChanges.length == 0 && (
+                {groupedCalculatedChanges.length === 0 && (
                     <React.Fragment>{t('preview-view.no-calculated-changes-text')}</React.Fragment>
                 )}
             </div>

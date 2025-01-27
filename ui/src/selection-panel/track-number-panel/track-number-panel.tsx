@@ -37,7 +37,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
     React.useEffect(() => {
         const visibleTrackNumbers =
             trackNumbers.length > max && selectedTrackNumbers.length
-                ? trackNumbers.filter((tn) => selectedTrackNumbers.some((stn) => stn == tn.id))
+                ? trackNumbers.filter((tn) => selectedTrackNumbers.some((stn) => stn === tn.id))
                 : [...trackNumbers];
 
         setSortedTrackNumbers(visibleTrackNumbers.sort(fieldComparator((tn) => tn.number)));
@@ -52,7 +52,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
             {sortedTrackNumbers.length <= max && (
                 <ol className={styles['track-number-panel__track-numbers']}>
                     {sortedTrackNumbers.map((trackNumber) => {
-                        const isSelected = selectedTrackNumbers?.some((s) => s == trackNumber.id);
+                        const isSelected = selectedTrackNumbers?.some((s) => s === trackNumber.id);
                         return (
                             <li className={trackNumberClassNames} key={trackNumber.id}>
                                 <div>

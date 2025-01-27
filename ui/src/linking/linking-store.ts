@@ -78,8 +78,8 @@ export const linkingReducers = {
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
         if (
-            state.linkingState?.type == LinkingType.LinkingAlignment ||
-            state.linkingState?.type == LinkingType.LinkingGeometryWithAlignment
+            state.linkingState?.type === LinkingType.LinkingAlignment ||
+            state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment
         ) {
             state.linkingState.layoutAlignmentInterval = createUpdatedInterval(
                 state.linkingState.layoutAlignmentInterval,
@@ -94,8 +94,8 @@ export const linkingReducers = {
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
         if (
-            state.linkingState?.type == LinkingType.LinkingGeometryWithAlignment ||
-            state.linkingState?.type == LinkingType.LinkingGeometryWithEmptyAlignment
+            state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+            state.linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
         ) {
             state.linkingState.geometryAlignmentInterval = createUpdatedInterval(
                 state.linkingState.geometryAlignmentInterval,
@@ -110,8 +110,8 @@ export const linkingReducers = {
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
         if (
-            state.linkingState?.type == LinkingType.LinkingAlignment ||
-            state.linkingState?.type == LinkingType.LinkingGeometryWithAlignment
+            state.linkingState?.type === LinkingType.LinkingAlignment ||
+            state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment
         ) {
             state.linkingState.layoutAlignmentInterval = createUpdatedInterval(
                 state.linkingState.layoutAlignmentInterval,
@@ -127,8 +127,8 @@ export const linkingReducers = {
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
         if (
-            state.linkingState?.type == LinkingType.LinkingGeometryWithAlignment ||
-            state.linkingState?.type == LinkingType.LinkingGeometryWithEmptyAlignment
+            state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+            state.linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
         ) {
             state.linkingState.geometryAlignmentInterval = createUpdatedInterval(
                 state.linkingState.geometryAlignmentInterval,
@@ -144,10 +144,10 @@ export const linkingReducers = {
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
         if (
-            (state.linkingState?.type == LinkingType.LinkingGeometryWithAlignment ||
-                state.linkingState?.type == LinkingType.LinkingGeometryWithEmptyAlignment) &&
-            (state.linkingState.geometryAlignmentInterval.start?.id == linkPoint.id ||
-                state.linkingState.geometryAlignmentInterval.end?.id == linkPoint.id)
+            (state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+                state.linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment) &&
+            (state.linkingState.geometryAlignmentInterval.start?.id === linkPoint.id ||
+                state.linkingState.geometryAlignmentInterval.end?.id === linkPoint.id)
         ) {
             state.linkingState.geometryAlignmentInterval = createUpdatedIntervalRemovePoint(
                 state.linkingState.geometryAlignmentInterval,
@@ -162,10 +162,10 @@ export const linkingReducers = {
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
         if (
-            (state.linkingState?.type == LinkingType.LinkingAlignment ||
-                state.linkingState?.type == LinkingType.LinkingGeometryWithAlignment) &&
-            (state.linkingState.layoutAlignmentInterval.start?.id == linkPoint.id ||
-                state.linkingState.layoutAlignmentInterval.end?.id == linkPoint.id)
+            (state.linkingState?.type === LinkingType.LinkingAlignment ||
+                state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment) &&
+            (state.linkingState.layoutAlignmentInterval.start?.id === linkPoint.id ||
+                state.linkingState.layoutAlignmentInterval.end?.id === linkPoint.id)
         ) {
             state.linkingState.layoutAlignmentInterval = createUpdatedIntervalRemovePoint(
                 state.linkingState.layoutAlignmentInterval,
@@ -329,7 +329,7 @@ function validateLinkingState(state: LinkingState): LinkingState {
 }
 
 function isSameLinkPoint(p1: LinkPoint, p2: LinkPoint): boolean {
-    return p1.x == p2.x && p1.y == p2.y;
+    return p1.x === p2.x && p1.y === p2.y;
 }
 
 function intervalHasLength(interval: LinkInterval): boolean {
@@ -406,7 +406,7 @@ function isConnectorTooSteep(
         const layoutDirection = layoutPoint.direction;
         const geometryDirection = geometryPoint.direction;
         const connectDirection =
-            direction == 'LayoutToGeometry'
+            direction === 'LayoutToGeometry'
                 ? directionBetweenPoints(layoutPoint, geometryPoint)
                 : directionBetweenPoints(geometryPoint, layoutPoint);
         return (
@@ -420,7 +420,7 @@ function isSharpAngle(
     directionRads1: number | undefined,
     directionRads2: number | undefined,
 ): boolean {
-    if (directionRads1 == undefined || directionRads2 == undefined) return false;
+    if (directionRads1 === undefined || directionRads2 === undefined) return false;
     else return angleDiffRads(directionRads1, directionRads2) > Math.PI / 2;
 }
 

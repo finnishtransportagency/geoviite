@@ -46,7 +46,7 @@ export async function getTrackNumberById(
     changeTime?: TimeStamp,
 ): Promise<LayoutTrackNumber | undefined> {
     return getTrackNumbers(layoutContext, changeTime, true).then((trackNumbers) =>
-        trackNumbers.find((trackNumber) => trackNumber.id == trackNumberId),
+        trackNumbers.find((trackNumber) => trackNumber.id === trackNumberId),
     );
 }
 

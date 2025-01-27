@@ -54,7 +54,7 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
     const [mostRecentlyCheckedOid, setMostRecentlyCheckedOid] = useState<Oid>();
 
     const oidIsLocallyValid = draftOid !== '' && validateDraftOid(draftOid).length === 0;
-    const loadingOidPresence = oidIsLocallyValid && draftOid != mostRecentlyCheckedOid;
+    const loadingOidPresence = oidIsLocallyValid && draftOid !== mostRecentlyCheckedOid;
     useRateLimitedTwoPartEffect(
         () => (oidIsLocallyValid ? getSwitchOidPresence(draftOid) : undefined),
         (newOidPresence) => {
@@ -146,7 +146,7 @@ export function validateDraftOid(oid: Oid): FieldValidationIssue<LayoutSwitchSav
         });
     } else {
         const oidEnd = oid.slice(SWITCH_OID_REQUIRED_PREFIX.length);
-        if (oidEnd != `${parseInt(oidEnd)}`) {
+        if (oidEnd !== `${parseInt(oidEnd)}`) {
             errors.push({
                 field: 'draftOid',
                 reason: 'invalid-draft-oid',
