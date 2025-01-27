@@ -26,7 +26,7 @@ export const MenuExample: React.FC = () => {
 
             {showMenu && (
                 <Menu
-                    positionRef={menuRef}
+                    anchorElementRef={menuRef}
                     items={items}
                     onClickOutside={() => {}}
                     onClose={() => setShowMenu(false)}
