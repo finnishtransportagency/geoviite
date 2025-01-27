@@ -1695,7 +1695,7 @@ constructor(
             acc += listOf(segment(shift, shift + spacerVector))
             shift += spacerVector
         }
-        return acc.map { ss -> ss.map { s -> s.copy(id = StringId(), geometry = s.geometry.copy(id = StringId())) } }
+        return acc.map { ss -> ss.map { s -> s.copy(geometry = s.geometry.copy(id = StringId())) } }
     }
 
     private fun setSwitchId(segments: List<LayoutSegment>, switchId: IntId<LayoutSwitch>?) =

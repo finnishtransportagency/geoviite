@@ -254,6 +254,7 @@ interface IAlignment : Loggable {
 // TODO: GVT-2935 this will become reference-line only version: rename
 data class LayoutAlignment(
     override val segments: List<LayoutSegment>,
+    // TODO: GVT-2935 replace with db and non-db types under sealed class. Is datatype even used?
     val id: DomainId<LayoutAlignment> = StringId(),
     val dataType: DataType = DataType.TEMP,
 ) : IAlignment {

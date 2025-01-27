@@ -93,16 +93,28 @@ constructor(
         parameters: LinkingParameters<LocationTrack>,
     ): IntId<LocationTrack> {
         val locationTrackId = parameters.layoutInterval.alignmentId
-        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, locationTrackId)
+        val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, locationTrackId)
 
-        verifyLocationTrackNotDeleted(locationTrack)
+        verifyLocationTrackNotDeleted(track)
         verifyPlanNotHidden(parameters.geometryPlanId)
         verifyAllSplitsDone(branch, parameters.layoutInterval.alignmentId)
 
-        val newAlignment = linkGeometry(alignment, parameters)
-        val newLocationTrack = updateTopology(branch, locationTrack, alignment, newAlignment)
+        val geomWithNewSegments = linkGeometry(locationTrackId, geometry, parameters)
+        val newGeometry = updateTopology(branch, track, geometry, geomWithNewSegments)
 
-        return locationTrackService.saveDraft(branch, newLocationTrack, newAlignment).id
+        return locationTrackService.saveDraft(branch, track, newGeometry).id
+    }
+
+    private fun <T> linkGeometry(
+        trackId: IntId<LocationTrack>,
+        layoutGeometry: LocationTrackGeometry,
+        parameters: LinkingParameters<T>,
+    ): LocationTrackGeometry {
+        val geometryInterval = parameters.geometryInterval
+        val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
+        val layoutRange = parameters.layoutInterval.mRange
+        val geometryRange = parameters.geometryInterval.mRange
+        return linkLayoutGeometrySection(trackId, layoutGeometry, layoutRange, geometryAlignment, geometryRange)
     }
 
     private fun <T> linkGeometry(layoutAlignment: LayoutAlignment, parameters: LinkingParameters<T>): LayoutAlignment {

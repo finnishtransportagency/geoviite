@@ -405,11 +405,11 @@ class LinkingTest {
                 segment(Point(0.0, 2.0), Point(0.0, 3.0)),
             )
         // Cutting other segments doesn't affect source start
-        assertEquals(10.0, sliceSegments(alignment, Range(0.5, 2.5))[1].sourceStart)
+        assertEquals(10.0, slice(alignment, Range(0.5, 2.5))[1].sourceStart)
         // Cutting the sourced segment from beginning adds to the source start
-        assertEquals(10.5, sliceSegments(alignment, Range(1.5, 3.0))[0].sourceStart)
+        assertEquals(10.5, slice(alignment, Range(1.5, 3.0))[0].sourceStart)
         // Cutting the sourced segment from end doesn't affect source start
-        assertEquals(10.0, sliceSegments(alignment, Range(0.0, 1.5))[1].sourceStart)
+        assertEquals(10.0, slice(alignment, Range(0.0, 1.5))[1].sourceStart)
     }
 }
 

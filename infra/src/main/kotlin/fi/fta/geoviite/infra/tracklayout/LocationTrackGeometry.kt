@@ -197,6 +197,10 @@ interface ILayoutEdge : IAlignment {
     override val boundingBox: BoundingBox
 
     val contentHash: Int
+
+    fun withStartNode(node: ILayoutNodeContent) = LayoutEdgeContent(node, endNode, segments)
+
+    fun withEndNode(node: ILayoutNodeContent) = LayoutEdgeContent(endNode, node, segments)
 }
 
 data class LayoutEdgeContent(
