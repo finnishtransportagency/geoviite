@@ -30,6 +30,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItem
 import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransfer
@@ -187,13 +188,19 @@ class FakeRatko(port: Int) {
     }
 
     fun acceptsNewDesignGivingItId(id: Int) {
-        post("/api/plan/v1.0/plans", times = Times.once()).respond(respondWithSameDesign(id))
-        put("/api/plan/v1.0/plans/$id").respond(respondWithSameDesign(id))
+        // Ratko explicitly only sends back an ID when we create a plan
+        post("/api/plan/v1.0/plans", times = Times.once()).respond(okJson(mapOf("id" to id)))
+        put("/api/plan/v1.0/plans/$id").respond(okJson(mapOf("id" to id)))
     }
 
     fun providesPlanItemIdsInDesign(id: Int) {
-        var planItemIdSeq = 0
-        post("/api/plan/v1.0/plans/$id/plan_items").respond(okJson(mapOf("id" to planItemIdSeq++, "planId" to id)))
+        var planItemIdSeq = 1
+        post("/api/plan/v1.0/plans/$id/plan_items").respond { request: HttpRequest ->
+            val planJson = jsonMapper.readTree(request.bodyAsString) as ObjectNode
+            planJson.put("id", planItemIdSeq++)
+            okJson(planJson)
+        }
+        put("/api/plan/v1.0/plan_items/.*").respond(ok())
     }
 
     fun getUpdatesToDesign(id: Int): List<RatkoPlan> =
@@ -201,6 +208,11 @@ class FakeRatko(port: Int) {
             ->
             jsonMapper.readValue(req.bodyAsString)
         }
+
+    fun getUpdatesToPlanItem(id: Int): List<RatkoPlanItem> =
+        mockServer
+            .retrieveRecordedRequests(request().withPath("/api/plan/v1.0/plan_items/$id").withMethod("PUT"))
+            .map { req -> jsonMapper.readValue(req.bodyAsString) }
 
     // return deleted route number kms, or an empty string if all of a route number points were
     // deleted
@@ -258,7 +270,7 @@ class FakeRatko(port: Int) {
             point.put("m", kmM.substring(5))
         }
 
-    fun lastPushedSwitchBody(oid: String): String =
+    fun lastPushedSwitchBody(oid: String): String? =
         mockServer
             .retrieveRecordedRequests(
                 request()
@@ -266,26 +278,45 @@ class FakeRatko(port: Int) {
                     .withMethod("POST")
                     .withBody(JsonBody.json(mapOf("type" to "turnout", "id" to oid)))
             )
-            .last()
-            .bodyAsString
+            .lastOrNull()
+            ?.bodyAsString
 
-    fun hostPushedSwitch(oid: String) = hasSwitch(getLastPushedSwitch(oid))
+    fun hostPushedSwitch(oid: String) = hasSwitch(getLastPushedSwitch(oid)!!)
 
-    fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch = jsonMapper.readValue(lastPushedSwitchBody(oid))
+    fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch? = lastPushedSwitchBody(oid)?.let(jsonMapper::readValue)
 
-    private fun lastPushedLocationTrackBody(oid: String): String =
+    private fun lastPushedLocationTrackBody(oid: String): String? =
         mockServer
             .retrieveRecordedRequests(
                 request("/api/infra/v1.0/locationtracks")
                     .withMethod("POST|PUT")
                     .withBody(JsonBody.json(mapOf("id" to oid), MatchType.ONLY_MATCHING_FIELDS))
             )
-            .last()
-            .bodyAsString!!
+            .lastOrNull()
+            ?.bodyAsString
+
+    private fun lastPushedRouteNumber(oid: String): String? =
+        mockServer
+            .retrieveRecordedRequests(
+                request("/api/infra/v1.0/routenumbers")
+                    .withMethod("POST|PUT")
+                    .withBody(JsonBody.json(mapOf("id" to oid), MatchType.ONLY_MATCHING_FIELDS))
+            )
+            .lastOrNull()
+            ?.bodyAsString
+
+    fun getLastPushedRouteNumber(oid: String): InterfaceRatkoRouteNumber? =
+        lastPushedRouteNumber(oid)?.let(jsonMapper::readValue)
 
     fun hostLocationTrackOid(oid: String) {
         put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
         get("/api/locations/v1.1/locationtracks/${oid}").respond(ok())
+    }
+
+    fun hostPushedRouteNumber(oid: String) {
+        val tree = jsonMapper.readTree(lastPushedRouteNumber(oid))
+        putKmMs(tree.get("nodecollection"))
+        hasRouteNumber(jsonMapper.treeToValue(tree))
     }
 
     fun hostPushedLocationTrack(oid: String) {
@@ -294,8 +325,8 @@ class FakeRatko(port: Int) {
         hasLocationTrack(jsonMapper.treeToValue(tree))
     }
 
-    fun getLastPushedLocationTrack(oid: String): RatkoLocationTrack =
-        jsonMapper.readValue(lastPushedLocationTrackBody(oid))
+    fun getLastPushedLocationTrack(oid: String): RatkoLocationTrack? =
+        lastPushedLocationTrackBody(oid)?.let(jsonMapper::readValue)
 
     fun getPushedSwitchLocations(oid: String): List<List<RatkoAssetLocation>> =
         mockServer
@@ -323,12 +354,6 @@ class FakeRatko(port: Int) {
             request ->
             request.path.toString().substring("/api/$urlInfix/$oid".length).dropWhile { it == '/' }
         }
-
-    private fun respondWithSameDesign(id: Int): (request: HttpRequest) -> HttpResponse = { request: HttpRequest ->
-        val planJson = jsonMapper.readTree(request.bodyAsString) as ObjectNode
-        planJson.put("id", id)
-        okJson(planJson)
-    }
 
     private fun get(url: String, times: Times? = null): ForwardChainExpectation =
         expectation(url, "GET", null, null, times)

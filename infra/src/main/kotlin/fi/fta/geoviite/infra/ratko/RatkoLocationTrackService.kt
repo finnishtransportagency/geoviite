@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoNodeCollection
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegmentMetadata
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -67,9 +68,10 @@ constructor(
             )
             .map { (locationTrack, changedKmNumbers) ->
                 val externalId =
-                    getOrCreateFullExternalId(
+                    getFullExtIdAndManagePlanItem(
                         branch,
                         locationTrack.id as IntId,
+                        locationTrack.designAssetState,
                         ratkoClient,
                         locationTrackDao::fetchExternalId,
                         locationTrackDao::savePlanItemId,
@@ -77,7 +79,10 @@ constructor(
                 requireNotNull(externalId) { "OID required for location track, lt=${locationTrack.id}" }
                 try {
                     ratkoClient.getLocationTrack(RatkoOid(externalId.oid))?.let { existingLocationTrack ->
-                        if (locationTrack.state == LocationTrackState.DELETED) {
+                        if (
+                            locationTrack.state == LocationTrackState.DELETED ||
+                                locationTrack.designAssetState == DesignAssetState.CANCELLED
+                        ) {
                             deleteLocationTrack(
                                 branch = branch.branch,
                                 locationTrack = locationTrack,
@@ -96,7 +101,10 @@ constructor(
                             )
                         }
                     }
-                        ?: if (locationTrack.state != LocationTrackState.DELETED) {
+                        ?: if (
+                            locationTrack.state != LocationTrackState.DELETED &&
+                                locationTrack.designAssetState != DesignAssetState.CANCELLED
+                        ) {
                             createLocationTrack(branch.branch, locationTrack, externalId, publicationTime)
                         } else {
                             null

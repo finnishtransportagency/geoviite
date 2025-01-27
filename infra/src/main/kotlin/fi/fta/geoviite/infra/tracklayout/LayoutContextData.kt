@@ -230,6 +230,8 @@ data class DesignOfficialContextData<T : LayoutAsset<T>>(
     }
 
     fun cancelled(): DesignDraftContextData<T> = asDesignDraft().copy(designAssetState = DesignAssetState.CANCELLED)
+
+    fun completed(): DesignDraftContextData<T> = asDesignDraft().copy(designAssetState = DesignAssetState.COMPLETED)
 }
 
 data class DesignDraftContextData<T : LayoutAsset<T>>(
@@ -329,5 +331,13 @@ fun <T : LayoutAsset<T>> cancelled(item: T, designId: IntId<LayoutDesign>): T =
             is DesignOfficialContextData -> item.withContext(ctx.cancelled())
             is MainOfficialContextData -> item.withContext(ctx.asCancelledDraft(designId))
             else -> error("The cancellation operation is only allowed for official items")
+        }
+    }
+
+fun <T : LayoutAsset<T>> completed(item: T): T =
+    item.contextData.let { ctx ->
+        when (ctx) {
+            is DesignOfficialContextData -> item.withContext(ctx.completed())
+            else -> error("Only design-official items can be merged to main")
         }
     }

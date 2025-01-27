@@ -18,7 +18,7 @@ import {
     PublicationId,
     PublicationRequest,
     PublicationRequestIds,
-    PublicationResult,
+    PublicationResultSummary,
     PublicationStage,
     PublicationTableItem,
     ReferenceLinePublicationCandidate,
@@ -204,7 +204,7 @@ export const revertPublicationCandidates = (
     layoutBranch: LayoutBranch,
     candidates: PublicationCandidateReference[],
 ) =>
-    deleteNonNullAdt<PublicationRequestIds, PublicationResult>(
+    deleteNonNullAdt<PublicationRequestIds, PublicationResultSummary>(
         `${publicationUri(layoutBranch)}/candidates`,
         toPublicationRequestIds(candidates),
     );
@@ -219,7 +219,7 @@ export const publishPublicationCandidates = (
         message,
     };
 
-    return postNonNull<PublicationRequest, PublicationResult>(
+    return postNonNull<PublicationRequest, PublicationResultSummary>(
         `${publicationUri(layoutBranch)}`,
         request,
     );
@@ -231,7 +231,7 @@ export const mergeCandidatesToMain = (
 ) => {
     const request = toPublicationRequestIds(candidates);
 
-    return postNonNull<PublicationRequestIds, PublicationResult>(
+    return postNonNull<PublicationRequestIds, PublicationResultSummary>(
         `${mergeToMainUri(layoutBranch)}`,
         request,
     );

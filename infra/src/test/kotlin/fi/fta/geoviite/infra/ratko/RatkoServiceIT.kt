@@ -39,6 +39,8 @@ import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItem
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanPhase
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanState
 import fi.fta.geoviite.infra.ratko.model.RatkoPoint
@@ -63,6 +65,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -75,6 +78,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -91,6 +95,7 @@ import fi.fta.geoviite.infra.util.queryOne
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -917,7 +922,7 @@ constructor(
                 .single(),
         )
         assertEquals(listOf(1, 2), switchLocations.map { s -> s.priority })
-        val pushedSwitch = fakeRatko.getLastPushedSwitch("3.4.5.6.7")
+        val pushedSwitch = fakeRatko.getLastPushedSwitch("3.4.5.6.7")!!
         fun prop(name: String) = pushedSwitch.properties!!.find { p -> p.name == name }!!
         assertEquals("TV123", prop("name").stringValue)
         assertEquals("TV123", prop("turnout_id").stringValue)
@@ -959,7 +964,7 @@ constructor(
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
 
         publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
-        fakeRatko.hasSwitch(fakeRatko.getLastPushedSwitch("3.4.5.6.7"))
+        fakeRatko.hasSwitch(fakeRatko.getLastPushedSwitch("3.4.5.6.7")!!)
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
 
         detachSwitchesFromTrack(throughTrack.id)
@@ -1433,7 +1438,7 @@ constructor(
             PublicationRequest(publicationRequestIds(), message = FreeTextWithNewLines.of("aoeu")),
         )
         ratkoService.pushChangesToRatko(design)
-        assertEquals(123, layoutDesignDao.fetch(design.designId).ratkoId?.id)
+        assertEquals(123, layoutDesignDao.fetch(design.designId).ratkoId?.intValue)
     }
 
     @Test
@@ -1473,7 +1478,7 @@ constructor(
         assertEquals(
             listOf(
                 RatkoPlan(
-                    id = 123,
+                    id = RatkoPlanId(123),
                     name = "uuba aaba",
                     estimatedCompletion = "2023-02-02T12:00Z",
                     phase = RatkoPlanPhase.RAILWAY_PLAN,
@@ -1532,16 +1537,279 @@ constructor(
         fakeRatko.acceptsNewDesignGivingItId(123)
         fakeRatko.providesPlanItemIdsInDesign(123)
         ratkoService.pushChangesToRatko(design)
-        val pushedLocationTrack = fakeRatko.getLastPushedLocationTrack("2.2.2.2.2")
-        val pushedSwitch = fakeRatko.getLastPushedSwitch("3.3.3.3.3")
+        val pushedLocationTrack = fakeRatko.getLastPushedLocationTrack("2.2.2.2.2")!!
+        val pushedSwitch = fakeRatko.getLastPushedSwitch("3.3.3.3.3")!!
         assertTrue(pushedSwitch.isPlanContext)
-        assertEquals(pushedSwitch.planItemIds!![0], switchDao.fetchExternalId(design, switch)?.planItemId?.id)
+        assertEquals(pushedSwitch.planItemIds!![0], switchDao.fetchExternalId(design, switch)?.planItemId?.intValue)
         assertTrue(pushedLocationTrack.isPlanContext)
         assertEquals(
             pushedLocationTrack.planItemIds!![0],
-            locationTrackDao.fetchExternalId(design, locationTrack)?.planItemId?.id,
+            locationTrackDao.fetchExternalId(design, locationTrack)?.planItemId?.intValue,
         )
         assertEquals(listOf<RatkoMetadataAsset>(), fakeRatko.getPushedMetadata(locationTrackOid = "2.2.2.2.2"))
+    }
+
+    @Test
+    fun `objects that are cancelled before being ever pushed don't get pushed post-cancellation`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val trackNumber = designDraftContext.insert(trackNumber())
+        val referenceLine =
+            designDraftContext.insert(
+                referenceLine(trackNumber.id),
+                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+            )
+        val switch =
+            designDraftContext.insert(
+                switch(
+                    joints =
+                        listOf(
+                            LayoutSwitchJoint(
+                                number = JointNumber(1),
+                                role = SwitchJointRole.MAIN,
+                                location = Point(4.0, 0.0),
+                                locationAccuracy = null,
+                            )
+                        )
+                )
+            )
+        val locationTrack =
+            designDraftContext.insert(
+                locationTrack(trackNumber.id),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(4.0, 0.0)),
+                    segment(Point(4.0, 0.0), Point(8.0, 0.0))
+                        .copy(switchId = switch.id, startJointNumber = JointNumber(1)),
+                ),
+            )
+
+        val publishAll =
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber.id),
+                referenceLines = listOf(referenceLine.id),
+                locationTracks = listOf(locationTrack.id),
+                switches = listOf(switch.id),
+            )
+        fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("1.1.1.1.2"))
+        fakeRatko.acceptsNewSwitchGivingItOid("1.1.1.2.2")
+        fakeRatko.acceptsNewLocationTrackGivingItOid("1.1.1.3.2")
+        publicationService.publishManualPublication(
+            designBranch,
+            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+        )
+        trackNumberService.cancel(designBranch, trackNumber.id)
+        locationTrackService.cancel(designBranch, locationTrack.id)
+        switchService.cancel(designBranch, switch.id)
+        publicationService.publishManualPublication(
+            designBranch,
+            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+        )
+
+        fakeRatko.acceptsNewDesignGivingItId(123)
+        fakeRatko.providesPlanItemIdsInDesign(123)
+
+        ratkoService.pushChangesToRatko(designBranch)
+        // no location track pushed, no points attempted to be either pushed or deleted
+        assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getCreatedLocationTrackPoints("1.1.1.3.2"))
+        assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getUpdatedLocationTrackPoints("1.1.1.3.2"))
+        assertEquals(listOf<String>(), fakeRatko.getLocationTrackPointDeletions("1.1.1.3.2"))
+        assertNull(fakeRatko.getLastPushedLocationTrack("1.1.1.3.2"))
+
+        // no switch pushed either
+        assertNull(fakeRatko.getLastPushedSwitch("1.1.1.2.2"))
+
+        // and no route number
+        assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getCreatedRouteNumberPoints("1.1.1.1.2"))
+        assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getUpdatedRouteNumberPoints("1.1.1.1.2"))
+        assertEquals(listOf<String>(), fakeRatko.getRouteNumberPointDeletions("1.1.1.1.2"))
+        assertNull(fakeRatko.getLastPushedRouteNumber("1.1.1.1.2"))
+    }
+
+    @Test
+    fun `cancellations get pushed as plan item states`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val trackNumber = designDraftContext.insert(trackNumber())
+        val referenceLine =
+            designDraftContext.insert(
+                referenceLine(trackNumber.id),
+                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+            )
+        val switch =
+            designDraftContext.insert(
+                switch(
+                    joints =
+                        listOf(
+                            LayoutSwitchJoint(
+                                number = JointNumber(1),
+                                role = SwitchJointRole.MAIN,
+                                location = Point(4.0, 0.0),
+                                locationAccuracy = null,
+                            )
+                        )
+                )
+            )
+        val locationTrack =
+            designDraftContext.insert(
+                locationTrack(trackNumber.id),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(4.0, 0.0)),
+                    segment(Point(4.0, 0.0), Point(8.0, 0.0))
+                        .copy(switchId = switch.id, startJointNumber = JointNumber(1)),
+                ),
+            )
+
+        val publishAll =
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber.id),
+                referenceLines = listOf(referenceLine.id),
+                locationTracks = listOf(locationTrack.id),
+                switches = listOf(switch.id),
+            )
+        fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("1.1.1.1.2"))
+        fakeRatko.acceptsNewSwitchGivingItOid("1.1.1.2.2")
+        fakeRatko.acceptsNewLocationTrackGivingItOid("1.1.1.3.2")
+        fakeRatko.acceptsNewDesignGivingItId(123)
+        fakeRatko.providesPlanItemIdsInDesign(123)
+        publicationService.publishManualPublication(
+            designBranch,
+            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+        )
+        ratkoService.pushChangesToRatko(designBranch)
+
+        fakeRatko.hostPushedLocationTrack("1.1.1.3.2")
+        fakeRatko.hostPushedSwitch("1.1.1.2.2")
+        fakeRatko.hostPushedRouteNumber("1.1.1.1.2")
+
+        trackNumberService.cancel(designBranch, trackNumber.id)
+        locationTrackService.cancel(designBranch, locationTrack.id)
+        switchService.cancel(designBranch, switch.id)
+
+        publicationService.publishManualPublication(
+            designBranch,
+            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+        )
+        ratkoService.pushChangesToRatko(designBranch)
+        val trackNumberPlanItem = layoutTrackNumberDao.fetchExternalId(designBranch, trackNumber.id)!!.planItemId!!
+        assertEquals(
+            listOf(RatkoPlanItem(trackNumberPlanItem, RatkoPlanId(123), null, RatkoPlanState.CANCELLED)),
+            fakeRatko.getUpdatesToPlanItem(trackNumberPlanItem.intValue),
+        )
+        val locationTrackPlanItem = locationTrackDao.fetchExternalId(designBranch, locationTrack.id)!!.planItemId!!
+        assertEquals(
+            listOf(RatkoPlanItem(locationTrackPlanItem, RatkoPlanId(123), null, RatkoPlanState.CANCELLED)),
+            fakeRatko.getUpdatesToPlanItem(locationTrackPlanItem.intValue),
+        )
+        val switchPlanItem = switchDao.fetchExternalId(designBranch, switch.id)!!.planItemId!!
+        assertEquals(
+            listOf(RatkoPlanItem(switchPlanItem, RatkoPlanId(123), null, RatkoPlanState.CANCELLED)),
+            fakeRatko.getUpdatesToPlanItem(switchPlanItem.intValue),
+        )
+    }
+
+    @Test
+    fun `completed merges get pushed as plan item states`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val trackNumber = establishedTrackNumber("1.1.1.1.1")
+        val switch =
+            mainOfficialContext.insert(
+                switch(
+                    joints =
+                        listOf(
+                            LayoutSwitchJoint(
+                                number = JointNumber(1),
+                                role = SwitchJointRole.MAIN,
+                                location = Point(4.0, 0.0),
+                                locationAccuracy = null,
+                            )
+                        )
+                )
+            )
+        switchDao.insertExternalId(switch.id, LayoutBranch.main, Oid("1.1.1.2.1"))
+        fakeRatko.hasSwitch(ratkoSwitch("1.1.1.2.1"))
+        val locationTrack =
+            mainOfficialContext.insert(
+                locationTrack(trackNumber.id),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(4.0, 0.0)),
+                    segment(Point(4.0, 0.0), Point(8.0, 0.0))
+                        .copy(switchId = switch.id, startJointNumber = JointNumber(1)),
+                ),
+            )
+        locationTrackDao.insertExternalId(locationTrack.id, LayoutBranch.main, Oid("1.1.1.3.1"))
+        fakeRatko.hasLocationTrack(ratkoLocationTrack("1.1.1.3.1"))
+
+        fakeRatko.acceptsNewDesignGivingItId(123)
+        fakeRatko.providesPlanItemIdsInDesign(123)
+        designDraftContext.copyFrom(trackNumber.trackNumberVersion)
+        designDraftContext.copyFrom(switch)
+        designDraftContext.copyFrom(locationTrack)
+
+        val publishAll =
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber.id),
+                locationTracks = listOf(locationTrack.id),
+                switches = listOf(switch.id),
+            )
+        fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("1.1.1.1.2"))
+        fakeRatko.acceptsNewSwitchGivingItOid("1.1.1.2.2")
+        fakeRatko.acceptsNewLocationTrackGivingItOid("1.1.1.3.2")
+        publicationService.publishManualPublication(
+            designBranch,
+            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+        )
+        ratkoService.pushChangesToRatko(designBranch)
+        fakeRatko.hostPushedLocationTrack("1.1.1.3.2")
+        fakeRatko.hostPushedSwitch("1.1.1.2.2")
+
+        trackNumberService.mergeToMainBranch(designBranch, trackNumber.id)
+        locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
+        switchService.mergeToMainBranch(designBranch, switch.id)
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+        )
+        ratkoService.pushChangesToRatko(designBranch)
+        val trackNumberPlanItem = layoutTrackNumberDao.fetchExternalId(designBranch, trackNumber.id)!!.planItemId!!
+        val locationTrackPlanItem = locationTrackDao.fetchExternalId(designBranch, locationTrack.id)!!.planItemId!!
+        val switchPlanItem = switchDao.fetchExternalId(designBranch, switch.id)!!.planItemId!!
+        assertEquals(
+            listOf(
+                RatkoPlanItem(
+                    trackNumberPlanItem,
+                    RatkoPlanId(123),
+                    Oid<LayoutTrackNumber>("1.1.1.1.1"),
+                    RatkoPlanState.COMPLETED,
+                )
+            ),
+            fakeRatko.getUpdatesToPlanItem(trackNumberPlanItem.intValue),
+        )
+        assertEquals(
+            listOf(
+                RatkoPlanItem(
+                    locationTrackPlanItem,
+                    RatkoPlanId(123),
+                    Oid<LayoutTrackNumber>("1.1.1.3.1"),
+                    RatkoPlanState.COMPLETED,
+                )
+            ),
+            fakeRatko.getUpdatesToPlanItem(locationTrackPlanItem.intValue),
+        )
+        assertEquals(
+            listOf(
+                RatkoPlanItem(
+                    switchPlanItem,
+                    RatkoPlanId(123),
+                    Oid<LayoutTrackNumber>("1.1.1.2.1"),
+                    RatkoPlanState.COMPLETED,
+                )
+            ),
+            fakeRatko.getUpdatesToPlanItem(switchPlanItem.intValue),
+        )
     }
 
     private fun insertReferenceLineFor(
@@ -1581,12 +1849,13 @@ constructor(
     }
 
     private data class EstablishedTrackNumber(
-        val daoResponse: LayoutRowVersion<LayoutTrackNumber>,
+        val trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
+        val referenceLineVersion: LayoutRowVersion<ReferenceLine>,
         val externalId: Oid<LayoutTrackNumber>,
         val trackNumberObject: LayoutTrackNumber,
     ) {
         val number = trackNumberObject.number
-        val id = daoResponse.id
+        val id = trackNumberVersion.id
     }
 
     private fun establishedTrackNumber(oidString: String = "1.1.1.1.1"): EstablishedTrackNumber {
@@ -1594,10 +1863,11 @@ constructor(
         val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberVersion = layoutTrackNumberDao.save(trackNumber(trackNumber, draft = false))
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberVersion.id, Oid(oidString))
-        insertReferenceLineFor(trackNumberVersion.id, draft = false)
+        val referenceLineVersion = insertReferenceLineFor(trackNumberVersion.id, draft = false)
         fakeRatko.hasRouteNumber(ratkoRouteNumber(oidString))
         return EstablishedTrackNumber(
-            daoResponse = trackNumberVersion,
+            trackNumberVersion = trackNumberVersion,
+            referenceLineVersion = referenceLineVersion,
             externalId = oid,
             trackNumberObject = layoutTrackNumberDao.fetch(trackNumberVersion),
         )

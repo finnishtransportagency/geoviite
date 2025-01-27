@@ -260,7 +260,7 @@ constructor(
     private fun createAndPublishTrackNumber() =
         createTrackNumber().let { id ->
             val version = trackNumberDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
-            trackNumberService.publish(LayoutBranch.main, version).id
+            trackNumberService.publish(LayoutBranch.main, version).published.id
         }
 
     private fun createTrackNumber() =
@@ -280,6 +280,6 @@ constructor(
 
     private fun publish(id: IntId<ReferenceLine>) =
         referenceLineDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
-            referenceLineService.publish(LayoutBranch.main, version)
+            referenceLineService.publish(LayoutBranch.main, version).published
         }
 }

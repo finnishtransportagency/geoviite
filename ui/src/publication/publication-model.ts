@@ -303,7 +303,7 @@ export type PublicationRequest = {
     message: string;
 };
 
-export interface PublicationResult {
+export interface PublicationResultSummary {
     trackNumbers: number;
     locationTracks: number;
     referenceLines: number;

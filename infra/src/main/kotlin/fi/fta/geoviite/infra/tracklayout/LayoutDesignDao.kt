@@ -84,7 +84,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
             where id = :id and ratko_id is null
         """
                 .trimIndent()
-        val updated = jdbcTemplate.update(sql, mapOf("id" to toDbId(id).intValue, "ratko_id" to ratkoId.id))
+        val updated = jdbcTemplate.update(sql, mapOf("id" to toDbId(id).intValue, "ratko_id" to ratkoId.intValue))
         require(updated == 1) {
             "Expected initializing Ratko ID for design $id to update exactly one row, but updated count was $updated"
         }

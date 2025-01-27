@@ -275,7 +275,7 @@ constructor(
         val tnId = designDraft1.id
         assertVersionReferences(designBranch, tnId, designDraft = designDraft1)
 
-        val designOfficial = trackNumberService.publish(designBranch, designDraft1)
+        val designOfficial = trackNumberService.publish(designBranch, designDraft1).published
         assertVersionReferences(designBranch, tnId, designOfficial = designOfficial)
 
         val mainDraft = trackNumberService.mergeToMainBranch(designBranch, tnId)
@@ -291,8 +291,16 @@ constructor(
             designDraft = designDraft2,
         )
 
-        val mainOfficial = trackNumberService.publish(LayoutBranch.main, mainDraft)
-        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial, designDraft = designDraft2)
+        val mainPublication = trackNumberService.publish(LayoutBranch.main, mainDraft)
+        val mainOfficial = mainPublication.published
+        val designMergerDraft = mainPublication.completed!!.second
+        assertVersionReferences(
+            designBranch,
+            tnId,
+            mainOfficial = mainOfficial,
+            designOfficial = designOfficial,
+            designDraft = designMergerDraft,
+        )
     }
 
     @Test
@@ -305,7 +313,7 @@ constructor(
         val tnId = mainDraft1.id
         assertVersionReferences(designBranch, tnId, mainDraft = mainDraft1)
 
-        val mainOfficial1 = trackNumberService.publish(LayoutBranch.main, mainDraft1)
+        val mainOfficial1 = trackNumberService.publish(LayoutBranch.main, mainDraft1).published
         referenceLineService.getByTrackNumber(MainLayoutContext.draft, tnId).let { rl ->
             referenceLineService.publish(LayoutBranch.main, rl!!.version!!)
         }
@@ -315,7 +323,7 @@ constructor(
             trackNumberService.update(designBranch, tnId, trackNumberSaveRequest(trackNumber, "$trackNumber v2"))
         assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial1, designDraft = designDraft1)
 
-        val designOfficial = trackNumberService.publish(designBranch, designDraft1)
+        val designOfficial = trackNumberService.publish(designBranch, designDraft1).published
         assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial1, designOfficial = designOfficial)
 
         val mainDraft2 = trackNumberService.mergeToMainBranch(designBranch, tnId)
@@ -338,8 +346,17 @@ constructor(
             designDraft = designDraft2,
         )
 
-        val mainOfficial2 = trackNumberService.publish(LayoutBranch.main, mainDraft2)
-        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial2, designDraft = designDraft2)
+        val afterMainPublication2 = trackNumberService.publish(LayoutBranch.main, mainDraft2)
+        val mainOfficial2 = afterMainPublication2.published
+        val designMergerDraft = afterMainPublication2.completed!!.second
+
+        assertVersionReferences(
+            designBranch,
+            tnId,
+            mainOfficial = mainOfficial2,
+            designOfficial = designOfficial,
+            designDraft = designMergerDraft,
+        )
     }
 
     @Test
@@ -354,8 +371,8 @@ constructor(
             trackNumberService.saveDraft(designBranch, mainOfficialContext.fetch(trackNumber.id)!!)
         val firstReferenceLineDraft =
             referenceLineService.saveDraft(designBranch, mainOfficialContext.fetch(referenceLine.id)!!)
-        val designOfficialTrackNumber = trackNumberService.publish(designBranch, firstTrackNumberDraft)
-        val designOfficialReferenceLine = referenceLineService.publish(designBranch, firstReferenceLineDraft)
+        val designOfficialTrackNumber = trackNumberService.publish(designBranch, firstTrackNumberDraft).published
+        val designOfficialReferenceLine = referenceLineService.publish(designBranch, firstReferenceLineDraft).published
 
         // before cancelling the design change: design-official version is visible in draft context
         assertEquals(designOfficialTrackNumber, designDraftContext.fetchVersion(trackNumber.id))
@@ -473,6 +490,6 @@ constructor(
 
     private fun publishReferenceLine(id: IntId<ReferenceLine>): LayoutRowVersion<ReferenceLine> =
         referenceLineDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
-            referenceLineService.publish(LayoutBranch.main, version)
+            referenceLineService.publish(LayoutBranch.main, version).published
         }
 }

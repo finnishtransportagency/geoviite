@@ -33,7 +33,7 @@ import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublishedInBranch
 import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.PublishedInMain
-import fi.fta.geoviite.infra.publication.RatkoPlanItemId
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData

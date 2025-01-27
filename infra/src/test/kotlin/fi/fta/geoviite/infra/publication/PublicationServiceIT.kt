@@ -1661,7 +1661,7 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     assertEquals(DataType.STORED, draft.dataType)
     assertEquals(StoredAssetId(rowVersion), draft.contextData.layoutAssetId)
 
-    val published = service.publish(LayoutBranch.main, rowVersion)
+    val published = service.publish(LayoutBranch.main, rowVersion).published
     assertEquals(id, published.id)
     assertEquals(published, dao.fetchVersionOrThrow(MainLayoutContext.official, id))
     assertEquals(published, dao.fetchVersion(MainLayoutContext.draft, id))

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.integration.RatkoAssetType
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPush
@@ -232,7 +233,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             ?.also { pushError -> logger.daoAccess(AccessType.FETCH, RatkoPushError::class, pushError) }
     }
 
-    fun getLatestPushedPublicationMoment(): Instant {
+    fun getLatestPushedPublicationMoment(layoutBranch: LayoutBranch): Instant {
         // language=SQL
         val sql =
             """
@@ -241,12 +242,14 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             from integrations.ratko_push
             inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
             inner join publication.publication on publication.id = ratko_push_content.publication_id
-            where ratko_push.status = 'SUCCESSFUL'
+            where ratko_push.status = 'SUCCESSFUL' and publication.design_id is not distinct from :design_id
         """
                 .trimIndent()
 
         return jdbcTemplate
-            .queryOne(sql) { rs, _ -> rs.getInstant("latest_publication_time") }
+            .queryOne(sql, mapOf("design_id" to layoutBranch.designId?.intValue)) { rs, _ ->
+                rs.getInstant("latest_publication_time")
+            }
             .also { logger.daoAccess(AccessType.FETCH, "${Publication::class}.publicationTime") }
     }
 

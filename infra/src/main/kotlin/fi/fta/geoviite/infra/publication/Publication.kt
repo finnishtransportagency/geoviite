@@ -326,11 +326,37 @@ data class PublicationRequestIds(
             (switches.toSet() + other.switches).toList(),
             (kmPosts.toSet() + other.kmPosts).toList(),
         )
+
+    fun isEmpty() =
+        trackNumbers.isEmpty() &&
+            locationTracks.isEmpty() &&
+            referenceLines.isEmpty() &&
+            switches.isEmpty() &&
+            kmPosts.isEmpty()
 }
 
 data class PublicationRequest(val content: PublicationRequestIds, val message: FreeTextWithNewLines)
 
 data class PublicationResult(
+    val publicationId: IntId<Publication>?,
+    val trackNumbers: List<PublicationResultVersions<LayoutTrackNumber>>,
+    val referenceLines: List<PublicationResultVersions<ReferenceLine>>,
+    val locationTracks: List<PublicationResultVersions<LocationTrack>>,
+    val switches: List<PublicationResultVersions<LayoutSwitch>>,
+    val kmPosts: List<PublicationResultVersions<LayoutKmPost>>,
+) {
+    fun summarize() =
+        PublicationResultSummary(
+            publicationId,
+            trackNumbers = trackNumbers.size,
+            referenceLines = referenceLines.size,
+            locationTracks = locationTracks.size,
+            switches = switches.size,
+            kmPosts = kmPosts.size,
+        )
+}
+
+data class PublicationResultSummary(
     val publicationId: IntId<Publication>?,
     val trackNumbers: Int,
     val locationTracks: Int,
@@ -680,4 +706,7 @@ data class PreparedPublicationRequest(
     val cause: PublicationCause,
 )
 
-data class RatkoPlanItemId(val id: Int)
+data class PublicationResultVersions<T : LayoutAsset<T>>(
+    val published: LayoutRowVersion<T>,
+    val completed: Pair<DesignBranch, LayoutRowVersion<T>>?,
+)
