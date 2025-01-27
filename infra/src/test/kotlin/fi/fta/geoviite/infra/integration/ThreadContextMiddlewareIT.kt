@@ -61,6 +61,15 @@ class ThreadContextMiddlewareTest {
         val result =
             middlewareFunc.filter(clientRequest, mockExchangeFunction).doOnSubscribe {
                 ThreadContext.put(someOtherKey, someOtherValue)
+
+                // Overwrite the originalKey in reactive context to test that the value is also
+                // restored to the previous value outside the reactive context.
+                assertEquals(originalValue, ThreadContext.get(originalKey))
+
+                val modifiedValue = originalValue + "modified"
+                ThreadContext.put(originalKey, modifiedValue)
+
+                assertEquals(modifiedValue, ThreadContext.get(originalKey))
             }
 
         StepVerifier.create(result).expectNextCount(1).verifyComplete()
