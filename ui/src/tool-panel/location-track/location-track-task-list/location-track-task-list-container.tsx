@@ -105,7 +105,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
             locationTrackId,
         );
         const switchIds = relinkingResults
-            .filter((r) => r.validationIssues.length > 0 || r.successfulSuggestion === null)
+            .filter((r) => r.validationIssues.length > 0 || r.successfulSuggestion === undefined)
             .map((s) => s.id);
         const switches = await getSwitches(switchIds, draftLayoutContext(layoutContext));
 

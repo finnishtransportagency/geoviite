@@ -1,6 +1,9 @@
 import { TimeStamp } from 'common/common-model';
 import { expectDefined } from 'utils/type-utils';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+type EmptyObject = {};
+
 export const first = <T>(arr: readonly T[]) => arr[0];
 export const last = <T>(arr: readonly T[]) => arr[arr.length - 1];
 
@@ -68,7 +71,10 @@ export function negComparator<T>(comparator: (v1: T, v2: T) => number): (v1: T, 
     return (v1: T, v2: T) => comparator(v1, v2) * -1;
 }
 
-export function fieldComparator<T, S>(getter: (obj: T) => S): (v1: T, v2: T) => number {
+export function fieldComparator<
+    T extends EmptyObject | undefined,
+    S extends EmptyObject | undefined,
+>(getter: (obj: T) => S): (v1: T, v2: T) => number {
     return (v1: T, v2: T) => compareByField(v1, v2, getter);
 }
 
@@ -99,9 +105,10 @@ export function timeStampComparator<T>(
     };
 }
 
-export function multiFieldComparator<T extends unknown[], S>(
-    ...getters: { [K in keyof T]: (obj: T[K]) => S }
-): (v1: T[number], v2: T[number]) => number {
+export function multiFieldComparator<
+    T extends (EmptyObject | undefined)[],
+    S extends EmptyObject | undefined,
+>(...getters: { [K in keyof T]: (obj: T[K]) => S }): (v1: T[number], v2: T[number]) => number {
     return (v1: T[number], v2: T[number]) => {
         return getters.reduce((previousComparisonResult, nextGetter) => {
             return previousComparisonResult !== 0
@@ -130,24 +137,34 @@ export function arraysEqual<T>(arr1: T[], arr2: T[]) {
     return JSON.stringify(arr1) === JSON.stringify(arr2);
 }
 
-export const compareByFields = <T, S>(s1: T, s2: T, ...getters: ((s: T) => S)[]) =>
+export const compareByFields = <
+    T extends EmptyObject | undefined,
+    S extends EmptyObject | undefined,
+>(
+    s1: T,
+    s2: T,
+    ...getters: ((s: T) => S)[]
+) =>
     getters.reduce(
         (previousValue, getter) =>
             previousValue === 0 ? compareByField(s1, s2, getter) : previousValue,
         0,
     );
 
-export function compareByField<T, S>(v1: T, v2: T, getter: (obj: T) => S): number {
+export function compareByField<
+    T extends EmptyObject | undefined,
+    S extends EmptyObject | undefined,
+>(v1: T, v2: T, getter: (obj: T) => S): number {
     const f1 = getter(v1);
     const f2 = getter(v2);
 
     return compare(f1, f2);
 }
 
-export function compare<T>(f1: T, f2: T): number {
+export function compare<T extends EmptyObject | undefined>(f1: T, f2: T): number {
     if (f1 === undefined && f2 === undefined) return 0;
-    else if (f1 === undefined || f1 === null) return -1;
-    else if (f2 === undefined || f2 === null) return 1;
+    else if (f1 === undefined) return -1;
+    else if (f2 === undefined) return 1;
     else if (f1 < f2) return -1;
     else if (f2 < f1) return 1;
     else return 0;

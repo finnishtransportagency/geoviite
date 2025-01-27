@@ -323,7 +323,7 @@ export type LayoutSwitchSaveRequest = {
 
 export type SwitchRelinkingValidationResult = {
     id: LayoutSwitchId;
-    successfulSuggestion: SwitchRelinkingSuggestion;
+    successfulSuggestion?: SwitchRelinkingSuggestion;
     validationIssues: LayoutValidationIssue[];
 };
 
