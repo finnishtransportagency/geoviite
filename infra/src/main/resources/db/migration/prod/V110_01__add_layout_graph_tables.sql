@@ -1,10 +1,10 @@
 create or replace function layout.calculate_node_hash(
   switch_in_id int,
   switch_in_joint_number int,
-  switch_in_joint_type common.switch_joint_type,
+  switch_in_joint_role common.switch_joint_role,
   switch_out_id int,
   switch_out_joint_number int,
-  switch_out_joint_type common.switch_joint_type,
+  switch_out_joint_role common.switch_joint_role,
   start_track int,
   end_track int
 ) returns uuid
@@ -19,10 +19,10 @@ select
         'SWITCH',
         switch_in_id,
         switch_in_joint_number,
-        switch_in_joint_type,
+        switch_in_joint_role,
         switch_out_id,
         switch_out_joint_number,
-        switch_out_joint_type
+        switch_out_joint_role
         )::text
       )::uuid
     when start_track is not null then
@@ -52,20 +52,20 @@ create table layout.node
 --     layout.calculate_node_hash(
 --         switch_in_id,
 --         switch_in_joint_number,
---         switch_in_joint_type,
+--         switch_in_joint_role,
 --         switch_out_id,
 --         switch_out_joint_number,
---         switch_out_joint_type,
+--         switch_out_joint_role,
 --         starting_location_track_id,
 --         ending_location_track_id
 --     )) stored,
   -- This cannot be an actual foreign key reference, as tracks are sometimes deleted and this table is immutable, like version tables
   switch_in_id               int                      null,
   switch_in_joint_number     int                      null,
-  switch_in_joint_type       common.switch_joint_type null,
+  switch_in_joint_role       common.switch_joint_role null,
   switch_out_id              int                      null,
   switch_out_joint_number    int                      null,
-  switch_out_joint_type      common.switch_joint_type null,
+  switch_out_joint_role      common.switch_joint_role null,
   starting_location_track_id int                      null unique,
   ending_location_track_id   int                      null unique,
   -- Unique constraint for enforcing type through foreign key references

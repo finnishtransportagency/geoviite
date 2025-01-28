@@ -85,10 +85,10 @@ class LayoutAlignmentDao(
               node.type,
               node.switch_in_id,
               node.switch_in_joint_number,
-              node.switch_in_joint_type,
+              node.switch_in_joint_role,
               node.switch_out_id,
               node.switch_out_joint_number,
-              node.switch_out_joint_type,
+              node.switch_out_joint_role,
               node.starting_location_track_id,
               node.ending_location_track_id
             from layout.node
@@ -109,7 +109,7 @@ class LayoutAlignmentDao(
                                 rs.getIntIdOrNull<LayoutSwitch>("switch_in_id")?.let { id ->
                                     SwitchLink(
                                         id,
-                                        rs.getEnum("switch_in_joint_type"),
+                                        rs.getEnum("switch_in_joint_role"),
                                         rs.getJointNumber("switch_in_joint_number"),
                                     )
                                 },
@@ -117,7 +117,7 @@ class LayoutAlignmentDao(
                                 rs.getIntIdOrNull<LayoutSwitch>("switch_out_id")?.let { id ->
                                     SwitchLink(
                                         id,
-                                        rs.getEnum("switch_out_joint_type"),
+                                        rs.getEnum("switch_out_joint_role"),
                                         rs.getJointNumber("switch_out_joint_number"),
                                     )
                                 },
@@ -138,10 +138,10 @@ class LayoutAlignmentDao(
             select layout.get_or_insert_node(
                 :switch_in_id,
                 :switch_in_joint_number,
-                :switch_in_joint_type,
+                :switch_in_joint_role,
                 :switch_out_id,
                 :switch_out_joint_number,
-                :switch_out_joint_type,
+                :switch_out_joint_role,
                 :start_track_id,
                 :end_track_id
             )
@@ -150,10 +150,10 @@ class LayoutAlignmentDao(
             mapOf(
                 "switch_in_id" to content.switchIn?.id?.intValue,
                 "switch_in_joint_number" to content.switchIn?.jointNumber?.intValue,
-                "switch_in_joint_type" to content.switchIn?.jointType?.name,
+                "switch_in_joint_role" to content.switchIn?.jointRole?.name,
                 "switch_out_id" to content.switchOut?.id?.intValue,
                 "switch_out_joint_number" to content.switchOut?.jointNumber?.intValue,
-                "switch_out_joint_type" to content.switchOut?.jointType?.name,
+                "switch_out_joint_role" to content.switchOut?.jointRole?.name,
                 "start_track_id" to content.startingTrackId?.intValue,
                 "end_track_id" to content.endingTrack?.intValue,
             )

@@ -1,10 +1,10 @@
 create or replace function layout.get_or_insert_node(
   switch_in int,
   switch_in_joint_number int,
-  switch_in_joint_type int,
+  switch_in_joint_role int,
   switch_out int,
   switch_out_joint_number int,
-  switch_out_joint_type int,
+  switch_out_joint_role int,
   start_track int,
   end_track int
 ) returns int as
@@ -14,10 +14,10 @@ declare
     select layout.calculate_node_hash(
         switch_in,
         switch_in_joint_number,
-        switch_in_joint_type,
+        switch_in_joint_role,
         switch_out,
         switch_out_joint_number,
-        switch_out_joint_type,
+        switch_out_joint_role,
         start_track,
         end_track
     )
@@ -31,10 +31,10 @@ begin
       key,
       switch_in_id,
       switch_in_joint_number,
-      switch_in_joint_type,
+      switch_in_joint_role,
       switch_out_id,
       switch_out_joint_number,
-      switch_out_joint_type,
+      switch_out_joint_role,
       starting_location_track_id,
       ending_location_track_id
     )
@@ -43,10 +43,10 @@ begin
         key,
         switch_in,
         switch_in_joint_number,
-        switch_in_joint_type,
+        switch_in_joint_role,
         switch_out,
         switch_out_joint_number,
-        switch_out_joint_type,
+        switch_out_joint_role,
         start_track,
         end_track
       )

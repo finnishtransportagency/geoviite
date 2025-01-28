@@ -113,8 +113,8 @@ sealed class LocationTrackGeometry : IAlignment {
      * the logical node of the topology.
      */
     private fun pickEndJoint(trackInnerJoint: SwitchLink?, trackOuterJoint: SwitchLink?): SwitchLink? =
-        trackInnerJoint?.takeIf { j -> j.jointType == SwitchJointType.MAIN }
-            ?: trackOuterJoint?.takeIf { j -> j.jointType == SwitchJointType.MAIN }
+        trackInnerJoint?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
+            ?: trackOuterJoint?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
             ?: trackInnerJoint
             ?: trackOuterJoint
 }
@@ -335,4 +335,4 @@ data class LayoutNodeSwitch(override val switchIn: SwitchLink?, override val swi
     }
 }
 
-data class SwitchLink(val id: IntId<LayoutSwitch>, val jointType: SwitchJointType, val jointNumber: JointNumber)
+data class SwitchLink(val id: IntId<LayoutSwitch>, val jointRole: SwitchJointRole, val jointNumber: JointNumber)

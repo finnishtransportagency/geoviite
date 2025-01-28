@@ -137,10 +137,10 @@ create temporary table node_point_version_temp as (
     node_point_enriched as (
       select
         node.*,
-        joint_in.type as switch_in_joint_type,
-        joint_out.type as switch_out_joint_type
+        joint_in.role as switch_in_joint_role,
+        joint_out.role as switch_out_joint_role
         from node_point node
-          -- Join draft version if (and only if) the locationtrack is a draft
+          -- Join draft version if (and only if) the location track is a draft
           left join switch_version_temp switch_in_d
                     on switch_in_d.id = node.switch_in_id
                       and node.location_track_layout_context_id = 'main_draft'
@@ -153,7 +153,7 @@ create temporary table node_point_version_temp as (
                       and switch_out_d.layout_context_id = 'main_draft'
                       and switch_out_d.start_time <= node.location_track_change_time
                       and (switch_out_d.end_time is null or switch_out_d.end_time > node.location_track_change_time)
-          -- Join official version regardless of the locationtrack version
+          -- Join official version regardless of the location track version
           left join switch_version_temp switch_in_o
                     on switch_in_o.id = node.switch_in_id
                       and switch_in_o.layout_context_id = 'main_official'
@@ -190,10 +190,10 @@ create temporary table node_point_version_temp as (
         -- There can only be one or null of these per node
         (array_agg(distinct switch_in_id) filter (where switch_in_id is not null))[1] as switch_in_id,
         (array_agg(distinct switch_in_joint_number) filter (where switch_in_joint_number is not null))[1] as switch_in_joint_number,
-        (array_agg(distinct switch_in_joint_type) filter (where switch_in_joint_type is not null))[1] as switch_in_joint_type,
+        (array_agg(distinct switch_in_joint_role) filter (where switch_in_joint_role is not null))[1] as switch_in_joint_role,
         (array_agg(distinct switch_out_id) filter (where switch_out_id is not null))[1] as switch_out_id,
         (array_agg(distinct switch_out_joint_number) filter (where switch_out_joint_number is not null))[1] as switch_out_joint_number,
-        (array_agg(distinct switch_out_joint_type) filter (where switch_out_joint_type is not null))[1] as switch_out_joint_type,
+        (array_agg(distinct switch_out_joint_role) filter (where switch_out_joint_role is not null))[1] as switch_out_joint_role,
         (array_agg(distinct start_track_link) filter (where start_track_link is not null))[1] as start_track_link,
         (array_agg(distinct end_track_link) filter (where end_track_link is not null))[1] as end_track_link,
         -- The locations should all be approximately the same, but there might be minor variation due to floating point errors
@@ -212,10 +212,10 @@ create temporary table node_point_version_temp as (
       node_index,
       switch_in_id,
       switch_in_joint_number,
-      switch_in_joint_type,
+      switch_in_joint_role,
       switch_out_id,
       switch_out_joint_number,
-      switch_out_joint_type,
+      switch_out_joint_role,
       case when switch_in_id is null and switch_out_id is null then start_track_link end as start_track_link,
       case when switch_in_id is null and switch_out_id is null then end_track_link end as end_track_link,
       start_segment_index,
@@ -223,10 +223,10 @@ create temporary table node_point_version_temp as (
       layout.calculate_node_hash(
           switch_in_id,
           switch_in_joint_number,
-          switch_in_joint_type,
+          switch_in_joint_role,
           switch_out_id,
           switch_out_joint_number,
-          switch_out_joint_type,
+          switch_out_joint_role,
           start_track_link,
           end_track_link
       ) as node_hash
@@ -238,20 +238,20 @@ insert into layout.node (
   hash,
   switch_in_id,
   switch_in_joint_number,
-  switch_in_joint_type,
+  switch_in_joint_role,
   switch_out_id,
   switch_out_joint_number,
-  switch_out_joint_type,
+  switch_out_joint_role,
   starting_location_track_id,
   ending_location_track_id
 ) select distinct on (node_hash)
   node_hash as hash,
   switch_in_id,
   switch_in_joint_number,
-  switch_in_joint_type,
+  switch_in_joint_role,
   switch_out_id,
   switch_out_joint_number,
-  switch_out_joint_type,
+  switch_out_joint_role,
   start_track_link,
   end_track_link
   from node_point_version_temp

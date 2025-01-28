@@ -44,12 +44,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
-import kotlin.collections.get
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 data class TrackNumberChange(
     val trackNumberId: IntId<LayoutTrackNumber>,
@@ -302,14 +299,13 @@ class CalculatedChangesService(
         fetchSwitchById: (id: IntId<LayoutSwitch>) -> LayoutSwitch?,
         getGeocodingContext: (id: IntId<LayoutTrackNumber>) -> GeocodingContext?,
     ): List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>> {
-        val alignment = alignmentDao.fetch(requireNotNull(locationTrack.alignmentVersion))
+        val geometry = alignmentDao.get(locationTrack.versionOrThrow)
         val trackNumberId = locationTrack.trackNumberId
         val geocodingContext = getGeocodingContext(trackNumberId)
 
         return geocodingContext?.let { context ->
             getSwitchJointChanges(
-                locationTrack = locationTrack,
-                alignment = alignment,
+                geometry = geometry,
                 geocodingContext = context,
                 fetchSwitch = fetchSwitchById,
                 fetchStructure = switchLibraryService::getSwitchStructure,
