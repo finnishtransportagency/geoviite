@@ -33,13 +33,16 @@ import kotlin.math.min
 
 const val ALIGNMENT_LINKING_SNAP = 0.001
 
+fun cutLocationTrackGeometry(trackId: IntId<LocationTrack>, geometry: LocationTrackGeometry, mRange: Range<Double>) =
+    TmpLocationTrackGeometry(slice(trackId, geometry, mRange, ALIGNMENT_LINKING_SNAP))
+
 fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): LayoutAlignment {
     val cutSegments = slice(alignment, mRange, ALIGNMENT_LINKING_SNAP)
     val newSegments = removeSwitches(cutSegments, getSwitchIdsOutside(alignment, mRange))
     return tryCreateLinkedAlignment(alignment, newSegments)
 }
 
-fun replaceLayoutGeometry(
+fun replaceLocationTrackGeometry(
     trackId: IntId<LocationTrack>,
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<Double>,
@@ -53,7 +56,7 @@ fun replaceLayoutGeometry(
 ): LayoutAlignment =
     tryCreateLinkedAlignment(layoutAlignment, createAlignmentGeometry(geometryAlignment, geometryMRange))
 
-fun linkLayoutGeometrySection(
+fun linkLocationTrackGeometrySection(
     trackId: IntId<LocationTrack>,
     layoutGeometry: LocationTrackGeometry,
     layoutMRange: Range<Double>,
