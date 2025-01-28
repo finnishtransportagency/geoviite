@@ -45,7 +45,31 @@ import {
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
 
-function deletedSwitchFeature(location: Point, isLarge: boolean): Feature<OlPoint> {
+const updateShownSwitches = (
+    switchIds: LayoutSwitchId[],
+    onViewContentChanged: (items: OptionalShownItems) => void,
+): void => {
+    const compare = switchIds.sort().join();
+
+    if (compare !== shownSwitchesCompare) {
+        shownSwitchesCompare = compare;
+        onViewContentChanged({ switches: switchIds });
+    }
+};
+
+const updateShownKmPosts = (
+    kmPostIds: LayoutKmPostId[],
+    onViewContentChanged: (items: OptionalShownItems) => void,
+): void => {
+    const compare = kmPostIds.sort().join();
+
+    if (compare !== shownKmPostsCompare) {
+        shownKmPostsCompare = compare;
+        onViewContentChanged({ kmPosts: kmPostIds });
+    }
+};
+
+const deletedSwitchFeature = (location: Point, isLarge: boolean): Feature<OlPoint> => {
     const deletedIconFeature = new Feature({
         geometry: new OlPoint(pointToCoords(location)),
     });
@@ -55,22 +79,94 @@ function deletedSwitchFeature(location: Point, isLarge: boolean): Feature<OlPoin
         }),
     );
     return deletedIconFeature;
-}
+};
 
-function createDeletedSwitchIconFeature(
+const createFeatures = (
+    switches: LayoutSwitch[],
+    kmPosts: LayoutKmPost[],
+    switchStructures: SwitchStructure[],
+    resolution: number,
+) => {
+    const swFeatures = switches
+        .flatMap((s) => {
+            const structure = switchStructures.find((str) => str.id === s.switchStructureId);
+            return structure ? createDeletedSwitchIconFeature(s, structure, resolution) : undefined;
+        })
+        .filter(filterNotEmpty);
+    const kpFeatures = kmPosts
+        .flatMap((kmPost) => createKmPostBadgeFeature(kmPost, 'DELETED'))
+        .filter(filterNotEmpty);
+
+    return [...swFeatures, ...kpFeatures];
+};
+
+const createDeletedSwitchIconFeature = (
     s: LayoutSwitch,
     structure: SwitchStructure,
     resolution: number,
-): Feature<OlPoint> | undefined {
+): Feature<OlPoint> | undefined => {
     const presentationJointNumber = structure?.presentationJointNumber;
     const presentationJoint = s.joints.find((joint) => joint.number === presentationJointNumber);
 
     return presentationJoint
         ? deletedSwitchFeature(presentationJoint.location, resolution <= SWITCH_LARGE_SYMBOLS)
         : undefined;
-}
+};
+
+const onLoadingChange = (
+    switches: LayoutSwitch[],
+    kmPosts: LayoutKmPost[],
+    loading: boolean,
+    onViewContentChanged: (items: OptionalShownItems) => void,
+    onLoadingData: (loading: boolean) => void,
+) => {
+    if (!loading) {
+        updateShownKmPosts(
+            kmPosts.map((kmPost) => kmPost.id),
+            onViewContentChanged,
+        );
+        updateShownSwitches(
+            switches.map((sw) => sw.id),
+            onViewContentChanged,
+        );
+    }
+    onLoadingData(loading);
+};
 
 const layerName: MapLayerName = 'preview-deleted-point-icon-features-layer';
+
+const getKmPostsTiledPromise = (
+    mapTiles: MapTile[],
+    layerLayoutContext: LayoutContext,
+    changeTimes: ChangeTimes,
+    deletedKmPostCandidates: KmPostPublicationCandidate[],
+): Promise<LayoutKmPost[]> =>
+    Promise.all(
+        mapTiles.map((t) =>
+            getKmPostsByTile(layerLayoutContext, changeTimes.layoutKmPost, t.area, 0),
+        ),
+    ).then((kmPosts) => {
+        return kmPosts
+            .flat()
+            .filter(filterUniqueById((s) => s.id))
+            .filter((kp) => deletedKmPostCandidates.some((candidate) => candidate.id === kp.id));
+    });
+
+const getSwitchesTiledPromise = (
+    mapTiles: MapTile[],
+    changeTimes: ChangeTimes,
+    layerLayoutContext: LayoutContext,
+    deletedSwitchCandidates: SwitchPublicationCandidate[],
+): Promise<LayoutSwitch[]> =>
+    Promise.all(
+        mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, layerLayoutContext)),
+    ).then((switches) => {
+        return switches
+            .flat()
+            .filter(filterUniqueById((s) => s.id))
+            .filter((s) => deletedSwitchCandidates.some((candidate) => candidate.id === s.id));
+    });
+
 export function createDeletedPreviewPointIconFeaturesLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<Feature<LineString | OlPoint | Rectangle>> | undefined,
@@ -89,60 +185,30 @@ export function createDeletedPreviewPointIconFeaturesLayer(
             ? officialLayoutContext(layoutContext)
             : draftMainLayoutContext();
 
-    function updateShownSwitches(switchIds: LayoutSwitchId[]) {
-        const compare = switchIds.sort().join();
-
-        if (compare !== shownSwitchesCompare) {
-            shownSwitchesCompare = compare;
-            onViewContentChanged({ switches: switchIds });
-        }
-    }
-
-    function updateShownKmPosts(kmPostIds: LayoutKmPostId[]) {
-        const compare = kmPostIds.sort().join();
-
-        if (compare !== shownKmPostsCompare) {
-            shownKmPostsCompare = compare;
-            onViewContentChanged({ kmPosts: kmPostIds });
-        }
-    }
-
     const deletedKmPostCandidates = publicationCandidates.filter(
         (c) => c.type === 'KM_POST' && c.operation === 'DELETE',
-    );
+    ) as KmPostPublicationCandidate[];
     const deletedSwitchCandidates = publicationCandidates.filter(
         (c) => c.type === 'SWITCH' && c.operation === 'DELETE',
-    );
+    ) as SwitchPublicationCandidate[];
 
     const deletedSwitchesPromise =
         resolution <= SWITCH_SHOW && deletedSwitchCandidates.length > 0
-            ? Promise.all(
-                  mapTiles.map((t) =>
-                      getSwitchesByTile(changeTimes.layoutSwitch, t, layerLayoutContext),
-                  ),
-              ).then((switches) => {
-                  return switches
-                      .flat()
-                      .filter(filterUniqueById((s) => s.id))
-                      .filter((s) =>
-                          deletedSwitchCandidates.some((candidate) => candidate.id === s.id),
-                      );
-              })
+            ? getSwitchesTiledPromise(
+                  mapTiles,
+                  changeTimes,
+                  layerLayoutContext,
+                  deletedSwitchCandidates,
+              )
             : Promise.resolve([]);
     const kmPostPromise =
         resolution < SWITCH_SHOW && deletedKmPostCandidates.length > 0
-            ? Promise.all(
-                  mapTiles.map((t) =>
-                      getKmPostsByTile(layerLayoutContext, changeTimes.layoutKmPost, t.area, 0),
-                  ),
-              ).then((kmPosts) => {
-                  return kmPosts
-                      .flat()
-                      .filter(filterUniqueById((s) => s.id))
-                      .filter((kp) =>
-                          deletedKmPostCandidates.some((candidate) => candidate.id === kp.id),
-                      );
-              })
+            ? getKmPostsTiledPromise(
+                  mapTiles,
+                  layerLayoutContext,
+                  changeTimes,
+                  deletedKmPostCandidates,
+              )
             : Promise.resolve([]);
 
     const allPromises = Promise.all([
@@ -155,46 +221,20 @@ export function createDeletedPreviewPointIconFeaturesLayer(
         switchStructures,
     }));
 
-    const createFeatures = (alignments: {
-        switches: LayoutSwitch[];
-        kmPosts: LayoutKmPost[];
-        switchStructures: SwitchStructure[];
-    }) => {
-        const swFeatures = alignments.switches
-            .flatMap((s) => {
-                const structure = alignments.switchStructures.find(
-                    (str) => str.id === s.switchStructureId,
-                );
-                return structure
-                    ? createDeletedSwitchIconFeature(s, structure, resolution)
-                    : undefined;
-            })
-            .filter(filterNotEmpty);
-        const kpFeatures = alignments.kmPosts
-            .flatMap((kmPost) => createKmPostBadgeFeature(kmPost, 'DELETED'))
-            .filter(filterNotEmpty);
-
-        return [...swFeatures, ...kpFeatures];
-    };
-
-    const onLoadingChange = (
-        loading: boolean,
-        data:
-            | {
-                  switches: LayoutSwitch[];
-                  kmPosts: LayoutKmPost[];
-                  switchStructures: SwitchStructure[];
-              }
-            | undefined,
-    ) => {
-        if (!loading) {
-            updateShownKmPosts(data?.kmPosts?.map((kmPost) => kmPost.id) ?? []);
-            updateShownSwitches(data?.switches?.map((sw) => sw.id) ?? []);
-        }
-        onLoadingData(loading);
-    };
-
-    loadLayerData(source, isLatest, onLoadingChange, allPromises, createFeatures);
+    loadLayerData(
+        source,
+        isLatest,
+        (loading, data) =>
+            onLoadingChange(
+                data?.switches ?? [],
+                data?.kmPosts ?? [],
+                loading,
+                onViewContentChanged,
+                onLoadingData,
+            ),
+        allPromises,
+        (data) => createFeatures(data.switches, data.kmPosts, data.switchStructures, resolution),
+    );
 
     return {
         name: layerName,
@@ -214,8 +254,8 @@ export function createDeletedPreviewPointIconFeaturesLayer(
             ),
         }),
         onRemove: () => {
-            updateShownKmPosts([]);
-            updateShownSwitches([]);
+            updateShownKmPosts([], onViewContentChanged);
+            updateShownSwitches([], onViewContentChanged);
         },
     };
 }

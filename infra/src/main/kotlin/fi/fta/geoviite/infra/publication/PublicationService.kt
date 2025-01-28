@@ -15,7 +15,6 @@ import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.IndirectChanges
-import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.split.SplitService
@@ -23,7 +22,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
@@ -86,25 +84,10 @@ constructor(
         )
     }
 
-    fun getChangedGeometryRanges(segments: List<LayoutSegment>, segments2: List<LayoutSegment>): List<Range<Double>> {
-        val added = segments.filter { s -> segments2.none { s2 -> s.geometry.id == s2.geometry.id } }
-        val removed = segments2.filter { s -> segments.none { s2 -> s.geometry.id == s2.geometry.id } }
-        val ranges = (added + removed).map { s -> Range(s.startM, s.endM) }
-
-        return ranges.fold(listOf<Range<Double>>()) { list, r ->
-            val previous = list.lastOrNull()
-            if (previous?.overlaps(r) == true) {
-                list.take(list.size - 1) + previous.copy(max = r.max)
-            } else {
-                list + r
-            }
-        }
-    }
-
     fun fetchChangedLocationTrackGeometryRanges(
         id: IntId<LocationTrack>,
         transition: LayoutContextTransition,
-    ): List<Range<Double>> {
+    ): GeometryChangeRanges {
         val trackWithAlignment1 = locationTrackService.getWithAlignment(transition.candidateContext, id)
         val trackWithAlignment2 = locationTrackService.getWithAlignment(transition.baseContext, id)
         return getChangedGeometryRanges(
@@ -116,7 +99,7 @@ constructor(
     fun fetchChangedReferenceLineGeometryRanges(
         id: IntId<ReferenceLine>,
         transition: LayoutContextTransition,
-    ): List<Range<Double>> {
+    ): GeometryChangeRanges {
         val lineWithAlignment1 = referenceLineService.getWithAlignment(transition.candidateContext, id)
         val lineWithAlignment2 = referenceLineService.getWithAlignment(transition.baseContext, id)
         return getChangedGeometryRanges(

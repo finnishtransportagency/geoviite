@@ -114,6 +114,11 @@ export type WithLocation = {
     location?: Point;
 };
 
+export type GeometryChangeRanges = {
+    added: Range<number>[];
+    removed: Range<number>[];
+};
+
 export type TrackNumberPublicationCandidate = BasePublicationCandidate &
     WithBoundingBox & {
         id: LayoutTrackNumberId;
@@ -128,7 +133,7 @@ export type LocationTrackPublicationCandidate = BasePublicationCandidate &
         trackNumberId: LayoutTrackNumberId;
         name: string;
         duplicateOf: LocationTrackId;
-        geometryChanges: Range<number>[];
+        geometryChanges?: GeometryChangeRanges;
     };
 
 export type ReferenceLinePublicationCandidate = BasePublicationCandidate &
@@ -139,7 +144,7 @@ export type ReferenceLinePublicationCandidate = BasePublicationCandidate &
         name: TrackNumber;
         operation?: Operation;
         boundingBox?: BoundingBox;
-        geometryChanges: Range<number>[];
+        geometryChanges?: GeometryChangeRanges;
     };
 
 export type SwitchPublicationCandidate = BasePublicationCandidate &
@@ -196,7 +201,6 @@ type PublishedInMain = {
 type PublishedInDesign = {
     branch: DesignBranch;
     designBranch: LayoutDesignId;
-    designVersion: number;
 };
 
 export type PublishedInBranch = PublishedInMain | PublishedInDesign;

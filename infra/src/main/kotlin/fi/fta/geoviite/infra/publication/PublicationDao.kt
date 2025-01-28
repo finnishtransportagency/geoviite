@@ -135,7 +135,7 @@ class PublicationDao(
                     operation = rs.getEnum<Operation>("operation"),
                     cancelled = rs.getBoolean("cancelled"),
                     boundingBox = rs.getBboxOrNull("bounding_box"),
-                    geometryChanges = emptyList(),
+                    geometryChanges = null,
                 )
             }
         logger.daoAccess(
@@ -218,7 +218,7 @@ class PublicationDao(
                     boundingBox = rs.getBboxOrNull("bounding_box"),
                     cancelled = rs.getBoolean("cancelled"),
                     publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
-                    geometryChanges = listOf(),
+                    geometryChanges = null,
                 )
             }
         logger.daoAccess(

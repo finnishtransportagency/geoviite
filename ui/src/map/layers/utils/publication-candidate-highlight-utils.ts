@@ -281,15 +281,17 @@ export const createLocationTrackCandidateFeatures = (
     metersPerPixel: number,
 ): Feature<LineString>[] =>
     candidates.flatMap((candidate) =>
-        splitByRanges(candidate.alignment.points, candidate.publishCandidate.geometryChanges).map(
-            (pointRange) =>
-                createAlignmentLineStringFeature(
-                    pointRange,
-                    candidate.alignment.points,
-                    candidate.publishCandidate,
-                    metersPerPixel,
-                    DraftChangeType.LOCATION_TRACK,
-                ),
+        splitByRanges(
+            candidate.alignment.points,
+            candidate.publishCandidate.geometryChanges?.added ?? [],
+        ).map((pointRange) =>
+            createAlignmentLineStringFeature(
+                pointRange,
+                candidate.alignment.points,
+                candidate.publishCandidate,
+                metersPerPixel,
+                DraftChangeType.LOCATION_TRACK,
+            ),
         ),
     );
 
@@ -298,15 +300,17 @@ export const createReferenceLineCandidateFeatures = (
     metersPerPixel: number,
 ): Feature<LineString>[] =>
     candidates.flatMap((candidate) =>
-        splitByRanges(candidate.alignment.points, candidate.publishCandidate.geometryChanges).map(
-            (pointRange) =>
-                createAlignmentLineStringFeature(
-                    pointRange,
-                    candidate.alignment.points,
-                    candidate.publishCandidate,
-                    metersPerPixel,
-                    DraftChangeType.REFERENCE_LINE,
-                ),
+        splitByRanges(
+            candidate.alignment.points,
+            candidate.publishCandidate.geometryChanges?.added ?? [],
+        ).map((pointRange) =>
+            createAlignmentLineStringFeature(
+                pointRange,
+                candidate.alignment.points,
+                candidate.publishCandidate,
+                metersPerPixel,
+                DraftChangeType.REFERENCE_LINE,
+            ),
         ),
     );
 

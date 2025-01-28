@@ -41,6 +41,8 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 
+data class GeometryChangeRanges(val added: List<Range<Double>>, val removed: List<Range<Double>>)
+
 fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId): String? {
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(timeZone)
 
@@ -533,3 +535,26 @@ fun findJointPoint(
         }
     }
 }
+
+fun getChangedGeometryRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>): GeometryChangeRanges {
+    val added =
+        newSegments
+            .filter { s -> oldSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
+            .map { s -> Range(s.startM, s.endM) }
+    val removed =
+        oldSegments
+            .filter { s -> newSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
+            .map { s -> Range(s.startM, s.endM) }
+
+    return GeometryChangeRanges(added = combineOverlappingRanges(added), removed = combineOverlappingRanges(removed))
+}
+
+fun <T : Comparable<T>> combineOverlappingRanges(ranges: List<Range<T>>) =
+    ranges.fold(emptyList<Range<T>>()) { list, r ->
+        val previous = list.lastOrNull()
+        if (previous?.overlaps(r) == true) {
+            list.take(list.size - 1) + previous.copy(max = r.max)
+        } else {
+            list + r
+        }
+    }
