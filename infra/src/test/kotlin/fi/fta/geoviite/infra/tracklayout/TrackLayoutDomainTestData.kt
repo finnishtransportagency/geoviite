@@ -936,7 +936,7 @@ fun switchFromDbStructure(
 private var switchNameCounter = 0
 
 fun switch(
-    structureId: IntId<SwitchStructure> = switchStructureYV60_300_1_9().id as IntId,
+    structureId: IntId<SwitchStructure> = switchStructureYV60_300_1_9().id,
     joints: List<LayoutSwitchJoint> = listOf(),
     name: String = "TV${switchNameCounter++}",
     stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
@@ -980,8 +980,12 @@ fun switchJoint(seed: Int) =
         locationAccuracy = getSomeNullableValue<LocationAccuracy>(seed),
     )
 
-fun switchJoint(number: Int, type: SwitchJointRole, location: Point) =
-    LayoutSwitchJoint(number = JointNumber(number), role = type, location = location, locationAccuracy = null)
+fun switchJoint(
+    number: Int,
+    location: Point,
+    type: SwitchJointRole = SwitchJointRole.of(switchStructureYV60_300_1_9(), JointNumber(number)),
+    accuracy: LocationAccuracy? = null,
+) = LayoutSwitchJoint(number = JointNumber(number), role = type, location = location, locationAccuracy = accuracy)
 
 fun kmPost(
     trackNumberId: IntId<LayoutTrackNumber>?,

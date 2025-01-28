@@ -63,7 +63,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -1508,8 +1507,7 @@ constructor(
         val designDraft = testDBService.testContext(design, PublicationState.DRAFT)
 
         val trackNumber = establishedTrackNumber("1.1.1.1.1")
-        val switch =
-            designDraft.insert(switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(1.0, 0.0), null)))).id
+        val switch = designDraft.insert(switch(joints = listOf(switchJoint(1, Point(1.0, 0.0))))).id
         val locationTrack =
             designDraft
                 .insert(

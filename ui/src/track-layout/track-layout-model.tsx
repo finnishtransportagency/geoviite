@@ -272,9 +272,12 @@ export type LayoutSwitch = {
     draftOid?: Oid;
 } & LayoutAssetFields;
 
+export type SwitchJointRole = 'MAIN' | 'CONNECTION' | 'MATH';
+
 export type LayoutSwitchJoint = {
     number: JointNumber;
     location: Point;
+    role: SwitchJointRole;
     locationAccuracy?: LocationAccuracy;
 };
 
