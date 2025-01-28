@@ -31,6 +31,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
@@ -48,8 +49,15 @@ fun toTrackLayout(
     pointListStepLength: Int,
     includeGeometryData: Boolean,
     planToGkTransformation: ToGkFinTransformation,
+    getStructure: (IntId<SwitchStructure>) -> SwitchStructure,
 ): GeometryPlanLayout {
-    val switches = toLayoutSwitches(geometryPlan.switches, planToLayout)
+    val switches =
+        toLayoutSwitches(
+            geometryPlan.switches.mapNotNull { s ->
+                s.switchStructureId?.let(getStructure)?.let { structure -> s to structure }
+            },
+            planToLayout,
+        )
 
     val alignments: List<PlanLayoutAlignment> =
         toMapAlignments(
@@ -105,34 +113,35 @@ fun toLayoutKmPosts(
     }
 }
 
-fun toLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation): LayoutSwitch? =
-    if (switch.switchStructureId == null) null
-    else
-        LayoutSwitch(
-            name = switch.name,
-            switchStructureId = switch.switchStructureId,
-            stateCategory = getLayoutStateOrDefault(switch.state).category,
-            joints =
-                switch.joints.map { j ->
-                    LayoutSwitchJoint(
-                        number = j.number,
-                        location = toMapCoordinate.transform(j.location),
-                        locationAccuracy = LocationAccuracy.DESIGNED_GEOLOCATION,
-                    )
-                },
-            sourceId = switch.id,
-            trapPoint = null,
-            ownerId = null,
-            source = GeometrySource.PLAN,
-            contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
-            draftOid = null,
-        )
+fun toLayoutSwitch(switch: GeometrySwitch, structure: SwitchStructure, toMapCoordinate: Transformation): LayoutSwitch =
+    LayoutSwitch(
+        name = switch.name,
+        switchStructureId = structure.id,
+        stateCategory = getLayoutStateOrDefault(switch.state).category,
+        joints =
+            switch.joints.map { j ->
+                LayoutSwitchJoint(
+                    number = j.number,
+                    role = SwitchJointRole.of(structure, j.number),
+                    location = toMapCoordinate.transform(j.location),
+                    locationAccuracy = LocationAccuracy.DESIGNED_GEOLOCATION,
+                )
+            },
+        sourceId = switch.id,
+        trapPoint = null,
+        ownerId = null,
+        source = GeometrySource.PLAN,
+        contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
+        draftOid = null,
+    )
 
 fun toLayoutSwitches(
-    geometrySwitches: List<GeometrySwitch>,
+    geometrySwitches: List<Pair<GeometrySwitch, SwitchStructure>>,
     planToLayout: Transformation,
 ): Map<DomainId<GeometrySwitch>, LayoutSwitch> =
-    geometrySwitches.mapNotNull { s -> toLayoutSwitch(s, planToLayout)?.let { s.id to it } }.associate { it }
+    geometrySwitches
+        .mapNotNull { (switch, structure) -> toLayoutSwitch(switch, structure, planToLayout).let { switch.id to it } }
+        .associate { it }
 
 fun toMapAlignments(
     trackNumberId: IntId<LayoutTrackNumber>?,

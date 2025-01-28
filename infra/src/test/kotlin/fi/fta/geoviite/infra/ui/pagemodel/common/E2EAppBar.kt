@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.waitForCookie
 import getElement
+import getNonNullAttribute
 import org.openqa.selenium.By
 import waitUntilExists
 import waitUntilNotExist
@@ -104,7 +105,7 @@ class E2EAppBar : E2EViewFragment(By.className("app-bar")) {
         openAppBarMoreMenu()
 
         getElement(byQaId("select-role-$roleCode")).let { roleSelectionElement ->
-            if (!roleSelectionElement.getAttribute("class").contains("disabled")) {
+            if (!roleSelectionElement.getNonNullAttribute("class").contains("disabled")) {
                 logger.info("Select role with code=$roleCode")
                 roleSelectionElement.click()
             } else {

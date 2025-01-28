@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
+import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.linking.switches.FittedSwitchJointMatch
@@ -171,7 +172,10 @@ fun switchAndMatchingAlignments(
         switch(
             id = switchId,
             structureId = structure.id as IntId,
-            joints = jointLocations.map { (number, point) -> LayoutSwitchJoint(number, point, null) },
+            joints =
+                jointLocations.map { (number, point) ->
+                    LayoutSwitchJoint(number, SwitchJointRole.of(structure, number), point, null)
+                },
             draft = draft,
             stateCategory = LayoutStateCategory.EXISTING,
         )
@@ -920,7 +924,12 @@ fun switchFromDbStructure(
         draft = draft,
         joints =
             structure.joints.map { j ->
-                LayoutSwitchJoint(number = j.number, location = switchStart + j.location, locationAccuracy = null)
+                LayoutSwitchJoint(
+                    number = j.number,
+                    role = SwitchJointRole.of(structure, j.number),
+                    location = switchStart + j.location,
+                    locationAccuracy = null,
+                )
             },
     )
 
@@ -966,12 +975,13 @@ fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switch
 fun switchJoint(seed: Int) =
     LayoutSwitchJoint(
         number = JointNumber(1 + seed % 5),
+        role = getSomeValue(seed),
         location = Point(seed * 0.01, 1000.0 + seed * 0.01),
         locationAccuracy = getSomeNullableValue<LocationAccuracy>(seed),
     )
 
-fun switchJoint(number: Int, location: Point) =
-    LayoutSwitchJoint(number = JointNumber(number), location = location, locationAccuracy = null)
+fun switchJoint(number: Int, type: SwitchJointRole, location: Point) =
+    LayoutSwitchJoint(number = JointNumber(number), role = type, location = location, locationAccuracy = null)
 
 fun kmPost(
     trackNumberId: IntId<LayoutTrackNumber>?,
@@ -985,7 +995,6 @@ fun kmPost(
     sourceId: IntId<GeometryKmPost>? = null,
     contextData: LayoutContextData<LayoutKmPost> = createMainContext(null, draft),
 ): LayoutKmPost {
-
     return LayoutKmPost(
         trackNumberId = trackNumberId,
         kmNumber = km,
