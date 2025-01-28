@@ -43,7 +43,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
-import fi.fta.geoviite.infra.tracklayout.SwitchJointType
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -1493,7 +1493,7 @@ constructor(
             switchStructure.joints.map { joint ->
                 LayoutSwitchJoint(
                     joint.number,
-                    SwitchJointType.of(switchStructure, joint.number),
+                    SwitchJointRole.of(switchStructure, joint.number),
                     Point(-joint.location.x, -joint.location.y * 0.99),
                     null,
                 )
@@ -1502,7 +1502,7 @@ constructor(
             switchStructure.joints.map { joint ->
                 LayoutSwitchJoint(
                     joint.number,
-                    SwitchJointType.of(switchStructure, joint.number),
+                    SwitchJointRole.of(switchStructure, joint.number),
                     Point(joint.location.x, joint.location.y),
                     null,
                 )

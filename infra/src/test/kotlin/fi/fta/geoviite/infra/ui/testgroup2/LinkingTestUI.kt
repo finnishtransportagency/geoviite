@@ -18,7 +18,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.SwitchJointType
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -665,8 +665,8 @@ constructor(
                 name = "switch to delete",
                 joints =
                     listOf(
-                        switchJoint(1, SwitchJointType.MAIN, Point(DEFAULT_BASE_POINT + Point(1.0, 1.0))),
-                        switchJoint(3, SwitchJointType.END, Point(DEFAULT_BASE_POINT + Point(3.0, 3.0))),
+                        switchJoint(1, SwitchJointRole.MAIN, Point(DEFAULT_BASE_POINT + Point(1.0, 1.0))),
+                        switchJoint(3, SwitchJointRole.CONNECTION, Point(DEFAULT_BASE_POINT + Point(3.0, 3.0))),
                     ),
                 draft = false,
             )
@@ -676,7 +676,7 @@ constructor(
         switchDao.save(
             switch(
                 name = "unrelated switch",
-                joints = listOf(switchJoint(1, SwitchJointType.MAIN, Point(DEFAULT_BASE_POINT + Point(10.0, 10.0)))),
+                joints = listOf(switchJoint(1, SwitchJointRole.MAIN, Point(DEFAULT_BASE_POINT + Point(10.0, 10.0)))),
                 draft = false,
             )
         )

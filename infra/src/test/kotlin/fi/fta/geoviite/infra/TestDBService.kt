@@ -49,7 +49,7 @@ import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.SwitchJointType
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -505,7 +505,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                                 .map { (jointNumber, position) ->
                                     LayoutSwitchJoint(
                                         number = jointNumber,
-                                        type = SwitchJointType.of(structure, jointNumber),
+                                        role = SwitchJointRole.of(structure, jointNumber),
                                         location = position,
                                         locationAccuracy = null,
                                     )

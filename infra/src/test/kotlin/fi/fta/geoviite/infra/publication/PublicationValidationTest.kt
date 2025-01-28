@@ -26,7 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.SwitchJointType
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -132,8 +132,8 @@ class PublicationValidationTest {
                 stateCategory = EXISTING,
                 joints =
                     listOf(
-                        LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(0.0, 0.0), null),
-                        LayoutSwitchJoint(JointNumber(2), SwitchJointType.END, Point(0.0, 10.0), null),
+                        LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null),
+                        LayoutSwitchJoint(JointNumber(2), SwitchJointRole.CONNECTION, Point(0.0, 10.0), null),
                     ),
             )
         val good =
@@ -473,14 +473,14 @@ class PublicationValidationTest {
         val wrongPlaceSwitch =
             switch(
                 stateCategory = EXISTING,
-                joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(100.0, 100.0), null)),
+                joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(100.0, 100.0), null)),
                 id = IntId(1),
                 draft = true,
             )
         val rightPlaceSwitch =
             switch(
                 stateCategory = EXISTING,
-                joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(200.0, 200.0), null)),
+                joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(200.0, 200.0), null)),
                 id = IntId(2),
                 draft = true,
             )
@@ -823,8 +823,8 @@ class PublicationValidationTest {
                 draft = switchDraft,
                 joints =
                     listOf(
-                        LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(10.0, 10.0), null),
-                        LayoutSwitchJoint(JointNumber(2), SwitchJointType.END, Point(20.0, 20.0), null),
+                        LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 10.0), null),
+                        LayoutSwitchJoint(JointNumber(2), SwitchJointRole.CONNECTION, Point(20.0, 20.0), null),
                     ),
             )
         val joint1 = switch.joints.first()

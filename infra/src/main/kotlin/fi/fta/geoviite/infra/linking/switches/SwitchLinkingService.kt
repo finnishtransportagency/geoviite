@@ -38,7 +38,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.NearbyTracks
-import fi.fta.geoviite.infra.tracklayout.SwitchJointType
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
@@ -397,13 +397,13 @@ fun matchFittedSwitchToTracks(
             fittedSwitch.joints.map { sj ->
                 LayoutSwitchJoint(
                     number = sj.number,
-                    type = SwitchJointType.of(fittedSwitch.switchStructure, sj.number),
+                    role = SwitchJointRole.of(fittedSwitch.switchStructure, sj.number),
                     location = sj.location,
                     locationAccuracy = sj.locationAccuracy,
                 )
             },
         trackLinks = trackLinks,
-        switchStructureId = fittedSwitch.switchStructure.id as IntId,
+        switchStructureId = fittedSwitch.switchStructure.id,
         name = name ?: SwitchName(fittedSwitch.switchStructure.baseType.name),
     )
 }

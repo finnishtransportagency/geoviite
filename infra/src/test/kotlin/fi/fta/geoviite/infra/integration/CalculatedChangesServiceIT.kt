@@ -43,7 +43,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.SwitchJointType
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.addTopologyEndSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.addTopologyStartSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -61,11 +61,6 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -75,6 +70,11 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1027,7 +1027,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     switch(
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(0.0, 0.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null)),
                         draft = true,
                     ),
                 )
@@ -1063,7 +1063,7 @@ constructor(
             mainOfficialContext
                 .insert(
                     switch(
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(7.0, 0.0), null))
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(7.0, 0.0), null))
                     )
                 )
                 .id
@@ -1135,7 +1135,7 @@ constructor(
             designDraftContext
                 .insert(
                     switch(
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(7.0, 0.0), null))
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(7.0, 0.0), null))
                     )
                 )
                 .id
@@ -1201,7 +1201,7 @@ constructor(
             mainOfficialContext
                 .insert(
                     switch(
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(7.0, 0.0), null))
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(7.0, 0.0), null))
                     )
                 )
                 .id
@@ -1517,7 +1517,10 @@ constructor(
                     change.number == JointNumber(jointNumber) && change.locationTrackId == locationTrackId
                 }
 
-            assertNotNull(joint, "Expected to find change: joint=$jointNumber switch=$switchId track=$locationTrackId actualChanges=${switchChange.changedJoints}")
+            assertNotNull(
+                joint,
+                "Expected to find change: joint=$jointNumber switch=$switchId track=$locationTrackId actualChanges=${switchChange.changedJoints}",
+            )
         }
     }
 

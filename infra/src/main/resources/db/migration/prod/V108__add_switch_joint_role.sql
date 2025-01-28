@@ -1,4 +1,4 @@
-create type common.switch_joint_type as enum ('MAIN', 'END', 'OTHER');
+create type common.switch_joint_role as enum ('MAIN', 'CONNECTION', 'MATH');
 
 create temp table structure_details as (
   select
@@ -16,10 +16,10 @@ create temp table structure_details as (
 );
 alter table structure_details add primary key (id);
 
-alter table layout.switch_version_joint add column type common.switch_joint_type null;
+alter table layout.switch_version_joint add column role common.switch_joint_role null;
 update layout.switch_version_joint joint
 set
-  type = sub.type
+  role = sub.role
   from (
     select
       joint.switch_id,
@@ -27,11 +27,11 @@ set
       joint.switch_version,
       joint.number,
       case
-        when joint.number = structure.presentation_joint_number then 'MAIN'::common.switch_joint_type
-        when joint.number = any (structure.end_joints) then 'END'::common.switch_joint_type
-        when structure.id is not null then 'OTHER'::common.switch_joint_type
+        when joint.number = structure.presentation_joint_number then 'MAIN'::common.switch_joint_role
+        when joint.number = any (structure.end_joints) then 'CONNECTION'::common.switch_joint_role
+        when structure.id is not null then 'MATH'::common.switch_joint_role
         -- Sanity check: if structure is not found, default to null -> will fail the migration when column set to not null
-      end as type
+      end as role
       from layout.switch_version_joint joint
         left join layout.switch_version switch
                   on switch.id = joint.switch_id
@@ -45,4 +45,4 @@ set
     and joint.number = sub.number;
 
 alter table layout.switch_version_joint
-  alter column type set not null;
+  alter column role set not null;

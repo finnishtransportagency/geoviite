@@ -174,7 +174,7 @@ fun switchAndMatchingAlignments(
             structureId = structure.id as IntId,
             joints =
                 jointLocations.map { (number, point) ->
-                    LayoutSwitchJoint(number, SwitchJointType.of(structure, number), point, null)
+                    LayoutSwitchJoint(number, SwitchJointRole.of(structure, number), point, null)
                 },
             draft = draft,
             stateCategory = LayoutStateCategory.EXISTING,
@@ -926,7 +926,7 @@ fun switchFromDbStructure(
             structure.joints.map { j ->
                 LayoutSwitchJoint(
                     number = j.number,
-                    type = SwitchJointType.of(structure, j.number),
+                    role = SwitchJointRole.of(structure, j.number),
                     location = switchStart + j.location,
                     locationAccuracy = null,
                 )
@@ -975,13 +975,13 @@ fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switch
 fun switchJoint(seed: Int) =
     LayoutSwitchJoint(
         number = JointNumber(1 + seed % 5),
-        type = getSomeValue(seed),
+        role = getSomeValue(seed),
         location = Point(seed * 0.01, 1000.0 + seed * 0.01),
         locationAccuracy = getSomeNullableValue<LocationAccuracy>(seed),
     )
 
-fun switchJoint(number: Int, type: SwitchJointType, location: Point) =
-    LayoutSwitchJoint(number = JointNumber(number), type = type, location = location, locationAccuracy = null)
+fun switchJoint(number: Int, type: SwitchJointRole, location: Point) =
+    LayoutSwitchJoint(number = JointNumber(number), role = type, location = location, locationAccuracy = null)
 
 fun kmPost(
     trackNumberId: IntId<LayoutTrackNumber>?,

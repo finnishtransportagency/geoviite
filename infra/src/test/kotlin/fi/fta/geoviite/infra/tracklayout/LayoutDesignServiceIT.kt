@@ -184,7 +184,7 @@ constructor(
             mainOfficialContext
                 .insert(
                     switch(
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(10.0, 0.0), null))
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null))
                     )
                 )
                 .id

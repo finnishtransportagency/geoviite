@@ -116,13 +116,13 @@ fun toLayoutKmPosts(
 fun toLayoutSwitch(switch: GeometrySwitch, structure: SwitchStructure, toMapCoordinate: Transformation): LayoutSwitch =
     LayoutSwitch(
         name = switch.name,
-        switchStructureId = structure.id as IntId,
+        switchStructureId = structure.id,
         stateCategory = getLayoutStateOrDefault(switch.state).category,
         joints =
             switch.joints.map { j ->
                 LayoutSwitchJoint(
                     number = j.number,
-                    type = SwitchJointType.of(structure, j.number),
+                    role = SwitchJointRole.of(structure, j.number),
                     location = toMapCoordinate.transform(j.location),
                     locationAccuracy = LocationAccuracy.DESIGNED_GEOLOCATION,
                 )

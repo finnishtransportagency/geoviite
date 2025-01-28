@@ -49,7 +49,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.SwitchJointType
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -1218,7 +1218,7 @@ constructor(
         val switch =
             switchDao.save(
                 switch(
-                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(4.2, 0.1), null)),
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.2, 0.1), null)),
                     draft = false,
                 )
             )
@@ -1235,7 +1235,7 @@ constructor(
             LayoutBranch.main,
             switchDao
                 .fetch(switch)
-                .copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(4.1, 0.2), null))),
+                .copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.1, 0.2), null))),
         )
         val updatedAlignment =
             alignment(
@@ -1287,7 +1287,7 @@ constructor(
         val switch =
             switchDao.save(
                 switch(
-                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(4.2, 0.1), null)),
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.2, 0.1), null)),
                     draft = false,
                 )
             )
@@ -1307,7 +1307,7 @@ constructor(
             testBranch,
             switchDao
                 .fetch(switch)
-                .copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(4.1, 0.2), null))),
+                .copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.1, 0.2), null))),
         )
         val updatedAlignment =
             alignment(
@@ -1361,7 +1361,7 @@ constructor(
             mainDraftContext.insert(
                 switch(
                     name = "original",
-                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointType.MAIN, Point(5.0, 5.0), null)),
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(5.0, 5.0), null)),
                 )
             )
         val locationTrack =

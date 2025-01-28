@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
-import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -77,8 +77,8 @@ constructor(
             switch(
                 joints =
                     listOf(
-                        switchJoint(1, SwitchJointType.MAIN, Point(428423.66891764296, 7210292.096537605)),
-                        switchJoint(5, SwitchJointType.OTHER, Point(428412.6499928745, 7210278.867815434)),
+                        switchJoint(1, SwitchJointRole.MAIN, Point(428423.66891764296, 7210292.096537605)),
+                        switchJoint(5, SwitchJointRole.MATH, Point(428412.6499928745, 7210278.867815434)),
                     ),
                 draft = false,
                 stateCategory = EXISTING,
@@ -98,8 +98,8 @@ constructor(
             switch(
                 joints =
                     listOf(
-                        switchJoint(1, SwitchJointType.MAIN, Point(428423.66891764296, 7210292.096537605)),
-                        switchJoint(5, SwitchJointType.OTHER, Point(428412.6499928745, 7210278.867815434)),
+                        switchJoint(1, SwitchJointRole.MAIN, Point(428423.66891764296, 7210292.096537605)),
+                        switchJoint(5, SwitchJointRole.MATH, Point(428412.6499928745, 7210278.867815434)),
                     ),
                 draft = false,
             )
@@ -213,13 +213,13 @@ constructor(
                         listOf(
                             LayoutSwitchJoint(
                                 number = JointNumber(1),
-                                type = SwitchJointType.MAIN,
+                                role = SwitchJointRole.MAIN,
                                 location = Point(428305.33617941965, 7210146.458099049),
                                 locationAccuracy = null,
                             ),
                             LayoutSwitchJoint(
                                 number = JointNumber(5),
-                                type = SwitchJointType.OTHER,
+                                role = SwitchJointRole.MATH,
                                 location = Point(422222.2, 7222222.2),
                                 locationAccuracy = null,
                             ),
@@ -237,13 +237,13 @@ constructor(
                             listOf(
                                 LayoutSwitchJoint(
                                     number = JointNumber(1),
-                                    type = SwitchJointType.MAIN,
+                                    role = SwitchJointRole.MAIN,
                                     location = Point(422222.2, 7222222.2),
                                     locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED,
                                 ),
                                 LayoutSwitchJoint(
                                     number = JointNumber(5),
-                                    type = SwitchJointType.OTHER,
+                                    role = SwitchJointRole.MATH,
                                     location = Point(428305.33617941965, 7210146.458099049),
                                     locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED,
                                 ),
@@ -411,7 +411,7 @@ constructor(
     @Test
     fun getSwitchLinksTopologicalConnections() {
         val switch =
-            switch(IntId(1), joints = listOf(switchJoint(1, SwitchJointType.MAIN, Point(1.0, 1.0))), draft = false)
+            switch(IntId(1), joints = listOf(switchJoint(1, SwitchJointRole.MAIN, Point(1.0, 1.0))), draft = false)
         val switchVersion = switchDao.save(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
         val (locationTrack, alignment) =

@@ -243,7 +243,7 @@ class LayoutSwitchDao(
                 number, 
                 location, 
                 location_accuracy,
-                type
+                role
                 )
               values (
                 :switch_id,
@@ -252,7 +252,7 @@ class LayoutSwitchDao(
                 :number, 
                 postgis.st_setsrid(postgis.st_point(:location_x, :location_y), :srid), 
                 :location_accuracy::common.location_accuracy,
-                :type::common.switch_joint_type
+                :role::common.switch_joint_role
                 )
           """
                     .trimIndent()
@@ -268,7 +268,7 @@ class LayoutSwitchDao(
                             "location_y" to joint.location.y,
                             "srid" to LAYOUT_SRID.code,
                             "location_accuracy" to joint.locationAccuracy?.name,
-                            "type" to joint.type.name,
+                            "role" to joint.role.name,
                         )
                     }
                     .toTypedArray()
@@ -299,7 +299,7 @@ class LayoutSwitchDao(
                        and (official_sv.design_id is null or official_sv.design_id = sv.design_id)
                        and not official_sv.draft) as has_official,
               coalesce(joint_numbers, '{}') as joint_numbers,
-              coalesce(joint_types, '{}') as joint_types,
+              coalesce(joint_roles, '{}') as joint_roles,
               coalesce(joint_x_values, '{}') as joint_x_values,
               coalesce(joint_y_values, '{}') as joint_y_values,
               coalesce(joint_location_accuracies, '{}') as joint_location_accuracies
@@ -307,7 +307,7 @@ class LayoutSwitchDao(
               left join lateral (
                 select 
                   array_agg(jv.number order by jv.number) as joint_numbers,
-                  array_agg(jv.type order by jv.number) as joint_types,
+                  array_agg(jv.role order by jv.number) as joint_roles,
                   array_agg(postgis.st_x(jv.location) order by jv.number) as joint_x_values,
                   array_agg(postgis.st_y(jv.location) order by jv.number) as joint_y_values,
                   array_agg(jv.location_accuracy order by jv.number) as joint_location_accuracies
@@ -348,7 +348,7 @@ class LayoutSwitchDao(
               s.owner_id,
               s.source,
               joint_numbers,
-              joint_types,
+              joint_roles,
               joint_x_values,
               joint_y_values,
               joint_location_accuracies,
@@ -361,7 +361,7 @@ class LayoutSwitchDao(
             from layout.switch s
               left join lateral
                 (select coalesce(array_agg(jv.number order by jv.number), '{}') as joint_numbers,
-                        coalesce(array_agg(jv.type order by jv.number), '{}') as joint_types,
+                        coalesce(array_agg(jv.role order by jv.number), '{}') as joint_roles,
                         coalesce(array_agg(postgis.st_x(jv.location) order by jv.number), '{}') as joint_x_values,
                         coalesce(array_agg(postgis.st_y(jv.location) order by jv.number), '{}') as joint_y_values,
                         coalesce(array_agg(jv.location_accuracy order by jv.number), '{}') as joint_location_accuracies
@@ -389,7 +389,7 @@ class LayoutSwitchDao(
             joints =
                 parseJoints(
                     numbers = rs.getNullableIntArray("joint_numbers"),
-                    jointTypes = rs.getNullableEnumArray<SwitchJointType>("joint_types"),
+                    jointRoles = rs.getNullableEnumArray<SwitchJointRole>("joint_roles"),
                     xValues = rs.getNullableDoubleArray("joint_x_values"),
                     yValues = rs.getNullableDoubleArray("joint_y_values"),
                     accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
@@ -413,7 +413,7 @@ class LayoutSwitchDao(
 
     private fun parseJoints(
         numbers: List<Int?>,
-        jointTypes: List<SwitchJointType?>,
+        jointRoles: List<SwitchJointRole?>,
         xValues: List<Double?>,
         yValues: List<Double?>,
         accuracies: List<LocationAccuracy?>,
@@ -425,7 +425,7 @@ class LayoutSwitchDao(
             numbers[i]?.let(::JointNumber)?.let { jointNumber ->
                 LayoutSwitchJoint(
                     number = jointNumber,
-                    type = requireNotNull(jointTypes[i]) { "Joint should have a type: number=$jointNumber" },
+                    role = requireNotNull(jointRoles[i]) { "Joint should have a role: number=$jointNumber" },
                     location =
                         Point(
                             requireNotNull(xValues[i]) { "Joint should have an x-coordinate: number=$jointNumber" },

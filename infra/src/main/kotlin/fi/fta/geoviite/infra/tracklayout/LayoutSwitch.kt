@@ -12,24 +12,24 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 
-enum class SwitchJointType {
+enum class SwitchJointRole {
     MAIN,
-    END,
-    OTHER;
+    CONNECTION,
+    MATH;
 
     companion object {
-        fun of(structure: SwitchStructure, number: JointNumber): SwitchJointType =
+        fun of(structure: SwitchStructure, number: JointNumber): SwitchJointRole =
             when {
                 structure.presentationJointNumber == number -> MAIN
-                structure.endJointNumbers.contains(number) -> END
-                else -> OTHER
+                structure.endJointNumbers.contains(number) -> CONNECTION
+                else -> MATH
             }
     }
 }
 
 data class LayoutSwitchJoint(
     val number: JointNumber,
-    val type: SwitchJointType,
+    val role: SwitchJointRole,
     val location: Point,
     val locationAccuracy: LocationAccuracy?,
 )
@@ -68,7 +68,7 @@ data class LayoutSwitch(
 
     @get:JsonIgnore
     val presentationJoint
-        get() = joints.find { j -> j.type == SwitchJointType.MAIN }
+        get() = joints.find { j -> j.role == SwitchJointRole.MAIN }
 
     @get:JsonIgnore
     val presentationJointOrThrow
