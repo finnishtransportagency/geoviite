@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.BulkTransfer
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.EditedAssetId
@@ -541,12 +542,14 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                 OFFICIAL ->
                     when (branch) {
                         is MainBranch -> MainOfficialContextData(rowContextId)
-                        is DesignBranch -> DesignOfficialContextData(rowContextId, branch.designId, false)
+                        is DesignBranch ->
+                            DesignOfficialContextData(rowContextId, branch.designId, DesignAssetState.OPEN)
                     }
                 DRAFT ->
                     when (branch) {
                         is MainBranch -> MainDraftContextData(rowContextId, false, LayoutBranch.main)
-                        is DesignBranch -> DesignDraftContextData(rowContextId, branch.designId, false, false)
+                        is DesignBranch ->
+                            DesignDraftContextData(rowContextId, branch.designId, DesignAssetState.OPEN, false)
                     }
             }
         }

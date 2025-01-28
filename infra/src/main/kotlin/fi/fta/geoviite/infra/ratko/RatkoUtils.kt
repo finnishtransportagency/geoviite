@@ -31,14 +31,17 @@ fun <T : LayoutAsset<T>> getOrCreateFullExternalId(
     fetchSavedExternalId(branch.branch, id)?.let { saved ->
         when (branch) {
             is PushableMainBranch -> MainBranchRatkoExternalId(saved.oid)
-            is PushableDesignBranch ->
+            is PushableDesignBranch -> {
+                val mainExtId = fetchSavedExternalId(LayoutBranch.main, id)
                 DesignRatkoExternalId(
                     saved.oid,
+                    mainExtId?.oid,
                     saved.planItemId
-                        ?: ratkoClient
-                            .createPlanItem(branch.planId, fetchSavedExternalId(LayoutBranch.main, id)?.oid)
-                            .also { planItemId -> insertPlanItemId(id, branch.branch, planItemId) },
+                        ?: ratkoClient.createPlanItem(branch.planId, mainExtId?.oid).also { planItemId ->
+                            insertPlanItemId(id, branch.branch, planItemId)
+                        },
                 )
+            }
         }
     }
 

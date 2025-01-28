@@ -10,7 +10,7 @@ create function layout.reference_line_is_in_layout_context(publication_state_in 
   stable as
 $$
 select
-  where not reference_line.cancelled
+  where reference_line.design_asset_state is distinct from 'CANCELLED'
     and case publication_state_in
           when 'OFFICIAL' then not reference_line.draft
           else reference_line.draft
@@ -18,7 +18,8 @@ select
                           from layout.reference_line overriding_draft
                           where overriding_draft.design_id is not distinct from design_id_in
                             and overriding_draft.draft
-                            and not (reference_line.design_id is null and overriding_draft.cancelled)
+                            and not (reference_line.design_id is null
+                                      and overriding_draft.design_asset_state is not distinct from 'CANCELLED')
                             and overriding_draft.id = reference_line.id)
         end
     and case
@@ -30,14 +31,14 @@ select
                                from layout.reference_line overriding_design_official
                                where overriding_design_official.design_id = design_id_in
                                  and not overriding_design_official.draft
-                                 and not overriding_design_official.cancelled
+                                 and overriding_design_official.design_asset_state is distinct from 'CANCELLED'
                                  and overriding_design_official.id = reference_line.id
                                    and (publication_state_in = 'OFFICIAL' or not exists (
                                      select *
                                        from layout.reference_line design_cancellation
                                        where design_cancellation.design_id = design_id_in
                                          and design_cancellation.draft
-                                         and design_cancellation.cancelled
+                                         and design_cancellation.design_asset_state is not distinct from 'CANCELLED'
                                          and design_cancellation.id = reference_line.id))))
         end
 $$;
