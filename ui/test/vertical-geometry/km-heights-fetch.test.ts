@@ -81,7 +81,7 @@ function testCoveringRange(
     expectedRange: [number, number] | undefined,
 ) {
     const actual = getMissingCoveringRange(resolvedRanges, queryRange[0], queryRange[1]);
-    if (expectedRange === null) {
+    if (expectedRange === undefined) {
         expect(actual).toBeUndefined();
     } else {
         expect(actual).toEqual(expectedRange);
