@@ -1,0 +1,31 @@
+name: Build UI Package
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-ui:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: ./ui
+        run: npm ci
+
+      - name: Build UI
+        working-directory: ./ui
+        run: npm run build
+
+      - name: Test UI
+        working-directory: ./ui
+        run: npm run test
