@@ -59,6 +59,7 @@ import { Radio } from 'vayla-design-lib/radio/radio';
 import { ChangeTimes } from 'common/common-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
+import { LinkingStatusLabel } from 'geoviite-design-lib/linking-status/linking-status-label';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -152,7 +153,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         React.useState<MapAlignmentType>('LOCATION_TRACK');
 
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';
-    const isLinked = geometryAlignment.id && linkedAlignmentIds.includes(geometryAlignment.id);
+    const isLinked = linkedAlignmentIds.includes(geometryAlignment.id);
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
 
     const planStatus = useLoader(
@@ -301,20 +302,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         qaId="geometry-alignment-linked"
                         label={t('tool-panel.alignment.geometry.is-linked')}
                         className={styles['geometry-alignment-infobox__linked-status']}
-                        value={
-                            isLinked ? (
-                                <span className={styles['geometry-alignment-infobox__linked-text']}>
-                                    {t('yes')}
-                                </span>
-                            ) : (
-                                <span
-                                    className={
-                                        styles['geometry-alignment-infobox__not-linked-text']
-                                    }>
-                                    {t('no')}
-                                </span>
-                            )
-                        }
+                        value={<LinkingStatusLabel isLinked={isLinked} />}
                     />
 
                     {linkedLocationTracks && linkedLocationTracks.length > 0 && (

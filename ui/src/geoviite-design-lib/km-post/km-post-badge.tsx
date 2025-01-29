@@ -46,7 +46,7 @@ export const KmPostBadge: React.FC<KmPostBadgeProps> = ({
         trackNumber: trackNumber?.number,
     });
     return (
-        <div
+        <span
             className={classes}
             title={trackNumber ? onTrackNumberTranslation : ''}
             onClick={onClick}>
@@ -54,6 +54,6 @@ export const KmPostBadge: React.FC<KmPostBadgeProps> = ({
             <span>{`${kmPost.kmNumber} ${
                 showTrackNumberInBadge && trackNumber ? `/ ${onTrackNumberTranslation}` : ''
             }`}</span>
-        </div>
+        </span>
     );
 };

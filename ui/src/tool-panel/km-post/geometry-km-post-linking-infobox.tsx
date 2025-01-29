@@ -1,11 +1,11 @@
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import * as React from 'react';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LayoutKmPost } from 'track-layout/track-layout-model';
+import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { getPlanLinkStatus, linkKmPost } from 'linking/linking-api';
 import { GeometryKmPostId, GeometryPlanId } from 'geometry/geometry-model';
 import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
@@ -20,7 +20,6 @@ import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-p
 import { getKmPostForLinking, getKmPosts } from 'track-layout/layout-km-post-api';
 import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-field';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
-import { filterNotEmpty } from 'utils/array-utils';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
     refereshKmPostSelection,
@@ -29,6 +28,10 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { createEmptyItemCollections } from 'selection/selection-store';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -44,6 +47,15 @@ type GeometryKmPostLinkingInfoboxProps = {
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
 };
+
+function createSelectAction() {
+    const delegates = createDelegates(TrackLayoutActions);
+    return (kmPostId: LayoutKmPostId) =>
+        delegates.onSelect({
+            ...createEmptyItemCollections(),
+            kmPosts: [kmPostId],
+        });
+}
 
 const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> = ({
     geometryKmPost,
@@ -63,19 +75,23 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     const [searchTerm, setSearchTerm] = React.useState('');
     const [showAddDialog, setShowAddDialog] = React.useState(false);
 
-    const planStatus = useLoader(
-        () => (planId ? getPlanLinkStatus(planId, layoutContext) : undefined),
-        [planId, kmPostChangeTime, layoutContext],
-    );
-    const geometryPlan = usePlanHeader(planId);
+    const [linkedLayoutKmPosts, linkedLayoutKmPostsLoaderStatus] = useLoaderWithStatus(
+        () =>
+            planId
+                ? getPlanLinkStatus(planId, layoutContext).then((planStatus) => {
+                      const kmPostIds = planStatus.kmPosts
+                          .filter((linkStatus) => linkStatus.id === geometryKmPost.sourceId)
+                          .flatMap((linkStatus) => linkStatus.linkedKmPosts);
 
-    const linkedLayoutKmPosts = useLoader(() => {
-        if (!planStatus) return undefined;
-        const kmPostIds = planStatus.kmPosts
-            .filter((linkStatus) => linkStatus.id === geometryKmPost.sourceId)
-            .flatMap((linkStatus) => linkStatus.linkedKmPosts);
-        return getKmPosts(kmPostIds, layoutContext).then((posts) => posts.filter(filterNotEmpty));
-    }, [planStatus, geometryKmPost.sourceId]);
+                      return getKmPosts(kmPostIds, layoutContext).then((posts) =>
+                          posts.filter((kp) => kp.state !== 'DELETED'),
+                      );
+                  })
+                : undefined,
+        [planId, kmPostChangeTime, layoutContext, geometryKmPost.sourceId],
+    );
+
+    const geometryPlan = usePlanHeader(planId);
 
     const kmPosts =
         useLoader(async () => {
@@ -129,6 +145,8 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
         onUnselect,
     );
 
+    const selectLayoutKmPost = createSelectAction();
+
     return (
         <React.Fragment>
             <Infobox
@@ -142,25 +160,36 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         qaId="geometry-km-post-linked"
                         label={t('tool-panel.km-post.geometry.linking.is-linked-label')}
                         value={
-                            linkedLayoutKmPosts !== undefined && (
-                                <LinkingStatusLabel isLinked={linkedLayoutKmPosts?.length > 0} />
+                            !!linkedLayoutKmPosts &&
+                            linkedLayoutKmPostsLoaderStatus === LoaderStatus.Ready ? (
+                                <LinkingStatusLabel isLinked={linkedLayoutKmPosts.length > 0} />
+                            ) : (
+                                <Spinner />
                             )
                         }
                     />
                     <InfoboxField
                         label={t('tool-panel.km-post.geometry.linking.km-post-label')}
                         value={
-                            linkedLayoutKmPosts &&
-                            linkedLayoutKmPosts.map((kmPost) => (
-                                <KmPostBadge
-                                    key={kmPost.id}
-                                    trackNumber={trackNumbers?.find(
-                                        (tn) => tn.id === kmPost.trackNumberId,
-                                    )}
-                                    kmPost={kmPost}
-                                    status={KmPostBadgeStatus.DEFAULT}
-                                />
-                            ))
+                            <span
+                                className={
+                                    styles[
+                                        'km-post-infobox-linking-infobox__currently-linked-km-posts'
+                                    ]
+                                }>
+                                {!!linkedLayoutKmPosts &&
+                                    linkedLayoutKmPosts.map((kmPost) => (
+                                        <KmPostBadge
+                                            key={kmPost.id}
+                                            trackNumber={trackNumbers?.find(
+                                                (tn) => tn.id === kmPost.trackNumberId,
+                                            )}
+                                            kmPost={kmPost}
+                                            status={KmPostBadgeStatus.DEFAULT}
+                                            onClick={() => selectLayoutKmPost(kmPost.id)}
+                                        />
+                                    ))}
+                            </span>
                         }
                     />
                     {!linkingState && (
