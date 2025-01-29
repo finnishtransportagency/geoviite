@@ -32,6 +32,8 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { compareByField } from 'utils/array-utils';
+import { isNil } from 'utils/type-utils';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -84,7 +86,11 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                           .flatMap((linkStatus) => linkStatus.linkedKmPosts);
 
                       return getKmPosts(kmPostIds, layoutContext).then((posts) =>
-                          posts.filter((kp) => kp.state !== 'DELETED'),
+                          posts
+                              .filter((kp) => kp.state !== 'DELETED')
+                              .toSorted((kp1, kp2) =>
+                                  compareByField(kp1, kp2, (kp) => kp.kmNumber),
+                              ),
                       );
                   })
                 : undefined,
@@ -171,25 +177,27 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                     <InfoboxField
                         label={t('tool-panel.km-post.geometry.linking.km-post-label')}
                         value={
-                            <span
+                            <ol
                                 className={
                                     styles[
                                         'km-post-infobox-linking-infobox__currently-linked-km-posts'
                                     ]
                                 }>
-                                {!!linkedLayoutKmPosts &&
+                                {!isNil(linkedLayoutKmPosts) &&
                                     linkedLayoutKmPosts.map((kmPost) => (
-                                        <KmPostBadge
-                                            key={kmPost.id}
-                                            trackNumber={trackNumbers?.find(
-                                                (tn) => tn.id === kmPost.trackNumberId,
-                                            )}
-                                            kmPost={kmPost}
-                                            status={KmPostBadgeStatus.DEFAULT}
-                                            onClick={() => selectLayoutKmPost(kmPost.id)}
-                                        />
+                                        <li key={kmPost.id}>
+                                            <KmPostBadge
+                                                trackNumber={trackNumbers?.find(
+                                                    (tn) => tn.id === kmPost.trackNumberId,
+                                                )}
+                                                kmPost={kmPost}
+                                                status={KmPostBadgeStatus.DEFAULT}
+                                                showTrackNumberInBadge={true}
+                                                onClick={() => selectLayoutKmPost(kmPost.id)}
+                                            />
+                                        </li>
                                     ))}
-                            </span>
+                            </ol>
                         }
                     />
                     {!linkingState && (

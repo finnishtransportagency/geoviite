@@ -17,9 +17,12 @@
 
 .km-post-infobox-linking-infobox__currently-linked-km-posts {
     display: grid;
-    grid-template-columns: max-content max-content max-content;
-    row-gap: 10px;
-    column-gap: 10px;
+    grid-template-columns: max-content;
+    row-gap: 6px;
+
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .geometry-km-post-linking-infobox__layout-km-posts {
