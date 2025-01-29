@@ -37,10 +37,7 @@ import { createKmPostBadgeFeature } from 'map/layers/utils/km-post-layer-utils';
 import { SWITCH_LARGE_SYMBOLS, SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { Style } from 'ol/style';
 import { getDeletedSwitchRenderer } from 'map/layers/utils/switch-layer-utils';
-import {
-    KM_POST_CANDIDATE_DATA_PROPERTY,
-    SWITCH_CANDIDATE_DATA_PROPERTY,
-} from 'map/layers/utils/publication-candidate-highlight-utils';
+import { CandidateDataProperties } from 'map/layers/utils/publication-candidate-highlight-utils';
 
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
@@ -243,13 +240,13 @@ export function createDeletedPreviewPointIconFeaturesLayer(
             switchPublicationCandidates: findMatchingEntities<SwitchPublicationCandidate>(
                 hitArea,
                 source,
-                SWITCH_CANDIDATE_DATA_PROPERTY,
+                CandidateDataProperties.SWITCH,
                 options,
             ),
             kmPostPublicationCandidates: findMatchingEntities<KmPostPublicationCandidate>(
                 hitArea,
                 source,
-                KM_POST_CANDIDATE_DATA_PROPERTY,
+                CandidateDataProperties.KM_POST,
                 options,
             ),
         }),

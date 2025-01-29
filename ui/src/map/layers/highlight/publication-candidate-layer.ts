@@ -24,20 +24,16 @@ import { Rectangle } from 'model/geometry';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import {
+    CandidateDataProperties,
     createLocationTrackCandidateFeatures,
     createOfficialLocationTrackFeatures,
     createOfficialReferenceLineFeatures,
     createPointCandidateFeatures,
     createReferenceLineCandidateFeatures,
     createTrackNumberCandidateFeatures,
-    KM_POST_CANDIDATE_DATA_PROPERTY,
-    LOCATION_TRACK_CANDIDATE_DATA_PROPERTY,
     LocationTrackCandidateAndAlignment,
     PublicationCandidateFeatureType,
-    REFERENCE_LINE_CANDIDATE_DATA_PROPERTY,
     ReferenceLineCandidateAndAlignment,
-    SWITCH_CANDIDATE_DATA_PROPERTY,
-    TRACK_NUMBER_CANDIDATE_DATA_PROPERTY,
     TrackNumberCandidateAndAlignment,
 } from 'map/layers/utils/publication-candidate-highlight-utils';
 
@@ -282,25 +278,25 @@ export function createPublicationCandidateLayer(
 
             const locationTrackPublicationCandidates =
                 findByPropertyName<LocationTrackPublicationCandidate>(
-                    LOCATION_TRACK_CANDIDATE_DATA_PROPERTY,
+                    CandidateDataProperties.LOCATION_TRACK,
                 );
 
             const referenceLinePublicationCandidates =
                 findByPropertyName<ReferenceLinePublicationCandidate>(
-                    REFERENCE_LINE_CANDIDATE_DATA_PROPERTY,
+                    CandidateDataProperties.REFERENCE_LINE,
                 );
 
             const trackNumberPublicationCandidates =
                 findByPropertyName<TrackNumberPublicationCandidate>(
-                    TRACK_NUMBER_CANDIDATE_DATA_PROPERTY,
+                    CandidateDataProperties.TRACK_NUMBER,
                 );
 
             const switchPublicationCandidates = findByPropertyName<SwitchPublicationCandidate>(
-                SWITCH_CANDIDATE_DATA_PROPERTY,
+                CandidateDataProperties.SWITCH,
             );
 
             const kmPostPublicationCandidates = findByPropertyName<KmPostPublicationCandidate>(
-                KM_POST_CANDIDATE_DATA_PROPERTY,
+                CandidateDataProperties.KM_POST,
             );
 
             return {

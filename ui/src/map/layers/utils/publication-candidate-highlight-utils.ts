@@ -3,7 +3,7 @@ import { Circle, Fill, Stroke, Style } from 'ol/style';
 import Feature from 'ol/Feature';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { filterNotEmpty, filterUnique, first, init, last, lastIndex } from 'utils/array-utils';
-import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 import {
     DraftChangeType,
     KmPostPublicationCandidate,
@@ -28,11 +28,13 @@ import mapStyles from 'map/map.module.scss';
 import { mergeRanges, Point, rangesIntersectInclusive } from 'model/geometry';
 import { Range } from 'common/common-model';
 
-export const TRACK_NUMBER_CANDIDATE_DATA_PROPERTY = 'track-number-candidate-data';
-export const REFERENCE_LINE_CANDIDATE_DATA_PROPERTY = 'reference-line-candidate-data';
-export const LOCATION_TRACK_CANDIDATE_DATA_PROPERTY = 'location-track-candidate-data';
-export const SWITCH_CANDIDATE_DATA_PROPERTY = 'switch-candidate-data';
-export const KM_POST_CANDIDATE_DATA_PROPERTY = 'km-post-candidate-data';
+export enum CandidateDataProperties {
+    TRACK_NUMBER = 'track-number-candidate-data',
+    REFERENCE_LINE = 'reference-line-candidate-data',
+    LOCATION_TRACK = 'location-track-candidate-data',
+    SWITCH = 'switch-candidate-data',
+    KM_POST = 'km-post-candidate-data',
+}
 
 export enum ChangeExplicitness {
     EXPLICIT = 'EXPLICIT',
@@ -77,26 +79,18 @@ const STAGED_ALIGNMENT_HIGHLIGHT_WIDTH = 11;
 const UNSTAGED_POINT_FEATURE_RADIUS = 25;
 const STAGED_POINT_FEATURE_RADIUS = 18;
 
-// The range for highlight z-indexes is 0-15, deleted alignment lines should go above them.
-// Reference lines go under location tracks.
-const DELETED_LOCATION_TRACK_Z_INDEX = 17;
-const DELETED_REFERENCE_LINE_Z_INDEX = 16;
+const HIGHEST_HIGHLIGHT_Z_INDEX = 15;
 
-const dataPropertyByType = (type: DraftChangeType) => {
-    switch (type) {
-        case DraftChangeType.TRACK_NUMBER:
-            return TRACK_NUMBER_CANDIDATE_DATA_PROPERTY;
-        case DraftChangeType.REFERENCE_LINE:
-            return REFERENCE_LINE_CANDIDATE_DATA_PROPERTY;
-        case DraftChangeType.LOCATION_TRACK:
-            return LOCATION_TRACK_CANDIDATE_DATA_PROPERTY;
-        case DraftChangeType.SWITCH:
-            return SWITCH_CANDIDATE_DATA_PROPERTY;
-        case DraftChangeType.KM_POST:
-            return KM_POST_CANDIDATE_DATA_PROPERTY;
-        default:
-            return exhaustiveMatchingGuard(type);
-    }
+// Lines for deleted alignments should go above highlights. Reference lines go under location tracks.
+const DELETED_REFERENCE_LINE_Z_INDEX = HIGHEST_HIGHLIGHT_Z_INDEX + 1;
+const DELETED_LOCATION_TRACK_Z_INDEX = DELETED_REFERENCE_LINE_Z_INDEX + 1;
+
+const DATA_PROPERTY_BY_CHANGE_TYPE = {
+    [DraftChangeType.TRACK_NUMBER]: CandidateDataProperties.TRACK_NUMBER,
+    [DraftChangeType.REFERENCE_LINE]: CandidateDataProperties.REFERENCE_LINE,
+    [DraftChangeType.LOCATION_TRACK]: CandidateDataProperties.LOCATION_TRACK,
+    [DraftChangeType.SWITCH]: CandidateDataProperties.SWITCH,
+    [DraftChangeType.KM_POST]: CandidateDataProperties.KM_POST,
 };
 
 const isLineStringType = (type: DraftChangeType): boolean =>
@@ -219,16 +213,16 @@ const getHighlightZIndex = (
     stage: PublicationStage,
     explicitness: ChangeExplicitness,
 ): number => {
-    let zIndex = 0;
+    let zIndex = HIGHEST_HIGHLIGHT_Z_INDEX;
 
-    // Staged changes go above unstaged changes
-    if (stage === PublicationStage.STAGED) zIndex += 8;
-    // Explicit changes go above implicit changes
-    if (explicitness === ChangeExplicitness.EXPLICIT) zIndex += 4;
-    // LineStrings go above points
-    if (isLineStringType(assetType)) zIndex += 2;
+    // Unstaged changes go below staged changes
+    if (stage === PublicationStage.UNSTAGED) zIndex -= 8;
+    // Implicit changes go below explicit changes
+    if (explicitness === ChangeExplicitness.IMPLICIT) zIndex -= 4;
+    // Points go below LineStrings
+    if (!isLineStringType(assetType)) zIndex -= 2;
     // Deletions go below other operations
-    if (operation !== 'DELETE') zIndex += 1;
+    if (operation === 'DELETE') zIndex -= 1;
 
     return zIndex;
 };
@@ -271,7 +265,7 @@ export const createAlignmentLineStringFeature = (
         geometry: new LineString(points.map(pointToCoords)),
     });
     feature.setStyle(style);
-    feature.set(dataPropertyByType(type), candidate);
+    feature.set(DATA_PROPERTY_BY_CHANGE_TYPE[type], candidate);
 
     return feature;
 };
@@ -373,7 +367,7 @@ export const createOfficialLocationTrackFeatures = (
         }),
     );
 
-    highlightFeatures.map((f) => f.set(LOCATION_TRACK_CANDIDATE_DATA_PROPERTY, publishCandidate));
+    highlightFeatures.map((f) => f.set(CandidateDataProperties.LOCATION_TRACK, publishCandidate));
     return [...lineFeatures, ...highlightFeatures];
 };
 
@@ -424,8 +418,8 @@ export const createOfficialReferenceLineFeatures = (
     );
 
     highlightFeatures.forEach((f) => {
-        f.set(REFERENCE_LINE_CANDIDATE_DATA_PROPERTY, publishCandidate);
-        if (trackNumberCandidate) f.set(TRACK_NUMBER_CANDIDATE_DATA_PROPERTY, trackNumberCandidate);
+        f.set(CandidateDataProperties.REFERENCE_LINE, publishCandidate);
+        if (trackNumberCandidate) f.set(CandidateDataProperties.TRACK_NUMBER, trackNumberCandidate);
     });
     return [...lineFeatures, ...highlightFeatures];
 };
@@ -457,7 +451,7 @@ export const createPointCandidateFeature = (
         geometry: new OlPoint(pointToCoords(location)),
     });
     feature.setStyle(style);
-    feature.set(dataPropertyByType(type), candidate);
+    feature.set(DATA_PROPERTY_BY_CHANGE_TYPE[type], candidate);
 
     return feature;
 };
