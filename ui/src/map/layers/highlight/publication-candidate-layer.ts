@@ -25,12 +25,12 @@ import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import {
     CandidateDataProperties,
-    createLocationTrackCandidateFeatures,
-    createOfficialLocationTrackFeatures,
-    createOfficialReferenceLineFeatures,
-    createPointCandidateFeatures,
-    createReferenceLineCandidateFeatures,
-    createTrackNumberCandidateFeatures,
+    createCandidateLocationTrackFeatures,
+    createBaseLocationTrackFeatures,
+    createBaseReferenceLineFeatures,
+    createCandidatePointFeatures,
+    createCandidateReferenceLineFeatures,
+    createCandidateTrackNumberFeatures,
     LocationTrackCandidateAndAlignment,
     PublicationCandidateFeatureType,
     ReferenceLineCandidateAndAlignment,
@@ -57,7 +57,7 @@ export function createPublicationCandidateLayer(
             : draftMainLayoutContext();
 
     const locationTrackCandidates = publicationCandidates.filter(
-        (c) => c.type == DraftChangeType.LOCATION_TRACK,
+        (c) => c.type === DraftChangeType.LOCATION_TRACK,
     );
     const locationTrackIds = locationTrackCandidates.map((c) => c.id);
 
@@ -71,14 +71,14 @@ export function createPublicationCandidateLayer(
     );
     const referenceLineIds = referenceLineCandidates.map((c) => c.id);
 
-    const referenceLineAlignmentPromise = getReferenceLineMapAlignmentsByTiles(
+    const candidateReferenceLineAlignmentPromise = getReferenceLineMapAlignmentsByTiles(
         changeTimes,
         mapTiles,
         layoutContext,
     ).then((rlAlignments) => {
         const rlCandidates = rlAlignments
             .map((alignment) => {
-                const candidate = referenceLineCandidates.find((c) => c.id == alignment.header.id);
+                const candidate = referenceLineCandidates.find((c) => c.id === alignment.header.id);
                 return candidate
                     ? {
                           alignment: alignment,
@@ -90,7 +90,7 @@ export function createPublicationCandidateLayer(
         const tnCandidates = rlAlignments
             .map((alignment) => {
                 const candidate = trackNumberCandidates.find(
-                    (c) => c.id == alignment.header.trackNumberId,
+                    (c) => c.id === alignment.header.trackNumberId,
                 );
                 return candidate
                     ? {
@@ -101,17 +101,17 @@ export function createPublicationCandidateLayer(
             })
             .filter(filterNotEmpty);
 
-        return { trackNumberCandidates: tnCandidates, referenceLineCandidates: rlCandidates };
+        return { candidateTrackNumbers: tnCandidates, candidateReferenceLines: rlCandidates };
     });
 
-    const locationTrackAlignmentPromise = getLocationTrackMapAlignmentsByTiles(
+    const candidateLocationTrackAlignmentPromise = getLocationTrackMapAlignmentsByTiles(
         changeTimes,
         mapTiles,
         layoutContext,
     ).then((locationTrackAlignments) =>
         locationTrackAlignments
             .map((alignment) => {
-                const candidate = locationTrackCandidates.find((c) => c.id == alignment.header.id);
+                const candidate = locationTrackCandidates.find((c) => c.id === alignment.header.id);
                 return candidate
                     ? ({
                           alignment: alignment,
@@ -122,7 +122,7 @@ export function createPublicationCandidateLayer(
             .filter(filterNotEmpty),
     );
 
-    const officialLocationTrackAlignmentsPromise =
+    const baseLocationTrackAlignmentsPromise =
         locationTrackCandidates.length > 0
             ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, targetLayoutContext).then(
                   (alignments) =>
@@ -143,7 +143,7 @@ export function createPublicationCandidateLayer(
               )
             : Promise.resolve([]);
 
-    const officialReferenceLineLineAlignmentsPromise =
+    const baseReferenceLineLineAlignmentsPromise =
         referenceLineCandidates.length > 0
             ? getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, targetLayoutContext).then(
                   (alignments) =>
@@ -169,100 +169,99 @@ export function createPublicationCandidateLayer(
     );
 
     const createFeatures = (data: {
-        locationTrackCandidates: LocationTrackCandidateAndAlignment[];
-        referenceLineCandidates: ReferenceLineCandidateAndAlignment[];
-        trackNumberCandidates: TrackNumberCandidateAndAlignment[];
-        officialLocationTracks: LocationTrackCandidateAndAlignment[];
-        officialReferenceLines: ReferenceLineCandidateAndAlignment[];
+        candidateLocationTracks: LocationTrackCandidateAndAlignment[];
+        candidateReferenceLines: ReferenceLineCandidateAndAlignment[];
+        candidateTrackNumbers: TrackNumberCandidateAndAlignment[];
+        baseLocationTracks: LocationTrackCandidateAndAlignment[];
+        baseReferenceLines: ReferenceLineCandidateAndAlignment[];
     }) => {
-        const filteredLocationTracks = data.locationTrackCandidates.filter((c) => {
+        const filteredLocationTrackCandidates = data.candidateLocationTracks.filter((c) => {
             return locationTrackIds.includes(c.alignment.header.id);
         });
-        const filteredReferenceLines = data.referenceLineCandidates.filter((c) => {
+        const filteredReferenceLineCandidates = data.candidateReferenceLines.filter((c) => {
             return referenceLineIds.includes(c.alignment.header.id);
         });
-        const filteredTrackNumbers = data.trackNumberCandidates.filter(
+        const filteredTrackNumberCandidates = data.candidateTrackNumbers.filter(
             (c) =>
                 c.alignment.header.trackNumberId !== undefined &&
                 trackNumberIds.includes(c.alignment.header.trackNumberId),
         );
 
-        const locationTrackAlignmentFeatures = createLocationTrackCandidateFeatures(
-            filteredLocationTracks,
+        const candidateLocationTrackAlignmentFeatures = createCandidateLocationTrackFeatures(
+            filteredLocationTrackCandidates,
             metersPerPixel,
         );
-        const referenceLineAlignmentFeatures = createReferenceLineCandidateFeatures(
-            filteredReferenceLines,
+        const candidateReferenceLineAlignmentFeatures = createCandidateReferenceLineFeatures(
+            filteredReferenceLineCandidates,
             metersPerPixel,
         );
-        const trackNumberAlignmentFeatures = createTrackNumberCandidateFeatures(
-            filteredTrackNumbers,
+        const candidateTrackNumberAlignmentFeatures = createCandidateTrackNumberFeatures(
+            filteredTrackNumberCandidates,
             metersPerPixel,
         );
-        const switchFeatures = createPointCandidateFeatures(
+        const candidateSwitchFeatures = createCandidatePointFeatures(
             switchCandidates,
             DraftChangeType.SWITCH,
         );
-        const kmPostFeatures = createPointCandidateFeatures(
+        const candidateKmPostFeatures = createCandidatePointFeatures(
             kmPostCandidates,
             DraftChangeType.KM_POST,
         );
 
         const showEndPointTicks = metersPerPixel <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
-        const officialLocationTrackFeatures = data.officialLocationTracks
+        const baseLocationTrackFeatures = data.baseLocationTracks
             .flatMap(({ alignment, publishCandidate }) =>
-                createOfficialLocationTrackFeatures(publishCandidate, alignment, showEndPointTicks),
+                createBaseLocationTrackFeatures(publishCandidate, alignment, showEndPointTicks),
             )
             .filter(filterNotEmpty);
-        const officialReferenceLineFeatures: Feature<LineString | OlPoint>[] =
-            data.officialReferenceLines
-                .flatMap(({ alignment, publishCandidate }) => {
-                    const tnCandidate = trackNumberCandidates.find(
-                        (tn) => tn.id === publishCandidate.trackNumberId,
-                    );
+        const baseReferenceLineFeatures: Feature<LineString | OlPoint>[] = data.baseReferenceLines
+            .flatMap(({ alignment, publishCandidate }) => {
+                const tnCandidate = trackNumberCandidates.find(
+                    (tn) => tn.id === publishCandidate.trackNumberId,
+                );
 
-                    return createOfficialReferenceLineFeatures(
-                        publishCandidate,
-                        alignment,
-                        tnCandidate,
-                        showEndPointTicks,
-                    );
-                })
-                .filter(filterNotEmpty);
+                return createBaseReferenceLineFeatures(
+                    publishCandidate,
+                    alignment,
+                    tnCandidate,
+                    showEndPointTicks,
+                );
+            })
+            .filter(filterNotEmpty);
 
         return [
-            ...locationTrackAlignmentFeatures,
-            ...referenceLineAlignmentFeatures,
-            ...trackNumberAlignmentFeatures,
-            ...switchFeatures,
-            ...kmPostFeatures,
-            ...officialLocationTrackFeatures,
-            ...officialReferenceLineFeatures,
+            ...candidateLocationTrackAlignmentFeatures,
+            ...candidateReferenceLineAlignmentFeatures,
+            ...candidateTrackNumberAlignmentFeatures,
+            ...candidateSwitchFeatures,
+            ...candidateKmPostFeatures,
+            ...baseLocationTrackFeatures,
+            ...baseReferenceLineFeatures,
         ];
     };
 
     const allData = Promise.all([
-        locationTrackAlignmentPromise,
-        referenceLineAlignmentPromise,
-        officialLocationTrackAlignmentsPromise,
-        officialReferenceLineLineAlignmentsPromise,
+        candidateLocationTrackAlignmentPromise,
+        candidateReferenceLineAlignmentPromise,
+        baseLocationTrackAlignmentsPromise,
+        baseReferenceLineLineAlignmentsPromise,
     ]).then(
         ([
-            locationTrackCandidates,
-            trackNumberAndReferenceLineCandidates,
-            officialLocationTracks,
-            officialReferenceLines,
+            candidateLocationTracks,
+            candidateTrackNumbersAndReferenceLines,
+            baseLocationTracks,
+            baseReferenceLines,
         ]) => {
-            const { trackNumberCandidates, referenceLineCandidates } =
-                trackNumberAndReferenceLineCandidates;
+            const { candidateTrackNumbers, candidateReferenceLines } =
+                candidateTrackNumbersAndReferenceLines;
 
             return {
-                locationTrackCandidates,
-                trackNumberCandidates,
-                referenceLineCandidates,
-                officialLocationTracks,
-                officialReferenceLines,
+                candidateLocationTracks,
+                candidateTrackNumbers,
+                candidateReferenceLines,
+                baseLocationTracks,
+                baseReferenceLines,
             };
         },
     );

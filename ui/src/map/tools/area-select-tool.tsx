@@ -114,7 +114,7 @@ export function createAreaSelectTool(
             });
 
             tooltipDraw.on('drawend', function () {
-                if (currentBoundingBox !== undefined && onSelect != undefined) {
+                if (currentBoundingBox !== undefined && onSelect !== undefined) {
                     const items = getItemsFromLayers(currentBoundingBox, layers);
                     onSelect(items, mode);
                 }
