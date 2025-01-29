@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -8,6 +9,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.util.LayoutAssetTable
@@ -268,6 +270,12 @@ class LayoutTrackNumberDao(
             // Ensure that the result contains all asked-for numbers, even if there are no matches
             numbers.associateWith { n -> found.filter { (number, _) -> number == n }.map { (_, v) -> v } }
         }
+    }
+
+    @Transactional
+    fun savePlanItemId(id: IntId<LayoutTrackNumber>, branch: DesignBranch, planItemId: RatkoPlanItemId) {
+        jdbcTemplate.setUser()
+        savePlanItemIdInExistingTransaction(branch, id, planItemId)
     }
 
     @Transactional

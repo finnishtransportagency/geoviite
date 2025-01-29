@@ -27,8 +27,8 @@ export const InfraModelDownloadButton = React.forwardRef<
             preLoadedPlanHeader
                 ? Promise.resolve(preLoadedPlanHeader)
                 : planId
-                  ? getGeometryPlanHeader(planId)
-                  : undefined,
+                ? getGeometryPlanHeader(planId)
+                : undefined,
         [planId, preLoadedPlanHeader],
     );
 
@@ -37,7 +37,7 @@ export const InfraModelDownloadButton = React.forwardRef<
             <Button
                 icon={Icons.Download}
                 onClick={() => {
-                    if (planHeader != undefined) {
+                    if (planHeader !== undefined) {
                         if (planHeader.source === 'PAIKANNUSPALVELU') {
                             setConfirmVisible(true);
                         } else {

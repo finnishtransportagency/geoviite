@@ -157,7 +157,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     const sortedPublicationEntries =
         sortInfo && sortInfo.direction !== SortDirection.UNSORTED
             ? [...publicationTableEntries].sort(
-                  sortInfo.direction == SortDirection.ASCENDING
+                  sortInfo.direction === SortDirection.ASCENDING
                       ? sortInfo.function
                       : negComparator(sortInfo.function),
               )

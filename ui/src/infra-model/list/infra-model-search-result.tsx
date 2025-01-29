@@ -37,8 +37,8 @@ function toggleSortOrder(
             sortOrder === undefined
                 ? GeometrySortOrder.ASCENDING
                 : sortOrder === GeometrySortOrder.ASCENDING
-                  ? GeometrySortOrder.DESCENDING
-                  : undefined;
+                ? GeometrySortOrder.DESCENDING
+                : undefined;
 
         return {
             sortBy: o ? sortBy : GeometrySortBy.NO_SORTING,
@@ -71,7 +71,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
             return;
         }
         getGeometryPlanLinkingSummaries(newPlans).then((plansAndSummaries) => {
-            if (plansAndSummaries == undefined) {
+            if (plansAndSummaries === undefined) {
                 return;
             }
             setLinkingSummaries((currentLinkingSummaries) => {
@@ -99,7 +99,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     }
 
     function getSortingIcon(): IconComponent {
-        return props.searchParams.sortOrder == GeometrySortOrder.ASCENDING
+        return props.searchParams.sortOrder === GeometrySortOrder.ASCENDING
             ? Icons.Ascending
             : Icons.Descending;
     }
@@ -130,7 +130,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                 </div>
             </div>
             <div className="infra-model-list-search-result__table">
-                <Table wide isLoading={props.searchState != 'idle'}>
+                <Table wide isLoading={props.searchState !== 'idle'}>
                     <thead>
                         <tr>
                             <Th
@@ -157,7 +157,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.FILE_NAME
+                                    props.searchParams.sortBy === GeometrySortBy.FILE_NAME
                                         ? getSortingIcon()
                                         : undefined
                                 }
@@ -168,7 +168,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.TRACK_NUMBER
+                                    props.searchParams.sortBy === GeometrySortBy.TRACK_NUMBER
                                         ? getSortingIcon()
                                         : undefined
                                 }
@@ -179,7 +179,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.KM_START
+                                    props.searchParams.sortBy === GeometrySortBy.KM_START
                                         ? getSortingIcon()
                                         : undefined
                                 }
@@ -190,7 +190,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.KM_END
+                                    props.searchParams.sortBy === GeometrySortBy.KM_END
                                         ? getSortingIcon()
                                         : undefined
                                 }
@@ -201,7 +201,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.PLAN_PHASE
+                                    props.searchParams.sortBy === GeometrySortBy.PLAN_PHASE
                                         ? getSortingIcon()
                                         : undefined
                                 }
@@ -212,7 +212,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.DECISION_PHASE
+                                    props.searchParams.sortBy === GeometrySortBy.DECISION_PHASE
                                         ? getSortingIcon()
                                         : undefined
                                 }
@@ -223,7 +223,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.CREATED_AT
+                                    props.searchParams.sortBy === GeometrySortBy.CREATED_AT
                                         ? getSortingIcon()
                                         : undefined
                                 }
@@ -234,7 +234,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.UPLOADED_AT
+                                    props.searchParams.sortBy === GeometrySortBy.UPLOADED_AT
                                         ? getSortingIcon()
                                         : undefined
                                 }
@@ -245,7 +245,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.LINKED_AT
+                                    props.searchParams.sortBy === GeometrySortBy.LINKED_AT
                                         ? getSortingIcon()
                                         : undefined
                                 }
@@ -256,7 +256,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == GeometrySortBy.LINKED_BY
+                                    props.searchParams.sortBy === GeometrySortBy.LINKED_BY
                                         ? getSortingIcon()
                                         : undefined
                                 }

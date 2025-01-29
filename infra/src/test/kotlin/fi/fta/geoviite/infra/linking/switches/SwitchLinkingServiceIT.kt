@@ -43,6 +43,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -1490,11 +1491,21 @@ constructor(
         // arrangement realistically slightly asymmetric
         val leftSwitchJoints =
             switchStructure.joints.map { joint ->
-                LayoutSwitchJoint(joint.number, Point(-joint.location.x, -joint.location.y * 0.99), null)
+                LayoutSwitchJoint(
+                    joint.number,
+                    SwitchJointRole.of(switchStructure, joint.number),
+                    Point(-joint.location.x, -joint.location.y * 0.99),
+                    null,
+                )
             }
         val rightSwitchJoints =
             switchStructure.joints.map { joint ->
-                LayoutSwitchJoint(joint.number, Point(joint.location.x, joint.location.y), null)
+                LayoutSwitchJoint(
+                    joint.number,
+                    SwitchJointRole.of(switchStructure, joint.number),
+                    Point(joint.location.x, joint.location.y),
+                    null,
+                )
             }
 
         val leftSwitch =

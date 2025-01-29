@@ -19,8 +19,6 @@ import fi.fta.geoviite.infra.math.rotateAroundPoint
 import fi.fta.geoviite.infra.util.formatForException
 import kotlin.math.abs
 
-class InvalidJointsException(msg: String) : IllegalArgumentException(msg)
-
 enum class SwitchBaseType(val nationality: SwitchNationality = SwitchNationality.FINNISH) {
     // Finnish
     YV,
@@ -224,6 +222,7 @@ interface ISwitchStructure {
     val baseType
         get() = type.parts.baseType
 
+    val endJointNumbers: Set<JointNumber>
     val alignmentJoints: List<SwitchStructureJoint>
     val bbox: BoundingBox
 
@@ -254,8 +253,13 @@ data class SwitchStructureData(
 ) : ISwitchStructure {
     override val data = this
 
+    override val endJointNumbers: Set<JointNumber> by lazy {
+        alignments.flatMap { a -> listOf(a.jointNumbers.first(), a.jointNumbers.last()) }.toSet()
+    }
     override val alignmentJoints: List<SwitchStructureJoint> by lazy {
-        joints.filter { joint -> alignments.any { alignment -> alignment.jointNumbers.contains(joint.number) } }
+        joints
+            .filter { joint -> alignments.any { alignment -> alignment.jointNumbers.contains(joint.number) } }
+            .sortedBy { joint -> joint.number }
     }
 
     override val bbox: BoundingBox by lazy { boundingBoxAroundPoints(joints.map { joint -> joint.location }) }
@@ -263,6 +267,7 @@ data class SwitchStructureData(
     init {
         require(joints.isNotEmpty()) { "Switch structure must have joint points: type=$type" }
         val allJointNumbers = joints.map { j -> j.number }.toSet()
+        require(allJointNumbers.size == joints.size) { "Switch structure joint numbers must be unique" }
         require(allJointNumbers.contains(presentationJointNumber)) {
             "Switch structure must contain the joint point for presentation joint: type=$type presentationJointNumber=$presentationJointNumber allJoints=$allJointNumbers"
         }
@@ -310,9 +315,9 @@ fun calculateSwitchLocationDelta(
 ): SwitchPositionTransformation? {
     val jointPairs =
         joints.mapNotNull { joint ->
-            val matchingStructureJoint =
-                switchStructure.alignmentJoints.find { structureJoint -> joint.number == structureJoint.number }
-            if (matchingStructureJoint != null) Pair(joint, matchingStructureJoint) else null
+            switchStructure.alignmentJoints
+                .find { structureJoint -> joint.number == structureJoint.number }
+                ?.let { match -> joint to match }
         }
 
     if (

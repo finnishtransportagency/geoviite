@@ -33,7 +33,7 @@ const SwitchPanel: React.FC<SwitchPanelProps> = ({
             <ol className={styles['switch-panel__switches']}>
                 {switches.length <= max &&
                     sortedSwitches.map((switchItem) => {
-                        const isSelected = selectedSwitches?.some((p) => p == switchItem.id);
+                        const isSelected = selectedSwitches?.some((p) => p === switchItem.id);
                         return (
                             <li key={switchItem.id}>
                                 <SwitchBadge

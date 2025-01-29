@@ -28,7 +28,7 @@ function createFeatures(
 ): Feature<LineString>[] {
     return alignments
         .flatMap((alignment) => {
-            const duplicate = duplicates.find((duplicate) => duplicate.id == alignment.header.id);
+            const duplicate = duplicates.find((duplicate) => duplicate.id === alignment.header.id);
             const overlappingStartPoint = duplicate?.status.startSplitPoint?.location;
             const overlappingEndPoint = duplicate?.status.endSplitPoint?.location;
             if (
@@ -58,7 +58,7 @@ function createFeatures(
                     const lineString = new LineString(polyline);
                     const feature = new Feature({ geometry: lineString });
 
-                    if (type == 'duplicate') {
+                    if (type === 'duplicate') {
                         if (linkedDuplicates.includes(alignment.header.id)) {
                             feature.setStyle(blueSplitSectionStyle);
                         } else {

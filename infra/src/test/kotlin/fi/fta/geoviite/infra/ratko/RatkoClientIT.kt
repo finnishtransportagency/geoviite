@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoSwitchAsset
@@ -78,7 +79,13 @@ constructor(
         val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
         fakeRatko.hasSwitch(ratkoSwitch(oid))
         val ratkoSwitch = ratkoClient.getSwitchAsset(RatkoOid(oid))
-        return convertToRatkoSwitch(layoutSwitch, Oid(oid), switchStructure, switchOwners.firstOrNull(), ratkoSwitch)
+        return convertToRatkoSwitch(
+            layoutSwitch,
+            MainBranchRatkoExternalId(Oid(oid)),
+            switchStructure,
+            switchOwners.firstOrNull(),
+            ratkoSwitch,
+        )
     }
 
     @Test

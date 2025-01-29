@@ -265,7 +265,7 @@ constructor(
             if (branch is MainBranch) {
                 getInheritedDesignPublicationsFromMainPublication(versions, request) to PublicationRequestIds.empty()
             } else {
-                listOf<PreparedPublicationRequest>() to getInheritedCalculatedChangeIds(versions)
+                listOf<PreparedPublicationRequest>() to getDesignToSelfInheritedChangeIds(versions)
             }
         updateExternalId(branch, request.content + inheritedChangeIds)
         val calculatedChanges = calculatedChangesService.getCalculatedChanges(versions)
@@ -363,13 +363,25 @@ constructor(
             splits = listOf(),
         )
 
-    fun getInheritedCalculatedChangeIds(versions: ValidationVersions): PublicationRequestIds {
-        val indirectChanges = calculatedChangesService.getCalculatedChanges(versions).indirectChanges
+    fun getDesignToSelfInheritedChangeIds(versions: ValidationVersions): PublicationRequestIds {
+        val changes = calculatedChangesService.getCalculatedChanges(versions)
+        val indirectChanges = changes.indirectChanges
+        val switchChangesBySameKmLocationTrackChange =
+            (changes.directChanges.locationTrackChanges + changes.indirectChanges.locationTrackChanges)
+                .flatMap { locationTrackChange ->
+                    calculatedChangesService.getChangedSwitchesFromChangedLocationTrackKms(
+                        versions,
+                        locationTrackChange,
+                    )
+                }
+                .distinct()
         return PublicationRequestIds(
             trackNumbers = indirectChanges.trackNumberChanges.map { it.trackNumberId },
             referenceLines = listOf(),
             locationTracks = indirectChanges.locationTrackChanges.map { it.locationTrackId },
-            switches = indirectChanges.switchChanges.map { it.switchId },
+            switches =
+                (indirectChanges.switchChanges.map { it.switchId } + switchChangesBySameKmLocationTrackChange)
+                    .distinct(),
             kmPosts = listOf(),
         )
     }

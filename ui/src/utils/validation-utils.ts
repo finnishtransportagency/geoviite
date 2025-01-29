@@ -29,7 +29,7 @@ export function isPropEditFieldCommitted<T, TKey extends keyof T>(
     return (
         propEdit.editingExistingValue ||
         (!committedFields.includes(propEdit.key) &&
-            !validationIssues.some((issue) => issue.field == propEdit.key))
+            !validationIssues.some((issue) => issue.field === propEdit.key))
     );
 }
 

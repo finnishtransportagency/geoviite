@@ -231,7 +231,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                 ) {
                     const switches = splitInitializationParameters?.switches || [];
                     const getSwitchName = (switchId: LayoutSwitchId) =>
-                        switches.find((sw) => sw.switchId == switchId)?.name;
+                        switches.find((sw) => sw.switchId === switchId)?.name;
                     const endPointTerm = t('tool-panel.location-track.splitting.endpoint');
                     const noNameErrorTerm = 'ERROR: no name';
                     const startSplitPointName =

@@ -1,13 +1,14 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.FullRatkoExternalId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.publication.PublishedSwitch
+import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
@@ -40,7 +41,7 @@ constructor(
 ) {
 
     fun pushSwitchChangesToRatko(
-        layoutBranch: LayoutBranch,
+        layoutBranch: PushableLayoutBranch,
         publishedSwitches: Collection<PublishedSwitch>,
         publicationTime: Instant,
     ) {
@@ -62,13 +63,20 @@ constructor(
             .forEach { (layoutSwitch, changedJoints) ->
                 try {
                     val externalId =
-                        requireNotNull(switchDao.fetchExternalId(layoutBranch, layoutSwitch.id as IntId)) {
-                            "OID required for switch, sw=${layoutSwitch.id}"
-                        }
-                    ratkoClient.getSwitchAsset(RatkoOid<RatkoSwitchAsset>(externalId))?.also { existingRatkoSwitch ->
+                        getOrCreateFullExternalId(
+                            layoutBranch,
+                            layoutSwitch.id as IntId,
+                            ratkoClient,
+                            switchDao::fetchExternalId,
+                            switchDao::savePlanItemId,
+                        )
+                    requireNotNull(externalId) { "OID required for switch, sw=${layoutSwitch.id}" }
+                    ratkoClient.getSwitchAsset(RatkoOid<RatkoSwitchAsset>(externalId.oid))?.also { existingRatkoSwitch
+                        ->
                         updateSwitch(
-                            layoutBranch = layoutBranch,
+                            layoutBranch = layoutBranch.branch,
                             layoutSwitch = layoutSwitch,
+                            layoutSwitchExternalId = externalId,
                             existingRatkoSwitch = existingRatkoSwitch,
                             jointChanges = changedJoints,
                             moment = publicationTime,
@@ -88,15 +96,14 @@ constructor(
     private fun updateSwitch(
         layoutBranch: LayoutBranch,
         layoutSwitch: LayoutSwitch,
+        layoutSwitchExternalId: FullRatkoExternalId<LayoutSwitch>,
         existingRatkoSwitch: RatkoSwitchAsset,
         jointChanges: List<SwitchJointChange>,
         moment: Instant,
     ) {
         try {
             require(layoutSwitch.id is IntId) { "Cannot push draft switches to Ratko, $layoutSwitch" }
-            val externalId = switchDao.fetchExternalId(layoutBranch, layoutSwitch.id)
-            requireNotNull(externalId) { "Cannot update switch without oid, id=${layoutSwitch.id}" }
-            val switchOid = RatkoOid<RatkoSwitchAsset>(externalId)
+            val switchOid = RatkoOid<RatkoSwitchAsset>(layoutSwitchExternalId.oid)
 
             val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
             val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
@@ -104,7 +111,7 @@ constructor(
             val updatedRatkoSwitch =
                 convertToRatkoSwitch(
                     layoutSwitch = layoutSwitch,
-                    layoutSwitchOid = externalId,
+                    layoutSwitchExternalId = layoutSwitchExternalId,
                     switchStructure = switchStructure,
                     switchOwner = switchOwner,
                     existingRatkoSwitch = existingRatkoSwitch,
@@ -248,7 +255,7 @@ constructor(
 
     private fun createSwitch(
         layoutSwitch: LayoutSwitch,
-        layoutSwitchOid: Oid<LayoutSwitch>?,
+        layoutSwitchExternalId: FullRatkoExternalId<LayoutSwitch>?,
         jointChanges: List<SwitchJointChange>,
     ) {
         try {
@@ -258,7 +265,7 @@ constructor(
             val ratkoSwitch =
                 convertToRatkoSwitch(
                     layoutSwitch = layoutSwitch,
-                    layoutSwitchOid = layoutSwitchOid,
+                    layoutSwitchExternalId = layoutSwitchExternalId,
                     switchStructure = switchStructure,
                     switchOwner = switchOwner,
                 )

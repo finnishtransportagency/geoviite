@@ -81,7 +81,7 @@ function getSnapOverChart(
     fileName?: string;
 } {
     const closest = closestGeometrySnapPoint(xCoordinateM, geometry, drawTangents);
-    if (closest == undefined || !withinSnapDistance(closest.m)) {
+    if (closest === undefined || !withinSnapDistance(closest.m)) {
         const approximated = approximatedPoint(xCoordinateM);
         return {
             snapTarget: 'didNotSnap',
@@ -122,7 +122,7 @@ export function getSnappedPoint(
 
     const approximatedPoint = (maybeApproximateM: number) => {
         const kmIndex = findTrackMeterIndexContainingM(maybeApproximateM, trackKmHeights);
-        if (kmIndex == undefined) {
+        if (kmIndex === undefined) {
             return undefined;
         }
         const height = approximateHeightAt(maybeApproximateM, kmIndex, trackKmHeights);
@@ -147,7 +147,7 @@ export function getSnappedPoint(
                   drawTangentArrows,
               );
 
-    if (height == undefined || address == undefined) {
+    if (height === undefined || address === undefined) {
         return undefined;
     }
 
@@ -170,7 +170,7 @@ function toGeometrySnapPoint(
     stationPoint: StationPoint,
     type: 'intersectionPoint' | 'endPoint',
 ) {
-    return stationPoint.address == undefined
+    return stationPoint.address === undefined
         ? undefined
         : {
               m: stationPoint.station,
@@ -180,6 +180,7 @@ function toGeometrySnapPoint(
               type,
           };
 }
+
 function closestGeometrySnapPoint(
     m: number,
     geometry: VerticalGeometryDiagramDisplayItem[],
@@ -199,7 +200,7 @@ function closestGeometrySnapPoint(
         ].filter(filterNotEmpty),
     );
     const minIndex = minimumIndexBy(allGeometryPoints, (snapPoint) => Math.abs(m - snapPoint.m));
-    return minIndex == undefined ? undefined : allGeometryPoints[minIndex];
+    return minIndex === undefined ? undefined : allGeometryPoints[minIndex];
 }
 
 function closestRulerTickM(m: number, trackKmHeights: TrackKmHeights[]) {

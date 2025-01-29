@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
+import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransfer
@@ -39,6 +40,7 @@ import org.mockserver.configuration.Configuration
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
 import org.mockserver.matchers.Times
+import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
@@ -74,17 +76,14 @@ class FakeRatko(port: Int) {
         get("/api/versions/v1.0/version").withId("version-check").respond(HttpResponse.response().withStatusCode(500))
     }
 
-    fun acceptsNewPlansGivingThemIds(ids: List<Int>) {
-        ids.forEach { id -> post("/api/plan/v1.0/plans", times = Times.once()).respond(okJson(mapOf("id" to id))) }
-    }
-
     fun acceptsNewRouteNumbersGivingThemOids(oids: List<String>) {
         patch("/api/infra/v1.0/routenumbers/geom", oids).respond(ok())
 
         oids.forEach { oid ->
             post("/api/infra/v1.0/routenumber/points/$oid").respond(ok())
             post("/api/infra/v1.0/routenumbers", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
-            post("/api/infra/v1.0/routenumbers", times = Times.once()).respond(okJson(mapOf("id" to oid)))
+            post("/api/infra/v1.0/routenumbers", mapOf<String, String>(), MatchType.STRICT, times = Times.once())
+                .respond(okJson(mapOf("id" to oid)))
         }
     }
 
@@ -186,6 +185,22 @@ class FakeRatko(port: Int) {
         val response = BulkTransferResponse(id = bulkTransferId, state = bulkTransferState)
         get("/api/split/bulk-transfer/$bulkTransferId/state").respond(okJson(response))
     }
+
+    fun acceptsNewDesignGivingItId(id: Int) {
+        post("/api/plan/v1.0/plans", times = Times.once()).respond(respondWithSameDesign(id))
+        put("/api/plan/v1.0/plans/$id").respond(respondWithSameDesign(id))
+    }
+
+    fun providesPlanItemIdsInDesign(id: Int) {
+        var planItemIdSeq = 0
+        post("/api/plan/v1.0/plans/$id/plan_items").respond(okJson(mapOf("id" to planItemIdSeq++, "planId" to id)))
+    }
+
+    fun getUpdatesToDesign(id: Int): List<RatkoPlan> =
+        mockServer.retrieveRecordedRequests(request().withPath("/api/plan/v1.0/plans/$id").withMethod("PUT")).map { req
+            ->
+            jsonMapper.readValue(req.bodyAsString)
+        }
 
     // return deleted route number kms, or an empty string if all of a route number points were
     // deleted
@@ -308,6 +323,12 @@ class FakeRatko(port: Int) {
             request ->
             request.path.toString().substring("/api/$urlInfix/$oid".length).dropWhile { it == '/' }
         }
+
+    private fun respondWithSameDesign(id: Int): (request: HttpRequest) -> HttpResponse = { request: HttpRequest ->
+        val planJson = jsonMapper.readTree(request.bodyAsString) as ObjectNode
+        planJson.put("id", id)
+        okJson(planJson)
+    }
 
     private fun get(url: String, times: Times? = null): ForwardChainExpectation =
         expectation(url, "GET", null, null, times)

@@ -34,7 +34,7 @@ globalThis.setDebugLayerData = (data: DebugLayerPoint[]) => {
 function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
     return points
         .flatMap((point) => {
-            if (point.type == 'point') {
+            if (point.type === 'point') {
                 const feature = new Feature({
                     geometry: new OlPoint(pointToCoords(point)),
                 });

@@ -38,6 +38,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -553,7 +554,12 @@ constructor(
                         name = "TV123",
                         joints =
                             listOf(
-                                LayoutSwitchJoint(JointNumber(1), location = Point(0.0, 0.0), locationAccuracy = null)
+                                LayoutSwitchJoint(
+                                    number = JointNumber(1),
+                                    role = SwitchJointRole.MAIN,
+                                    location = Point(0.0, 0.0),
+                                    locationAccuracy = null,
+                                )
                             ),
                         structureId = switchStructureYV60_300_1_9().id as IntId,
                         stateCategory = LayoutStateCategory.EXISTING,
@@ -968,7 +974,7 @@ constructor(
                     LayoutBranch.main,
                     switch(
                         name = "TV123",
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null)),
                         structureId =
                             switchStructureDao
                                 .fetchSwitchStructures()
@@ -1036,7 +1042,7 @@ constructor(
                     LayoutBranch.main,
                     switch(
                         name = "TV123",
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null)),
                         structureId = switchStructureYV60_300_1_9().id as IntId,
                         stateCategory = LayoutStateCategory.EXISTING,
                         draft = true,
@@ -1622,9 +1628,9 @@ constructor(
                         name = "some switch",
                         joints =
                             listOf(
-                                LayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null),
-                                LayoutSwitchJoint(JointNumber(2), Point(34.4, 0.0), null),
-                                LayoutSwitchJoint(JointNumber(3), Point(34.3, 2.0), null),
+                                LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null),
+                                LayoutSwitchJoint(JointNumber(2), SwitchJointRole.CONNECTION, Point(34.4, 0.0), null),
+                                LayoutSwitchJoint(JointNumber(3), SwitchJointRole.CONNECTION, Point(34.3, 2.0), null),
                             ),
                     )
                 )

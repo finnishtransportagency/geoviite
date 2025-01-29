@@ -102,7 +102,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
-        React.useState<boolean>(state.kmPost?.state == 'DELETED');
+        React.useState<boolean>(state.kmPost?.state === 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
     const trackNumbers = useTrackNumbersIncludingDeleted(
@@ -209,7 +209,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     function getVisibleErrorsByProp(prop: keyof KmPostEditFields) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationIssues
-                  .filter((issue) => issue.field == prop && issue.type === 'ERROR')
+                  .filter((issue) => issue.field === prop && issue.type === 'ERROR')
                   .map((issue) => t(`km-post-dialog.${issue.reason}`))
             : [];
     }
@@ -217,7 +217,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     function getVisibleWarningsByProp(prop: keyof KmPostEditFields) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationIssues
-                  .filter((issue) => issue.field == prop && issue.type === 'WARNING')
+                  .filter((issue) => issue.field === prop && issue.type === 'WARNING')
                   .map((issue) => t(`km-post-dialog.${issue.reason}`))
             : [];
     }
@@ -336,8 +336,8 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                     wide
                                     searchable
                                     disabled={
-                                        props.prefilledTrackNumberId != undefined ||
-                                        props.kmPostId != undefined
+                                        props.prefilledTrackNumberId !== undefined ||
+                                        props.kmPostId !== undefined
                                     }
                                 />
                             }

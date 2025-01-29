@@ -110,10 +110,11 @@ export const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(
 
 const splitTrackMeterIntoComponents = (trackMeterString: string) => {
     const components = trackMeterString.match(TRACK_METER_REGEX);
+    
     return {
-        kms: components && components[1]?.padStart(4, '0'),
-        letters: components && components[2],
-        meters: components && components[3],
+        kms: components?.[1]?.padStart(4, '0'),
+        letters: components?.[2],
+        meters: components?.[3],
     };
 };
 

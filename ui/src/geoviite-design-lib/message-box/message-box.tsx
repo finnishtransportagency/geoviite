@@ -21,7 +21,7 @@ export const MessageBox: React.FC<MessageBoxProps> = ({
 
     const classes = createClassName(
         styles['message-box'],
-        pop != undefined && styles['message-box--poppable'],
+        pop !== undefined && styles['message-box--poppable'],
         pop && styles['message-box--popped'],
         showingError && styles['message-box--error'],
     );

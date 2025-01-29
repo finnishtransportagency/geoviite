@@ -68,7 +68,7 @@ export const LocationTrackTaskListContainer: React.FC = () => {
     }, [layoutContext.branch, layoutContext.publicationState]);
 
     return createPortal(
-        locationTrackList?.type == LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION ? (
+        locationTrackList?.type === LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION ? (
             <SwitchRelinkingValidationTaskList
                 layoutContext={layoutContext}
                 locationTrackId={locationTrackList.locationTrackId}
@@ -105,7 +105,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
             locationTrackId,
         );
         const switchIds = relinkingResults
-            .filter((r) => r.validationIssues.length > 0 || r.successfulSuggestion == null)
+            .filter((r) => r.validationIssues.length > 0 || r.successfulSuggestion === undefined)
             .map((s) => s.id);
         const switches = await getSwitches(switchIds, draftLayoutContext(layoutContext));
 
@@ -119,7 +119,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
 
     const onClick = (layoutSwitch: LayoutSwitch) => {
         const presJointNumber = switchStructures?.find(
-            (s) => s.id == layoutSwitch.switchStructureId,
+            (s) => s.id === layoutSwitch.switchStructureId,
         )?.presentationJointNumber;
 
         const switchLocation = presJointNumber
@@ -130,8 +130,8 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
     };
 
     const loadingInProgress =
-        locationTrackLoadingStatus == LoaderStatus.Loading ||
-        switchesLoadingStatus == LoaderStatus.Loading;
+        locationTrackLoadingStatus === LoaderStatus.Loading ||
+        switchesLoadingStatus === LoaderStatus.Loading;
 
     return (
         <div className={styles['switch-relinking-validation-task-list']}>
@@ -160,9 +160,9 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                         </span>
                         <ul className={styles['switch-relinking-validation-task-list__switches']}>
                             {switches.map((lSwitch) => {
-                                const selected = selectedSwitches.some((sId) => sId == lSwitch.id);
+                                const selected = selectedSwitches.some((sId) => sId === lSwitch.id);
                                 const switchRelinkingResult = relinkingResults?.find(
-                                    (e) => e.id == lSwitch.id,
+                                    (e) => e.id === lSwitch.id,
                                 );
 
                                 const errors =
@@ -207,7 +207,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                         </ul>
                     </React.Fragment>
                 )}
-                {!loadingInProgress && switches && switches.length == 0 && (
+                {!loadingInProgress && switches && switches.length === 0 && (
                     <div
                         className={
                             styles['switch-relinking-validation-task-list__message-container']

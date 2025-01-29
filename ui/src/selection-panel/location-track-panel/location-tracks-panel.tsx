@@ -46,7 +46,7 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
         } else if (sortedLocationTracks.length <= showMoreMax) {
             const indexes =
                 selectedLocationTracks?.map((selectedId) =>
-                    sortedLocationTracks.findIndex((lt) => lt.id == selectedId),
+                    sortedLocationTracks.findIndex((lt) => lt.id === selectedId),
                 ) || [];
 
             if (Math.max(...indexes) >= max) {
@@ -75,7 +75,7 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                 qa-id="location-tracks-list">
                 {visibleTracks.map((track) => {
                     const isSelected = selectedLocationTracks?.some(
-                        (selectedId) => selectedId == track.id,
+                        (selectedId) => selectedId === track.id,
                     );
                     const itemClassName = createClassName(
                         'location-tracks-panel__location-track',

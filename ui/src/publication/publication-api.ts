@@ -262,7 +262,7 @@ export const getPublicationsAsTableItems = (
     sortBy?: PublicationDetailsTableSortField,
     order?: SortDirection,
 ) => {
-    const isSorted = order != SortDirection.UNSORTED;
+    const isSorted = order !== SortDirection.UNSORTED;
 
     const params = queryParams({
         from: from ? from.toISOString() : undefined,
@@ -281,7 +281,7 @@ export const getPublicationsCsvUri = (
     sortBy?: PublicationDetailsTableSortField,
     order?: SortDirection,
 ): string => {
-    const isSorted = order != SortDirection.UNSORTED;
+    const isSorted = order !== SortDirection.UNSORTED;
 
     const params = queryParams({
         from: fromDate ? fromDate.toISOString() : undefined,

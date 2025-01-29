@@ -196,7 +196,7 @@ const infraModelSlice = createSlice({
             );
             if (
                 !state.committedFields.includes(propEdit.key) &&
-                !state.validationIssues.some((error) => error.field == propEdit.key)
+                !state.validationIssues.some((error) => error.field === propEdit.key)
             ) {
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];

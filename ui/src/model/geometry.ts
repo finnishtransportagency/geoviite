@@ -12,6 +12,11 @@ export type Point = {
     y: number;
 };
 
+export type Dimensions = {
+    width: number;
+    height: number;
+};
+
 export type GeometryPoint = Point & {
     srid: Srid;
 };

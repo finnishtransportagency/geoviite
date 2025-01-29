@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.ElementListingFile
 import fi.fta.geoviite.infra.tracklayout.ElementListingFileDao
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -68,6 +69,7 @@ constructor(
     private val planLayoutCache: PlanLayoutCache,
     private val layoutAlignmentDao: LayoutAlignmentDao,
     private val switchService: LayoutSwitchService,
+    private val switchLibraryService: SwitchLibraryService,
     private val heightTriangleDao: HeightTriangleDao,
     private val elementListingFileDao: ElementListingFileDao,
     private val verticalGeometryListingFileDao: VerticalGeometryListingFileDao,
@@ -164,11 +166,16 @@ constructor(
 
     fun getSwitchLayout(switchId: IntId<GeometrySwitch>): LayoutSwitch? {
         val switch = getSwitch(switchId)
-        val srid =
-            geometryDao.getSwitchSrid(switchId)
-                ?: throw IllegalStateException("Coordinate system not found for geometry switch $switchId!")
-        val transformation = coordinateTransformationService.getTransformation(srid, LAYOUT_SRID)
-        return toLayoutSwitch(switch, transformation)
+        val transformation =
+            geometryDao.getSwitchSrid(switchId)?.let { srid ->
+                coordinateTransformationService.getTransformation(srid, LAYOUT_SRID)
+            }
+        val structure = switch.switchStructureId?.let(switchLibraryService::getSwitchStructure)
+        return if (transformation != null && structure != null) {
+            toLayoutSwitch(switch, structure, transformation)
+        } else {
+            null
+        }
     }
 
     fun getKmPost(kmPostId: IntId<GeometryKmPost>): GeometryKmPost {

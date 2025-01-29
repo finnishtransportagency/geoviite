@@ -76,6 +76,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         setShowEditDialog(true);
         onDataChange();
     }
+
     function closeEditLocationTrackDialog() {
         setShowEditDialog(false);
         onDataChange();
@@ -164,7 +165,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 />
             )}
 
-            {layoutContext.branch == 'MAIN' && showRatkoPushDialog && (
+            {layoutContext.branch === 'MAIN' && showRatkoPushDialog && (
                 <LocationTrackRatkoPushDialog
                     layoutContext={layoutContext}
                     locationTrackId={locationTrack.id}

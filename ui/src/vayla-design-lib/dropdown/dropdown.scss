@@ -162,7 +162,6 @@ $dropdown-border-error: 2px;
     @include shadows.shadow-8dp;
     position: absolute;
     z-index: layers.$layer-popup;
-    margin-top: 2px;
     max-height: 270px;
     border-radius: 4px;
     background: colors.$color-white-default;

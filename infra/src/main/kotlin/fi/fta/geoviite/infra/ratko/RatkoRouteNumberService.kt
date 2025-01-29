@@ -1,16 +1,17 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.FullRatkoExternalId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.publication.PublishedTrackNumber
+import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
 import fi.fta.geoviite.infra.ratko.model.RatkoNodes
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
@@ -34,13 +35,10 @@ constructor(
 ) {
 
     fun pushTrackNumberChangesToRatko(
-        branch: LayoutBranch,
+        branch: PushableLayoutBranch,
         publishedTrackNumbers: Collection<PublishedTrackNumber>,
         publicationTime: Instant,
     ): List<Oid<LayoutTrackNumber>> {
-        // TODO: Design branches not yet supported. We need to ensure that design tracknumbers have
-        // own OIDs -> could we rely on tracknumber.branch instead of arg?
-        assertMainBranch(branch)
         return publishedTrackNumbers
             .groupBy { it.id }
             .map { (_, trackNumbers) ->
@@ -50,33 +48,38 @@ constructor(
             .sortedBy { sortByDeletedStateFirst(it.first.state) }
             .map { (trackNumber, changedKmNumbers) ->
                 val externalId =
-                    requireNotNull(trackNumberDao.fetchExternalId(branch, trackNumber.id as IntId)) {
-                        "OID required for track number, tn=${trackNumber.id}"
-                    }
+                    getOrCreateFullExternalId(
+                        branch,
+                        trackNumber.id as IntId,
+                        ratkoClient,
+                        trackNumberDao::fetchExternalId,
+                        trackNumberDao::savePlanItemId,
+                    )
+                requireNotNull(externalId) { "OID required for track number, tn=${trackNumber.id}" }
                 try {
-                    ratkoClient.getRouteNumber(RatkoOid(externalId))?.let { existingRouteNumber ->
+                    ratkoClient.getRouteNumber(RatkoOid(externalId.oid))?.let { existingRouteNumber ->
                         if (trackNumber.state == LayoutState.DELETED) {
                             deleteRouteNumber(trackNumber, externalId, existingRouteNumber)
                         } else {
                             updateRouteNumber(
-                                branch = branch,
+                                branch = branch.branch,
                                 existingRatkoRouteNumber = existingRouteNumber,
                                 trackNumber = trackNumber,
-                                trackNumberOid = externalId,
+                                trackNumberExternalId = externalId,
                                 moment = publicationTime,
                                 changedKmNumbers = changedKmNumbers,
                             )
                         }
                     }
                         ?: if (trackNumber.state != LayoutState.DELETED) {
-                            createRouteNumber(branch, trackNumber, externalId, publicationTime)
+                            createRouteNumber(branch.branch, trackNumber, externalId, publicationTime)
                         } else {
                             null
                         }
                 } catch (ex: RatkoPushException) {
                     throw RatkoTrackNumberPushException(ex, trackNumber)
                 }
-                externalId
+                externalId.oid
             }
     }
 
@@ -88,16 +91,16 @@ constructor(
 
     private fun deleteRouteNumber(
         trackNumber: LayoutTrackNumber,
-        trackNumberOid: Oid<LayoutTrackNumber>,
+        trackNumberExternalId: FullRatkoExternalId<LayoutTrackNumber>,
         existingRatkoRouteNumber: RatkoRouteNumber,
     ) {
         try {
             val deletedEndsPoints =
                 existingRatkoRouteNumber.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
 
-            updateRouteNumberProperties(trackNumber, trackNumberOid, deletedEndsPoints)
+            updateRouteNumberProperties(trackNumber, trackNumberExternalId, deletedEndsPoints)
 
-            val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumberOid)
+            val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumberExternalId.oid)
             ratkoClient.deleteRouteNumberPoints(routeNumberOid, null)
         } catch (ex: RatkoPushException) {
             throw ex
@@ -109,7 +112,7 @@ constructor(
     private fun updateRouteNumber(
         branch: LayoutBranch,
         trackNumber: LayoutTrackNumber,
-        trackNumberOid: Oid<LayoutTrackNumber>,
+        trackNumberExternalId: FullRatkoExternalId<LayoutTrackNumber>,
         existingRatkoRouteNumber: RatkoRouteNumber,
         moment: Instant,
         changedKmNumbers: Set<KmNumber>,
@@ -124,7 +127,7 @@ constructor(
             val existingStartNode = existingRatkoRouteNumber.nodecollection?.getStartNode()
             val existingEndNode = existingRatkoRouteNumber.nodecollection?.getEndNode()
 
-            val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumberOid)
+            val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumberExternalId.oid)
             val endPointNodeCollection =
                 getEndPointNodeCollection(
                     alignmentAddresses = addresses,
@@ -134,9 +137,8 @@ constructor(
                 )
 
             // Update route number end points before deleting anything, otherwise old end points
-            // will
-            // stay in use
-            updateRouteNumberProperties(trackNumber, trackNumberOid, endPointNodeCollection)
+            // will stay in use
+            updateRouteNumberProperties(trackNumber, trackNumberExternalId, endPointNodeCollection)
 
             deleteRouteNumberPoints(routeNumberOid, changedKmNumbers)
 
@@ -165,7 +167,7 @@ constructor(
     private fun createRouteNumber(
         branch: LayoutBranch,
         trackNumber: LayoutTrackNumber,
-        trackNumberOid: Oid<LayoutTrackNumber>,
+        trackNumberOid: FullRatkoExternalId<LayoutTrackNumber>,
         moment: Instant,
     ) {
         try {
@@ -199,13 +201,13 @@ constructor(
 
     private fun updateRouteNumberProperties(
         trackNumber: LayoutTrackNumber,
-        trackNumberOid: Oid<LayoutTrackNumber>,
+        trackNumberExternalId: FullRatkoExternalId<LayoutTrackNumber>,
         nodeCollection: RatkoNodes? = null,
     ) {
         val ratkoRouteNumber =
             convertToRatkoRouteNumber(
                 trackNumber = trackNumber,
-                trackNumberOid = trackNumberOid,
+                trackNumberExternalId = trackNumberExternalId,
                 nodeCollection = nodeCollection,
             )
         ratkoClient.updateRouteNumber(ratkoRouteNumber)

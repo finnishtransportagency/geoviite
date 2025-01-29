@@ -59,13 +59,14 @@
 
     &__design-name {
         display: inline-block;
-        max-width: 12em;
+        max-width: 20em;
         text-overflow: ellipsis;
         overflow-x: hidden;
         vertical-align: text-bottom;
     }
 
     &__design-tab-actions {
+        align-self: stretch;
         display: flex;
         align-items: center;
         margin-left: 4px;
@@ -73,6 +74,16 @@
 }
 
 .tool-bar__tab-content {
+    align-self: stretch;
     display: flex;
     align-items: center;
+}
+
+.tool-bar__design-select-button {
+    align-self: stretch;
+    height: auto;
+}
+
+.workspace-selection {
+    width: 300px;
 }

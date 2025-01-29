@@ -262,7 +262,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             )}
             {actionMenuVisible && (
                 <Menu
-                    positionRef={actionMenuRef}
+                    anchorElementRef={actionMenuRef}
                     items={menuOptions}
                     onClickOutside={() => setActionMenuVisible(false)}
                     onClose={() => setActionMenuVisible(false)}

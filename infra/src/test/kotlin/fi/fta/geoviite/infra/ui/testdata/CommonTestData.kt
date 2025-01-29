@@ -51,6 +51,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -174,6 +175,7 @@ fun layoutSwitch(name: String, jointPoints: List<Point>, switchStructure: Switch
 fun switchJoint(location: Point) =
     LayoutSwitchJoint(
         number = JointNumber(1),
+        role = SwitchJointRole.MAIN,
         location = location,
         locationAccuracy = getSomeNullableValue<LocationAccuracy>(1),
     )

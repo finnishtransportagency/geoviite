@@ -371,7 +371,7 @@ function createPointTagFeature(
     pointType: 'layout' | 'geometry',
 ): Feature<OlPoint> {
     const color =
-        pointType == 'geometry'
+        pointType === 'geometry'
             ? mapStyles.selectedGeometryAlignmentInterval
             : mapStyles.selectedLayoutAlignmentInterval;
 
@@ -379,7 +379,7 @@ function createPointTagFeature(
         geometry: new OlPoint(pointToCoords(point)),
     });
 
-    const showAtLeftSide = pointType == 'geometry';
+    const showAtLeftSide = pointType === 'geometry';
     const rotationByPointDirection = point.direction ? -point.direction + Math.PI / 2 : 0;
     const rotation = rotationByPointDirection + (showAtLeftSide ? Math.PI : 0);
 
@@ -738,7 +738,7 @@ async function getLinkPointsWithAddresses<
     T extends LinkPointContainer,
     TPropertyName extends keyof T,
 >(layoutContext: LayoutContext, layoutAlignment: LayoutAlignmentTypeAndId, points: T): Promise<T> {
-    const trackNumberId = await (layoutAlignment.type == 'LOCATION_TRACK'
+    const trackNumberId = await (layoutAlignment.type === 'LOCATION_TRACK'
         ? getLocationTrack(layoutAlignment.id, draftLayoutContext(layoutContext)).then(
               (locationTrack) => locationTrack?.trackNumberId,
           )
@@ -754,7 +754,7 @@ async function getLinkPointsWithAddresses<
     const promises = propertyNames
         .map((propertyName: TPropertyName) => {
             const originalPoint = points[propertyName];
-            return originalPoint != undefined
+            return originalPoint !== undefined
                 ? // This is commented out for now to re-evaluate the linking tag feature
                   //getAddress(trackNumberId, originalPoint, 'DRAFT')
                   Promise.resolve(undefined).then((address) => ({

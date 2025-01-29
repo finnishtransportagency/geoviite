@@ -1,9 +1,11 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.integration.AllOids
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
@@ -16,16 +18,26 @@ import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.publication.Operation
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationDetails
 import fi.fta.geoviite.infra.publication.PublicationLogService
+import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.publication.PublishedSwitch
+import fi.fta.geoviite.infra.ratko.model.PushableDesignBranch
+import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
+import fi.fta.geoviite.infra.ratko.model.PushableMainBranch
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
+import fi.fta.geoviite.infra.ratko.model.existingRatkoPlan
+import fi.fta.geoviite.infra.ratko.model.newRatkoPlan
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -68,6 +80,8 @@ constructor(
     private val lockDao: LockDao,
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
     private val splitService: SplitService,
+    private val publicationDao: PublicationDao,
+    private val layoutDesignDao: LayoutDesignDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(120)
@@ -79,9 +93,14 @@ constructor(
         }
     }
 
-    fun pushChangesToRatko(layoutBranch: LayoutBranch) {
-        assertMainBranch(layoutBranch)
+    fun pushDesignChangesToRatko() {
+        layoutDesignDao
+            .list()
+            .filter { design -> layoutDesignDao.designHasPublications(design.id as IntId) }
+            .forEach { design -> pushChangesToRatko(DesignBranch.of(design.id as IntId)) }
+    }
 
+    fun pushChangesToRatko(layoutBranch: LayoutBranch) {
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
 
             // Kill off any pushes that have been stuck for too long, as it's likely failed and
@@ -180,6 +199,7 @@ constructor(
         extIdsProvided: AllOids?,
     ) {
         assertMainBranch(branch)
+        val pushableBranch = PushableMainBranch
         val extIds = extIdsProvided ?: calculatedChangesService.getAllOids(branch)
 
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
@@ -236,7 +256,7 @@ constructor(
 
             val pushedLocationTrackOids =
                 ratkoLocationTrackService.pushLocationTrackChangesToRatko(
-                    branch,
+                    pushableBranch,
                     publishedLocationTrackChanges,
                     latestPublicationMoment,
                 )
@@ -247,7 +267,7 @@ constructor(
                         changedJoints = switchChange.changedJoints.distinctBy { changedJoint -> changedJoint.number }
                     )
                 }
-            ratkoAssetService.pushSwitchChangesToRatko(branch, distinctJoints, latestPublicationMoment)
+            ratkoAssetService.pushSwitchChangesToRatko(pushableBranch, distinctJoints, latestPublicationMoment)
 
             try {
                 ratkoLocationTrackService.forceRedraw(
@@ -272,22 +292,27 @@ constructor(
 
         val lastPublicationTime = publications.maxOf { it.publicationTime }
         try {
+            val pushableBranch =
+                if (layoutBranch is DesignBranch) {
+                    updatePlan(layoutBranch, publications)
+                } else PushableMainBranch
+
             val pushedRouteNumberOids =
                 ratkoRouteNumberService.pushTrackNumberChangesToRatko(
-                    layoutBranch,
+                    pushableBranch,
                     publications.flatMap { it.allPublishedTrackNumbers },
                     lastPublicationTime,
                 )
 
             val pushedLocationTrackOids =
                 ratkoLocationTrackService.pushLocationTrackChangesToRatko(
-                    layoutBranch,
+                    pushableBranch,
                     publications.flatMap { it.allPublishedLocationTracks },
                     lastPublicationTime,
                 )
 
             pushSwitchChanges(
-                layoutBranch = layoutBranch,
+                layoutBranch = pushableBranch,
                 publishedSwitches = publications.flatMap { it.allPublishedSwitches },
                 publishedLocationTracks = publications.flatMap { it.allPublishedLocationTracks },
                 publicationTime = lastPublicationTime,
@@ -356,7 +381,7 @@ constructor(
     }
 
     private fun pushSwitchChanges(
-        layoutBranch: LayoutBranch,
+        layoutBranch: PushableLayoutBranch,
         publishedSwitches: Collection<PublishedSwitch>,
         publishedLocationTracks: List<PublishedLocationTrack>,
         publicationTime: Instant,
@@ -370,14 +395,14 @@ constructor(
             publishedLocationTracks
                 .flatMap { locationTrack ->
                     getSwitchChangesByLocationTrack(
-                        layoutBranch = layoutBranch,
+                        layoutBranch = layoutBranch.branch,
                         locationTrackId = locationTrack.id,
                         filterByKmNumbers = locationTrack.changedKmNumbers,
                         moment = publicationTime,
                         extIds = extIds,
                     )
                 }
-                .map { switchChange -> toFakePublishedSwitch(layoutBranch, switchChange, publicationTime) }
+                .map { switchChange -> toFakePublishedSwitch(layoutBranch.branch, switchChange, publicationTime) }
 
         val switchChanges = publishedSwitches + locationTrackSwitchChanges
         ratkoAssetService.pushSwitchChangesToRatko(layoutBranch, switchChanges, publicationTime)
@@ -390,17 +415,13 @@ constructor(
         moment: Instant,
         extIds: AllOids,
     ) =
-        calculatedChangesService
-            .getAllSwitchChangesByLocationTrackAtMoment(layoutBranch, locationTrackId, moment, extIds)
-            .map { switchChanges ->
-                switchChanges.copy(
-                    changedJoints =
-                        switchChanges.changedJoints.filter { changedJoint ->
-                            filterByKmNumbers.contains(changedJoint.address.kmNumber)
-                        }
-                )
-            }
-            .filter { it.changedJoints.isNotEmpty() }
+        calculatedChangesService.getSwitchChangesFromChangedLocationTrackKmsByMoment(
+            layoutBranch,
+            locationTrackId,
+            moment,
+            extIds,
+            filterByKmNumbers,
+        )
 
     private fun toFakePublishedSwitch(
         layoutBranch: LayoutBranch,
@@ -419,4 +440,54 @@ constructor(
             changedJoints = switchChange.changedJoints,
         )
     }
+
+    private fun updatePlan(
+        designBranch: DesignBranch,
+        rangePublications: List<PublicationDetails>,
+    ): PushableDesignBranch {
+        val lastPublicationDesignVersion =
+            requireNotNull(rangePublications.last().layoutBranch as? PublishedInDesign) {
+                    "Expected publication ${rangePublications.last().id} to be published in a design"
+                }
+                .designVersion
+        val lastPublicationDesign =
+            layoutDesignDao.fetchVersion(RowVersion(designBranch.designId, lastPublicationDesignVersion))
+
+        // An interrupted push can leave the design itself knowing its Ratko ID, but the most recent
+        // publication pointing at a version before it was saved; so always look up the current ID
+        val presentRatkoId = layoutDesignDao.fetch(designBranch.designId).ratkoId
+        val ratkoId =
+            if (presentRatkoId == null) {
+                createPlanInRatko(lastPublicationDesign, designBranch.designId)
+            } else {
+                updatePlanInRatkoIfNeeded(
+                    rangePublications,
+                    designBranch,
+                    lastPublicationDesignVersion,
+                    lastPublicationDesign,
+                    presentRatkoId,
+                )
+                presentRatkoId
+            }
+        return PushableDesignBranch(designBranch, ratkoId)
+    }
+
+    private fun updatePlanInRatkoIfNeeded(
+        rangePublications: List<PublicationDetails>,
+        designBranch: DesignBranch,
+        lastPublicationDesignVersion: Int,
+        lastPublicationDesign: LayoutDesign,
+        presentRatkoId: RatkoPlanId,
+    ) {
+        val firstPublicationId = rangePublications.first().id
+        val previouslyPublishedDesignVersion =
+            publicationDao.getPreviouslyPublishedDesignVersion(firstPublicationId, designBranch.designId)
+        if (previouslyPublishedDesignVersion != lastPublicationDesignVersion) {
+            ratkoClient.updatePlan(existingRatkoPlan(lastPublicationDesign, presentRatkoId))
+        }
+    }
+
+    private fun createPlanInRatko(lastPublicationDesign: LayoutDesign, designId: IntId<LayoutDesign>): RatkoPlanId =
+        requireNotNull(ratkoClient.createPlan(newRatkoPlan(lastPublicationDesign))) { "Expected plan ID from Ratko" }
+            .also { ratkoId -> layoutDesignDao.initializeRatkoId(designId, ratkoId) }
 }

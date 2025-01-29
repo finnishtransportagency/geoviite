@@ -31,7 +31,9 @@ export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps>
 
     function linkingSummaryDate(planId: GeometryPlanId) {
         const linkingSummary = linkingSummaries.get(planId);
-        return linkingSummary?.linkedAt == undefined ? '' : formatDateFull(linkingSummary.linkedAt);
+        return linkingSummary?.linkedAt === undefined
+            ? ''
+            : formatDateFull(linkingSummary.linkedAt);
     }
 
     const linkingSummaryUsers = (planId: GeometryPlanId) =>

@@ -34,6 +34,8 @@ data class InterfaceRatkoSwitch(
     val state: RatkoAssetState?,
     val properties: List<RatkoAssetProperty>?,
     val locations: List<RatkoAssetLocation>?,
+    val isPlanContext: Boolean,
+    val planItemIds: List<Int>?,
 )
 
 data class InterfaceRatkoLocationTrack(
@@ -47,6 +49,8 @@ data class InterfaceRatkoLocationTrack(
     val rowMetadata: RatkoMetadata,
     val duplicateOf: String?,
     val topologicalConnectivity: RatkoTopologicalConnectivityType,
+    val isPlanContext: Boolean,
+    val planItemIds: List<Int>?,
 )
 
 data class InterfaceRatkoRouteNumber(
@@ -78,6 +82,7 @@ fun ratkoLocationTrack(
     rowMetadata: RatkoMetadata = RatkoMetadata(),
     duplicateOf: String? = null,
     topologicalConnectivityType: RatkoTopologicalConnectivityType = RatkoTopologicalConnectivityType.NONE,
+    planItemIds: List<Int>? = null,
 ) =
     InterfaceRatkoLocationTrack(
         id,
@@ -90,6 +95,8 @@ fun ratkoLocationTrack(
         rowMetadata,
         duplicateOf,
         topologicalConnectivityType,
+        planItemIds = planItemIds,
+        isPlanContext = planItemIds != null && !planItemIds.isEmpty(),
     )
 
 fun ratkoSwitch(
@@ -98,6 +105,7 @@ fun ratkoSwitch(
     properties: List<RatkoAssetProperty>? = listOf(),
     locations: List<RatkoAssetLocation>? = listOf(),
     assetGeoms: List<InterfaceRatkoAssetGeometry>? = listOf(),
+    planItemIds: List<Int>? = null,
 ): InterfaceRatkoSwitch =
     InterfaceRatkoSwitch(
         id = oid,
@@ -105,4 +113,6 @@ fun ratkoSwitch(
         properties = properties,
         locations = locations,
         assetGeoms = assetGeoms,
+        planItemIds = planItemIds,
+        isPlanContext = planItemIds != null && !planItemIds.isEmpty(),
     )
