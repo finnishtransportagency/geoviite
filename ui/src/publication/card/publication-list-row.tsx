@@ -45,6 +45,7 @@ const publicationStateIcon = (publication: PublicationDetails): ReactNode => {
 const bulkTransferStateIcon = (bulkTransferState: BulkTransferState | undefined) => {
     switch (bulkTransferState) {
         case 'PENDING':
+        case 'CREATED':
         case undefined:
             return <span className={styles['publication-list-item__split-detail-no-icon']} />;
         case 'DONE':
@@ -54,7 +55,6 @@ const bulkTransferStateIcon = (bulkTransferState: BulkTransferState | undefined)
                 </span>
             );
         case 'FAILED':
-        case 'TEMPORARY_FAILURE':
             return (
                 <span className={styles['publication-list-item--error']}>
                     <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />

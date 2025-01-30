@@ -1663,6 +1663,7 @@ constructor(
                                         publicationDao.createPublication(
                                             LayoutBranch.main,
                                             FreeTextWithNewLines.of("pending bulk transfer, splitId=$splitId"),
+                                            PublicationCause.MANUAL,
                                         ),
                                 )
                             }
