@@ -51,7 +51,7 @@ export const KmPostBadge: React.FC<KmPostBadgeProps> = ({
             title={trackNumber ? onTrackNumberTranslation : ''}
             onClick={onClick}>
             <Icon size={IconSize.SMALL} />
-            <span>{`${kmPost.kmNumber} ${
+            <span qa-id={'km-post-badge'}>{`${kmPost.kmNumber} ${
                 showTrackNumberInBadge && trackNumber ? `/ ${onTrackNumberTranslation}` : ''
             }`}</span>
         </span>
