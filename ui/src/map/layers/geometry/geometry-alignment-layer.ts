@@ -74,7 +74,7 @@ function createAlignmentFeature(
     resolution: number,
 ): Feature<LineString> {
     const isAlignmentSelected = selection.selectedItems.geometryAlignmentIds.find(
-        ({ geometryId }) => geometryId == alignment.header.id,
+        ({ geometryId }) => geometryId === alignment.header.id,
     );
 
     const cacheKey = `${alignment.header.id}-${resolution}-${isAlignmentSelected}-${alignment.linked}`;
@@ -170,7 +170,7 @@ export function createGeometryAlignmentLayer(
         Promise.all(
             plans.map((plan: GeometryPlanLayout) => {
                 const linksPromise: Promise<GeometryAlignmentId[]> =
-                    plan.planDataType == 'TEMP'
+                    plan.planDataType === 'TEMP'
                         ? Promise.resolve([])
                         : getLinkedAlignmentIdsInPlan(plan.id, layoutContext);
                 return linksPromise.then((links) => ({

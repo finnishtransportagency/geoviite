@@ -1,14 +1,13 @@
 import * as React from 'react';
 import styles from './datepicker.scss';
 import ReactDatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, isValid, parse } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { TextField, TextInputIconPosition } from 'vayla-design-lib/text-field/text-field';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { formatDateShort } from 'utils/date-utils';
-import { parse, isValid } from 'date-fns';
 import { useCloneRef } from 'utils/react-utils';
 
 export type DatePickerDateSource = 'PICKER' | 'TEXT';
@@ -160,9 +159,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
             {open && (
                 <CloseableModal
                     onClickOutside={() => undefined}
-                    offsetY={ref.current?.getBoundingClientRect().height ?? 0}
-                    positionRef={ref}
-                    openingRef={iconRef}
+                    anchorElementRef={ref}
+                    openingElementRef={iconRef}
                     className={styles['datepicker__popup-container']}>
                     <ReactDatePicker
                         renderCustomHeader={getHeaderElement}

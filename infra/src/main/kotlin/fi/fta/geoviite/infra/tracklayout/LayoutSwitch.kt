@@ -12,7 +12,27 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 
-data class LayoutSwitchJoint(val number: JointNumber, val location: Point, val locationAccuracy: LocationAccuracy?)
+enum class SwitchJointRole {
+    MAIN,
+    CONNECTION,
+    MATH;
+
+    companion object {
+        fun of(structure: SwitchStructure, number: JointNumber): SwitchJointRole =
+            when {
+                structure.presentationJointNumber == number -> MAIN
+                structure.endJointNumbers.contains(number) -> CONNECTION
+                else -> MATH
+            }
+    }
+}
+
+data class LayoutSwitchJoint(
+    val number: JointNumber,
+    val role: SwitchJointRole,
+    val location: Point,
+    val locationAccuracy: LocationAccuracy?,
+)
 
 data class LayoutSwitch(
     val name: SwitchName,
@@ -45,6 +65,14 @@ data class LayoutSwitch(
         joints.find { j -> j.location.isSame(location, delta) }
 
     fun getJoint(number: JointNumber): LayoutSwitchJoint? = joints.find { j -> j.number == number }
+
+    @get:JsonIgnore
+    val presentationJoint
+        get() = joints.find { j -> j.role == SwitchJointRole.MAIN }
+
+    @get:JsonIgnore
+    val presentationJointOrThrow
+        get() = requireNotNull(presentationJoint) { "Presentation joint not found on switch: id=$id" }
 
     override fun toLog(): String =
         logFormat(

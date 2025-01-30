@@ -116,7 +116,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         LayoutLocationTrack | undefined
     >(undefined);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
-        React.useState<boolean>(state.locationTrack?.state == 'DELETED');
+        React.useState<boolean>(state.locationTrack?.state === 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
     const [locationTrackDescriptionSuffixMode, setLocationTrackDescriptionSuffixMode] =
@@ -274,7 +274,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     function getVisibleErrorsByProp(prop: keyof LocationTrackSaveRequest) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationIssues
-                  .filter((issue) => issue.field == prop)
+                  .filter((issue) => issue.field === prop)
                   .map((issue) => t(`location-track-dialog.${issue.reason}`))
             : [];
     }

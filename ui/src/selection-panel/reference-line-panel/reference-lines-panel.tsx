@@ -64,14 +64,14 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                 qa-id="reference-lines-list">
                 {visibleLines.map((line) => {
                     const isSelected = selectedTrackNumbers?.some(
-                        (selectedId) => selectedId == line.trackNumberId,
+                        (selectedId) => selectedId === line.trackNumberId,
                     );
                     const itemClassName = createClassName(
                         'reference-lines-panel__reference-line',
                         canSelectReferenceLine &&
                             'reference-lines-panel__reference-line--can-select',
                     );
-                    const trackNumber = trackNumbers?.find((tn) => tn.id == line.trackNumberId);
+                    const trackNumber = trackNumbers?.find((tn) => tn.id === line.trackNumberId);
                     const status = () => {
                         if (disabled) return ReferenceLineBadgeStatus.DISABLED;
                         else if (isSelected) return ReferenceLineBadgeStatus.SELECTED;

@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.ITrackMeter
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -171,7 +173,31 @@ enum class RatkoAccuracyType(@get:JsonValue val value: String) {
     @Suppress("unused") ESTIMATED_TRACK_ADDRESS("ESTIMATED TRACKADDRESS"),
 }
 
+data class RatkoPlan(
+    val id: Int?,
+    val name: String,
+    val estimatedCompletion: String,
+    val phase: RatkoPlanPhase,
+    val state: RatkoPlanState,
+)
+
+sealed class PushableLayoutBranch {
+    abstract val branch: LayoutBranch
+}
+
+data object PushableMainBranch : PushableLayoutBranch() {
+    override val branch = LayoutBranch.main
+}
+
+data class PushableDesignBranch(override val branch: DesignBranch, val planId: RatkoPlanId) : PushableLayoutBranch()
+
 data class RatkoPlanId(val id: Int)
+
+enum class RatkoPlanPhase {
+    GENERAL_PLAN,
+    RAILWAY_PLAN,
+    RAILWAY_CONSTRUCTION_PLAN,
+}
 
 enum class RatkoPlanState {
     OPEN,

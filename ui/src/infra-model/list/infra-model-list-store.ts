@@ -101,7 +101,7 @@ export const infraModelListReducers = {
         state.searchState = 'search';
     },
     onPlanChangeTimeChange: function (state: InfraModelListState) {
-        if (state.searchState == 'idle') state.searchState = 'start';
+        if (state.searchState === 'idle') state.searchState = 'start';
     },
     onPlanFetchError: function (
         state: InfraModelListState,
@@ -116,7 +116,7 @@ export const infraModelListReducers = {
     ) {
         // Accept latest result only
         if (
-            state.searchState == 'search' &&
+            state.searchState === 'search' &&
             objectEquals(params.searchParams, state.searchParams)
         ) {
             state.searchState = 'idle';

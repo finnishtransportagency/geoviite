@@ -23,7 +23,7 @@ export const TextAreaAutoResizing: React.FC<TextAreaProps> = ({
 
     // Set initial "hasFocus"
     React.useEffect(() => {
-        setHasFocus(document.activeElement == inputRef.current);
+        setHasFocus(document.activeElement === inputRef.current);
     });
 
     const className = createClassName(

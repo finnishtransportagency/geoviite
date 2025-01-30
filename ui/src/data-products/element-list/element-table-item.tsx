@@ -119,19 +119,19 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                     {roundToPrecision(length, Precision.measurementMeterDistance)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {curveRadiusStart != undefined &&
+                    {curveRadiusStart !== undefined &&
                         roundToPrecision(curveRadiusStart, Precision.radiusMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {curveRadiusEnd != undefined &&
+                    {curveRadiusEnd !== undefined &&
                         roundToPrecision(curveRadiusEnd, Precision.radiusMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {cantStart != undefined &&
+                    {cantStart !== undefined &&
                         roundToPrecision(cantStart, Precision.cantMillimeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {cantEnd != undefined && roundToPrecision(cantEnd, Precision.cantMillimeters)}
+                    {cantEnd !== undefined && roundToPrecision(cantEnd, Precision.cantMillimeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(angleStart, Precision.angle6Decimals)}

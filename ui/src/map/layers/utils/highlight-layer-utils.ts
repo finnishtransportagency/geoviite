@@ -14,7 +14,7 @@ export function createHighlightFeatures(
 ): Feature<LineString>[] {
     return alignments.flatMap(({ points, header }) => {
         return linkingInfo
-            .filter((h) => h.id === header.id && h.type == header.alignmentType)
+            .filter((h) => h.id === header.id && h.type === header.alignmentType)
             .flatMap(({ ranges }) => {
                 const [firstPoint, lastPoint] = [first(points), last(points)];
                 return ranges

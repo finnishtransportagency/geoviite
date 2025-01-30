@@ -24,7 +24,7 @@ export function calculateMapTiles(view: OlView, tileSizePx: number | undefined):
     const actualResolution = view.getResolution() || first(tileResolutions);
     const tileResolutionIndex = tileResolutions.findIndex(
         (resolution, index) =>
-            (actualResolution && resolution < actualResolution) || index == LAST_RESOLUTION_INDEX,
+            (actualResolution && resolution < actualResolution) || index === LAST_RESOLUTION_INDEX,
     );
     // Use OL tile grid to calc tiles
     const tileGrid = new TileGrid({

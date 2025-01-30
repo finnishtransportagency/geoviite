@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
@@ -32,6 +33,7 @@ import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublishedInBranch
 import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.PublishedInMain
+import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -98,6 +100,15 @@ fun <T> ResultSet.getStringIdOrNull(name: String): StringId<T>? = getString(name
 fun <T> ResultSet.getOid(name: String): Oid<T> = verifyNotNull(name, ::getOidOrNull)
 
 fun <T> ResultSet.getOidOrNull(name: String): Oid<T>? = getString(name)?.let(::Oid)
+
+fun <T> ResultSet.getRatkoExternalId(oidName: String, planItemIdName: String): RatkoExternalId<T> =
+    verifyNotNull(oidName, planItemIdName, ::getRatkoExternalIdOrNull)
+
+fun <T> ResultSet.getRatkoExternalIdOrNull(oidName: String, planItemIdName: String): RatkoExternalId<T>? {
+    val oid = getOidOrNull<T>(oidName)
+    val planItemId = getIntOrNull(planItemIdName)?.let(::RatkoPlanItemId)
+    return if (oid == null) null else RatkoExternalId(oid, planItemId)
+}
 
 fun ResultSet.getSrid(name: String): Srid = verifyNotNull(name, ::getSridOrNull)
 
@@ -375,6 +386,15 @@ fun ResultSet.getLayoutBranchArrayOrNull(designIdsName: String): List<LayoutBran
 
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
     requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }
+
+inline fun <reified T> verifyNotNull(
+    column1: String,
+    column2: String,
+    nullableGet: (column1: String, column2: String) -> T?,
+): T =
+    requireNotNull(nullableGet(column1, column2)) {
+        "Value was null: type=${T::class.simpleName} column1=$column1 column2=$column2"
+    }
 
 inline fun <reified T> verifyType(value: Any?): T =
     value.let { v ->

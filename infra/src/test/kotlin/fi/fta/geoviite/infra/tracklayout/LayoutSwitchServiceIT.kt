@@ -212,12 +212,14 @@ constructor(
                     joints =
                         listOf(
                             LayoutSwitchJoint(
-                                JointNumber(1),
+                                number = JointNumber(1),
+                                role = SwitchJointRole.MAIN,
                                 location = Point(428305.33617941965, 7210146.458099049),
                                 locationAccuracy = null,
                             ),
                             LayoutSwitchJoint(
-                                JointNumber(5),
+                                number = JointNumber(5),
+                                role = SwitchJointRole.MATH,
                                 location = Point(422222.2, 7222222.2),
                                 locationAccuracy = null,
                             ),
@@ -234,12 +236,14 @@ constructor(
                         joints =
                             listOf(
                                 LayoutSwitchJoint(
-                                    JointNumber(1),
+                                    number = JointNumber(1),
+                                    role = SwitchJointRole.MAIN,
                                     location = Point(422222.2, 7222222.2),
                                     locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED,
                                 ),
                                 LayoutSwitchJoint(
-                                    JointNumber(5),
+                                    number = JointNumber(5),
+                                    role = SwitchJointRole.MATH,
                                     location = Point(428305.33617941965, 7210146.458099049),
                                     locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED,
                                 ),

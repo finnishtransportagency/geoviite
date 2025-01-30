@@ -71,12 +71,12 @@ export function queryParams(params: Record<string, unknown>): string {
     const stringifiedParameters = Object.keys(params)
         .map((key) => {
             const value = params[key];
-            return value != undefined
+            return value !== undefined && value !== null
                 ? `${key}=${encodeURIComponent(value.toString())}`
                 : undefined;
         })
-        .filter((p) => p != undefined);
-    return stringifiedParameters.length == 0 ? '' : `?${stringifiedParameters.join('&')}`;
+        .filter((p) => p !== undefined);
+    return stringifiedParameters.length === 0 ? '' : `?${stringifiedParameters.join('&')}`;
 }
 
 const wrapApiErrorResponse = Symbol('wrap api error response');

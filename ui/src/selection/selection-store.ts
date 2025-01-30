@@ -59,7 +59,7 @@ function getNewIdCollection<TId extends string>(
 ): TId[] {
     // Default to not modifying selection if newItems isn't provided.
     // The isExactSelection flag being set is a special case. Empty selections should be respected then
-    if (newIds == undefined) return ids;
+    if (newIds === undefined) return ids;
 
     if (flags.isIncremental) {
         return deduplicate([...newIds, ...ids]);
@@ -125,14 +125,14 @@ function getNewItemCollectionUsingCustomId<TEntity, TId>(
     flags: OnSelectFlags,
     getId: (item: TEntity) => TId,
 ): TEntity[] {
-    if (newItems == undefined) {
+    if (newItems === undefined) {
         return items;
     }
 
     if (flags.isIncremental) {
         return [...newItems, ...items].filter(filterUniqueById(getId));
     } else if (flags.isToggle) {
-        return newItems.filter((newItem) => !items.find((item) => getId(item) == getId(newItem)));
+        return newItems.filter((newItem) => !items.find((item) => getId(item) === getId(newItem)));
     } else {
         return newItems;
     }

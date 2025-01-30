@@ -14,6 +14,8 @@ import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.ToGkFinTransformation
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -39,6 +41,7 @@ class PlanLayoutCache(
     private val heightTriangleDao: HeightTriangleDao,
     private val coordinateTransformationService: CoordinateTransformationService,
     private val trackNumberDao: LayoutTrackNumberDao,
+    private val switchLibraryService: SwitchLibraryService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -119,6 +122,7 @@ class PlanLayoutCache(
                 planToLayoutTransformation,
                 heightTriangles,
                 planToGkTransformation,
+                { id -> switchLibraryService.getSwitchStructure(id) },
                 logger,
             )
         // caching is optional because some callers just want the transformation, but don't have a
@@ -138,6 +142,7 @@ private fun transformToLayoutPlan(
     planToLayoutTransformation: Transformation,
     heightTriangles: List<HeightTriangle>,
     planToGkTransformation: ToGkFinTransformation,
+    getStructure: (IntId<SwitchStructure>) -> SwitchStructure,
     logger: Logger,
 ): Pair<GeometryPlanLayout?, TransformationError?> =
     try {
@@ -149,6 +154,7 @@ private fun transformToLayoutPlan(
             includeGeometryData = includeGeometryData,
             pointListStepLength = pointListStepLength,
             planToGkTransformation = planToGkTransformation,
+            getStructure = getStructure,
         ) to null
     } catch (e: CoordinateTransformationException) {
         logger.warn(

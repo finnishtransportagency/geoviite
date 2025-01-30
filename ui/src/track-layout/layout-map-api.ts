@@ -136,7 +136,7 @@ function mapAlignmentUri(
     alignmentType: MapAlignmentType,
     content?: string,
 ): string {
-    const type = alignmentType == 'LOCATION_TRACK' ? 'location-track' : 'reference-line';
+    const type = alignmentType === 'LOCATION_TRACK' ? 'location-track' : 'reference-line';
     const baseUri = `${TRACK_LAYOUT_URI}/map/${contextInUri(layoutContext)}/${type}`;
     return content ? `${baseUri}/${content}` : baseUri;
 }
@@ -252,8 +252,8 @@ export async function getLocationTrackMapAlignmentsByTiles(
 type MapLayoutAlignmentDataHolder<M extends MapAlignmentType> = M extends 'LOCATION_TRACK'
     ? LocationTrackAlignmentDataHolder
     : M extends 'REFERENCE_LINE'
-      ? ReferenceLineAlignmentDataHolder
-      : never;
+    ? ReferenceLineAlignmentDataHolder
+    : never;
 
 async function getAlignmentDataHolder<M extends MapAlignmentType>(
     type: M,
@@ -401,7 +401,7 @@ export async function getEndLinkPoints(
                     ? undefined
                     : alignmentEndpointsToLinkPoint(startPoints[0], startPoints[1]),
             end:
-                endPoints[0] === undefined || endPoints[1] === undefined || endPoints.length != 2
+                endPoints[0] === undefined || endPoints[1] === undefined || endPoints.length !== 2
                     ? undefined
                     : alignmentEndpointsToLinkPoint(endPoints[1], endPoints[0]),
         }));
@@ -464,8 +464,8 @@ export async function getGeometryLinkPointsByTiles(
                 boundingBoxContains(bounds, p) &&
                 (segmentMValues.includes(p.m) ||
                     resolution <= 1 ||
-                    Math.floor(p.m) % resolution == 0 ||
-                    alwaysIncludePoints.some((alwaysIncludePoint) => alwaysIncludePoint.m == p.m)),
+                    Math.floor(p.m) % resolution === 0 ||
+                    alwaysIncludePoints.some((alwaysIncludePoint) => alwaysIncludePoint.m === p.m)),
         );
         return createLinkPoints(
             {
@@ -514,7 +514,9 @@ async function getLocationTrackPolyline(
 
     return await locationTrackPolyLineCache.get(changeTime, tileKey, () =>
         getNullable<AlignmentPolyLine>(
-            `${mapUri(layoutContext)}/location-track/${locationTrackId}/alignment-polyline${params}`,
+            `${mapUri(
+                layoutContext,
+            )}/location-track/${locationTrackId}/alignment-polyline${params}`,
         ),
     );
 }
@@ -533,7 +535,9 @@ export async function getTrackMeter(
 
     return trackNumberTrackMeterCache.get(
         changeTime,
-        `${trackNumberId}_${layoutContext.publicationState}_${layoutContext.branch}_${pointString(location)}`,
+        `${trackNumberId}_${layoutContext.publicationState}_${layoutContext.branch}_${pointString(
+            location,
+        )}`,
         () => {
             return getNullable<TrackMeter>(
                 `${geocodingUri(layoutContext)}/address/${trackNumberId}${params}`,

@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -344,7 +345,10 @@ class SwitchTopologicalConnectivityTest {
             switch(
                 id = switchId,
                 structureId = switchStructure.id as IntId,
-                joints = switchStructure.joints.map { j -> LayoutSwitchJoint(j.number, j.location, null) },
+                joints =
+                    switchStructure.joints.map { j ->
+                        LayoutSwitchJoint(j.number, SwitchJointRole.of(switchStructure, j.number), j.location, null)
+                    },
             )
         val link = switchLink(switchId)
         return switch to link

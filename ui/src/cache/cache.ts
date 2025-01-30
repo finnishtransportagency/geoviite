@@ -32,7 +32,7 @@ export function cache<TKey, TVal>(maxSize?: number): Cache<TKey, TVal> {
         get: (key: TKey) => items.get(key) || undefined,
         getOrCreate: (key: TKey, createNew: () => TVal) => {
             const val = cache.get(key);
-            if (val != undefined) {
+            if (val !== undefined) {
                 hitCount++;
                 return val;
             }
@@ -42,7 +42,7 @@ export function cache<TKey, TVal>(maxSize?: number): Cache<TKey, TVal> {
             return newVal;
         },
         put: (key: TKey, val: TVal) => {
-            while (maxSize != undefined && items.size > maxSize) {
+            while (maxSize !== undefined && items.size > maxSize) {
                 // remove portion of the items
                 cache.removeOldItems(Math.ceil(maxSize * 0.1));
             }
@@ -85,6 +85,7 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
         setChangeTime(changeTime);
         return cache.has(key) ? (cache.get(key) as Promise<TVal>) : put(key, getter());
     };
+
     function getMany<TId>(
         changeTime: TimeStamp | undefined,
         ids: TId[],
@@ -108,7 +109,7 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
     }
 
     function setChangeTime(changeTime: TimeStamp | undefined) {
-        if (changeTime != undefined) {
+        if (changeTime !== undefined) {
             const newChangeTime = toDate(changeTime);
             if (newChangeTime > ownChangeTime) {
                 ownChangeTime = newChangeTime;

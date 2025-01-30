@@ -101,7 +101,7 @@ function getKmRangePresentation(kmPosts: GeometryKmPost[]): string {
         .map((p) => p.kmNumber)
         .filter(filterNotEmpty)
         .sort((a, b) => a.localeCompare(b));
-    if (sorted.length == 0) return '';
+    if (sorted.length === 0) return '';
     else return `${first(sorted)} - ${last(sorted)}`;
 }
 
@@ -241,7 +241,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
             ? validationIssues
                   .filter(
                       (error) =>
-                          error.field == prop && error.type === FieldValidationIssueType.ERROR,
+                          error.field === prop && error.type === FieldValidationIssueType.ERROR,
                   )
                   .map((error) => {
                       return t(`im-form.${error.reason}`);
@@ -386,7 +386,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                         )}
                                         onChange={(authorId) => {
                                             authorId &&
-                                                authorId != geometryPlan.author?.id &&
+                                                authorId !== geometryPlan.author?.id &&
                                                 changeInOverrideParametersField(
                                                     authorId,
                                                     'authorId',

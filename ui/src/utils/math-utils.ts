@@ -32,9 +32,9 @@ export function getPartialPolyLine(
     const start = findOrInterpolateXY(points, startM);
     const end = findOrInterpolateXY(points, endM);
     // If both ends are interpolated between the same 2 points or are the same point, return nothing
-    if (start == undefined || end == undefined || start.low >= end.high) return [];
-    const midStart = start.low == start.high ? start.high + 1 : start.high;
-    const midEnd = end.low == end.high ? end.low : end.low + 1;
+    if (start === undefined || end === undefined || start.low >= end.high) return [];
+    const midStart = start.low === start.high ? start.high + 1 : start.high;
+    const midEnd = end.low === end.high ? end.low : end.low + 1;
     const midPoints =
         midStart >= 0 && midStart < midEnd
             ? points.slice(midStart, midEnd).map((p) => [p.x, p.y])
@@ -123,7 +123,7 @@ export function distance(p1: Point, p2: Point): number {
 
 export function distToSegmentSquared(p: Point, start: Point, end: Point) {
     const l2 = distanceSquared(start, end);
-    if (l2 == 0) return distanceSquared(p, start);
+    if (l2 === 0) return distanceSquared(p, start);
     let t = ((p.x - start.x) * (end.x - start.x) + (p.y - start.y) * (end.y - start.y)) / l2;
     t = Math.max(0, Math.min(1, t));
     return distanceSquared(p, {

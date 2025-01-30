@@ -92,7 +92,7 @@ const PlanLinkingDividers: React.FC<{
                             />
 
                             {/* The last plan linking summary won't have the divider that starts the next one. */}
-                            {i == planLinkingSummary.length - 1 && (
+                            {i === planLinkingSummary.length - 1 && (
                                 <LinkingDivider
                                     coordinates={coordinates}
                                     dividerPositionX={mToX(coordinates, summary.endM)}

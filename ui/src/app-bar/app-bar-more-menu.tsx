@@ -4,10 +4,10 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import {
     Menu,
-    MenuDividerOption,
     menuDivider,
-    MenuSelectOption,
+    MenuDividerOption,
     menuOption,
+    MenuSelectOption,
 } from 'vayla-design-lib/menu/menu';
 import styles from 'app-bar/app-bar.scss';
 import { useTranslation } from 'react-i18next';
@@ -98,7 +98,7 @@ const AppBarMoreMenu: React.FC = () => {
 
             {showMenu && (
                 <Menu
-                    positionRef={menuRef}
+                    anchorElementRef={menuRef}
                     items={moreActions}
                     className={styles['app-bar__more-menu']}
                     onClickOutside={() => setShowMenu(false)}

@@ -17,7 +17,7 @@ export const filterByPublicationGroup = (
     publicationGroup: PublicationGroup,
 ): PublicationCandidate[] => {
     return publicationCandidates.filter(
-        (candidate) => candidate.publicationGroup?.id == publicationGroup.id,
+        (candidate) => candidate.publicationGroup?.id === publicationGroup.id,
     );
 };
 

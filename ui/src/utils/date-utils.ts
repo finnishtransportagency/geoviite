@@ -7,7 +7,7 @@ export const currentDay = startOfToday();
 export const currentYear = getYear(currentDay);
 
 function isDate(date: Date | TimeStamp): date is Date {
-    return typeof date != 'string';
+    return typeof date !== 'string';
 }
 
 export function formatDateFull(date: Date | TimeStamp): string {
@@ -56,7 +56,7 @@ export function compareDates(d1: Date | undefined, d2: Date | undefined): number
         return 1; // consider undefined more heavyweight
     } else if (!d2) {
         return -1; // consider undefined more heavyweight
-    } else if (d1.getTime() == d2.getTime()) {
+    } else if (d1.getTime() === d2.getTime()) {
         return 0;
     } else if (d1 < d2) {
         return -1;

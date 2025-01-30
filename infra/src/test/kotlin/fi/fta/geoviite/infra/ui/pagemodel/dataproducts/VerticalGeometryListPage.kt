@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementIfExists
+import getNonNullAttribute
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import org.openqa.selenium.By
@@ -61,7 +62,7 @@ class E2EDataProductLayoutVerticalGeometryListPage : E2EDataProductVerticalGeome
     val resultList: E2EDataProductLayoutVerticalGeometryList = E2EDataProductLayoutVerticalGeometryList()
 
     val downloadUrl: String
-        get() = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
+        get() = childElement(byQaId("vertical-geometry-csv-download")).getNonNullAttribute("href")
 
     fun selectLocationTrack(searchString: String) = apply {
         logger.info("Select location track $searchString")
@@ -72,7 +73,7 @@ class E2EDataProductLayoutVerticalGeometryListPage : E2EDataProductVerticalGeome
 
 class E2EDataProductEntireNetworkVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {
     val downloadUrl: String
-        get() = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
+        get() = childElement(byQaId("vertical-geometry-csv-download")).getNonNullAttribute("href")
 }
 
 abstract class E2EDataProductVerticalGeometryList<Item : E2EDataProductVerticalGeometryListItem> :

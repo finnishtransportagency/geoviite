@@ -65,7 +65,7 @@ constructor(
         val newExternalId = externalIdForTrackNumber()
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumber.id, newExternalId)
 
-        assertEquals(newExternalId, trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id))
+        assertEquals(newExternalId, trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id)?.oid)
     }
 
     @Test

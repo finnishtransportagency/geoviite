@@ -29,8 +29,6 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) =
         styles['color-square'],
         isTransparent && styles['color-square--transparent'],
     );
-    const colorSelectorModalOffsetX = 32;
-    const colorSelectorModalOffsetY = 0;
 
     return (
         <React.Fragment>
@@ -43,11 +41,10 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) =
             />
             {showSelector && (
                 <CloseableModal
-                    positionRef={ref}
+                    anchorElementRef={ref}
                     onClickOutside={() => setShowSelector(false)}
                     className={styles['color-selector-menu']}
-                    offsetX={colorSelectorModalOffsetX}
-                    offsetY={colorSelectorModalOffsetY}>
+                    modalPosition={'RIGHT'}>
                     <ol>
                         <li
                             className={`${styles['color-square']} ${styles['color-square--transparent']}`}

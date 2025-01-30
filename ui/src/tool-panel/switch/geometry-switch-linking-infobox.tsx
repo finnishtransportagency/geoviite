@@ -92,8 +92,8 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         suggestedSwitchResult === undefined
             ? undefined
             : 'switch' in suggestedSwitchResult
-              ? suggestedSwitchResult.switch
-              : undefined;
+            ? suggestedSwitchResult.switch
+            : undefined;
     const switchStructure = useSwitchStructure(suggestedSwitch?.switchStructureId);
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
@@ -105,15 +105,15 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         suggestedSwitch &&
         switchStructure &&
         selectedLayoutSwitch &&
-        switchStructure.id == selectedLayoutSwitch.switchStructureId
+        switchStructure.id === selectedLayoutSwitch.switchStructureId
             ? SwitchTypeMatch.Exact
             : suggestedSwitch &&
-                selectedLayoutSwitchStructure &&
-                switchStructure &&
-                switchStructure.baseType == selectedLayoutSwitchStructure.baseType &&
-                switchStructure.hand == selectedLayoutSwitchStructure.hand
-              ? SwitchTypeMatch.Similar
-              : SwitchTypeMatch.Invalid;
+              selectedLayoutSwitchStructure &&
+              switchStructure &&
+              switchStructure.baseType === selectedLayoutSwitchStructure.baseType &&
+              switchStructure.hand === selectedLayoutSwitchStructure.hand
+            ? SwitchTypeMatch.Similar
+            : SwitchTypeMatch.Invalid;
 
     const [switchTypeDifferenceIsConfirmed, setSwitchTypeDifferenceIsConfirmed] =
         React.useState(false);
@@ -122,10 +122,10 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
             ? suggestedSwitchResult.failure
             : undefined;
     const isValidLayoutSwitch =
-        suggestedSwitch != undefined &&
+        suggestedSwitch !== undefined &&
         selectedLayoutSwitch &&
-        (switchTypeMatch == SwitchTypeMatch.Exact ||
-            (switchTypeMatch == SwitchTypeMatch.Similar && switchTypeDifferenceIsConfirmed));
+        (switchTypeMatch === SwitchTypeMatch.Exact ||
+            (switchTypeMatch === SwitchTypeMatch.Similar && switchTypeDifferenceIsConfirmed));
     const canLink =
         selectedLayoutSwitch &&
         isValidLayoutSwitch &&

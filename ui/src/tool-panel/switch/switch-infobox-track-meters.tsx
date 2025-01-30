@@ -47,10 +47,10 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
     const [showOtherJoints, setShowOtherJoints] = React.useState(false);
 
     const presentationJointAddress = jointTrackMeters.filter(
-        (jtm) => jtm.jointNumber == presentationJoint,
+        (jtm) => jtm.jointNumber === presentationJoint,
     );
     const otherJointsAddress = groupBy(
-        jointTrackMeters.filter((jtm) => jtm.jointNumber != presentationJoint),
+        jointTrackMeters.filter((jtm) => jtm.jointNumber !== presentationJoint),
         (i) => i.jointNumber,
     );
 

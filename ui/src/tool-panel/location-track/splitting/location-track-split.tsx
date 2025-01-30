@@ -153,12 +153,12 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         split.descriptionBase !== '',
     );
     const startSwitchMatchingError = switchIssues.find(
-        (error) => error.reason == START_SPLIT_POINT_NOT_MATCHING_ERROR,
+        (error) => error.reason === START_SPLIT_POINT_NOT_MATCHING_ERROR,
     );
     const endSwitchMatchingError = switchIssues.find(
-        (error) => error.reason == END_SPLIT_POINT_NOT_MATCHING_ERROR,
+        (error) => error.reason === END_SPLIT_POINT_NOT_MATCHING_ERROR,
     );
-    const duplicate = allDuplicateLocationTracks.find((d) => d.id == split.duplicateTrackId);
+    const duplicate = allDuplicateLocationTracks.find((d) => d.id === split.duplicateTrackId);
 
     // TODO: Adding any kind of dependency array causes infinite re-render loops, find out why
     React.useEffect(() => {
@@ -173,18 +173,18 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     const nameErrorsVisible = nameCommitted && nameIssues.length > 0;
     const descriptionErrorsVisible = descriptionCommitted && descriptionIssues.length > 0;
 
-    const isPartialDuplicate = split.duplicateStatus?.match == 'PARTIAL';
+    const isPartialDuplicate = split.duplicateStatus?.match === 'PARTIAL';
     const duplicateLength = duplicate?.length;
     const overlappingDuplicateLength = split.duplicateStatus?.overlappingLength;
     const nonOverlappingDuplicateLength =
         (duplicateLength !== undefined &&
-            overlappingDuplicateLength != undefined &&
+            overlappingDuplicateLength !== undefined &&
             duplicateLength - overlappingDuplicateLength) ||
         undefined;
 
     const isShortNonOverlappingDuplicateLength =
         isPartialDuplicate &&
-        nonOverlappingDuplicateLength != undefined &&
+        nonOverlappingDuplicateLength !== undefined &&
         nonOverlappingDuplicateLength <
             PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS;
 
@@ -194,7 +194,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         nonOverlappingDuplicateLength: number | undefined,
         isShortNonOverlappingDuplicateLength: boolean,
     ) {
-        if (operation == 'TRANSFER') {
+        if (operation === 'TRANSFER') {
             const isPartialTooltip = t(
                 'tool-panel.location-track.splitting.is-partial-duplicate-tooltip',
                 {
@@ -299,7 +299,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             className={createClassName(
                                 styles['location-track-infobox__split-switch-error-msg'],
                                 styles['location-track-infobox__split-switch-error-msg--start'],
-                                startSwitchMatchingError.type == FieldValidationIssueType.ERROR &&
+                                startSwitchMatchingError.type === FieldValidationIssueType.ERROR &&
                                     styles['location-track-infobox__split-switch-error-msg--error'],
                             )}>
                             {t(
@@ -364,7 +364,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                         `tool-panel.location-track.splitting.operation.${split.operation}`,
                                     )}
 
-                                    {split.operation == 'TRANSFER' && (
+                                    {split.operation === 'TRANSFER' && (
                                         <span
                                             className={createClassName(
                                                 styles[
@@ -464,7 +464,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             className={createClassName(
                                 styles['location-track-infobox__split-switch-error-msg'],
                                 styles['location-track-infobox__split-switch-error-msg--end'],
-                                endSwitchMatchingError.type == FieldValidationIssueType.ERROR &&
+                                endSwitchMatchingError.type === FieldValidationIssueType.ERROR &&
                                     styles['location-track-infobox__split-switch-error-msg--error'],
                             )}>
                             {t(

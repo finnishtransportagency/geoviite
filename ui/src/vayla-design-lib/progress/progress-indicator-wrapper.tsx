@@ -24,11 +24,11 @@ export const ProgressIndicatorWrapper: React.FC<ProgressIndicatorWrapperProps> =
     const className = createClassName(
         styles['progress-indicator-wrapper'],
         inline && styles['progress-indicator-wrapper--inline'],
-        indicator == ProgressIndicatorType.Default &&
+        indicator === ProgressIndicatorType.Default &&
             styles['progress-indicator-wrapper--default-indicator'],
-        indicator == ProgressIndicatorType.Subtle &&
+        indicator === ProgressIndicatorType.Subtle &&
             styles['progress-indicator-wrapper--subtle-indicator'],
-        indicator == ProgressIndicatorType.Area &&
+        indicator === ProgressIndicatorType.Area &&
             styles['progress-indicator-wrapper--area-indicator'],
         inProgress && styles['progress-indicator-wrapper--in-progress'],
     );

@@ -76,8 +76,8 @@ export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCand
                     );
                 })}
 
-                {loadingStatus == LoaderStatus.Loading && <Spinner />}
-                {loadingStatus == LoaderStatus.Ready && switches?.length == 0 && (
+                {loadingStatus === LoaderStatus.Loading && <Spinner />}
+                {loadingStatus === LoaderStatus.Ready && switches?.length === 0 && (
                     <span className={styles['geometry-switch-infobox__no-matches']}>
                         {t('tool-panel.switch.geometry.no-linkable-switches')}
                     </span>
