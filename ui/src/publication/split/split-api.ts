@@ -18,3 +18,13 @@ export const getSplit = async (id: string): Promise<Split | undefined> =>
 export const putBulkTransferState = async (id: string, state: string): Promise<string> => {
     return putNonNull<string, string>(`${SPLIT_URI}/${id}/bulk-transfer-state`, state);
 };
+
+export const putBulkTransferExpeditedStart = async (
+    id: string,
+    expeditedStart: boolean,
+): Promise<string> => {
+    return putNonNull<string, string>(
+        `${SPLIT_URI}/${id}/bulk-transfer/expedited-start`,
+        expeditedStart.toString(),
+    );
+};

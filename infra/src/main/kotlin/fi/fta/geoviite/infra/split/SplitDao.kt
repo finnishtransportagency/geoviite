@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
+import fi.fta.geoviite.infra.util.getBooleanOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
 import fi.fta.geoviite.infra.util.getInstantOrNull
@@ -236,7 +237,8 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
               split.id,
               split.publication_id,
               ltv.id as source_location_track_id,
-              bulk_transfer.state as bulk_transfer_state
+              bulk_transfer.state as bulk_transfer_state,
+              bulk_transfer.expedited_start as bulk_transfer_expedited_start
           from publication.split 
               inner join layout.location_track_version ltv 
                   on split.source_location_track_id = ltv.id
@@ -254,6 +256,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                         id = splitId,
                         locationTrackId = rs.getIntId("source_location_track_id"),
                         bulkTransferState = rs.getEnumOrNull<BulkTransferState>("bulk_transfer_state"),
+                        bulkTransferExpeditedStart = rs.getBooleanOrNull("bulk_transfer_expedited_start"),
                         publicationId = rs.getIntIdOrNull("publication_id"),
                     )
                 },

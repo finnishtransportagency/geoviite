@@ -42,7 +42,20 @@ class SplitController(
         @PathVariable("id") id: IntId<Split>,
         @RequestBody state: BulkTransferState,
     ): IntId<Split> {
+        // TODO Should not use dao here
         splitDao.updateBulkTransfer(splitId = id, bulkTransferState = state)
+        return id
+    }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PutMapping("/{id}/bulk-transfer/expedited-start")
+    fun updateSplitBulkTransferExpeditedStart(
+        @PathVariable("id") id: IntId<Split>,
+        @RequestBody expeditedStart: Boolean,
+    ): IntId<Split> {
+        // TODO Should not use dao here
+        splitDao.updateBulkTransfer(splitId = id, expeditedStart = expeditedStart)
+        //        splitService.updateSplit(splitId = id)
         return id
     }
 }

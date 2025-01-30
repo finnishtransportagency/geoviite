@@ -181,8 +181,22 @@ export type SplitHeader = {
     id: SplitId;
     locationTrackId: LocationTrackId;
     bulkTransferState?: BulkTransferState;
+    bulkTransferExpeditedStart?: boolean;
     publicationId?: PublicationId;
 };
+
+// export type SplitHeader = UnpublishedSplitHeader | PublishedSplitHeader;
+//
+// export type UnpublishedSplitHeader = {
+//     id: SplitId;
+//     locationTrackId: LocationTrackId;
+// };
+//
+// export type PublishedSplitHeader = UnpublishedSplitHeader & {
+//     bulkTransferState: BulkTransferState;
+//     bulkTransferExpeditedStart: boolean;
+//     publicationId: PublicationId;
+// };
 
 export type SplitTarget = {
     locationTrackId: LocationTrackId;

@@ -11,7 +11,7 @@ import { formatDateFull } from 'utils/date-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Menu, menuOption, MenuSelectOption } from 'vayla-design-lib/menu/menu';
 import { SplitDetailsDialog } from 'publication/split/split-details-dialog';
-import { putBulkTransferState } from 'publication/split/split-api';
+import { putBulkTransferExpeditedStart, putBulkTransferState } from 'publication/split/split-api';
 import { success } from 'geoviite-design-lib/snackbar/snackbar';
 import { getChangeTimes, updateSplitChangeTime } from 'common/change-time-api';
 import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
@@ -108,6 +108,44 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
             t('publication-card.mark-as-successful'),
             'mark-bulk-transfer-as-finished-link',
             publication.split?.bulkTransferState === 'DONE',
+        ),
+        menuOption(
+            () => {
+                if (publication.split)
+                    putBulkTransferState(publication.split.id, 'PENDING')
+                        .then(() => {
+                            success(
+                                t('publication-card.bulk-transfer-marked-as-pending'),
+                                undefined,
+                                {
+                                    id: 'toast-bulk-transfer-marked-as-pending',
+                                },
+                            );
+                        })
+                        .then(() => updateSplitChangeTime());
+            },
+            t('publication-card.mark-as-pending'),
+            'mark-bulk-transfer-as-pending',
+            publication.split?.bulkTransferState === 'DONE',
+        ),
+        menuOption(
+            () => {
+                if (publication.split)
+                    putBulkTransferExpeditedStart(publication.split.id, true)
+                        .then(() => {
+                            success(
+                                t('publication-card.bulk-transfer-marked-as-expedited'),
+                                undefined,
+                                {
+                                    id: 'toast-bulk-transfer-marked-as-expedited',
+                                },
+                            );
+                        })
+                        .then(() => updateSplitChangeTime());
+            },
+            t('publication-card.mark-as-expedited'),
+            'mark-bulk-transfer-as-expedited',
+            publication.split?.bulkTransferExpeditedStart === true,
         ),
     ];
 
