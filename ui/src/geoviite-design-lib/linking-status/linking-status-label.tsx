@@ -17,8 +17,8 @@ export const LinkingStatusLabel: React.FC<LinkingStatusLabelProps> = ({
     );
 
     return (
-        <div className={classes}>
-            <span>{t(isLinked ? 'yes' : 'no')}</span>
-        </div>
+        <span className={classes}>
+            <span>{isLinked ? t('yes') : t('no')}</span>
+        </span>
     );
 };
