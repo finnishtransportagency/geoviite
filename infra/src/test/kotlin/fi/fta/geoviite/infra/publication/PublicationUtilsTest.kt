@@ -133,7 +133,7 @@ class PublicationUtilsTest {
     private fun xAxisGeocodingContext() = geocodingContext((0..60).map { x -> Point(x.toDouble(), 0.0) })
 
     @Test
-    fun `getChangedGeometryRanges() finds nothing from indentical segments`() {
+    fun `getChangedGeometryRanges() finds nothing from identical segments`() {
         val segments =
             listOf(
                 segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0)),

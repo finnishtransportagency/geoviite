@@ -83,10 +83,10 @@ import { layersCoveringLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import Feature from 'ol/Feature';
-import { createPublicationCandidateLayer } from 'map/layers/highlight/publication-candidate-layer';
+import { createPublicationCandidateLayer } from 'map/layers/preview/publication-candidate-layer';
 import { PublicationCandidate } from 'publication/publication-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
-import { createDeletedPreviewPointIconFeaturesLayer } from 'map/layers/alignment/preview-deleted-point-icon-features-layer';
+import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
 
 declare global {
     interface Window {
@@ -369,9 +369,9 @@ const MapView: React.FC<MapViewProps> = ({
                             map.layerSettings['track-number-diagram-layer'],
                             (loading) => onLayerLoading(layerName, loading),
                         );
-                    case 'preview-deleted-point-icon-features-layer':
+                    case 'deleted-publication-candidate-icon-layer':
                         return designPublicationMode
-                            ? createDeletedPreviewPointIconFeaturesLayer(
+                            ? createDeletedPublicationCandidateIconLayer(
                                   mapTiles,
                                   existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
                                   publicationCandidates ?? [],

@@ -130,7 +130,7 @@ const onLoadingChange = (
     onLoadingData(loading);
 };
 
-const layerName: MapLayerName = 'preview-deleted-point-icon-features-layer';
+const layerName: MapLayerName = 'deleted-publication-candidate-icon-layer';
 
 const getKmPostsTiledPromise = (
     mapTiles: MapTile[],
@@ -164,7 +164,7 @@ const getSwitchesTiledPromise = (
             .filter((s) => deletedSwitchCandidates.some((candidate) => candidate.id === s.id));
     });
 
-export function createDeletedPreviewPointIconFeaturesLayer(
+export function createDeletedPublicationCandidateIconLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<Feature<LineString | OlPoint | Rectangle>> | undefined,
     publicationCandidates: PublicationCandidate[],
@@ -182,12 +182,12 @@ export function createDeletedPreviewPointIconFeaturesLayer(
             ? officialLayoutContext(layoutContext)
             : draftMainLayoutContext();
 
-    const deletedKmPostCandidates = publicationCandidates.filter(
-        (c) => c.type === 'KM_POST' && c.operation === 'DELETE',
-    ) as KmPostPublicationCandidate[];
-    const deletedSwitchCandidates = publicationCandidates.filter(
-        (c) => c.type === 'SWITCH' && c.operation === 'DELETE',
-    ) as SwitchPublicationCandidate[];
+    const deletedKmPostCandidates = publicationCandidates
+        .filter((c) => c.type === 'KM_POST')
+        .filter((c) => c.operation === 'DELETE');
+    const deletedSwitchCandidates = publicationCandidates
+        .filter((c) => c.type === 'SWITCH')
+        .filter((c) => c.operation === 'DELETE');
 
     const deletedSwitchesPromise =
         resolution <= SWITCH_SHOW && deletedSwitchCandidates.length > 0

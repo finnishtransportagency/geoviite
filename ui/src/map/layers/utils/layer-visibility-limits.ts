@@ -31,7 +31,7 @@ const mapLayerOrder: MapLayerName[] = [
     'track-number-addresses-layer',
     'geometry-km-post-layer',
     'geometry-switch-layer',
-    'preview-deleted-point-icon-features-layer',
+    'deleted-publication-candidate-icon-layer',
     'alignment-linking-layer',
     'switch-linking-layer',
     'location-track-duplicate-endpoint-address-layer',

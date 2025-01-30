@@ -50,7 +50,7 @@ export type MapLayerName =
     | 'virtual-km-post-linking-layer'
     | 'virtual-hide-geometry-layer'
     | 'publication-candidate-layer'
-    | 'preview-deleted-point-icon-features-layer';
+    | 'deleted-publication-candidate-icon-layer';
 
 export type MapViewportSource = 'Map';
 

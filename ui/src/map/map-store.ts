@@ -116,7 +116,7 @@ export const initialMapState: Map = {
     visibleLayers: [
         'background-map-layer',
         'publication-candidate-layer',
-        'preview-deleted-point-icon-features-layer',
+        'deleted-publication-candidate-icon-layer',
         'location-track-background-layer',
         'reference-line-background-layer',
         'location-track-badge-layer',

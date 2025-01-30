@@ -540,6 +540,7 @@ fun findJointPoint(
 }
 
 fun getChangedGeometryRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>): GeometryChangeRanges {
+    // TODO If some kind of segment filtering remains after GVT-2967, segments should be grouped for better performance
     val added =
         newSegments
             .filter { s -> oldSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
