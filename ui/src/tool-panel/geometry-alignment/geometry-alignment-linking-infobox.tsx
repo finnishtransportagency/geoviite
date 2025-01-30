@@ -61,7 +61,6 @@ import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { LinkingStatusLabel } from 'geoviite-design-lib/linking-status/linking-status-label';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { isNil } from 'utils/type-utils';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -213,7 +212,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             changeTimes.layoutReferenceLine,
         ],
     );
-    const isLinked = linkedAlignmentIds?.includes(geometryAlignment.id);
+    const isLinked = linkedAlignmentIds ? linkedAlignmentIds.includes(geometryAlignment.id) : false;
 
     const handleTrackNumberSave = refreshTrackNumberSelection(
         draftLayoutContext(layoutContext),
@@ -303,7 +302,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         label={t('tool-panel.alignment.geometry.is-linked')}
                         className={styles['geometry-alignment-infobox__linked-status']}
                         value={
-                            linkedAlignmentIdsStatus === LoaderStatus.Ready && !isNil(isLinked) ? (
+                            linkedAlignmentIdsStatus === LoaderStatus.Ready ? (
                                 <LinkingStatusLabel isLinked={isLinked} />
                             ) : (
                                 <Spinner />

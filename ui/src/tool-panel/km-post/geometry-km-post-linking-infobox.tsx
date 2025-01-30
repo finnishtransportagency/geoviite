@@ -33,7 +33,6 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 import { createEmptyItemCollections } from 'selection/selection-store';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { compareByField } from 'utils/array-utils';
-import { isNil } from 'utils/type-utils';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -77,7 +76,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     const [searchTerm, setSearchTerm] = React.useState('');
     const [showAddDialog, setShowAddDialog] = React.useState(false);
 
-    const [linkedLayoutKmPosts, linkedLayoutKmPostsLoaderStatus] = useLoaderWithStatus(
+    const [fetchedLinkedLayourKmPosts, linkedLayoutKmPostsLoaderStatus] = useLoaderWithStatus(
         () =>
             planId
                 ? getPlanLinkStatus(planId, layoutContext).then((planStatus) => {
@@ -96,6 +95,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                 : undefined,
         [planId, kmPostChangeTime, layoutContext, geometryKmPost.sourceId],
     );
+    const linkedLayoutKmPosts = fetchedLinkedLayourKmPosts ?? [];
 
     const geometryPlan = usePlanHeader(planId);
 
@@ -152,6 +152,10 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     );
 
     const selectLayoutKmPost = createSelectAction();
+    const linkedKmPostsLabel =
+        linkedLayoutKmPosts.length > 1
+            ? t('tool-panel.km-post.geometry.linking.km-post-label-plural')
+            : t('tool-panel.km-post.geometry.linking.km-post-label-singular');
 
     return (
         <React.Fragment>
@@ -166,7 +170,6 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         qaId="geometry-km-post-linked"
                         label={t('tool-panel.km-post.geometry.linking.is-linked-label')}
                         value={
-                            !!linkedLayoutKmPosts &&
                             linkedLayoutKmPostsLoaderStatus === LoaderStatus.Ready ? (
                                 <LinkingStatusLabel isLinked={linkedLayoutKmPosts.length > 0} />
                             ) : (
@@ -174,17 +177,17 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                             )
                         }
                     />
-                    <InfoboxField
-                        label={t('tool-panel.km-post.geometry.linking.km-post-label')}
-                        value={
-                            <ol
-                                className={
-                                    styles[
-                                        'km-post-infobox-linking-infobox__currently-linked-km-posts'
-                                    ]
-                                }>
-                                {!isNil(linkedLayoutKmPosts) &&
-                                    linkedLayoutKmPosts.map((kmPost) => (
+                    {linkedLayoutKmPosts.length > 0 && (
+                        <InfoboxField
+                            label={linkedKmPostsLabel}
+                            value={
+                                <ol
+                                    className={
+                                        styles[
+                                            'km-post-infobox-linking-infobox__currently-linked-km-posts'
+                                        ]
+                                    }>
+                                    {linkedLayoutKmPosts.map((kmPost) => (
                                         <li key={kmPost.id}>
                                             <KmPostBadge
                                                 trackNumber={trackNumbers?.find(
@@ -197,9 +200,10 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                             />
                                         </li>
                                     ))}
-                            </ol>
-                        }
-                    />
+                                </ol>
+                            }
+                        />
+                    )}
                     {!linkingState && (
                         <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <InfoboxButtons>

@@ -523,7 +523,8 @@
                 "linking": {
                     "title": "Linkitys",
                     "is-linked-label": "Linkitetty",
-                    "km-post-label": "Tasakilometripiste",
+                    "km-post-label-singular": "Tasakilometripiste",
+                    "km-post-label-plural": "Tasakilometripisteet",
                     "choose-km-post-msg": "Valitse tasakilometripiste, johon linkitetään",
                     "start-linking-command": "Aloita linkitys",
                     "link-command": "Linkitä",
