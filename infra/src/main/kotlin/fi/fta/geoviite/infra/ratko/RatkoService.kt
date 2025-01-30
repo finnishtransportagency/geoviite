@@ -140,7 +140,10 @@ constructor(
 
                 //                if (ratkoClientConfiguration.bulkTransfersEnabled) { // TODO
                 // Enable this
-                manageRatkoBulkTransfers(layoutBranch)
+                if (layoutBranch == LayoutBranch.main) {
+                    manageRatkoBulkTransfers(layoutBranch)
+                }
+
                 //                }
             }
         }
@@ -319,7 +322,7 @@ constructor(
 
         val splitSourceLocationTrack = locationTrackService.getOrThrow(layoutContext, split.sourceLocationTrackId)
 
-        val splitLocationTrackOidMap =
+        val splitLocationTrackExternalIdMap =
             locationTrackDao.fetchExternalIds(
                 layoutContext.branch,
                 listOf(
@@ -343,14 +346,14 @@ constructor(
                     val (start, end) = geocodingContext.getStartAndEnd(alignment)
 
                     RatkoBulkTransferDestinationTrack(
-                        oid = requireNotNull(splitLocationTrackOidMap[locationTrack.id]),
+                        oid = requireNotNull(splitLocationTrackExternalIdMap[locationTrack.id]).oid,
                         startKmM = requireNotNull(start).address.let(::RatkoTrackMeter),
                         endKmM = requireNotNull(end).address.let(::RatkoTrackMeter),
                     )
                 }
 
         return RatkoBulkTransferCreateRequest(
-            sourceLocationTrack = requireNotNull(splitLocationTrackOidMap[splitSourceLocationTrack.id]),
+            sourceLocationTrack = requireNotNull(splitLocationTrackExternalIdMap[splitSourceLocationTrack.id]).oid,
             destinationLocationTracks = ratkoDestinationTracks,
         )
     }

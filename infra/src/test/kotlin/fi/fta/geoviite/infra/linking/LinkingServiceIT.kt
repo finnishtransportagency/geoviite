@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
@@ -361,6 +362,7 @@ constructor(
                                 publicationDao.createPublication(
                                     LayoutBranch.main,
                                     FreeTextWithNewLines.of("test: published split"),
+                                    PublicationCause.MANUAL,
                                 ),
                         )
 
