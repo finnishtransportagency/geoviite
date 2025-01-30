@@ -35,7 +35,7 @@ class LayoutTrackNumberDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<LayoutTrackNumber>(
+    LayoutAssetDao<LayoutTrackNumber, Unit>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER,
         cacheEnabled,
@@ -167,8 +167,10 @@ class LayoutTrackNumberDao(
                 ),
         )
 
+    @Transactional fun save(item: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> = save(item, Unit)
+
     @Transactional
-    override fun save(item: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> {
+    override fun save(item: LayoutTrackNumber, saveParams: Unit): LayoutRowVersion<LayoutTrackNumber> {
         val id = item.id as? IntId ?: createId()
 
         // language=sql

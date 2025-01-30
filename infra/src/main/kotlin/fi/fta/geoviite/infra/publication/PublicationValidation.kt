@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
@@ -36,6 +37,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
@@ -205,8 +207,9 @@ fun validateLocationTrackNameDuplication(
 fun validateSwitchLocationTrackLinkStructure(
     switch: LayoutSwitch,
     structure: SwitchStructure,
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    locationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): List<LayoutValidationIssue> {
+    // TODO: GVT-2933 Validation in topology model
     val existingTracks = locationTracks.filter { (track, _) -> track.exists }
     val segmentGroups =
         existingTracks // Only consider the non-deleted tracks for switch alignments
@@ -218,7 +221,8 @@ fun validateSwitchLocationTrackLinkStructure(
     val structureJoints = collectJoints(structure)
     val segmentJoints = segmentGroups.map { (track, group) -> collectJoints(track, group) }
 
-    val topologyLinks = collectTopologyEndLinks(existingTracks, switch)
+    val topologyLinks: List<Pair<LocationTrack, List<TopologyEndLink>>> =
+        emptyList() // collectTopologyEndLinks(existingTracks, switch)
 
     return if (switch.exists)
         listOfNotNull(
@@ -325,15 +329,17 @@ fun validateLocationTrackSwitchConnectivity(
 fun validateSwitchTopologicalConnectivity(
     switch: LayoutSwitch,
     structure: SwitchStructure,
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    locationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     validatingTrack: LocationTrack?,
 ): List<LayoutValidationIssue> {
     val existingTracks = locationTracks.filter { it.first.exists }
-    return listOf(
-            listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(switch.id, structure, existingTracks, switch.name, validatingTrack),
-        )
-        .flatten()
+    // TODO: GVT-2933 Validation in topology model
+    return emptyList()
+    //    return listOf(
+    //            listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
+    //            validateSwitchAlignmentTopology(switch.id, structure, existingTracks, switch.name, validatingTrack),
+    //        )
+    //        .flatten()
 }
 
 fun switchOrTrackLinkageKey(validatingTrack: LocationTrack?) =
@@ -925,11 +931,12 @@ fun validateAddressPoints(
     )
 }
 
-fun validateReferenceLineAlignment(alignment: LayoutAlignment) = validateAlignment(VALIDATION_REFERENCE_LINE, alignment)
+fun validateReferenceLineGeometry(alignment: LayoutAlignment) = validateGeometry(VALIDATION_REFERENCE_LINE, alignment)
 
-fun validateLocationTrackAlignment(alignment: LayoutAlignment) = validateAlignment(VALIDATION_LOCATION_TRACK, alignment)
+fun validateLocationTrackGeometry(geometry: LocationTrackGeometry) =
+    validateGeometry(VALIDATION_LOCATION_TRACK, geometry)
 
-private fun validateAlignment(errorParent: String, alignment: LayoutAlignment) =
+private fun validateGeometry(errorParent: String, alignment: IAlignment) =
     listOfNotNull(
         validate(alignment.segments.isNotEmpty()) { "$errorParent.empty-segments" },
         validate(alignment.getMaxDirectionDeltaRads() <= MAX_LAYOUT_POINT_ANGLE_CHANGE) {

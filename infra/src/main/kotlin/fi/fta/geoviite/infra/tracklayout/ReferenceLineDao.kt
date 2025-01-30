@@ -28,7 +28,7 @@ class ReferenceLineDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<ReferenceLine>(
+    LayoutAssetDao<ReferenceLine, Unit>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_REFERENCE_LINE,
         cacheEnabled,
@@ -129,8 +129,10 @@ class ReferenceLineDao(
                 ),
         )
 
+    @Transactional fun save(item: ReferenceLine): LayoutRowVersion<ReferenceLine> = save(item, Unit)
+
     @Transactional
-    override fun save(item: ReferenceLine): LayoutRowVersion<ReferenceLine> {
+    override fun save(item: ReferenceLine, params: Unit): LayoutRowVersion<ReferenceLine> {
         val id = item.id as? IntId ?: createId()
 
         val sql =

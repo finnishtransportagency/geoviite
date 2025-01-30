@@ -25,14 +25,14 @@ import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getJointNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
-import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getRowVersionOrNull
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -43,7 +43,7 @@ class LocationTrackDao(
     val alignmentDao: LayoutAlignmentDao,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<LocationTrack>(
+    LayoutAssetDao<LocationTrack, LocationTrackGeometry>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_LOCATION_TRACK,
         cacheEnabled,
@@ -228,7 +228,8 @@ class LocationTrackDao(
 
     private fun getLocationTrack(rs: ResultSet): LocationTrack =
         LocationTrack(
-            alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
+            // TODO: GVT-2926 Remove this field entirely - maybe need to alter the baseclass?
+            alignmentVersion = rs.getRowVersionOrNull("alignment_id", "alignment_version"),
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
             name = rs.getString("name").let(::AlignmentName),
@@ -264,12 +265,9 @@ class LocationTrackDao(
         )
 
     @Transactional
-    override fun save(item: LocationTrack): LayoutRowVersion<LocationTrack> {
-        error("Locationtrack cannot be saved without a geometry")
-    }
-
-    fun save(item: LocationTrack, geometry: LocationTrackGeometry?): LayoutRowVersion<LocationTrack> {
+    override fun save(item: LocationTrack, params: LocationTrackGeometry): LayoutRowVersion<LocationTrack> {
         val id = item.id as? IntId ?: createId()
+        val geometry = params
 
         val sql =
             """
@@ -372,24 +370,26 @@ class LocationTrackDao(
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save Location Track")
         logger.daoAccess(AccessType.INSERT, LocationTrack::class, response)
-        when (geometry) {
-            null ->
-                item.contextData.layoutAssetId.let { id ->
-                    when (id) {
-                        is EditedAssetId -> {
-                            // Edited from previous asset without new geometry -> copy the original to this version
-                            alignmentDao.copyLocationTrackGeometry(id.sourceRowVersion, response)
-                        }
-                        is TemporaryAssetId -> {
-                            // Completely new item without geometry
-                        }
-                        else -> {
-                            error("Unexpected layout asset ID type when saving location track: $id")
-                        }
-                    }
-                }
-            else -> alignmentDao.saveLocationTrackGeometry(response, geometry)
-        }
+        //        when (geometry) {
+        //            null ->
+        //                item.contextData.layoutAssetId.let { id ->
+        //                    when (id) {
+        //                        is EditedAssetId -> {
+        //                            // Edited from previous asset without new geometry -> copy the original to this
+        // version
+        //                            alignmentDao.copyLocationTrackGeometry(id.sourceRowVersion, response)
+        //                        }
+        //                        is TemporaryAssetId -> {
+        //                            // Completely new item without geometry
+        //                        }
+        //                        else -> {
+        //                            error("Unexpected layout asset ID type when saving location track: $id")
+        //                        }
+        //                    }
+        //                }
+        //            else -> alignmentDao.saveLocationTrackGeometry(response, geometry)
+        //        }
+        alignmentDao.saveLocationTrackGeometry(response, geometry)
         return response
     }
 
@@ -435,7 +435,7 @@ class LocationTrackDao(
     fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
         fetchVersionsNear(context, bbox).map(::fetch)
 
-    // TODO: GVT-1727 fix based on edges instead of alignments
+    // TODO: GVT-2932 Optimize fetch for new model. Relevant for main map use, as this provides map tracks
     fun fetchVersionsNear(
         context: LayoutContext,
         bbox: BoundingBox,
@@ -451,17 +451,18 @@ class LocationTrackDao(
                 and (:include_deleted or state != 'DELETED')
                 and exists(
                   select *
-                    from layout.alignment
-                    where location_track.alignment_id = alignment.id
-                      and location_track.alignment_version = alignment.version
+                    from layout.location_track_version_edge lt_edge
+                      inner join layout.edge on edge.id = lt_edge.edge_id
+                    where location_track.id = lt_edge.location_track_id
+                      and location_track.layout_context_id = lt_edge.location_track_layout_context_id
+                      and location_track.version = lt_edge.location_track_version
                       and postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                                                alignment.bounding_box)
+                                                edge.bounding_box)
                       and exists(
                         select *
-                          from layout.segment_version
-                            join layout.segment_geometry on geometry_id = segment_geometry.id
-                          where location_track.alignment_id = segment_version.alignment_id
-                            and location_track.alignment_version = segment_version.alignment_version
+                          from layout.edge_segment
+                            inner join layout.segment_geometry on edge_segment.geometry_id = segment_geometry.id
+                          where edge_segment.edge_id = edge.id
                             and postgis.st_intersects(
                               postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
                               segment_geometry.bounding_box

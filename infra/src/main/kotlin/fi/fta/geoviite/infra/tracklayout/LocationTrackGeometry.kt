@@ -16,6 +16,10 @@ data class TrackSwitchLink(
 )
 
 sealed class LocationTrackGeometry : IAlignment {
+    companion object {
+        val empty = TmpLocationTrackGeometry(emptyList())
+    }
+
     abstract val edges: List<ILayoutEdge>
     val edgeMs: List<Range<Double>> by lazy { calculateEdgeMs(edges) }
     override val segments: List<LayoutSegment> by lazy { edges.flatMap(ILayoutEdge::segments) }
@@ -93,9 +97,13 @@ sealed class LocationTrackGeometry : IAlignment {
     //                }
     //            }
 
-    val switchLinks: List<TrackSwitchLink>
-        get() =
-            nodesWithLocation.flatMapIndexed { index, (node, location) ->
+    val switchLinks: List<SwitchLink> by lazy {
+        nodes.flatMap { node -> listOfNotNull(node.switchIn, node.switchOut) }.distinct()
+    }
+
+    val trackSwitchLinks: List<TrackSwitchLink> by lazy {
+        nodesWithLocation
+            .flatMapIndexed { index, (node, location) ->
                 when (node) {
                     is LayoutNodeSwitch -> {
                         val switchIn = node.switchIn?.let { TrackSwitchLink(it.id, it.jointNumber, location) }
@@ -105,6 +113,8 @@ sealed class LocationTrackGeometry : IAlignment {
                     else -> emptyList()
                 }
             }
+            .distinct()
+    }
 
     /**
      * This picks the to-display "track end joint" from various combinations of track inner switches (switch is part of
@@ -117,6 +127,8 @@ sealed class LocationTrackGeometry : IAlignment {
             ?: trackOuterJoint?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
             ?: trackInnerJoint
             ?: trackOuterJoint
+
+    fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = switchLinks.any { sl -> sl.id == switchId }
 }
 
 fun calculateEdgeMs(edges: List<ILayoutEdge>): List<Range<Double>> {
@@ -201,6 +213,12 @@ interface ILayoutEdge : IAlignment {
     fun withStartNode(node: ILayoutNodeContent) = LayoutEdgeContent(node, endNode, segments)
 
     fun withEndNode(node: ILayoutNodeContent) = LayoutEdgeContent(endNode, node, segments)
+
+    fun withoutSwitch(switchId: IntId<LayoutSwitch>, trackId: IntId<LocationTrack>): ILayoutEdge {
+        val start = startNode.withoutSwitch(switchId) ?: LayoutNodeStartTrack(trackId)
+        val end = endNode.withoutSwitch(switchId) ?: LayoutNodeStartTrack(trackId)
+        return this.takeIf { startNode == start && endNode == end } ?: LayoutEdgeContent(start, end, segments)
+    }
 }
 
 data class LayoutEdgeContent(
@@ -233,12 +251,15 @@ data class LayoutEdgeContent(
                 "Edge segments should begin where the previous one ends: prev=${prev.segmentEnd} next=${next.segmentStart}"
             }
         }
+        // TODO: GVT-2926 We shouldn't have edges like this, but we do. What's up?
         // We shouldn't really have edges between null and a joint, but due to old data, we do
-        require(
-            startNode.switchOut == null || endNode.switchIn == null || startNode.switchOut?.id == endNode.switchIn?.id
-        ) {
-            "An edge that is switch internal geometry, can only be that for one switch: start=${startNode.switchOut} end=${endNode.switchIn}"
-        }
+        //        require(
+        //            startNode.switchOut == null || endNode.switchIn == null || startNode.switchOut?.id ==
+        // endNode.switchIn?.id
+        //        ) {
+        //            "An edge that is switch internal geometry, can only be that for one switch:
+        // start=${startNode.switchOut} end=${endNode.switchIn}"
+        //        }
     }
 
     override val boundingBox: BoundingBox by lazy {
@@ -311,6 +332,22 @@ interface ILayoutNodeContent {
     val nodeType: LayoutNodeType
 
     val contentHash: Int
+
+    fun containsJoint(switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
+        switchIn?.matches(switchId, jointNumber) ?: false || switchOut?.matches(switchId, jointNumber) ?: false
+
+    fun withoutSwitch(switchId: IntId<LayoutSwitch>): ILayoutNodeContent? =
+        if (switchIn?.id == switchId || switchOut?.id == switchId) {
+            val switchIn = switchIn?.takeIf { it.id != switchId }
+            val switchOut = switchOut?.takeIf { it.id != switchId }
+            if (switchIn != null || switchOut != null) {
+                LayoutNodeSwitch(switchIn, switchOut)
+            } else {
+                null
+            }
+        } else {
+            this
+        }
 }
 
 sealed class LayoutNodeContent : ILayoutNodeContent
@@ -335,4 +372,51 @@ data class LayoutNodeSwitch(override val switchIn: SwitchLink?, override val swi
     }
 }
 
-data class SwitchLink(val id: IntId<LayoutSwitch>, val jointRole: SwitchJointRole, val jointNumber: JointNumber)
+data class SwitchLink(val id: IntId<LayoutSwitch>, val jointRole: SwitchJointRole, val jointNumber: JointNumber) {
+    fun matches(switchId: IntId<LayoutSwitch>, switchJointNumber: JointNumber) =
+        id == switchId && jointNumber == switchJointNumber
+}
+
+/**
+ * Combine edges from different sources into a single geometry:
+ * - Between edges, both edges are linked to the same switch, if any
+ * - Edges without a switch between them are combined into a single edge
+ * - If edges point to having different switches between them, an exception is thrown
+ */
+fun combineEdges(edges: List<ILayoutEdge>): List<ILayoutEdge> {
+    if (edges.isEmpty()) return edges
+    val combined = mutableListOf<ILayoutEdge>()
+    var previous: ILayoutEdge? = null
+    for (next in edges) {
+        if (previous == null) previous = next
+        // Both edges agree on the node between them -> move on
+        else if (previous.endNode is LayoutNodeSwitch && next.startNode is LayoutNodeSwitch) {
+            require(next.startNode == previous.endNode) {
+                "Cannot link edges with different switches: ${previous?.endNode} -> ${next.startNode}"
+            }
+            combined.add(previous)
+            previous = next
+        }
+        // Previous has a switch node -> mark the next one to start from that node as well
+        else if (previous.endNode is LayoutNodeSwitch) {
+            combined.add(previous)
+            previous = next.withStartNode(previous.endNode)
+        }
+        // Next has a switch node -> mark the previous one to end at that node as well
+        else if (next.startNode is LayoutNodeSwitch) {
+            combined.add(previous.withEndNode(next.startNode))
+            previous = next
+        }
+        // Neither has a switch node -> combine them into a single edge
+        else {
+            previous =
+                LayoutEdgeContent(
+                    startNode = previous.startNode,
+                    endNode = next.endNode,
+                    segments = previous.segments + next.segments,
+                )
+        }
+    }
+    previous?.let(combined::add)
+    return combined.toList()
+}

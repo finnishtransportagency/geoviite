@@ -379,15 +379,15 @@ constructor(
     ): List<LayoutValidationIssue>? =
         validationContext.getSwitch(id)?.let { switch ->
             val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-            val linkedTracksAndAlignments = validationContext.getSwitchTracksWithAlignments(id)
-            val linkedTracks = linkedTracksAndAlignments.map(Pair<LocationTrack, *>::first)
+            val linkedTracksAndGeometries = validationContext.getSwitchTracksWithGeometries(id)
+            val linkedTracks = linkedTracksAndGeometries.map(Pair<LocationTrack, *>::first)
 
             val referenceIssues = validateSwitchLocationTrackLinkReferences(switch, linkedTracks)
 
             val locationIssues = if (switch.exists) validateSwitchLocation(switch) else emptyList()
             val structureIssues =
                 locationIssues.ifEmpty {
-                    validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
+                    validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndGeometries)
                 }
 
             val duplicationIssues =
@@ -421,7 +421,7 @@ constructor(
                 )
             val alignmentIssues =
                 if (trackNumber?.exists == true) {
-                    validateReferenceLineAlignment(alignment)
+                    validateReferenceLineGeometry(alignment)
                 } else {
                     listOf()
                 }
@@ -450,7 +450,7 @@ constructor(
         id: IntId<LocationTrack>,
         validationContext: ValidationContext,
     ): List<LayoutValidationIssue>? =
-        validationContext.getLocationTrackWithAlignment(id)?.let { (track, alignment) ->
+        validationContext.getLocationTrackWithGeometry(id)?.let { (track, geometry) ->
             val trackNumber = validationContext.getTrackNumber(track.trackNumberId)
             val trackNumberName =
                 (trackNumber ?: validationContext.getCandidateTrackNumber(track.trackNumberId))?.number
@@ -462,7 +462,8 @@ constructor(
                     trackNumberName,
                     trackNumberIsCancelled = validationContext.trackNumberIsCancelled(track.trackNumberId),
                 )
-            val segmentSwitches = validationContext.getSegmentSwitches(alignment)
+            // TODO: GVT-2933 Validation in topology model
+            val segmentSwitches: List<SegmentSwitch> = emptyList() // validationContext.getSegmentSwitches(alignment)
             val switchSegmentIssues = validateSegmentSwitchReferences(track, segmentSwitches)
             val topologicallyConnectedSwitchIssues =
                 validateTopologicallyConnectedSwitchReferences(
@@ -472,12 +473,16 @@ constructor(
             val trackNetworkTopologyIssues =
                 validationContext.getPotentiallyAffectedSwitches(id).filter(LayoutSwitch::exists).flatMap { switch ->
                     val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-                    val switchTracks = validationContext.getSwitchTracksWithAlignments(switch.id as IntId)
-                    validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
+                    val switchTracks = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
+                    // TODO: GVT-2933 Validation in topology model
+                    //                    validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
+                    emptyList<LayoutValidationIssue>()
                 }
             val switchConnectivityIssues =
                 if (track.exists) {
-                    validateLocationTrackSwitchConnectivity(track, alignment)
+                    // TODO: GVT-2933 Validation in topology model
+                    //                    validateLocationTrackSwitchConnectivity(track, alignment)
+                    emptyList<LayoutValidationIssue>()
                 } else {
                     emptyList()
                 }
@@ -497,7 +502,7 @@ constructor(
                     duplicatesAfterPublication,
                 )
 
-            val alignmentIssues = if (track.exists) validateLocationTrackAlignment(alignment) else listOf()
+            val alignmentIssues = if (track.exists) validateLocationTrackGeometry(geometry) else listOf()
             val geocodingIssues =
                 if (track.exists && trackNumber != null) {
                     validationContext.getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->

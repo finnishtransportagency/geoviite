@@ -446,3 +446,9 @@ select
                on start_segment.alignment_id = e.alignment_id
                  and start_segment.alignment_version = e.alignment_version
                  and start_segment.segment_index = e.start_segment_index;
+
+-- TODO: Drop these columns instead, but keep them for now to maintain the data for comparison
+alter table layout.location_track_version alter column alignment_id drop not null;
+alter table layout.location_track_version alter column alignment_version drop not null;
+alter table layout.location_track alter column alignment_id drop not null;
+alter table layout.location_track alter column alignment_version drop not null;

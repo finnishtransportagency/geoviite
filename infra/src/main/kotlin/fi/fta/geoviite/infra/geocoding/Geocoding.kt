@@ -29,8 +29,8 @@ import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -489,21 +489,10 @@ data class GeocodingContext(
         return getProjectedAddressPoints(projectionLines, alignment)
     }
 
-    fun getSwitchPoints(alignment: LayoutAlignment): List<AddressPoint> {
-        val locations =
-            alignment.segments.flatMapIndexed { index, segment ->
-                val startM = alignment.segmentMs[index].min
-                listOfNotNull(
-                    segment.startJointNumber?.let { segment.segmentStart.toAlignmentPoint(startM) },
-                    segment.endJointNumber?.let { segment.segmentEnd.toAlignmentPoint(startM) },
-                )
-            }
-        return locations
-            .mapNotNull { location: AlignmentPoint ->
-                getAddress(location, 3)?.let { (address) -> AddressPoint(location, address) }
-            }
+    fun getSwitchPoints(geometry: LocationTrackGeometry): List<AddressPoint> =
+        geometry.trackSwitchLinks
+            .mapNotNull { link -> toAddressPoint(link.location, 3)?.first }
             .distinctBy { addressPoint -> addressPoint.address }
-    }
 
     private fun findPreviousPoint(targetDistance: Double): GeocodingReferencePoint {
         val target = roundTo3Decimals(targetDistance) // Round to 1mm to work around small imprecision

@@ -98,7 +98,10 @@ fun getCauseChain(exception: Exception): List<Exception> {
     while (current != null) {
         when (current) {
             is Exception -> chain.add(current)
-            is Error -> error("Errors are not meant to be caught! Tried to handle $current")
+            is Error ->
+                error(
+                    "Errors are not meant to be caught! Tried to handle $current${current.cause?.let { c -> " (cause: $c)" }}"
+                )
         }
         current = current.cause
     }

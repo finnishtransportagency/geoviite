@@ -16,7 +16,7 @@ data class ReferenceLine(
     val length: Double = 0.0,
     val segmentCount: Int = 0,
     @JsonIgnore override val contextData: LayoutContextData<ReferenceLine>,
-    @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
+    @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
 ) : PolyLineLayoutAsset<ReferenceLine>(contextData) {
 
     init {
@@ -31,6 +31,9 @@ data class ReferenceLine(
             "trackNumber" to trackNumberId,
             "alignment" to alignmentVersion,
         )
+
+    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
+        requireNotNull(alignmentVersion) { "${this::class.simpleName} has no an alignment: id=$id" }
 
     override fun withContext(contextData: LayoutContextData<ReferenceLine>): ReferenceLine =
         copy(contextData = contextData)

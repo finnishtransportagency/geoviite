@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
@@ -50,7 +49,7 @@ class LayoutSwitchDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<LayoutSwitch>(
+    LayoutAssetDao<LayoutSwitch, Unit>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_SWITCH,
         cacheEnabled,
@@ -84,6 +83,7 @@ class LayoutSwitchDao(
         }
     }
 
+    // TODO: GVT-2932: Implement with topology: won't need separate topology & segments fetch as all come from nodes
     fun fetchSegmentSwitchJointConnections(
         layoutContext: LayoutContext,
         switchId: IntId<LayoutSwitch>,
@@ -153,8 +153,10 @@ class LayoutSwitchDao(
         }
     }
 
+    @Transactional fun save(item: LayoutSwitch): LayoutRowVersion<LayoutSwitch> = save(item, Unit)
+
     @Transactional
-    override fun save(item: LayoutSwitch): LayoutRowVersion<LayoutSwitch> {
+    override fun save(item: LayoutSwitch, params: Unit): LayoutRowVersion<LayoutSwitch> {
         val id = item.id as? IntId ?: createId()
 
         val sql =
@@ -459,28 +461,34 @@ class LayoutSwitchDao(
     ): Map<IntId<LayoutSwitch>, List<LocationTrackIdentifiers>> {
         if (switchIds.isEmpty()) return emptyMap()
 
+        // TODO: GVT-2932 preliminary logic fixed (untested) to topology model, but might require optimization & indexes
+        // TODO: GVT-2932 Especially since there is a group of new joins to get the metadata
         val sql =
             """
-                select switch_id,
-                  (location_track).id,
-                  (location_track).design_id,
-                  (location_track).draft,
-                  (location_track).version,
-                  external_id
-                  from (
-                    select topology_start_switch_id as switch_id, location_track
+                with 
+                  track_nodes as (
+                    select node.switch_in_id, node.switch_out_id, location_track
                       from layout.location_track
-                      where topology_start_switch_id = any (array [:switch_ids])
-                    union
-                    select topology_end_switch_id as switch_id, location_track
-                      from layout.location_track
-                      where topology_end_switch_id = any (array [:switch_ids])
-                    union
-                    select switch_id, location_track
-                      from layout.location_track
-                        join layout.segment_version using (alignment_id, alignment_version)
-                      where switch_id = any (array [:switch_ids])
-                  ) location_track
+                        join layout.location_track_version_edge lt_edge
+                            on lt_edge.location_track_id = location_track.id
+                           and lt_edge.location_track_version = location_track.version
+                        join layout.edge on lt_edge.edge_id = edge.id
+                        join layout.node on node.id = edge.start_node_id or node.id = edge.end_node_id
+                      where node.switch_in_id = any (array [:switch_ids])
+                         or node.switch_out_id = any (array [:switch_ids])
+                  )
+                  select distinct on (switch_id, (location_track).id)
+                    switch_id,
+                    (location_track).id,
+                    (location_track).design_id,
+                    (location_track).draft,
+                    (location_track).version,
+                    external_id
+                    from (
+                      select switch_in_id as switch_id, location_track from track_nodes where switch_in_id = any (array [:switch_ids])
+                      union all 
+                      select switch_out_id as switch_id, location_track from track_nodes where switch_out_id = any (array [:switch_ids])
+                    ) track
                     cross join lateral layout.location_track_is_in_layout_context(:publication_state::layout.publication_state,
                                                                                   :design_id, location_track)
                     left join layout.location_track_external_id ext_id
@@ -592,26 +600,19 @@ class LayoutSwitchDao(
         }
     }
 
-    // TODO: GVT-2927: Implement with topology
-    fun findSwitchesNearAlignment(
+    // TODO: GVT-2932 preliminary logic fixed (untested) to topology model, but might require optimization & indexes
+    // TODO: GVT-2932 Especially since there is a group of new joins to get the metadata
+    fun findSwitchesNearTrack(
         branch: LayoutBranch,
         trackVersion: LayoutRowVersion<LocationTrack>,
-        maxDistance: Double = 1.0,
-    ): List<IntId<LayoutSwitch>> {
-        TODO()
-    }
-
-    @Deprecated("Replace in GVT-2927 with the above")
-    fun findSwitchesNearAlignment(
-        branch: LayoutBranch,
-        alignmentVersion: RowVersion<LayoutAlignment>,
         maxDistance: Double = 1.0,
     ): List<IntId<LayoutSwitch>> {
         val sql =
             """
             select distinct switch.id as switch_id
-              from layout.segment_version
-                join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+              from layout.edge_segment segment
+                inner join layout.location_track_version_edge lt_edge on lt_edge.edge_id = segment.edge_id
+                join layout.segment_geometry on segment.geometry_id = segment_geometry.id
                 join layout.switch_version_joint jv on
                   postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), jv.location)
                   and postgis.st_dwithin(segment_geometry.geometry, jv.location, :dist)
@@ -619,23 +620,22 @@ class LayoutSwitchDao(
                   on jv.switch_id = switch.id
                     and jv.switch_layout_context_id = switch.layout_context_id
                     and jv.switch_version = switch.version
-              where segment_version.alignment_id = :alignmentId
-                and segment_version.alignment_version = :alignmentVersion
+              where lt_edge.location_track_id = :location_track_id
+                and lt_edge.location_track_layout_context_id = :location_track_layout_context_id
+                and lt_edge.location_track_version = :location_track_version
                 and switch.state_category != 'NOT_EXISTING';
         """
                 .trimIndent()
+        val params =
+            mapOf(
+                "location_track_id" to trackVersion.id.intValue,
+                "location_track_layout_context_id" to trackVersion.context.toSqlString(),
+                "location_track_version" to trackVersion.version,
+                "dist" to maxDistance,
+                "design_id" to branch.designId?.intValue,
+            )
         return jdbcTemplate
-            .query(
-                sql,
-                mapOf(
-                    "alignmentId" to alignmentVersion.id.intValue,
-                    "alignmentVersion" to alignmentVersion.version,
-                    "dist" to maxDistance,
-                    "design_id" to branch.designId?.intValue,
-                ),
-            ) { rs, _ ->
-                rs.getIntId<LayoutSwitch>("switch_id")
-            }
+            .query(sql, params) { rs, _ -> rs.getIntId<LayoutSwitch>("switch_id") }
             .also { results -> logger.daoAccess(FETCH, "Switches near alignment", results) }
     }
 

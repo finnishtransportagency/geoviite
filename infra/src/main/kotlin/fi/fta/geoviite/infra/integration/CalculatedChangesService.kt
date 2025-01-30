@@ -45,8 +45,8 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import org.springframework.transaction.annotation.Transactional
 
 data class TrackNumberChange(
     val trackNumberId: IntId<LayoutTrackNumber>,
@@ -426,7 +426,7 @@ class CalculatedChangesService(
     private fun calculateLocationTrackChanges(
         trackIds: Collection<IntId<LocationTrack>>,
         changeContext: ChangeContext,
-    ) =
+    ): List<LocationTrackChange> =
         trackIds.map { trackId ->
             val trackBefore = changeContext.locationTracks.getBefore(trackId)
             val trackAfter = changeContext.locationTracks.getAfter(trackId)
@@ -614,7 +614,7 @@ class CalculatedChangesService(
     private fun <T : LayoutAsset<T>> getNonOverriddenVersions(
         branch: DesignBranch,
         versions: List<LayoutRowVersion<T>>,
-        dao: LayoutAssetDao<T>,
+        dao: LayoutAssetDao<T, *>,
     ): List<LayoutRowVersion<T>> {
         val overriddenIds =
             dao.getMany(branch.official, versions.map { asset -> asset.id })
@@ -639,7 +639,7 @@ private fun getSwitchJointChanges(
     // TODO: (comment from main) - that is joint number that is normally used to connect tracks and switch topologically
     // TODO: (comment from main) - and Ratko may not want other joint numbers in this case
     val switchChanges =
-        geometry.switchLinks.mapNotNull { link ->
+        geometry.trackSwitchLinks.mapNotNull { link ->
             val joint = fetchSwitch(link.switchId)?.getJoint(link.jointNumber)
             val address = geocodingContext.getAddress(link.location)?.first
             if (joint != null && address != null) {

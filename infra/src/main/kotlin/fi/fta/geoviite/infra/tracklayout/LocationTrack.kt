@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
@@ -74,8 +73,10 @@ data class LocationTrack(
     @Deprecated("Topology links are now just the start/end nodes of the geometry")
     val topologyEndSwitch: TopologyLocationTrackSwitch?,
     val ownerId: IntId<LocationTrackOwner>,
+    // TODO: GVT-2926 Remove this field entirely - maybe need to alter the baseclass?
+    @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
-    @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
+    // TODO: GVT-2926 Replace this field with simple switchIds from topology model
     @JsonIgnore val segmentSwitchIds: List<IntId<LayoutSwitch>> = listOf(),
 ) : PolyLineLayoutAsset<LocationTrack>(contextData) {
 
@@ -94,9 +95,9 @@ data class LocationTrack(
                 "length=${descriptionBase.length} " +
                 "allowed=$locationTrackDescriptionLength"
         }
-        require(dataType == DataType.TEMP || alignmentVersion != null) {
-            "LocationTrack in DB must have an alignment: id=$id"
-        }
+        //        require(dataType == DataType.TEMP || alignmentVersion != null) {
+        //            "LocationTrack in DB must have an alignment: id=$id"
+        //        }
         require(topologyStartSwitch?.switchId == null || topologyStartSwitch.switchId != topologyEndSwitch?.switchId) {
             "LocationTrack cannot topologically connect to the same switch at both ends: " +
                 "trackId=$id " +

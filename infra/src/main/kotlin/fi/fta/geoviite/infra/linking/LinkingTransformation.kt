@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutEdgeContent
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeEndTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeStartTrack
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -27,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.combineEdges
 import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.min
@@ -271,53 +271,6 @@ fun splice(
         )
     // TODO: GVT-2915 validations, like on LayoutAlignment?
     return TmpLocationTrackGeometry(combineEdges(startEdges + midEdge + endEdges))
-}
-
-/**
- * Combine edges from different sources into a single geometry:
- * - Between edges, both edges are linked to the same switch, if any
- * - Edges without a switch between them are combined into a single edge
- * - If edges point to having different switches between them, an exception is thrown
- */
-private fun combineEdges(edges: List<ILayoutEdge>): List<ILayoutEdge> {
-    if (edges.isEmpty()) return edges
-    val combined = mutableListOf<ILayoutEdge>()
-    var previous: ILayoutEdge? = null
-    for (next in edges) {
-        if (previous == null) previous = next
-        // Both edges agree on the node between them -> move on
-        else if (previous.endNode is LayoutNodeSwitch && next.startNode is LayoutNodeSwitch) {
-            if (next.startNode.contentHash == previous.endNode.contentHash) {
-                combined.add(previous)
-                previous = next
-            } else {
-                throw LinkingFailureException(
-                    "Cannot link edges with different switches: ${previous.endNode} -> ${next.startNode}"
-                )
-            }
-        }
-        // Previous has a switch node -> mark the next one to start from that node as well
-        else if (previous.endNode is LayoutNodeSwitch) {
-            combined.add(previous)
-            previous = next.withStartNode(previous.endNode)
-        }
-        // Next has a switch node -> mark the previous one to end at that node as well
-        else if (next.startNode is LayoutNodeSwitch) {
-            combined.add(previous.withEndNode(next.startNode))
-            previous = next
-        }
-        // Neither has a switch node -> combine them into a single edge
-        else {
-            previous =
-                LayoutEdgeContent(
-                    startNode = previous.startNode,
-                    endNode = next.endNode,
-                    segments = previous.segments + next.segments,
-                )
-        }
-    }
-    previous?.let(combined::add)
-    return combined.toList()
 }
 
 fun slice(

@@ -632,8 +632,8 @@ constructor(
 
         val oldLinkedLocationTracks =
             changes.locationTracks.associate { lt ->
-                locationTrackService.getWithAlignment(lt.oldVersion).let { (track, alignment) ->
-                    track.id as IntId to (track to alignment)
+                locationTrackService.getWithGeometry(lt.oldVersion).let { (track, geometry) ->
+                    track.id as IntId to (track to geometry)
                 }
             }
         val jointLocationChanges =
@@ -641,9 +641,7 @@ constructor(
                 .flatMap { joint ->
                     val oldLocation =
                         oldLinkedLocationTracks[joint.locationTrackId]
-                            ?.let { (track, alignment) ->
-                                findJointPoint(track, alignment, changes.id, joint.jointNumber)
-                            }
+                            ?.let { (_, geometry) -> findJointPoint(geometry, changes.id, joint.jointNumber) }
                             ?.toPoint()
                     val distance =
                         if (oldLocation != null && !pointsAreSame(joint.point, oldLocation)) {

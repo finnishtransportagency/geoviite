@@ -33,10 +33,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
-interface LayoutAssetWriter<T : LayoutAsset<T>> {
+interface LayoutAssetWriter<T : LayoutAsset<T>, SaveParams> {
     fun createId(): IntId<T>
 
-    fun save(item: T): LayoutRowVersion<T>
+    fun save(item: T, params: SaveParams): LayoutRowVersion<T>
 
     fun deleteRow(rowId: LayoutRowId<T>): LayoutRowVersion<T>
 
@@ -82,15 +82,15 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
         fetchVersions(context, includeDeleted).map(::fetch)
 }
 
-interface ILayoutAssetDao<T : LayoutAsset<T>> : LayoutAssetReader<T>, LayoutAssetWriter<T>
+interface ILayoutAssetDao<T : LayoutAsset<T>, SaveParams> : LayoutAssetReader<T>, LayoutAssetWriter<T, SaveParams>
 
 @Transactional(readOnly = true)
-abstract class LayoutAssetDao<T : LayoutAsset<T>>(
+abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     val table: LayoutAssetTable,
     val cacheEnabled: Boolean,
     cacheSize: Long,
-) : DaoBase(jdbcTemplateParam), ILayoutAssetDao<T> {
+) : DaoBase(jdbcTemplateParam), ILayoutAssetDao<T, SaveParams> {
 
     protected val cache: Cache<LayoutRowVersion<T>, T> =
         Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()

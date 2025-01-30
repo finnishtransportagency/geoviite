@@ -132,31 +132,31 @@ constructor(
         oldGeometry: LocationTrackGeometry,
         newGeometry: LocationTrackGeometry,
     ): LocationTrackGeometry {
-        TODO("GVT-2928")
+        return newGeometry
     }
 
-    @Deprecated("Use the above LocationGeometry-based updateTopology instead")
-    private fun updateTopology(
-        branch: LayoutBranch,
-        track: LocationTrack,
-        oldAlignment: LayoutAlignment,
-        newAlignment: LayoutAlignment,
-    ): LocationTrack {
-        val startChanged = startChanged(oldAlignment, newAlignment)
-        val endChanged = endChanged(oldAlignment, newAlignment)
-        return if (startChanged || endChanged) {
-            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-                layoutContext = branch.draft,
-                track = track,
-                alignment = newAlignment,
-                startChanged = startChanged,
-                endChanged = endChanged,
-            )
-        } else {
-            track
-        }
-    }
-
+    //    @Deprecated("Use the above LocationGeometry-based updateTopology instead")
+    //    private fun updateTopology(
+    //        branch: LayoutBranch,
+    //        track: LocationTrack,
+    //        oldAlignment: LayoutAlignment,
+    //        newAlignment: LayoutAlignment,
+    //    ): LocationTrack {
+    //        val startChanged = startChanged(oldAlignment, newAlignment)
+    //        val endChanged = endChanged(oldAlignment, newAlignment)
+    //        return if (startChanged || endChanged) {
+    //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
+    //                layoutContext = branch.draft,
+    //                track = track,
+    //                alignment = newAlignment,
+    //                startChanged = startChanged,
+    //                endChanged = endChanged,
+    //            )
+    //        } else {
+    //            track
+    //        }
+    //    }
+    //
     private fun startChanged(oldAlignment: IAlignment, newAlignment: IAlignment) =
         !equalsXY(oldAlignment.firstSegmentStart, newAlignment.firstSegmentStart)
 

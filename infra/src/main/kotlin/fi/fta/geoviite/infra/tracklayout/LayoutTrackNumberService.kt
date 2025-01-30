@@ -46,12 +46,12 @@ class LayoutTrackNumberService(
     private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
-) : LayoutAssetService<LayoutTrackNumber, LayoutTrackNumberDao>(dao) {
+) : LayoutAssetService<LayoutTrackNumber, Unit, LayoutTrackNumberDao>(dao) {
 
     @Transactional
     fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutRowVersion<LayoutTrackNumber> {
         val draftSaveResponse =
-            saveDraftInternal(
+            saveDraft(
                 branch,
                 LayoutTrackNumber(
                     number = saveRequest.number,
@@ -72,7 +72,7 @@ class LayoutTrackNumberService(
     ): LayoutRowVersion<LayoutTrackNumber> {
         val original = dao.getOrThrow(branch.draft, id)
         val draftSaveResponse =
-            saveDraftInternal(
+            saveDraft(
                 branch,
                 original.copy(
                     number = saveRequest.number,
@@ -206,6 +206,12 @@ class LayoutTrackNumberService(
     @Transactional(readOnly = true)
     fun getExternalIdsByBranch(id: IntId<LayoutTrackNumber>): Map<LayoutBranch, Oid<LayoutTrackNumber>> =
         mapNonNullValues(dao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
+
+    @Transactional
+    fun saveDraft(branch: LayoutBranch, draftAsset: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> =
+        saveDraftInternal(branch, draftAsset, Unit)
+
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>) = Unit
 }
 
 private fun asCsvFile(

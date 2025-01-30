@@ -18,7 +18,7 @@ class LayoutKmPostService(
     dao: LayoutKmPostDao,
     private val referenceLineService: ReferenceLineService,
     private val geometryDao: GeometryDao,
-) : LayoutAssetService<LayoutKmPost, LayoutKmPostDao>(dao) {
+) : LayoutAssetService<LayoutKmPost, Unit, LayoutKmPostDao>(dao) {
 
     @Transactional
     fun insertKmPost(branch: LayoutBranch, request: LayoutKmPostSaveRequest): IntId<LayoutKmPost> {
@@ -31,7 +31,7 @@ class LayoutKmPostService(
                 gkLocation = request.gkLocation,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
             )
-        return saveDraftInternal(branch, kmPost).id
+        return saveDraft(branch, kmPost).id
     }
 
     @Transactional
@@ -48,7 +48,7 @@ class LayoutKmPostService(
                     gkLocation = request.gkLocation,
                     sourceId = request.sourceId,
                 )
-        return saveDraftInternal(branch, kmPost).id
+        return saveDraft(branch, kmPost).id
     }
 
     fun list(layoutContext: LayoutContext, filter: ((kmPost: LayoutKmPost) -> Boolean)?): List<LayoutKmPost> {
@@ -123,6 +123,12 @@ class LayoutKmPostService(
             referenceLineAlignment.getClosestPointM(nextKmPost.location)?.first
         }
     }
+
+    @Transactional
+    fun saveDraft(branch: LayoutBranch, draftAsset: LayoutKmPost): LayoutRowVersion<LayoutKmPost> =
+        saveDraftInternal(branch, draftAsset, Unit)
+
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutKmPost>) = Unit
 }
 
 fun associateByDistance(kmPost: LayoutKmPost, comparisonPoint: Point): Pair<LayoutKmPost, Double?> =

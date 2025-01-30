@@ -61,11 +61,11 @@ class MapAlignmentService(
         return locationTrackService
             .getWithGeometry(layoutContext, id)
             ?.takeIf { (t, _) -> t.state != LocationTrackState.DELETED }
-            ?.let { (track, alignment) ->
+            ?.let { (track, geometry) ->
                 toAlignmentPolyLine(
                     track.id,
                     LOCATION_TRACK,
-                    alignment,
+                    geometry,
                     resolution,
                     bbox,
                     includeSegmentEndPoints = false,
@@ -166,8 +166,8 @@ class MapAlignmentService(
         includeSegmentEndPoints: Boolean,
     ): List<AlignmentPolyLine<LocationTrack>> =
         locationTrackService.listWithGeometries(layoutContext, includeDeleted = false, boundingBox = bbox).map {
-            (track, alignment) ->
-            toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints)
+            (track, geometry) ->
+            toAlignmentPolyLine(track.id, LOCATION_TRACK, geometry, resolution, bbox, includeSegmentEndPoints)
         }
 
     private fun getReferenceLinePolyLines(

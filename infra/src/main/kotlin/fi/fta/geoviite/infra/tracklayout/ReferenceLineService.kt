@@ -20,7 +20,7 @@ class ReferenceLineService(
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
     private val geocodingService: GeocodingService,
-) : LayoutAssetService<ReferenceLine, ReferenceLineDao>(dao) {
+) : LayoutAssetService<ReferenceLine, Unit, ReferenceLineDao>(dao) {
 
     @Transactional
     fun addTrackNumberReferenceLine(
@@ -28,7 +28,7 @@ class ReferenceLineService(
         trackNumberId: IntId<LayoutTrackNumber>,
         startAddress: TrackMeter,
     ): LayoutRowVersion<ReferenceLine> {
-        return saveDraftInternal(
+        return saveDraft(
             branch,
             ReferenceLine(
                 trackNumberId = trackNumberId,
@@ -51,7 +51,7 @@ class ReferenceLineService(
                 ?: throw IllegalStateException("Track number should have a reference line")
         val original = dao.fetch(originalVersion)
         return if (original.startAddress != startAddress) {
-            saveDraftInternal(
+            saveDraft(
                 branch,
                 original.copy(startAddress = startAddress, alignmentVersion = updatedAlignmentVersion(original)),
             )
@@ -61,19 +61,19 @@ class ReferenceLineService(
     }
 
     @Transactional
-    override fun saveDraft(branch: LayoutBranch, draftAsset: ReferenceLine): LayoutRowVersion<ReferenceLine> =
-        super.saveDraft(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)))
+    fun saveDraft(branch: LayoutBranch, draftAsset: ReferenceLine): LayoutRowVersion<ReferenceLine> =
+        saveDraftInternal(branch, draftAsset, Unit)
+
+    @Transactional
+    override fun saveDraftInternal(
+        branch: LayoutBranch,
+        draftAsset: ReferenceLine,
+        params: Unit,
+    ): LayoutRowVersion<ReferenceLine> =
+        super.saveDraftInternal(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)), params)
 
     @Transactional
     fun saveDraft(
-        branch: LayoutBranch,
-        draftAsset: ReferenceLine,
-        alignment: LayoutAlignment,
-    ): LayoutRowVersion<ReferenceLine> {
-        return saveDraftInternal(branch, draftAsset, alignment)
-    }
-
-    private fun saveDraftInternal(
         branch: LayoutBranch,
         draftAsset: ReferenceLine,
         alignment: LayoutAlignment,
@@ -95,7 +95,7 @@ class ReferenceLineService(
             } else {
                 alignmentService.save(alignment)
             }
-        return saveDraftInternal(branch, draftAsset.copy(alignmentVersion = alignmentVersion))
+        return saveDraftInternal(branch, draftAsset.copy(alignmentVersion = alignmentVersion), Unit)
     }
 
     private fun updatedAlignmentVersion(line: ReferenceLine) =
@@ -239,7 +239,7 @@ class ReferenceLineService(
         fromBranch: DesignBranch,
         id: IntId<ReferenceLine>,
     ): LayoutRowVersion<ReferenceLine> {
-        val line = fetchAndCheckForMerging(fromBranch, id)
+        val line = fetchAndCheckForMerging(fromBranch, id).first
         return dao.save(
             asMainDraft(line.copy(alignmentVersion = alignmentService.duplicate(line.getAlignmentVersionOrThrow())))
         )
@@ -250,6 +250,8 @@ class ReferenceLineService(
             asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())),
             designBranch.designId,
         )
+
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<ReferenceLine>) = Unit
 }
 
 fun referenceLineWithAlignment(

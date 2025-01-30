@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -24,9 +25,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.SortOrder
@@ -516,30 +515,17 @@ fun addChangeClarification(
 }
 
 fun findJointPoint(
-    locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
     switchId: IntId<LayoutSwitch>,
     jointNumber: JointNumber,
-): SegmentPoint? {
-    val asTopoSwitch = TopologyLocationTrackSwitch(switchId, jointNumber)
-    return if (locationTrack.topologyStartSwitch == asTopoSwitch) alignment.firstSegmentStart
-    else if (locationTrack.topologyEndSwitch == asTopoSwitch) alignment.lastSegmentEnd
-    else {
-        val segment =
-            alignment.segments.find { segment ->
-                segment.switchId == switchId &&
-                    (segment.startJointNumber == jointNumber || segment.endJointNumber == jointNumber)
-            }
-        if (segment == null) null
-        else {
-            if (segment.startJointNumber == jointNumber) segment.segmentStart else segment.segmentEnd
-        }
-    }
-}
+): AlignmentPoint? =
+    geometry.nodesWithLocation
+        .find { (node, _) -> node.containsJoint(switchId, jointNumber) }
+        ?.let { (_, location) -> location }
 
 fun <T : LayoutAsset<T>> getObjectFromValidationVersions(
     versions: List<LayoutRowVersion<T>>,
-    dao: LayoutAssetDao<T>,
+    dao: LayoutAssetDao<T, *>,
     target: ValidationTarget,
     id: IntId<T>,
 ): T? = (versions.find { it.id == id } ?: dao.fetchVersion(target.baseContext, id))?.let(dao::fetch)

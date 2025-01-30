@@ -61,12 +61,12 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.transaction.support.TransactionTemplate
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -84,7 +84,7 @@ interface TestDB {
         )
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : LayoutAsset<T>> getDao(clazz: KClass<T>): LayoutAssetDao<T> =
+    fun <T : LayoutAsset<T>> getDao(clazz: KClass<T>): LayoutAssetDao<T, *> =
         when (clazz) {
             LocationTrack::class -> locationTrackDao
             LayoutSwitch::class -> switchDao
@@ -93,10 +93,10 @@ interface TestDB {
             LayoutKmPost::class -> kmPostDao
             else -> error("Unsupported asset type: ${clazz.simpleName}")
         }
-            as LayoutAssetDao<T>
+            as LayoutAssetDao<T, *>
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : LayoutAsset<T>> getDao(asset: LayoutAsset<T>): LayoutAssetDao<T> =
+    fun <T : LayoutAsset<T>> getDao(asset: LayoutAsset<T>): LayoutAssetDao<T, *> =
         when (asset) {
             is LocationTrack -> locationTrackDao
             is LayoutSwitch -> switchDao
@@ -104,7 +104,7 @@ interface TestDB {
             is ReferenceLine -> referenceLineDao
             is LayoutKmPost -> kmPostDao
         }
-            as LayoutAssetDao<T>
+            as LayoutAssetDao<T, *>
 }
 
 @GeoviiteService

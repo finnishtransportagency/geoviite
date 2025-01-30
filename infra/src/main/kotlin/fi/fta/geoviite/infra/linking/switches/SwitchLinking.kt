@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
@@ -43,7 +42,6 @@ data class FittedSwitchJointMatch(
     val matchType: SuggestedSwitchJointMatchType,
     val distance: Double,
     val distanceToAlignment: Double,
-    val alignmentId: IntId<LayoutAlignment>?,
 )
 
 data class FittedSwitchJoint(

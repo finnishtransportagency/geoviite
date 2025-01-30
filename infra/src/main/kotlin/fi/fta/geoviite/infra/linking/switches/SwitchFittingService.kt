@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -35,10 +34,10 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.switchLibrary.calculateSwitchLocationDelta
 import fi.fta.geoviite.infra.switchLibrary.transformSwitchPoint
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -99,15 +98,15 @@ constructor(
     ): FittedSwitch {
         val tracks =
             listOf(
-                    tracksLinkedThroughGeometry.map(locationTrackService::getWithAlignment),
-                    locationTrackService.listNearWithAlignments(
+                    tracksLinkedThroughGeometry.map(locationTrackService::getWithGeometry),
+                    locationTrackService.listNearWithGeometries(
                         branch.draft,
                         boundingBoxAroundPoints(jointsInLayoutSpace.map { it.location }) * 1.5,
                     ),
                 )
                 .flatten()
                 .distinctBy { it.first.id }
-                .map { (lt, alignment) -> lt to cropNothing(alignment) }
+                .map { (lt, geometry) -> lt to cropNothing(geometry) }
 
         return fitSwitch(jointsInLayoutSpace, switchStructure, tracks, locationAccuracy)
     }
@@ -212,7 +211,6 @@ private fun findSuggestedSwitchJointMatches(
                     switchJoint = joint,
                     distance = lineLength(segment.segmentStart, jointLocation),
                     distanceToAlignment = jointDistanceToAlignment,
-                    alignmentId = locationTrack.alignmentVersion?.id,
                     segmentIndex = segmentIndex,
                 )
             else null,
@@ -226,7 +224,6 @@ private fun findSuggestedSwitchJointMatches(
                     switchJoint = joint,
                     distance = lineLength(segment.segmentEnd, jointLocation),
                     distanceToAlignment = jointDistanceToAlignment,
-                    alignmentId = locationTrack.alignmentVersion?.id,
                     segmentIndex = segmentIndex,
                 )
             else null,
@@ -240,7 +237,6 @@ private fun findSuggestedSwitchJointMatches(
                         switchJoint = joint,
                         distance = jointDistanceToSegment,
                         distanceToAlignment = jointDistanceToAlignment,
-                        alignmentId = locationTrack.alignmentVersion?.id,
                         segmentIndex = segmentIndex,
                     )
                 }
@@ -697,7 +693,7 @@ fun getSuggestedSwitchScore(
     farthestJoint: SwitchStructureJoint,
     maxFarthestJointDistance: Double,
     desiredLocation: IPoint,
-    originallyLinkedAlignments: Set<Pair<DomainId<LayoutAlignment>, JointNumber>>,
+    originallyLinkedAlignments: Set<Pair<IntId<LocationTrack>, JointNumber>>,
 ): List<SuggestedSwitchJointScore> {
     val alignmentJointNumbers = switchStructure.alignmentJoints.map { joint -> joint.number }
     val suggestedAlignmentJoints =
@@ -719,8 +715,7 @@ fun getSuggestedSwitchScore(
         val maintainingAlignmentLinkScore =
             if (
                 joint.matches.any { jointMatch ->
-                    jointMatch.alignmentId != null &&
-                        originallyLinkedAlignments.contains(jointMatch.alignmentId to joint.number)
+                    originallyLinkedAlignments.contains(jointMatch.locationTrackId to joint.number)
                 }
             )
                 0.1
@@ -734,7 +729,7 @@ private fun selectBestSuggestedSwitch(
     switchStructure: SwitchStructure,
     farthestJoint: SwitchStructureJoint,
     desiredLocation: IPoint,
-    originallyLinkedAlignments: Set<Pair<DomainId<LayoutAlignment>, JointNumber>>,
+    originallyLinkedAlignments: Set<Pair<IntId<LocationTrack>, JointNumber>>,
 ): FittedSwitch {
     assert(switchSuggestions.isNotEmpty()) { "switchSuggestions.isNotEmpty()" }
 
@@ -764,7 +759,7 @@ fun createFittedSwitchByPoint(
     switchId: IntId<LayoutSwitch>,
     location: IPoint,
     switchStructure: SwitchStructure,
-    nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    nearbyLocationTracks: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
 ): FittedSwitch? =
     findBestSwitchFitForAllPointsInSamplingGrid(
             SwitchPlacingRequest(SamplingGridPoints(location.toPoint()), switchId),
@@ -777,7 +772,7 @@ fun createFittedSwitchByPoint(
 fun findBestSwitchFitForAllPointsInSamplingGrid(
     request: SwitchPlacingRequest,
     switchStructure: SwitchStructure,
-    nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    nearbyLocationTracks: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
 ): PointAssociation<FittedSwitch> {
     val (grid, switchId) = request
     val bboxExpansion = max(switchStructure.bbox.width, switchStructure.bbox.height) * 1.125
@@ -822,7 +817,7 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
 private fun getOriginallyLinkedAlignmentsJoints(
     alignments: List<CroppedAlignment>,
     switchId: IntId<LayoutSwitch>,
-): Set<Pair<DomainId<LayoutAlignment>, JointNumber>> =
+): Set<Pair<IntId<LocationTrack>, JointNumber>> =
     alignments
         .flatMap { alignment ->
             alignment.segments
@@ -840,15 +835,15 @@ private data class TrackIntersection(
 )
 
 /** Returns a copy of the alignment filtering out points that do not locate in the given bounding box. */
-fun cropPoints(alignment: LayoutAlignment, bbox: BoundingBox): CroppedAlignment = cropPoints(alignment, bbox, 0)
+fun cropPoints(geometry: DbLocationTrackGeometry, bbox: BoundingBox): CroppedAlignment = cropPoints(geometry, bbox, 0)
 
 fun cropPoints(
-    alignment: LayoutAlignment,
+    geometry: DbLocationTrackGeometry,
     bbox: BoundingBox,
     underlyingAlignmentCropStartSegmentIndex: Int,
 ): CroppedAlignment {
     val filteredSegments =
-        alignment.segmentsWithM.mapIndexedNotNull { segmentIndex, (segment, m) ->
+        geometry.segmentsWithM.mapIndexedNotNull { segmentIndex, (segment, m) ->
             if (bbox.intersects(segment.boundingBox)) {
                 val firstMatchingPointIndex = segment.segmentPoints.indexOfFirst(bbox::contains)
                 val lastMatchingPointIndex = segment.segmentPoints.indexOfLast(bbox::contains)
@@ -863,16 +858,16 @@ fun cropPoints(
         underlyingAlignmentCropStartSegmentIndex + (filteredSegments.firstOrNull()?.first ?: 0),
         filteredSegments.map { it.second.first },
         filteredSegments.map { it.second.second },
-        alignment.id,
+        geometry.trackRowVersion.id,
     )
 }
 
-// TODO: GVT-2927 switches are now in nodes -> this should be edge-based
+// TODO: GVT-2927 switches are now in nodes -> this should be edge-based, instead of segments
 data class CroppedAlignment(
     val cropStartSegmentIndex: Int,
     override val segments: List<LayoutSegment>,
     override val segmentMs: List<Range<Double>>,
-    val id: DomainId<LayoutAlignment>,
+    val id: IntId<LocationTrack>,
 ) : IAlignment {
 
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.mapNotNull(ISegment::boundingBox)) }
@@ -880,4 +875,5 @@ data class CroppedAlignment(
     override fun toLog(): String = logFormat("id" to id, "segments" to segmentMs)
 }
 
-fun cropNothing(alignment: LayoutAlignment) = CroppedAlignment(0, alignment.segments, alignment.segmentMs, alignment.id)
+fun cropNothing(geometry: DbLocationTrackGeometry) =
+    CroppedAlignment(0, geometry.segments, geometry.segmentMs, geometry.trackRowVersion.id)

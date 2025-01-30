@@ -842,7 +842,7 @@ class PublicationValidationTest {
     }
 
     private fun assertLocationTrackFieldError(hasError: Boolean, alignment: LayoutAlignment, error: String) =
-        assertContainsError(hasError, validateLocationTrackAlignment(alignment), error)
+        assertContainsError(hasError, validateLocationTrackGeometry(alignment), error)
 
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,

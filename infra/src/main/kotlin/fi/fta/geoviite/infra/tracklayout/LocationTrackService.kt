@@ -2,8 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DataType.STORED
-import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
@@ -37,11 +35,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -58,7 +56,7 @@ class LocationTrackService(
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
     private val localizationService: LocalizationService,
     private val transactionTemplate: TransactionTemplate,
-) : LayoutAssetService<LocationTrack, LocationTrackDao>(locationTrackDao) {
+) : LayoutAssetService<LocationTrack, LocationTrackGeometry, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
     fun insert(branch: LayoutBranch, request: LocationTrackSaveRequest): LayoutRowVersion<LocationTrack> {
@@ -83,7 +81,7 @@ class LocationTrackService(
                 ownerId = request.ownerId,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
             )
-        return saveDraft(branch, locationTrack)
+        return saveDraft(branch, locationTrack, LocationTrackGeometry.empty)
     }
 
     fun update(
@@ -107,10 +105,10 @@ class LocationTrackService(
         id: IntId<LocationTrack>,
         request: LocationTrackSaveRequest,
     ): LayoutRowVersion<LocationTrack> {
-        val original = getOrThrow(branch.draft, id)
+        val (originalTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
         //        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack =
-            original.copy(
+            originalTrack.copy(
                 name = request.name,
                 descriptionBase = request.descriptionBase,
                 descriptionSuffix = request.descriptionSuffix,
@@ -127,7 +125,7 @@ class LocationTrackService(
         // b) we don't need to delete track-switch links on track delete, right?
         //   - they are now in the nodes, which don't maintain referential integrity: draft switch delete wont break it
         //   - deleted tracks can refer to whatever and that should be fine
-        return saveDraft(branch, locationTrack)
+        return saveDraft(branch, locationTrack, originalGeometry)
         //        return if (locationTrack.state != LocationTrackState.DELETED) {
         //            saveDraft(
         //                branch,
@@ -150,11 +148,11 @@ class LocationTrackService(
         id: IntId<LocationTrack>,
         state: LocationTrackState,
     ): LayoutRowVersion<LocationTrack> {
-        val originalTrack = getOrThrow(branch.draft, id)
+        val (originalTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
         //        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack = originalTrack.copy(state = state)
         // TODO: GVT-2928 do we need to recalc topology? I think not, (see above)
-        return saveDraft(branch, locationTrack)
+        return saveDraft(branch, locationTrack, originalGeometry)
         //
         //        return if (locationTrack.state != LocationTrackState.DELETED) {
         //            saveDraft(branch, locationTrack)
@@ -181,61 +179,67 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun saveDraft(branch: LayoutBranch, draftAsset: LocationTrack): LayoutRowVersion<LocationTrack> {
-        val draft = asDraft(branch, draftAsset)
-        val savedVersion = saveDraftInternal(branch, draftAsset)
-        // This method is for only editing the locationtrack data -> copy geometry from origin version
-        val sourceVersion =
-            draft.contextData.layoutAssetId.let { id ->
-                when (id) {
-                    // Edited from a row that is already a draft
-                    is StoredAssetId -> id.version
-                    // Edited by creating the draft from another context
-                    is EditedAssetId -> id.sourceRowVersion
-                    // Completely new item without geometry
-                    is TemporaryAssetId -> null
-                    is IdentifiedAssetId -> error("Unexpected layout asset ID type when saving location track: $id")
-                }
-            }
-        sourceVersion?.let { v -> alignmentDao.copyLocationTrackGeometry(v, savedVersion) }
-        return savedVersion
-    }
-
-    @Transactional
     fun saveDraft(
         branch: LayoutBranch,
-        draftAsset: LocationTrack,
-        geometry: LocationTrackGeometry,
-    ): LayoutRowVersion<LocationTrack> {
-        return saveDraftInternal(branch, draftAsset).also { version ->
-            alignmentDao.saveLocationTrackGeometry(version, geometry)
+        track: LocationTrack,
+        params: LocationTrackGeometry,
+    ): LayoutRowVersion<LocationTrack> = saveDraftInternal(branch, asDraft(branch, track), params)
+
+    // TODO: GVT-1926 Is this needed? temporarily private until we know
+    //    @Transactional
+    private fun saveDraft(branch: LayoutBranch, draftAsset: LocationTrack): LayoutRowVersion<LocationTrack> =
+        saveDraft(
+            branch,
+            draftAsset,
+            getSourceVersion(draftAsset)?.let(alignmentDao::get) ?: LocationTrackGeometry.empty,
+        )
+
+    private fun getSourceVersion(track: LocationTrack): LayoutRowVersion<LocationTrack>? =
+        track.contextData.layoutAssetId.let { id ->
+            when (id) {
+                // Edited from a row that is already a draft
+                is StoredAssetId -> id.version
+                // Edited by creating the draft from another context
+                is EditedAssetId -> id.sourceRowVersion
+                // Completely new item without geometry
+                is TemporaryAssetId -> null
+                is IdentifiedAssetId -> error("Unexpected layout asset ID type when saving location track: $id")
+            }
         }
-    }
 
-    @Deprecated("")
-    @Transactional
-    fun saveDraft(
-        branch: LayoutBranch,
-        draftAsset: LocationTrack,
-        alignment: LayoutAlignment,
-    ): LayoutRowVersion<LocationTrack> {
-        val alignmentVersion =
-            // If we're creating a new row or starting a draft, we duplicate the alignment to not
-            // edit any original
-            if (draftAsset.dataType == TEMP || draftAsset.isOfficial) {
-                alignmentService.saveAsNew(alignment)
-            }
-            // Ensure that we update the correct one.
-            else if (draftAsset.getAlignmentVersionOrThrow().id != alignment.id) {
-                alignmentService.save(
-                    alignment.copy(id = draftAsset.getAlignmentVersionOrThrow().id, dataType = STORED)
-                )
-            } else {
-                alignmentService.save(alignment)
-            }
-        return saveDraftInternal(branch, draftAsset.copy(alignmentVersion = alignmentVersion))
-    }
+    //    @Transactional
+    //    fun saveDraft(
+    //        branch: LayoutBranch,
+    //        draftAsset: LocationTrack,
+    //        geometry: LocationTrackGeometry,
+    //    ): LayoutRowVersion<LocationTrack> {
+    //        return saveDraftInternal(branch, draftAsset, geometry)
+    //    }
 
+    //    @Deprecated("")
+    //    @Transactional
+    //    fun saveDraft(
+    //        branch: LayoutBranch,
+    //        draftAsset: LocationTrack,
+    //        alignment: LayoutAlignment,
+    //    ): LayoutRowVersion<LocationTrack> {
+    //        val alignmentVersion =
+    //            // If we're creating a new row or starting a draft, we duplicate the alignment to not
+    //            // edit any original
+    //            if (draftAsset.dataType == TEMP || draftAsset.isOfficial) {
+    //                alignmentService.saveAsNew(alignment)
+    //            }
+    //            // Ensure that we update the correct one.
+    //            else if (draftAsset.getAlignmentVersionOrThrow().id != alignment.id) {
+    //                alignmentService.save(
+    //                    alignment.copy(id = draftAsset.getAlignmentVersionOrThrow().id, dataType = STORED)
+    //                )
+    //            } else {
+    //                alignmentService.save(alignment)
+    //            }
+    //        return saveDraftInternal(branch, draftAsset.copy(alignmentVersion = alignmentVersion))
+    //    }
+    //
     @Transactional
     fun insertExternalId(branch: LayoutBranch, id: IntId<LocationTrack>, oid: Oid<LocationTrack>) =
         dao.insertExternalId(id, branch, oid)
@@ -272,9 +276,8 @@ class LocationTrackService(
     @Transactional
     fun clearDuplicateReferences(branch: LayoutBranch, id: IntId<LocationTrack>) =
         dao.fetchDuplicateVersions(branch.draft, id, includeDeleted = true)
-            .map(dao::fetch)
-            .map { dup -> asDraft(branch, dup) }
-            .forEach { duplicate -> saveDraft(branch, duplicate.copy(duplicateOf = null)) }
+            .map { version -> asDraft(branch, dao.fetch(version)) to alignmentDao.get(version) }
+            .forEach { (dup, geom) -> saveDraft(branch, dup.copy(duplicateOf = null), geom) }
 
     fun listNonLinked(branch: LayoutBranch): List<LocationTrack> {
         return dao.list(branch.draft, false).filter { a -> a.segmentCount == 0 }
@@ -332,15 +335,15 @@ class LocationTrackService(
         return dao.getMany(layoutContext, ids).let(::associateWithGeometries)
     }
 
-    @Deprecated("")
-    @Transactional(readOnly = true)
-    fun getManyWithAlignments(
-        layoutContext: LayoutContext,
-        ids: List<IntId<LocationTrack>>,
-    ): List<Pair<LocationTrack, LayoutAlignment>> {
-        return dao.getMany(layoutContext, ids).let(::associateWithAlignments)
-    }
-
+    //    @Deprecated("")
+    //    @Transactional(readOnly = true)
+    //    fun getManyWithAlignments(
+    //        layoutContext: LayoutContext,
+    //        ids: List<IntId<LocationTrack>>,
+    //    ): List<Pair<LocationTrack, LayoutAlignment>> {
+    //        return dao.getMany(layoutContext, ids).let(::associateWithAlignments)
+    //    }
+    //
     @Transactional(readOnly = true)
     fun getWithGeometryOrThrow(
         layoutContext: LayoutContext,
@@ -349,15 +352,15 @@ class LocationTrackService(
         return getWithGeometryInternalOrThrow(layoutContext, id)
     }
 
-    @Deprecated("")
-    @Transactional(readOnly = true)
-    fun getWithAlignmentOrThrow(
-        layoutContext: LayoutContext,
-        id: IntId<LocationTrack>,
-    ): Pair<LocationTrack, LayoutAlignment> {
-        return getWithAlignmentInternalOrThrow(layoutContext, id)
-    }
-
+    //    @Deprecated("")
+    //    @Transactional(readOnly = true)
+    //    fun getWithAlignmentOrThrow(
+    //        layoutContext: LayoutContext,
+    //        id: IntId<LocationTrack>,
+    //    ): Pair<LocationTrack, LayoutAlignment> {
+    //        return getWithAlignmentInternalOrThrow(layoutContext, id)
+    //    }
+    //
     @Transactional(readOnly = true)
     fun getWithGeometry(
         layoutContext: LayoutContext,
@@ -394,7 +397,7 @@ class LocationTrackService(
 
     @Deprecated("")
     @Transactional(readOnly = true)
-    fun getWithAlignment(version: LayoutRowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
+    fun getWithAlignment(version: LayoutRowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? {
         return getWithAlignmentInternal(version)
     }
 
@@ -409,18 +412,18 @@ class LocationTrackService(
             }
         }
 
-    @Deprecated("")
-    @Transactional(readOnly = true)
-    fun listNearWithAlignments(
-        layoutContext: LayoutContext,
-        bbox: BoundingBox,
-    ): List<Pair<LocationTrack, LayoutAlignment>> =
-        dao.listNear(layoutContext, bbox).let(::associateWithAlignments).filter { (_, alignment) ->
-            alignment.segments.any { segment ->
-                bbox.intersects(segment.boundingBox) && segment.segmentPoints.any(bbox::contains)
-            }
-        }
-
+    //    @Deprecated("")
+    //    @Transactional(readOnly = true)
+    //    fun listNearWithAlignments(
+    //        layoutContext: LayoutContext,
+    //        bbox: BoundingBox,
+    //    ): List<Pair<LocationTrack, LayoutAlignment>> =
+    //        dao.listNear(layoutContext, bbox).let(::associateWithAlignments).filter { (_, alignment) ->
+    //            alignment.segments.any { segment ->
+    //                bbox.intersects(segment.boundingBox) && segment.segmentPoints.any(bbox::contains)
+    //            }
+    //        }
+    //
     @Transactional(readOnly = true)
     fun getLocationTracksNear(
         layoutContext: LayoutContext,
@@ -431,17 +434,18 @@ class LocationTrackService(
             BoundingBox(Point(0.0, 0.0), Point(TRACK_SEARCH_AREA_SIZE, TRACK_SEARCH_AREA_SIZE)).centerAt(location),
         )
 
-    @Deprecated("")
-    @Transactional(readOnly = true)
-    fun getLocationTracksAndAlignmentsNear(
-        layoutContext: LayoutContext,
-        location: IPoint,
-    ): List<Pair<LocationTrack, LayoutAlignment>> =
-        listNearWithAlignments(
-            layoutContext,
-            BoundingBox(Point(0.0, 0.0), Point(TRACK_SEARCH_AREA_SIZE, TRACK_SEARCH_AREA_SIZE)).centerAt(location),
-        )
-
+    //    @Deprecated("")
+    //    @Transactional(readOnly = true)
+    //    fun getLocationTracksAndAlignmentsNear(
+    //        layoutContext: LayoutContext,
+    //        location: IPoint,
+    //    ): List<Pair<LocationTrack, LayoutAlignment>> =
+    //        listNearWithAlignments(
+    //            layoutContext,
+    //            BoundingBox(Point(0.0, 0.0), Point(TRACK_SEARCH_AREA_SIZE,
+    // TRACK_SEARCH_AREA_SIZE)).centerAt(location),
+    //        )
+    //
     @Transactional(readOnly = true)
     fun getMetadataSections(
         layoutContext: LayoutContext,
@@ -518,20 +522,20 @@ class LocationTrackService(
         return getWithGeometryInternal(dao.fetchVersionOrThrow(layoutContext, id))
     }
 
-    private fun getWithAlignmentInternalOrThrow(
-        layoutContext: LayoutContext,
-        id: IntId<LocationTrack>,
-    ): Pair<LocationTrack, LayoutAlignment> {
-        return getWithAlignmentInternal(dao.fetchVersionOrThrow(layoutContext, id))
-    }
-
+    //    private fun getWithAlignmentInternalOrThrow(
+    //        layoutContext: LayoutContext,
+    //        id: IntId<LocationTrack>,
+    //    ): Pair<LocationTrack, LayoutAlignment> {
+    //        return getWithAlignmentInternal(dao.fetchVersionOrThrow(layoutContext, id))
+    //    }
+    //
     private fun getWithGeometryInternal(
         version: LayoutRowVersion<LocationTrack>
     ): Pair<LocationTrack, DbLocationTrackGeometry> = locationTrackWithGeometry(dao, alignmentDao, version)
 
     private fun getWithAlignmentInternal(
         version: LayoutRowVersion<LocationTrack>
-    ): Pair<LocationTrack, LayoutAlignment> = locationTrackWithAlignment(dao, alignmentDao, version)
+    ): Pair<LocationTrack, LayoutAlignment>? = locationTrackWithAlignment(dao, alignmentDao, version)
 
     private fun associateWithGeometries(
         lines: List<LocationTrack>
@@ -542,13 +546,13 @@ class LocationTrackService(
         return lines.map { line -> line to alignments.getValue(line.versionOrThrow) }
     }
 
-    private fun associateWithAlignments(lines: List<LocationTrack>): List<Pair<LocationTrack, LayoutAlignment>> {
-        // This is a little convoluted to avoid extra passes of transaction annotation handling in
-        // alignmentDao.fetch
-        val alignments = alignmentDao.fetchMany(lines.map(LocationTrack::getAlignmentVersionOrThrow))
-        return lines.map { line -> line to alignments.getValue(line.getAlignmentVersionOrThrow()) }
-    }
-
+    //    private fun associateWithAlignments(lines: List<LocationTrack>): List<Pair<LocationTrack, LayoutAlignment>> {
+    //        // This is a little convoluted to avoid extra passes of transaction annotation handling in
+    //        // alignmentDao.fetch
+    //        val alignments = alignmentDao.fetchMany(lines.map(LocationTrack::getAlignmentVersionOrThrow))
+    //        return lines.map { line -> line to alignments.getValue(line.getAlignmentVersionOrThrow()) }
+    //    }
+    //
     fun fillTrackAddress(splitPoint: SplitPoint, geocodingContext: GeocodingContext): SplitPoint {
         val address = geocodingContext.getAddress(splitPoint.location)?.first
         return when (splitPoint) {
@@ -634,7 +638,7 @@ class LocationTrackService(
         get(layoutContext, id)?.let { track -> countRelinkableSwitches(layoutContext.branch, track) }
 
     private fun countRelinkableSwitches(branch: LayoutBranch, locationTrack: LocationTrack): Int =
-        (locationTrack.switchIds + switchDao.findSwitchesNearAlignment(branch, locationTrack.versionOrThrow))
+        (locationTrack.switchIds + switchDao.findSwitchesNearTrack(branch, locationTrack.versionOrThrow))
             .distinct()
             .size
 
@@ -682,46 +686,44 @@ class LocationTrackService(
             .filter { (track, geometry) -> geometry.isNotEmpty && track.exists }
     }
 
-    private fun fetchNearbyLocationTracksWithAlignments(
-        layoutContext: LayoutContext,
-        targetPoint: LayoutPoint,
-    ): List<Pair<LocationTrack, LayoutAlignment>> {
-        return dao.fetchVersionsNear(layoutContext, boundingBoxAroundPoint(targetPoint, 1.0))
-            .map { version -> getWithAlignmentInternal(version) }
-            .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.exists }
-    }
+    //    private fun fetchNearbyLocationTracksWithAlignments(
+    //        layoutContext: LayoutContext,
+    //        targetPoint: LayoutPoint,
+    //    ): List<Pair<LocationTrack, LayoutAlignment>> {
+    //        return dao.fetchVersionsNear(layoutContext, boundingBoxAroundPoint(targetPoint, 1.0))
+    //            .map { version -> getWithAlignmentInternal(version) }
+    //            .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.exists }
+    //    }
 
-    // TODO: GVT-2928 Topology calculation in node-edge model
-    // This should only check for topology links: switch-links for continuing tracks at start & end
-    // In the new model, that is written into the locationtrackgeometry first/last node
-    @Deprecated("Topology calculation must change due to node model")
-    @Transactional
-    fun fetchNearbyTracksAndCalculateLocationTrackTopology(
-        layoutContext: LayoutContext,
-        track: LocationTrack,
-        alignment: LayoutAlignment,
-        startChanged: Boolean = false,
-        endChanged: Boolean = false,
-    ): LocationTrack {
-        val nearbyTracksAroundStart =
-            alignment.start
-                ?.let { point -> fetchNearbyLocationTracksWithAlignments(layoutContext, point) }
-                ?.filter { (nearbyLocationTrack, _) -> nearbyLocationTrack.id != track.id } ?: listOf()
-
-        val nearbyTracksAroundEnd =
-            alignment.end
-                ?.let { point -> fetchNearbyLocationTracksWithAlignments(layoutContext, point) }
-                ?.filter { (nearbyLocationTrack, _) -> nearbyLocationTrack.id != track.id } ?: listOf()
-
-        return calculateLocationTrackTopology(
-            track = track,
-            alignment = alignment,
-            startChanged = startChanged,
-            endChanged = endChanged,
-            nearbyTracks = NearbyTracks(aroundStart = nearbyTracksAroundStart, aroundEnd = nearbyTracksAroundEnd),
-        )
-    }
-
+    //    // TODO: GVT-2928 Topology calculation in node-edge model
+    //    // This should only check for topology links: switch-links for continuing tracks at start & end
+    //    // In the new model, that is written into the locationtrackgeometry first/last node
+    //    @Deprecated("Topology calculation must change due to node model")
+    //    @Transactional
+    //    fun fetchNearbyTracksAndCalculateLocationTrackTopology(
+    //        layoutContext: LayoutContext,
+    //        track: LocationTrack,
+    //        alignment: LayoutAlignment,
+    //        startChanged: Boolean = false,
+    //        endChanged: Boolean = false,
+    //    ): LocationTrack {
+    //        val nearbyTracksAroundStart =
+    //            alignment.start
+    //                ?.let { point -> fetchNearbyLocationTracksWithAlignments(layoutContext, point) }
+    //                ?.filter { (nearbyLocationTrack, _) -> nearbyLocationTrack.id != track.id } ?: listOf()
+    //        val nearbyTracksAroundEnd =
+    //            alignment.end
+    //                ?.let { point -> fetchNearbyLocationTracksWithAlignments(layoutContext, point) }
+    //                ?.filter { (nearbyLocationTrack, _) -> nearbyLocationTrack.id != track.id } ?: listOf()
+    //        return calculateLocationTrackTopology(
+    //            track = track,
+    //            alignment = alignment,
+    //            startChanged = startChanged,
+    //            endChanged = endChanged,
+    //            nearbyTracks = NearbyTracks(aroundStart = nearbyTracksAroundStart, aroundEnd = nearbyTracksAroundEnd),
+    //        )
+    //    }
+    //
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
         return dao.fetchLocationTrackOwners()
     }
@@ -796,10 +798,11 @@ class LocationTrackService(
         fromBranch: DesignBranch,
         id: IntId<LocationTrack>,
     ): LayoutRowVersion<LocationTrack> {
-        val track = fetchAndCheckForMerging(fromBranch, id)
-        return dao.save(asMainDraft(track)).also { savedVersion ->
-            alignmentDao.copyLocationTrackGeometry(track.versionOrThrow, savedVersion)
-        }
+        val (track, geometry) = fetchAndCheckForMerging(fromBranch, id)
+        return dao.save(asMainDraft(track), geometry)
+        //        .also { savedVersion ->
+        //            alignmentDao.copyLocationTrackGeometry(track.versionOrThrow, savedVersion)
+        //        }
         //        return dao.save(
         //            asMainDraft(track.copy(alignmentVersion =
         // alignmentService.duplicate(track.getAlignmentVersionOrThrow())))
@@ -818,6 +821,9 @@ class LocationTrackService(
     fun getExternalIdsByBranch(id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
         return mapNonNullValues(locationTrackDao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
     }
+
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LocationTrack>): LocationTrackGeometry =
+        alignmentDao.get(rowVersion)
 }
 
 @Deprecated("use track.switchIds")
@@ -978,7 +984,7 @@ fun locationTrackWithAlignment(
     locationTrackDao: LocationTrackDao,
     alignmentDao: LayoutAlignmentDao,
     rowVersion: LayoutRowVersion<LocationTrack>,
-) = locationTrackDao.fetch(rowVersion).let { track -> track to alignmentDao.fetch(track.getAlignmentVersionOrThrow()) }
+) = locationTrackDao.fetch(rowVersion).let { track -> track.alignmentVersion?.let { track to alignmentDao.fetch(it) } }
 
 fun filterByBoundingBox(list: List<LocationTrack>, boundingBox: BoundingBox?): List<LocationTrack> =
     if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) } else list

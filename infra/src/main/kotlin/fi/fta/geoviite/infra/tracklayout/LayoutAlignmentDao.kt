@@ -285,7 +285,7 @@ class LayoutAlignmentDao(
               :source_start_m_values,
               :sources,
               :geometry_ids
-            )
+            ) as id
         """
         val params =
             mapOf(
@@ -293,8 +293,9 @@ class LayoutAlignmentDao(
                 "end_node_id" to endNodeId.intValue,
                 "geometry_alignment_ids" to content.segments.map { s -> s.sourceId?.parentId }.toTypedArray(),
                 "geometry_element_indices" to content.segments.map { s -> s.sourceId?.index }.toTypedArray(),
-                "start_m_values" to content.segmentMs.map { m -> m.min }.toTypedArray(),
-                "source_start_m_values" to content.segments.map { s -> s.sourceStart }.toTypedArray(),
+                "start_m_values" to content.segmentMs.map { m -> roundTo6Decimals(m.min) }.toTypedArray(),
+                "source_start_m_values" to
+                    content.segments.map { s -> s.sourceStart?.let(::roundTo6Decimals) }.toTypedArray(),
                 "sources" to content.segments.map { s -> s.source.name }.toTypedArray(),
                 "geometry_ids" to content.segments.map { s -> (s.geometry.id as IntId).intValue }.toTypedArray(),
             )
@@ -384,7 +385,7 @@ class LayoutAlignmentDao(
                 edge_index,
                 start_m
             )
-            values(?, ?, ?, ?, ?) 
+            values(?, ?, ?, ?, ?, ?) 
         """
                 .trimIndent()
 
@@ -401,41 +402,41 @@ class LayoutAlignmentDao(
         }
     }
 
-    fun copyLocationTrackGeometry(from: LayoutRowVersion<LocationTrack>, to: LayoutRowVersion<LocationTrack>) {
-        val sql =
-            """
-            insert into layout.location_track_version_edge(
-                location_track_id,
-                location_track_layout_context_id,
-                location_track_version,
-                edge_id,
-                edge_index,
-                start_m
-            ) select
-                :to_id,
-                :to_context_id,
-                :to_version,
-                edge_id,
-                edge_index,
-                start_m
-                from layout.location_track_version_edge
-                where location_track_id = :from_id
-                  and location_track_layout_context_id = :from_context_id
-                  and location_track_version = :from_version
-        """
-                .trimIndent()
-        val params =
-            mapOf(
-                "from_id" to from.id.intValue,
-                "from_context_id" to from.context.toSqlString(),
-                "from_version" to from.version,
-                "to_id" to to.id.intValue,
-                "to_context_id" to to.context.toSqlString(),
-                "to_version" to to.version,
-            )
-        jdbcTemplate.update(sql, params)
-    }
-
+    //    fun copyLocationTrackGeometry(from: LayoutRowVersion<LocationTrack>, to: LayoutRowVersion<LocationTrack>) {
+    //        val sql =
+    //            """
+    //            insert into layout.location_track_version_edge(
+    //                location_track_id,
+    //                location_track_layout_context_id,
+    //                location_track_version,
+    //                edge_id,
+    //                edge_index,
+    //                start_m
+    //            ) select
+    //                :to_id,
+    //                :to_context_id,
+    //                :to_version,
+    //                edge_id,
+    //                edge_index,
+    //                start_m
+    //                from layout.location_track_version_edge
+    //                where location_track_id = :from_id
+    //                  and location_track_layout_context_id = :from_context_id
+    //                  and location_track_version = :from_version
+    //        """
+    //                .trimIndent()
+    //        val params =
+    //            mapOf(
+    //                "from_id" to from.id.intValue,
+    //                "from_context_id" to from.context.toSqlString(),
+    //                "from_version" to from.version,
+    //                "to_id" to to.id.intValue,
+    //                "to_context_id" to to.context.toSqlString(),
+    //                "to_version" to to.version,
+    //            )
+    //        jdbcTemplate.update(sql, params)
+    //    }
+    //
     fun preloadLocationTrackGeometries(): Int {
         val geoms = fetchLocationTrackGeometry(trackVersion = null, active = true)
         locationTrackGeometryCache.putAll(geoms)
@@ -708,7 +709,7 @@ class LayoutAlignmentDao(
         metadataExternalId: Oid<*>?,
         boundingBox: BoundingBox?,
     ): List<SegmentGeometryAndMetadata> {
-        TODO()
+        return listOf()
     }
 
     @Deprecated("Should be implemented through nodes and edges")
@@ -886,7 +887,9 @@ class LayoutAlignmentDao(
         return result
     }
 
-    fun fetchMetadata(alignmentVersion: RowVersion<LayoutAlignment>): List<LayoutSegmentMetadata> {
+    // TODO: GVT-2932 preliminary logic fixed (untested) to topology model, but might require optimization & indexes
+    // TODO: GVT-2932 Especially since there is a group of new joins to get the metadata
+    fun fetchMetadata(trackVersion: LayoutRowVersion<LocationTrack>): List<LayoutSegmentMetadata> {
         // language=SQL
         val sql =
             """
@@ -900,19 +903,26 @@ class LayoutAlignmentDao(
               plan.measurement_method,
               plan.srid,
               plan_file.name as file_name
-            from layout.segment_version
-              inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-              left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
+            from layout.edge_segment
+              inner join layout.segment_geometry on edge_segment.geometry_id = segment_geometry.id
+              left join layout.edge on edge_segment.edge_id = edge.id
+              left join layout.location_track_version_edge lt_edge on edge.id = lt_edge.edge_id
+              left join geometry.alignment on alignment.id = edge_segment.geometry_alignment_id
               left join geometry.plan on alignment.plan_id = plan.id
               left join geometry.plan_file on plan_file.plan_id = plan.id
-            where segment_version.alignment_id = :alignment_id 
-              and segment_version.alignment_version = :alignment_version
-            order by alignment.id, segment_version.segment_index
+            where lt_edge.location_track_id = :location_track_id 
+              and lt_edge.location_track_layout_context_id = :location_track_layout_context_id
+              and lt_edge.location_track_version = :location_track_version
+            order by lt_edge.edge_index, edge_segment.segment_index
         """
                 .trimIndent()
 
         val params =
-            mapOf("alignment_id" to alignmentVersion.id.intValue, "alignment_version" to alignmentVersion.version)
+            mapOf(
+                "location_track_id" to trackVersion.id.intValue,
+                "location_track_layout_context_id" to trackVersion.context.toSqlString(),
+                "location_track_version" to trackVersion.version,
+            )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
             LayoutSegmentMetadata(

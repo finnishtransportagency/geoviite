@@ -21,11 +21,11 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val KM_POST_CACHE_SIZE = 10000L
 
@@ -35,7 +35,7 @@ class LayoutKmPostDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<LayoutKmPost>(
+    LayoutAssetDao<LayoutKmPost, Unit>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_KM_POST,
         cacheEnabled,
@@ -241,7 +241,6 @@ class LayoutKmPostDao(
     }
 
     private fun getLayoutKmPost(rs: ResultSet): LayoutKmPost {
-
         return LayoutKmPost(
             trackNumberId = rs.getIntId("track_number_id"),
             kmNumber = rs.getKmNumber("km_number"),
@@ -261,8 +260,10 @@ class LayoutKmPostDao(
         )
     }
 
+    @Transactional fun save(item: LayoutKmPost): LayoutRowVersion<LayoutKmPost> = save(item, Unit)
+
     @Transactional
-    override fun save(item: LayoutKmPost): LayoutRowVersion<LayoutKmPost> {
+    override fun save(item: LayoutKmPost, params: Unit): LayoutRowVersion<LayoutKmPost> {
         val id = item.id as? IntId ?: createId()
         val trackNumberId =
             toDbId(requireNotNull(item.trackNumberId) { "KM post not linked to TrackNumber: kmPost=$item" })

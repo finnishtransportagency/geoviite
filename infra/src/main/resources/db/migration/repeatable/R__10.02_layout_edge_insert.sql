@@ -5,7 +5,7 @@ create or replace function layout.get_or_insert_edge(
   geometry_element_indices int[],
   start_m_values decimal(13,6)[],
   source_start_m_values decimal(13,6)[],
-  sources layout.geometry_source[],
+  sources varchar[],
   geometry_ids int[]
 ) returns int as
 $$
@@ -34,7 +34,7 @@ begin
           unnest(geometry_element_indices) as geometry_element_index,
           unnest(start_m_values) as start_m,
           unnest(source_start_m_values) as source_start,
-          unnest(sources) as source,
+          unnest(sources)::layout.geometry_source as source,
           unnest(geometry_ids) as geometry_id
       ) tmp
         left join layout.segment_geometry sg on tmp.geometry_id = sg.id;
@@ -46,8 +46,15 @@ begin
     from segments;
 
   -- Try inserting edge: if it already exists, the hash will conflict
-  insert into layout.edge(start_node_id, end_node_id, bounding_box, length, hash)
-    values (start_node_id, end_node_id, edge_bbox, edge_length, edge_hash)
+  insert into layout.edge(start_node_id, end_node_id, bounding_box, segment_count, length, hash)
+    values (
+      start_node_id,
+      end_node_id,
+      edge_bbox,
+      array_length(geometry_ids, 1),
+      edge_length,
+      edge_hash
+    )
   on conflict do nothing
     returning id into result_id;
 

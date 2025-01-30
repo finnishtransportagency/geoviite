@@ -32,7 +32,7 @@ constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
     private val ratkoClient: RatkoClient?,
-) : LayoutAssetService<LayoutSwitch, LayoutSwitchDao>(dao) {
+) : LayoutAssetService<LayoutSwitch, Unit, LayoutSwitchDao>(dao) {
 
     @Transactional
     fun insertSwitch(branch: LayoutBranch, request: LayoutSwitchSaveRequest): IntId<LayoutSwitch> {
@@ -50,7 +50,7 @@ constructor(
                 draftOid = request.draftOid,
             )
 
-        return saveDraftInternal(branch, switch).id
+        return saveDraft(branch, switch).id
     }
 
     @Transactional
@@ -77,7 +77,7 @@ constructor(
                 ownerId = switch.ownerId,
                 draftOid = switch.draftOid,
             )
-        return saveDraftInternal(branch, updatedLayoutSwitch).id
+        return saveDraft(branch, updatedLayoutSwitch).id
     }
 
     @Transactional
@@ -94,12 +94,13 @@ constructor(
 
     @Transactional
     fun clearSwitchInformationFromSegments(branch: LayoutBranch, layoutSwitchId: IntId<LayoutSwitch>) {
-        getLocationTracksLinkedToSwitch(branch.draft, layoutSwitchId).forEach { (locationTrack, alignment) ->
-            val (updatedLocationTrack, updatedAlignment) = clearLinksToSwitch(locationTrack, alignment, layoutSwitchId)
+        getLocationTracksLinkedToSwitch(branch.draft, layoutSwitchId).forEach { (locationTrack, geometry) ->
+            val (updatedLocationTrack, updatedAlignment) = clearLinksToSwitch(locationTrack, geometry, layoutSwitchId)
             locationTrackService.saveDraft(branch, updatedLocationTrack, updatedAlignment)
         }
     }
 
+    // TODO: GVT-2932: Implement with topology: won't need separate topology & segments fetch as all come from nodes
     fun getSegmentSwitchJointConnections(
         layoutContext: LayoutContext,
         switchId: IntId<LayoutSwitch>,
@@ -152,44 +153,46 @@ constructor(
     private fun withStructure(switch: LayoutSwitch): Pair<LayoutSwitch, SwitchStructure> =
         switch to switchLibraryService.getSwitchStructure(switch.switchStructureId)
 
+    // TODO: GVT-2932: Implement with topology: won't need separate topology & segments fetch as all come from nodes
     @Transactional(readOnly = true)
     fun getSwitchJointConnections(
         layoutContext: LayoutContext,
         switchId: IntId<LayoutSwitch>,
     ): List<LayoutSwitchJointConnection> {
-        val segment = getSegmentSwitchJointConnections(layoutContext, switchId)
-        val topological = getTopologySwitchJointConnections(layoutContext, switchId)
-        return (segment + topological)
-            .groupBy { joint -> joint.number }
-            .values
-            .map { jointConnections -> jointConnections.reduceRight(LayoutSwitchJointConnection::merge) }
+        return listOf()
+        //        val segment = getSegmentSwitchJointConnections(layoutContext, switchId)
+        //        val topological = getTopologySwitchJointConnections(layoutContext, switchId)
+        //        return (segment + topological)
+        //            .groupBy { joint -> joint.number }
+        //            .values
+        //            .map { jointConnections -> jointConnections.reduceRight(LayoutSwitchJointConnection::merge) }
     }
 
-    private fun getTopologySwitchJointConnections(
-        layoutContext: LayoutContext,
-        layoutSwitchId: IntId<LayoutSwitch>,
-    ): List<LayoutSwitchJointConnection> {
-        val layoutSwitch = get(layoutContext, layoutSwitchId) ?: return listOf()
-        val linkedTracks = getLocationTracksLinkedToSwitch(layoutContext, layoutSwitchId)
-        return linkedTracks.flatMap { (track, alignment) ->
-            getTopologyPoints(layoutSwitchId, track, alignment).mapNotNull { (connection, point) ->
-                layoutSwitch.getJoint(connection.jointNumber)?.let { joint ->
-                    LayoutSwitchJointConnection(
-                        connection.jointNumber,
-                        listOf(LayoutSwitchJointMatch(track.id as IntId, point)),
-                        joint.locationAccuracy,
-                    )
-                }
-            }
-        }
-    }
-
+    //    private fun getTopologySwitchJointConnections(
+    //        layoutContext: LayoutContext,
+    //        layoutSwitchId: IntId<LayoutSwitch>,
+    //    ): List<LayoutSwitchJointConnection> {
+    //        val layoutSwitch = get(layoutContext, layoutSwitchId) ?: return listOf()
+    //        val linkedTracks = getLocationTracksLinkedToSwitch(layoutContext, layoutSwitchId)
+    //        return linkedTracks.flatMap { (track, geometry) ->
+    //            getTopologyPoints(layoutSwitchId, track, geometry).mapNotNull { (connection, point) ->
+    //                layoutSwitch.getJoint(connection.jointNumber)?.let { joint ->
+    //                    LayoutSwitchJointConnection(
+    //                        connection.jointNumber,
+    //                        listOf(LayoutSwitchJointMatch(track.id as IntId, point)),
+    //                        joint.locationAccuracy,
+    //                    )
+    //                }
+    //            }
+    //        }
+    //    }
+    //
     private fun getLocationTracksLinkedToSwitch(
         layoutContext: LayoutContext,
         layoutSwitchId: IntId<LayoutSwitch>,
-    ): List<Pair<LocationTrack, LayoutAlignment>> {
+    ): List<Pair<LocationTrack, LocationTrackGeometry>> {
         return dao.findLocationTracksLinkedToSwitch(layoutContext, layoutSwitchId).map { ids ->
-            locationTrackService.getWithAlignment(ids.rowVersion)
+            locationTrackService.getWithGeometry(ids.rowVersion)
         }
     }
 
@@ -198,6 +201,12 @@ constructor(
     @Transactional(readOnly = true)
     fun getExternalIdsByBranch(id: IntId<LayoutSwitch>): Map<LayoutBranch, Oid<LayoutSwitch>> =
         mapNonNullValues(dao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
+
+    @Transactional
+    fun saveDraft(branch: LayoutBranch, draftAsset: LayoutSwitch): LayoutRowVersion<LayoutSwitch> =
+        saveDraftInternal(branch, draftAsset, Unit)
+
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutSwitch>) = Unit
 }
 
 fun pageSwitches(
@@ -236,21 +245,13 @@ fun <T> compareByDistanceNullsFirst(itemAndDistance1: Pair<T, Double?>, itemAndD
 }
 
 fun clearLinksToSwitch(
-    locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    track: LocationTrack,
+    geometry: LocationTrackGeometry,
     layoutSwitchId: IntId<LayoutSwitch>,
-): Pair<LocationTrack, LayoutAlignment> {
-    val newSegments =
-        alignment.segments.map { segment ->
-            if (segment.switchId == layoutSwitchId) segment.withoutSwitch() else segment
-        }
-    val newAlignment = alignment.withSegments(newSegments)
-    val newLocationTrack =
-        locationTrack.copy(
-            topologyStartSwitch = locationTrack.topologyStartSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
-            topologyEndSwitch = locationTrack.topologyEndSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
-        )
-    return newLocationTrack to (if (newSegments === alignment.segments) alignment else newAlignment)
+): Pair<LocationTrack, LocationTrackGeometry> {
+    val trackId = track.id as IntId
+    val newEdges = combineEdges(geometry.edges.map { edge -> edge.withoutSwitch(layoutSwitchId, trackId) })
+    return track to TmpLocationTrackGeometry(newEdges)
 }
 
 private fun getTopologyPoints(
