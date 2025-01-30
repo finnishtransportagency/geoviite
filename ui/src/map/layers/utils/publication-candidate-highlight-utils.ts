@@ -324,7 +324,7 @@ export const createCandidateTrackNumberFeatures = (
         ),
     );
 
-const createBaseAlignmentHighlightFeature = (
+const createBaseAlignmentHighlightFeatures = (
     alignment: AlignmentDataHolder,
     publishCandidate: PublicationCandidate,
 ) =>
@@ -373,7 +373,7 @@ export const createBaseLocationTrackFeatures = (
             zIndex: DELETED_LOCATION_TRACK_Z_INDEX,
         }),
     );
-    const highlightFeatures = createBaseAlignmentHighlightFeature(alignment, publishCandidate);
+    const highlightFeatures = createBaseAlignmentHighlightFeatures(alignment, publishCandidate);
 
     highlightFeatures.map((f) => f.set(CandidateDataProperties.LOCATION_TRACK, publishCandidate));
     return [...lineFeatures, ...highlightFeatures];
@@ -396,7 +396,7 @@ export const createBaseReferenceLineFeatures = (
             zIndex: DELETED_REFERENCE_LINE_Z_INDEX,
         }),
     );
-    const highlightFeatures = createBaseAlignmentHighlightFeature(alignment, publishCandidate);
+    const highlightFeatures = createBaseAlignmentHighlightFeatures(alignment, publishCandidate);
 
     highlightFeatures.forEach((f) => {
         f.set(CandidateDataProperties.REFERENCE_LINE, publishCandidate);
