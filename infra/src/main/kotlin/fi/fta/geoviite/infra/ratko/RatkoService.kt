@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.integration.AllOids
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock
@@ -319,8 +320,10 @@ constructor(
 
     fun newBulkTransferCreateRequest(branch: LayoutBranch, split: Split): RatkoBulkTransferCreateRequest {
         val layoutContext = LayoutContext.of(branch, PublicationState.OFFICIAL)
-
-        val splitSourceLocationTrack = locationTrackService.getOrThrow(layoutContext, split.sourceLocationTrackId)
+        //        val sourceTrack = locationTrackService.getOrThrow(layoutContext,
+        // split.sourceLocationTrackId)
+        val (sourceTrack, sourceTrackAlignment) =
+            locationTrackService.getWithAlignmentOrThrow(layoutContext, split.sourceLocationTrackId)
 
         val splitLocationTrackExternalIdMap =
             locationTrackDao.fetchExternalIds(
@@ -333,27 +336,54 @@ constructor(
             )
 
         val geocodingContext =
-            geocodingService.getGeocodingContext(layoutContext, splitSourceLocationTrack.trackNumberId).let { ctx ->
-                requireNotNull(ctx) {
-                    "Geocoding context creating failed for layoutContext=$layoutContext, trackNumberId=${splitSourceLocationTrack.trackNumberId}"
-                }
+            requireNotNull(geocodingService.getGeocodingContext(layoutContext, sourceTrack.trackNumberId)) {
+                "Geocoding context creating failed for layoutContext=$layoutContext, trackNumberId=${sourceTrack.trackNumberId}"
             }
 
-        val ratkoDestinationTracks =
-            locationTrackService
-                .getManyWithAlignments(layoutContext, split.targetLocationTracks.map { lt -> lt.locationTrackId })
-                .map { (locationTrack, alignment) ->
-                    val (start, end) = geocodingContext.getStartAndEnd(alignment)
+        //        val splitTargetAlignments =
+        //            locationTrackService.getAlignmentsForTracks()
+        //                .getManyWithAlignments(layoutContext, split.targetLocationTracks.map { lt
+        // -> lt.locationTrackId })
+        //                .associateBy({ (track, _) -> track.id }, { trackAndAlignment ->
+        // trackAndAlignment })
 
-                    RatkoBulkTransferDestinationTrack(
-                        oid = requireNotNull(splitLocationTrackExternalIdMap[locationTrack.id]).oid,
-                        startKmM = requireNotNull(start).address.let(::RatkoTrackMeter),
-                        endKmM = requireNotNull(end).address.let(::RatkoTrackMeter),
+        //                .associateBy { trackAlignmentPair -> }
+        //                .map { (locationTrack, alignment) ->
+        ////                    val (start, end) = geocodingContext.getStartAndEnd(alignment)
+        //                    val (startAddress, endAddress) =
+        //                        getSplitTargetTrackStartAndEndAddresses(geocodingContext,
+        // sourceTrackAlignment, )
+        //
+        //                    RatkoBulkTransferDestinationTrack(
+        //                        oid =
+        // requireNotNull(splitLocationTrackExternalIdMap[locationTrack.id]).oid,
+        //                        startKmM = requireNotNull(start).address.let(::RatkoTrackMeter),
+        //                        endKmM = requireNotNull(end).address.let(::RatkoTrackMeter),
+        //                    )
+        //                }
+
+        val ratkoDestinationTracks =
+            split.targetLocationTracks.map { splitTarget ->
+                val (_, targetAlignment) =
+                    locationTrackService.getWithAlignmentOrThrow(layoutContext, splitTarget.locationTrackId)
+
+                val (startAddress, endAddress) =
+                    getSplitTargetTrackStartAndEndAddresses(
+                        geocodingContext,
+                        sourceTrackAlignment,
+                        splitTarget,
+                        targetAlignment,
                     )
-                }
+
+                RatkoBulkTransferDestinationTrack(
+                    oid = requireNotNull(splitLocationTrackExternalIdMap[splitTarget.locationTrackId]).oid,
+                    startKmM = requireNotNull(startAddress).let(::RatkoTrackMeter),
+                    endKmM = requireNotNull(endAddress).let(::RatkoTrackMeter),
+                )
+            }
 
         return RatkoBulkTransferCreateRequest(
-            sourceLocationTrack = requireNotNull(splitLocationTrackExternalIdMap[splitSourceLocationTrack.id]).oid,
+            sourceLocationTrack = requireNotNull(splitLocationTrackExternalIdMap[sourceTrack.id]).oid,
             destinationLocationTracks = ratkoDestinationTracks,
         )
     }

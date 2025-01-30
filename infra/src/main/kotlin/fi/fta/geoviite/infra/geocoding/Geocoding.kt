@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.math.roundTo3Decimals
+import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -182,7 +183,8 @@ data class GeocodingContext(
                 "alignment=${referenceLineGeometry.id} " +
                 "edgeMValues=${polyLineEdges.map { e -> e.startM..e.endM }}"
         }
-        // TODO: GVT-1727 The validation claims to filter out bad projections, but we use the un-filtered here
+        // TODO: GVT-1727 The validation claims to filter out bad projections, but we use the
+        // un-filtered here
         createProjectionLines(referencePoints, polyLineEdges).also { lines ->
             validateProjectionLines(lines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
         }
@@ -597,10 +599,12 @@ fun getProjectedAddressPoints(projectionLines: List<ProjectionLine>, alignment: 
         val intersection = intersection(edge, projection.projection)
         when (intersection.inSegment1) {
             BEFORE -> {
-                // If the we're going the correct way, a projection hitting behind the current edge is an invalid
+                // If the we're going the correct way, a projection hitting behind the current edge
+                // is an invalid
                 // address for the track -> move on to the next one
                 if (isEdgeAligned) projectionIndex += 1
-                // If the edge is reversed, a "BEFORE" actually means we need to move on to the next edge
+                // If the edge is reversed, a "BEFORE" actually means we need to move on to the next
+                // edge
                 else edgeIndex += 1
             }
 
@@ -615,15 +619,49 @@ fun getProjectedAddressPoints(projectionLines: List<ProjectionLine>, alignment: 
             }
 
             AFTER -> {
-                // If going the correct way, the projection intersection is after the current edge -> move on
+                // If going the correct way, the projection intersection is after the current edge
+                // -> move on
                 if (isEdgeAligned) edgeIndex += 1
-                // Otherwise, "AFTER" is actually before the current point, so the address is invalid for the track ->
+                // Otherwise, "AFTER" is actually before the current point, so the address is
+                // invalid for the track ->
                 // move on to the next projection
                 else projectionIndex += 1
             }
         }
     }
     return addressPoints
+}
+
+fun getSplitTargetTrackStartAndEndAddresses(
+    geocodingContext: GeocodingContext,
+    sourceTrackAlignment: LayoutAlignment,
+    splitTarget: SplitTarget,
+    splitTargetAlignment: LayoutAlignment,
+): Pair<TrackMeter?, TrackMeter?> {
+    val startBySegments =
+        requireNotNull(
+            sourceTrackAlignment.segments[splitTarget.segmentIndices.first].segmentStart.let { point ->
+                geocodingContext.getAddress(point)?.first
+            }
+        )
+
+    val endBySegments =
+        requireNotNull(
+            sourceTrackAlignment.segments[splitTarget.segmentIndices.last].segmentEnd.let { point ->
+                geocodingContext.getAddress(point)?.first
+            }
+        )
+
+    val startByTargetAlignment =
+        requireNotNull(splitTargetAlignment.start?.let { point -> geocodingContext.getAddress(point)?.first })
+
+    val endByTargetAlignment =
+        requireNotNull(splitTargetAlignment.end?.let { point -> geocodingContext.getAddress(point)?.first })
+
+    val startAddress = listOf(startBySegments, startByTargetAlignment).maxOrNull()
+    val endAddress = listOf(endBySegments, endByTargetAlignment).minOrNull()
+
+    return startAddress to endAddress
 }
 
 private fun createProjectionLines(
@@ -753,7 +791,8 @@ private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Doubl
                     directionBetweenPoints(previous, point)
                 } else if (prevDir == null || nextDir == null) {
                     // Generated connection segments can have a sideways offset, but the real line
-                    // doesn't change direction. To compensate, we want to project with the direction
+                    // doesn't change direction. To compensate, we want to project with the
+                    // direction
                     // of previous/next segments
                     prevDir ?: nextDir ?: directionBetweenPoints(previous, point)
                 } else {

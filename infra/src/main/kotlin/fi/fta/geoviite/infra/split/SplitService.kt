@@ -390,6 +390,7 @@ class SplitService(
 
     @Transactional
     fun updateSplit(splitId: IntId<Split>): RowVersion<Split> {
+
         return splitDao.getOrThrow(splitId).let { split -> splitDao.updateSplit(splitId = split.id) }
     }
 

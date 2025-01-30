@@ -44,6 +44,7 @@ data class SplitHeader(
     val id: IntId<Split>,
     val locationTrackId: IntId<LocationTrack>,
     val bulkTransferState: BulkTransferState?,
+    val bulkTransferExpeditedStart: Boolean?,
     val publicationId: IntId<Publication>?,
 ) {
     constructor(
@@ -52,6 +53,7 @@ data class SplitHeader(
         id = split.id,
         locationTrackId = split.sourceLocationTrackId,
         bulkTransferState = requireNotNull(split.bulkTransfer).state,
+        bulkTransferExpeditedStart = requireNotNull(split.bulkTransfer).expeditedStart,
         publicationId = split.publicationId,
     )
 }
