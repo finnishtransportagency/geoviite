@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.logging.copyThreadContextToReactiveResponseThread
 import fi.fta.geoviite.infra.logging.integrationCall
-import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -10,14 +9,18 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.io.buffer.DataBuffer
+import org.springframework.core.io.buffer.DefaultDataBufferFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
+import java.time.Duration
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
 
@@ -66,8 +69,29 @@ constructor(
 
     private fun logResponse(): ExchangeFilterFunction {
         return ExchangeFilterFunction.ofResponseProcessor { clientResponse ->
-            logger.integrationCall(clientResponse)
-            Mono.just(clientResponse)
+            val newResponse =
+                clientResponse
+                    .mutate()
+                    .body { f ->
+                        f.collectList()
+                            .map { l ->
+                                val combined =
+                                    if (l.size > 0) DefaultDataBufferFactory().join(l)
+                                    else DefaultDataBufferFactory().wrap(ByteArray(0))
+                                combined as DataBuffer
+                            }
+                            .flatMapMany { l -> Flux.just(l) }
+                            .map { buffer ->
+                                val bytes = ByteArray(buffer.readableByteCount())
+                                buffer.read(bytes)
+                                buffer.readPosition(0)
+                                val bodyAsString = String(bytes)
+                                logger.integrationCall(clientResponse, bodyAsString)
+                                buffer
+                            }
+                    }
+                    .build()
+            Mono.just(newResponse)
         }
     }
 }

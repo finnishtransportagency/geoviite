@@ -60,6 +60,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework:spring-test")
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")

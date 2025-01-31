@@ -6,15 +6,17 @@ import fi.fta.geoviite.infra.util.formatForLog
 import fi.fta.geoviite.infra.util.resetCollected
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import java.time.Duration
-import java.time.Instant
-import kotlin.reflect.KClass
 import org.apache.logging.log4j.ThreadContext
 import org.slf4j.Logger
+import org.springframework.mock.http.client.reactive.MockClientHttpRequest
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.ExchangeFunction
+import org.springframework.web.reactive.function.client.ExchangeStrategies
+import java.time.Duration
+import java.time.Instant
+import kotlin.reflect.KClass
 
 fun Logger.apiRequest(req: HttpServletRequest, requestIp: String) {
     if (isDebugEnabled) debug("Request: {}:{} ip={}", req.method, req.requestURL, requestIp)
@@ -124,14 +126,17 @@ fun Logger.integrationCall(method: String, vararg params: Pair<String, *>) {
 }
 
 fun Logger.integrationCall(request: ClientRequest) {
+    val mock = MockClientHttpRequest(request.method(), request.url())
+    request.writeTo(mock, ExchangeStrategies.withDefaults()).block()
+    val body = mock.bodyAsString.block()
     info(
         "Sending API request to external service: " +
-            "${request.logPrefix()} method=${request.method()} url=${request.url()}"
+            "${request.logPrefix()} method=${request.method()} url=${request.url()} body=$body"
     )
 }
 
-fun Logger.integrationCall(response: ClientResponse) {
-    info("External service responded: ${response.logPrefix()} status=${response.statusCode()}")
+fun Logger.integrationCall(response: ClientResponse, body: String? = null) {
+    info("External service responded: ${response.logPrefix()} status=${response.statusCode()} body=$body")
 }
 
 fun copyThreadContextToReactiveResponseThread(): ExchangeFilterFunction {
