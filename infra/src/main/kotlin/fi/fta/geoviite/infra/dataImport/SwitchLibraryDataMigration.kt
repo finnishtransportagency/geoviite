@@ -232,6 +232,7 @@ val switchStructures: List<SwitchStructureData> by lazy {
         EV_SJ43_5_9_1_9_V(),
         EV_SJ43_5_9_1_9_H(),
     )
+        as List<SwitchStructureData>
 }
 
 val inframodelAliases =
