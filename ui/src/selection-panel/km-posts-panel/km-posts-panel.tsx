@@ -47,7 +47,7 @@ export const KmPostsPanel: React.FC<KmPostsPanelProps> = ({
             <ol className={styles['km-posts-panel__km-posts']}>
                 {visibleKmPosts.map((kmPost) => {
                     const isSelected = selectedKmPosts?.some(
-                        (selectedPost) => selectedPost == kmPost.id,
+                        (selectedPost) => selectedPost === kmPost.id,
                     );
                     const status = () => {
                         if (disabled) return KmPostBadgeStatus.DISABLED;

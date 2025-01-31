@@ -107,6 +107,7 @@ dependencies {
     // See: https://github.com/mock-server/mockserver/issues/1660
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
+    testImplementation("io.projectreactor:reactor-test:3.7.2")
 }
 
 licenseReport {

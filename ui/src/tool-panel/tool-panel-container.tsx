@@ -36,13 +36,14 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             switches: [layoutSwitch.id],
         });
         delegates.showLayers(['switch-linking-layer']);
-    }, []);
+    },
+    []);
 
     const infoboxVisibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
 
     React.useEffect(() => {
         const linkingState = store.linkingState;
-        if (linkingState?.type == LinkingType.PlacingSwitch && linkingState.location) {
+        if (linkingState?.type === LinkingType.PlacingSwitch && linkingState.location) {
             getSuggestedSwitchForLayoutSwitchPlacing(
                 store.layoutContext.branch,
                 linkingState.location,

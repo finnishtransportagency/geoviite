@@ -7,13 +7,18 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.linking.switches.GeoviiteSwitchOidPresence
 import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.switches.SwitchOidPresence
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.ratko.RatkoClient
+import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.Page
+import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,6 +31,7 @@ constructor(
     dao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
+    private val ratkoClient: RatkoClient?,
 ) : LayoutAssetService<LayoutSwitch, LayoutSwitchDao>(dao) {
 
     @Transactional
@@ -41,6 +47,7 @@ constructor(
                 ownerId = request.ownerId,
                 source = GeometrySource.GENERATED,
                 contextData = LayoutContextData.newDraft(branch, id = null),
+                draftOid = request.draftOid,
             )
 
         return saveDraftInternal(branch, switch).id
@@ -68,6 +75,7 @@ constructor(
                 trapPoint = switch.trapPoint,
                 joints = switchJoints,
                 ownerId = switch.ownerId,
+                draftOid = switch.draftOid,
             )
         return saveDraftInternal(branch, updatedLayoutSwitch).id
     }
@@ -99,16 +107,6 @@ constructor(
         return dao.fetchSegmentSwitchJointConnections(layoutContext, switchId)
     }
 
-    fun getPresentationJoint(switch: LayoutSwitch): LayoutSwitchJoint? {
-        val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-        return switch.getJoint(structure.presentationJointNumber)
-    }
-
-    fun getPresentationJointOrThrow(switch: LayoutSwitch): LayoutSwitchJoint {
-        return getPresentationJoint(switch)
-            ?: throw IllegalArgumentException("Switch ${switch.id} has no presentation joint")
-    }
-
     @Transactional(readOnly = true)
     fun listWithStructure(
         layoutContext: LayoutContext,
@@ -117,12 +115,31 @@ constructor(
         return dao.list(layoutContext, includeDeleted).map(::withStructure)
     }
 
+    fun checkOidPresence(oid: Oid<LayoutSwitch>) =
+        SwitchOidPresence(
+            existsInRatko = checkRatkoOidPresence(oid),
+            existsInGeoviiteAs =
+                dao.lookupByExternalId(oid)?.let { rowByOid ->
+                    dao.get(rowByOid.context, rowByOid.id)?.let { existingSwitch ->
+                        GeoviiteSwitchOidPresence(rowByOid.id, existingSwitch.stateCategory, existingSwitch.name)
+                    }
+                },
+        )
+
+    private fun checkRatkoOidPresence(oid: Oid<LayoutSwitch>): Boolean? {
+        return try {
+            ratkoClient?.getSwitchAsset(RatkoOid(oid.toString())) != null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun idMatches(
         layoutContext: LayoutContext,
         possibleIds: List<IntId<LayoutSwitch>>? = null,
     ): ((term: String, item: LayoutSwitch) -> Boolean) =
         dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
-            { term, item -> externalIds[item.id]?.toString() == term || item.id.toString() == term }
+            { term, item -> externalIds[item.id]?.oid?.toString() == term || item.id.toString() == term }
         }
 
     override fun contentMatches(term: String, item: LayoutSwitch) =
@@ -179,9 +196,8 @@ constructor(
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 
     @Transactional(readOnly = true)
-    fun getExternalIdsByBranch(id: IntId<LayoutSwitch>): Map<LayoutBranch, Oid<LayoutSwitch>> {
-        return dao.fetchExternalIdsByBranch(id)
-    }
+    fun getExternalIdsByBranch(id: IntId<LayoutSwitch>): Map<LayoutBranch, Oid<LayoutSwitch>> =
+        mapNonNullValues(dao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
 }
 
 fun pageSwitches(

@@ -187,7 +187,7 @@ async function getOptions(
 
     const locationTrackOptions = searchResult.locationTracks.map((locationTrack) => {
         const description =
-            locationTrackDescriptions?.find((d) => d.id == locationTrack.id)?.description ?? '';
+            locationTrackDescriptions?.find((d) => d.id === locationTrack.id)?.description ?? '';
 
         return createLocationTrackOptionItem(locationTrack, description);
     });
@@ -567,7 +567,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         </PrivilegeRequired>
                     )}
                 </div>
-                {layoutContext.publicationState == 'DRAFT' && (
+                {layoutContext.publicationState === 'DRAFT' && (
                     <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button
                             disabled={!canEnterPreview}

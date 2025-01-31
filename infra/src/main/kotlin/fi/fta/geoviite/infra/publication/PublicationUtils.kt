@@ -19,6 +19,9 @@ import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -40,6 +43,8 @@ import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+
+data class GeometryChangeRanges(val added: List<Range<Double>>, val removed: List<Range<Double>>)
 
 fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId): String? {
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(timeZone)
@@ -533,3 +538,34 @@ fun findJointPoint(
         }
     }
 }
+
+fun getChangedGeometryRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>): GeometryChangeRanges {
+    // TODO If some kind of segment filtering remains after GVT-2967, segments should be grouped for better performance
+    val added =
+        newSegments
+            .filter { s -> oldSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
+            .map { s -> Range(s.startM, s.endM) }
+    val removed =
+        oldSegments
+            .filter { s -> newSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
+            .map { s -> Range(s.startM, s.endM) }
+
+    return GeometryChangeRanges(added = combineOverlappingRanges(added), removed = combineOverlappingRanges(removed))
+}
+
+fun <T : Comparable<T>> combineOverlappingRanges(ranges: List<Range<T>>) =
+    ranges.fold(emptyList<Range<T>>()) { list, r ->
+        val previous = list.lastOrNull()
+        if (previous?.overlaps(r) == true) {
+            list.take(list.size - 1) + previous.copy(max = r.max)
+        } else {
+            list + r
+        }
+    }
+
+fun <T : LayoutAsset<T>> getObjectFromValidationVersions(
+    versions: List<LayoutRowVersion<T>>,
+    dao: LayoutAssetDao<T>,
+    target: ValidationTarget,
+    id: IntId<T>,
+): T? = (versions.find { it.id == id } ?: dao.fetchVersion(target.baseContext, id))?.let(dao::fetch)

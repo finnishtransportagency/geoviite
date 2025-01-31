@@ -164,10 +164,11 @@ export type SplitPoint = SwitchSplitPoint | EndpointSplitPoint;
 export function splitPointsAreSame(point1: SplitPoint, point2: SplitPoint): boolean {
     switch (point1.type) {
         case 'SWITCH_SPLIT_POINT':
-            return point2.type == 'SWITCH_SPLIT_POINT' && point2.switchId == point1.switchId;
+            return point2.type === 'SWITCH_SPLIT_POINT' && point2.switchId === point1.switchId;
         case 'ENDPOINT_SPLIT_POINT':
             return (
-                point2.type == 'ENDPOINT_SPLIT_POINT' && point2.endpointType == point1.endpointType
+                point2.type === 'ENDPOINT_SPLIT_POINT' &&
+                point2.endpointType === point1.endpointType
             );
     }
 }
@@ -268,11 +269,15 @@ export type LayoutSwitch = {
     sourceId?: GeometrySwitchId;
     trapPoint?: boolean;
     ownerId?: SwitchOwnerId;
+    draftOid?: Oid;
 } & LayoutAssetFields;
+
+export type SwitchJointRole = 'MAIN' | 'CONNECTION' | 'MATH';
 
 export type LayoutSwitchJoint = {
     number: JointNumber;
     location: Point;
+    role: SwitchJointRole;
     locationAccuracy?: LocationAccuracy;
 };
 
@@ -366,7 +371,7 @@ export function getSwitchPresentationJoint(
     layoutSwitch: LayoutSwitch,
     presentationJointNumber: JointNumber,
 ): LayoutSwitchJoint | undefined {
-    return layoutSwitch.joints.find((joint) => joint.number == presentationJointNumber);
+    return layoutSwitch.joints.find((joint) => joint.number === presentationJointNumber);
 }
 
 export type LayoutSwitchJointMatch = {

@@ -5,8 +5,7 @@ alter table publication.track_number
   drop constraint publication_track_number_track_number_version_fk;
 
 alter table layout.track_number_version
-  drop constraint track_number_version_pkey,
-  add constraint track_number_version_pkey primary key (id, layout_context_id, version);
+  drop constraint track_number_version_pkey;
 
 alter table publication.track_number
   add column layout_context_id text;
@@ -39,6 +38,9 @@ set version = track_number_version_change.new_version, id = official_id
   where track_number_version.layout_context_id = track_number_version_change.layout_context_id
     and track_number_version.id = track_number_version_change.id
     and track_number_version.version = track_number_version_change.old_version;
+
+alter table layout.track_number_version
+  add constraint track_number_version_pkey primary key (id, layout_context_id, version);
 
 alter table publication.track_number
   add constraint publication_track_number_track_number_version_fk

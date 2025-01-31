@@ -123,7 +123,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     visibleSources,
                     selectedTrackNumbers,
                     undefined,
-                    grouping == GeometryPlanGrouping.ByProject
+                    grouping === GeometryPlanGrouping.ByProject
                         ? GeometrySortBy.PROJECT_NAME
                         : GeometrySortBy.NAME,
                     GeometrySortOrder.ASCENDING,
@@ -197,17 +197,17 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     };
 
     const visibleProjectIds = planHeadersDisplayableInPanel
-        .filter((plan) => visiblePlans.some((visiblePlan) => visiblePlan.id == plan.id))
+        .filter((plan) => visiblePlans.some((visiblePlan) => visiblePlan.id === plan.id))
         .map((plan) => plan.project.id)
         .filter(filterUnique);
 
     function setProjectVisibility(projectId: ProjectId, newVisibility: boolean) {
         const projectPlans = planHeadersDisplayableInPanel.filter(
-            (plan) => plan.project.id == projectId,
+            (plan) => plan.project.id === projectId,
         );
         if (!newVisibility) {
             const visibleProjectPlans = visiblePlansInView.filter((visiblePlan) =>
-                projectPlans.some((projectPlan) => projectPlan.id == visiblePlan.id),
+                projectPlans.some((projectPlan) => projectPlan.id === visiblePlan.id),
             );
             visibleProjectPlans.forEach(onTogglePlanVisibility);
         } else {
@@ -227,7 +227,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
 
                 <GeometryPlanFilterMenuContainer />
                 <Eye
-                    disabled={disabled || planHeadersDisplayableInPanel.length == 0}
+                    disabled={disabled || planHeadersDisplayableInPanel.length === 0}
                     onVisibilityToggle={toggleAllPlanVisibilities}
                     visibility={visiblePlansInView.length > 0}
                 />
@@ -237,15 +237,15 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     styles['selection-panel__content'],
                     styles['selection-panel__content--unpadded'],
                 )}>
-                {planHeadersDisplayableInPanel.length == planHeaderCount &&
+                {planHeadersDisplayableInPanel.length === planHeaderCount &&
                     planHeadersDisplayableInPanel.map((h, index, allPlans) => {
                         const isSameAsPrevProject =
                             h.project.id === allPlans[index - 1]?.project?.id;
                         const showProjectRow =
-                            grouping == GeometryPlanGrouping.ByProject && !isSameAsPrevProject;
+                            grouping === GeometryPlanGrouping.ByProject && !isSameAsPrevProject;
                         const projectIsVisible = visibleProjectIds.includes(h.project.id);
                         return (
-                            <React.Fragment>
+                            <React.Fragment key={h.id}>
                                 {showProjectRow && (
                                     <div className={styles['selection-panel__project']}>
                                         <span className={styles['selection-panel__project-title']}>

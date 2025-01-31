@@ -48,7 +48,7 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
             layoutKmPost={selectedLayoutKmPost}
             kmPostChangeTime={kmPostChangeTime}
             linkingState={
-                state.linkingState?.type == LinkingType.LinkingKmPost
+                state.linkingState?.type === LinkingType.LinkingKmPost
                     ? state.linkingState
                     : undefined
             }

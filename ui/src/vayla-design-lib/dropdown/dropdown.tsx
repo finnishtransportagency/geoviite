@@ -181,9 +181,9 @@ export const Dropdown = function <TItemValue>({
     function focusSelectedItem() {
         if (options) {
             const selectedIndex = filteredOptions.findIndex(
-                (option) => option.value == props.value,
+                (option) => option.value === props.value,
             );
-            if (selectedIndex == -1) {
+            if (selectedIndex === -1) {
                 setOptionFocusIndex(showEmptyOption ? -1 : 0);
             } else {
                 setOptionFocusIndex(selectedIndex);
@@ -239,8 +239,8 @@ export const Dropdown = function <TItemValue>({
         return createClassName(
             styles['dropdown__list-item'],
             item?.disabled && styles['dropdown__list-item--disabled'],
-            item?.value == props.value && styles['dropdown__list-item--selected'],
-            index == optionFocusIndex && styles['dropdown__list-item--focused'],
+            item?.value === props.value && styles['dropdown__list-item--selected'],
+            index === optionFocusIndex && styles['dropdown__list-item--focused'],
         );
     }
 
@@ -257,7 +257,7 @@ export const Dropdown = function <TItemValue>({
     }
 
     function handleInputKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
-        if (!searchable && e.code == 'Space') {
+        if (!searchable && e.code === 'Space') {
             openListAndFocusSelectedItem();
             e.preventDefault();
         }
@@ -314,7 +314,7 @@ export const Dropdown = function <TItemValue>({
 
     // Set initial "hasFocus"
     React.useEffect(() => {
-        setHasFocus(document.activeElement == inputRef.current);
+        setHasFocus(document.activeElement === inputRef.current);
     });
 
     // Scroll to focused option
@@ -342,7 +342,7 @@ export const Dropdown = function <TItemValue>({
             options
                 ? Math.max(
                       0,
-                      options.findIndex((option) => option.value == props.value),
+                      options.findIndex((option) => option.value === props.value),
                   )
                 : 0,
         );
@@ -357,7 +357,7 @@ export const Dropdown = function <TItemValue>({
                             className={getItemClassName(undefined, -1)}
                             onClick={unselect}
                             title={props.unselectText || 'Ei valittu'}
-                            ref={optionFocusIndex == -1 ? focusedOptionRef : undefined}>
+                            ref={optionFocusIndex === -1 ? focusedOptionRef : undefined}>
                             <span className={styles['dropdown__list-item-icon']}>
                                 <Icons.Selected size={IconSize.SMALL} />
                             </span>
@@ -375,7 +375,7 @@ export const Dropdown = function <TItemValue>({
                                 onClick={(event) => handleItemClick(item, event)}
                                 title={item.name}
                                 aria-disabled={!!item.disabled}
-                                ref={optionFocusIndex == index ? focusedOptionRef : undefined}>
+                                ref={optionFocusIndex === index ? focusedOptionRef : undefined}>
                                 <span className={styles['dropdown__list-item-icon']}>
                                     <Icons.Selected size={IconSize.SMALL} />
                                 </span>
@@ -384,7 +384,7 @@ export const Dropdown = function <TItemValue>({
                                 </span>
                             </li>
                         ))}
-                    {searchTerm && !isLoading && filteredOptions.length == 0 && (
+                    {searchTerm && !isLoading && filteredOptions.length === 0 && (
                         <li
                             title="Ei vaihtoehtoja"
                             className={createClassName(

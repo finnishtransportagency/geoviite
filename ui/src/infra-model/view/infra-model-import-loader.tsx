@@ -31,7 +31,7 @@ export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ 
         }
     };
     const onValidate: () => void = async () => {
-        if (pvDocumentId && pvDocumentId == initPVDocumentId) {
+        if (pvDocumentId && pvDocumentId === initPVDocumentId) {
             props.setLoading(true);
             await getValidationIssuesForPVDocument(pvDocumentId, overrideParams)
                 .then(props.onValidation)

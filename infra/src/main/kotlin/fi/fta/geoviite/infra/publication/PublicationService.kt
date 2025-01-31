@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.IndirectChanges
 import fi.fta.geoviite.infra.ratko.RatkoClient
+import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
@@ -70,10 +71,40 @@ constructor(
         return PublicationCandidates(
             transition = transition,
             trackNumbers = publicationDao.fetchTrackNumberPublicationCandidates(transition),
-            locationTracks = publicationDao.fetchLocationTrackPublicationCandidates(transition),
-            referenceLines = publicationDao.fetchReferenceLinePublicationCandidates(transition),
+            locationTracks =
+                publicationDao.fetchLocationTrackPublicationCandidates(transition).map { ltc ->
+                    ltc.copy(geometryChanges = fetchChangedLocationTrackGeometryRanges(ltc.id, transition))
+                },
+            referenceLines =
+                publicationDao.fetchReferenceLinePublicationCandidates(transition).map { rlc ->
+                    rlc.copy(geometryChanges = fetchChangedReferenceLineGeometryRanges(rlc.id, transition))
+                },
             switches = publicationDao.fetchSwitchPublicationCandidates(transition),
             kmPosts = publicationDao.fetchKmPostPublicationCandidates(transition),
+        )
+    }
+
+    fun fetchChangedLocationTrackGeometryRanges(
+        id: IntId<LocationTrack>,
+        transition: LayoutContextTransition,
+    ): GeometryChangeRanges {
+        val trackWithAlignment1 = locationTrackService.getWithAlignment(transition.candidateContext, id)
+        val trackWithAlignment2 = locationTrackService.getWithAlignment(transition.baseContext, id)
+        return getChangedGeometryRanges(
+            trackWithAlignment1?.second?.segments ?: emptyList(),
+            trackWithAlignment2?.second?.segments ?: emptyList(),
+        )
+    }
+
+    fun fetchChangedReferenceLineGeometryRanges(
+        id: IntId<ReferenceLine>,
+        transition: LayoutContextTransition,
+    ): GeometryChangeRanges {
+        val lineWithAlignment1 = referenceLineService.getWithAlignment(transition.candidateContext, id)
+        val lineWithAlignment2 = referenceLineService.getWithAlignment(transition.baseContext, id)
+        return getChangedGeometryRanges(
+            lineWithAlignment1?.second?.segments ?: emptyList(),
+            lineWithAlignment2?.second?.segments ?: emptyList(),
         )
     }
 
@@ -212,8 +243,16 @@ constructor(
     }
 
     private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<LayoutSwitch>) {
-        val switchOid = ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()) { "No OID received from RATKO" } }
-        switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(oid.id)) }
+        val switchOid =
+            switchDao.get(branch.draft, switchId)?.draftOid?.also(::ensureDraftIdExists)?.toString()
+                ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()?.id) { "No OID received from RATKO" } }
+        switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(switchOid)) }
+    }
+
+    private fun ensureDraftIdExists(draftOid: Oid<LayoutSwitch>) {
+        requireNotNull(ratkoClient?.getSwitchAsset(RatkoOid(draftOid.toString()))) {
+            "OID $draftOid does not exist in Ratko"
+        }
     }
 
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =
@@ -226,7 +265,7 @@ constructor(
             if (branch is MainBranch) {
                 getInheritedDesignPublicationsFromMainPublication(versions, request) to PublicationRequestIds.empty()
             } else {
-                listOf<PreparedPublicationRequest>() to getInheritedCalculatedChangeIds(versions)
+                listOf<PreparedPublicationRequest>() to getDesignToSelfInheritedChangeIds(versions)
             }
         updateExternalId(branch, request.content + inheritedChangeIds)
         val calculatedChanges = calculatedChangesService.getCalculatedChanges(versions)
@@ -324,13 +363,25 @@ constructor(
             splits = listOf(),
         )
 
-    fun getInheritedCalculatedChangeIds(versions: ValidationVersions): PublicationRequestIds {
-        val indirectChanges = calculatedChangesService.getCalculatedChanges(versions).indirectChanges
+    fun getDesignToSelfInheritedChangeIds(versions: ValidationVersions): PublicationRequestIds {
+        val changes = calculatedChangesService.getCalculatedChanges(versions)
+        val indirectChanges = changes.indirectChanges
+        val switchChangesBySameKmLocationTrackChange =
+            (changes.directChanges.locationTrackChanges + changes.indirectChanges.locationTrackChanges)
+                .flatMap { locationTrackChange ->
+                    calculatedChangesService.getChangedSwitchesFromChangedLocationTrackKms(
+                        versions,
+                        locationTrackChange,
+                    )
+                }
+                .distinct()
         return PublicationRequestIds(
             trackNumbers = indirectChanges.trackNumberChanges.map { it.trackNumberId },
             referenceLines = listOf(),
             locationTracks = indirectChanges.locationTrackChanges.map { it.locationTrackId },
-            switches = indirectChanges.switchChanges.map { it.switchId },
+            switches =
+                (indirectChanges.switchChanges.map { it.switchId } + switchChangesBySameKmLocationTrackChange)
+                    .distinct(),
             kmPosts = listOf(),
         )
     }

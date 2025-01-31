@@ -44,7 +44,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
     const visiblePlans = useTrackLayoutAppSelector((state) => state.selection.visiblePlans);
 
     function isVisible(planId: GeometryPlanId) {
-        return visiblePlans.some((plan) => plan.id == planId);
+        return visiblePlans.some((plan) => plan.id === planId);
     }
 
     function togglePlanVisibility(

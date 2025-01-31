@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
+import fi.fta.geoviite.infra.asSwitchStructure
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
@@ -7,7 +8,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.interpolate
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -27,10 +28,10 @@ import fi.fta.geoviite.infra.tracklayout.someSegment
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 
 class SwitchLinkingTest {
     private var testLayoutSwitchId = IntId<LayoutSwitch>(0)
@@ -297,14 +298,14 @@ class SwitchLinkingTest {
 
     @Test
     fun `should find joint matches for suggested switch`() {
-        val switch = YV60_300_1_10_V()
+        val switch = asSwitchStructure(YV60_300_1_10_V())
 
         val joints =
             listOf(
-                SwitchJoint(JointNumber(1), Point(0.0, 0.0)),
-                SwitchJoint(JointNumber(5), Point(5.0, 0.0)),
-                SwitchJoint(JointNumber(2), Point(10.0, 0.0)),
-                SwitchJoint(JointNumber(3), Point(5.0, 5.0)),
+                SwitchStructureJoint(JointNumber(1), Point(0.0, 0.0)),
+                SwitchStructureJoint(JointNumber(5), Point(5.0, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(10.0, 0.0)),
+                SwitchStructureJoint(JointNumber(3), Point(5.0, 5.0)),
             )
 
         val locationTrack1 = locationTrack(IntId(1), id = IntId(1), draft = false)
@@ -342,10 +343,13 @@ class SwitchLinkingTest {
 
     @Test
     fun `should match suggested switch with inner segment`() {
-        val switch = YV60_300_1_10_V()
+        val switch = asSwitchStructure(YV60_300_1_10_V())
 
         val joints =
-            listOf(SwitchJoint(JointNumber(1), Point(5.25, 0.0)), SwitchJoint(JointNumber(2), Point(14.75, 0.0)))
+            listOf(
+                SwitchStructureJoint(JointNumber(1), Point(5.25, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(14.75, 0.0)),
+            )
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
@@ -370,10 +374,13 @@ class SwitchLinkingTest {
 
     @Test
     fun `should match suggested switch with inner segment even if its further away`() {
-        val switch = YV60_300_1_10_V()
+        val switch = asSwitchStructure(YV60_300_1_10_V())
 
         val joints =
-            listOf(SwitchJoint(JointNumber(1), Point(4.75, 0.0)), SwitchJoint(JointNumber(2), Point(15.25, 0.0)))
+            listOf(
+                SwitchStructureJoint(JointNumber(1), Point(4.75, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(15.25, 0.0)),
+            )
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
@@ -398,9 +405,12 @@ class SwitchLinkingTest {
 
     @Test
     fun `should match with closest segment end point when there are multiple matches`() {
-        val switch = YV60_300_1_10_V()
-
-        val joints = listOf(SwitchJoint(JointNumber(1), Point(0.6, 0.0)), SwitchJoint(JointNumber(2), Point(10.6, 0.0)))
+        val switch = asSwitchStructure(YV60_300_1_10_V())
+        val joints =
+            listOf(
+                SwitchStructureJoint(JointNumber(1), Point(0.6, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(10.6, 0.0)),
+            )
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
@@ -425,10 +435,12 @@ class SwitchLinkingTest {
 
     @Test
     fun `should prefer segment end points over normal ones`() {
-        val switch = YV60_300_1_10_V()
-
+        val switch = asSwitchStructure(YV60_300_1_10_V())
         val joints =
-            listOf(SwitchJoint(JointNumber(1), Point(0.25, 0.0)), SwitchJoint(JointNumber(2), Point(9.75, 0.0)))
+            listOf(
+                SwitchStructureJoint(JointNumber(1), Point(0.25, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(9.75, 0.0)),
+            )
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
@@ -451,10 +463,12 @@ class SwitchLinkingTest {
 
     @Test
     fun `should never match with segment end point for the first joint`() {
-        val switch = YV60_300_1_10_V()
-
+        val switch = asSwitchStructure(YV60_300_1_10_V())
         val joints =
-            listOf(SwitchJoint(JointNumber(1), Point(3.9995, 0.0)), SwitchJoint(JointNumber(2), Point(10.0, 0.0)))
+            listOf(
+                SwitchStructureJoint(JointNumber(1), Point(3.9995, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(10.0, 0.0)),
+            )
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
@@ -480,10 +494,12 @@ class SwitchLinkingTest {
 
     @Test
     fun `should never match with the first point for last joint`() {
-        val switch = YV60_300_1_10_V()
-
+        val switch = asSwitchStructure(YV60_300_1_10_V())
         val joints =
-            listOf(SwitchJoint(JointNumber(1), Point(0.0, 0.0)), SwitchJoint(JointNumber(2), Point(11.0005, 0.0)))
+            listOf(
+                SwitchStructureJoint(JointNumber(1), Point(0.0, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(11.0005, 0.0)),
+            )
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
@@ -510,10 +526,12 @@ class SwitchLinkingTest {
 
     @Test
     fun `should match with alignment regardless of direction`() {
-        val switch = YV60_300_1_10_V()
-
+        val switch = asSwitchStructure(YV60_300_1_10_V())
         val joints =
-            listOf(SwitchJoint(JointNumber(1), Point(10.0, 0.0)), SwitchJoint(JointNumber(2), Point(15.0, 0.0)))
+            listOf(
+                SwitchStructureJoint(JointNumber(1), Point(10.0, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(15.0, 0.0)),
+            )
 
         val locationTrack1 = locationTrack(IntId(1), id = IntId(1), draft = false)
         val alignment1 =
@@ -583,9 +601,12 @@ class SwitchLinkingTest {
 
     @Test
     fun `should match with alignment if joint is on the line`() {
-        val switch = YV60_300_1_10_V()
-
-        val joints = listOf(SwitchJoint(JointNumber(1), Point(0.0, 0.0)), SwitchJoint(JointNumber(2), Point(11.0, 0.0)))
+        val switch = asSwitchStructure(YV60_300_1_10_V())
+        val joints =
+            listOf(
+                SwitchStructureJoint(JointNumber(1), Point(0.0, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(11.0, 0.0)),
+            )
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
@@ -615,9 +636,12 @@ class SwitchLinkingTest {
 
     @Test
     fun `should match with alignment even if there's no point close by`() {
-        val switch = YV60_300_1_10_V()
-
-        val joints = listOf(SwitchJoint(JointNumber(1), Point(0.0, 0.0)), SwitchJoint(JointNumber(2), Point(11.5, 0.0)))
+        val switch = asSwitchStructure(YV60_300_1_10_V())
+        val joints =
+            listOf(
+                SwitchStructureJoint(JointNumber(1), Point(0.0, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(11.5, 0.0)),
+            )
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
@@ -700,7 +724,7 @@ class SwitchLinkingTest {
     @Test
     fun shouldFindMatchForYVSwitch() {
         val yvTurnRatio = 1.967 / 34.321 // ~ 0.06
-        val switchStructure = YV60_300_1_9_O().copy(id = IntId(1))
+        val switchStructure = asSwitchStructure(YV60_300_1_9_O())
         val locationTrack152 =
             locationTrackAndAlignment(
                 segment(from = segmentPoint(-200.0, 0.0), to = Point(-100.0, 0.0)),

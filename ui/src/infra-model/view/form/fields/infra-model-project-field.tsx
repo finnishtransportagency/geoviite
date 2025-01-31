@@ -21,7 +21,7 @@ export const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
 }) => {
     const { t } = useTranslation();
     const [projects, projectLoaderStatus] = useLoaderWithStatus(getProjects, [id]);
-    return projectLoaderStatus != LoaderStatus.Ready ? (
+    return projectLoaderStatus !== LoaderStatus.Ready ? (
         <Spinner />
     ) : (
         <FieldLayout
@@ -42,7 +42,7 @@ export const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
                             : []
                     }
                     onChange={(projectId) => {
-                        projectId && projectId != id && setProject(projectId);
+                        projectId && projectId !== id && setProject(projectId);
                     }}
                     onAddClick={onAddProject}
                 />

@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import styles from './preview-view.scss';
 import { useTranslation } from 'react-i18next';
-import { useLoader, useTwoPartEffectWithStatus } from 'utils/react-utils';
+import { useLoader, useTwoPartEffect } from 'utils/react-utils';
 import {
     getCalculatedChanges,
     getPublicationCandidates,
@@ -71,6 +71,9 @@ import { cancelSwitch } from 'track-layout/layout-switch-api';
 import { cancelTrackNumber } from 'track-layout/layout-track-number-api';
 import { cancelKmPost } from 'track-layout/layout-km-post-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
+import { measurementTool } from 'map/tools/measurement-tool';
+import { previewViewAreaSelectTool } from 'map/tools/preview-view-area-select-tool';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -175,7 +178,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const [designPublicationMode, setDesignPublicationMode] =
         React.useState<DesignPublicationMode>('PUBLISH_CHANGES');
 
-    const showCalculatedChanges = props.layoutContext.branch == 'MAIN';
+    const showCalculatedChanges = props.layoutContext.branch === 'MAIN';
 
     const onChangeDesignPublicationMode = (newMode: DesignPublicationMode) => {
         setDesignPublicationMode(newMode);
@@ -184,7 +187,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const canRevertChanges =
         props.layoutContext.branch === 'MAIN' || designPublicationMode === 'PUBLISH_CHANGES';
     const canCancelChanges =
-        props.layoutContext.branch !== 'MAIN' && designPublicationMode == 'MERGE_TO_MAIN';
+        props.layoutContext.branch !== 'MAIN' && designPublicationMode === 'MERGE_TO_MAIN';
 
     const [mapDisplayTransitionSide, setMapDisplayTransitionSide] =
         React.useState<MapDisplayTransitionSide>('WITH_CHANGES');
@@ -200,7 +203,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             [props.changeTimes, props.layoutContext.branch, designPublicationMode],
         ) ?? false;
 
-    useTwoPartEffectWithStatus(
+    useTwoPartEffect(
         () =>
             getPublicationCandidates(
                 props.layoutContext.branch,
@@ -286,6 +289,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         user && props.showOnlyOwnUnstagedChanges
             ? filterByUser(unstagedPublicationCandidates, user)
             : unstagedPublicationCandidates;
+
+    const diplayedOnMapPublicationCandidates =
+        user && props.showOnlyOwnUnstagedChanges
+            ? filterByUser(publicationCandidates, user)
+            : publicationCandidates;
 
     const [changesBeingReverted, setChangesBeingReverted] = React.useState<ChangesBeingReverted>();
 
@@ -472,6 +480,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         cancel: cancelCandidate,
     };
 
+    const publishCandidateSelectTool = React.useMemo(
+        () => previewViewAreaSelectTool(publicationCandidates, setStageForSpecificChanges, t),
+        [publicationCandidates],
+    );
+
     return (
         <React.Fragment>
             <div className={styles['preview-view']} qa-id="preview-content">
@@ -600,9 +613,17 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     ? officialLayoutContext(props.layoutContext)
                                     : draftMainLayoutContext()
                                 : mapDisplayTransitionSide === 'WITH_CHANGES'
-                                  ? draftLayoutContext(props.layoutContext)
-                                  : officialLayoutContext(props.layoutContext)
+                                ? draftLayoutContext(props.layoutContext)
+                                : officialLayoutContext(props.layoutContext)
                         }
+                        publicationCandidates={diplayedOnMapPublicationCandidates}
+                        mapTools={[
+                            selectOrHighlightComboTool,
+                            measurementTool,
+                            publishCandidateSelectTool,
+                        ]}
+                        customActiveMapTool={publishCandidateSelectTool}
+                        designPublicationMode={designPublicationMode}
                     />
                 </MapContext.Provider>
                 <PreviewFooter

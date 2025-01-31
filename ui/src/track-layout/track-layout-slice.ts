@@ -277,8 +277,8 @@ function filterItemSelectOptions(
 ): OnSelectOptions {
     const selectableItemTypes = getSelectableItemTypes(state.splittingState, state.linkingState);
 
-    if (state.linkingState?.type == LinkingType.LinkingSwitch) {
-        if (options.suggestedSwitches?.length == 0) {
+    if (state.linkingState?.type === LinkingType.LinkingSwitch) {
+        if (options.suggestedSwitches?.length === 0) {
             options.suggestedSwitches = undefined;
         }
     }
@@ -319,7 +319,7 @@ const trackLayoutSlice = createSlice({
         },
 
         onClickLocation: (state: TrackLayoutState, action: PayloadAction<Point>): void => {
-            if (state.linkingState?.type == LinkingType.PlacingSwitch) {
+            if (state.linkingState?.type === LinkingType.PlacingSwitch) {
                 state.linkingState.location = action.payload;
             } else {
                 mapReducers.onClickLocation(state.map, action);
@@ -331,7 +331,7 @@ const trackLayoutSlice = createSlice({
             const firstSwitchId = ifDefined(action.payload.switches, first);
             if (state.splittingState && firstSwitchId) {
                 const allowedSwitch = state.splittingState.trackSwitches.find(
-                    (sw) => sw.switchId == firstSwitchId,
+                    (sw) => sw.switchId === firstSwitchId,
                 );
 
                 if (allowedSwitch) {
@@ -519,8 +519,8 @@ const trackLayoutSlice = createSlice({
                 designId !== undefined
                     ? 'DESIGN'
                     : state.layoutContext.publicationState === 'OFFICIAL'
-                      ? 'MAIN_OFFICIAL'
-                      : 'MAIN_DRAFT';
+                    ? 'MAIN_OFFICIAL'
+                    : 'MAIN_DRAFT';
         },
         onLayoutModeChange: (
             state: TrackLayoutState,
@@ -586,7 +586,7 @@ function getLayoutContext(
 ): LayoutContext {
     if (layoutContextMode === 'DESIGN' && designId) {
         return draftDesignLayoutContext(designId);
-    } else if (layoutContextMode == 'MAIN_DRAFT') {
+    } else if (layoutContextMode === 'MAIN_DRAFT') {
         return draftMainLayoutContext();
     } else {
         return officialMainLayoutContext();

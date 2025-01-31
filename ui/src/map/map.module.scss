@@ -39,6 +39,7 @@
     alignmentBackground: rgba(vayla-design.$color-white-default, 0.6);
 
     alignmentLine: rgba(vayla-design.$color-black-default, 0.8);
+    alignmentPreviewOfficialLine: vayla-design.$color-white-darker;
     selectedAlignmentLine: geoviite-design.$color-geoviite-blue;
     selectedAlignmentLineDisabled: geoviite-design.$color-geoviite-map-red;
 
@@ -111,6 +112,9 @@
     linkedSwitchJointBorder: vayla-design.$color-green-dark;
     unlinkedSwitchJoint: vayla-design.$color-red-default;
     unlinkedSwitchJointBorder: vayla-design.$color-red-dark;
+
+    deletedSwitchJoint: vayla-design.$color-red-default;
+    deletedSwitchJointBorder: vayla-design.$color-white-default;
 }
 
 // Location track split point styling
@@ -124,6 +128,16 @@
 :export {
     measurementTooltipLine: vayla-design.$color-black-lighter;
     measurementTooltipCircle: vayla-design.$color-black-light;
+}
+
+// Preview highlight styling
+:export {
+    previewHighlightDeletedExplicit: #ff6903;
+    previewHighlightDeletedImplicit: #f0b6b3;
+    previewHighlightModifiedExplicit: #ffc300;
+    previewHighlightModifiedImplicit: #cdc8b9;
+    previewHighlightStagedExplicit: #0066cc;
+    previewHighlightStagedImplicit: #99c2ea;
 }
 
 .map {

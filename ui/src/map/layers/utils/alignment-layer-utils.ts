@@ -24,6 +24,9 @@ const tickImageCache = cache<string, RegularShape>();
 export const OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING = 0.5;
 export const NORMAL_ALIGNMENT_OPACITY = 1;
 
+export const REFERENCE_LINE_ALIGNMENT_WIDTH = 3;
+export const LOCATION_TRACK_ALIGNMENT_WIDTH = 1;
+
 export function getTickStyle(
     point1: Coordinate,
     point2: Coordinate,
@@ -52,7 +55,7 @@ export function getTickStyle(
     );
 
     return new Style({
-        geometry: new OlPoint(position == 'start' ? point1 : point2),
+        geometry: new OlPoint(position === 'start' ? point1 : point2),
         image: image,
         zIndex: style.getZIndex(),
     });
@@ -128,13 +131,13 @@ export function createAlignmentFeatures(
     selection: Selection,
     showEndTicks: boolean,
     style: Style,
-    hightlightStyle: Style,
+    hightlightStyle?: Style,
 ): Feature<LineString | OlPoint>[] {
     return alignments.flatMap((alignment) =>
         createAlignmentFeature(
             alignment,
             showEndTicks,
-            isHighlighted(selection, alignment.header) ? hightlightStyle : style,
+            isHighlighted(selection, alignment.header) && hightlightStyle ? hightlightStyle : style,
         ),
     );
 }
@@ -144,7 +147,7 @@ function includes(selection: ItemCollections, alignment: LayoutAlignmentHeader):
     switch (type) {
         case 'REFERENCE_LINE': {
             const tnId = alignment.trackNumberId;
-            return tnId != undefined && selection.trackNumbers.includes(tnId);
+            return tnId !== undefined && selection.trackNumbers.includes(tnId);
         }
         case 'LOCATION_TRACK': {
             return selection.locationTracks.includes(alignment.id);
@@ -165,9 +168,9 @@ export function getAlignmentHeaderStates(
     const selected = includes(selection.selectedItems, header);
     const highlighted = isHighlighted(selection, header);
     const isLinking = linkingState
-        ? (linkingState.type == LinkingType.LinkingGeometryWithAlignment ||
-              linkingState.type == LinkingType.LinkingAlignment) &&
-          linkingState.layoutAlignment.type == header.alignmentType &&
+        ? (linkingState.type === LinkingType.LinkingGeometryWithAlignment ||
+              linkingState.type === LinkingType.LinkingAlignment) &&
+          linkingState.layoutAlignment.type === header.alignmentType &&
           linkingState.layoutAlignmentInterval.start?.alignmentId === header.id
         : false;
 

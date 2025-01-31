@@ -53,7 +53,7 @@ export function getSelectedSwitchLabelRenderer(
     const strokeWidth = valid ? 1 : 2;
     const labelOffset = CIRCLE_RADIUS_SMALL + 4 + strokeWidth * 2;
     const iconSize = 14;
-    const isGeometrySwitch = layoutSwitch.dataType == 'TEMP';
+    const isGeometrySwitch = layoutSwitch.dataType === 'TEMP';
     return getCanvasRenderer(
         layoutSwitch,
         (ctx, { pixelRatio }) => {
@@ -156,7 +156,7 @@ export function getSwitchRenderer(
     const fontSize = large ? TEXT_FONT_LARGE : TEXT_FONT_SMALL;
     const circleRadius = large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL;
     const textCirclePadding = 4;
-    const isGeometrySwitch = layoutSwitch.dataType == 'TEMP';
+    const isGeometrySwitch = layoutSwitch.dataType === 'TEMP';
     return getCanvasRenderer(
         layoutSwitch,
         (ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
@@ -200,6 +200,37 @@ export function getSwitchRenderer(
         ],
     );
 }
+
+export const getDeletedSwitchRenderer = (large: boolean): RenderFunction =>
+    getCanvasRenderer(
+        undefined,
+        (ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
+            ctx.lineWidth = pixelRatio;
+        },
+        [
+            (_, coord, ctx, { pixelRatio }) => {
+                ctx.fillStyle = styles.deletedSwitchJoint;
+                ctx.strokeStyle = styles.deletedSwitchJointBorder;
+                ctx.lineWidth = pixelRatio;
+
+                const [x, y] = expectCoordinate(coord);
+                drawCircle(
+                    ctx,
+                    x,
+                    y,
+                    (large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL) * pixelRatio,
+                );
+
+                // Draw cross
+                ctx.moveTo(x - 2 * pixelRatio, y - 2 * pixelRatio);
+                ctx.lineTo(x + 2 * pixelRatio, y + 2 * pixelRatio);
+
+                ctx.moveTo(x - 2 * pixelRatio, y + 2 * pixelRatio);
+                ctx.lineTo(x + 2 * pixelRatio, y - 2 * pixelRatio);
+                ctx.stroke();
+            },
+        ],
+    );
 
 function getSwitchJointFillStyle(disabled: boolean, mainJoint: boolean): string {
     if (disabled) {
@@ -266,8 +297,8 @@ export function suggestedSwitchHasMatchOnJoint(
 ) {
     return Object.values(suggestedSwitch.trackLinks).some(
         (link) =>
-            link.segmentJoints.some((sj) => sj.number == joint) ||
-            link.topologyJoint?.number == joint,
+            link.segmentJoints.some((sj) => sj.number === joint) ||
+            link.topologyJoint?.number === joint,
     );
 }
 
@@ -418,7 +449,7 @@ function createSwitchFeatures(
         });
 }
 
-function createSwitchFeature(
+export function createSwitchFeature(
     layoutSwitch: LayoutSwitch,
     selected: boolean,
     highlighted: boolean,
@@ -433,7 +464,7 @@ function createSwitchFeature(
     const firstJoint = expectDefined(first(layoutSwitch.joints));
 
     const presentationJoint = layoutSwitch.joints.find(
-        (joint) => joint.number == presentationJointNumber,
+        (joint) => joint.number === presentationJointNumber,
     );
 
     // Use presentation joint as main joint if possible, otherwise use first joint
@@ -468,7 +499,9 @@ function createSwitchFeature(
                       getSwitchJointStyle(
                           joint,
                           // Again, use presentation joint as main joint if found, otherwise use first one
-                          presentationJoint ? joint.number === presentationJointNumber : index == 0,
+                          presentationJoint
+                              ? joint.number === presentationJointNumber
+                              : index === 0,
                           true,
                           disabled,
                       ),
@@ -481,7 +514,7 @@ function createSwitchFeature(
                               // Again, use presentation joint as main joint if found, otherwise use first one
                               presentationJoint
                                   ? joint.number === presentationJointNumber
-                                  : index == 0,
+                                  : index === 0,
                               false,
                               disabled,
                           ),

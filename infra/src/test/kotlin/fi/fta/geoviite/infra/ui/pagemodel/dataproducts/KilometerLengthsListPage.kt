@@ -1,8 +1,13 @@
 package fi.fta.geoviite.infra.ui.pagemodel.dataproducts
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextInput
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementIfExists
+import getNonNullAttribute
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
@@ -38,7 +43,7 @@ class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
     }
 
     val downloadUrl: String
-        get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
+        get() = childElement(byQaId("km-lengths-csv-download")).getNonNullAttribute("href")
 
     val entireRailNetworkKmLengthsRadioButton = getElementIfExists(byQaId("select-entire-rail-network"))
 }
@@ -61,5 +66,5 @@ class LocationTrackKilometerLengthsListItem(val stationStart: String) {
 
 class EntireNetworkKilometerLengthsListPage : KilometerLengthsListPage() {
     val downloadUrl: String
-        get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
+        get() = childElement(byQaId("km-lengths-csv-download")).getNonNullAttribute("href")
 }

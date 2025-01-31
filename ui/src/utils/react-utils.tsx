@@ -117,7 +117,7 @@ export function useRateLimitedLoaderWithStatus<TEntity>(
     // asynchronously and status will then be set to "loading", but it is more precise to set and
     // return "initialize" status synchronously.
     const loaderStatus = depsAreChanged ? LoaderStatus.Initialized : loaderStatusInState;
-    if (loaderStatus != loaderStatusInState) {
+    if (loaderStatus !== loaderStatusInState) {
         setLoaderStatusInState(loaderStatus);
     }
 
@@ -146,11 +146,8 @@ export function useImmediateLoader<TEntity>(setter: (result: TEntity) => void): 
     };
 }
 
-/**
- * Load/fetch something asynchronously and, if the load finishes, call the given onceOnFulfilled callback with its
- * result.
- */
-export function useTwoPartEffectWithStatus<TEntity>(
+function useTwoPartEffectWithHook<TEntity>(
+    useEffect: (effect: EffectCallback, deps?: DependencyList) => void,
     loadFunc: () => Promise<TEntity> | undefined,
     onceOnFulfilled: (result: TEntity) => void,
     deps: unknown[],
@@ -182,6 +179,32 @@ export function useTwoPartEffectWithStatus<TEntity>(
     }, deps);
 
     return loaderStatus;
+}
+
+/**
+ * Load/fetch something asynchronously and, if the load finishes, call the given onceOnFulfilled callback with its
+ * result.
+ */
+export function useTwoPartEffect<TEntity>(
+    loadFunc: () => Promise<TEntity> | undefined,
+    onceOnFulfilled: (result: TEntity) => void,
+    deps: unknown[],
+): LoaderStatus {
+    return useTwoPartEffectWithHook(useEffect, loadFunc, onceOnFulfilled, deps);
+}
+
+export function useRateLimitedTwoPartEffect<TEntity>(
+    loadFunc: () => Promise<TEntity> | undefined,
+    onceOnFulfilled: (result: TEntity) => void,
+    waitBetweenCalls: number,
+    deps: unknown[],
+): LoaderStatus {
+    return useTwoPartEffectWithHook(
+        (cb, deps) => useRateLimitedEffect(cb, waitBetweenCalls, deps),
+        loadFunc,
+        onceOnFulfilled,
+        deps,
+    );
 }
 
 export function useLoaderWithTimer<TEntity>(
@@ -288,14 +311,11 @@ export function useRateLimitedEffect(
             lastFireTime.current = now;
             return effect();
         } else {
-            nextWakeup.current = setTimeout(
-                () => {
-                    lastFireTime.current = Date.now();
-                    lastDestructor.current = effect();
-                    nextWakeup.current = undefined;
-                },
-                waitBetweenCalls - (now - lastFireTime.current),
-            );
+            nextWakeup.current = setTimeout(() => {
+                lastFireTime.current = Date.now();
+                lastDestructor.current = effect();
+                nextWakeup.current = undefined;
+            }, waitBetweenCalls - (now - lastFireTime.current));
             return () => {
                 if (lastDestructor.current !== undefined) {
                     lastDestructor.current();
@@ -350,16 +370,13 @@ export function useTraceProps(componentName: string, props: PropsType) {
     const prev = useRef(props);
 
     useEffect(() => {
-        const changedProps = Object.entries(props).reduce(
-            (acc, [k, v]) => {
-                if (prev.current[k] !== v) {
-                    acc[k] = { old: prev.current[k], new: v };
-                }
+        const changedProps = Object.entries(props).reduce((acc, [k, v]) => {
+            if (prev.current[k] !== v) {
+                acc[k] = { old: prev.current[k], new: v };
+            }
 
-                return acc;
-            },
-            {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } },
-        );
+            return acc;
+        }, {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } });
 
         if (Object.keys(changedProps).length > 0) {
             console.log(`[${componentName}] Changed props:`, changedProps);

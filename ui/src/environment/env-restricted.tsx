@@ -27,8 +27,8 @@ export const EnvRestricted: React.FC<EnvRestrictedProps> = ({
 
     const show = envName
         ? strict
-            ? envName == restrictTo
-            : slackRestrictionRules[restrictTo].some((e) => e == envName)
+            ? envName === restrictTo
+            : slackRestrictionRules[restrictTo].some((e) => e === envName)
         : defaultShow;
 
     return <React.Fragment>{show && children}</React.Fragment>;

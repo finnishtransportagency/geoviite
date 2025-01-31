@@ -12,10 +12,9 @@ export type ValueOf<T> = T[keyof T];
 export type GetElementType<T> = T extends (infer TItem)[] ? TItem : never;
 
 type GetStringKeyTypes<TKeys> = TKeys extends string ? TKeys : never;
-type EnsureAllKeys<TAllKeys, TGivenKeys> =
-    Exclude<TAllKeys, TGivenKeys> extends never
-        ? TGivenKeys
-        : `Key '${GetStringKeyTypes<Exclude<TAllKeys, TGivenKeys>>}' is missing!`;
+type EnsureAllKeys<TAllKeys, TGivenKeys> = Exclude<TAllKeys, TGivenKeys> extends never
+    ? TGivenKeys
+    : `Key '${GetStringKeyTypes<Exclude<TAllKeys, TGivenKeys>>}' is missing!`;
 
 /**
  * This function provides type checking to make sure that the given
@@ -45,7 +44,8 @@ export const exhaustiveMatchingGuard = (_: never): never => {
     throw new Error('Should not have reached this code');
 };
 
-export const isNil = <T>(object: T | undefined | null) => object === undefined || object === null;
+export const isNil = <T>(object: T | undefined | null): object is undefined | null =>
+    object === undefined || object === null;
 
 // Prefer actual nil checks, only use this if you KNOW the index exists
 export const expectDefined = <T>(thing: T): NonNullable<T> => {

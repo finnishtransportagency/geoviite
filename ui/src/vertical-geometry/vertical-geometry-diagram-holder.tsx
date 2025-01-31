@@ -71,7 +71,7 @@ async function getVerticalGeometry(
 ): Promise<VerticalGeometryItem[] | undefined> {
     return 'planId' in alignmentId
         ? getGeometryPlanVerticalGeometry(changeTimes.geometryPlan, alignmentId.planId).then(
-              (geometries) => geometries?.filter((g) => g.alignmentId == alignmentId.alignmentId),
+              (geometries) => geometries?.filter((g) => g.alignmentId === alignmentId.alignmentId),
           )
         : getLocationTrackVerticalGeometry(
               changeTimes.layoutLocationTrack,

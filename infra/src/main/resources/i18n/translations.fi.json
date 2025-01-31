@@ -523,7 +523,8 @@
                 "linking": {
                     "title": "Linkitys",
                     "is-linked-label": "Linkitetty",
-                    "km-post-label": "Tasakilometripiste",
+                    "km-post-label-singular": "Tasakilometripiste",
+                    "km-post-label-plural": "Tasakilometripisteet",
                     "choose-km-post-msg": "Valitse tasakilometripiste, johon linkitetään",
                     "start-linking-command": "Aloita linkitys",
                     "link-command": "Linkitä",
@@ -1313,6 +1314,7 @@
         "staged-changes-title": "Julkaistavat muutokset ({{amount}} kpl)",
         "merging-to-main-changes-title": "Valitut muutokset ({{amount}} kpl)",
         "show-only-mine": "Näytä vain omat muutokset ({{amount}} kpl)",
+        "publication-group-selected": "Valinta-alueella olleista kokonaisuuksista ({{groupAmount}} kpl) valittiin kaikki muutokset ({{amount}} kpl)",
         "map-crop": "Rajaa kartalta",
         "track-address-changes": "Rataosoitemuutokset",
         "track-number": "Ratanumero {{number}} {{disabled}}",
@@ -1532,6 +1534,7 @@
                 "duplicate-name-official": "Vaihteen nimi {{switch}} on jo käytössä jollain toisella paikannuspohjan vaihteella",
                 "duplicate-name-draft": "Muutosjoukossa on monta vaihdetta nimellä {{switch}}",
                 "duplicate-name-draft-in-main": "Vaihteen nimi {{switch}} on jo käytössä jollain toisella paikannuspohjan vaihteella luonnostilassa",
+                "duplicate-oid": "Vaihteelle asetettu OID on jo käytössä",
                 "track-linkage": {
                     "front-joint-not-connected": "Vaihteen etujatkokselta ei jatku raidetta",
                     "front-joint-only-duplicate-connected": "Vaihteen etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
@@ -1858,6 +1861,9 @@
     "switch-dialog": {
         "title-new": "Uusi vaihde",
         "basic-info-heading": "Perustiedot",
+        "switch-draft-oid": "OID",
+        "switch-draft-oid-unset": "Asetetaan julkaistaessa",
+        "open-switch-draft-field": "Aseta nyt",
         "switch-name": "Vaihdetunnus",
         "state-category": "Tilakategoria",
         "switch-type": "Vaihdetyyppi",
@@ -1877,6 +1883,9 @@
         "name-max-limit": "Vaihdetunnus voi olla korkeintaan 20 merkkiä pitkä",
         "mandatory-field": "Pakollinen kenttä",
         "invalid-name": "Virheellinen vaihdetunnus",
+        "invalid-draft-oid": "Tieto ei ole muodoltaan vaihteen OID",
+        "ratko-connection-is-down": "Ratkoon ei saada yhteyttä OIDin olemassaolon tarkistamiseen",
+        "oid-doesnt-exist-in-ratko": "OIDia ei löyty Ratkosta",
         "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
         "save-in-progress": "Tallennetaan",
         "title-edit": "Muokkaa vaihteen tietoja",
@@ -1890,8 +1899,10 @@
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
         "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",
+        "oid-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla OID:lla",
         "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä",
         "name-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu vaihde samalla tunnuksella",
+        "oid-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu vaihde samalla OID:lla",
         "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun vaihteen tästä"
     },
     "workspace-dialog": {

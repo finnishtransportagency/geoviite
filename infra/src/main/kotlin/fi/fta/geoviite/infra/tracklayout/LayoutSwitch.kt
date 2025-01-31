@@ -5,13 +5,34 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 
-data class LayoutSwitchJoint(val number: JointNumber, val location: Point, val locationAccuracy: LocationAccuracy?)
+enum class SwitchJointRole {
+    MAIN,
+    CONNECTION,
+    MATH;
+
+    companion object {
+        fun of(structure: SwitchStructure, number: JointNumber): SwitchJointRole =
+            when {
+                structure.presentationJointNumber == number -> MAIN
+                structure.endJointNumbers.contains(number) -> CONNECTION
+                else -> MATH
+            }
+    }
+}
+
+data class LayoutSwitchJoint(
+    val number: JointNumber,
+    val role: SwitchJointRole,
+    val location: Point,
+    val locationAccuracy: LocationAccuracy?,
+)
 
 data class LayoutSwitch(
     val name: SwitchName,
@@ -22,6 +43,7 @@ data class LayoutSwitch(
     val trapPoint: Boolean?,
     val ownerId: IntId<SwitchOwner>?,
     val source: GeometrySource,
+    val draftOid: Oid<LayoutSwitch>?,
     @JsonIgnore override val contextData: LayoutContextData<LayoutSwitch>,
 ) : LayoutAsset<LayoutSwitch>(contextData) {
     @JsonIgnore val exists = !stateCategory.isRemoved()
@@ -43,6 +65,14 @@ data class LayoutSwitch(
         joints.find { j -> j.location.isSame(location, delta) }
 
     fun getJoint(number: JointNumber): LayoutSwitchJoint? = joints.find { j -> j.number == number }
+
+    @get:JsonIgnore
+    val presentationJoint
+        get() = joints.find { j -> j.role == SwitchJointRole.MAIN }
+
+    @get:JsonIgnore
+    val presentationJointOrThrow
+        get() = requireNotNull(presentationJoint) { "Presentation joint not found on switch: id=$id" }
 
     override fun toLog(): String =
         logFormat(

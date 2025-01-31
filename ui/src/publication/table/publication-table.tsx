@@ -55,7 +55,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
     const sortedPublicationTableItems =
         sortInfo && sortInfo.direction !== SortDirection.UNSORTED
             ? [...items].sort(
-                  sortInfo.direction == SortDirection.ASCENDING
+                  sortInfo.direction === SortDirection.ASCENDING
                       ? sortInfo.sortFunction
                       : negComparator(sortInfo.sortFunction),
               )

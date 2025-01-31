@@ -177,7 +177,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         getSwitchPresentationJoint(layoutSwitch, structure.presentationJointNumber)?.location;
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
-    const canStartPlacing = placingSwitchLinkingState == undefined && layoutSwitch != undefined;
+    const canStartPlacing = placingSwitchLinkingState === undefined && layoutSwitch !== undefined;
 
     function isOfficial(): boolean {
         return layoutContext.publicationState === 'OFFICIAL';
@@ -189,7 +189,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     }
 
     function getOwnerName(ownerId: SwitchOwnerId | undefined) {
-        const name = switchOwners?.find((o) => o.id == ownerId)?.name;
+        const name = switchOwners?.find((o) => o.id === ownerId)?.name;
         return name ?? '-';
     }
 

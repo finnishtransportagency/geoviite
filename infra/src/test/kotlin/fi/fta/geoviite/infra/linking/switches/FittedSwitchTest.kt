@@ -6,8 +6,8 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.degreesToRads
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -33,7 +33,7 @@ class FittedSwitchTest {
     }
 
     private fun createAlignmentBySwitchAlignment(
-        switchAlignment: SwitchAlignment,
+        switchAlignment: SwitchStructureAlignment,
         translation: Point,
         rotation: Double,
     ): LayoutAlignment {
@@ -90,15 +90,15 @@ class FittedSwitchTest {
             fitSwitch(
                 jointsInLayoutSpace =
                     listOf(
-                        SwitchJoint(
+                        SwitchStructureJoint(
                             JointNumber(1),
                             alignmentContainingSwitchSegments.segments[1].alignmentPoints.first().toPoint(),
                         ),
-                        SwitchJoint(
+                        SwitchStructureJoint(
                             JointNumber(5),
                             alignmentContainingSwitchSegments.segments[2].alignmentPoints.first().toPoint(),
                         ),
-                        SwitchJoint(
+                        SwitchStructureJoint(
                             JointNumber(2),
                             alignmentContainingSwitchSegments.segments[3].alignmentPoints.first().toPoint(),
                         ),

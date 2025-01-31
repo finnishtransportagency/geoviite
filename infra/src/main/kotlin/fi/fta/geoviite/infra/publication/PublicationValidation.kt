@@ -24,9 +24,9 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.FATAL
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
 import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivity
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
@@ -174,6 +174,12 @@ fun validateSwitchNameDuplication(
     } else {
         emptyList()
     }
+}
+
+fun validateSwitchOidDuplication(switch: LayoutSwitch, oidDuplicate: LayoutSwitch?): List<LayoutValidationIssue> {
+    return if (oidDuplicate != null && oidDuplicate.id != switch.id) {
+        listOf(validationError("$VALIDATION_SWITCH.duplicate-oid"))
+    } else listOf()
 }
 
 fun validateLocationTrackNameDuplication(
@@ -409,7 +415,7 @@ private fun findValidatingTrackSwitchAlignment(
     validatingTrack: LocationTrack?,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     connectivity: SwitchConnectivity,
-): SwitchAlignment? =
+): SwitchStructureAlignment? =
     locationTracks
         .find { (track) -> track.id == validatingTrack?.id }
         ?.let { trackAndAlignment ->
@@ -422,7 +428,9 @@ private fun findValidatingTrackSwitchAlignment(
                 ?.originalAlignment
         }
 
-private fun summarizeSwitchAlignmentLocationTrackLinks(links: List<Pair<LocationTrack, SwitchAlignment>>): String =
+private fun summarizeSwitchAlignmentLocationTrackLinks(
+    links: List<Pair<LocationTrack, SwitchStructureAlignment>>
+): String =
     links
         .groupBy { it.second }
         .entries

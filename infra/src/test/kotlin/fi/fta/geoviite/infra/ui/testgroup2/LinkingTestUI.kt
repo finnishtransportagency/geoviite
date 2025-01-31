@@ -36,16 +36,16 @@ import fi.fta.geoviite.infra.ui.testdata.pointsFromIncrementList
 import fi.fta.geoviite.infra.ui.testdata.referenceLine
 import fi.fta.geoviite.infra.ui.util.metersToDouble
 import fi.fta.geoviite.infra.ui.util.pointToCoordinateString
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 
 // the point where the map opens up by default
 val DEFAULT_BASE_POINT = Point(385782.89, 6672277.83)
@@ -294,7 +294,7 @@ constructor(
         kmPostLinkingInfoBox.link()
         waitAndClearToast("linking-succeed-msg")
 
-        assertEquals("KYLLÄ", toolPanel.geometryKmPostLinking.linked)
+        assertEquals("Kyllä", toolPanel.geometryKmPostLinking.linked)
         toolPanel.selectToolPanelTab("0123")
         assertNotEquals(layoutKmPostCoordinatesBeforeLinking, toolPanel.layoutKmPostLocation.coordinates)
     }

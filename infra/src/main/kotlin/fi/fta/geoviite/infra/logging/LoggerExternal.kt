@@ -141,7 +141,15 @@ fun Logger.integrationCall(response: ClientResponse, body: String? = null) {
 
 fun copyThreadContextToReactiveResponseThread(): ExchangeFilterFunction {
     return ExchangeFilterFunction { request: ClientRequest, next: ExchangeFunction ->
+        val originalThreadContextMap = ThreadContext.getContext()?.toMap() ?: emptyMap()
         val requestThreadContext = ThreadContext.getContext()
-        next.exchange(request).doOnNext { _ -> requestThreadContext?.let { ctx -> ThreadContext.putAll(ctx) } }
+
+        next
+            .exchange(request)
+            .doOnNext { _ -> requestThreadContext?.let { ctx -> ThreadContext.putAll(ctx) } }
+            .doFinally {
+                ThreadContext.clearMap()
+                ThreadContext.putAll(originalThreadContextMap)
+            }
     }
 }

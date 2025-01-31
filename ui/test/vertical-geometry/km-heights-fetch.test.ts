@@ -53,7 +53,7 @@ describe('getMissingCoveringRange', () => {
                 [5, 7],
             ],
             [4, 7],
-            null,
+            undefined,
         );
         testCoveringRange(
             [
@@ -78,11 +78,11 @@ describe('getMissingCoveringRange', () => {
 function testCoveringRange(
     resolvedRanges: [number, number][],
     queryRange: [number, number],
-    expectedRange: [number, number] | null,
+    expectedRange: [number, number] | undefined,
 ) {
     const actual = getMissingCoveringRange(resolvedRanges, queryRange[0], queryRange[1]);
-    if (expectedRange === null) {
-        expect(actual).toBeNull();
+    if (expectedRange === undefined) {
+        expect(actual).toBeUndefined();
     } else {
         expect(actual).toEqual(expectedRange);
     }

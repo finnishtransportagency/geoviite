@@ -80,8 +80,9 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
     const { t } = useTranslation();
 
     const locationTrackOwners = useLoader(() => getLocationTrackOwners(), []);
+
     function getLocationTrackOwnerName(ownerId: LocationTrackOwnerId) {
-        const name = locationTrackOwners?.find((o) => o.id == ownerId)?.name;
+        const name = locationTrackOwners?.find((o) => o.id === ownerId)?.name;
         return name ?? '-';
     }
 
@@ -123,7 +124,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
 
     return (
         <Infobox
-            contentVisible={visibilities.basic && extraInfoLoadingStatus != LoaderStatus.Loading}
+            contentVisible={visibilities.basic && extraInfoLoadingStatus !== LoaderStatus.Loading}
             onContentVisibilityChange={() => visibilityChange('basic')}
             title={t('tool-panel.location-track.basic-info-heading')}
             onEdit={openEditLocationTrackDialog}
@@ -175,8 +176,8 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                         locationTrack.duplicateOf
                             ? t('tool-panel.location-track.duplicate-of')
                             : extraInfo?.duplicates?.length ?? 0 > 0
-                              ? t('tool-panel.location-track.has-duplicates')
-                              : t('tool-panel.location-track.not-a-duplicate')
+                            ? t('tool-panel.location-track.has-duplicates')
+                            : t('tool-panel.location-track.not-a-duplicate')
                     }
                     value={
                         <LocationTrackInfoboxDuplicateOf

@@ -23,3 +23,8 @@
     @include vayla-design.typography-caption;
     color: vayla-design.$color-lemon-dark;
 }
+
+.switch-edit-dialog__error-color {
+    @include vayla-design.typography-caption;
+    color: vayla-design.$color-red-default;
+}

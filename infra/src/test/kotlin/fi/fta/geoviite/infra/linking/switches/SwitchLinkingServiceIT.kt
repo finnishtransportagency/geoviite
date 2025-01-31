@@ -25,11 +25,11 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -43,6 +43,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -81,7 +82,7 @@ constructor(
 ) : DBTestBase() {
 
     lateinit var switchStructure: SwitchStructure
-    lateinit var switchAlignment_1_5_2: SwitchAlignment
+    lateinit var switchAlignment_1_5_2: SwitchStructureAlignment
 
     @BeforeEach
     fun setup() {
@@ -1490,11 +1491,21 @@ constructor(
         // arrangement realistically slightly asymmetric
         val leftSwitchJoints =
             switchStructure.joints.map { joint ->
-                LayoutSwitchJoint(joint.number, Point(-joint.location.x, -joint.location.y * 0.99), null)
+                LayoutSwitchJoint(
+                    joint.number,
+                    SwitchJointRole.of(switchStructure, joint.number),
+                    Point(-joint.location.x, -joint.location.y * 0.99),
+                    null,
+                )
             }
         val rightSwitchJoints =
             switchStructure.joints.map { joint ->
-                LayoutSwitchJoint(joint.number, Point(joint.location.x, joint.location.y), null)
+                LayoutSwitchJoint(
+                    joint.number,
+                    SwitchJointRole.of(switchStructure, joint.number),
+                    Point(joint.location.x, joint.location.y),
+                    null,
+                )
             }
 
         val leftSwitch =
@@ -1806,7 +1817,7 @@ fun suggestedSwitchJointMatch(
         locationTrackId,
         segmentIndex,
         m,
-        SwitchJoint(JointNumber(1), Point(1.0, 2.0)),
+        SwitchStructureJoint(JointNumber(1), Point(1.0, 2.0)),
         SuggestedSwitchJointMatchType.START,
         0.1,
         0.1,

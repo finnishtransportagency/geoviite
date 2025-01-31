@@ -23,6 +23,8 @@ import { MapContext } from 'map/map-store';
 import { MapViewContainer } from 'map/map-view-container';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_GEOMETRY_FILE } from 'user/user-model';
+import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
+import { measurementTool } from 'map/tools/measurement-tool';
 
 type InfraModelFileSource = 'STORED' | 'PV_IMPORT' | 'FILE_UPLOAD';
 
@@ -65,7 +67,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
           ]
         : [];
     const handleFileMenuItemChange = (item: string) => {
-        if (item == 'fix-encoding') setShowChangeCharsetDialog(true);
+        if (item === 'fix-encoding') setShowChangeCharsetDialog(true);
     };
 
     const onSaveClick = async () => {
@@ -105,8 +107,10 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     };
 
     const fileName = geometryPlan?.fileName || '';
-    const toolbarName = `${isNewPlan && fileName.length > 0 ? `${t('im-form.toolbar.upload')}: ` : ''}${fileName}`;
-    const showMap = props.validationResponse?.planLayout != undefined;
+    const toolbarName = `${
+        isNewPlan && fileName.length > 0 ? `${t('im-form.toolbar.upload')}: ` : ''
+    }${fileName}`;
+    const showMap = props.validationResponse?.planLayout !== undefined;
 
     return (
         <div className={styles['infra-model-upload']}>
@@ -175,7 +179,11 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             <div className={styles['infra-model-upload__map-container']}>
                 {showMap && (
                     <MapContext.Provider value="infra-model">
-                        <MapViewContainer manuallySetPlan={planLayout ?? undefined} />
+                        <MapViewContainer
+                            manuallySetPlan={planLayout ?? undefined}
+                            mapTools={[selectOrHighlightComboTool, measurementTool]}
+                            customActiveMapTool={selectOrHighlightComboTool}
+                        />
                     </MapContext.Provider>
                 )}
                 {!showMap && <div className={styles['infra-model-upload__error-photo']} />}

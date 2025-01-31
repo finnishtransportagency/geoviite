@@ -107,14 +107,14 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
                 <td>
                     {!showingPreciseLocation &&
                         hasLayoutLocation &&
-                        layoutGeometrySource == 'IMPORTED' &&
+                        layoutGeometrySource === 'IMPORTED' &&
                         t('data-products.km-lengths.table.imported-warning')}
                     {showingPreciseLocation &&
                         gkLocation?.source === 'FROM_LAYOUT' &&
                         t('data-products.km-lengths.table.imported-warning')}
 
                     {hasLayoutLocation &&
-                        layoutGeometrySource == 'GENERATED' &&
+                        layoutGeometrySource === 'GENERATED' &&
                         t('data-products.km-lengths.table.generated-warning')}
                 </td>
             </tr>

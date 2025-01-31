@@ -1,4 +1,5 @@
-import { MapTool } from 'map/tools/tool-model';
+import * as React from 'react';
+import { MapToolWithButton } from 'map/tools/tool-model';
 import { Draw } from 'ol/interaction';
 import OlMap from 'ol/Map';
 import { Stroke, Style } from 'ol/style';
@@ -14,6 +15,8 @@ import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { ALIGNMENT_FEATURE_DATA_PROPERTY } from 'map/layers/utils/alignment-layer-utils';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 import { expectCoordinate } from 'utils/type-utils';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { MapToolButton } from 'map/tools/map-tool-button';
 
 const MAX_POINTS = 8;
 
@@ -65,7 +68,8 @@ function findClosestPoints(
 //Tolerance for snapping, in pixels
 const hitTolerance = 8;
 
-export const measurementTool: MapTool = {
+export const measurementTool: MapToolWithButton = {
+    id: 'measure',
     activate: (map: OlMap) => {
         const tooltipElement = document.createElement('div');
         tooltipElement.className = 'ol-tooltip-measure';
@@ -164,5 +168,15 @@ export const measurementTool: MapTool = {
             map.removeInteraction(tooltipDraw);
             map.removeOverlay(tooltip);
         };
+    },
+
+    component: ({ isActive, setActiveTool }) => {
+        return (
+            <MapToolButton
+                isActive={isActive}
+                setActive={() => setActiveTool(measurementTool)}
+                icon={Icons.Measure}
+            />
+        );
     },
 };

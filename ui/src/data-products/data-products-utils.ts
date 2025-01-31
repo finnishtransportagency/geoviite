@@ -55,7 +55,7 @@ export const getLocationTrackOptions = (
         .filter((lt) => !selectedTrack || lt.id !== selectedTrack.id)
         .map((lt) => ({
             name: `${lt.name}, ${
-                descriptions.find((desc) => desc.id == lt.id)?.description ?? '-'
+                descriptions.find((desc) => desc.id === lt.id)?.description ?? '-'
             }`,
             value: lt,
             qaId: `location-track-${lt.id}`,
@@ -67,7 +67,7 @@ export function getVisibleErrorsByProp<T>(
     prop: keyof T,
 ): string[] {
     return committedFields.includes(prop)
-        ? validationIssues.filter((error) => error.field == prop).map((error) => error.reason)
+        ? validationIssues.filter((error) => error.field === prop).map((error) => error.reason)
         : [];
 }
 

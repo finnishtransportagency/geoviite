@@ -60,7 +60,7 @@ const Main: React.FC<MainProps> = (props: MainProps) => {
                     <Route
                         path="/track-layout"
                         element={
-                            props.layoutMode == 'DEFAULT' ? (
+                            props.layoutMode === 'DEFAULT' ? (
                                 <TrackLayoutContainer />
                             ) : (
                                 <PreviewContainer />
@@ -118,7 +118,7 @@ export const MainContainer: React.FC = () => {
     }, []);
 
     React.useEffect(() => {
-        if (typeof versionFromBackend == 'string') {
+        if (typeof versionFromBackend === 'string') {
             delegates.setVersionStatus(
                 !versionInStore || versionInStore === versionFromBackend ? 'ok' : 'reload',
             );
@@ -142,7 +142,7 @@ export const MainContainer: React.FC = () => {
 
     return (
         <React.Fragment>
-            {versionStatus == 'reload' && (
+            {versionStatus === 'reload' && (
                 <Dialog
                     allowClose={false}
                     title={t('version.geoviite-updated')}
@@ -170,7 +170,7 @@ export const MainContainer: React.FC = () => {
                 />
             }
 
-            {versionStatus == 'ok' && <Main {...props} />}
+            {versionStatus === 'ok' && <Main {...props} />}
         </React.Fragment>
     );
 };

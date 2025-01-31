@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import childExists
 import clickWhenClickable
 import getElementWhenVisible
+import getNonNullAttribute
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import waitUntilNotExist
@@ -27,7 +28,7 @@ data class E2EToast(val header: String, val content: String?, val type: ToastTyp
 }
 
 private fun getToastType(toast: WebElement) =
-    with(toast.getAttribute("class")) {
+    with(toast.getNonNullAttribute("class")) {
         when {
             contains("Toastify__toast--success") -> ToastType.SUCCESS
             contains("Toastify__toast--error") -> ToastType.ERROR

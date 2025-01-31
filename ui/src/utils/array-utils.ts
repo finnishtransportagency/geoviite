@@ -1,8 +1,14 @@
 import { TimeStamp } from 'common/common-model';
 import { expectDefined } from 'utils/type-utils';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+type EmptyObject = {};
+
 export const first = <T>(arr: readonly T[]) => arr[0];
 export const last = <T>(arr: readonly T[]) => arr[arr.length - 1];
+export const init = <T>(arr: readonly T[]) => arr.slice(0, -1);
+
+export const lastIndex = <T>(arr: readonly T[]) => arr.length - 1;
 
 export function nonEmptyArray<T>(...values: Array<T | undefined>): T[] {
     return values.filter(filterNotEmpty);
@@ -33,7 +39,7 @@ function filterByIdInOrNotIn<T, Id>(
     yesIn: boolean,
 ): (item: T) => boolean {
     const othersSet = new Set(others);
-    return (item: T) => yesIn == othersSet.has(getId(item));
+    return (item: T) => yesIn === othersSet.has(getId(item));
 }
 
 /**
@@ -57,7 +63,7 @@ export function filterUniqueById<T, TId>(getId: (item: T) => TId): (item: T) => 
  * keys.filter(filterUnique)
  */
 export function filterUnique<T>(item: T, index: number, array: T[]): boolean {
-    return array.findIndex((item2) => item2 == item) == index;
+    return array.findIndex((item2) => item2 === item) === index;
 }
 
 export function flatten<T>(list: T[][]): T[] {
@@ -68,7 +74,10 @@ export function negComparator<T>(comparator: (v1: T, v2: T) => number): (v1: T, 
     return (v1: T, v2: T) => comparator(v1, v2) * -1;
 }
 
-export function fieldComparator<T, S>(getter: (obj: T) => S): (v1: T, v2: T) => number {
+export function fieldComparator<
+    T extends EmptyObject | undefined,
+    S extends EmptyObject | undefined,
+>(getter: (obj: T) => S): (v1: T, v2: T) => number {
     return (v1: T, v2: T) => compareByField(v1, v2, getter);
 }
 
@@ -95,13 +104,14 @@ export function timeStampComparator<T>(
         if (!aTime) return 1;
         if (!bTime) return -1;
 
-        return aTime < bTime ? -1 : aTime == bTime ? 0 : 1;
+        return aTime < bTime ? -1 : aTime === bTime ? 0 : 1;
     };
 }
 
-export function multiFieldComparator<T extends unknown[], S>(
-    ...getters: { [K in keyof T]: (obj: T[K]) => S }
-): (v1: T[number], v2: T[number]) => number {
+export function multiFieldComparator<
+    T extends (EmptyObject | undefined)[],
+    S extends EmptyObject | undefined,
+>(...getters: { [K in keyof T]: (obj: T[K]) => S }): (v1: T[number], v2: T[number]) => number {
     return (v1: T[number], v2: T[number]) => {
         return getters.reduce((previousComparisonResult, nextGetter) => {
             return previousComparisonResult !== 0
@@ -130,24 +140,34 @@ export function arraysEqual<T>(arr1: T[], arr2: T[]) {
     return JSON.stringify(arr1) === JSON.stringify(arr2);
 }
 
-export const compareByFields = <T, S>(s1: T, s2: T, ...getters: ((s: T) => S)[]) =>
+export const compareByFields = <
+    T extends EmptyObject | undefined,
+    S extends EmptyObject | undefined,
+>(
+    s1: T,
+    s2: T,
+    ...getters: ((s: T) => S)[]
+) =>
     getters.reduce(
         (previousValue, getter) =>
             previousValue === 0 ? compareByField(s1, s2, getter) : previousValue,
         0,
     );
 
-export function compareByField<T, S>(v1: T, v2: T, getter: (obj: T) => S): number {
+export function compareByField<
+    T extends EmptyObject | undefined,
+    S extends EmptyObject | undefined,
+>(v1: T, v2: T, getter: (obj: T) => S): number {
     const f1 = getter(v1);
     const f2 = getter(v2);
 
     return compare(f1, f2);
 }
 
-export function compare<T>(f1: T, f2: T): number {
-    if (f1 == undefined && f2 == undefined) return 0;
-    else if (f1 == undefined) return -1;
-    else if (f2 == undefined) return 1;
+export function compare<T extends EmptyObject | undefined>(f1: T, f2: T): number {
+    if (f1 === undefined && f2 === undefined) return 0;
+    else if (f1 === undefined) return -1;
+    else if (f2 === undefined) return 1;
     else if (f1 < f2) return -1;
     else if (f2 < f1) return 1;
     else return 0;
@@ -157,10 +177,13 @@ export function groupBy<T, K extends string | number>(
     array: T[],
     getKey: (item: T) => K,
 ): Record<K, T[]> {
-    return array.reduce((acc, item) => {
-        (acc[getKey(item)] ||= []).push(item);
-        return acc;
-    }, {} as Record<K, T[]>);
+    return array.reduce(
+        (acc, item) => {
+            (acc[getKey(item)] ||= []).push(item);
+            return acc;
+        },
+        {} as Record<K, T[]>,
+    );
 }
 
 /**
@@ -177,15 +200,15 @@ export function itemsEqual<T>(
 ): boolean {
     return (
         items1 === items2 || // object equality
-        (items1?.length == 0 && items2?.length == 0) || // empty arrays // contains equal items
-        (items1 != undefined &&
-            items2 != undefined &&
+        (items1?.length === 0 && items2?.length === 0) || // empty arrays // contains equal items
+        (items1 !== undefined &&
+            items2 !== undefined &&
             items1.length === items2.length &&
             // a collection cannot have an item that does not exist in another
             !items1.some(
                 (item1: T) =>
                     !items2.find((item2) =>
-                        itemEqualsFunc ? itemEqualsFunc(item1, item2) : item1 == item2,
+                        itemEqualsFunc ? itemEqualsFunc(item1, item2) : item1 === item2,
                     ),
             ))
     );
@@ -193,7 +216,7 @@ export function itemsEqual<T>(
 
 export function minOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T | undefined {
     return values.reduce<T | undefined>((old, candidate, index) => {
-        if (index == 0 || comparator(old as T, candidate) > 0) {
+        if (index === 0 || comparator(old as T, candidate) > 0) {
             return candidate;
         } else {
             return old;
@@ -203,7 +226,7 @@ export function minOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T |
 
 export function maxOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T | undefined {
     return values.reduce<T | undefined>((old, candidate, index) => {
-        if (index == 0 || comparator(old as T, candidate) < 0) {
+        if (index === 0 || comparator(old as T, candidate) < 0) {
             return candidate;
         } else {
             return old;
@@ -230,7 +253,7 @@ export function indexIntoMap<Id, Obj extends { id: Id }>(objs: Obj[]): Map<Id, O
 }
 
 export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): number | undefined {
-    if (objs.length == 0) {
+    if (objs.length === 0) {
         return undefined;
     }
     const values = objs.map((obj) => by(obj));
@@ -265,7 +288,7 @@ export function findInsertionIndex<T>(
     isInsertBefore: (v: T) => boolean,
 ): number {
     const i = things.findIndex(isInsertBefore);
-    return i == -1 ? things.length : i;
+    return i === -1 ? things.length : i;
 }
 
 export function insertAtIndex<T>(things: readonly T[], thing: T, index: number): T[] {
@@ -273,7 +296,7 @@ export function insertAtIndex<T>(things: readonly T[], thing: T, index: number):
 }
 
 export const findById = <T extends { id: string }>(objs: T[], id: string): T | undefined =>
-    objs.find((obj) => obj.id == id);
+    objs.find((obj) => obj.id === id);
 
 /**
  * Like Object.entries, but with the assumption that the argument doesn't contain any fields not mentioned in its

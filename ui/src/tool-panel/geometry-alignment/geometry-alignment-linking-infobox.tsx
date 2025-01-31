@@ -17,7 +17,7 @@ import {
     linkGeometryWithLocationTrack,
     linkGeometryWithReferenceLine,
 } from 'linking/linking-api';
-import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryPlanId } from 'geometry/geometry-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
@@ -40,7 +40,7 @@ import {
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
 import LocationTrackNames from './location-track-names';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import ReferenceLineNames from 'tool-panel/geometry-alignment/reference-line-names';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
@@ -59,6 +59,8 @@ import { Radio } from 'vayla-design-lib/radio/radio';
 import { ChangeTimes } from 'common/common-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
+import { LinkingStatusLabel } from 'geoviite-design-lib/linking-status/linking-status-label';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -145,14 +147,12 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     onContentVisibilityChange,
 }) => {
     const { t } = useTranslation();
-    const [linkedAlignmentIds, setLinkedAlignmentIds] = React.useState<GeometryAlignmentId[]>([]);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
     const [linkingAlignmentType, setLinkingAlignmentType] =
         React.useState<MapAlignmentType>('LOCATION_TRACK');
 
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';
-    const isLinked = geometryAlignment.id && linkedAlignmentIds.includes(geometryAlignment.id);
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
 
     const planStatus = useLoader(
@@ -193,7 +193,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
 
     const canLink =
         !linkingCallInProgress &&
-        linkingState?.state == 'allSet' &&
+        linkingState?.state === 'allSet' &&
         !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit;
 
     const canLockAlignment =
@@ -202,17 +202,17 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             selectedLayoutLocationTrack &&
             !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit);
 
-    React.useEffect(() => {
-        getLinkedAlignmentIdsInPlan(planId, layoutContext).then((linkedIds) => {
-            setLinkedAlignmentIds(linkedIds);
-        });
-    }, [
-        planId,
-        layoutContext.publicationState,
-        layoutContext.branch,
-        changeTimes.layoutLocationTrack,
-        changeTimes.layoutReferenceLine,
-    ]);
+    const [linkedAlignmentIds, linkedAlignmentIdsStatus] = useLoaderWithStatus(
+        () => getLinkedAlignmentIdsInPlan(planId, layoutContext),
+        [
+            planId,
+            layoutContext.publicationState,
+            layoutContext.branch,
+            changeTimes.layoutLocationTrack,
+            changeTimes.layoutReferenceLine,
+        ],
+    );
+    const isLinked = linkedAlignmentIds ? linkedAlignmentIds.includes(geometryAlignment.id) : false;
 
     const handleTrackNumberSave = refreshTrackNumberSelection(
         draftLayoutContext(layoutContext),
@@ -232,6 +232,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             ? LinkingType.LinkingGeometryWithAlignment
             : LinkingType.LinkingGeometryWithEmptyAlignment;
     }
+
     function lockAlignment() {
         if (linkingAlignmentType === 'LOCATION_TRACK' && selectedLayoutLocationTrack) {
             onLockAlignment({
@@ -264,7 +265,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 const linkingParameters =
                     createLinkingGeometryWithAlignmentParameters(linkingState);
 
-                await (linkingState.layoutAlignment.type == 'LOCATION_TRACK'
+                await (linkingState.layoutAlignment.type === 'LOCATION_TRACK'
                     ? linkGeometryWithLocationTrack(layoutContext.branch, linkingParameters)
                     : linkGeometryWithReferenceLine(layoutContext.branch, linkingParameters));
 
@@ -273,10 +274,10 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 );
 
                 onStopLinking();
-            } else if (linkingState?.type == LinkingType.LinkingGeometryWithEmptyAlignment) {
+            } else if (linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
                 const linkingParameters =
                     createLinkingGeometryWithEmptyAlignmentParameters(linkingState);
-                await (linkingState.layoutAlignment.type == 'LOCATION_TRACK'
+                await (linkingState.layoutAlignment.type === 'LOCATION_TRACK'
                     ? linkGeometryWithEmptyLocationTrack(layoutContext.branch, linkingParameters)
                     : linkGeometryWithEmptyReferenceLine(layoutContext.branch, linkingParameters));
 
@@ -301,17 +302,10 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         label={t('tool-panel.alignment.geometry.is-linked')}
                         className={styles['geometry-alignment-infobox__linked-status']}
                         value={
-                            isLinked ? (
-                                <span className={styles['geometry-alignment-infobox__linked-text']}>
-                                    {t('yes')}
-                                </span>
+                            linkedAlignmentIdsStatus === LoaderStatus.Ready ? (
+                                <LinkingStatusLabel isLinked={isLinked} />
                             ) : (
-                                <span
-                                    className={
-                                        styles['geometry-alignment-infobox__not-linked-text']
-                                    }>
-                                    {t('no')}
-                                </span>
+                                <Spinner />
                             )
                         }
                     />

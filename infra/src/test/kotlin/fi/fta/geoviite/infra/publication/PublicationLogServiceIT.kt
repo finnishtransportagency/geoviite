@@ -49,6 +49,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -625,7 +626,14 @@ constructor(
                 MainLayoutContext.draft,
                 switchService.insertSwitch(
                     LayoutBranch.main,
-                    LayoutSwitchSaveRequest(SwitchName("TEST"), IntId(1), LayoutStateCategory.EXISTING, IntId(1), false),
+                    LayoutSwitchSaveRequest(
+                        SwitchName("TEST"),
+                        IntId(1),
+                        LayoutStateCategory.EXISTING,
+                        IntId(1),
+                        false,
+                        draftOid = null,
+                    ),
                 ),
             )
         publish(publicationService, switches = listOf(switch.id as IntId), trackNumbers = listOf(tn1, tn2))
@@ -641,6 +649,7 @@ constructor(
                         LayoutStateCategory.NOT_EXISTING,
                         IntId(2),
                         true,
+                        draftOid = null,
                     ),
                 ),
             )
@@ -673,7 +682,14 @@ constructor(
     @Test
     fun `Changing specific switch field returns only that field`() {
         val saveReq =
-            LayoutSwitchSaveRequest(SwitchName("TEST"), IntId(1), LayoutStateCategory.EXISTING, IntId(1), false)
+            LayoutSwitchSaveRequest(
+                SwitchName("TEST"),
+                IntId(1),
+                LayoutStateCategory.EXISTING,
+                IntId(1),
+                false,
+                draftOid = null,
+            )
 
         val switch =
             switchService.getOrThrow(MainLayoutContext.draft, switchService.insertSwitch(LayoutBranch.main, saveReq))
@@ -1201,7 +1217,10 @@ constructor(
         )
         val switch =
             switchDao.save(
-                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
+                switch(
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.2, 0.1), null)),
+                    draft = false,
+                )
             )
         val originalAlignment =
             alignment(
@@ -1214,7 +1233,9 @@ constructor(
             )
         switchService.saveDraft(
             LayoutBranch.main,
-            switchDao.fetch(switch).copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
+            switchDao
+                .fetch(switch)
+                .copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.1, 0.2), null))),
         )
         val updatedAlignment =
             alignment(
@@ -1265,7 +1286,10 @@ constructor(
         )
         val switch =
             switchDao.save(
-                switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
+                switch(
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.2, 0.1), null)),
+                    draft = false,
+                )
             )
         val originalAlignment =
             alignment(
@@ -1281,7 +1305,9 @@ constructor(
 
         switchService.saveDraft(
             testBranch,
-            switchDao.fetch(switch).copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
+            switchDao
+                .fetch(switch)
+                .copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.1, 0.2), null))),
         )
         val updatedAlignment =
             alignment(
@@ -1333,7 +1359,10 @@ constructor(
             )
         val switch =
             mainDraftContext.insert(
-                switch(name = "original", joints = listOf(LayoutSwitchJoint(JointNumber(1), Point(5.0, 5.0), null)))
+                switch(
+                    name = "original",
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(5.0, 5.0), null)),
+                )
             )
         val locationTrack =
             mainDraftContext.insert(

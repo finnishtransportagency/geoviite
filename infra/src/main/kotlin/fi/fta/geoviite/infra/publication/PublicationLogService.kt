@@ -199,10 +199,9 @@ constructor(
                     locationTrackService.getWithAlignment(split.sourceLocationTrackVersion)
                 val oid =
                     requireNotNull(
-                        locationTrackDao.fetchExternalId(
-                            publication.layoutBranch.branch,
-                            sourceLocationTrack.id as IntId,
-                        )
+                        locationTrackDao
+                            .fetchExternalId(publication.layoutBranch.branch, sourceLocationTrack.id as IntId)
+                            ?.oid
                     ) {
                         "expected to find oid for published location track ${sourceLocationTrack.id} in publication ${id}"
                     }
@@ -264,7 +263,7 @@ constructor(
             return SplitTargetInPublication(
                 id = track.id,
                 name = track.name,
-                oid = locationTrackDao.fetchExternalId(publicationBranch, track.id),
+                oid = locationTrackDao.fetchExternalId(publicationBranch, track.id)?.oid,
                 startAddress = startAddress,
                 endAddress = endAddress,
                 operation = target.operation,

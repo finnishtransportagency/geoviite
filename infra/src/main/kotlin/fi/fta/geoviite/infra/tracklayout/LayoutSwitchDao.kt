@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -13,6 +14,7 @@ import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -91,8 +93,9 @@ class LayoutSwitchDao(
             select number, location_accuracy, location_track_id, postgis.st_x(point) x, postgis.st_y(point) y
               from layout.switch_in_layout_context(:publication_state::layout.publication_state,
                                                    :design_id) switch
-                join layout.switch_joint on switch.id = switch_joint.switch_id
-                  and switch.layout_context_id = switch_joint.switch_layout_context_id
+                join layout.switch_version_joint jv on switch.id = jv.switch_id
+                  and switch.layout_context_id = jv.switch_layout_context_id
+                  and switch.version = jv.switch_version
                 left join (
                   select lt.id as location_track_id, *
                     from layout.segment_version
@@ -170,6 +173,7 @@ class LayoutSwitchDao(
                 cancelled,
                 design_id,
                 source,
+                draft_oid,
                 origin_design_id
             )
             values (
@@ -185,6 +189,7 @@ class LayoutSwitchDao(
               :cancelled,
               :design_id,
               :source::layout.geometry_source,
+              :draft_oid,
               :origin_design_id
             )
             on conflict (id, layout_context_id) do update set
@@ -196,6 +201,7 @@ class LayoutSwitchDao(
               owner_id = excluded.owner_id,
               cancelled = excluded.cancelled,
               source = excluded.source,
+              draft_oid = excluded.draft_oid,
               origin_design_id = excluded.origin_design_id
             returning id, design_id, draft, version
         """
@@ -217,6 +223,7 @@ class LayoutSwitchDao(
                     "cancelled" to item.isCancelled,
                     "design_id" to item.contextData.designId?.intValue,
                     "source" to item.source.name,
+                    "draft_oid" to item.draftOid?.toString(),
                     "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
                 ),
             ) { rs, _ ->
@@ -231,13 +238,14 @@ class LayoutSwitchDao(
         if (joints.isNotEmpty()) {
             val sql =
                 """
-              insert into layout.switch_joint(
+              insert into layout.switch_version_joint(
                 switch_id,
                 switch_layout_context_id,
                 switch_version,
                 number, 
                 location, 
-                location_accuracy
+                location_accuracy,
+                role
                 )
               values (
                 :switch_id,
@@ -245,13 +253,9 @@ class LayoutSwitchDao(
                 :switch_version,
                 :number, 
                 postgis.st_setsrid(postgis.st_point(:location_x, :location_y), :srid), 
-                :location_accuracy::common.location_accuracy
+                :location_accuracy::common.location_accuracy,
+                :role::common.switch_joint_role
                 )
-              on conflict (switch_id, switch_layout_context_id, number) do update
-              set
-                switch_version = excluded.switch_version,
-                location = excluded.location,
-                location_accuracy = excluded.location_accuracy
           """
                     .trimIndent()
             val params =
@@ -266,28 +270,11 @@ class LayoutSwitchDao(
                             "location_y" to joint.location.y,
                             "srid" to LAYOUT_SRID.code,
                             "location_accuracy" to joint.locationAccuracy?.name,
+                            "role" to joint.role.name,
                         )
                     }
                     .toTypedArray()
             jdbcTemplate.batchUpdate(sql, params)
-        }
-
-        if (switchVersion.version > 1) {
-            val sqlDelete =
-                """ 
-              delete from layout.switch_joint 
-              where switch_id = :switch_id
-                and switch_layout_context_id = :switch_layout_context_id
-                and switch_joint.switch_version < :switch_version  
-            """
-                    .trimIndent()
-            val paramsDelete =
-                mapOf(
-                    "switch_id" to switchVersion.id.intValue,
-                    "switch_layout_context_id" to switchVersion.context.toSqlString(),
-                    "switch_version" to switchVersion.version,
-                )
-            jdbcTemplate.update(sqlDelete, paramsDelete)
         }
     }
 
@@ -308,11 +295,13 @@ class LayoutSwitchDao(
               sv.owner_id,
               sv.source,
               origin_design_id,
+              sv.draft_oid,
               exists(select * from layout.switch official_sv
                      where official_sv.id = sv.id
                        and (official_sv.design_id is null or official_sv.design_id = sv.design_id)
                        and not official_sv.draft) as has_official,
               coalesce(joint_numbers, '{}') as joint_numbers,
+              coalesce(joint_roles, '{}') as joint_roles,
               coalesce(joint_x_values, '{}') as joint_x_values,
               coalesce(joint_y_values, '{}') as joint_y_values,
               coalesce(joint_location_accuracies, '{}') as joint_location_accuracies
@@ -320,14 +309,15 @@ class LayoutSwitchDao(
               left join lateral (
                 select 
                   array_agg(jv.number order by jv.number) as joint_numbers,
+                  array_agg(jv.role order by jv.number) as joint_roles,
                   array_agg(postgis.st_x(jv.location) order by jv.number) as joint_x_values,
                   array_agg(postgis.st_y(jv.location) order by jv.number) as joint_y_values,
                   array_agg(jv.location_accuracy order by jv.number) as joint_location_accuracies
-                from layout.switch_joint_version jv
+                from layout.switch_version_joint jv
                   where jv.switch_id = sv.id
                     and jv.switch_layout_context_id = sv.layout_context_id
                     and jv.switch_version = sv.version
-                    and not jv.deleted) jv on (true)
+              ) jv on (true)
             where sv.id = :id and sv.layout_context_id = :layout_context_id and sv.version = :version
               and sv.deleted = false
         """
@@ -360,9 +350,11 @@ class LayoutSwitchDao(
               s.owner_id,
               s.source,
               joint_numbers,
+              joint_roles,
               joint_x_values,
               joint_y_values,
               joint_location_accuracies,
+              s.draft_oid,
               exists(select * from layout.switch official_sv
                      where official_sv.id = s.id
                        and (official_sv.design_id is null or official_sv.design_id = s.design_id)
@@ -371,14 +363,15 @@ class LayoutSwitchDao(
             from layout.switch s
               left join lateral
                 (select coalesce(array_agg(jv.number order by jv.number), '{}') as joint_numbers,
+                        coalesce(array_agg(jv.role order by jv.number), '{}') as joint_roles,
                         coalesce(array_agg(postgis.st_x(jv.location) order by jv.number), '{}') as joint_x_values,
                         coalesce(array_agg(postgis.st_y(jv.location) order by jv.number), '{}') as joint_y_values,
                         coalesce(array_agg(jv.location_accuracy order by jv.number), '{}') as joint_location_accuracies
-                 from layout.switch_joint_version jv
+                 from layout.switch_version_joint jv
                  where jv.switch_id = s.id
                    and jv.switch_layout_context_id = s.layout_context_id
                    and jv.switch_version = s.version
-                   and not jv.deleted) jv on (true)
+                ) jv on (true)
         """
                 .trimIndent()
 
@@ -398,6 +391,7 @@ class LayoutSwitchDao(
             joints =
                 parseJoints(
                     numbers = rs.getNullableIntArray("joint_numbers"),
+                    jointRoles = rs.getNullableEnumArray<SwitchJointRole>("joint_roles"),
                     xValues = rs.getNullableDoubleArray("joint_x_values"),
                     yValues = rs.getNullableDoubleArray("joint_y_values"),
                     accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
@@ -405,6 +399,7 @@ class LayoutSwitchDao(
             trapPoint = rs.getBooleanOrNull("trap_point"),
             ownerId = rs.getIntIdOrNull("owner_id"),
             source = rs.getEnum("source"),
+            draftOid = rs.getOidOrNull("draft_oid"),
             contextData =
                 rs.getLayoutContextData(
                     "id",
@@ -420,6 +415,7 @@ class LayoutSwitchDao(
 
     private fun parseJoints(
         numbers: List<Int?>,
+        jointRoles: List<SwitchJointRole?>,
         xValues: List<Double?>,
         yValues: List<Double?>,
         accuracies: List<LocationAccuracy?>,
@@ -431,6 +427,7 @@ class LayoutSwitchDao(
             numbers[i]?.let(::JointNumber)?.let { jointNumber ->
                 LayoutSwitchJoint(
                     number = jointNumber,
+                    role = requireNotNull(jointRoles[i]) { "Joint should have a role: number=$jointNumber" },
                     location =
                         Point(
                             requireNotNull(xValues[i]) { "Joint should have an x-coordinate: number=$jointNumber" },
@@ -605,12 +602,13 @@ class LayoutSwitchDao(
             select distinct switch.id as switch_id
               from layout.segment_version
                 join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                join layout.switch_joint on
-                  postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), switch_joint.location)
-                  and postgis.st_dwithin(segment_geometry.geometry, switch_joint.location, :dist)
-                join layout.switch_in_layout_context('DRAFT', :design_id) switch
-                  on switch_joint.switch_id = switch.id
-                    and switch_joint.switch_layout_context_id = switch.layout_context_id
+                join layout.switch_version_joint jv on
+                  postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), jv.location)
+                  and postgis.st_dwithin(segment_geometry.geometry, jv.location, :dist)
+                inner join layout.switch_in_layout_context('DRAFT', :design_id) switch
+                  on jv.switch_id = switch.id
+                    and jv.switch_layout_context_id = switch.layout_context_id
+                    and jv.switch_version = switch.version
               where segment_version.alignment_id = :alignmentId
                 and segment_version.alignment_version = :alignmentVersion
                 and switch.state_category != 'NOT_EXISTING';
@@ -629,6 +627,12 @@ class LayoutSwitchDao(
                 rs.getIntId<LayoutSwitch>("switch_id")
             }
             .also { results -> logger.daoAccess(FETCH, "Switches near alignment", results) }
+    }
+
+    @Transactional
+    fun savePlanItemId(id: IntId<LayoutSwitch>, branch: DesignBranch, planItemId: RatkoPlanItemId) {
+        jdbcTemplate.setUser()
+        savePlanItemIdInExistingTransaction(branch, id, planItemId)
     }
 
     @Transactional

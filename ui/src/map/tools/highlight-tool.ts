@@ -6,13 +6,14 @@ import { getDefaultHitArea, searchItemsFromLayers } from 'map/tools/tool-utils';
 
 let currentItemsCompare = '';
 export const highlightTool: MapTool = {
+    id: 'highlight',
     activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => {
         const debouncedMoveHandlerHighlight = debounce(
             ({ coordinate }) => {
                 const hitArea = getDefaultHitArea(map, coordinate);
                 const items = searchItemsFromLayers(hitArea, layers, { limit: 1 });
                 const itemsCompare = JSON.stringify(items);
-                if (currentItemsCompare != itemsCompare) {
+                if (currentItemsCompare !== itemsCompare) {
                     options.onHighlightItems(items);
                     currentItemsCompare = itemsCompare;
                 }

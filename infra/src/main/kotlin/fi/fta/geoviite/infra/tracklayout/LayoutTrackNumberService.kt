@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
+import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.printCsv
 import java.time.Instant
 import java.util.stream.Collectors
@@ -107,7 +108,7 @@ class LayoutTrackNumberService(
         possibleIds: List<IntId<LayoutTrackNumber>>? = null,
     ): ((term: String, item: LayoutTrackNumber) -> Boolean) =
         dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
-            { term, item -> externalIds[item.id]?.toString() == term || item.id.toString() == term }
+            { term, item -> externalIds[item.id]?.oid?.toString() == term || item.id.toString() == term }
         }
 
     override fun contentMatches(term: String, item: LayoutTrackNumber) =
@@ -190,7 +191,7 @@ class LayoutTrackNumberService(
             if (geocodingContext != null && referenceLine.alignmentVersion != null) {
                 alignmentService.getGeometryMetadataSections(
                     referenceLine.alignmentVersion,
-                    dao.fetchExternalId(layoutContext.branch, trackNumberId),
+                    dao.fetchExternalId(layoutContext.branch, trackNumberId)?.oid,
                     boundingBox,
                     geocodingContext,
                 )
@@ -203,9 +204,8 @@ class LayoutTrackNumberService(
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 
     @Transactional(readOnly = true)
-    fun getExternalIdsByBranch(id: IntId<LayoutTrackNumber>): Map<LayoutBranch, Oid<LayoutTrackNumber>> {
-        return dao.fetchExternalIdsByBranch(id)
-    }
+    fun getExternalIdsByBranch(id: IntId<LayoutTrackNumber>): Map<LayoutBranch, Oid<LayoutTrackNumber>> =
+        mapNonNullValues(dao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
 }
 
 private fun asCsvFile(

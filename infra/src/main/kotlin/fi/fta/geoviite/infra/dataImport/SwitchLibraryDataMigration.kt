@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.dataImport
 
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwnerDao
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.data.EV_SJ43_5_9_1_9_H
 import fi.fta.geoviite.infra.switchLibrary.data.EV_SJ43_5_9_1_9_V
 import fi.fta.geoviite.infra.switchLibrary.data.KRV43_233_1_9
@@ -119,7 +119,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.SingleConnectionDataSource
 
-val switchStructures: List<SwitchStructure> by lazy {
+val switchStructures: List<SwitchStructureData> by lazy {
     listOf(
         KRV43_233_1_9(),
         KRV43_270_1_9_514(),
@@ -245,17 +245,9 @@ val inframodelAliases =
 class V10_03_06__SwitchLibraryDataMigration : BaseJavaMigration() {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    override fun migrate(context: Context?) =
-        withImportUser(ImportUser.SWITCH_LIB_IMPORT) {
-            logger.info("Add switch structures into library")
-
-            val connection =
-                context?.connection ?: throw IllegalStateException("Can't run imports without DB connection")
-            val jdbcTemplate = NamedParameterJdbcTemplate(SingleConnectionDataSource(connection, true))
-            val switchStructureDao = SwitchStructureDao(jdbcTemplate)
-            switchStructures.forEach(switchStructureDao::insertSwitchStructure)
-            inframodelAliases.forEach { (alias, type) -> switchStructureDao.insertInframodelAlias(alias, type) }
-        }
+    override fun migrate(context: Context?) {
+        // Switch structures are now migrated repeatably
+    }
 
     // Increase this manually when switch library data changes
     override fun getChecksum(): Int = 6
@@ -279,15 +271,15 @@ class R__10_01__update_all_switch_structures : BaseJavaMigration() {
     override fun migrate(context: Context?) {
         withImportUser(ImportUser.SWITCH_LIB_IMPORT) {
             logger.info("Update all switch structures")
-            val connection =
-                context?.connection ?: throw IllegalStateException("Can't run imports without DB connection")
+            val connection = requireNotNull(context?.connection) { "Can't run imports without DB connection" }
             val jdbcTemplate = NamedParameterJdbcTemplate(SingleConnectionDataSource(connection, true))
             val switchStructureDao = SwitchStructureDao(jdbcTemplate)
             val switchOwnerDao = SwitchOwnerDao(jdbcTemplate)
             val switchLibraryService = SwitchLibraryService(switchStructureDao, switchOwnerDao)
             switchLibraryService.replaceExistingSwitchStructures(switchStructures)
+            switchLibraryService.replaceExistingInfraModelAliases(inframodelAliases)
         }
     }
 
-    override fun getChecksum(): Int = switchStructures.map { s -> s.stripUniqueIdentifiers() }.hashCode()
+    override fun getChecksum(): Int = switchStructures.map { s -> s.data }.hashCode()
 }

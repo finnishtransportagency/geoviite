@@ -5,30 +5,32 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.*
 
 fun YV60_500_1_11_1_O() =
-    SwitchStructure(
+    SwitchStructureData(
         type = SwitchType("YV60-500-1:11,1-O"),
         presentationJointNumber = JointNumber(1),
         joints =
-            listOf(
-                SwitchJoint(JointNumber(1), Point(0.0, 0.0)),
-                SwitchJoint(JointNumber(5), Point(22.471, 0.0)),
-                SwitchJoint(JointNumber(2), Point(44.943, 0.0)),
-                SwitchJoint(JointNumber(3), Point(44.852, -2.016)),
+            setOf(
+                SwitchStructureJoint(JointNumber(1), Point(0.0, 0.0)),
+                SwitchStructureJoint(JointNumber(5), Point(22.471, 0.0)),
+                SwitchStructureJoint(JointNumber(2), Point(44.943, 0.0)),
+                SwitchStructureJoint(JointNumber(3), Point(44.852, -2.016)),
             ),
         alignments =
             listOf(
-                SwitchAlignment(
+                SwitchStructureAlignment(
                     jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
                     elements =
                         listOf(
-                            SwitchElementLine(start = Point(0.0, 0.0), end = Point(22.471, 0.0)),
-                            SwitchElementLine(start = Point(22.471, 0.0), end = Point(44.943, 0.0)),
+                            SwitchStructureLine(start = Point(0.0, 0.0), end = Point(22.471, 0.0)),
+                            SwitchStructureLine(start = Point(22.471, 0.0), end = Point(44.943, 0.0)),
                         ),
                 ),
-                SwitchAlignment(
+                SwitchStructureAlignment(
                     jointNumbers = listOf(JointNumber(1), JointNumber(3)),
                     elements =
-                        listOf(SwitchElementCurve(start = Point(0.0, 0.0), end = Point(44.852, -2.016), radius = 500.0)),
+                        listOf(
+                            SwitchStructureCurve(start = Point(0.0, 0.0), end = Point(44.852, -2.016), radius = 500.0)
+                        ),
                 ),
             ),
     )

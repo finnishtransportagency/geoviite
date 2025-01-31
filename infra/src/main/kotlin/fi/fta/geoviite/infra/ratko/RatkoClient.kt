@@ -9,10 +9,12 @@ import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.logging.integrationCall
+import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.ratko.model.GEOVIITE_NAME
 import fi.fta.geoviite.infra.ratko.model.RatkoAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometry
@@ -24,6 +26,9 @@ import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
+import fi.fta.geoviite.infra.ratko.model.RatkoPlan
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanState
 import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoPointStates
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
@@ -61,6 +66,7 @@ private const val ROUTE_NUMBER_PATH = "$INFRA_PATH/routenumbers"
 private const val ASSET_PATH = "/api/assets/v1.2"
 private const val VERSION_PATH = "/api/versions/v1.0/version"
 private const val BULK_TRANSFER_PATH = "/api/split/bulk-transfer"
+private const val PLAN_PATH = "/api/plan/v1.0/plans"
 
 enum class RatkoConnectionStatus {
     ONLINE,
@@ -343,24 +349,38 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         putWithoutResponseBody(combinePaths(ASSET_PATH, assetOid, "properties"), properties)
     }
 
-    fun getNewLocationTrackOid(): RatkoOid<RatkoLocationTrack>? {
+    fun createPlanItem(ratkoPlanId: RatkoPlanId, realOid: Oid<*>?): RatkoPlanItemId {
+        logger.integrationCall("createPlanItem")
+
+        val rv =
+            postWithResponseBody<RatkoPlanItemId>(
+                "/api/plan/v1.0/plans/${ratkoPlanId.id}/plan_items",
+                mapOf("state" to RatkoPlanState.OPEN.name) + (realOid?.let { mapOf("realOid" to it) } ?: mapOf()),
+            )
+        return requireNotNull(rv) {
+            "Expected plan item ID from Ratko when creating plan item in Ratko plan " +
+                "${ratkoPlanId.id} with real OID $realOid"
+        }
+    }
+
+    fun getNewLocationTrackOid(): RatkoOid<RatkoLocationTrack> {
         logger.integrationCall("getNewLocationTrackOid")
 
-        return postWithResponseBody(LOCATION_TRACK_PATH, "{}")
+        return requireNotNull(postWithResponseBody(LOCATION_TRACK_PATH, "{}"))
     }
 
-    fun getNewRouteNumberOid(): RatkoOid<RatkoRouteNumber>? {
+    fun getNewRouteNumberOid(): RatkoOid<RatkoRouteNumber> {
         logger.integrationCall("getNewRouteNumberOid")
 
-        return postWithResponseBody(ROUTE_NUMBER_PATH, "{}")
+        return requireNotNull(postWithResponseBody(ROUTE_NUMBER_PATH, "{}"))
     }
 
-    fun getNewSwitchOid(): RatkoOid<RatkoSwitchAsset>? {
+    fun getNewSwitchOid(): RatkoOid<RatkoSwitchAsset> {
         logger.integrationCall("getNewSwitchOid")
 
         val body = "{\"type\":\"turnout\"}"
 
-        return postWithResponseBody<List<RatkoOid<RatkoSwitchAsset>>>(ASSET_PATH, body)?.firstOrNull()
+        return requireNotNull(postWithResponseBody<List<RatkoOid<RatkoSwitchAsset>>>(ASSET_PATH, body)?.firstOrNull())
     }
 
     fun getRouteNumber(routeNumberOid: RatkoOid<RatkoRouteNumber>): RatkoRouteNumber? {
@@ -461,6 +481,17 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
                 bulkTransferState
             }
+    }
+
+    fun createPlan(plan: RatkoPlan): RatkoPlanId? {
+        logger.integrationCall("createPlan", "plan" to plan)
+        return postWithResponseBody<RatkoPlanId>(url = PLAN_PATH, plan)
+    }
+
+    fun updatePlan(plan: RatkoPlan) {
+        logger.integrationCall("updatePlan", "plan" to plan)
+        val ratkoId = requireNotNull(plan.id)
+        return putWithoutResponseBody(url = "$PLAN_PATH/$ratkoId", plan)
     }
 
     private fun replaceKmM(nodeCollection: JsonNode?) {

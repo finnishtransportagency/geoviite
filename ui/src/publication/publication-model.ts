@@ -1,8 +1,10 @@
 import {
     AssetId,
+    DesignBranch,
     JointNumber,
     KmNumber,
-    LayoutBranch,
+    LayoutDesignId,
+    MainBranch,
     Oid,
     Range,
     RowVersion,
@@ -75,6 +77,7 @@ export type PublicationCandidateId =
     | LayoutKmPostId;
 
 export type BasePublicationCandidate = {
+    type: DraftChangeType;
     draftChangeTime: TimeStamp;
     userName: string;
     operation: Operation;
@@ -111,6 +114,11 @@ export type WithLocation = {
     location?: Point;
 };
 
+export type GeometryChangeRanges = {
+    added: Range<number>[];
+    removed: Range<number>[];
+};
+
 export type TrackNumberPublicationCandidate = BasePublicationCandidate &
     WithBoundingBox & {
         id: LayoutTrackNumberId;
@@ -125,6 +133,7 @@ export type LocationTrackPublicationCandidate = BasePublicationCandidate &
         trackNumberId: LayoutTrackNumberId;
         name: string;
         duplicateOf: LocationTrackId;
+        geometryChanges?: GeometryChangeRanges;
     };
 
 export type ReferenceLinePublicationCandidate = BasePublicationCandidate &
@@ -135,6 +144,7 @@ export type ReferenceLinePublicationCandidate = BasePublicationCandidate &
         name: TrackNumber;
         operation?: Operation;
         boundingBox?: BoundingBox;
+        geometryChanges?: GeometryChangeRanges;
     };
 
 export type SwitchPublicationCandidate = BasePublicationCandidate &
@@ -182,11 +192,24 @@ export type Split = SplitHeader & {
     relinkedSwitches: LayoutSwitchId[];
 };
 
+type PublishedInMain = {
+    branch: MainBranch;
+    designBranch: undefined;
+    designVersion: undefined;
+};
+
+type PublishedInDesign = {
+    branch: DesignBranch;
+    designBranch: LayoutDesignId;
+};
+
+export type PublishedInBranch = PublishedInMain | PublishedInDesign;
+
 export type PublicationDetails = {
     id: PublicationId;
     publicationTime: TimeStamp;
     publicationUser: string;
-    layoutBranch: LayoutBranch;
+    layoutBranch: PublishedInBranch;
     trackNumbers: PublishedTrackNumber[];
     referenceLines: PublishedReferenceLine[];
     locationTracks: PublishedLocationTrack[];
