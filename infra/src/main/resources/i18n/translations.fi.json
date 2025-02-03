@@ -33,6 +33,7 @@
             "plan-hidden": "Linkitystä ei voida tehdä, koska suunnitelma on poistettu",
             "unfinished-splits": "Linkitystä ei voida tehdä, koska raiteen jakaminen ei ole valmis",
             "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa",
+            "switch-deleted": "Linkitystä ei voida tehdä, koska vaihde on poistettu",
             "invalid-gk-srid": "Asetettu koordinaattijärjestelmä (EPSG:{{srid}}) ei ole GK-koordinaattijärjestelmä",
             "invalid-gk-location": "Sijainnin määritys on virheellinen: {{y}} N {{x}} E (EPSG:{{srid}})"
         },

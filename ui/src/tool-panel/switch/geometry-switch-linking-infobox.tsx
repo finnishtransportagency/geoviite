@@ -98,7 +98,11 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     const switchStructure = useSwitchStructure(suggestedSwitch?.switchStructureId);
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
-    const selectedLayoutSwitch = useSwitch(linkingState?.layoutSwitchId, layoutContext);
+    const selectedLayoutSwitch = useSwitch(
+        linkingState?.layoutSwitchId,
+        layoutContext,
+        switchChangeTime,
+    );
     const selectedLayoutSwitchStructure = useSwitchStructure(
         selectedLayoutSwitch?.switchStructureId,
     );
