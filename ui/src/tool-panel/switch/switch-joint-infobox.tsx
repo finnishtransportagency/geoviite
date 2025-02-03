@@ -91,7 +91,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
         return badges.length > 0 ? (
             badges
         ) : (
-            <span key={'nein'} className={styles['switch-joint-infobox__no-alignments']}>
+            <span className={styles['switch-joint-infobox__no-alignments']}>
                 {t('tool-panel.switch.layout.no-alignments')}
             </span>
         );
