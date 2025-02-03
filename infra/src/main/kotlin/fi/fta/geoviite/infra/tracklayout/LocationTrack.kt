@@ -76,17 +76,10 @@ data class LocationTrack(
     // TODO: GVT-2926 Remove this field entirely - maybe need to alter the baseclass?
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
-    // TODO: GVT-2926 Replace this field with simple switchIds from topology model
-    @JsonIgnore val segmentSwitchIds: List<IntId<LayoutSwitch>> = listOf(),
+    @JsonIgnore val switchIds: List<IntId<LayoutSwitch>> = listOf(),
 ) : PolyLineLayoutAsset<LocationTrack>(contextData) {
 
     @JsonIgnore val exists = !state.isRemoved()
-
-    @get:JsonIgnore
-    val switchIds: List<IntId<LayoutSwitch>> by lazy {
-        (listOfNotNull(topologyStartSwitch?.switchId) + segmentSwitchIds + listOfNotNull(topologyEndSwitch?.switchId))
-            .distinct()
-    }
 
     init {
         require(descriptionBase.length in locationTrackDescriptionLength) {

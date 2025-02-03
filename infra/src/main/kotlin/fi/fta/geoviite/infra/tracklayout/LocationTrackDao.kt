@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
+import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -27,12 +28,12 @@ import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersionOrNull
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -132,9 +133,9 @@ class LocationTrackDao(
               ltv.description_suffix,
               ltv.type, 
               ltv.state, 
-              postgis.st_astext(av.bounding_box) as bounding_box,
-              av.length,
-              av.segment_count,            
+              postgis.st_astext(ltv.bounding_box) as bounding_box,
+              ltv.length,
+              ltv.segment_count,            
               ltv.duplicate_of_location_track_id,
               ltv.topological_connectivity,
               ltv.topology_start_switch_id,
@@ -144,19 +145,18 @@ class LocationTrackDao(
               ltv.owner_id,
               (
                 select
-                  array_agg(distinct switch_id)
-                  from layout.segment_version sv
-                  where sv.alignment_id = ltv.alignment_id
-                    and sv.alignment_version = ltv.alignment_version
-                    and sv.switch_id is not null
-              ) as segment_switch_ids,
+                  array_agg(lt_s_view.switch_id order by lt_s_view.switch_sort)
+                  from layout.location_track_version_switch_view lt_s_view
+                  where lt_s_view.location_track_id = ltv.id
+                    and lt_s_view.location_track_layout_context_id = ltv.layout_context_id
+                    and lt_s_view.location_track_version = ltv.version
+              ) as switch_ids,
               exists(select * from layout.location_track official_lt
                      where official_lt.id = ltv.id
                        and (official_lt.design_id is null or official_lt.design_id = ltv.design_id)
                        and not official_lt.draft) as has_official,
               ltv.origin_design_id
             from layout.location_track_version ltv
-              left join layout.alignment_version av on ltv.alignment_id = av.id and ltv.alignment_version = av.version
             where ltv.id = :id
               and ltv.layout_context_id = :layout_context_id
               and ltv.version = :version
@@ -192,9 +192,9 @@ class LocationTrackDao(
               lt.description_suffix,
               lt.type, 
               lt.state, 
-              postgis.st_astext(av.bounding_box) as bounding_box,
-              av.length,
-              av.segment_count,            
+              postgis.st_astext(lt.bounding_box) as bounding_box,
+              lt.length,
+              lt.segment_count,            
               lt.duplicate_of_location_track_id,
               lt.topological_connectivity,
               lt.topology_start_switch_id,
@@ -204,19 +204,18 @@ class LocationTrackDao(
               lt.owner_id,
               (
                 select
-                  array_agg(distinct switch_id)
-                  from layout.segment_version sv
-                  where sv.alignment_id = lt.alignment_id
-                    and sv.alignment_version = lt.alignment_version
-                    and sv.switch_id is not null
-              ) as segment_switch_ids,
+                  array_agg(lt_s_view.switch_id order by lt_s_view.switch_sort)
+                  from layout.location_track_version_switch_view lt_s_view
+                  where lt_s_view.location_track_id = lt.id
+                    and lt_s_view.location_track_layout_context_id = lt.layout_context_id
+                    and lt_s_view.location_track_version = lt.version
+              ) as switch_ids,
               exists(select * from layout.location_track official_lt
                      where official_lt.id = lt.id
                        and (official_lt.design_id is null or official_lt.design_id = lt.design_id)
                        and not official_lt.draft) as has_official,
               lt.origin_design_id
             from layout.location_track lt
-              left join layout.alignment_version av on lt.alignment_id = av.id and lt.alignment_version = av.version
         """
                 .trimIndent()
 
@@ -251,7 +250,7 @@ class LocationTrackDao(
                 rs.getIntIdOrNull<LayoutSwitch>("topology_end_switch_id")?.let { id ->
                     TopologyLocationTrackSwitch(id, rs.getJointNumber("topology_end_switch_joint_number"))
                 },
-            segmentSwitchIds = rs.getIntIdArray("segment_switch_ids"),
+            switchIds = rs.getIntIdArray("switch_ids"),
             contextData =
                 rs.getLayoutContextData(
                     "id",
@@ -292,7 +291,10 @@ class LocationTrackDao(
               topology_end_switch_id,
               topology_end_switch_joint_number,
               owner_id,
-              origin_design_id
+              origin_design_id,
+              length,
+              segment_count,
+              bounding_box
             ) 
             values (
               :layout_context_id,
@@ -315,7 +317,10 @@ class LocationTrackDao(
               :topology_end_switch_id,
               :topology_end_switch_joint_number,
               :owner_id,
-              :origin_design_id
+              :origin_design_id,
+              :length,
+              :segment_count,
+              postgis.st_polygonfromtext(:polygon_string, 3067)
             ) on conflict (id, layout_context_id) do update set
               track_number_id = excluded.track_number_id,
               alignment_id = excluded.alignment_id,
@@ -333,7 +338,10 @@ class LocationTrackDao(
               topology_end_switch_id = excluded.topology_end_switch_id,
               topology_end_switch_joint_number = excluded.topology_end_switch_joint_number,
               owner_id = excluded.owner_id,
-              origin_design_id = excluded.origin_design_id
+              origin_design_id = excluded.origin_design_id,
+              length = excluded.length,
+              segment_count = excluded.segment_count,
+              bounding_box = excluded.bounding_box
             returning id, design_id, draft, version
         """
                 .trimIndent()
@@ -362,6 +370,9 @@ class LocationTrackDao(
                 "topology_end_switch_joint_number" to item.topologyEndSwitch?.jointNumber?.intValue,
                 "owner_id" to item.ownerId.intValue,
                 "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
+                "length" to geometry.length,
+                "segment_count" to geometry.segments.size,
+                "polygon_string" to geometry.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
             )
 
         jdbcTemplate.setUser()

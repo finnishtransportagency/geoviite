@@ -154,9 +154,9 @@ create table layout.location_track_version_edge
   edge_index                       int            not null,
   edge_id                          int            not null references layout.edge (id),
   start_m                          decimal(13, 6) not null,
-  constraint location_track_edge_version_location_track_fkey foreign key (location_track_id,
-                                                                          location_track_layout_context_id,
-                                                                          location_track_version)
-    references layout.location_track_version (id, layout_context_id, version)
+  primary key (location_track_id, location_track_layout_context_id, location_track_version, edge_index),
+  constraint location_track_edge_version_location_track_fkey
+    foreign key (location_track_id, location_track_layout_context_id, location_track_version)
+      references layout.location_track_version (id, layout_context_id, version)
 );
 comment on table layout.location_track_version_edge is 'Versioned 1-to-many linking for edges composing a location track version';
