@@ -61,14 +61,14 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
     const ratkoFetchErrorString = t('publication-card.push-error.ratko-fetch-error', {
         assetType: t(assetTranslationKeyByType(error)),
         name: assetNameByType(error),
-        operation: t(`enum.ratko-push-error-operation.${error.operation}`),
+        operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
     });
 
     const ratkoErrorString = t('publication-card.push-error.ratko-error', {
         assetType: t(assetTranslationKeyByType(error)),
         errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
         name: assetNameByType(error),
-        operation: t(`enum.ratko-push-error-operation.${error.operation}`),
+        operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
     });
 
     const internalErrorString = t('publication-card.push-error.internal-error', {
