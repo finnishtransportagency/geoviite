@@ -149,8 +149,9 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const { t } = useTranslation();
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
-    const [linkingAlignmentType, setLinkingAlignmentType] =
-        React.useState<MapAlignmentType>('LOCATION_TRACK');
+    const [linkingAlignmentType, setLinkingAlignmentType] = React.useState<MapAlignmentType>(
+        MapAlignmentType.LocationTrack,
+    );
 
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
@@ -236,12 +237,18 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     function lockAlignment() {
         if (linkingAlignmentType === 'LOCATION_TRACK' && selectedLayoutLocationTrack) {
             onLockAlignment({
-                alignment: { id: selectedLayoutLocationTrack.id, type: 'LOCATION_TRACK' },
+                alignment: {
+                    id: selectedLayoutLocationTrack.id,
+                    type: MapAlignmentType.LocationTrack,
+                },
                 type: linkingTypeBySegmentCount(selectedLayoutLocationTrack),
             });
         } else if (linkingAlignmentType === 'REFERENCE_LINE' && selectedLayoutReferenceLine) {
             onLockAlignment({
-                alignment: { id: selectedLayoutReferenceLine.id, type: 'REFERENCE_LINE' },
+                alignment: {
+                    id: selectedLayoutReferenceLine.id,
+                    type: MapAlignmentType.ReferenceLine,
+                },
                 type: linkingTypeBySegmentCount(selectedLayoutReferenceLine),
             });
         }
@@ -329,15 +336,23 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                     <Radio
                                         qaId={'location-track-linking'}
                                         disabled={isNotPreliminary(linkingState.state)}
-                                        checked={linkingAlignmentType === 'LOCATION_TRACK'}
-                                        onChange={() => setLinkingAlignmentType('LOCATION_TRACK')}>
+                                        checked={
+                                            linkingAlignmentType === MapAlignmentType.LocationTrack
+                                        }
+                                        onChange={() =>
+                                            setLinkingAlignmentType(MapAlignmentType.LocationTrack)
+                                        }>
                                         {t('tool-panel.alignment.geometry.location-track')}
                                     </Radio>
                                     <Radio
                                         qaId={'reference-line-linking'}
                                         disabled={isNotPreliminary(linkingState.state)}
-                                        checked={linkingAlignmentType === 'REFERENCE_LINE'}
-                                        onChange={() => setLinkingAlignmentType('REFERENCE_LINE')}>
+                                        checked={
+                                            linkingAlignmentType === MapAlignmentType.ReferenceLine
+                                        }
+                                        onChange={() =>
+                                            setLinkingAlignmentType(MapAlignmentType.ReferenceLine)
+                                        }>
                                         {t('tool-panel.alignment.geometry.reference-line')}
                                     </Radio>
                                 </div>

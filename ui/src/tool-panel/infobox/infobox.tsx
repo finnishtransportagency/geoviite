@@ -5,7 +5,6 @@ import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { useTranslation } from 'react-i18next';
 
 export enum InfoBoxVariant {
     BLUE = 'infobox--blue',
@@ -22,6 +21,7 @@ export type InfoboxProps = {
     iconHidden?: boolean;
     onEdit?: () => void;
     qaId?: string;
+    disabledReason?: string | undefined;
 };
 
 const Infobox: React.FC<InfoboxProps> = ({
@@ -31,15 +31,13 @@ const Infobox: React.FC<InfoboxProps> = ({
     contentVisible,
     onContentVisibilityChange,
     qaId,
+    disabledReason,
     iconDisabled = false,
     iconHidden = false,
     onEdit,
     ...props
 }: InfoboxProps) => {
-    const { t } = useTranslation();
-    const iconTitle = iconDisabled
-        ? t('tool-panel.disabled.activity-disabled-in-official-mode')
-        : '';
+    const iconTitle = iconDisabled ? disabledReason : '';
 
     const classes = createClassName(styles.infobox, variant && styles[variant], className);
     const titleClasses = createClassName(

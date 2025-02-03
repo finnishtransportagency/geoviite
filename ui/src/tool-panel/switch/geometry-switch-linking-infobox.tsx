@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Infobox from 'tool-panel/infobox/infobox';
-import InfoboxContent from 'tool-panel/infobox/infobox-content';
+import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import { useTranslation } from 'react-i18next';
 import styles from './switch-infobox.scss';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
@@ -36,6 +36,7 @@ import { GeometrySwitchLinkingInfoboxVisibilities } from 'track-layout/track-lay
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
+import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 
 type GeometrySwitchLinkingInfoboxProps = {
     geometrySwitchId?: GeometrySwitchId;
@@ -92,8 +93,8 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         suggestedSwitchResult === undefined
             ? undefined
             : 'switch' in suggestedSwitchResult
-            ? suggestedSwitchResult.switch
-            : undefined;
+              ? suggestedSwitchResult.switch
+              : undefined;
     const switchStructure = useSwitchStructure(suggestedSwitch?.switchStructureId);
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
@@ -108,12 +109,12 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         switchStructure.id === selectedLayoutSwitch.switchStructureId
             ? SwitchTypeMatch.Exact
             : suggestedSwitch &&
-              selectedLayoutSwitchStructure &&
-              switchStructure &&
-              switchStructure.baseType === selectedLayoutSwitchStructure.baseType &&
-              switchStructure.hand === selectedLayoutSwitchStructure.hand
-            ? SwitchTypeMatch.Similar
-            : SwitchTypeMatch.Invalid;
+                selectedLayoutSwitchStructure &&
+                switchStructure &&
+                switchStructure.baseType === selectedLayoutSwitchStructure.baseType &&
+                switchStructure.hand === selectedLayoutSwitchStructure.hand
+              ? SwitchTypeMatch.Similar
+              : SwitchTypeMatch.Invalid;
 
     const [switchTypeDifferenceIsConfirmed, setSwitchTypeDifferenceIsConfirmed] =
         React.useState(false);
@@ -130,7 +131,8 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         selectedLayoutSwitch &&
         isValidLayoutSwitch &&
         linkingState?.state === 'allSet' &&
-        !linkingCallInProgress;
+        !linkingCallInProgress &&
+        selectedLayoutSwitch.stateCategory !== 'NOT_EXISTING';
 
     React.useEffect(() => setSwitchTypeDifferenceIsConfirmed(false), [selectedLayoutSwitch]);
 
@@ -163,6 +165,13 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
             }
         }
     }
+
+    const linkingDisabledReason = () => {
+        if (selectedLayoutSwitch?.stateCategory === 'NOT_EXISTING') {
+            return t('tool-panel.switch.geometry.layout-switch-not-existing');
+        }
+        return undefined;
+    };
 
     return (
         <React.Fragment>
@@ -269,12 +278,21 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                                 <Button
                                     size={ButtonSize.SMALL}
                                     disabled={!canLink}
+                                    title={linkingDisabledReason()}
                                     isProcessing={linkingCallInProgress}
                                     qa-id="link-geometry-switch"
                                     onClick={link}>
                                     {t('tool-panel.switch.geometry.save-link')}
                                 </Button>
                             </InfoboxButtons>
+                            {linkingState.switchSource === 'PREDEFINED' &&
+                                layoutSwitch?.stateCategory === 'NOT_EXISTING' && (
+                                    <InfoboxContentSpread>
+                                        <MessageBox type={'ERROR'}>
+                                            {t('tool-panel.switch.layout.cant-link-deleted')}
+                                        </MessageBox>
+                                    </InfoboxContentSpread>
+                                )}
                         </React.Fragment>
                     )}
                 </InfoboxContent>

@@ -23,6 +23,7 @@ import {
     LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumber,
+    MapAlignmentType,
     SplitPoint,
     SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
@@ -424,7 +425,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 getEndLinkPoints(
                                                     locationTrack.id,
                                                     layoutContext,
-                                                    'LOCATION_TRACK',
+                                                    MapAlignmentType.LocationTrack,
                                                     changeTimes.layoutLocationTrack,
                                                 ).then(onStartLocationTrackGeometryChange);
                                             }}>
@@ -464,7 +465,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             )}
                             <EnvRestricted restrictTo="test">
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {isMainDraft && (
+                                    {isMainDraft && !linkingState && (
                                         <React.Fragment>
                                             {locationTrack.isDraft &&
                                                 !extraInfo?.partOfUnfinishedSplit && (

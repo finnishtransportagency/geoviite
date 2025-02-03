@@ -178,6 +178,10 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const canStartPlacing = placingSwitchLinkingState === undefined && layoutSwitch !== undefined;
+    const canLink =
+        canStartPlacing &&
+        layoutContext.publicationState === 'DRAFT' &&
+        layoutSwitch?.stateCategory !== 'NOT_EXISTING';
 
     function isOfficial(): boolean {
         return layoutContext.publicationState === 'OFFICIAL';
@@ -208,6 +212,26 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         onUnselect,
     );
 
+    const linkingDisabledReason = () => {
+        if (layoutContext.publicationState !== 'DRAFT') {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        }
+        if (layoutSwitch?.stateCategory === 'NOT_EXISTING') {
+            return t('tool-panel.switch.layout.switch-not-existing');
+        }
+        return undefined;
+    };
+
+    const editingDisabledReason = () => {
+        if (layoutContext.publicationState !== 'DRAFT') {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        }
+        if (placingSwitchLinkingState !== undefined) {
+            return t('tool-panel.switch.layout.cant-edit-while-linking');
+        }
+        return undefined;
+    };
+
     return (
         <React.Fragment>
             {layoutSwitch && (
@@ -217,7 +241,8 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     title={t('tool-panel.switch.layout.general-heading')}
                     qa-id="switch-infobox"
                     onEdit={openEditSwitchDialog}
-                    iconDisabled={isOfficial()}>
+                    iconDisabled={isOfficial() || !!placingSwitchLinkingState}
+                    disabledReason={editingDisabledReason()}>
                     <InfoboxContent>
                         <InfoboxField
                             label={t('tool-panel.switch.layout.km-m')}
@@ -335,16 +360,8 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             <Button
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
-                                title={
-                                    layoutContext.publicationState !== 'DRAFT'
-                                        ? t(
-                                              'tool-panel.disabled.activity-disabled-in-official-mode',
-                                          )
-                                        : ''
-                                }
-                                disabled={
-                                    !canStartPlacing || layoutContext.publicationState !== 'DRAFT'
-                                }
+                                title={linkingDisabledReason()}
+                                disabled={!canLink}
                                 onClick={tryToStartSwitchPlacing}>
                                 {t('tool-panel.switch.layout.start-switch-placing')}
                             </Button>
@@ -352,9 +369,15 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     </PrivilegeRequired>
                     {placingSwitchLinkingState && (
                         <InfoboxContentSpread>
-                            <MessageBox>
-                                {t('tool-panel.switch.layout.switch-placing-help')}
-                            </MessageBox>
+                            {layoutSwitch?.stateCategory !== 'NOT_EXISTING' ? (
+                                <MessageBox>
+                                    {t('tool-panel.switch.layout.switch-placing-help')}
+                                </MessageBox>
+                            ) : (
+                                <MessageBox type={'ERROR'}>
+                                    {t('tool-panel.switch.layout.cant-link-deleted')}
+                                </MessageBox>
+                            )}
                         </InfoboxContentSpread>
                     )}
                 </InfoboxContent>

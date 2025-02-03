@@ -482,6 +482,7 @@
             "start-address": "Alkusijainti (km + m)",
             "cannot-shorten-deleted-track-number": "Poistettua ratanumeroa ei voi lyhentää",
             "no-geometry": "Ratanumerolla ei ole geometriaa",
+            "cant-edit-while-linking": "Ratanumeron tietoja ei voi muokata linkitystilassa",
             "revert-dialog": {
                 "revert-draft-confirm": "Hylätäänkö luonnos?",
                 "can-be-reverted": "Luonnoksen hylkääminen palauttaa ratanumeron ja pituusmittauslinjan takaisin uusimpaan viralliseen tilaan. Ratanumero ja pituusmittauslinja poistetaan jos niitä ei ole vielä julkaistu Ratkoon.",
@@ -558,8 +559,11 @@
                 "unpublished": "Julkaisematon",
                 "start-switch-placing": "Aloita linkitys",
                 "switch-placing-help": "Klikkaa kartalta sijainti, johon haluat linkittää vaihteen",
+                "cant-link-deleted": "Poistettua vaihdetta ei voi linkittää",
                 "no-location": "Ei sijaintia",
-                "joint-number": "Piste {{number}}"
+                "joint-number": "Piste {{number}}",
+                "switch-not-existing": "Vaihde on poistettu",
+                "cant-edit-while-linking": "Vaihteen tietoja ei voi muokata linkitystilassa"
             },
             "geometry": {
                 "geometry-title": "Raidegeometria: vaihde",
@@ -589,7 +593,8 @@
                 "unknown": "Ei tiedossa",
                 "geometry-plan-title": "Infra model metatiedot",
                 "manual-linking-info": "Manuaalisesti linkitettävään vaihteeseen ei liity suunnitelman vaihdetta, vaan linkitys tehdään lähtötietojen perusteella.",
-                "no-linkable-switches": "Sopivia vaihteita ei löytynyt linkitettäväksi."
+                "no-linkable-switches": "Sopivia vaihteita ei löytynyt linkitettäväksi.",
+                "layout-switch-not-existing": "Valittu vaihde on poistettu"
             }
         },
         "reference-line": {
@@ -802,7 +807,9 @@
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
             "cannot-shorten-deleted-track": "Poistettua raidetta ei voi lyhentää",
             "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa",
-            "no-geometry": "Raiteella ei ole geometriaa"
+            "no-geometry": "Raiteella ei ole geometriaa",
+            "cant-edit-while-splitting": "Raiteen tietoja ei voi muokata koska sen jakaminen on kesken",
+            "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
