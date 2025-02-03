@@ -9,7 +9,7 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createClassName } from 'vayla-design-lib/utils';
 import { formatDateFull } from 'utils/date-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Menu, menuOption, MenuSelectOption } from 'vayla-design-lib/menu/menu';
+import { Menu, menuDivider, MenuOption, menuOption } from 'vayla-design-lib/menu/menu';
 import { SplitDetailsDialog } from 'publication/split/split-details-dialog';
 import { putBulkTransferExpeditedStart, putBulkTransferState } from 'publication/split/split-api';
 import { success } from 'geoviite-design-lib/snackbar/snackbar';
@@ -82,7 +82,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
     );
     const menuRef = React.createRef<HTMLDivElement>();
 
-    const actions: MenuSelectOption[] = [
+    const actions: MenuOption[] = [
         menuOption(
             () => {
                 setSplitDetailsDialogOpen(true);
@@ -90,25 +90,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
             t('publication-card.show-split-info'),
             'show-split-info-link',
         ),
-        menuOption(
-            () => {
-                if (publication.split)
-                    putBulkTransferState(publication.split.id, 'DONE')
-                        .then(() => {
-                            success(
-                                t('publication-card.bulk-transfer-marked-as-successful'),
-                                undefined,
-                                {
-                                    id: 'toast-bulk-transfer-marked-as-successful',
-                                },
-                            );
-                        })
-                        .then(() => updateSplitChangeTime());
-            },
-            t('publication-card.mark-as-successful'),
-            'mark-bulk-transfer-as-finished-link',
-            publication.split?.bulkTransferState === 'DONE',
-        ),
+        menuDivider(),
         menuOption(
             () => {
                 if (publication.split)
@@ -146,6 +128,25 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
             t('publication-card.mark-as-expedited'),
             'mark-bulk-transfer-as-expedited',
             publication.split?.bulkTransferExpeditedStart === true,
+        ),
+        menuOption(
+            () => {
+                if (publication.split)
+                    putBulkTransferState(publication.split.id, 'DONE')
+                        .then(() => {
+                            success(
+                                t('publication-card.bulk-transfer-marked-as-successful'),
+                                undefined,
+                                {
+                                    id: 'toast-bulk-transfer-marked-as-successful',
+                                },
+                            );
+                        })
+                        .then(() => updateSplitChangeTime());
+            },
+            t('publication-card.mark-as-successful'),
+            'mark-bulk-transfer-as-finished-link',
+            publication.split?.bulkTransferState === 'DONE',
         ),
     ];
 

@@ -461,9 +461,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     ): Pair<IntId<BulkTransfer>, BulkTransferState> {
         logger.integrationCall("sendBulkTransferCreateRequest", "sourceLocationTrackOid" to request.sourceLocationTrack)
 
+        logger.info("Sending bulk transfer creation request=$request")
         val body = postSpec(url = BULK_TRANSFER_CREATE_PATH, content = request).bodyToMono<String>().block(timeout)
-
-        logger.info(body)
+        logger.info("Bulk transfer creation request response=$body")
 
         val bulkTransferId =
             ratkoJsonMapper.readValue(body, RatkoBulkTransferStartResponse::class.java)?.locationTrackChangeId
@@ -476,7 +476,6 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         return bulkTransferId to BulkTransferState.CREATED
     }
 
-    // TODO
     fun forceStartBulkTransfer(bulkTransferId: IntId<BulkTransfer>, timeout: Duration) {
         logger.info("Forcefully starting bulk transfer=${bulkTransferId.intValue}")
         val body =
@@ -505,13 +504,15 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 logger.info(bulkTransferResponse.toString())
 
                 val state =
-                    if (bulkTransferResponse.locationTrackChange.endTime != null) {
-                        BulkTransferState.DONE
-                    } else if (bulkTransferResponse.locationTrackChange.startTime == null) {
-                        BulkTransferState.CREATED
-                    } else {
-                        BulkTransferState.IN_PROGRESS
+                    when {
+                        bulkTransferResponse.locationTrackChange.endTime != null -> BulkTransferState.DONE
+
+                        bulkTransferResponse.locationTrackChange.startTime == null -> BulkTransferState.CREATED
+
+                        else -> BulkTransferState.IN_PROGRESS
                     }
+
+                logger.info("Determined bulk transfer state=$state")
 
                 state to bulkTransferResponse
             }

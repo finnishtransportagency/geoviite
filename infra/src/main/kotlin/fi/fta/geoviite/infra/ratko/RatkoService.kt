@@ -230,10 +230,27 @@ constructor(
         try {
             ratkoClient.pollBulkTransferState(split.bulkTransfer.ratkoBulkTransferId, timeout).let {
                 (polledState, response) ->
+                val previouslyInProgress = split.bulkTransfer.state == BulkTransferState.IN_PROGRESS
+                val bulkTransferState =
+                    when {
+                        // Do not overwrite an IN_PROGRESS bulk transfer state back to CREATED.
+                        //
+                        // the IN_PROGRESS state will be assigned when starting the bulk transfer
+                        // forcefully.
+                        //
+                        // (Ratko status poll api may return data similar to CREATED even when the
+                        // bulk
+                        // transfer has been already started by the forceful start api)
+                        previouslyInProgress && polledState == BulkTransferState.CREATED ->
+                            BulkTransferState.IN_PROGRESS
+
+                        else -> polledState
+                    }
+
                 splitDao.updateBulkTransfer(
                     splitId = split.id,
                     temporaryFailure = false,
-                    bulkTransferState = polledState,
+                    bulkTransferState = bulkTransferState,
                     assetsTotal = response.locationTrackChange.assetsToMove,
                     assetsMoved = response.locationTrackChangeAssetsAmount,
                     trexAssetsTotal = response.locationTrackChange.trexAssets,
