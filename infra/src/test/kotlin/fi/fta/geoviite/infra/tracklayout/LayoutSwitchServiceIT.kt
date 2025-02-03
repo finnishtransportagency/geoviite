@@ -380,6 +380,9 @@ constructor(
             )
         locationTrackService.insertExternalId(LayoutBranch.main, locationTrack3.id, locationTrack3Oid)
 
+        // add confuser draft; should have no effect
+        mainDraftContext.insert(mainOfficialContext.fetch(locationTrack1.id)!!)
+
         val linkedLocationTracks =
             switchDao.findLocationTracksLinkedToSwitchAtMoment(
                 LayoutBranch.main,
