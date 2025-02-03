@@ -1700,6 +1700,7 @@
         "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
         "transfer-starts-after-reconnect": "Vienti käynnistyy automaattisesti Ratko-yhteyden palautumisen jälkeen",
         "bulk-transfer-marked-as-pending": "Kohteiden siirtoa yritetään uudelleen",
+        "bulk-transfer-marked-as-expedited": "Kohteiden siirto aloitetaan nopeutetusti",
         "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
         "push-error": {
             "location-track": "Sijaintiraiteen",
