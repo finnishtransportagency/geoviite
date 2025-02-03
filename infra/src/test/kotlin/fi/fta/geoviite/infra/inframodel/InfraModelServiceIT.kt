@@ -13,6 +13,8 @@ import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
 import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.geometry.PlanPhase
 import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.time.Duration
 import java.time.Instant
@@ -31,7 +33,11 @@ import org.springframework.test.context.ActiveProfiles
 @SpringBootTest
 class InfraModelServiceIT
 @Autowired
-constructor(val infraModelService: InfraModelService, val geometryDao: GeometryDao) : DBTestBase() {
+constructor(
+    val infraModelService: InfraModelService,
+    val geometryDao: GeometryDao,
+    val localizationService: LocalizationService,
+) : DBTestBase() {
 
     @BeforeEach
     fun clearPlanFiles() {
@@ -125,6 +131,9 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
 
         val planId = infraModelService.saveInfraModel(file, overrides1, extraInfo1).id
         assertOverrides(planId, overrides1, extraInfo1)
+
+        val translation = localizationService.getLocalization(LocalizationLanguage.FI)
+
         infraModelService.updateInfraModel(planId, overrides2, extraInfo2)
         assertOverrides(planId, overrides2, extraInfo2)
     }

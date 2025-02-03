@@ -18,7 +18,7 @@ import fi.fta.geoviite.infra.integration.DatabaseLock.PUBLICATION
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
-import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.toResponse
@@ -175,6 +175,8 @@ constructor(
         @RequestParam("timeZone") timeZone: ZoneId?,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
+        val translation = localizationService.getLocalization(lang)
+
         val publicationsAsCsv =
             publicationLogService.fetchPublicationsAsCsv(
                 layoutBranch ?: LayoutBranch.main,
@@ -183,12 +185,12 @@ constructor(
                 sortBy,
                 order,
                 timeZone,
-                localizationService.getLocalization(lang),
+                translation,
             )
 
         val dateString = getDateStringForFileName(from, to, timeZone ?: ZoneId.of("UTC"))
+        val fileName = translation.filename("publication-log", localizationParams("dateRange" to (dateString ?: "")))
 
-        val fileName = FileName("julkaisuloki${dateString?.let { " $it" } ?: ""}.csv")
         return getCsvResponseEntity(publicationsAsCsv, fileName)
     }
 
@@ -246,8 +248,11 @@ constructor(
         @PathVariable("id") id: IntId<Publication>,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
+        val translation = localizationService.getLocalization(lang)
+
         return publicationLogService.getSplitInPublicationCsv(id, lang).let { (csv, ltName) ->
-            getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv"))
+            val filename = translation.filename("split-details", localizationParams("locationTrackName" to ltName))
+            getCsvResponseEntity(csv, filename)
         }
     }
 }
