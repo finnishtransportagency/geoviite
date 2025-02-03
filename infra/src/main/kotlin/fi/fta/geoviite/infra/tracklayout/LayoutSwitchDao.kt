@@ -521,16 +521,21 @@ class LayoutSwitchDao(
               location_track.draft,
               location_track.version,
               location_track_external_id.external_id
-            from layout.switch_at(:moment) switch
-              inner join layout.location_track_at(:moment) location_track on not location_track.draft
+            from (select * from layout.location_track_version lt
+                  where lt.layout_context_id = 'main_official'
+                    and change_time <= :moment
+                    and not exists (select * from layout.location_track_version future_lt
+                                    where future_lt.id = lt.id
+                                      and future_lt.layout_context_id = lt.layout_context_id
+                                      and future_lt.version > lt.version
+                                      and future_lt.change_time <= :moment)) location_track
               inner join layout.segment_version segment 
                 on segment.alignment_id = location_track.alignment_id 
                   and segment.alignment_version = location_track.alignment_version
               left join layout.location_track_external_id
                 on location_track.id = location_track_external_id.id
                   and location_track.layout_context_id = location_track_external_id.layout_context_id
-            where switch.id = :switch_id 
-                and (segment.switch_id = :switch_id
+            where (segment.switch_id = :switch_id
                   or (location_track.topology_start_switch_id = :switch_id 
                     and location_track.topology_start_switch_joint_number = :topology_joint_number
                   )
