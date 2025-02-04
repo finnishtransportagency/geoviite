@@ -5,6 +5,7 @@ import {
     LAYOUT_SRID,
     LayoutReferenceLine,
     LayoutTrackNumber,
+    MapAlignmentType,
 } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -154,6 +155,17 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         }
     };
 
+    const editingDisabled = isOfficial || !!linkingState;
+    const editingDisabledReason = () => {
+        if (isOfficial) {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        }
+        if (linkingState !== undefined) {
+            return t('tool-panel.track-number.cant-edit-while-linking');
+        }
+        return undefined;
+    };
+
     return (
         <React.Fragment>
             <Infobox
@@ -162,7 +174,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 title={t('tool-panel.track-number.general-title')}
                 qa-id="track-number-infobox"
                 onEdit={() => setShowEditDialog(true)}
-                iconDisabled={isOfficial}>
+                iconDisabled={editingDisabled}
+                disabledReason={editingDisabledReason()}>
                 <InfoboxContent>
                     <InfoboxField
                         qaId="track-number-oid"
@@ -199,7 +212,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     title={t('tool-panel.reference-line.basic-info-heading')}
                     qa-id="reference-line-location-infobox"
                     onEdit={() => setShowEditDialog(true)}
-                    iconDisabled={isOfficial}>
+                    iconDisabled={editingDisabled}
+                    disabledReason={editingDisabledReason()}>
                     <InfoboxContent>
                         <InfoboxField
                             qaId="track-number-start-track-meter"
@@ -233,7 +247,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                             getEndLinkPoints(
                                                 referenceLine.id,
                                                 layoutContext,
-                                                'REFERENCE_LINE',
+                                                MapAlignmentType.ReferenceLine,
                                                 changeTimes.layoutReferenceLine,
                                             ).then(onStartReferenceLineGeometryChange);
                                         }}>
