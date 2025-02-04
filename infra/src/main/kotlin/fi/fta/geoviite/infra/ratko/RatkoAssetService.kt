@@ -134,8 +134,6 @@ constructor(
                     )
                 else emptyList()
 
-            throw Exception("foo")
-
             updateSwitchProperties(
                 switchOid = switchOid,
                 currentRatkoSwitch = existingRatkoSwitch,
