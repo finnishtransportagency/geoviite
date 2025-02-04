@@ -14,7 +14,10 @@ import {
 } from './track-layout-model';
 import { API_URI, getNonNull, getNullable, queryParams } from 'api/api-fetch';
 import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'model/geometry';
-import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/utils/layer-visibility-limits';
+import {
+    ALIGNMENT_MIN_LENGTH_IN_PIXELS,
+    MAP_RESOLUTION_MULTIPLIER,
+} from 'map/layers/utils/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
 import {
     draftLayoutContext,
@@ -98,6 +101,7 @@ export type AlignmentHeader = {
 
     name: string;
     trackType?: LocationTrackType;
+    state: LocationTrackState;
 
     length: number;
     boundingBox?: BoundingBox;
@@ -252,8 +256,8 @@ export async function getLocationTrackMapAlignmentsByTiles(
 type MapLayoutAlignmentDataHolder<M extends MapAlignmentType> = M extends 'LOCATION_TRACK'
     ? LocationTrackAlignmentDataHolder
     : M extends 'REFERENCE_LINE'
-    ? ReferenceLineAlignmentDataHolder
-    : never;
+      ? ReferenceLineAlignmentDataHolder
+      : never;
 
 async function getAlignmentDataHolder<M extends MapAlignmentType>(
     type: M,
@@ -451,7 +455,8 @@ export async function getGeometryLinkPointsByTiles(
     const firstMapTile = first(mapTiles);
     if (!firstMapTile) return [];
 
-    const resolution = toMapAlignmentResolution(firstMapTile.resolution);
+    const mapResolution = firstMapTile.resolution;
+    const alignmentResolution = toMapAlignmentResolution(mapResolution);
     const bounds = combineBoundingBoxes(mapTiles.map((tile) => tile.area));
     const plan = await getTrackLayoutPlan(geometryPlanId, changeTime, true);
     const alignment = plan?.alignments?.find((a) => a.header.id === geometryAlignmentId);
@@ -463,8 +468,8 @@ export async function getGeometryLinkPointsByTiles(
             (p) =>
                 boundingBoxContains(bounds, p) &&
                 (segmentMValues.includes(p.m) ||
-                    resolution <= 1 ||
-                    Math.floor(p.m) % resolution === 0 ||
+                    alignmentResolution <= 1 ||
+                    Math.floor(p.m) % alignmentResolution === 0 ||
                     alwaysIncludePoints.some((alwaysIncludePoint) => alwaysIncludePoint.m === p.m)),
         );
         return createLinkPoints(
@@ -489,11 +494,19 @@ async function getPolyLines(
     includeSegmentEndPoints: boolean = false,
 ): Promise<AlignmentPolyLine[]> {
     const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}_${fetchType}_${includeSegmentEndPoints}`;
+    const tileResolution = mapTile.resolution;
+    const alignmentResolution = toMapAlignmentResolution(tileResolution);
+
+    // Tile resolution can be double the actual map resolution, therefore tile resolution is divided by two
+    // to get correct min length, otherwise long enough tracks may be filtered out.
+    const alignmentMinLength = getAlignmentMinLength(tileResolution / 2);
+
     const params = queryParams({
-        resolution: toMapAlignmentResolution(mapTile.resolution),
+        resolution: alignmentResolution,
         bbox: bboxString(mapTile.area),
         type: fetchType.toUpperCase(),
         includeSegmentEndPoints: includeSegmentEndPoints,
+        minLength: alignmentMinLength,
     });
     return await alignmentPolyLinesCache.get(changeTime, tileKey, () =>
         getNonNull<AlignmentPolyLine[]>(`${mapUri(layoutContext)}/alignment-polylines${params}`),
@@ -523,6 +536,10 @@ async function getLocationTrackPolyline(
 
 export function toMapAlignmentResolution(tileResolution: number): number {
     return parseFloat(Math.ceil(tileResolution * MAP_RESOLUTION_MULTIPLIER).toPrecision(1));
+}
+
+export function getAlignmentMinLength(resolution: number) {
+    return resolution * ALIGNMENT_MIN_LENGTH_IN_PIXELS;
 }
 
 export async function getTrackMeter(
