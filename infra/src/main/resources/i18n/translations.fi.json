@@ -489,7 +489,8 @@
                 "can-be-reverted": "Luonnoksen hylkääminen palauttaa ratanumeron ja pituusmittauslinjan takaisin uusimpaan viralliseen tilaan. Ratanumero ja pituusmittauslinja poistetaan jos niitä ei ole vielä julkaistu Ratkoon.",
                 "revert-succeeded": "Ratanumeron ja pituusmittauslinjan luonnokset hylätty.",
                 "revert-failed": "Luonnosten hylkääminen epäonnistui."
-            }
+            },
+            "unpublished": "Julkaisematon"
         },
         "km-post": {
             "layout": {
@@ -686,7 +687,7 @@
             "not-a-duplicate": "Ei duplikaatti",
             "change-info-heading": "Lokitiedot",
             "type": "Raidetyyppi",
-            "identifier": "Tunniste",
+            "identifier": "OID",
             "track-location-heading": "Raiteen sijaintitiedot",
             "start-point": "Alkupiste",
             "end-point": "Loppupiste",
