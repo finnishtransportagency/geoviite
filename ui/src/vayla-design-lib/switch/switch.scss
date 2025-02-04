@@ -17,9 +17,12 @@ $switch-thumb-pressed-width: 20px;
 .switch {
     @include utils.component-base;
     @include utils.no-visuals;
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
+
+    & {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+    }
 }
 
 .switch__checkbox {

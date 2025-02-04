@@ -21,8 +21,11 @@ $text-area-input-border-thick: 2px;
 
 .text-area {
     @include utils.component-base;
-    position: relative;
-    display: inline-flex;
+
+    & {
+        position: relative;
+        display: inline-flex;
+    }
 }
 
 .text-area__icon {

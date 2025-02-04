@@ -24,9 +24,12 @@ $text-field-input-border-error: 2px;
 
 .text-field {
     @include utils.component-base;
-    position: relative;
-    display: inline-flex;
-    vertical-align: middle;
+
+    & {
+        position: relative;
+        display: inline-flex;
+        vertical-align: middle;
+    }
 }
 
 .text-field__icon {
