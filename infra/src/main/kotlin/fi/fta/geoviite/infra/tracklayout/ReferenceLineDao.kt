@@ -35,6 +35,8 @@ class ReferenceLineDao(
         REFERENCE_LINE_CACHE_SIZE,
     ) {
 
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<ReferenceLine>) = Unit
+
     override fun fetchInternal(version: LayoutRowVersion<ReferenceLine>): ReferenceLine {
         val sql =
             """

@@ -250,8 +250,6 @@ class ReferenceLineService(
             asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())),
             designBranch.designId,
         )
-
-    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<ReferenceLine>) = Unit
 }
 
 fun referenceLineWithAlignment(

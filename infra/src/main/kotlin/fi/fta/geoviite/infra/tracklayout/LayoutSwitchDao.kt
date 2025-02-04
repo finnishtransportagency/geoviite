@@ -61,6 +61,8 @@ class LayoutSwitchDao(
         "layout.switch_external_id_version",
     ) {
 
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutSwitch>) = Unit
+
     override fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,

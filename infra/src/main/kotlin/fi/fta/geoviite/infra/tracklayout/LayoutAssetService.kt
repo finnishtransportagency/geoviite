@@ -60,7 +60,7 @@ abstract class LayoutAssetService<
     @Transactional
     fun cancel(branch: DesignBranch, id: IntId<ObjectType>): LayoutRowVersion<ObjectType>? =
         dao.fetchVersion(branch.official, id)?.let { version ->
-            saveDraftInternal(branch, cancelInternal(dao.fetch(version), branch), getBaseSaveParams(version))
+            saveDraftInternal(branch, cancelInternal(dao.fetch(version), branch), dao.getBaseSaveParams(version))
         }
 
     protected fun cancelInternal(asset: ObjectType, designBranch: DesignBranch) =
@@ -103,7 +103,7 @@ abstract class LayoutAssetService<
         require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
 
         val publicationVersion =
-            dao.save(published, getBaseSaveParams(draftVersion)).also { r ->
+            dao.save(published, dao.getBaseSaveParams(draftVersion)).also { r ->
                 require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
             }
         dao.deleteRow(draftVersion.rowId)
@@ -137,11 +137,9 @@ abstract class LayoutAssetService<
         require(dao.fetchVersion(fromBranch.draft, id) == branchOfficialVersion) {
             "Object must not have branch-draft version when merging to main: fromBranch=$fromBranch id=$id"
         }
-        return branchObject to getBaseSaveParams(branchOfficialVersion)
+        return branchObject to dao.getBaseSaveParams(branchOfficialVersion)
     }
 
     fun mergeToMainBranch(fromBranch: DesignBranch, id: IntId<ObjectType>): LayoutRowVersion<ObjectType> =
         fetchAndCheckForMerging(fromBranch, id).let { (item, params) -> dao.save(asMainDraft(item), params) }
-
-    abstract fun getBaseSaveParams(rowVersion: LayoutRowVersion<ObjectType>): SaveParamsType
 }

@@ -127,8 +127,6 @@ class LayoutKmPostService(
     @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutKmPost): LayoutRowVersion<LayoutKmPost> =
         saveDraftInternal(branch, draftAsset, Unit)
-
-    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutKmPost>) = Unit
 }
 
 fun associateByDistance(kmPost: LayoutKmPost, comparisonPoint: Point): Pair<LayoutKmPost, Double?> =

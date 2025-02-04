@@ -205,8 +205,6 @@ constructor(
     @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutSwitch): LayoutRowVersion<LayoutSwitch> =
         saveDraftInternal(branch, draftAsset, Unit)
-
-    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutSwitch>) = Unit
 }
 
 fun pageSwitches(

@@ -38,6 +38,8 @@ interface LayoutAssetWriter<T : LayoutAsset<T>, SaveParams> {
 
     fun save(item: T, params: SaveParams): LayoutRowVersion<T>
 
+    fun getBaseSaveParams(rowVersion: LayoutRowVersion<T>): SaveParams
+
     fun deleteRow(rowId: LayoutRowId<T>): LayoutRowVersion<T>
 
     fun deleteDraft(branch: LayoutBranch, id: IntId<T>): LayoutRowVersion<T>
