@@ -507,6 +507,10 @@ fun alignment(vararg segments: LayoutSegment) = alignment(segments.toList())
 
 fun alignment(segments: List<LayoutSegment>) = LayoutAlignment(segments = segments)
 
+fun trackGeometryOfSegments(segments: List<LayoutSegment>) = trackGeometry(listOf(LayoutEdgeContent(segments)))
+
+fun trackGeometry(edges: List<LayoutEdge>) = LocationTrackGeometry(edges)
+
 fun mapAlignment(vararg segments: PlanLayoutSegment) = mapAlignment(segments.toList())
 
 fun mapAlignment(segments: List<PlanLayoutSegment>) =

@@ -16,11 +16,11 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutEdgeContent
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeEndTrack
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeStartTrack
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeTemp
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_END
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_START
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
@@ -33,8 +33,8 @@ import kotlin.math.min
 
 const val ALIGNMENT_LINKING_SNAP = 0.001
 
-fun cutLocationTrackGeometry(trackId: IntId<LocationTrack>, geometry: LocationTrackGeometry, mRange: Range<Double>) =
-    TmpLocationTrackGeometry(slice(trackId, geometry, mRange, ALIGNMENT_LINKING_SNAP))
+fun cutLocationTrackGeometry(geometry: LocationTrackGeometry, mRange: Range<Double>) =
+    TmpLocationTrackGeometry(slice(geometry, mRange, ALIGNMENT_LINKING_SNAP))
 
 fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): LayoutAlignment {
     val cutSegments = slice(alignment, mRange, ALIGNMENT_LINKING_SNAP)
@@ -43,11 +43,9 @@ fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): Layout
 }
 
 fun replaceLocationTrackGeometry(
-    trackId: IntId<LocationTrack>,
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<Double>,
-): LocationTrackGeometry =
-    tryCreateLinkedTrackGeometry(trackId, createAlignmentGeometry(geometryAlignment, geometryMRange))
+): LocationTrackGeometry = tryCreateLinkedTrackGeometry(createAlignmentGeometry(geometryAlignment, geometryMRange))
 
 fun replaceLayoutGeometry(
     layoutAlignment: LayoutAlignment,
@@ -57,13 +55,12 @@ fun replaceLayoutGeometry(
     tryCreateLinkedAlignment(layoutAlignment, createAlignmentGeometry(geometryAlignment, geometryMRange))
 
 fun linkLocationTrackGeometrySection(
-    trackId: IntId<LocationTrack>,
     layoutGeometry: LocationTrackGeometry,
     layoutMRange: Range<Double>,
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<Double>,
 ): LocationTrackGeometry =
-    splice(trackId, layoutGeometry, layoutMRange, createAlignmentGeometry(geometryAlignment, geometryMRange))
+    splice(layoutGeometry, layoutMRange, createAlignmentGeometry(geometryAlignment, geometryMRange))
 
 fun linkLayoutGeometrySection(
     layoutAlignment: LayoutAlignment,
@@ -192,16 +189,13 @@ private fun toLayoutSegment(segment: ISegment): LayoutSegment =
             source = segment.source,
         )
 
-private fun tryCreateLinkedTrackGeometry(
-    trackId: IntId<LocationTrack>,
-    newSegments: List<LayoutSegment>,
-): LocationTrackGeometry =
+private fun tryCreateLinkedTrackGeometry(newSegments: List<LayoutSegment>): LocationTrackGeometry =
     try {
         TmpLocationTrackGeometry(
             listOf(
                 LayoutEdgeContent(
-                    startNode = LayoutNodeStartTrack(trackId),
-                    endNode = LayoutNodeEndTrack(trackId),
+                    startNode = LayoutNodeTemp(TRACK_START),
+                    endNode = LayoutNodeTemp(TRACK_END),
                     segments = newSegments,
                 )
             )
@@ -253,20 +247,19 @@ fun splice(
 }
 
 fun splice(
-    trackId: IntId<LocationTrack>,
     geometry: LocationTrackGeometry,
     mRange: Range<Double>,
     added: List<LayoutSegment>,
     snapDistance: Double = ALIGNMENT_LINKING_SNAP,
 ): LocationTrackGeometry {
-    val startEdges = slice(trackId, geometry, Range(0.0, mRange.min), snapDistance)
+    val startEdges = slice(geometry, Range(0.0, mRange.min), snapDistance)
     val startGap = listOfNotNull(createGapIfNeeded(startEdges.lastOrNull()?.segments ?: listOf(), added))
-    val endEdges = slice(trackId, geometry, Range(mRange.max, geometry.length), snapDistance)
+    val endEdges = slice(geometry, Range(mRange.max, geometry.length), snapDistance)
     val endGap = listOfNotNull(createGapIfNeeded(added, endEdges.firstOrNull()?.segments ?: listOf()))
     val midEdge =
         LayoutEdgeContent(
-            startNode = LayoutNodeStartTrack(trackId),
-            endNode = LayoutNodeEndTrack(trackId),
+            startNode = LayoutNodeTemp(TRACK_START),
+            endNode = LayoutNodeTemp(TRACK_END),
             segments = startGap + added + endGap,
         )
     // TODO: GVT-2915 validations, like on LayoutAlignment?
@@ -296,7 +289,6 @@ fun slice(
     }
 
 fun slice(
-    trackId: IntId<LocationTrack>,
     geometry: LocationTrackGeometry,
     mRange: Range<Double>,
     snapDistance: Double = ALIGNMENT_LINKING_SNAP,
@@ -307,20 +299,15 @@ fun slice(
         } else if (m.min >= mRange.min - snapDistance && m.max <= mRange.max + snapDistance) {
             e
         } else {
-            slice(trackId, e, Range(mRange.min - m.min, mRange.max - m.min), snapDistance)
+            slice(e, Range(mRange.min - m.min, mRange.max - m.min), snapDistance)
         }
     }
 }
 
-fun slice(
-    trackId: IntId<LocationTrack>,
-    edge: ILayoutEdge,
-    mRange: Range<Double>,
-    snapDistance: Double = ALIGNMENT_LINKING_SNAP,
-): ILayoutEdge =
+fun slice(edge: ILayoutEdge, mRange: Range<Double>, snapDistance: Double = ALIGNMENT_LINKING_SNAP): ILayoutEdge =
     LayoutEdgeContent(
-        startNode = edge.startNode.takeIf { mRange.min - snapDistance <= 0.0 } ?: LayoutNodeStartTrack(trackId),
-        endNode = edge.endNode.takeIf { mRange.max + snapDistance >= edge.length } ?: LayoutNodeEndTrack(trackId),
+        startNode = edge.startNode.takeIf { mRange.min - snapDistance <= 0.0 } ?: LayoutNodeTemp(TRACK_START),
+        endNode = edge.endNode.takeIf { mRange.max + snapDistance >= edge.length } ?: LayoutNodeTemp(TRACK_END),
         segments = slice(edge.segmentsWithM, mRange, snapDistance),
     )
 

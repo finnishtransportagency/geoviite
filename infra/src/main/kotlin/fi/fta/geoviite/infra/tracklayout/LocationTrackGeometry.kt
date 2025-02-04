@@ -6,6 +6,8 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_END
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_START
 import java.util.*
 import kotlin.math.abs
 
@@ -141,6 +143,8 @@ sealed class LocationTrackGeometry : IAlignment {
             ?: trackOuterJoint
 
     fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = switchLinks.any { sl -> sl.id == switchId }
+
+    abstract fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry
 }
 
 fun calculateEdgeMs(edges: List<ILayoutEdge>): List<Range<Double>> {
@@ -150,6 +154,12 @@ fun calculateEdgeMs(edges: List<ILayoutEdge>): List<Range<Double>> {
 
 data class TmpLocationTrackGeometry(@get:JsonIgnore override val edges: List<ILayoutEdge>) : LocationTrackGeometry() {
     init {
+        edges.firstOrNull()?.startNode?.let { node ->
+            require(node.nodeType != TRACK_END) { "First node must not be a a track end: node=$node" }
+        }
+        edges.lastOrNull()?.endNode?.let { node ->
+            require(node.nodeType != TRACK_START) { "First node must not be a a track end: node=$node" }
+        }
         edges.zipWithNext().forEach { (prev, next) ->
             require(prev.endNode.contentHash == next.startNode.contentHash) {
                 "Edges should be connected: prev=${prev.endNode} next=${next.startNode}"
@@ -162,6 +172,11 @@ data class TmpLocationTrackGeometry(@get:JsonIgnore override val edges: List<ILa
             }
         }
     }
+
+    override fun withLocationTrackId(id: IntId<LocationTrack>): TmpLocationTrackGeometry {
+        val newEdges = edges.map { it.setNodeTrackId(id) }
+        return if (newEdges == edges) this else return TmpLocationTrackGeometry(newEdges)
+    }
 }
 
 data class DbLocationTrackGeometry(
@@ -169,6 +184,12 @@ data class DbLocationTrackGeometry(
     @get:JsonIgnore override val edges: List<LayoutEdge>,
 ) : LocationTrackGeometry() {
     init {
+        edges.firstOrNull()?.startNode?.let { node ->
+            require(node.nodeType != TRACK_END) { "First node must not be a a track end: node=$node" }
+        }
+        edges.lastOrNull()?.endNode?.let { node ->
+            require(node.nodeType != TRACK_START) { "First node must not be a a track end: node=$node" }
+        }
         edges.zipWithNext().forEach { (prev, next) ->
             require(prev.endNode.contentHash == next.startNode.contentHash) {
                 "Edges should be connected: prev=${prev.endNode} next=${next.startNode}"
@@ -199,6 +220,10 @@ data class DbLocationTrackGeometry(
 
     override val endNode: LayoutNode?
         get() = super.endNode as? LayoutNode?
+
+    override fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry {
+        return if (trackRowVersion.id == id) this else TmpLocationTrackGeometry(edges.map { it.setNodeTrackId(id) })
+    }
 }
 
 interface ILayoutEdge : IAlignment {
@@ -234,6 +259,12 @@ interface ILayoutEdge : IAlignment {
         val start = startNode.withoutSwitch(switchId) ?: LayoutNodeStartTrack(trackId)
         val end = endNode.withoutSwitch(switchId) ?: LayoutNodeStartTrack(trackId)
         return this.takeIf { startNode == start && endNode == end } ?: LayoutEdgeContent(start, end, segments)
+    }
+
+    fun setNodeTrackId(id: IntId<LocationTrack>): ILayoutEdge {
+        val newStart = startNode.withTrackId(id)
+        val newEnd = endNode.withTrackId(id)
+        return if (newStart == startNode && newEnd == endNode) this else LayoutEdgeContent(newStart, newEnd, segments)
     }
 }
 
@@ -307,24 +338,6 @@ data class LayoutEdge(val id: IntId<LayoutEdge>, @JsonIgnore val content: Layout
     }
 }
 
-// data class LayoutEdgeSegment(
-//    @JsonIgnore override val geometry: SegmentGeometry,
-//    override val sourceId: IndexedId<GeometryElement>?,
-//    // TODO: GVT-1727 these should be BigDecimals with a limited precision
-//    override val sourceStart: Double?,
-//    override val source: GeometrySource,
-// ) : ISegmentGeometry by geometry, ISegment {
-//    init {
-//        require(source != GENERATED || segmentPoints.size == 2) { "Generated segment can't have more than 2 points" }
-//        // These could be combined into a sub-object to enforce this via the type
-//        require((sourceId == null) == (sourceStart == null)) {
-//            "Source id and start must be either both null or both non-null"
-//        }
-//        require(sourceStart?.isFinite() != false) { "Invalid source start length: $sourceStart" }
-//    }
-//    // TODO: GVT-2926 segment edit operations (mostly same as LayoutSegment)
-// }
-//
 enum class LayoutNodeType {
     SWITCH,
     TRACK_START,
@@ -332,7 +345,11 @@ enum class LayoutNodeType {
 }
 
 data class LayoutNode(val id: IntId<LayoutNode>, @JsonIgnore val content: LayoutNodeContent) :
-    ILayoutNodeContent by content
+    ILayoutNodeContent by content {
+    init {
+        require(content !is LayoutNodeTemp) { "Temp nodes are not allowed in DB" }
+    }
+}
 
 interface ILayoutNodeContent {
     val switchIn: SwitchLink?
@@ -366,17 +383,32 @@ interface ILayoutNodeContent {
         } else {
             this
         }
+
+    fun withTrackId(id: IntId<LocationTrack>): ILayoutNodeContent =
+        if (this is LayoutNodeTemp) {
+            when (nodeType) {
+                TRACK_START -> LayoutNodeStartTrack(id)
+                TRACK_END -> LayoutNodeEndTrack(id)
+                else -> error("Cannot set track ID for a temporary node: $this")
+            }
+        } else {
+            this
+        }
 }
 
 sealed class LayoutNodeContent : ILayoutNodeContent
 
+data class LayoutNodeTemp(override val nodeType: LayoutNodeType) : LayoutNodeContent() {
+    @get:JsonIgnore override val contentHash: Int by lazy { error("Node content is not defined: type=$nodeType") }
+}
+
 data class LayoutNodeStartTrack(override val startingTrackId: IntId<LocationTrack>) : LayoutNodeContent() {
-    override val nodeType: LayoutNodeType = LayoutNodeType.TRACK_START
+    override val nodeType: LayoutNodeType = TRACK_START
     @get:JsonIgnore override val contentHash: Int by lazy { hashCode() }
 }
 
 data class LayoutNodeEndTrack(override val endingTrack: IntId<LocationTrack>) : LayoutNodeContent() {
-    override val nodeType: LayoutNodeType = LayoutNodeType.TRACK_END
+    override val nodeType: LayoutNodeType = TRACK_END
     @get:JsonIgnore override val contentHash: Int by lazy { hashCode() }
 }
 

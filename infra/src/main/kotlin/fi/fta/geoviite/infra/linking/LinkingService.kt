@@ -99,14 +99,13 @@ constructor(
         verifyPlanNotHidden(parameters.geometryPlanId)
         verifyAllSplitsDone(branch, parameters.layoutInterval.alignmentId)
 
-        val geomWithNewSegments = linkGeometry(locationTrackId, geometry, parameters)
+        val geomWithNewSegments = linkGeometry(geometry, parameters)
         val newGeometry = updateTopology(branch, track, geometry, geomWithNewSegments)
 
         return locationTrackService.saveDraft(branch, track, newGeometry).id
     }
 
     private fun <T> linkGeometry(
-        trackId: IntId<LocationTrack>,
         layoutGeometry: LocationTrackGeometry,
         parameters: LinkingParameters<T>,
     ): LocationTrackGeometry {
@@ -114,7 +113,7 @@ constructor(
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
         val layoutRange = parameters.layoutInterval.mRange
         val geometryRange = parameters.geometryInterval.mRange
-        return linkLocationTrackGeometrySection(trackId, layoutGeometry, layoutRange, geometryAlignment, geometryRange)
+        return linkLocationTrackGeometrySection(layoutGeometry, layoutRange, geometryAlignment, geometryRange)
     }
 
     private fun <T> linkGeometry(layoutAlignment: LayoutAlignment, parameters: LinkingParameters<T>): LayoutAlignment {
@@ -197,7 +196,7 @@ constructor(
         val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
-        val geomWithNewSegments = replaceLocationTrackGeometry(trackId, geometryAlignment, geometryInterval.mRange)
+        val geomWithNewSegments = replaceLocationTrackGeometry(geometryAlignment, geometryInterval.mRange)
         val newGeometry = updateTopology(branch, track, geometry, geomWithNewSegments)
 
         return locationTrackService.saveDraft(branch, track, newGeometry).id
@@ -235,7 +234,7 @@ constructor(
     ): IntId<LocationTrack> {
         verifyAllSplitsDone(branch, trackId)
         val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
-        val geometryWithNewSegments = cutLocationTrackGeometry(trackId, geometry, mRange)
+        val geometryWithNewSegments = cutLocationTrackGeometry(geometry, mRange)
         val newGeometry = updateTopology(branch, track, geometry, geometryWithNewSegments)
 
         return locationTrackService.saveDraft(branch, track, newGeometry).id
