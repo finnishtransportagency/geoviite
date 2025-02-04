@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
+import fi.fta.geoviite.infra.inframodel.FileHash
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.DatabaseLock.ELEMENT_LIST_GEN
@@ -26,6 +27,8 @@ import fi.fta.geoviite.infra.integration.DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.localization.Translation
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.ElementListingFile
@@ -186,27 +189,39 @@ constructor(
         return geometryDao.getKmPostSrid(id)
     }
 
-    fun getPlanFile(planId: IntId<GeometryPlan>): InfraModelFile {
+    fun getPlanFileHash(planId: IntId<GeometryPlan>): FileHash {
+        return geometryDao.getPlanFile(planId).file.hash
+    }
+
+    fun getPlanFile(planId: IntId<GeometryPlan>, translation: Translation): InfraModelFile {
         val fileAndSource = geometryDao.getPlanFile(planId)
         return if (fileAndSource.source == PAIKANNUSPALVELU) {
             InfraModelFile(
-                fileNameWithSourcePrefixIfPaikannuspalvelu(fileAndSource.file.name, fileAndSource.source),
+                fileNameWithSourcePrefixIfPaikannuspalvelu(translation, fileAndSource.file.name, fileAndSource.source),
                 fileAndSource.file.content,
             )
         } else fileAndSource.file
     }
 
-    private fun fileNameWithSourcePrefixIfPaikannuspalvelu(originalFileName: FileName, source: PlanSource): FileName =
-        if (source == PAIKANNUSPALVELU) FileName("PAIKANNUSPALVELU_EPÄLUOTETTAVA_$originalFileName")
-        else originalFileName
+    private fun fileNameWithSourcePrefixIfPaikannuspalvelu(
+        translation: Translation,
+        originalFileName: FileName,
+        source: PlanSource,
+    ): FileName {
+        return if (source == PAIKANNUSPALVELU) {
+            translation.filename("unreliable-plan-file", localizationParams("originalFileName" to originalFileName))
+        } else {
+            originalFileName
+        }
+    }
 
     fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
         return geometryDao.getLinkingSummaries(planIds)
     }
 
     @Transactional(readOnly = true)
-    fun fetchDuplicateGeometryPlanHeader(newFile: InfraModelFile, source: PlanSource): GeometryPlanHeader? {
-        return geometryDao.fetchDuplicateGeometryPlanVersion(newFile, source)?.let(geometryDao::getPlanHeader)
+    fun fetchDuplicateGeometryPlanHeader(newFileHash: FileHash, source: PlanSource): GeometryPlanHeader? {
+        return geometryDao.fetchDuplicateGeometryPlanVersion(newFileHash, source)?.let(geometryDao::getPlanHeader)
     }
 
     private fun getSwitchName(context: LayoutContext, switchId: IntId<LayoutSwitch>): SwitchName =
@@ -238,12 +253,10 @@ constructor(
         val plan = getPlanHeader(planId)
         val elementListing = getElementListing(planId, elementTypes)
         val translation = localizationService.getLocalization(lang)
+        val filename =
+            translation.filename("element-list-plan-csv", localizationParams("planFileName" to plan.fileName))
 
-        val csvFileContent = planElementListingToCsv(elementListing, translation)
-        return ElementListingFile(
-            FileName("${translation.t("data-products.element-list.element-list-title")} ${plan.fileName}"),
-            csvFileContent,
-        )
+        return ElementListingFile(filename, planElementListingToCsv(elementListing, translation))
     }
 
     @Transactional(readOnly = true)
@@ -306,10 +319,9 @@ constructor(
         val elementListing = getElementListing(layoutContext, trackId, elementTypes, startAddress, endAddress)
         val translation = localizationService.getLocalization(lang)
         val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
-        return ElementListingFile(
-            FileName("${translation.t("data-products.element-list.element-list-title")} ${track.name}"),
-            csvFileContent,
-        )
+        val filename = translation.filename("element-list-csv", localizationParams("locationTrackName" to track.name))
+
+        return ElementListingFile(filename, csvFileContent)
     }
 
     fun makeElementListingCsv() = makeElementListingCsv(false)
@@ -335,8 +347,9 @@ constructor(
             elementListingFileDao.upsertElementListingFile(
                 ElementListingFile(
                     name =
-                        FileName(
-                            "${translation.t("data-products.element-list.element-list-whole-network-title")} ${dateFormatter.format(Instant.now())}"
+                        translation.filename(
+                            "element-list-entire-track-network",
+                            localizationParams("date" to dateFormatter.format(Instant.now())),
                         ),
                     content = csvFileContent,
                 )
@@ -367,9 +380,10 @@ constructor(
         val translation = localizationService.getLocalization(lang)
 
         val csvFileContent = planVerticalGeometryListingToCsv(verticalGeometryListing, translation)
-        return FileName(
-            "${translation.t("data-products.vertical-geometry.vertical-geometry-title")} ${plan.fileName}"
-        ) to csvFileContent.toByteArray()
+        val filename =
+            translation.filename("vertical-geometry-list-plan-csv", localizationParams("planFileName" to plan.fileName))
+
+        return filename to csvFileContent.toByteArray()
     }
 
     @Transactional(readOnly = true)
@@ -402,13 +416,14 @@ constructor(
         val verticalGeometryListing =
             getVerticalGeometryListing(MainLayoutContext.official, locationTrackId, startAddress, endAddress)
         val translation = localizationService.getLocalization(lang)
-
         val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing, translation)
-        val name =
-            FileName(
-                "${translation.t("data-products.vertical-geometry.vertical-geometry-title")} ${locationTrack.name}"
+        val filename =
+            translation.filename(
+                "vertical-geometry-list-csv",
+                localizationParams("locationTrackName" to locationTrack.name),
             )
-        return name to csvFileContent.toByteArray()
+
+        return filename to csvFileContent.toByteArray()
     }
 
     fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
@@ -441,8 +456,9 @@ constructor(
         verticalGeometryListingFileDao.upsertVerticalGeometryListingFile(
             VerticalGeometryListingFile(
                 name =
-                    FileName(
-                        "${translation.t("data-products.vertical-geometry.vertical-geometry-whole-network-title")} ${dateFormatter.format(Instant.now())}"
+                    translation.filename(
+                        "vertical-geometry-list-entire-track-network",
+                        localizationParams("date" to dateFormatter.format(Instant.now())),
                     ),
                 content = csvFileContent,
             )

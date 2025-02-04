@@ -140,7 +140,7 @@ module.exports = (env) => {
             rules: [
                 {
                     test: /\.tsx?$/,
-                    loader: 'swc-loader',
+                    loader: 'ts-loader',
                 },
                 {
                     test: /\.(png|jp(e*)g|gif|woff|woff2|ttf|eot|ico|otf)$/,

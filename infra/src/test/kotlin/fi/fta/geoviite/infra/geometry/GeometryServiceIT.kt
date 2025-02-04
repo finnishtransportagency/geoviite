@@ -57,17 +57,17 @@ constructor(
         val planId = geometryDao.insertPlan(plan, file, polygon).id
         val searchBbox = boundingBoxAroundPoints(polygon)
 
-        assertEquals(planId, geometryService.fetchDuplicateGeometryPlanHeader(file, plan.source)?.id)
+        assertEquals(planId, geometryService.fetchDuplicateGeometryPlanHeader(file.hash, plan.source)?.id)
         assertEquals(listOf(planId), geometryService.getGeometryPlanAreas(searchBbox).map(GeometryPlanArea::id))
 
         geometryService.setPlanHidden(planId, true)
         assertFalse(geometryService.getPlanHeaders().any { p -> p.id == planId })
-        assertEquals(null, geometryService.fetchDuplicateGeometryPlanHeader(file, plan.source)?.id)
+        assertEquals(null, geometryService.fetchDuplicateGeometryPlanHeader(file.hash, plan.source)?.id)
         assertEquals(listOf(), geometryService.getGeometryPlanAreas(searchBbox).map(GeometryPlanArea::id))
 
         geometryService.setPlanHidden(planId, false)
         assertTrue(geometryService.getPlanHeaders().any { p -> p.id == planId })
-        assertEquals(planId, geometryService.fetchDuplicateGeometryPlanHeader(file, plan.source)?.id)
+        assertEquals(planId, geometryService.fetchDuplicateGeometryPlanHeader(file.hash, plan.source)?.id)
         assertEquals(listOf(planId), geometryService.getGeometryPlanAreas(searchBbox).map(GeometryPlanArea::id))
     }
 

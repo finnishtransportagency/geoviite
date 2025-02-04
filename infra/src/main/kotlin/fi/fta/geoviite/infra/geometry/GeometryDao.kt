@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
+import fi.fta.geoviite.infra.inframodel.FileHash
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.InfraModelFileWithSource
 import fi.fta.geoviite.infra.inframodel.PlanElementName
@@ -218,7 +219,7 @@ constructor(
         )
     }
 
-    fun fetchDuplicateGeometryPlanVersion(newFile: InfraModelFile, source: PlanSource): RowVersion<GeometryPlan>? {
+    fun fetchDuplicateGeometryPlanVersion(newFileHash: FileHash, source: PlanSource): RowVersion<GeometryPlan>? {
         // language=SQL
         val sql =
             """
@@ -230,7 +231,7 @@ constructor(
               and plan.hidden = false
         """
                 .trimIndent()
-        val params = mapOf("hash" to newFile.hash, "source" to source.name)
+        val params = mapOf("hash" to newFileHash, "source" to source.name)
 
         return jdbcTemplate
             .queryOptional<RowVersion<GeometryPlan>>(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }

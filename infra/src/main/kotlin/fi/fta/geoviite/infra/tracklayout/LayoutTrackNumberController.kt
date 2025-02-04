@@ -18,12 +18,12 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.publication.getCsvResponseEntity
-import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.toResponse
 import java.time.Instant
 import java.time.ZoneId
@@ -164,7 +164,18 @@ class LayoutTrackNumberController(
         val trackNumber = trackNumberService.getOrThrow(context, id)
 
         val fileName =
-            FileName("ratakilometrien-pituudet_${trackNumber.number}${kmLengthsPrecisionSuffix(precision)}.csv")
+            localizationService.getLocalization(lang).let { translation ->
+                val params = localizationParams("trackNumber" to trackNumber.number)
+
+                when (precision) {
+                    KmLengthsLocationPrecision.PRECISE_LOCATION ->
+                        translation.filename("km-lengths-csv-precise", params)
+
+                    KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT ->
+                        translation.filename("km-lengths-csv-approximation", params)
+                }
+            }
+
         return getCsvResponseEntity(csv, fileName)
     }
 
@@ -187,11 +198,13 @@ class LayoutTrackNumberController(
         val localization = localizationService.getLocalization(lang)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
-        val fileDescription =
-            localization.t("data-products.km-lengths.entire-rail-network-km-lengths-file-name-without-date")
-        val fileDate = dateFormatter.format(Instant.now())
+        val filename =
+            localization.filename(
+                "km-lengths-entire-track-network",
+                localizationParams("date" to dateFormatter.format(Instant.now())),
+            )
 
-        return getCsvResponseEntity(csv, FileName("$fileDescription $fileDate.csv"))
+        return getCsvResponseEntity(csv, filename)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -213,9 +226,3 @@ class LayoutTrackNumberController(
         return trackNumberService.getExternalIdsByBranch(id)
     }
 }
-
-private fun kmLengthsPrecisionSuffix(precision: KmLengthsLocationPrecision): String =
-    when (precision) {
-        KmLengthsLocationPrecision.PRECISE_LOCATION -> ""
-        KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> "-paikannuspohjan-tarkkuus"
-    }

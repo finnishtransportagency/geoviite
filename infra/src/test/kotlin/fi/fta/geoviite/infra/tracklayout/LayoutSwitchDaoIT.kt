@@ -10,6 +10,9 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.util.getInstant
+import fi.fta.geoviite.infra.util.queryOne
+import java.time.Instant
 import kotlin.test.assertContains
 import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -224,5 +227,60 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
             null,
             switchDao.findLocationTracksLinkedToSwitches(MainLayoutContext.draft, listOf(switch))[switch],
         )
+    }
+
+    @Test
+    fun `findLocationTracksLinkedToSwitchAtMoment handles changing connectivity over time`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val switch = mainOfficialContext.insert(switch()).id
+        val connectedAlignment =
+            alignment(
+                segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
+            )
+        val disconnectedAlignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+
+        val lt1o1 = mainOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
+        val lt2o1 = mainOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
+        val lt3o1 = mainOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
+        val lt1d1 = mainDraftContext.copyFrom(lt1o1)
+        val lt1o2 = mainOfficialContext.insert(locationTrackDao.fetch(lt1o1), disconnectedAlignment)
+        val lt1o3 = mainOfficialContext.insert(locationTrackDao.fetch(lt1o1), connectedAlignment)
+
+        fun tracksLinkedAtVersionSaveTime(version: LayoutRowVersion<LocationTrack>) =
+            switchDao
+                .findLocationTracksLinkedToSwitchAtMoment(
+                    LayoutBranch.main,
+                    switch,
+                    JointNumber(123),
+                    locationTrackVersionChangeTime(version),
+                )
+                .map { it.id }
+                .toSet()
+
+        assertEquals(setOf(lt1o1.id), tracksLinkedAtVersionSaveTime(lt1o1))
+        assertEquals(setOf(lt1o1.id, lt2o1.id), tracksLinkedAtVersionSaveTime(lt2o1))
+        assertEquals(setOf(lt1o1.id, lt2o1.id, lt3o1.id), tracksLinkedAtVersionSaveTime(lt3o1))
+        assertEquals(setOf(lt1o1.id, lt2o1.id, lt3o1.id), tracksLinkedAtVersionSaveTime(lt1d1))
+        assertEquals(setOf(lt2o1.id, lt3o1.id), tracksLinkedAtVersionSaveTime(lt1o2))
+        assertEquals(setOf(lt1o1.id, lt2o1.id, lt3o1.id), tracksLinkedAtVersionSaveTime(lt1o3))
+    }
+
+    private fun locationTrackVersionChangeTime(version: LayoutRowVersion<LocationTrack>): Instant {
+        val sql =
+            """
+            select change_time from layout.location_track_version
+            where id = :id and layout_context_id = :layout_context_id and version = :version
+        """
+                .trimIndent()
+        return jdbc.queryOne(
+            sql,
+            mapOf(
+                "id" to version.id.intValue,
+                "layout_context_id" to version.context.toSqlString(),
+                "version" to version.version,
+            ),
+        ) { rs, _ ->
+            rs.getInstant("change_time")
+        }
     }
 }
