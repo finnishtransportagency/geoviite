@@ -419,9 +419,9 @@ data class GeocodingContext(
             "Segment indices out of bounds: indices=$segmentIndices segments=${sourceAlignment.segments.size}"
         }
         val startSegment = sourceAlignment.segments[segmentIndices.first]
-        val startSegmentM = sourceAlignment.segmentMs[segmentIndices.first]
+        val startSegmentM = sourceAlignment.segmentMValues[segmentIndices.first]
         val endSegment = sourceAlignment.segments[segmentIndices.last]
-        val endSegmentM = sourceAlignment.segmentMs[segmentIndices.last]
+        val endSegmentM = sourceAlignment.segmentMValues[segmentIndices.last]
         val sourceStart = startSegment.segmentStart.toAlignmentPoint(0.0).let(this::toAddressPoint)?.first
         val endSegmentStart = endSegmentM.min - startSegmentM.max
         val sourceEnd = endSegment.segmentEnd.toAlignmentPoint(endSegmentStart).let(this::toAddressPoint)?.first
@@ -568,7 +568,7 @@ fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
 fun getProjectedAddressPoint(projection: ProjectionLine, alignment: IAlignment): AddressPoint? {
     return getCollisionSegmentIndex(projection.projection, alignment)?.let { index ->
         val segment = alignment.segments[index]
-        val m = alignment.segmentMs[index].min
+        val m = alignment.segmentMValues[index].min
         val segmentEdges = getPolyLineEdges(segment, m, null, null)
         val edgeAndPortion = getIntersection(projection.projection, segmentEdges)
         return edgeAndPortion?.let { (edge, portion) ->

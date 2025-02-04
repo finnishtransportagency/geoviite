@@ -79,7 +79,7 @@ data class AlignmentPlanSection(
     val id: StringId<SegmentGeometryAndMetadata>,
 )
 
-fun calculateSegmentMs(segments: List<ISegment>): List<Range<Double>> {
+fun calculateSegmentMValues(segments: List<ISegment>): List<Range<Double>> {
     var previousEnd = 0.0
     return segments.map { segment ->
         Range(previousEnd, previousEnd + segment.length).also { previousEnd += segment.length }
@@ -87,20 +87,23 @@ fun calculateSegmentMs(segments: List<ISegment>): List<Range<Double>> {
 }
 
 interface IAlignment : Loggable {
-    val segments: List<ISegment>
-    val segmentMs: List<Range<Double>>
+    @get:JsonIgnore val segments: List<ISegment>
+    val segmentMValues: List<Range<Double>>
     //    val id: DomainId<*>
     val boundingBox: BoundingBox?
 
+    @get:JsonIgnore
     val segmentsWithM: List<Pair<ISegment, Range<Double>>>
-        get() = segments.zip(segmentMs)
+        get() = segments.zip(segmentMValues)
 
     val length: Double
-        get() = segmentMs.lastOrNull()?.max ?: 0.0
+        get() = segmentMValues.lastOrNull()?.max ?: 0.0
 
+    @get:JsonIgnore
     val firstSegmentStart: SegmentPoint?
         get() = segments.firstOrNull()?.segmentStart
 
+    @get:JsonIgnore
     val lastSegmentEnd: SegmentPoint?
         get() = segments.lastOrNull()?.segmentEnd
 
@@ -108,24 +111,29 @@ interface IAlignment : Loggable {
         get() = segments.firstOrNull()?.segmentStart?.toAlignmentPoint(0.0) // alignmentStart
 
     val end: AlignmentPoint?
-        get() = segments.lastOrNull()?.segmentEnd?.toAlignmentPoint(segmentMs.last().min)
+        get() = segments.lastOrNull()?.segmentEnd?.toAlignmentPoint(segmentMValues.last().min)
 
-    private fun getSegmentPointsWithM(downward: Boolean): Sequence<Pair<SegmentPoint, Double>> =
-        (if (downward) segments.asReversed() else segments).asSequence().flatMapIndexed { index, segment ->
-            (if (downward && index == 0 || !downward && index == segments.lastIndex) segment.segmentPoints
-                else segment.segmentPoints.subList(0, segment.segmentPoints.size - 1))
-                .let { if (downward) it.asReversed() else it }
-                .map { point -> point to (segmentMs[index].min + point.m) }
+    private fun getAlignmentPoints(downward: Boolean): Sequence<AlignmentPoint> =
+        (if (downward) segmentsWithM.asReversed() else segmentsWithM).asSequence().flatMapIndexed {
+            index,
+            (segment, segmentM) ->
+            segment.segmentPoints
+                .let { points -> if (index == 0) points else points.subList(1, points.size) }
+                .let { sPoints -> sPoints.map { point -> point.toAlignmentPoint(segmentM.min) } }
+                .let { aPoints -> if (downward) aPoints.asReversed() else aPoints }
         }
 
+    @get:JsonIgnore
     val allSegmentPoints: Sequence<SegmentPoint>
-        get() = getSegmentPointsWithM(false).map { (point) -> point }
+        get() = segments.asSequence().flatMap { s -> s.segmentPoints }
 
+    @get:JsonIgnore
     val allAlignmentPoints: Sequence<AlignmentPoint>
-        get() = getSegmentPointsWithM(false).map { (point, startM) -> point.toAlignmentPoint(startM) }
+        get() = getAlignmentPoints(false)
 
+    @get:JsonIgnore
     val allAlignmentPointsDownward: Sequence<AlignmentPoint>
-        get() = getSegmentPointsWithM(true).map { (point, startM) -> point.toAlignmentPoint(startM) }
+        get() = getAlignmentPoints(true)
 
     fun filterSegmentsByBbox(bbox: BoundingBox): List<Pair<ISegment, Range<Double>>> {
         return if (!bbox.intersects(boundingBox)) {
@@ -141,7 +149,7 @@ interface IAlignment : Loggable {
     fun getClosestPointM(target: IPoint): Pair<Double, IntersectType>? =
         findClosestSegmentIndex(target)?.let { segmentIndex ->
             val segment = segments[segmentIndex]
-            val segmentM = segmentMs[segmentIndex]
+            val segmentM = segmentMValues[segmentIndex]
             if (segment.source == GENERATED) {
                 val proportion = closestPointProportionOnGeneratedSegment(segmentIndex, target)
                 val interpolatedInternalM = proportion * segment.length
@@ -171,7 +179,7 @@ interface IAlignment : Loggable {
             throw IllegalArgumentException("m of $m out of range 0..${length + LAYOUT_M_DELTA}")
         else
             m.coerceAtMost(length).let { clampedM ->
-                segmentMs.binarySearch { s -> if (clampedM < s.min) 1 else if (clampedM > s.max) -1 else 0 }
+                segmentMValues.binarySearch { s -> if (clampedM < s.min) 1 else if (clampedM > s.max) -1 else 0 }
             }
 
     fun getSegmentAtM(m: Double): Pair<ISegment, Range<Double>>? =
@@ -240,9 +248,6 @@ interface IAlignment : Loggable {
             .minByOrNull { (distance, _) -> distance }
             ?.let { (_, index) -> index }
 
-    fun getMaxDirectionDeltaRads(): Double =
-        allSegmentPoints.zipWithNext(::directionBetweenPoints).zipWithNext(::angleDiffRads).maxOrNull() ?: 0.0
-
     fun isWithinDistanceOfPoint(point: Point, distance: Double): Boolean =
         (boundingBox?.intersects(boundingBoxAroundPoint(point, distance)) ?: false) &&
             getClosestPoint(point)?.let { closestPoint -> lineLength(point, closestPoint.first.toPoint()) <= distance }
@@ -259,20 +264,21 @@ data class LayoutAlignment(
     val dataType: DataType = DataType.TEMP,
 ) : IAlignment {
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.map { s -> s.boundingBox }) }
-    override val segmentMs: List<Range<Double>> = calculateSegmentMs(segments)
+    override val segmentMValues: List<Range<Double>> = calculateSegmentMValues(segments)
+    @get:JsonIgnore
     override val segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>
-        get() = segments.zip(segmentMs)
+        get() = segments.zip(segmentMValues)
 
     init {
         segments.forEachIndexed { index, segment ->
-            val m = segmentMs[index]
+            val m = segmentMValues[index]
             require(abs(segment.length - (m.max - m.min)) < LAYOUT_M_DELTA)
 
             if (index == 0) {
                 require(m.min == 0.0) { "First segment should start at 0.0: alignment=$id firstStart=${m.min}" }
             } else {
                 val previous = segments[index - 1]
-                val previousM = segmentMs[index - 1]
+                val previousM = segmentMValues[index - 1]
                 require(previous.segmentEnd.isSame(segment.segmentStart, LAYOUT_COORDINATE_DELTA)) {
                     "Alignment segment doesn't start where the previous one ended: " +
                         "alignment=$id segment=$index length=${segment.length} prevLength=${previous.length} " +

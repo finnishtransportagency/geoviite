@@ -13,15 +13,15 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -293,7 +293,7 @@ class LayoutAlignmentDao(
                 "end_node_id" to endNodeId.intValue,
                 "geometry_alignment_ids" to content.segments.map { s -> s.sourceId?.parentId }.toTypedArray(),
                 "geometry_element_indices" to content.segments.map { s -> s.sourceId?.index }.toTypedArray(),
-                "start_m_values" to content.segmentMs.map { m -> roundTo6Decimals(m.min) }.toTypedArray(),
+                "start_m_values" to content.segmentMValues.map { m -> roundTo6Decimals(m.min) }.toTypedArray(),
                 "source_start_m_values" to
                     content.segments.map { s -> s.sourceStart?.let(::roundTo6Decimals) }.toTypedArray(),
                 "sources" to content.segments.map { s -> s.source.name }.toTypedArray(),

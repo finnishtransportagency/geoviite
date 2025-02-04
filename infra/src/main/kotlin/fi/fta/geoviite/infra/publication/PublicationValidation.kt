@@ -939,10 +939,13 @@ fun validateLocationTrackGeometry(geometry: LocationTrackGeometry) =
 private fun validateGeometry(errorParent: String, alignment: IAlignment) =
     listOfNotNull(
         validate(alignment.segments.isNotEmpty()) { "$errorParent.empty-segments" },
-        validate(alignment.getMaxDirectionDeltaRads() <= MAX_LAYOUT_POINT_ANGLE_CHANGE) {
+        validate(getMaxDirectionDeltaRads(alignment) <= MAX_LAYOUT_POINT_ANGLE_CHANGE) {
             "$errorParent.points.not-continuous"
         },
     )
+
+fun getMaxDirectionDeltaRads(alignment: IAlignment): Double =
+    alignment.allSegmentPoints.zipWithNext(::directionBetweenPoints).zipWithNext(::angleDiffRads).maxOrNull() ?: 0.0
 
 private fun segmentAndJointLocationsAgree(switch: LayoutSwitch, segmentGroup: List<LayoutSegment>): Boolean =
     segmentGroup.all { segment -> segmentAndJointLocationsAgree(switch, segment) }

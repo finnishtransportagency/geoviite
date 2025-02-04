@@ -93,8 +93,8 @@ fun moveAlignmentPoints(alignment: LayoutAlignment, moveFunc: (point: AlignmentP
                 }
         )
         .also {
-            assertEquals(0.0, it.segmentMs.first().min)
-            assertEquals(it.segments.sumOf { s -> s.length }, it.segmentMs.last().max)
+            assertEquals(0.0, it.segmentMValues.first().min)
+            assertEquals(it.segments.sumOf { s -> s.length }, it.segmentMValues.last().max)
             assertEquals(it.segments.sumOf { s -> s.length }, it.length)
         }
 }

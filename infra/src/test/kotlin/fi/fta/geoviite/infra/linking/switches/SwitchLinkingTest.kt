@@ -32,8 +32,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 class SwitchLinkingTest {
     private var testLayoutSwitchId = IntId<LayoutSwitch>(0)
@@ -99,11 +97,11 @@ class SwitchLinkingTest {
             updateAlignmentSegmentsWithSwitchLinking(origAlignmentNoSwitchInfo, testLayoutSwitchId, linkingJoints)
 
         assertEquals(origAlignmentNoSwitchInfo.segments.size + 1, updatedAlignment.segments.size)
-        assertEquals(joint1.m, updatedAlignment.segmentMs[0].min)
-        assertEquals(joint2.m, updatedAlignment.segmentMs[0].max)
-        assertEquals(joint2.m, updatedAlignment.segmentMs[1].min)
-        assertEquals(joint3.m, updatedAlignment.segmentMs[1].max)
-        assertEquals(joint3.m, updatedAlignment.segmentMs[2].min)
+        assertEquals(joint1.m, updatedAlignment.segmentMValues[0].min)
+        assertEquals(joint2.m, updatedAlignment.segmentMValues[0].max)
+        assertEquals(joint2.m, updatedAlignment.segmentMValues[1].min)
+        assertEquals(joint3.m, updatedAlignment.segmentMValues[1].max)
+        assertEquals(joint3.m, updatedAlignment.segmentMValues[2].min)
 
         assertSwitchLinkingInfoEquals(
             updatedAlignment.segments[0],
@@ -142,13 +140,13 @@ class SwitchLinkingTest {
                 SwitchLinkingJoint(
                     JointNumber(1),
                     1,
-                    origAlignmentNoSwitchInfo.segmentMs[1].min - 0.0001,
+                    origAlignmentNoSwitchInfo.segmentMValues[1].min - 0.0001,
                     Point(0.0, 0.0),
                 ),
                 SwitchLinkingJoint(
                     JointNumber(2),
                     1,
-                    origAlignmentNoSwitchInfo.segmentMs[1].max + 0.0001,
+                    origAlignmentNoSwitchInfo.segmentMValues[1].max + 0.0001,
                     Point(0.0, 0.0),
                 ),
             )
@@ -183,7 +181,7 @@ class SwitchLinkingTest {
 
         val splitSegmentIndex = 1
         val splitPointM =
-            origAlignmentNoSwitchInfo.segmentMs[splitSegmentIndex].let { m -> interpolate(m.min, m.max, 0.5) }
+            origAlignmentNoSwitchInfo.segmentMValues[splitSegmentIndex].let { m -> interpolate(m.min, m.max, 0.5) }
         val linkingJoints =
             listOf(
                 switchLinkingJointAtStart(origAlignmentNoSwitchInfo, 0, 1),
@@ -603,13 +601,7 @@ class SwitchLinkingTest {
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(5.0, 0.0)),
-                        segment(
-                            Point(5.0, 0.0),
-                            Point(7.5, 0.0),
-                            Point(10.0, 0.0),
-                            Point(12.5, 0.0),
-                            Point(15.0, 0.0),
-                        ),
+                        segment(Point(5.0, 0.0), Point(7.5, 0.0), Point(10.0, 0.0), Point(12.5, 0.0), Point(15.0, 0.0)),
                         segment(Point(15.0, 0.0), Point(20.0, 0.0)),
                     )
             )

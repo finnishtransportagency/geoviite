@@ -575,7 +575,7 @@ fun tryToSnapOverlappingSwitchSegmentToNearbySegment(
             )
         }
         ?.let { indexedExistingSwitchStartSegment ->
-            val m = layoutAlignment.segmentMs[indexedExistingSwitchStartSegment.index]
+            val m = layoutAlignment.segmentMValues[indexedExistingSwitchStartSegment.index]
             val distanceToPreviousSwitchLineStart = match.m - m.min
             val hasAdjacentLayoutSegment = indexedExistingSwitchStartSegment.index > 0
 
@@ -604,7 +604,7 @@ fun tryToSnapOverlappingSwitchSegmentToNearbySegment(
             )
         }
         ?.let { indexedExistingSwitchEndSegment ->
-            val m = layoutAlignment.segmentMs[indexedExistingSwitchEndSegment.index]
+            val m = layoutAlignment.segmentMValues[indexedExistingSwitchEndSegment.index]
             val distanceToPreviousSwitchLineEnd = m.max - match.m
             val hasAdjacentLayoutSegment = indexedExistingSwitchEndSegment.index < layoutAlignment.segments.lastIndex
 
@@ -758,7 +758,7 @@ fun updateAlignmentSegmentsWithSwitchLinking(
                     getSegmentsByLinkingJoints(
                         switchLinkingJoints,
                         segment,
-                        alignment.segmentMs[index],
+                        alignment.segmentMValues[index],
                         layoutSwitchId,
                         index == segmentIndexRange.first,
                         index == segmentIndexRange.last,

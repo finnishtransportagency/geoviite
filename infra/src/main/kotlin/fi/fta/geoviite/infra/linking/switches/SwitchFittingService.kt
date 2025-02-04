@@ -866,14 +866,14 @@ fun cropPoints(
 data class CroppedAlignment(
     val cropStartSegmentIndex: Int,
     override val segments: List<LayoutSegment>,
-    override val segmentMs: List<Range<Double>>,
+    override val segmentMValues: List<Range<Double>>,
     val id: IntId<LocationTrack>,
 ) : IAlignment {
 
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.mapNotNull(ISegment::boundingBox)) }
 
-    override fun toLog(): String = logFormat("id" to id, "segments" to segmentMs)
+    override fun toLog(): String = logFormat("id" to id, "segments" to segmentMValues)
 }
 
 fun cropNothing(geometry: DbLocationTrackGeometry) =
-    CroppedAlignment(0, geometry.segments, geometry.segmentMs, geometry.trackRowVersion.id)
+    CroppedAlignment(0, geometry.segments, geometry.segmentMValues, geometry.trackRowVersion.id)

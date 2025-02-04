@@ -174,7 +174,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = initAlignment.segmentMs[1].min,
+                                m = initAlignment.segmentMValues[1].min,
                             )
                         ),
                 ),
@@ -187,7 +187,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = initAlignment.segmentMs[1].max,
+                                m = initAlignment.segmentMValues[1].max,
                             )
                         ),
                 ),
@@ -200,7 +200,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = initAlignment.segmentMs[1].max,
+                                m = initAlignment.segmentMValues[1].max,
                             )
                         ),
                 ),
@@ -265,7 +265,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = initAlignment.segmentMs[1].min,
+                                m = initAlignment.segmentMValues[1].min,
                             )
                         ),
                 ),
@@ -278,7 +278,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = initAlignment.segmentMs[1].max,
+                                m = initAlignment.segmentMValues[1].max,
                             )
                         ),
                 ),
@@ -291,7 +291,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
-                                m = initAlignment.segmentMs[1].max,
+                                m = initAlignment.segmentMValues[1].max,
                             )
                         ),
                 ),
@@ -486,7 +486,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = testLocation.straightTrack.id as IntId,
                                 segmentIndex = 2,
-                                m = testLocation.straightTrackAlignment.segmentMs[2].max - switchOverlapAmount,
+                                m = testLocation.straightTrackAlignment.segmentMValues[2].max - switchOverlapAmount,
                             ),
                             switchLinkingAtStart(secondDiversionTrack.id, secondDiversionAlignment, 0),
                         ),
@@ -738,7 +738,7 @@ constructor(
                                             suggestedSwitchJointMatch(
                                                 locationTrackId = testLocationTrack.id as IntId,
                                                 segmentIndex = 2,
-                                                m = testAlignment.segmentMs[2].max - overlapAmount,
+                                                m = testAlignment.segmentMValues[2].max - overlapAmount,
                                             )
                                         ),
                                 ),
@@ -848,7 +848,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = testLocationTrack.id as IntId,
                                 segmentIndex = 2,
-                                m = testAlignment.segmentMs[2].max - moreThanAllowedOverlap,
+                                m = testAlignment.segmentMValues[2].max - moreThanAllowedOverlap,
                             )
                         ),
                 ),

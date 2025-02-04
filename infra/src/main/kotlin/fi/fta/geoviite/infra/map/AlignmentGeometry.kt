@@ -119,7 +119,7 @@ fun toAlignmentHeader(locationTrack: LocationTrack, alignment: DbLocationTrackGe
     )
 
 fun getSegmentBorderMValues(alignment: IAlignment): List<Double> =
-    alignment.segmentMs.map { s -> s.min } + alignment.length
+    alignment.segmentMValues.map { s -> s.min } + alignment.length
 
 fun <T> toAlignmentPolyLine(
     id: DomainId<T>,

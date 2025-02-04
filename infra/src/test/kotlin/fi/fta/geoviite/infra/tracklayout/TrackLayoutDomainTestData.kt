@@ -1057,7 +1057,7 @@ fun switchLinkingAtStart(
     alignment: LayoutAlignment,
     segmentIndex: Int,
     jointNumber: Int = 1,
-) = switchLinkingAtStart(locationTrackId, alignment.segmentMs, segmentIndex, jointNumber)
+) = switchLinkingAtStart(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
 
 fun switchLinkingAtStart(
     locationTrackId: DomainId<LocationTrack>,
@@ -1071,7 +1071,7 @@ fun switchLinkingAtEnd(
     alignment: LayoutAlignment,
     segmentIndex: Int,
     jointNumber: Int = 1,
-) = switchLinkingAtEnd(locationTrackId, alignment.segmentMs, segmentIndex, jointNumber)
+) = switchLinkingAtEnd(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
 
 fun switchLinkingAtEnd(
     locationTrackId: DomainId<LocationTrack>,
@@ -1085,7 +1085,7 @@ fun switchLinkingAtHalf(
     alignment: LayoutAlignment,
     segmentIndex: Int,
     jointNumber: Int = 1,
-) = switchLinkingAtHalf(locationTrackId, alignment.segmentMs, segmentIndex, jointNumber)
+) = switchLinkingAtHalf(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
 
 fun switchLinkingAtHalf(
     locationTrackId: DomainId<LocationTrack>,

@@ -59,7 +59,7 @@ data class PlanLayoutAlignment(
     @JsonIgnore override val segments: List<PlanLayoutSegment>,
     val polyLine: AlignmentPolyLine<GeometryAlignment>? = null,
 ) : IAlignment {
-    override val segmentMs: List<Range<Double>> by lazy { calculateSegmentMs(segments) }
+    override val segmentMValues: List<Range<Double>> by lazy { calculateSegmentMValues(segments) }
 
     @get:JsonIgnore
     val id: DomainId<GeometryAlignment>

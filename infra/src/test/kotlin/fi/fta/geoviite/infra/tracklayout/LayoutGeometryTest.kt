@@ -6,11 +6,12 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
-import kotlin.math.hypot
-import kotlin.test.assertEquals
+import fi.fta.geoviite.infra.publication.getMaxDirectionDeltaRads
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 
 class LayoutGeometryTest {
 
@@ -272,7 +273,7 @@ class LayoutGeometryTest {
     @Test
     fun `getMaxDirectionDeltaRads with shared segment points`() {
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)), segment(Point(1.0, 1.0), Point(2.0, 2.0)))
-        assertEquals(0.0, alignment.getMaxDirectionDeltaRads())
+        assertEquals(0.0, getMaxDirectionDeltaRads(alignment))
     }
 
     @Test
