@@ -27,12 +27,12 @@ import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -428,7 +428,7 @@ class LocationTrackDao(
                   select *
                     from layout.alignment
                     where location_track.alignment_id = alignment.id
-                      and (:min_length is null or alignment.length>=:min_length)
+                      and (:min_length::numeric is null or alignment.length>=:min_length)
                       and location_track.alignment_version = alignment.version
                       and postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
                                                 alignment.bounding_box)
