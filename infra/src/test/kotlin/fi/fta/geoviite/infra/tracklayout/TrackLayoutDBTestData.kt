@@ -20,14 +20,14 @@ fun moveKmPostLocation(kmPost: LayoutKmPost, layoutLocation: Point, kmPostServic
 
 fun moveLocationTrackGeometryPointsAndUpdate(
     locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
     moveFunc: (point: AlignmentPoint) -> Point,
     locationTrackService: LocationTrackService,
-) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, moveAlignmentPoints(alignment, moveFunc))
+) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, moveLocationTrackPoints(geometry, moveFunc))
 
 fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
     locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
     switchId: IntId<LayoutSwitch>,
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService,
@@ -37,23 +37,23 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
         locationTrack.copy(
             topologyEndSwitch = TopologyLocationTrackSwitch(switchId = switchId, jointNumber = jointNumber)
         ),
-        alignment,
+        geometry,
     )
 
 fun removeTopologySwitchesFromLocationTrackAndUpdate(
     locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
     locationTrackService: LocationTrackService,
 ) =
     locationTrackService.saveDraft(
         LayoutBranch.main,
         locationTrack.copy(topologyStartSwitch = null, topologyEndSwitch = null),
-        alignment,
+        geometry,
     )
 
 fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
     locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
     switchId: IntId<LayoutSwitch>,
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService,
@@ -63,7 +63,7 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
         locationTrack.copy(
             topologyStartSwitch = TopologyLocationTrackSwitch(switchId = switchId, jointNumber = jointNumber)
         ),
-        alignment,
+        geometry,
     )
 
 fun moveReferenceLineGeometryPointsAndUpdate(
@@ -73,6 +73,14 @@ fun moveReferenceLineGeometryPointsAndUpdate(
     referenceLineService: ReferenceLineService,
 ): LayoutRowVersion<ReferenceLine> =
     referenceLineService.saveDraft(LayoutBranch.main, referenceLine, moveAlignmentPoints(alignment, moveFunc))
+
+fun moveLocationTrackPoints(
+    geometry: LocationTrackGeometry,
+    moveFunc: (point: AlignmentPoint) -> Point?,
+): LocationTrackGeometry {
+    // TODO: GVT-2915
+    TODO()
+}
 
 fun moveAlignmentPoints(alignment: LayoutAlignment, moveFunc: (point: AlignmentPoint) -> Point?): LayoutAlignment {
     return alignment

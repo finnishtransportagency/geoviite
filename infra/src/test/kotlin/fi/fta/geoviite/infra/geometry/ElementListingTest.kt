@@ -21,18 +21,18 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.geocodingContext
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.util.FileName
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Test
 
 private val allElementTypes = GeometryElementType.values().toList()
 private val allTrackElementTypes = TrackGeometryElementType.values().toList()
@@ -64,9 +64,9 @@ class ElementListingTest {
                 srid = LAYOUT_SRID,
                 coordinateSystemName = CoordinateSystemName("KKJ test-name"),
             )
-        val (locationTrack, layoutAlignment) =
-            locationTrackAndAlignment(trackNumberId = IntId(1), segments = createSegments(alignment), draft = false)
-        val listing = getListing(locationTrack, layoutAlignment, planHeader, alignment)
+        val (locationTrack, geometry) =
+            locationTrackAndGeometry(trackNumberId = IntId(1), segments = createSegments(alignment), draft = false)
+        val listing = getListing(locationTrack, geometry, planHeader, alignment)
         listing.forEach { l ->
             assertEquals(PlanSource.PAIKANNUSPALVELU, l.planSource)
             assertEquals(IntId(2), l.planId)
@@ -224,7 +224,7 @@ class ElementListingTest {
                 GeometryElementType.LINE,
             )
         val (track, layoutAlignment) =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 trackNumberId = IntId(12345),
                 segments = createSegments(geometryAlignment),
                 draft = false,
@@ -275,7 +275,7 @@ class ElementListingTest {
                     ),
             )
         val (track, layoutAlignment) =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 IntId(1),
                 segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment1.elements[1]),
                 segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = alignment1.elements[2]),
@@ -320,7 +320,7 @@ class ElementListingTest {
                 elements = listOf(minimalLine(id = IndexedId(1, 1)), minimalLine(id = IndexedId(1, 2))),
             )
         val (track, layoutAlignment) =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 IntId(1),
                 segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0]),
                 segment(
@@ -373,7 +373,7 @@ class ElementListingTest {
                     ),
             )
         val (track, layoutAlignment) =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 IntId(1),
                 segment(Point(0.0, 0.0), Point(10.0, 1.0), source = PLAN, sourceId = alignment.elements[2]),
                 segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0]),
@@ -424,18 +424,15 @@ class ElementListingTest {
 
     private fun getListingTypes(
         locationTrack: LocationTrack,
-        layoutAlignment: LayoutAlignment,
+        geometry: LocationTrackGeometry,
         planHeader: GeometryPlanHeader,
         geometryAlignment: GeometryAlignment,
         elementTypes: List<TrackGeometryElementType> = allTrackElementTypes,
-    ) =
-        getListing(locationTrack, layoutAlignment, planHeader, geometryAlignment, elementTypes).map { l ->
-            l.elementType
-        }
+    ) = getListing(locationTrack, geometry, planHeader, geometryAlignment, elementTypes).map { l -> l.elementType }
 
     private fun getListing(
         locationTrack: LocationTrack,
-        layoutAlignment: LayoutAlignment,
+        geometry: LocationTrackGeometry,
         planHeader: GeometryPlanHeader,
         geometryAlignment: GeometryAlignment,
         elementTypes: List<TrackGeometryElementType> = allTrackElementTypes,
@@ -444,7 +441,7 @@ class ElementListingTest {
             null,
             getTransformation,
             locationTrack,
-            layoutAlignment,
+            geometry,
             planHeader.trackNumber,
             elementTypes,
             null,

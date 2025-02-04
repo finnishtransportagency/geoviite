@@ -333,7 +333,7 @@ constructor(
     @Test
     fun `Duplicate tracks should be reassigned to most overlapping tracks if left unused`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(
+        mainOfficialContext.save(
             referenceLine(trackNumberId),
             alignment(segment(Point(-1000.0, 0.0), Point(1000.0, 0.0))),
         )
@@ -343,11 +343,11 @@ constructor(
 
         val (switchesAndSegments, alignment) = alignmentWithMultipleSwitches(switchStartPoints)
 
-        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
 
         val duplicateIds =
             listOf(
-                    mainOfficialContext.insert(
+                    mainOfficialContext.save(
                         locationTrack(
                             name = "Used duplicate between first and second switch",
                             trackNumberId = trackNumberId,
@@ -355,7 +355,7 @@ constructor(
                         ),
                         alignment(segment(Point(100.0, 0.0), Point(200.0, 0.0))),
                     ),
-                    mainOfficialContext.insert(
+                    mainOfficialContext.save(
                         locationTrack(
                             name = "Unused dupe with full overlap",
                             trackNumberId = trackNumberId,
@@ -363,7 +363,7 @@ constructor(
                         ),
                         alignment(segment(Point(250.0, 0.0), Point(275.0, 0.0))),
                     ),
-                    mainOfficialContext.insert(
+                    mainOfficialContext.save(
                         locationTrack(
                             name = "Unused dupe with partial overlap of two new tracks",
                             trackNumberId = trackNumberId,
@@ -371,7 +371,7 @@ constructor(
                         ),
                         alignment(segment(Point(275.0, 0.0), Point(350.0, 0.0))),
                     ),
-                    mainOfficialContext.insert(
+                    mainOfficialContext.save(
                         locationTrack(
                             name = "Unused dupe with flipped partial overlap",
                             trackNumberId = trackNumberId,
@@ -436,16 +436,16 @@ constructor(
 
     private fun insertSplitWithTwoTracks(): IntId<Split> {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
         val sourceTrack =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(trackNumberId),
                 alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
 
         val endTrack =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(trackNumberId),
                 alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
             )

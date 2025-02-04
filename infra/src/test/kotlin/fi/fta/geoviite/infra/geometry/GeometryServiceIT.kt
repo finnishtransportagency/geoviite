@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import java.math.BigDecimal
@@ -89,7 +90,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    alignment(segment(yRangeToSegmentPoints(1..29))),
+                    trackGeometryOfSegments(segment(yRangeToSegmentPoints(1..29))),
                 )
                 .id
 
@@ -163,7 +164,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(
                             yRangeToSegmentPoints(0..6),
                             sourceId = p1.alignments[0].elements[0],
@@ -242,7 +243,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(yRangeToSegmentPoints(0..2)),
                         segment(yRangeToSegmentPoints(2..9), sourceId = sourceElement, sourceStart = 0.0),
                         segment(yRangeToSegmentPoints(9..10)),
@@ -292,7 +293,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    alignment(segment(yRangeToSegmentPoints(0..10))),
+                    trackGeometryOfSegments(segment(yRangeToSegmentPoints(0..10))),
                 )
                 .id
         kmPostService.saveDraft(

@@ -57,7 +57,7 @@ import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -119,7 +119,7 @@ constructor(
             referenceLine(trackNumberId, draft = true),
             alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
-        val (track, alignment) = locationTrackAndAlignment(trackNumberId, draft = true)
+        val (track, alignment) = locationTrackAndGeometry(trackNumberId, draft = true)
         val draftId = locationTrackService.saveDraft(LayoutBranch.main, track, alignment).id
         assertThrows<NoSuchEntityException> {
             locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.official, draftId)
@@ -532,8 +532,8 @@ constructor(
 
     @Test
     fun `simple km post change in design is reported`() {
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
-        val kmPost = mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1))).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1))).id
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
         kmPostService.saveDraft(testBranch, mainOfficialContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publish(publicationService, testBranch, kmPosts = listOf(kmPost))
@@ -1051,7 +1051,7 @@ constructor(
         )
 
         val locationTrack1 =
-            locationTrackAndAlignment(trackNumberId1, draft = true).let { (lt, a) ->
+            locationTrackAndGeometry(trackNumberId1, draft = true).let { (lt, a) ->
                 locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
             }
 
@@ -1066,7 +1066,7 @@ constructor(
         )
 
         val locationTrack2 =
-            locationTrackAndAlignment(trackNumberId2, draft = true).let { (lt, a) ->
+            locationTrackAndGeometry(trackNumberId2, draft = true).let { (lt, a) ->
                 locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
             }
 
@@ -1113,7 +1113,7 @@ constructor(
         )
 
         val locationTrack1 =
-            locationTrackAndAlignment(trackNumberId1, draft = true).let { (lt, a) ->
+            locationTrackAndGeometry(trackNumberId1, draft = true).let { (lt, a) ->
                 locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
             }
 
@@ -1128,7 +1128,7 @@ constructor(
         )
 
         val locationTrack2 =
-            locationTrackAndAlignment(trackNumberId2, draft = true).let { (lt, a) ->
+            locationTrackAndGeometry(trackNumberId2, draft = true).let { (lt, a) ->
                 locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
             }
 
@@ -1351,21 +1351,18 @@ constructor(
 
     @Test
     fun `changes published in design do not confuse publication change logs`() {
-        val trackNumber = mainDraftContext.insert(trackNumber(TrackNumber("original")))
+        val trackNumber = mainDraftContext.save(trackNumber(TrackNumber("original")))
         val referenceLine =
-            mainDraftContext.insert(
-                referenceLine(trackNumber.id),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
-            )
+            mainDraftContext.save(referenceLine(trackNumber.id), alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         val switch =
-            mainDraftContext.insert(
+            mainDraftContext.save(
                 switch(
                     name = "original",
                     joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(5.0, 5.0), null)),
                 )
             )
         val locationTrack =
-            mainDraftContext.insert(
+            mainDraftContext.save(
                 locationTrack(trackNumber.id, name = "original"),
                 alignment(
                     segment(Point(0.0, 0.0), Point(5.0, 5.0))
@@ -1374,7 +1371,7 @@ constructor(
                 ),
             )
         val kmPost =
-            mainDraftContext.insert(kmPost(trackNumber.id, km = KmNumber(124), roughLayoutLocation = Point(4.0, 4.0)))
+            mainDraftContext.save(kmPost(trackNumber.id, km = KmNumber(124), roughLayoutLocation = Point(4.0, 4.0)))
         val requestPublishEverything =
             publicationRequest(
                 trackNumbers = listOf(trackNumber.id),
@@ -1481,7 +1478,7 @@ constructor(
     @Test
     fun `track number created in design is reported as created`() {
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
-        val trackNumber = testDBService.testContext(testBranch, DRAFT).insert(trackNumber()).id
+        val trackNumber = testDBService.testContext(testBranch, DRAFT).save(trackNumber()).id
         publish(publicationService, testBranch, trackNumbers = listOf(trackNumber))
         trackNumberService.mergeToMainBranch(testBranch, trackNumber)
         publish(publicationService, trackNumbers = listOf(trackNumber))
@@ -1491,10 +1488,10 @@ constructor(
 
     @Test
     fun `location track created in design is reported as created`() {
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
         val locationTrack =
-            testDBService.testContext(testBranch, DRAFT).insert(locationTrack(trackNumber), alignment()).id
+            testDBService.testContext(testBranch, DRAFT).save(locationTrack(trackNumber), alignment()).id
         publish(publicationService, testBranch, locationTracks = listOf(locationTrack))
         locationTrackService.mergeToMainBranch(testBranch, locationTrack)
         publish(publicationService, locationTracks = listOf(locationTrack))
@@ -1505,7 +1502,7 @@ constructor(
     @Test
     fun `switch created in design is reported as created`() {
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
-        val switch = testDBService.testContext(testBranch, DRAFT).insert(switch()).id
+        val switch = testDBService.testContext(testBranch, DRAFT).save(switch()).id
         publish(publicationService, testBranch, switches = listOf(switch))
         switchService.mergeToMainBranch(testBranch, switch)
         publish(publicationService, switches = listOf(switch))
@@ -1515,9 +1512,9 @@ constructor(
 
     @Test
     fun `km post created in design is reported as created`() {
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
-        val kmPost = testDBService.testContext(testBranch, DRAFT).insert(kmPost(trackNumber, KmNumber(2))).id
+        val kmPost = testDBService.testContext(testBranch, DRAFT).save(kmPost(trackNumber, KmNumber(2))).id
         publish(publicationService, testBranch, kmPosts = listOf(kmPost))
         kmPostService.mergeToMainBranch(testBranch, kmPost)
         publish(publicationService, kmPosts = listOf(kmPost))

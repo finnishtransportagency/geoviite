@@ -40,7 +40,7 @@ constructor(
     fun `Publication log date search works`() {
         testDBService.clearAllTables()
 
-        val someTrackNumberId = mainDraftContext.insert(trackNumber(TrackNumber("Test track number"))).id
+        val someTrackNumberId = mainDraftContext.save(trackNumber(TrackNumber("Test track number"))).id
         val someReferenceLine = HelsinkiTestData.westReferenceLine(someTrackNumberId, draft = true)
         val someTrack = HelsinkiTestData.westMainLocationTrack(someTrackNumberId, draft = true)
 
@@ -54,12 +54,12 @@ constructor(
                     content =
                         publicationRequestIds(
                             referenceLines =
-                                listOf(mainDraftContext.insert(someReferenceLine.first, someReferenceLine.second).id)
+                                listOf(mainDraftContext.save(someReferenceLine.first, someReferenceLine.second).id)
                         ),
                     message = FreeTextWithNewLines.of("some test publication 2"),
                 ),
                 PublicationRequest(
-                    content = publicationRequestIds(locationTracks = listOf(mainDraftContext.insert(someTrack).id)),
+                    content = publicationRequestIds(locationTracks = listOf(mainDraftContext.save(someTrack).id)),
                     message = FreeTextWithNewLines.of("some test publication 3"),
                 ),
             )

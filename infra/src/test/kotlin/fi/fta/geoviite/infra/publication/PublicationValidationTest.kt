@@ -32,7 +32,7 @@ import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.offsetAlignment
 import fi.fta.geoviite.infra.tracklayout.rawPoints
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -137,7 +137,7 @@ class PublicationValidationTest {
                     ),
             )
         val good =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 trackNumberId = IntId(0),
                 segment(Point(0.0, 0.0), Point(10.0, 10.0))
                     .copy(switchId = switch.id as IntId, endJointNumber = switch.joints.last().number),
@@ -147,7 +147,7 @@ class PublicationValidationTest {
                 draft = true,
             )
         val broken =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 trackNumberId = IntId(0),
                 segment(Point(0.0, 0.0), Point(10.0, 10.0))
                     .copy(switchId = switch.id as IntId, endJointNumber = switch.joints.last().number),
@@ -485,7 +485,7 @@ class PublicationValidationTest {
                 draft = true,
             )
         val unlinkedTrack =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 IntId(0),
                 segment(Point(150.0, 150.0), Point(200.0, 200.0)),
                 draft = true,

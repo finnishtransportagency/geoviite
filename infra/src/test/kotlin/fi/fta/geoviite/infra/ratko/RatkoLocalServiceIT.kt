@@ -222,7 +222,7 @@ constructor(
                 ratkoRouteNumberOid != null -> ratkoRouteNumberOid
                 else ->
                     someOid<RatkoRouteNumber>().also { oid ->
-                        val trackNumber = mainDraftContext.insert(trackNumber(testDBService.getUnusedTrackNumber())).id
+                        val trackNumber = mainDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
                         trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid(oid.toString()))
                     }
             }

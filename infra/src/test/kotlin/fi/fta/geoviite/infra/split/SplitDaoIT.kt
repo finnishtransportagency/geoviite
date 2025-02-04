@@ -30,8 +30,8 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
-        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment)
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
@@ -58,8 +58,8 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
-        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment)
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
@@ -99,9 +99,9 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
-        val targetTrack1 = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
-        val targetTrack2 = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
+        val targetTrack1 = mainDraftContext.save(locationTrack(trackNumberId), alignment)
+        val targetTrack2 = mainDraftContext.save(locationTrack(trackNumberId), alignment)
 
         val relinkedSwitchId1 = mainOfficialContext.createSwitch().id
         val relinkedSwitchId2 = mainOfficialContext.createSwitch().id
@@ -138,9 +138,9 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
-        val someDuplicateTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
-        val targetTrack1 = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
+        val someDuplicateTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment)
+        val targetTrack1 = mainDraftContext.save(locationTrack(trackNumberId), alignment)
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
@@ -164,8 +164,8 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
-        val targetTrack1 = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
+        val targetTrack1 = mainDraftContext.save(locationTrack(trackNumberId), alignment)
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
@@ -243,9 +243,9 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
-        val someDuplicateTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
-        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
+        val someDuplicateTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment)
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 

@@ -184,7 +184,7 @@ constructor(
     fun switchWithNoJointsIsReturnedFirst() {
         val idOfSwitchWithNoJoints =
             mainOfficialContext
-                .insert(
+                .save(
                     switch(
                         name = testDBService.getUnusedSwitchName().toString(),
                         stateCategory = EXISTING,
@@ -229,7 +229,7 @@ constructor(
 
         val idOfSwitchLocatedAtComparisonPoint =
             mainOfficialContext
-                .insert(
+                .save(
                     switch(
                         name = testDBService.getUnusedSwitchName().toString(),
                         stateCategory = EXISTING,
@@ -345,11 +345,11 @@ constructor(
     @Test
     fun shouldReturnLocationTracksThatAreLinkedToSwitchAtMoment() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val switchId = mainOfficialContext.insert(switch()).id
+        val switchId = mainOfficialContext.save(switch()).id
 
         val locationTrack1Oid = someOid<LocationTrack>()
         val locationTrack1 =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(
                     trackNumberId = trackNumberId,
                     name = "LT 1",
@@ -360,7 +360,7 @@ constructor(
         locationTrackService.insertExternalId(LayoutBranch.main, locationTrack1.id, locationTrack1Oid)
 
         val locationTrack2 =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(
                     trackNumberId = trackNumberId,
                     name = "LT 2",
@@ -371,7 +371,7 @@ constructor(
 
         val locationTrack3Oid = someOid<LocationTrack>()
         val locationTrack3 =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(
                     trackNumberId = trackNumberId,
                     name = "LT 3",
@@ -414,7 +414,7 @@ constructor(
         val switchVersion = switchDao.save(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
         val (locationTrack, alignment) =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 mainDraftContext.createLayoutTrackNumber().id,
                 segment(joint1Point - 1.0, joint1Point),
                 draft = true,

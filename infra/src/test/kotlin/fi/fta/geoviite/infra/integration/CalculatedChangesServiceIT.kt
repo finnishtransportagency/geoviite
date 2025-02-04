@@ -39,6 +39,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
@@ -61,7 +62,13 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -71,11 +78,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -126,7 +128,7 @@ constructor(
     @Test
     fun locationTrackGeometryChangeGeneratesIndirectlySwitchChanges() {
         val testData = insertTestData()
-        val (locationTrack3, alignment3) = testData.locationTracksAndAlignments[2]
+        val (locationTrack3, alignment3) = testData.locationTracksAndGeometries[2]
 
         // Move alignment
         // - addresses should change
@@ -172,21 +174,21 @@ constructor(
                     ),
                 switchData = listOf(SwitchData(Point(100.0, 0.0), locationTrackIndexA = 1, locationTrackIndexB = 2)),
             )
-        val (locationTrack1, alignment1) = testData.locationTracksAndAlignments[0]
+        val (locationTrack1, geometry1) = testData.locationTracksAndGeometries[0]
         val switch = testData.switches[0]
 
         // Manually remove topology switch as it is automatically added when creating test data
-        val (updatedLocationTrack, updatedAlignment) =
-            removeTopologySwitchesFromLocationTrackAndUpdate(locationTrack1, alignment1, locationTrackService).let {
+        val (updatedLocationTrack, updatedGeometry) =
+            removeTopologySwitchesFromLocationTrackAndUpdate(locationTrack1, geometry1, locationTrackService).let {
                 version ->
                 val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
-                locationTrackService.getWithAlignment(publishedVersion)
+                locationTrackService.getWithGeometry(publishedVersion)
             }
 
         // Set topology switch info
         addTopologyEndSwitchIntoLocationTrackAndUpdate(
             updatedLocationTrack,
-            updatedAlignment,
+            updatedGeometry,
             switch.id as IntId,
             JointNumber(1),
             locationTrackService = locationTrackService,
@@ -213,7 +215,7 @@ constructor(
                     joint.copy(
                         number = JointNumber(1),
                         isRemoved = false,
-                        point = Point(alignment1.end!!),
+                        point = Point(geometry1.end!!),
                         address = TrackMeter("0", "100.000"),
                         locationTrackId = locationTrack1.id as IntId,
                     ),
@@ -240,21 +242,21 @@ constructor(
                     ),
                 switchData = listOf(SwitchData(Point(100.0, 0.0), locationTrackIndexA = 1, locationTrackIndexB = 2)),
             )
-        val (locationTrack1, alignment1) = testData.locationTracksAndAlignments[0]
+        val (locationTrack1, alignment1) = testData.locationTracksAndGeometries[0]
         val switch = testData.switches[0]
 
         // Manually remove topology switch as it is automatically added when creating test data
-        val (updatedLocationTrack, updatedAlignment) =
+        val (updatedLocationTrack, updatedGeometry) =
             removeTopologySwitchesFromLocationTrackAndUpdate(locationTrack1, alignment1, locationTrackService).let {
                 version ->
                 val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
-                locationTrackService.getWithAlignment(publishedVersion)
+                locationTrackService.getWithGeometry(publishedVersion)
             }
 
         // Set topology switch info
         addTopologyStartSwitchIntoLocationTrackAndUpdate(
             updatedLocationTrack,
-            updatedAlignment,
+            updatedGeometry,
             switch.id as IntId,
             JointNumber(1),
             locationTrackService = locationTrackService,
@@ -324,10 +326,10 @@ constructor(
                         ),
                     ),
             )
-        val (locationTrack1, alignment1) = testData.locationTracksAndAlignments[0]
+        val (locationTrack1, alignment1) = testData.locationTracksAndGeometries[0]
 
         // Set topology switch info
-        val (updatedLocationTrack, updatedAlignment) =
+        val (updatedLocationTrack, updatedGeometry) =
             addTopologyStartSwitchIntoLocationTrackAndUpdate(
                     locationTrack1,
                     alignment1,
@@ -335,11 +337,11 @@ constructor(
                     JointNumber(5), // Use non-presentation joint number
                     locationTrackService = locationTrackService,
                 )
-                .let(locationTrackService::getWithAlignment)
+                .let(locationTrackService::getWithGeometry)
 
         addTopologyEndSwitchIntoLocationTrackAndUpdate(
             updatedLocationTrack,
-            updatedAlignment,
+            updatedGeometry,
             testData.switches[1].id as IntId,
             JointNumber(3), // Use non-presentation joint number
             locationTrackService = locationTrackService,
@@ -374,7 +376,7 @@ constructor(
                     ),
                 switchData = listOf(SwitchData(Point(100.0, 0.0), locationTrackIndexA = 1, locationTrackIndexB = 2)),
             )
-        val (locationTrack1, alignment1) = testData.locationTracksAndAlignments[0]
+        val (locationTrack1, alignment1) = testData.locationTracksAndGeometries[0]
         val switch = testData.switches[0]
 
         // Add a topology switch to generate base state
@@ -388,7 +390,7 @@ constructor(
                 )
                 .let { version ->
                     val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
-                    locationTrackService.getWithAlignment(publishedVersion)
+                    locationTrackService.getWithGeometry(publishedVersion)
                 }
 
         // Then remove the topology switch info
@@ -432,8 +434,8 @@ constructor(
     @Test
     fun allChangedLocationTracksExistInIndirectSwitchChange() {
         val testData = insertTestData()
-        val (locationTrack3, alignment3) = testData.locationTracksAndAlignments[2]
-        val (locationTrack4, alignment4) = testData.locationTracksAndAlignments[3]
+        val (locationTrack3, alignment3) = testData.locationTracksAndGeometries[2]
+        val (locationTrack4, alignment4) = testData.locationTracksAndGeometries[3]
 
         // Move alignment
         // - addresses should change
@@ -488,7 +490,7 @@ constructor(
     @Test
     fun shouldNotGenerateIndirectSwitchChangesIfGeometryChangeIsNotInAddressRange() {
         val testData = insertTestData()
-        val (locationTrack3, alignment3) = testData.locationTracksAndAlignments[2]
+        val (locationTrack3, alignment3) = testData.locationTracksAndGeometries[2]
 
         // Move first 200m only (kilometer 0006)
         // - addresses should change
@@ -519,7 +521,7 @@ constructor(
     @Test
     fun referenceLineChangeGeneratesIndirectLocationTrackChanges() {
         val testData = insertTestData()
-        val (locationTrack1, _) = testData.locationTracksAndAlignments[0]
+        val (locationTrack1, _) = testData.locationTracksAndGeometries[0]
         val (referenceLine, referenceLineAlignment) = testData.referenceLineAndAlignment
 
         // Move first kilometer only (kilometer 5)
@@ -558,9 +560,9 @@ constructor(
     @Test
     fun referenceLineChangeGeneratesIndirectlyLocationTrackChangesThatGenerateIndirectlySwitchChanges() {
         val testData = insertTestData()
-        val (locationTrack1, _) = testData.locationTracksAndAlignments[0]
-        val (locationTrack3, _) = testData.locationTracksAndAlignments[2]
-        val (locationTrack4, _) = testData.locationTracksAndAlignments[3]
+        val (locationTrack1, _) = testData.locationTracksAndGeometries[0]
+        val (locationTrack3, _) = testData.locationTracksAndGeometries[2]
+        val (locationTrack4, _) = testData.locationTracksAndGeometries[3]
         val (referenceLine, referenceLineAlignment) = testData.referenceLineAndAlignment
 
         // Move points from kilometers 6 and 7
@@ -639,7 +641,7 @@ constructor(
     fun shouldCombineSwitchChangesAndGeometryChanges() {
         val testData = insertTestData()
         val switch = testData.switches.first()
-        val (locationTrack3, alignment3) = testData.locationTracksAndAlignments[2]
+        val (locationTrack3, alignment3) = testData.locationTracksAndGeometries[2]
 
         moveSwitchPoints(switch, { point -> point + 0.5 }, switchService)
 
@@ -737,8 +739,8 @@ constructor(
     fun `changing km post should indirectly cause track number changes that cause location track changes`() {
         val testData = insertTestData()
         val kmPost = testData.kmPosts[2]
-        val (locationTrack3, _) = testData.locationTracksAndAlignments[2]
-        val (locationTrack4, _) = testData.locationTracksAndAlignments[3]
+        val (locationTrack3, _) = testData.locationTracksAndGeometries[2]
+        val (locationTrack4, _) = testData.locationTracksAndGeometries[3]
 
         val location = kmPost.layoutLocation
 
@@ -757,8 +759,8 @@ constructor(
     fun `changing km post should indirectly cause track number changes that cause location track changes that cause switch changes`() {
         val testData = insertTestData()
         val kmPost = testData.kmPosts[2]
-        val (locationTrack3, _) = testData.locationTracksAndAlignments[2]
-        val (locationTrack4, _) = testData.locationTracksAndAlignments[3]
+        val (locationTrack3, _) = testData.locationTracksAndGeometries[2]
+        val (locationTrack4, _) = testData.locationTracksAndGeometries[3]
         val switch = testData.switches.first()
 
         val location = kmPost.layoutLocation
@@ -820,7 +822,7 @@ constructor(
     fun `changing reference line should indirectly cause track number changes that cause location track changes`() {
         val testData = insertTestData()
         val (referenceLine, alignment) = testData.referenceLineAndAlignment
-        val (locationTrack, _) = testData.locationTracksAndAlignments[0]
+        val (locationTrack, _) = testData.locationTracksAndGeometries[0]
 
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
@@ -853,11 +855,11 @@ constructor(
     @Test
     fun `location track changes should be included in calculated changes`() {
         val testData = insertTestData()
-        val (locationTrack, alignment) = testData.locationTracksAndAlignments[2]
+        val (locationTrack, geometry) = testData.locationTracksAndGeometries[2]
 
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
-            alignment = alignment,
+            geometry = geometry,
             moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService,
         )
@@ -871,12 +873,12 @@ constructor(
     @Test
     fun `changing location track should indirectly cause switch changes`() {
         val testData = insertTestData()
-        val (locationTrack, alignment) = testData.locationTracksAndAlignments[2]
+        val (locationTrack, geometry) = testData.locationTracksAndGeometries[2]
         val switch = testData.switches.first()
 
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
-            alignment = alignment,
+            geometry = geometry,
             moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService,
         )
@@ -945,11 +947,11 @@ constructor(
     fun `indirect location track changes should be combined with direct location track changes`() {
         val testData = insertTestData()
         val (referenceLine, referenceLineAlignment) = testData.referenceLineAndAlignment
-        val (locationTrack, locationTrackAlignment) = testData.locationTracksAndAlignments[0]
+        val (locationTrack, locationTrackGeometry) = testData.locationTracksAndGeometries[0]
 
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
-            alignment = locationTrackAlignment,
+            geometry = locationTrackGeometry,
             moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService,
         )
@@ -984,14 +986,14 @@ constructor(
     @Test
     fun `indirect switch changes should be combined with direct switch changes`() {
         val testData = insertTestData()
-        val (locationTrack, alignment) = testData.locationTracksAndAlignments[2]
+        val (locationTrack, geometry) = testData.locationTracksAndGeometries[2]
         val switch = testData.switches.first()
 
         switchService.saveDraft(LayoutBranch.main, switch.copy(name = SwitchName(UUID.randomUUID().toString())))
 
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
-            alignment = alignment,
+            geometry = geometry,
             moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService,
         )
@@ -1031,7 +1033,7 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrack(trackNumberId, draft = true),
-                alignment(
+                trackGeometryOfSegments(
                     segment(Point(0.0, 0.0), Point(0.0, 10.0)).copy(switchId = switch, endJointNumber = JointNumber(1)),
                     segment(Point(0.0, 10.00001), Point(0.0, 20.0))
                         .copy(switchId = switch, startJointNumber = JointNumber(1)),
@@ -1051,15 +1053,15 @@ constructor(
     @Test
     fun `changes done in a main publication can be inherited to assets edited in design`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         val kmPost =
-            mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
-        val switch = mainOfficialContext.insert(switch(joints = listOf(switchJoint(1, Point(7.0, 0.0))))).id
+            mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        val switch = mainOfficialContext.save(switch(joints = listOf(switchJoint(1, Point(7.0, 0.0))))).id
         val locationTrack =
             mainOfficialContext
-                .insert(
+                .save(
                     locationTrack(trackNumber),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(Point(0.0, 0.0), Point(7.0, 0.0))
                             .copy(switchId = switch, endJointNumber = JointNumber(1))
                     ),
@@ -1068,8 +1070,8 @@ constructor(
 
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        designDraftContext.insert(mainOfficialContext.fetch(switch)!!)
-        designDraftContext.insert(mainOfficialContext.fetch(locationTrack)!!)
+        designDraftContext.save(mainOfficialContext.fetch(switch)!!)
+        designDraftContext.save(mainOfficialContext.fetch(locationTrack)!!)
         publicationTestSupportService.publish(
             designBranch,
             publicationRequestIds(switches = listOf(switch), locationTracks = listOf(locationTrack)),
@@ -1114,17 +1116,17 @@ constructor(
     @Test
     fun `changes done in a main publication can be inherited to assets created in design`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val kmPost =
-            mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
-        val switch = designDraftContext.insert(switch(joints = listOf(switchJoint(1, Point(7.0, 0.0))))).id
+            mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        val switch = designDraftContext.save(switch(joints = listOf(switchJoint(1, Point(7.0, 0.0))))).id
         val locationTrack =
             designDraftContext
-                .insert(
+                .save(
                     locationTrack(trackNumber),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(Point(0.0, 0.0), Point(7.0, 0.0))
                             .copy(switchId = switch, endJointNumber = JointNumber(1))
                     ),
@@ -1175,12 +1177,12 @@ constructor(
     @Test
     fun `changes to main objects that are overridden in design don't cause inherited changes`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         val kmPost =
-            mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+            mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
         val switch =
             mainOfficialContext
-                .insert(
+                .save(
                     switch(
                         joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(7.0, 0.0), null))
                     )
@@ -1188,9 +1190,9 @@ constructor(
                 .id
         val locationTrack =
             mainOfficialContext
-                .insert(
+                .save(
                     locationTrack(trackNumber),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(Point(0.0, 0.0), Point(7.0, 0.0))
                             .copy(switchId = switch, endJointNumber = JointNumber(1))
                     ),
@@ -1199,11 +1201,11 @@ constructor(
 
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        designDraftContext.insert(mainOfficialContext.fetch(switch)!!)
-        designDraftContext.insert(mainOfficialContext.fetch(locationTrack)!!)
+        designDraftContext.save(mainOfficialContext.fetch(switch)!!)
+        designDraftContext.save(mainOfficialContext.fetch(locationTrack)!!)
         // the beef: the design contains a version of the kmPost, so moving it in main should cause
         // no geocoding changes in the design
-        designDraftContext.insert(mainOfficialContext.fetch(kmPost)!!)
+        designDraftContext.save(mainOfficialContext.fetch(kmPost)!!)
         publicationTestSupportService.publish(
             designBranch,
             publicationRequestIds(
@@ -1235,17 +1237,17 @@ constructor(
     @Test
     fun `getChangedSwitchesFromChangedLocationTrackKms happy path`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(12.0, 0.0))))
-        mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
-        mainOfficialContext.insert(kmPost(trackNumber, KmNumber(2), roughLayoutLocation = Point(6.0, 0.0))).id
-        mainOfficialContext.insert(kmPost(trackNumber, KmNumber(3), roughLayoutLocation = Point(9.0, 0.0))).id
-        val switchAt0 = mainDraftContext.insert(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
-        val switchAt4 = mainDraftContext.insert(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
+        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(12.0, 0.0))))
+        mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        mainOfficialContext.save(kmPost(trackNumber, KmNumber(2), roughLayoutLocation = Point(6.0, 0.0))).id
+        mainOfficialContext.save(kmPost(trackNumber, KmNumber(3), roughLayoutLocation = Point(9.0, 0.0))).id
+        val switchAt0 = mainDraftContext.save(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
+        val switchAt4 = mainDraftContext.save(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
         val locationTrack =
             mainDraftContext
-                .insert(
+                .save(
                     locationTrack(trackNumber),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(Point(0.0, 0.0), Point(2.0, 0.0))
                             .copy(switchId = switchAt0, startJointNumber = JointNumber(1)),
                         segment(Point(2.0, 0.0), Point(4.0, 0.0))
@@ -1292,15 +1294,15 @@ constructor(
     @Test
     fun `getChangedSwitchesFromChangedLocationTrackKms accepts cancelled location tracks created in design`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(12.0, 0.0))))
-        mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
-        val switch = mainOfficialContext.insert(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
+        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(12.0, 0.0))))
+        mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        val switch = mainOfficialContext.save(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
         val locationTrack =
-            designOfficialContext.insert(
+            designOfficialContext.save(
                 locationTrack(trackNumber),
-                alignment(
+                trackGeometryOfSegments(
                     segment(Point(0.0, 0.0), Point(4.0, 0.0)).copy(switchId = switch, endJointNumber = JointNumber(1)),
                     segment(Point(4.0, 0.0), Point(10.0, 0.0))
                         .copy(switchId = switch, startJointNumber = JointNumber(1)),
@@ -1327,7 +1329,7 @@ constructor(
 
     data class TestData(
         val trackNumber: LayoutTrackNumber,
-        val locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
+        val locationTracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
         val referenceLineAndAlignment: Pair<ReferenceLine, LayoutAlignment>,
         val kmPosts: List<LayoutKmPost>,
         val switches: List<LayoutSwitch>,
@@ -1454,12 +1456,12 @@ constructor(
             locationTracksAndAlignments.map { (locationTrack, _) ->
                 val id = locationTrack.id as IntId
                 val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
-                val (edited, editedAlignment) = locationTrackService.getWithAlignment(rowVersion)
+                val (edited, editedGeometry) = locationTrackService.getWithGeometry(rowVersion)
                 if (edited.isDraft) {
                     val publicationResponse = locationTrackService.publish(LayoutBranch.main, rowVersion)
-                    locationTrackService.getWithAlignment(publicationResponse)
+                    locationTrackService.getWithGeometry(publicationResponse)
                 } else {
-                    edited to editedAlignment
+                    edited to editedGeometry
                 }
             }
         val publishedSwitches =
@@ -1477,7 +1479,7 @@ constructor(
 
         return TestData(
             trackNumber = trackNumber,
-            locationTracksAndAlignments = publishedLocationTracksAndAlignments,
+            locationTracksAndGeometries = publishedLocationTracksAndAlignments,
             referenceLineAndAlignment = referenceLine to referenceLineGeometry,
             kmPosts = kmPosts,
             switches = publishedSwitches,

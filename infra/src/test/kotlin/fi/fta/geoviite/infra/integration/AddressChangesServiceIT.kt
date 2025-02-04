@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -40,6 +41,7 @@ import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.splitSegment
 import fi.fta.geoviite.infra.tracklayout.toAlignmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import java.time.Instant
 import kotlin.math.ceil
@@ -159,7 +161,7 @@ constructor(
                 setupData.locationTrack.trackNumberId,
             )!!
 
-        removeLocationTrackGeometryAndUpdate(initialLocationTrack, setupData.locationTrackGeometry)
+        removeLocationTrackGeometryAndUpdate(initialLocationTrack)
         val updateMoment = locationTrackDao.fetchChangeTime()
 
         val changes =
@@ -188,21 +190,20 @@ constructor(
         // Move start-point a bit
         updateAndPublish(
             initialLocationTrack,
-            setupData.locationTrackGeometry.copy(
-                segments =
-                    setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
-                        if (index == 0)
-                            segment.copy(
-                                geometry =
-                                    segment.geometry.withPoints(
-                                        fixMValues(
-                                            listOf(movePoint(segment.segmentPoints.first(), -1.0)) +
-                                                segment.segmentPoints.drop(1)
-                                        )
+            trackGeometryOfSegments(
+                setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
+                    if (index == 0)
+                        segment.copy(
+                            geometry =
+                                segment.geometry.withPoints(
+                                    fixMValues(
+                                        listOf(movePoint(segment.segmentPoints.first(), -1.0)) +
+                                            segment.segmentPoints.drop(1)
                                     )
-                            )
-                        else segment
-                    }
+                                )
+                        )
+                    else segment
+                }
             ),
         )
         val updateMoment = locationTrackDao.fetchChangeTime()
@@ -620,7 +621,7 @@ constructor(
 
     data class SetupData(
         val locationTrack: LocationTrack,
-        val locationTrackGeometry: LayoutAlignment,
+        val locationTrackGeometry: LocationTrackGeometry,
         val referenceLine: ReferenceLine,
         val referenceLineGeometry: LayoutAlignment,
         val kmPosts: List<LayoutKmPost>,
@@ -671,36 +672,21 @@ constructor(
                 )
             )
         val alignmentPoints = referenceLinePoints.subList(2, referenceLinePoints.count() - 2)
-        val locationTrackGeometryVersion =
-            layoutAlignmentDao.insert(alignment(splitSegment(segment(*alignmentPoints.toTypedArray()), 3)))
-        val locationTrackGeometry = layoutAlignmentDao.fetch(locationTrackGeometryVersion)
-        val locationTrack =
-            locationTrackDao.fetch(
-                locationTrackDao.save(
-                    locationTrack(
-                        trackNumberId = trackNumber.id as IntId,
-                        alignment = locationTrackGeometry,
-                        name = "TEST LocTr $sequence",
-                        alignmentVersion = locationTrackGeometryVersion,
-                        draft = false,
-                    )
-                )
+
+        val (locationTrack, geometry) =
+            mainOfficialContext.insertAndFetch(
+                locationTrack(trackNumberId = trackNumber.id as IntId, name = "TEST LocTr $sequence", draft = false),
+                trackGeometryOfSegments(splitSegment(segment(*alignmentPoints.toTypedArray()), 3)),
             )
 
-        return SetupData(
-            locationTrack,
-            locationTrackGeometry,
-            referenceLine,
-            referenceLineGeometry,
-            listOf(kmPost1, kmPost2),
-        )
+        return SetupData(locationTrack, geometry, referenceLine, referenceLineGeometry, listOf(kmPost1, kmPost2))
     }
 
-    fun removeLocationTrackGeometryAndUpdate(locationTrack: LocationTrack, alignment: LayoutAlignment) =
-        updateAndPublish(locationTrack, alignment.copy(segments = listOf()))
+    fun removeLocationTrackGeometryAndUpdate(locationTrack: LocationTrack) =
+        updateAndPublish(locationTrack, LocationTrackGeometry.empty)
 
-    fun updateAndPublish(locationTrack: LocationTrack, alignment: LayoutAlignment) {
-        val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+    fun updateAndPublish(locationTrack: LocationTrack, geometry: LocationTrackGeometry) {
+        val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry)
         locationTrackService.publish(LayoutBranch.main, version)
     }
 

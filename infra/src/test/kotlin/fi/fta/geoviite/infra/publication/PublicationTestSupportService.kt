@@ -86,11 +86,11 @@ constructor(
 
     fun simpleSplitSetup(sourceLocationTrackState: LocationTrackState = LocationTrackState.DELETED): SplitSetup {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
         val startSegment = segment(Point(0.0, 0.0), Point(5.0, 0.0))
         val endSegment = segment(Point(5.0, 0.0), Point(10.0, 0.0))
-        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment(startSegment, endSegment))
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment(startSegment, endSegment))
         locationTrackDao.insertExternalId(sourceTrack.id, LayoutBranch.main, someOid())
 
         val draftSource =
@@ -98,9 +98,9 @@ constructor(
                 locationTrackService.saveDraft(LayoutBranch.main, d)
             }
 
-        val startTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment(startSegment))
+        val startTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment(startSegment))
 
-        val endTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment(endSegment))
+        val endTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment(endSegment))
 
         return SplitSetup(draftSource, listOf(startTrack to 0..0, endTrack to 1..1))
     }

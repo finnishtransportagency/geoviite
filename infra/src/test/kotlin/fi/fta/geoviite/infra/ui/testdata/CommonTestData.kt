@@ -46,6 +46,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -54,7 +55,7 @@ import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchOwnerVayla
@@ -120,7 +121,7 @@ fun locationTrack(
     incrementPoints: List<Point>,
     description: String = "$name location track description",
     draft: Boolean = false,
-): Pair<LocationTrack, LayoutAlignment> {
+): Pair<LocationTrack, LocationTrackGeometry> {
     val alignment = alignmentFromPointIncrementList(basePoint, incrementPoints)
     val track =
         locationTrack(
@@ -197,7 +198,7 @@ fun locationTrackAndAlignmentForGeometryAlignment(
     geometryAlignment: GeometryAlignment,
     transformation: Transformation,
     draft: Boolean,
-): Pair<LocationTrack, LayoutAlignment> {
+): Pair<LocationTrack, LocationTrackGeometry> {
     val segments =
         geometryAlignment.elements.map { element ->
             val start = transformation.transform(element.start)
@@ -220,7 +221,7 @@ fun locationTrackAndAlignmentForGeometryAlignment(
                 switchId = null,
             )
         }
-    return locationTrackAndAlignment(trackNumberId, segments, draft = draft)
+    return locationTrackAndGeometry(trackNumberId, segments, draft = draft)
 }
 
 fun createSwitchAndAlignments(

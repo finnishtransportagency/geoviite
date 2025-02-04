@@ -21,7 +21,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import java.math.BigDecimal
@@ -690,7 +690,7 @@ constructor(
         val trackEnd = Point(5.0, 2.0)
         val trackSegments = listOf(segment(trackStart, trackEnd))
         val (track, _) =
-            mainOfficialContext.insertAndFetch(locationTrackAndAlignment(trackNumberId, segments = trackSegments))
+            mainOfficialContext.insertAndFetch(locationTrackAndGeometry(trackNumberId, segments = trackSegments))
 
         // Seek a point that is offset from both the track and the reference line - perpendicular
         // from track point x=0 y=1.5
@@ -736,12 +736,14 @@ constructor(
         segments: List<LayoutSegment> = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
     ): GeocodableTrack {
         val referenceLineId =
-            layoutContext.insert(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments)).id
+            layoutContext
+                .saveReferenceLine(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
+                .id
 
         val locationTrackId =
             layoutContext
-                .insert(
-                    locationTrackAndAlignment(
+                .saveLocationTrack(
+                    locationTrackAndGeometry(
                         trackNumberId = trackNumberId,
                         name = locationTrackName,
                         type = locationTrackType,

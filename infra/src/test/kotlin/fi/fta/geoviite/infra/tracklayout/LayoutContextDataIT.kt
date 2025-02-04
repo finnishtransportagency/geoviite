@@ -233,7 +233,7 @@ constructor(
         )
 
     private fun createLocationTrackAndAlignment(draft: Boolean): Pair<LocationTrack, LayoutAlignment> =
-        locationTrackAndAlignment(
+        locationTrackAndGeometry(
             mainOfficialContext.createLayoutTrackNumber().id,
             segment(Point(10.0, 10.0), Point(11.0, 11.0)),
             draft = draft,

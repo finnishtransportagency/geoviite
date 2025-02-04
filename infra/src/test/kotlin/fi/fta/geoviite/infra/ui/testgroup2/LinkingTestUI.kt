@@ -123,7 +123,7 @@ constructor(
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         createAndInsertCommonReferenceLine(trackNumberId)
         val originalLocationTrack =
-            mainOfficialContext.insert(
+            mainOfficialContext.saveLocationTrack(
                 locationTrack(
                     name = "A",
                     trackNumber = trackNumberId,
@@ -192,7 +192,7 @@ constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         createAndInsertCommonReferenceLine(trackNumberId)
         val originalLocationTrack =
-            mainOfficialContext.insert(
+            mainOfficialContext.saveLocationTrack(
                 locationTrack(
                     name = "A",
                     trackNumber = trackNumberId,
@@ -227,7 +227,7 @@ constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         createAndInsertCommonReferenceLine(trackNumberId)
         val originalLocationTrack =
-            mainOfficialContext.insert(
+            mainOfficialContext.saveLocationTrack(
                 locationTrack(
                     name = "A",
                     trackNumber = trackNumberId,
@@ -430,7 +430,7 @@ constructor(
                 .save()
 
         val originalLocationTrack =
-            mainOfficialContext.insert(
+            mainOfficialContext.saveLocationTrack(
                 locationTrack(
                     name = "track to extend",
                     trackNumber = trackNumberId,
@@ -501,7 +501,7 @@ constructor(
                 .save()
 
         val originalLocationTrack =
-            mainOfficialContext.insert(
+            mainOfficialContext.saveLocationTrack(
                 locationTrack(
                     name = "track to extend",
                     trackNumber = trackNumberId,
@@ -626,8 +626,8 @@ constructor(
                 basePoint = DEFAULT_BASE_POINT + Point(12.0, 12.0),
                 incrementPoints = (1..10).map { Point(1.0, 1.0) },
             )
-        mainOfficialContext.insert(originalLocationTrack)
-        mainOfficialContext.insert(
+        mainOfficialContext.saveLocationTrack(originalLocationTrack)
+        mainOfficialContext.saveLocationTrack(
             locationTrack(
                 name = "unrelated track",
                 trackNumber = trackNumberId,

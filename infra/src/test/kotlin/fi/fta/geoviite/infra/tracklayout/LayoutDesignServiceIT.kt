@@ -53,11 +53,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
-        val trackNumber = designDraftContext.insert(trackNumber())
-        designDraftContext.insert(referenceLine(trackNumber.id), alignment)
-        designDraftContext.insert(locationTrack(trackNumber.id), alignment)
-        designDraftContext.insert(switch())
-        designDraftContext.insert(kmPost(trackNumber.id, KmNumber(123)))
+        val trackNumber = designDraftContext.save(trackNumber())
+        designDraftContext.save(referenceLine(trackNumber.id), alignment)
+        designDraftContext.save(locationTrack(trackNumber.id), alignment)
+        designDraftContext.save(switch())
+        designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
         val latestPublication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
         layoutDesignService.update(designId, designForm(designId))
@@ -71,7 +71,7 @@ constructor(
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
 
-        val trackNumber = designDraftContext.insert(trackNumber()).id
+        val trackNumber = designDraftContext.save(trackNumber()).id
         publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber)))
         val latestPublication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
         layoutDesignService.update(designId, designForm(designId))
@@ -91,7 +91,7 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        val trackNumber = designDraftContext.insert(trackNumber()).id
+        val trackNumber = designDraftContext.save(trackNumber()).id
 
         publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber)))
         trackNumberService.mergeToMainBranch(designBranch, trackNumber)
@@ -115,11 +115,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
-        val trackNumber = designDraftContext.insert(trackNumber())
-        val referenceLine = designDraftContext.insert(referenceLine(trackNumber.id), alignment)
-        val locationTrack = designDraftContext.insert(locationTrack(trackNumber.id), alignment)
-        val switch = designDraftContext.insert(switch())
-        val kmPost = designDraftContext.insert(kmPost(trackNumber.id, KmNumber(123)))
+        val trackNumber = designDraftContext.save(trackNumber())
+        val referenceLine = designDraftContext.save(referenceLine(trackNumber.id), alignment)
+        val locationTrack = designDraftContext.save(locationTrack(trackNumber.id), alignment)
+        val switch = designDraftContext.save(switch())
+        val kmPost = designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
         publicationTestSupportService.publish(
             designBranch,
@@ -156,11 +156,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
-        val trackNumber = designDraftContext.insert(trackNumber())
-        designDraftContext.insert(referenceLine(trackNumber.id), alignment)
-        designDraftContext.insert(locationTrack(trackNumber.id), alignment)
-        designDraftContext.insert(switch())
-        designDraftContext.insert(kmPost(trackNumber.id, KmNumber(123)))
+        val trackNumber = designDraftContext.save(trackNumber())
+        designDraftContext.save(referenceLine(trackNumber.id), alignment)
+        designDraftContext.save(locationTrack(trackNumber.id), alignment)
+        designDraftContext.save(switch())
+        designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
         deleteDesign(designId)
 
@@ -178,11 +178,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
 
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
-        mainOfficialContext.insert(referenceLine(trackNumber), alignment)
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        mainOfficialContext.save(referenceLine(trackNumber), alignment)
         val switch =
             mainOfficialContext
-                .insert(
+                .save(
                     switch(
                         joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null))
                     )
@@ -190,7 +190,7 @@ constructor(
                 .id
         val locationTrack =
             mainOfficialContext
-                .insert(
+                .save(
                     locationTrack(trackNumber),
                     alignment(
                         segment(Point(0.0, 0.0), Point(10.0, 0.0))
@@ -198,7 +198,7 @@ constructor(
                     ),
                 )
                 .id
-        designDraftContext.insert(mainOfficialContext.fetch(trackNumber)!!)
+        designDraftContext.save(mainOfficialContext.fetch(trackNumber)!!)
         publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber)))
 
         // at the time of writing this test, we don't actually have support for updating designs

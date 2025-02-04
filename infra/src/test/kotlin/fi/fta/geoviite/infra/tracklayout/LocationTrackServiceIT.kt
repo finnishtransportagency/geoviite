@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -30,7 +31,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -58,7 +58,7 @@ constructor(
     @Test
     fun creatingAndDeletingUnpublishedTrackWithAlignmentWorks() {
         val (track, alignment) =
-            locationTrackAndAlignment(mainDraftContext.createLayoutTrackNumber().id, someSegment(), draft = true)
+            locationTrackAndGeometry(mainDraftContext.createLayoutTrackNumber().id, someSegment(), draft = true)
         val version = locationTrackService.saveDraft(LayoutBranch.main, track, alignment)
         val id = version.id
         val (savedTrack, savedAlignment) = locationTrackService.getWithAlignment(version)
@@ -72,7 +72,7 @@ constructor(
     @Test
     fun deletingOfficialLocationTrackThrowsException() {
         val (track, alignment) =
-            locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, someSegment(), draft = true)
+            locationTrackAndGeometry(mainOfficialContext.createLayoutTrackNumber().id, someSegment(), draft = true)
         val version = locationTrackService.saveDraft(LayoutBranch.main, track, alignment)
         publish(version.id)
         assertThrows<DeletingFailureException> { locationTrackService.deleteDraft(LayoutBranch.main, version.id) }
@@ -82,13 +82,13 @@ constructor(
     fun nearbyLocationTracksAreFoundWithBbox() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val (trackInside, alignmentInside) =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 trackNumberId,
                 segment(Point(x = 0.0, y = 0.0), Point(x = 5.0, y = 0.0)),
                 draft = true,
             )
         val (trackOutside, alignmentOutside) =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 trackNumberId,
                 segment(Point(x = 20.0, y = 20.0), Point(x = 30.0, y = 20.0)),
                 draft = true,
@@ -664,11 +664,11 @@ constructor(
     @Test
     fun `getFullDescriptions() works in happy case`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switch1 = mainDraftContext.insert(switch(name = "ABC V123"))
-        val switch2 = mainDraftContext.insert(switch(name = "QUX V456"))
+        val switch1 = mainDraftContext.save(switch(name = "ABC V123"))
+        val switch2 = mainDraftContext.save(switch(name = "QUX V456"))
         val track1 =
             mainDraftContext
-                .insert(
+                .save(
                     locationTrack(
                         trackNumberId,
                         topologyStartSwitch = TopologyLocationTrackSwitch(switch1.id, JointNumber(1)),
@@ -688,7 +688,7 @@ constructor(
                 .id
         val track2 =
             mainDraftContext
-                .insert(
+                .save(
                     locationTrack(
                         trackNumberId,
                         description = "track 2",

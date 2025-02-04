@@ -586,7 +586,7 @@ constructor(
             trackNumbers = listOf(originalTrackNumber.id),
             referenceLines = listOf(originalReferenceLineVersion.id),
         )
-        mainDraftContext.insert(originalReferenceLine, alignment(segment(Point(0.0, 0.0), Point(20.0, 0.0))))
+        mainDraftContext.save(originalReferenceLine, alignment(segment(Point(0.0, 0.0), Point(20.0, 0.0))))
         publishAndPush(referenceLines = listOf(originalReferenceLineVersion.id))
         val pushedPoints = fakeRatko.getCreatedRouteNumberPoints("1.2.3.4.5")
         assertEquals(9, pushedPoints[0].size)
@@ -939,7 +939,7 @@ constructor(
                 switches = listOf(switch.id),
             ),
         )
-        mainDraftContext.insert(switchDao.fetch(switch).copy(stateCategory = LayoutStateCategory.NOT_EXISTING))
+        mainDraftContext.save(switchDao.fetch(switch).copy(stateCategory = LayoutStateCategory.NOT_EXISTING))
         detachSwitchesFromTrack(throughTrack.id)
         detachSwitchesFromTrack(branchingTrack.id)
 
@@ -1507,10 +1507,10 @@ constructor(
         val designDraft = testDBService.testContext(design, PublicationState.DRAFT)
 
         val trackNumber = establishedTrackNumber("1.1.1.1.1")
-        val switch = designDraft.insert(switch(joints = listOf(switchJoint(1, Point(1.0, 0.0))))).id
+        val switch = designDraft.save(switch(joints = listOf(switchJoint(1, Point(1.0, 0.0))))).id
         val locationTrack =
             designDraft
-                .insert(
+                .save(
                     locationTrack(trackNumber.id),
                     alignment(
                         segment(Point(0.0, 0.0), Point(1.0, 0.0)),
@@ -1548,7 +1548,7 @@ constructor(
         trackNumberId: IntId<LayoutTrackNumber>,
         draft: Boolean,
     ): LayoutRowVersion<ReferenceLine> =
-        (if (draft) mainDraftContext else mainOfficialContext).insert(
+        (if (draft) mainDraftContext else mainOfficialContext).save(
             referenceLine(trackNumberId),
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )

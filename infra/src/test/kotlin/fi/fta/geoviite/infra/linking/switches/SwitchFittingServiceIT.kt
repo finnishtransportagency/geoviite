@@ -23,7 +23,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import kotlin.test.assertEquals
@@ -159,10 +159,10 @@ constructor(
         layoutContext: LayoutContext = MainLayoutContext.official,
     ) {
         val context = testDBService.testContext(layoutContext.branch, layoutContext.state)
-        val trackNumber = context.insert(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val trackNumber = context.save(trackNumber(testDBService.getUnusedTrackNumber())).id
         val segment =
             segment(Point(0.0, 0.0), Point(1.0, 0.0))
                 .copy(sourceId = plan.alignments[0].elements[0].id as IndexedId<GeometryElement>)
-        context.insert(locationTrackAndAlignment(trackNumber, segment))
+        context.save(locationTrackAndGeometry(trackNumber, segment))
     }
 }

@@ -10,7 +10,7 @@ import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import kotlin.test.assertContains
 import kotlin.test.assertNotNull
@@ -203,7 +203,7 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
         val planVersion = geometryDao.insertPlan(plan, file, null)
         val element = geometryDao.fetchPlan(planVersion).alignments[0].elements[0]
         val track =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 trackNumberId,
                 segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id as IndexedId),
                 draft = true,

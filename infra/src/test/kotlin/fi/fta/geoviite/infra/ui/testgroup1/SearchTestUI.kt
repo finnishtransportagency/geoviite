@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -24,7 +24,7 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
         val ltNames =
             listOf("test-lt A1" to "test-desc-1", "test-lt B2" to "test-desc-2", "test-lt B3" to "test-desc-3")
         ltNames.forEach { (name, desc) ->
-            mainOfficialContext.insert(locationTrackAndAlignment(trackNumberId = tnId, name = name, description = desc))
+            mainOfficialContext.save(locationTrackAndGeometry(trackNumberId = tnId, name = name, description = desc))
         }
 
         startGeoviite()
@@ -45,7 +45,7 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val (track, _) =
             mainOfficialContext.insertAndFetch(
-                locationTrackAndAlignment(
+                locationTrackAndGeometry(
                     trackNumberId = trackNumberId,
                     name = "test-lt specific 001",
                     description = "specific track selection test track 001",

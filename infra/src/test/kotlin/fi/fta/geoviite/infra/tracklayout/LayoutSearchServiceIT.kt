@@ -153,7 +153,7 @@ constructor(
             .id as IntId
 
         val lt1 =
-            mainDraftContext.insert( // Location track search scope origin, should be included
+            mainDraftContext.save( // Location track search scope origin, should be included
                 locationTrack(
                     trackNumberId = trackNumberId,
                     name = "blaa",
@@ -163,7 +163,7 @@ constructor(
                 someAlignment(),
             )
         val lt2 =
-            mainDraftContext.insert( // Duplicate based on duplicateOf, should be included
+            mainDraftContext.save( // Duplicate based on duplicateOf, should be included
                 locationTrack(
                     trackNumberId = trackNumberId,
                     name = "blee",
@@ -173,7 +173,7 @@ constructor(
                 someAlignment(),
             )
         val lt3 =
-            mainDraftContext.insert( // Duplicate based on switches, should be included
+            mainDraftContext.save( // Duplicate based on switches, should be included
                 locationTrack(
                     trackNumberId = trackNumberId,
                     name = "bloo",
@@ -182,7 +182,7 @@ constructor(
                 ),
                 someAlignment(),
             )
-        mainDraftContext.insert( // Non-duplicate, shouldn't be included in search results
+        mainDraftContext.save( // Non-duplicate, shouldn't be included in search results
             locationTrack(trackNumberId = trackNumberId, name = "bluu"),
             someAlignment(),
         )

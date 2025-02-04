@@ -44,12 +44,13 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.kmPost
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -59,7 +60,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -113,7 +113,7 @@ constructor(
         val segment3 = segment(start + 9.0, start + 10.0, start + 11.0)
 
         val (locationTrack, alignment) =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 mainOfficialContext.createLayoutTrackNumber().id,
                 segment1,
                 segment2,
@@ -180,7 +180,7 @@ constructor(
     @Test
     fun kmPostGeometryLinkingWorks() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val kmPostId = mainOfficialContext.insert(kmPost(trackNumberId, someKmNumber())).id
+        val kmPostId = mainOfficialContext.save(kmPost(trackNumberId, someKmNumber())).id
         val officialKmPost = kmPostService.get(MainLayoutContext.official, kmPostId)
 
         assertMatches(
@@ -223,7 +223,7 @@ constructor(
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val (locationTrack, alignment) =
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
                 state = LocationTrackState.DELETED,
                 draft = true,
@@ -254,7 +254,7 @@ constructor(
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val (locationTrack, alignment) =
-            locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, draft = true)
+            locationTrackAndGeometry(mainOfficialContext.createLayoutTrackNumber().id, draft = true)
         val locationTrackResponse =
             locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { rowVersion ->
                 locationTrackService.publish(LayoutBranch.main, rowVersion)
@@ -307,7 +307,7 @@ constructor(
         val segment1 = segment(start, start + 1.0, start + 2.0, start + 3.0, start + 4.0)
 
         val (locationTrack, alignment) =
-            locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, segment1, draft = true)
+            locationTrackAndGeometry(mainOfficialContext.createLayoutTrackNumber().id, segment1, draft = true)
         val locationTrackResponse =
             locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { rowVersion ->
                 locationTrackService.publish(LayoutBranch.main, rowVersion)
@@ -368,11 +368,11 @@ constructor(
         val linkingSwitchAndLocationTrack =
             geometryDao.fetchPlan(geometryDao.insertPlan(makeSomePlan(), testFile(), null))
         val linkingKmPost = geometryDao.fetchPlan(geometryDao.insertPlan(makeSomePlan(), testFile(), null))
-        val trackNumberId = mainOfficialContext.insert(trackNumber(trackNumber)).id
+        val trackNumberId = mainOfficialContext.save(trackNumber(trackNumber)).id
         val linkedLocationTrack =
             mainDraftContext
-                .insert(
-                    locationTrackAndAlignment(
+                .save(
+                    locationTrackAndGeometry(
                         trackNumberId,
                         segment(Point(0.0, 0.0), Point(10.0, 0.0))
                             .copy(sourceId = linkingLocationTrack.alignments[0].elements[0].id as IndexedId),
@@ -381,7 +381,7 @@ constructor(
                 .id
         val linkedReferenceLine =
             mainDraftContext
-                .insert(
+                .save(
                     referenceLineAndAlignment(
                         trackNumberId,
                         segment(Point(0.0, 0.0), Point(10.0, 0.0))
@@ -389,11 +389,11 @@ constructor(
                     )
                 )
                 .id
-        val linkedSwitch = mainDraftContext.insert(switch(stateCategory = LayoutStateCategory.EXISTING)).id
+        val linkedSwitch = mainDraftContext.save(switch(stateCategory = LayoutStateCategory.EXISTING)).id
         val linkedLocationTrackAlongSwitch =
             mainDraftContext
-                .insert(
-                    locationTrackAndAlignment(
+                .save(
+                    locationTrackAndGeometry(
                         trackNumberId,
                         segment(Point(0.0, 0.0), Point(10.0, 0.0))
                             .copy(
@@ -405,7 +405,7 @@ constructor(
                 .id
         val linkedKmPost =
             mainDraftContext
-                .insert(kmPost(trackNumberId, KmNumber("123"), sourceId = linkingKmPost.kmPosts[0].id as IntId))
+                .save(kmPost(trackNumberId, KmNumber("123"), sourceId = linkingKmPost.kmPosts[0].id as IntId))
                 .id
         val allPlanIds =
             listOf(linkingLocationTrack, linkingReferenceLine, linkingSwitchAndLocationTrack, linkingKmPost).map {

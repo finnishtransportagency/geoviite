@@ -67,11 +67,11 @@ constructor(
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
         val sourceTrack =
-            mainDraftContext.insert(
+            mainDraftContext.save(
                 locationTrack(trackNumberId = trackNumberId, state = LocationTrackState.DELETED),
                 alignment,
             )
-        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment)
 
         return splitDao.saveSplit(
             sourceLocationTrackVersion = sourceTrack,
@@ -87,7 +87,7 @@ constructor(
         externalId: Oid<LayoutSwitch>? = null,
     ): SwitchAndSegments {
         val switchInsertResponse =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 switchFromDbStructure(testDBService.getUnusedSwitchName().toString(), startPoint, structure)
             )
         if (externalId != null) {
@@ -115,7 +115,7 @@ constructor(
     ): IntId<LocationTrack> {
         val alignment = alignment(segments)
         return mainOfficialContext
-            .insert(locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf), alignment)
+            .save(locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf), alignment)
             .id
     }
 
@@ -124,9 +124,9 @@ constructor(
         trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): LayoutRowVersion<LocationTrack> {
         val alignment = alignment(segments)
-        mainOfficialContext.insert(referenceLine(trackNumberId), alignment)
+        mainOfficialContext.save(referenceLine(trackNumberId), alignment)
 
-        return mainOfficialContext.insert(locationTrack(trackNumberId), alignment).also { r ->
+        return mainOfficialContext.save(locationTrack(trackNumberId), alignment).also { r ->
             val (dbTrack, dbAlignment) = locationTrackService.getWithAlignment(r)
             assertEquals(trackNumberId, dbTrack.trackNumberId)
             assertEquals(segments.size, dbAlignment.segments.size)

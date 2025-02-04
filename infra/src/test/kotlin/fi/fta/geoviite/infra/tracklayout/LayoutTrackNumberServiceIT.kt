@@ -347,8 +347,8 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
 
-        val trackNumber = mainOfficialContext.insert(trackNumber())
-        val referenceLine = mainOfficialContext.insert(referenceLineAndAlignment(trackNumber.id))
+        val trackNumber = mainOfficialContext.save(trackNumber())
+        val referenceLine = mainOfficialContext.save(referenceLineAndAlignment(trackNumber.id))
 
         val firstTrackNumberDraft =
             trackNumberService.saveDraft(designBranch, mainOfficialContext.fetch(trackNumber.id)!!)
@@ -377,16 +377,16 @@ constructor(
 
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
-        val tn1 = designDraftContext.insert(trackNumber(number = TrackNumber("asdf"))).id
-        val rl1 = designOfficialContext.insert(referenceLine(tn1), alignment).id
+        val tn1 = designDraftContext.save(trackNumber(number = TrackNumber("asdf"))).id
+        val rl1 = designOfficialContext.save(referenceLine(tn1), alignment).id
         assertEquals(rl1, designDraftContext.fetch(tn1)!!.referenceLineId)
 
-        val tn2 = designDraftContext.insert(trackNumber(number = TrackNumber("aoeu"))).id
-        val rl2 = mainOfficialContext.insert(referenceLine(tn2), alignment).id
+        val tn2 = designDraftContext.save(trackNumber(number = TrackNumber("aoeu"))).id
+        val rl2 = mainOfficialContext.save(referenceLine(tn2), alignment).id
         assertEquals(rl2, designDraftContext.fetch(tn2)!!.referenceLineId)
 
-        val tn3 = mainDraftContext.insert(trackNumber(number = TrackNumber("arst"))).id
-        val rl3 = mainOfficialContext.insert(referenceLine(tn3), alignment).id
+        val tn3 = mainDraftContext.save(trackNumber(number = TrackNumber("arst"))).id
+        val rl3 = mainOfficialContext.save(referenceLine(tn3), alignment).id
         assertEquals(rl3, mainDraftContext.fetch(tn3)!!.referenceLineId)
     }
 

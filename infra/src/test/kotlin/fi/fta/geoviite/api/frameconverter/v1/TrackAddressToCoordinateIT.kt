@@ -235,7 +235,9 @@ constructor(
 
         val referenceLineId =
             layoutContext
-                .insert(referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments))
+                .saveReferenceLine(
+                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                )
                 .id
 
         val tracksUnderTest =
@@ -278,7 +280,9 @@ constructor(
 
         val referenceLineId =
             layoutContext
-                .insert(referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments))
+                .saveReferenceLine(
+                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                )
                 .id
 
         val tracksUnderTest =
@@ -331,7 +335,7 @@ constructor(
             .let { trackNumberId -> layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!! }
             .let { trackNumber ->
                 layoutContext
-                    .insert(
+                    .saveReferenceLine(
                         referenceLineAndAlignment(
                             trackNumberId = trackNumber.id as IntId,
                             segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0))),
@@ -373,7 +377,7 @@ constructor(
 
         val referenceLineId =
             layoutContext
-                .insert(
+                .saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = referenceLineSegments)
                 )
                 .id
@@ -418,7 +422,7 @@ constructor(
         val referenceLineSegments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val referenceLineId =
             layoutContext
-                .insert(
+                .saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = referenceLineSegments)
                 )
                 .id
@@ -477,7 +481,9 @@ constructor(
 
         val referenceLineId =
             layoutContext
-                .insert(referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments))
+                .saveReferenceLine(
+                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                )
                 .id
 
         frameConverterTestDataService.insertGeocodableTrack(
@@ -1080,7 +1086,9 @@ constructor(
 
                 val referenceLineId =
                     layoutContext
-                        .insert(referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments))
+                        .saveReferenceLine(
+                            referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                        )
                         .id
                 trackNumber to referenceLineId
 

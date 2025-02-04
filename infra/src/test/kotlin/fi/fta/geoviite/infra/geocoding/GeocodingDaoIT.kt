@@ -65,16 +65,16 @@ constructor(
         val tnId = tnOfficialVersion.id
         val tnDraft = testDBService.createDraft(tnOfficialVersion)
 
-        val rlOfficial = mainOfficialContext.insert(referenceLineAndAlignment(tnId))
+        val rlOfficial = mainOfficialContext.saveReferenceLine(referenceLineAndAlignment(tnId))
         val rlDraft = testDBService.createDraft(rlOfficial)
 
-        val kmPost1Official = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
+        val kmPost1Official = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
         val kmPost1Draft = testDBService.createDraft(kmPost1Official)
-        val kmPost2OnlyDraft = mainDraftContext.insert(kmPost(tnId, KmNumber(2)))
-        val kmPost3OnlyOfficial = mainOfficialContext.insert(kmPost(tnId, KmNumber(3)))
+        val kmPost2OnlyDraft = mainDraftContext.save(kmPost(tnId, KmNumber(2)))
+        val kmPost3OnlyOfficial = mainOfficialContext.save(kmPost(tnId, KmNumber(3)))
 
         // Add a deleted post - should not appear in results
-        mainOfficialContext.insert(kmPost(tnId, KmNumber(4), state = LayoutState.DELETED))
+        mainOfficialContext.save(kmPost(tnId, KmNumber(4), state = LayoutState.DELETED))
 
         val officialKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
         assertEquals(
@@ -147,26 +147,26 @@ constructor(
         // First off, the main official versions for starting context
         val tnMainV1 = mainOfficialContext.createLayoutTrackNumber()
         val tnId = tnMainV1.id
-        val rlMainV1 = mainOfficialContext.insert(referenceLineAndAlignment(tnId))
-        val kmp1MainV1 = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
-        val kmp2MainV1 = mainOfficialContext.insert(kmPost(tnId, KmNumber(2)))
+        val rlMainV1 = mainOfficialContext.saveReferenceLine(referenceLineAndAlignment(tnId))
+        val kmp1MainV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
+        val kmp2MainV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(2)))
 
         // Add some draft changes as well. These shouldn't affect the results
         testDBService.createDraft(tnMainV1)
         testDBService.createDraft(rlMainV1)
         testDBService.createDraft(kmp1MainV1)
-        mainDraftContext.insert(kmPost(tnId, KmNumber(10)))
+        mainDraftContext.save(kmPost(tnId, KmNumber(10)))
 
         // Add some design changes
         val tnDesignV1 = officialDesignContext.copyFrom(tnMainV1)
         val rlDesignV1 = officialDesignContext.copyFrom(rlMainV1)
         val kmp1DesignV1 = officialDesignContext.copyFrom(kmp1MainV1)
-        val kmp3DesignV1 = officialDesignContext.insert(kmPost(tnId, KmNumber(3)))
+        val kmp3DesignV1 = officialDesignContext.save(kmPost(tnId, KmNumber(3)))
 
         // Design-draft changes should not affect results either
         testDBService.createDraft(tnDesignV1)
         testDBService.createDraft(kmp3DesignV1)
-        designDraftContext.insert(kmPost(tnId, KmNumber(11)))
+        designDraftContext.save(kmPost(tnId, KmNumber(11)))
 
         val version1Time = testDBService.layoutChangeTime()
         Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
@@ -190,9 +190,9 @@ constructor(
         val tnMainV2 = testDBService.update(tnMainV1)
         val rlMainV2 = testDBService.update(rlMainV1)
         val kmp1MainV2 = testDBService.update(kmp1MainV1)
-        val kmp4MainV2 = mainOfficialContext.insert(kmPost(tnId, KmNumber(4)))
+        val kmp4MainV2 = mainOfficialContext.save(kmPost(tnId, KmNumber(4)))
         // Add a deleted post - should not appear in results
-        mainOfficialContext.insert(kmPost(tnId, KmNumber(5), state = LayoutState.DELETED))
+        mainOfficialContext.save(kmPost(tnId, KmNumber(5), state = LayoutState.DELETED))
 
         // Update the design stuff
         val tnDesignV2 = testDBService.update(tnDesignV1)

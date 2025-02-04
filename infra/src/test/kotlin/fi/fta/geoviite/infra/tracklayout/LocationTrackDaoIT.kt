@@ -202,9 +202,9 @@ constructor(
         val v0Time = locationTrackDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        val track1MainV1 = mainOfficialContext.insert(locationTrackAndAlignment(tnId))
-        val track2DesignV1 = designOfficialContext.insert(locationTrackAndAlignment(tnId))
-        val track3DesignV1 = designOfficialContext.insert(locationTrackAndAlignment(tnId))
+        val track1MainV1 = mainOfficialContext.save(locationTrackAndGeometry(tnId))
+        val track2DesignV1 = designOfficialContext.save(locationTrackAndGeometry(tnId))
+        val track3DesignV1 = designOfficialContext.save(locationTrackAndGeometry(tnId))
         val track1Id = track1MainV1.id
         val track2Id = track2DesignV1.id
         val track3Id = track3DesignV1.id
@@ -559,14 +559,11 @@ constructor(
     @Test
     fun `fetchVersionsNear() returns only the correct context's version when multiple are visible`() {
         testDBService.clearLayoutTables()
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
         val officialTrackVersion =
-            mainOfficialContext.insert(
-                locationTrack(trackNumber),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-            )
+            mainOfficialContext.save(locationTrack(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         val draftTrackVersion =
-            mainDraftContext.insert(
+            mainDraftContext.save(
                 asMainDraft(locationTrackDao.fetch(officialTrackVersion)),
                 alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
@@ -585,13 +582,13 @@ constructor(
         testDBService.clearLayoutTables()
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val deletedTrack =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(trackNumber, state = LocationTrackState.DELETED),
                 alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
         val anotherTrackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val onAnotherTrackNumber =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(anotherTrackNumber),
                 alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
@@ -625,14 +622,11 @@ constructor(
     @Test
     fun `fetchVersionsNear() returns only the correct context's version when track is moved`() {
         testDBService.clearLayoutTables()
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
         val officialTrackVersion =
-            mainOfficialContext.insert(
-                locationTrack(trackNumber),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-            )
+            mainOfficialContext.save(locationTrack(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         val draftTrackVersion =
-            mainDraftContext.insert(
+            mainDraftContext.save(
                 asMainDraft(locationTrackDao.fetch(officialTrackVersion)),
                 alignment(segment(Point(0.0, 10.0), Point(10.0, 10.0))),
             )
@@ -711,7 +705,7 @@ constructor(
     }
 
     private fun insertOfficialLocationTrack(tnId: IntId<LayoutTrackNumber>): LayoutRowVersion<LocationTrack> {
-        val (track, alignment) = locationTrackAndAlignment(tnId, draft = false)
+        val (track, alignment) = locationTrackAndGeometry(tnId, draft = false)
         val alignmentVersion = alignmentDao.insert(alignment)
         return locationTrackDao.save(track.copy(alignmentVersion = alignmentVersion))
     }
@@ -720,7 +714,7 @@ constructor(
         tnId: IntId<LayoutTrackNumber>,
         state: LocationTrackState = LocationTrackState.IN_USE,
     ): LayoutRowVersion<LocationTrack> {
-        val (track, alignment) = locationTrackAndAlignment(trackNumberId = tnId, state = state, draft = true)
+        val (track, alignment) = locationTrackAndGeometry(trackNumberId = tnId, state = state, draft = true)
         val alignmentVersion = alignmentDao.insert(alignment)
         return locationTrackDao.save(track.copy(alignmentVersion = alignmentVersion))
     }

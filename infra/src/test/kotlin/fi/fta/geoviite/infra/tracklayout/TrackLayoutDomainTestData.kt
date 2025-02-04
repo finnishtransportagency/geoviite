@@ -138,7 +138,7 @@ fun switchAndMatchingAlignments(
     trackNumberId: IntId<LayoutTrackNumber>,
     structure: SwitchStructure,
     draft: Boolean,
-): Pair<LayoutSwitch, List<Pair<LocationTrack, LayoutAlignment>>> {
+): Pair<LayoutSwitch, List<Pair<LocationTrack, LocationTrackGeometry>>> {
     val switchId = IntId<LayoutSwitch>(1)
     val jointLocations = mutableMapOf<JointNumber, Point>()
     val alignments =
@@ -152,7 +152,7 @@ fun switchAndMatchingAlignments(
                         }
                     jointNumber to point
                 }
-            locationTrackAndAlignment(
+            locationTrackAndGeometry(
                 trackNumberId,
                 alignmentPoints.zipWithNext { start, end ->
                     val (startJoint, startPoint) = start
@@ -354,14 +354,14 @@ fun referenceLine(
 
 private var locationTrackNameCounter = 0
 
-fun locationTrackAndAlignment(
+fun locationTrackAndGeometry(
     vararg segments: LayoutSegment,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     id: IntId<LocationTrack>? = null,
     draft: Boolean,
-): Pair<LocationTrack, LayoutAlignment> =
-    locationTrackAndAlignment(
+): Pair<LocationTrack, LocationTrackGeometry> =
+    locationTrackAndGeometry(
         IntId(0),
         segments.toList(),
         id = id,
@@ -370,7 +370,7 @@ fun locationTrackAndAlignment(
         draft = draft,
     )
 
-fun locationTrackAndAlignment(
+fun locationTrackAndGeometry(
     trackNumberId: IntId<LayoutTrackNumber>,
     vararg segments: LayoutSegment,
     name: String = "T001 ${locationTrackNameCounter++}",
@@ -381,8 +381,8 @@ fun locationTrackAndAlignment(
     draft: Boolean = false,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
-): Pair<LocationTrack, LayoutAlignment> =
-    locationTrackAndAlignment(
+): Pair<LocationTrack, LocationTrackGeometry> =
+    locationTrackAndGeometry(
         trackNumberId,
         segments.toList(),
         name = name,
@@ -395,7 +395,7 @@ fun locationTrackAndAlignment(
         topologyEndSwitch = topologyEndSwitch,
     )
 
-fun locationTrackAndAlignment(
+fun locationTrackAndGeometry(
     trackNumberId: IntId<LayoutTrackNumber>,
     segments: List<LayoutSegment>,
     id: IntId<LocationTrack>? = null,
@@ -407,7 +407,7 @@ fun locationTrackAndAlignment(
     state: LocationTrackState = LocationTrackState.IN_USE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
-): Pair<LocationTrack, LayoutAlignment> {
+): Pair<LocationTrack, LocationTrackGeometry> {
     val alignment = alignment(segments)
     val locationTrack =
         locationTrack(
@@ -507,9 +507,20 @@ fun alignment(vararg segments: LayoutSegment) = alignment(segments.toList())
 
 fun alignment(segments: List<LayoutSegment>) = LayoutAlignment(segments = segments)
 
-fun trackGeometryOfSegments(segments: List<LayoutSegment>) = trackGeometry(listOf(LayoutEdgeContent(segments)))
+fun trackGeometryOfSegments(vararg segments: LayoutSegment) = trackGeometryOfSegments(segments.toList())
 
-fun trackGeometry(edges: List<LayoutEdge>) = LocationTrackGeometry(edges)
+fun trackGeometryOfSegments(segments: List<LayoutSegment>) =
+    trackGeometry(
+        listOf(
+            LayoutEdgeContent(
+                startNode = LayoutNodeTemp(LayoutNodeType.TRACK_START),
+                endNode = LayoutNodeTemp(LayoutNodeType.TRACK_END),
+                segments = segments,
+            )
+        )
+    )
+
+fun trackGeometry(edges: List<ILayoutEdge>) = TmpLocationTrackGeometry(edges)
 
 fun mapAlignment(vararg segments: PlanLayoutSegment) = mapAlignment(segments.toList())
 
@@ -535,11 +546,11 @@ fun locationTrackWithTwoSwitches(
     otherLayoutSwitchId: IntId<LayoutSwitch>,
     locationTrackId: IntId<LocationTrack>? = null,
     draft: Boolean,
-): Pair<LocationTrack, LayoutAlignment> {
+): Pair<LocationTrack, LocationTrackGeometry> {
     val segmentLength = 10.0
     val segments = (1..20).map { i -> segment(Point(i * segmentLength, 0.0), Point((i + 1) * segmentLength, 0.0)) }
     val (locationTrack, alignment) =
-        locationTrackAndAlignment(
+        locationTrackAndGeometry(
             trackNumberId = trackNumberId,
             segments = segments,
             id = locationTrackId,
@@ -553,16 +564,16 @@ fun locationTrackWithTwoSwitches(
 }
 
 fun attachSwitchToStart(
-    locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
+    locationTrackAndAlignment: Pair<LocationTrack, LocationTrackGeometry>,
     switchId: IntId<LayoutSwitch>,
-): Pair<LocationTrack, LayoutAlignment> =
+): Pair<LocationTrack, LocationTrackGeometry> =
     attachSwitchToStart(locationTrackAndAlignment.first, locationTrackAndAlignment.second, switchId)
 
 fun attachSwitchToStart(
     locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    alignment: LocationTrackGeometry,
     switchId: IntId<LayoutSwitch>,
-): Pair<LocationTrack, LayoutAlignment> {
+): Pair<LocationTrack, LocationTrackGeometry> {
     if (alignment.segments.count() < 3) throw IllegalArgumentException("Alignment must contain at least 3 segments")
     return locationTrack to
         alignment.copy(
@@ -582,16 +593,16 @@ fun attachSwitchToStart(
 }
 
 fun attachSwitchToEnd(
-    locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
+    locationTrackAndAlignment: Pair<LocationTrack, LocationTrackGeometry>,
     switchId: IntId<LayoutSwitch>,
-): Pair<LocationTrack, LayoutAlignment> =
+): Pair<LocationTrack, LocationTrackGeometry> =
     attachSwitchToEnd(locationTrackAndAlignment.first, locationTrackAndAlignment.second, switchId)
 
 fun attachSwitchToEnd(
     locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    alignment: LocationTrackGeometry,
     switchId: IntId<LayoutSwitch>,
-): Pair<LocationTrack, LayoutAlignment> {
+): Pair<LocationTrack, LocationTrackGeometry> {
     val segmentCount = alignment.segments.count()
     if (segmentCount < 3) throw IllegalArgumentException("Alignment must contain at least 3 segments")
     return locationTrack to
@@ -612,13 +623,17 @@ fun attachSwitchToEnd(
 }
 
 fun attachSwitchToIndex(
-    locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
+    locationTrackAndAlignment: Pair<LocationTrack, LocationTrackGeometry>,
     switchId: IntId<LayoutSwitch>,
     segmentIndex: Int,
-): Pair<LocationTrack, LayoutAlignment> =
+): Pair<LocationTrack, LocationTrackGeometry> =
     locationTrackAndAlignment.first to attachSwitchToIndex(locationTrackAndAlignment.second, switchId, segmentIndex)
 
-fun attachSwitchToIndex(alignment: LayoutAlignment, switchId: IntId<LayoutSwitch>, segmentIndex: Int): LayoutAlignment {
+fun attachSwitchToIndex(
+    alignment: LocationTrackGeometry,
+    switchId: IntId<LayoutSwitch>,
+    segmentIndex: Int,
+): LocationTrackGeometry {
     if (alignment.segments.count() < segmentIndex + 3)
         throw IllegalArgumentException("Alignment must contain at least ${segmentIndex + 3} segments")
     return alignment.copy(
@@ -637,7 +652,11 @@ fun attachSwitchToIndex(alignment: LayoutAlignment, switchId: IntId<LayoutSwitch
     )
 }
 
-fun attachSwitchToIndex(alignment: LayoutAlignment, switch: LayoutSwitch, segmentIndex: Int): LayoutAlignment {
+fun attachSwitchToIndex(
+    alignment: LocationTrackGeometry,
+    switch: LayoutSwitch,
+    segmentIndex: Int,
+): LocationTrackGeometry {
     if (alignment.segments.count() < segmentIndex + 3) {
         throw IllegalArgumentException("Alignment must contain at least ${segmentIndex + 3} segments")
     }
@@ -683,9 +702,9 @@ data class TargetSegmentMiddle(val index: Int) : TargetSegment()
 class TargetSegmentEnd : TargetSegment()
 
 fun attachSwitches(
-    locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
+    locationTrackAndAlignment: Pair<LocationTrack, LocationTrackGeometry>,
     vararg switchInfos: Pair<IntId<LayoutSwitch>, TargetSegment>,
-): Pair<LocationTrack, LayoutAlignment> {
+): Pair<LocationTrack, LocationTrackGeometry> {
     return switchInfos.fold(locationTrackAndAlignment) { accLocationTrackAndAlignment, (switchId, targetSegment) ->
         when (targetSegment) {
             is TargetSegmentStart -> attachSwitchToStart(accLocationTrackAndAlignment, switchId)
@@ -1058,7 +1077,7 @@ fun externalIdForTrackNumber(): Oid<LayoutTrackNumber> {
 
 fun switchLinkingAtStart(
     locationTrackId: DomainId<LocationTrack>,
-    alignment: LayoutAlignment,
+    alignment: LocationTrackGeometry,
     segmentIndex: Int,
     jointNumber: Int = 1,
 ) = switchLinkingAtStart(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
@@ -1072,7 +1091,7 @@ fun switchLinkingAtStart(
 
 fun switchLinkingAtEnd(
     locationTrackId: DomainId<LocationTrack>,
-    alignment: LayoutAlignment,
+    alignment: LocationTrackGeometry,
     segmentIndex: Int,
     jointNumber: Int = 1,
 ) = switchLinkingAtEnd(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
@@ -1086,7 +1105,7 @@ fun switchLinkingAtEnd(
 
 fun switchLinkingAtHalf(
     locationTrackId: DomainId<LocationTrack>,
-    alignment: LayoutAlignment,
+    alignment: LocationTrackGeometry,
     segmentIndex: Int,
     jointNumber: Int = 1,
 ) = switchLinkingAtHalf(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)

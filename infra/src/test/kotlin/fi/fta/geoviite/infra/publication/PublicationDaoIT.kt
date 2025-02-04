@@ -306,26 +306,26 @@ constructor(
     @Test
     fun `fetchLinkedLocationTracks does not confuse official rows with drafts`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val switch = mainOfficialContext.insert(switch()).id
+        val switch = mainOfficialContext.save(switch()).id
         val track1Main =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(trackNumber),
                 alignment(
                     segment(Point(0.0, 0.0), Point(1.0, 0.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
                 ),
             )
         val track2Main =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(trackNumber),
                 alignment(
                     segment(Point(0.0, 0.0), Point(1.0, 0.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
                 ),
             )
-        mainDraftContext.insert(
+        mainDraftContext.save(
             locationTrackDao.fetch(track1Main),
             alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
         )
-        mainDraftContext.insert(
+        mainDraftContext.save(
             locationTrackDao.fetch(track2Main),
             alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
         )

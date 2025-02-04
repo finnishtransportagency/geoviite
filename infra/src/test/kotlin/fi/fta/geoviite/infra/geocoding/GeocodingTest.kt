@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.test.assertEquals
@@ -619,7 +620,7 @@ class GeocodingTest {
 
         val result =
             testContext.getSwitchPoints(
-                alignment(
+                trackGeometryOfSegments(
                     segment(start + Point(0.0, 1.0), start + Point(0.0, 5.5)),
                     segment(start + Point(0.0, 5.5), start + Point(0.0, 15.5))
                         .copy(switchId = IntId(1), startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)),

@@ -202,17 +202,17 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
     @Test
     fun `findLocationTracksLinkedToSwitches() does not return a draft whose link was removed`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val switch = mainOfficialContext.insert(switch()).id
+        val switch = mainOfficialContext.save(switch()).id
         val oid = Oid<LocationTrack>("1.2.3.4.5")
         val officialTrack =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(trackNumber),
                 alignment(
                     segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch, startJointNumber = JointNumber(1))
                 ),
             )
         locationTrackDao.insertExternalId(officialTrack.id, LayoutBranch.main, oid)
-        mainDraftContext.insert(
+        mainDraftContext.save(
             asMainDraft(mainOfficialContext.fetch(officialTrack.id)!!),
             alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
