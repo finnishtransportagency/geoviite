@@ -436,8 +436,8 @@ class SplitService(
         val savedSplitTargetLocationTracks =
             targetResults.map { result ->
                 val response = saveTargetTrack(branch, result)
-                val (resultTrack, resultAlignment) = locationTrackService.getWithAlignment(response)!!
-                result.copy(locationTrack = resultTrack, alignment = resultAlignment)
+                val (resultTrack, resultGeometry) = locationTrackService.getWithGeometry(response)!!
+                result.copy(locationTrack = resultTrack, alignment = resultGeometry)
             }
 
         geocodingService.getGeocodingContext(branch.draft, sourceTrack.trackNumberId)?.let { geocodingContext ->
@@ -478,7 +478,7 @@ class SplitService(
         branch: LayoutBranch,
         geocodingContext: GeocodingContext,
         splitRequest: SplitRequest,
-        splitTargetLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+        splitTargetLocationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     ) {
         val unusedDuplicates =
             locationTrackService
@@ -564,12 +564,12 @@ data class SplitTargetParams(
 data class SplitTargetDuplicate(
     val operation: SplitTargetDuplicateOperation,
     val track: LocationTrack,
-    val alignment: LayoutAlignment,
+    val alignment: LocationTrackGeometry,
 )
 
 data class SplitTargetResult(
     val locationTrack: LocationTrack,
-    val alignment: LayoutAlignment,
+    val alignment: LocationTrackGeometry,
     val indices: IntRange,
     val operation: SplitTargetOperation,
 )
@@ -602,7 +602,7 @@ fun splitLocationTrack(
                             updateSplitTargetForOverwriteDuplicate(
                                 sourceTrack = track,
                                 duplicateTrack = d.track,
-                                duplicateAlignment = d.alignment,
+                                duplicateGeometry = d.alignment,
                                 request = target.request,
                                 segments = segments,
                                 topologicalConnectivityType = connectivityType,
@@ -669,12 +669,14 @@ private fun updateSplitTargetForTransferAssets(
 private fun updateSplitTargetForOverwriteDuplicate(
     sourceTrack: LocationTrack,
     duplicateTrack: LocationTrack,
-    duplicateAlignment: LayoutAlignment,
+    duplicateGeometry: LocationTrackGeometry,
     request: SplitRequestTarget,
     segments: List<LayoutSegment>,
     topologicalConnectivityType: TopologicalConnectivityType,
-): Pair<LocationTrack, LayoutAlignment> {
-    val newAlignment = duplicateAlignment.withSegments(segments)
+): Pair<LocationTrack, LocationTrackGeometry> {
+    // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
+    TODO()
+    val newAlignment = LocationTrackGeometry.empty // duplicateGeometry.withSegments(segments)
     val newTrack =
         duplicateTrack.copy(
             name = request.name,
@@ -706,8 +708,10 @@ private fun createSplitTarget(
     request: SplitRequestTarget,
     segments: List<LayoutSegment>,
     topologicalConnectivityType: TopologicalConnectivityType,
-): Pair<LocationTrack, LayoutAlignment> {
-    val newAlignment = LayoutAlignment(segments)
+): Pair<LocationTrack, LocationTrackGeometry> {
+    // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
+    TODO()
+    val newAlignment = LocationTrackGeometry.empty // LayoutAlignment(segments)
     val newTrack =
         LocationTrack(
             name = request.name,
