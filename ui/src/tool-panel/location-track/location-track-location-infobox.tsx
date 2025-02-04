@@ -19,10 +19,12 @@ import { Precision, roundToPrecision } from 'utils/rounding';
 import { formatToTM35FINString } from 'utils/geography-utils';
 import Infobox from 'tool-panel/infobox/infobox';
 import {
+    AlignmentEndPoint,
     LAYOUT_SRID,
     LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumber,
+    MapAlignmentType,
     SplitPoint,
     SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
@@ -106,6 +108,29 @@ const isSplittablePoint = (
         sp.switchId !== undefined &&
         sp.switchId !== trackStartSwitchId &&
         sp.switchId !== trackEndSwitchId
+    );
+};
+
+type LocationTrackEndpointAddressInfoProps = {
+    endpoint: AlignmentEndPoint | undefined;
+    locationTrack: LayoutLocationTrack | undefined;
+};
+
+const LocationTrackEndpointAddressInfo: React.FC<LocationTrackEndpointAddressInfoProps> = ({
+    endpoint,
+    locationTrack,
+}) => {
+    const { t } = useTranslation();
+    return (
+        <React.Fragment>
+            {endpoint?.address ? (
+                <NavigableTrackMeter trackMeter={endpoint.address} location={endpoint.point} />
+            ) : locationTrack?.boundingBox ? (
+                <span>{t('tool-panel.location-track.unresolvable')}</span>
+            ) : (
+                <span>{t('tool-panel.location-track.no-geometry')}</span>
+            )}
+        </React.Fragment>
     );
 };
 
@@ -377,26 +402,18 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             <InfoboxField
                                 qaId="location-track-start-track-meter"
                                 label={t('tool-panel.location-track.start-location')}>
-                                {startAndEndPoints?.start?.address ? (
-                                    <NavigableTrackMeter
-                                        trackMeter={startAndEndPoints?.start?.address}
-                                        location={startAndEndPoints?.start?.point}
-                                    />
-                                ) : (
-                                    t('tool-panel.location-track.unresolvable')
-                                )}
+                                <LocationTrackEndpointAddressInfo
+                                    endpoint={startAndEndPoints?.start}
+                                    locationTrack={locationTrack}
+                                />
                             </InfoboxField>
                             <InfoboxField
                                 qaId="location-track-end-track-meter"
                                 label={t('tool-panel.location-track.end-location')}>
-                                {startAndEndPoints?.end?.address ? (
-                                    <NavigableTrackMeter
-                                        trackMeter={startAndEndPoints?.end?.address}
-                                        location={startAndEndPoints?.end?.point}
-                                    />
-                                ) : (
-                                    t('tool-panel.location-track.unresolvable')
-                                )}
+                                <LocationTrackEndpointAddressInfo
+                                    endpoint={startAndEndPoints?.end}
+                                    locationTrack={locationTrack}
+                                />
                             </InfoboxField>
 
                             {linkingState === undefined && (
@@ -424,7 +441,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 getEndLinkPoints(
                                                     locationTrack.id,
                                                     layoutContext,
-                                                    'LOCATION_TRACK',
+                                                    MapAlignmentType.LocationTrack,
                                                     changeTimes.layoutLocationTrack,
                                                 ).then(onStartLocationTrackGeometryChange);
                                             }}>
@@ -464,7 +481,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             )}
                             <EnvRestricted restrictTo="test">
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {isMainDraft && (
+                                    {isMainDraft && !linkingState && (
                                         <React.Fragment>
                                             {locationTrack.isDraft &&
                                                 !extraInfo?.partOfUnfinishedSplit && (
@@ -544,7 +561,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                 value={
                                     startAndEndPoints.start
                                         ? formatToTM35FINString(startAndEndPoints.start.point)
-                                        : t('tool-panel.location-track.unset')
+                                        : t('tool-panel.location-track.no-geometry')
                                 }
                             />
                             <InfoboxField
@@ -555,7 +572,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                 value={
                                     startAndEndPoints.end
                                         ? formatToTM35FINString(startAndEndPoints?.end.point)
-                                        : t('tool-panel.location-track.unset')
+                                        : t('tool-panel.location-track.no-geometry')
                                 }
                             />
                         </React.Fragment>

@@ -122,8 +122,8 @@ export type GeometryLinkingAlignmentLockParameters = {
 };
 
 export type LayoutAlignmentTypeAndId =
-    | { type: 'LOCATION_TRACK'; id: LocationTrackId }
-    | { type: 'REFERENCE_LINE'; id: ReferenceLineId };
+    | { type: MapAlignmentType.LocationTrack; id: LocationTrackId }
+    | { type: MapAlignmentType.ReferenceLine; id: ReferenceLineId };
 
 export type LinkingGeometryWithAlignment = LinkingBaseType & {
     type: LinkingType.LinkingGeometryWithAlignment;

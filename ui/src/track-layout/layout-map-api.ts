@@ -171,13 +171,13 @@ export async function getMapAlignmentsByTiles(
 
     return [
         ...(await getAlignmentDataHolder(
-            'REFERENCE_LINE',
+            MapAlignmentType.ReferenceLine,
             rlPolyLines,
             layoutContext,
             changeTimes,
         )),
         ...(await getAlignmentDataHolder(
-            'LOCATION_TRACK',
+            MapAlignmentType.LocationTrack,
             ltPolyLines,
             layoutContext,
             changeTimes,
@@ -216,7 +216,12 @@ export async function getReferenceLineMapAlignmentsByTiles(
         mapTiles.map((tile) => getPolyLines(tile, changeTime, layoutContext, 'REFERENCE_LINES')),
     ).then((p) => p.flat());
 
-    return getAlignmentDataHolder('REFERENCE_LINE', polyLines, layoutContext, changeTimes);
+    return getAlignmentDataHolder(
+        MapAlignmentType.ReferenceLine,
+        polyLines,
+        layoutContext,
+        changeTimes,
+    );
 }
 
 export async function getSelectedLocationTrackMapAlignmentByTiles(
@@ -236,7 +241,12 @@ export async function getSelectedLocationTrackMapAlignmentByTiles(
         ),
     ).then((lines) => lines.flat());
 
-    return getAlignmentDataHolder('LOCATION_TRACK', polyLines, layoutContext, changeTimes);
+    return getAlignmentDataHolder(
+        MapAlignmentType.LocationTrack,
+        polyLines,
+        layoutContext,
+        changeTimes,
+    );
 }
 
 export async function getLocationTrackMapAlignmentsByTiles(
@@ -250,7 +260,12 @@ export async function getLocationTrackMapAlignmentsByTiles(
         ),
     ).then((lines) => lines.flat());
 
-    return getAlignmentDataHolder('LOCATION_TRACK', polyLines, layoutContext, changeTimes);
+    return getAlignmentDataHolder(
+        MapAlignmentType.LocationTrack,
+        polyLines,
+        layoutContext,
+        changeTimes,
+    );
 }
 
 type MapLayoutAlignmentDataHolder<M extends MapAlignmentType> = M extends 'LOCATION_TRACK'

@@ -81,8 +81,14 @@ data class AlignmentAddresses(
 data class AlignmentStartAndEnd<T>(val id: IntId<T>, val start: AlignmentEndPoint?, val end: AlignmentEndPoint?) {
     companion object {
         fun <T> of(id: IntId<T>, alignment: IAlignment, geocodingContext: GeocodingContext?): AlignmentStartAndEnd<T> {
-            val start = alignment.start?.let { p -> AlignmentEndPoint(p, geocodingContext?.getAddress(p)?.first) }
-            val end = alignment.end?.let { p -> AlignmentEndPoint(p, geocodingContext?.getAddress(p)?.first) }
+            val start =
+                alignment.start?.let { p ->
+                    AlignmentEndPoint(p, geocodingContext?.getAddress(p)?.let(::getAddressIfIWithin))
+                }
+            val end =
+                alignment.end?.let { p ->
+                    AlignmentEndPoint(p, geocodingContext?.getAddress(p)?.let(::getAddressIfIWithin))
+                }
             return AlignmentStartAndEnd(id, start, end)
         }
     }
@@ -785,6 +791,9 @@ private fun intersection(edge: PolyLineEdge, projection: Line) =
         ?: throw GeocodingFailureException(
             "Projection line parallel to segment: edge=${edge.start}-${edge.end} projection=${projection.start}-${projection.end}"
         )
+
+private fun getAddressIfIWithin(address: Pair<TrackMeter, IntersectType>): TrackMeter? =
+    if (address.second == WITHIN) address.first else null
 
 const val PROJECTION_LINE_LENGTH = 100.0
 

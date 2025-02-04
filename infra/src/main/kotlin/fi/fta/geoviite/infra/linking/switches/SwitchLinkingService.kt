@@ -179,6 +179,7 @@ constructor(
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<LayoutSwitch>,
     ): LayoutRowVersion<LayoutSwitch> {
+        verifySwitchExists(branch, switchId)
         suggestedSwitch.geometrySwitchId?.let(::verifyPlanNotHidden)
         val originalTracks =
             suggestedSwitch.trackLinks.keys.associateWith { id ->
@@ -361,6 +362,15 @@ constructor(
                 message = "Cannot link a plan that is hidden",
                 localizedMessageKey = "plan-hidden",
             )
+    }
+
+    private fun verifySwitchExists(branch: LayoutBranch, switchId: IntId<LayoutSwitch>) {
+        if (!switchService.getOrThrow(branch.draft, switchId).exists) {
+            throw LinkingFailureException(
+                message = "Cannot link to a deleted layout switch",
+                localizedMessageKey = "switch-deleted",
+            )
+        }
     }
 }
 
