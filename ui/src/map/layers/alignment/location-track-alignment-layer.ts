@@ -5,7 +5,6 @@ import { Selection } from 'selection/selection-model';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentFeatures,
@@ -13,7 +12,7 @@ import {
     NORMAL_ALIGNMENT_OPACITY,
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
-import { LocationTrackId } from 'track-layout/track-layout-model';
+import { LocationTrackId, LocationTrackState } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import Feature from 'ol/Feature';
@@ -28,10 +27,25 @@ import { brand } from 'common/brand';
 
 let shownLocationTracksCompare = '';
 
+export const builtAlignmentLineDash = {
+    lineDash: [4, 2],
+    lineDashOffset: 0,
+    lineCap: 'butt' as CanvasLineCap,
+};
+
 const highlightedLocationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 1,
+    }),
+    zIndex: 2,
+});
+
+const highlightedBuiltLocationTrackStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 1,
+        ...builtAlignmentLineDash,
     }),
     zIndex: 2,
 });
@@ -43,6 +57,43 @@ const locationTrackStyle = new Style({
     }),
     zIndex: 0,
 });
+
+const locationTrackNotInUseStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentLineNotInUse,
+        width: 1,
+    }),
+    zIndex: 0,
+});
+
+const locationTrackBuiltStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentLineBuilt,
+        width: 1,
+        ...builtAlignmentLineDash,
+    }),
+    zIndex: 0,
+});
+
+export function getLocationTrackStyle(state: LocationTrackState): Style {
+    switch (state) {
+        case 'NOT_IN_USE':
+            return locationTrackNotInUseStyle;
+        case 'BUILT':
+            return locationTrackBuiltStyle;
+        default:
+            return locationTrackStyle;
+    }
+}
+
+export function getLocationTrackHighlightStyle(state: LocationTrackState): Style {
+    switch (state) {
+        case 'BUILT':
+            return highlightedBuiltLocationTrackStyle;
+        default:
+            return highlightedLocationTrackStyle;
+    }
+}
 
 const layerName: MapLayerName = 'location-track-alignment-layer';
 
@@ -74,21 +125,16 @@ export function createLocationTrackAlignmentLayer(
         }
     }
 
-    const alignmentPromise =
-        resolution <= ALL_ALIGNMENTS
-            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext)
-            : Promise.resolve([]);
+    const alignmentPromise = getLocationTrackMapAlignmentsByTiles(
+        changeTimes,
+        mapTiles,
+        layoutContext,
+    );
 
     const createFeatures = (locationTracks: LocationTrackAlignmentDataHolder[]) => {
+        console.log('count', locationTracks.length);
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
-
-        return createAlignmentFeatures(
-            locationTracks,
-            selection,
-            showEndPointTicks,
-            locationTrackStyle,
-            highlightedLocationTrackStyle,
-        );
+        return createAlignmentFeatures(locationTracks, selection, showEndPointTicks);
     };
 
     const onLoadingChange = (
