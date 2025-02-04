@@ -35,8 +35,6 @@ import { LayoutContext } from 'common/common-model';
 
 const alignmentFeatureCache = cache<string, Feature<LineString>>(500);
 
-console.log(mapStyles);
-
 const unlinkedAlignmentStyle = new Style({
     stroke: new Stroke({
         color: mapStyles['unlinkedGeometryAlignment'],
