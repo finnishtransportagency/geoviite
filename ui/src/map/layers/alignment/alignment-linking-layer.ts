@@ -10,6 +10,7 @@ import {
     centroid,
     createLayer,
     findIntersectingFeatures,
+    GeoviiteMapLayer,
     getPlanarDistanceUnwrapped,
     loadLayerData,
     pointToCoords,
@@ -38,7 +39,6 @@ import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getReferenceLine } from 'track-layout/layout-reference-line-api';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Point, Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { expectCoordinate, expectDefined } from 'utils/type-utils';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
@@ -1115,7 +1115,7 @@ const layerName: MapLayerName = 'alignment-linking-layer';
 
 export function createAlignmentLinkingLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<OlPoint | LineString>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint | LineString> | undefined,
     layoutContext: LayoutContext,
     selection: Selection,
     linkingState: LinkingState | undefined,

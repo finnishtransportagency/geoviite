@@ -9,8 +9,7 @@ import {
     getBadgeDrawDistance,
     getBadgePoints,
 } from 'map/layers/utils/badge-layer-utils';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import VectorLayer from 'ol/layer/Vector';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import {
     AlignmentDataHolder,
     getSelectedLocationTrackMapAlignmentByTiles,
@@ -20,7 +19,6 @@ import { AlignmentStartAndEnd } from 'track-layout/track-layout-model';
 import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
 import { first } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
-import Feature from 'ol/Feature';
 import { getMaxTimestamp } from 'utils/date-utils';
 
 type SplitBoundsAndName = {
@@ -107,7 +105,7 @@ const layerName: MapLayerName = 'location-track-split-badge-layer';
 
 export function createLocationTrackSplitBadgeLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,

@@ -9,8 +9,12 @@ import { draftMainLayoutContext, LayoutContext, officialLayoutContext } from 'co
 import { ChangeTimes } from 'common/common-slice';
 import { filterNotEmpty } from 'utils/array-utils';
 import Feature from 'ol/Feature';
-import { createLayer, findMatchingEntities, loadLayerData } from 'map/layers/utils/layer-utils';
-import VectorLayer from 'ol/layer/Vector';
+import {
+    createLayer,
+    findMatchingEntities,
+    GeoviiteMapLayer,
+    loadLayerData,
+} from 'map/layers/utils/layer-utils';
 import {
     DraftChangeType,
     KmPostPublicationCandidate,
@@ -41,7 +45,7 @@ const layerName: MapLayerName = 'publication-candidate-layer';
 
 export function createPublicationCandidateLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<PublicationCandidateFeatureType>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<PublicationCandidateFeatureType> | undefined,
     changeTimes: ChangeTimes,
     layoutContext: LayoutContext,
     metersPerPixel: number,

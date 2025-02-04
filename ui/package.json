@@ -64,7 +64,7 @@
         "memory-cache": "~0.2.0",
         "neverthrow": "~8.1.1",
         "normalize.css": "~8.0.1",
-        "ol": "~9.2.2",
+        "ol": "~10.4.0",
         "proj4": "~2.15.0",
         "react": "18.3.1",
         "react-datepicker": "~6.9.0",

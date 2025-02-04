@@ -9,9 +9,7 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
 import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import VectorLayer from 'ol/layer/Vector';
-import Feature from 'ol/Feature';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { Selection } from 'selection/selection-model';
 import {
     NORMAL_ALIGNMENT_OPACITY,
@@ -25,7 +23,7 @@ const layerName: MapLayerName = 'location-track-background-layer';
 
 export function createLocationTrackBackgroundLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
