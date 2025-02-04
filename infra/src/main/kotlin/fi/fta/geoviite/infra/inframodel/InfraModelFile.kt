@@ -6,8 +6,10 @@ import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.util.FileName
 import org.apache.commons.codec.digest.DigestUtils
 
+typealias FileHash = String
+
 data class InfraModelFile(val name: FileName, val content: String) : Loggable {
-    val hash: String by lazy { DigestUtils.md5Hex(content) }
+    val hash: FileHash by lazy { DigestUtils.md5Hex(content) }
 
     init {
         require(!containsIdentifyingInfo(content)) { "Identifying info must be censored from IM before storing" }

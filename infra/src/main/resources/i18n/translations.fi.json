@@ -856,7 +856,6 @@
         },
         "element-list": {
             "element-list-title": "Elementtiluettelo",
-            "element-list-whole-network-title": "Elementtiluettelo (koko rataverkko)",
             "location-track-geometry": "Raiteen geometria",
             "location-track-legend": "Raiteen geometria näyttää luettelossa paikannuspohjan raiteeseen liityvät geometriaelementit. Tämä elementtiluettelo ei täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää  epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
             "plan-geometry": "Suunnitelman geometria",
@@ -927,7 +926,6 @@
         "vertical-geometry": {
             "pvi-points": "Taitepisteet ({{amount}} kpl)",
             "vertical-geometry-title": "Pystygeometria",
-            "vertical-geometry-whole-network-title": "Pystygeometria (koko rataverkko)",
             "location-track-vertical-geometry": "Raiteen pystygeometria",
             "plan-vertical-geometry": "Suunnitelman pystygeometria",
             "location-track-search-legend": "Raiteen pystygeometria näyttää luettelossa paikannuspohjan raiteeseen liityvät taitepisteet. Paikannuspohjan raide voi olla koostettu useasta suunnitelmasta, eikä täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
@@ -1003,7 +1001,6 @@
         "km-lengths": {
             "track-number-km-lengths": "Ratanumeron ratakilometrit",
             "entire-rail-network-km-lengths": "Koko rataverkon ratakilometrit",
-            "entire-rail-network-km-lengths-file-name-without-date": "Ratakilometrien pituudet (koko rataverkko)",
             "amount": "Ratakilometrit ({{amount}} kpl)",
             "title": "Ratakilometrien pituudet",
             "legend": "Ratakilometrien tiedot on laskettu paikannuspohjan tietojen perusteella. Paikannuspohjan tiedot eivät ole tarkkoja, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. tilastointiin tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. suunnittelutyön lähtötietona.",
@@ -2006,5 +2003,19 @@
             "view-publication": "Oikeus listata ja tarkastella julkaisuja",
             "download-publication": "Oikeus ladata julkaisuja"
         }
+    },
+    "filename": {
+        "unreliable-plan-file": "PAIKANNUSPALVELU EPÄLUOTETTAVA {{originalFileName}}",
+        "km-lengths-csv-precise": "Ratakilometrien pituudet {{trackNumber}}.csv",
+        "km-lengths-csv-approximation": "Ratakilometrien pituudet (paikannuspohjan tarkkuus) {{trackNumber}}.csv",
+        "km-lengths-entire-track-network": "Ratakilometrien pituudet (koko rataverkko) {{date}}.csv",
+        "element-list-csv": "Elementtiluettelo {{locationTrackName}}.csv",
+        "element-list-plan-csv": "Elementtiluettelo {{planFileName}}.csv",
+        "element-list-entire-track-network": "Elementtiluettelo (koko rataverkko) {{date}}.csv",
+        "vertical-geometry-list-csv": "Pystygeometria {{locationTrackName}}.csv",
+        "vertical-geometry-list-plan-csv": "Pystygeometria {{planFileName}}.csv",
+        "vertical-geometry-list-entire-track-network": "Pystygeometria (koko rataverkko) {{date}}.csv",
+        "publication-log": "Julkaisuloki {{dateRange}}.csv",
+        "split-details": "Raiteen jakaminen {{locationTrackName}}.csv"
     }
 }
