@@ -185,7 +185,12 @@ constructor(
 
         // TODO This repeats in all 3 different HTTP calls
         try {
-            ratkoClient.forceStartBulkTransfer(split.bulkTransfer.ratkoBulkTransferId, timeout)
+            //            ratkoClient.forceStartBulkTransfer(split.bulkTransfer.ratkoBulkTransferId,
+            // timeout) // TODO Set the timeout based on input instead
+            ratkoClient.forceStartBulkTransfer(
+                split.bulkTransfer.ratkoBulkTransferId,
+                Duration.ofMinutes(60),
+            ) // TODO Set the timeout based on input instead again
             splitDao.updateBulkTransfer(
                 splitId = split.id,
                 temporaryFailure = false,
@@ -251,6 +256,8 @@ constructor(
                     splitId = split.id,
                     temporaryFailure = false,
                     bulkTransferState = bulkTransferState,
+                    ratkoStartTime = response.locationTrackChange.startTime,
+                    ratkoEndTime = response.locationTrackChange.endTime,
                     assetsTotal = response.locationTrackChange.assetsToMove,
                     assetsMoved = response.locationTrackChangeAssetsAmount,
                     trexAssetsTotal = response.locationTrackChange.trexAssets,

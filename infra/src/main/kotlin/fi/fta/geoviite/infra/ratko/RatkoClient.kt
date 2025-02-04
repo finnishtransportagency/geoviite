@@ -477,7 +477,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun forceStartBulkTransfer(bulkTransferId: IntId<BulkTransfer>, timeout: Duration) {
-        logger.info("Forcefully starting bulk transfer=${bulkTransferId.intValue}")
+        logger.info("Forcefully starting bulkTransferId=${bulkTransferId.intValue}")
         val body =
             putSpec(url = "$BULK_TRANSFER_EXPEDITED_START_PATH/${bulkTransferId.intValue}", content = "")
                 .bodyToMono<String>()

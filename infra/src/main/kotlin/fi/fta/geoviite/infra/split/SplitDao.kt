@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
+import java.sql.Timestamp
 import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -326,7 +327,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 trex_assets_total = coalesce(:trex_assets_total, trex_assets_total),
                 trex_assets_remaining = coalesce(:trex_assets_remaining, trex_assets_remaining)
             where 
-                split_id = :split_id -- TODO This is missing cases where the update is unnecessary, eg. no actual values are modified (no need to create a new version)
+                split_id = :split_id -- TODO This is missing cases where the update is unnecessary, eg. no actual values are modified (so no need to create a new version, should probably use on conflict update or something)
             returning 
                 split_id, version
             """
@@ -338,8 +339,8 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 "expedited_start" to expeditedStart,
                 "temporary_failure" to temporaryFailure,
                 "ratko_bulk_transfer_id" to ratkoBulkTransferId?.intValue,
-                "ratko_start_time" to ratkoStartTime,
-                "ratko_end_time" to ratkoEndTime,
+                "ratko_start_time" to ratkoStartTime?.let { instant -> Timestamp.from(instant) },
+                "ratko_end_time" to ratkoEndTime?.let { instant -> Timestamp.from(instant) },
                 "assets_total" to assetsTotal,
                 "assets_moved" to assetsMoved,
                 "trex_assets_total" to trexAssetsTotal,

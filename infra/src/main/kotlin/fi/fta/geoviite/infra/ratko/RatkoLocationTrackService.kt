@@ -122,6 +122,8 @@ constructor(
         locationTrackDao.fetchExternalId(branch, locationTrackId)?.oid
 
     fun forceRedraw(locationTrackOids: Set<RatkoOid<RatkoLocationTrack>>) {
+        println("TODO TODO TODO redrawing is disabled for testing") // TODO
+
         if (locationTrackOids.isNotEmpty()) {
             ratkoClient.forceRatkoToRedrawLocationTrack(locationTrackOids)
         }
