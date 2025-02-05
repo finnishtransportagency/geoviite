@@ -1,8 +1,18 @@
 @use 'vayla-design-lib' as vayla-design;
 
 .Toastify {
+    & {
+        --toastify-text-color-light: #000;
+        --toastify-font-family: vayla-design.$font-family;
+        --toastify-toast-min-height: 54px;
+    }
+
     &--animate {
         animation-fill-mode: both;
+    }
+
+    &__toast {
+        width: auto;
     }
 
     &__toast-content {
@@ -50,6 +60,7 @@
     }
 
     &__toast-container {
+        display: block;
         z-index: 9999;
         position: fixed;
         min-width: 320px;
@@ -126,7 +137,6 @@
         border: 1px solid vayla-design.$color-red-light;
         background: vayla-design.$color-red-lighter;
         display: flex;
-        justify-content: space-between;
 
         .icon {
             fill: vayla-design.$color-red-dark;
