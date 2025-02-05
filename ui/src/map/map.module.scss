@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use 'vayla-design-lib' as vayla-design;
 @use 'geoviite-design-lib' as geoviite-design;
 @use 'vayla-design-lib/menu/menu';
@@ -105,7 +106,7 @@
     switchJointTextColor: vayla-design.$color-black-default;
 
     switchMainJoint: geoviite-design.$color-geoviite-blue;
-    switchMainJointBorder: scale-color(geoviite-design.$color-geoviite-blue, $lightness: -40%);
+    switchMainJointBorder: color.scale(geoviite-design.$color-geoviite-blue, $lightness: -40%);
     switchMainJointTextColor: vayla-design.$color-white-default;
 
     linkedSwitchJoint: vayla-design.$color-green-default;
