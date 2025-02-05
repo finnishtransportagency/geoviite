@@ -17,7 +17,6 @@ import {
 import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import useResizeObserver from 'use-resize-observer';
 import { OnSelectOptions } from 'selection/selection-model';
 import { BoundingBox } from 'model/geometry';
 import { processLayoutGeometries } from 'vertical-geometry/util';
@@ -30,6 +29,7 @@ import {
 import { getMaxTimestamp } from 'utils/date-utils';
 import { useUserHasPrivilege } from 'store/hooks';
 import { VIEW_GEOMETRY_FILE } from 'user/user-model';
+import { useResizeObserver } from 'utils/use-resize-observer';
 
 type VerticalGeometryDiagramHolderProps = {
     alignmentId: VerticalGeometryDiagramAlignmentId;
