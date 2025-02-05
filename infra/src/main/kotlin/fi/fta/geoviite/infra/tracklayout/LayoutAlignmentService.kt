@@ -51,7 +51,7 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
         context: GeocodingContext,
     ): List<AlignmentPlanSection> {
         val sections = dao.fetchSegmentGeometriesAndPlanMetadata(trackVersion, externalId, boundingBox)
-        val alignment = dao.get(trackVersion)
+        val alignment = dao.fetch(trackVersion)
         return toPlanSections(sections, alignment, context)
     }
 

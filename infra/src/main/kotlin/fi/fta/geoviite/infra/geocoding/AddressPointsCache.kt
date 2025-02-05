@@ -59,7 +59,7 @@ class AddressPointsCache(
 
     fun getAddressPointCalculationData(cacheKey: AddressPointCacheKey): AddressPointCalculationData? =
         geocodingCacheService.getGeocodingContext(cacheKey.geocodingContextCacheKey)?.let { geocodingContext ->
-            AddressPointCalculationData(cacheKey, alignmentDao.get(cacheKey.locationTrackVersion), geocodingContext)
+            AddressPointCalculationData(cacheKey, alignmentDao.fetch(cacheKey.locationTrackVersion), geocodingContext)
         }
 
     fun getAddressPoints(input: AddressPointCalculationData): AlignmentAddresses? =

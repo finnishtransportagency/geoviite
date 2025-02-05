@@ -1,7 +1,10 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.calculateSegmentMValues
 import fi.fta.geoviite.infra.tracklayout.geocodingContext
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.singleSegmentWithInterpolatedPoints
@@ -136,8 +139,8 @@ class PublicationUtilsTest {
     fun `getChangedGeometryRanges() finds nothing from identical segments`() {
         val segments =
             listOf(
-                segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0)),
-                segment(Point(3.0, 0.0), Point(4.0, 0.0), Point(5.0, 0.0), startM = 3.0),
+                segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0)) to Range(0.0, 3.0),
+                segment(Point(3.0, 0.0), Point(4.0, 0.0), Point(5.0, 0.0)) to Range(3.0, 5.0),
             )
         val changes = getChangedGeometryRanges(segments, segments)
 
@@ -149,54 +152,44 @@ class PublicationUtilsTest {
     fun `getChangedGeometryRanges() finds multiple changed ranges`() {
         val commonSegment = segment(Point(20.0, 0.0), Point(30.0, 0.0))
 
-        val oldFirstSegment = segment(Point(0.0, 1.0), Point(10.0, 1.0), startM = 0.0)
-        val oldConvergingSegment =
-            segment(Point(10.0, 1.0), Point(15.0, 0.0), Point(20.0, 0.0), startM = oldFirstSegment.length)
-        val commonSegmentOfOld = commonSegment.copy(startM = oldConvergingSegment.startM + oldConvergingSegment.length)
-        val oldDivergingSegment =
-            segment(
-                Point(30.0, 0.0),
-                Point(40.0, 1.0),
-                Point(50.0, 1.0),
-                startM = commonSegmentOfOld.startM + commonSegmentOfOld.length,
-            )
-        val oldSegments = listOf(oldFirstSegment, oldConvergingSegment, commonSegmentOfOld, oldDivergingSegment)
+        val oldFirstSegment = segment(Point(0.0, 1.0), Point(10.0, 1.0))
+        val oldConvergingSegment = segment(Point(10.0, 1.0), Point(15.0, 0.0), Point(20.0, 0.0))
+        val oldDivergingSegment = segment(Point(30.0, 0.0), Point(40.0, 1.0), Point(50.0, 1.0))
+        val oldSegments =
+            withSegmentMValues(listOf(oldFirstSegment, oldConvergingSegment, commonSegment, oldDivergingSegment))
 
-        val newFirstSegment = segment(Point(0.0, 0.0), Point(10.0, 0.0), startM = 0.0)
-        val newConvergingSegment = segment(Point(10.0, 0.0), Point(20.0, 0.0), startM = newFirstSegment.length)
-        val newCommonSegment = commonSegment.copy(startM = newConvergingSegment.startM + newConvergingSegment.length)
-        val newDivergingSegment =
-            segment(
-                Point(30.0, 0.0),
-                Point(40.0, 0.0),
-                Point(50.0, 0.0),
-                startM = newCommonSegment.startM + newCommonSegment.length,
-            )
-        val newSegments = listOf(newFirstSegment, newConvergingSegment, newCommonSegment, newDivergingSegment)
+        val newFirstSegment = segment(Point(0.0, 0.0), Point(10.0, 0.0))
+        val newConvergingSegment = segment(Point(10.0, 0.0), Point(20.0, 0.0))
+        val newDivergingSegment = segment(Point(30.0, 0.0), Point(40.0, 0.0), Point(50.0, 0.0))
+        val newSegments =
+            withSegmentMValues(listOf(newFirstSegment, newConvergingSegment, commonSegment, newDivergingSegment))
 
         val result = getChangedGeometryRanges(newSegments, oldSegments)
         assertEquals(2, result.added.size)
-        assertEquals(newFirstSegment.startM, result.added[0].min, 0.1)
+        assertEquals(newSegments[0].second.min, result.added[0].min, 0.1)
         // NOTE: The following assertion will break after GVT-2967 because the current implementation is wrong
-        assertEquals(newConvergingSegment.startM + newConvergingSegment.length, result.added[0].max, 0.1)
-        assertEquals(newDivergingSegment.startM, result.added[1].min, 0.1)
-        assertEquals(newDivergingSegment.startM + newDivergingSegment.length, result.added[1].max, 0.1)
+        assertEquals(newSegments[1].second.max, result.added[0].max, 0.1)
+        assertEquals(newSegments[3].second.min, result.added[1].min, 0.1)
+        assertEquals(newSegments[3].second.max, result.added[1].max, 0.1)
 
         assertEquals(2, result.removed.size)
-        assertEquals(oldFirstSegment.startM, result.removed[0].min, 0.1)
+        assertEquals(oldSegments[0].second.min, result.removed[0].min, 0.1)
         // NOTE: The following assertion will break after GVT-2967 because the current implementation is wrong
-        assertEquals(oldConvergingSegment.startM + oldConvergingSegment.length, result.removed[0].max, 0.1)
-        assertEquals(oldDivergingSegment.startM, result.removed[1].min, 0.1)
-        assertEquals(oldDivergingSegment.startM + oldDivergingSegment.length, result.removed[1].max, 0.1)
+        assertEquals(oldSegments[1].second.max, result.removed[0].max, 0.1)
+        assertEquals(oldSegments[3].second.min, result.removed[1].min, 0.1)
+        assertEquals(oldSegments[3].second.max, result.removed[1].max, 0.1)
     }
+
+    private fun withSegmentMValues(segments: List<LayoutSegment>): List<Pair<LayoutSegment, Range<Double>>> =
+        segments.zip(calculateSegmentMValues(segments))
 
     @Test
     fun `getChangedGeometryRanges() finds added ranges`() {
         val commonSegment = segment(Point(0.0, 0.0), Point(1.0, 0.0))
         val oldSegments = listOf(commonSegment)
-        val newSegments = listOf(commonSegment, segment(Point(1.0, 0.0), Point(2.0, 0.0), startM = 1.0))
+        val newSegments = listOf(commonSegment, segment(Point(1.0, 0.0), Point(2.0, 0.0)))
 
-        val result = getChangedGeometryRanges(newSegments, oldSegments)
+        val result = getChangedGeometryRanges(withSegmentMValues(newSegments), withSegmentMValues(oldSegments))
         assertEquals(1, result.added.size)
         assertEquals(1.0, result.added[0].min, 0.1)
         assertEquals(2.0, result.added[0].max, 0.1)
@@ -207,9 +200,9 @@ class PublicationUtilsTest {
     fun `getChangedGeometryRanges() finds removed ranges`() {
         val commonSegment = segment(Point(0.0, 0.0), Point(1.0, 0.0))
         val oldSegments = listOf(commonSegment)
-        val newSegments = listOf(commonSegment, segment(Point(1.0, 0.0), Point(2.0, 0.0), startM = 1.0))
+        val newSegments = listOf(commonSegment, segment(Point(1.0, 0.0), Point(2.0, 0.0)))
 
-        val result = getChangedGeometryRanges(oldSegments, newSegments)
+        val result = getChangedGeometryRanges(withSegmentMValues(oldSegments), withSegmentMValues(newSegments))
         assertEquals(0, result.added.size)
         assertEquals(1, result.removed.size)
         assertEquals(1.0, result.removed[0].min, 0.1)

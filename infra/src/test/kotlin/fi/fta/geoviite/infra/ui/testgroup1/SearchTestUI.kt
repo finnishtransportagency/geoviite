@@ -44,7 +44,7 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
     fun `Search opens specific location track`() {
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val (track, _) =
-            mainOfficialContext.insertAndFetch(
+            mainOfficialContext.saveAndFetch(
                 locationTrackAndGeometry(
                     trackNumberId = trackNumberId,
                     name = "test-lt specific 001",

@@ -304,7 +304,7 @@ class TestDBService(
     final fun fetchWithGeometry(
         rowVersion: LayoutRowVersion<LocationTrack>
     ): Pair<LocationTrack, LocationTrackGeometry> =
-        fetch(rowVersion).let { a -> a to alignmentDao.get(a.versionOrThrow) }
+        fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.versionOrThrow) }
 
     fun deleteFromTables(schema: String, vararg tables: String) {
         // We don't actually need transactionality, but we do need everything to be run in one
@@ -341,7 +341,7 @@ class TestDBService(
     fun <T : LayoutAsset<T>> save(asset: LayoutAsset<T>): LayoutRowVersion<T> =
         when (asset) {
             is LayoutTrackNumber -> trackNumberDao.save(asset)
-            is LocationTrack -> locationTrackDao.save(asset, alignmentDao.get(asset.versionOrThrow))
+            is LocationTrack -> locationTrackDao.save(asset, alignmentDao.fetch(asset.versionOrThrow))
             is ReferenceLine -> referenceLineDao.save(asset)
             is LayoutKmPost -> kmPostDao.save(asset)
             is LayoutSwitch -> switchDao.save(asset)
@@ -412,7 +412,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         fetch(id)?.let { a -> a to alignmentDao.fetch(a.getAlignmentVersionOrThrow()) }
 
     fun fetchWithGeometry(id: IntId<LocationTrack>): Pair<LocationTrack, DbLocationTrackGeometry>? =
-        locationTrackDao.get(context, id)?.let { track -> track to alignmentDao.get(track.versionOrThrow) }
+        locationTrackDao.get(context, id)?.let { track -> track to alignmentDao.fetch(track.versionOrThrow) }
 
     fun <T : LayoutAsset<T>> save(asset: T): LayoutRowVersion<T> =
         testService.save(testService.updateContext(asset, context))
@@ -448,7 +448,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         val withNewContext = original.withContext(createContextData(EditedAssetId(rowVersion)))
         return when (withNewContext) {
             // Also copy alignment for polyline assets
-            is LocationTrack -> save(withNewContext, alignmentDao.get(withNewContext.versionOrThrow))
+            is LocationTrack -> save(withNewContext, alignmentDao.fetch(withNewContext.versionOrThrow))
             is ReferenceLine -> save(withNewContext, alignmentDao.fetch(withNewContext.getAlignmentVersionOrThrow()))
             is PolyLineLayoutAsset<*> -> error("Unhandled PolyLineAsset type: ${T::class.simpleName}")
             else -> save(withNewContext)
@@ -474,7 +474,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         return save(withNewContext)
     }
 
-    fun <T : LayoutAsset<T>> insertMany(vararg asset: T): List<LayoutRowVersion<T>> = asset.map(::save)
+    fun <T : LayoutAsset<T>> saveMany(vararg asset: T): List<LayoutRowVersion<T>> = asset.map(::save)
 
     fun saveManyLocationTracks(
         vararg assets: Pair<LocationTrack, LocationTrackGeometry>
@@ -484,26 +484,26 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         vararg assets: Pair<ReferenceLine, LayoutAlignment>
     ): List<LayoutRowVersion<ReferenceLine>> = assets.map(::saveReferenceLine)
 
-    fun <T : LayoutAsset<T>> insertAndFetch(asset: T): T = getReader(asset).fetch(save(asset))
+    fun <T : LayoutAsset<T>> saveAndFetch(asset: T): T = getReader(asset).fetch(save(asset))
 
-    fun insertAndFetch(assetAndAlignment: Pair<ReferenceLine, LayoutAlignment>): Pair<ReferenceLine, LayoutAlignment> =
-        insertAndFetch(assetAndAlignment.first, assetAndAlignment.second)
+    fun saveAndFetch(assetAndAlignment: Pair<ReferenceLine, LayoutAlignment>): Pair<ReferenceLine, LayoutAlignment> =
+        saveAndFetch(assetAndAlignment.first, assetAndAlignment.second)
 
-    fun insertAndFetch(asset: ReferenceLine, alignment: LayoutAlignment): Pair<ReferenceLine, LayoutAlignment> {
+    fun saveAndFetch(asset: ReferenceLine, alignment: LayoutAlignment): Pair<ReferenceLine, LayoutAlignment> {
         val alignmentVersion = alignmentDao.insert(alignment)
         val referenceLineVersion = referenceLineDao.save(asset.copy(alignmentVersion = alignmentVersion))
         return referenceLineDao.fetch(referenceLineVersion) to alignmentDao.fetch(alignmentVersion)
     }
 
-    fun insertAndFetch(
+    fun saveAndFetch(
         assetAndAlignment: Pair<LocationTrack, LocationTrackGeometry>
-    ): Pair<LocationTrack, LocationTrackGeometry> = insertAndFetch(assetAndAlignment.first, assetAndAlignment.second)
+    ): Pair<LocationTrack, LocationTrackGeometry> = saveAndFetch(assetAndAlignment.first, assetAndAlignment.second)
 
-    fun insertAndFetch(
+    fun saveAndFetch(
         asset: LocationTrack,
         geometry: LocationTrackGeometry,
     ): Pair<LocationTrack, DbLocationTrackGeometry> =
-        locationTrackDao.save(asset, geometry).let { v -> locationTrackDao.fetch(v) to alignmentDao.get(v) }
+        locationTrackDao.save(asset, geometry).let { v -> locationTrackDao.fetch(v) to alignmentDao.fetch(v) }
 
     fun createLayoutTrackNumber(): LayoutRowVersion<LayoutTrackNumber> =
         save(trackNumber(testService.getUnusedTrackNumber()))

@@ -434,7 +434,7 @@ constructor(
             "Missing geocoding context, trackNumberId=${locationTrack.trackNumberId} moment=$moment"
         }
 
-        val geometry = alignmentDao.get(locationTrack.versionOrThrow)
+        val geometry = alignmentDao.fetch(locationTrack.versionOrThrow)
         val addresses =
             checkNotNull(geocodingContext.getAddressPoints(geometry)) {
                 "Cannot calculate addresses for location track, id=${locationTrack.id}"

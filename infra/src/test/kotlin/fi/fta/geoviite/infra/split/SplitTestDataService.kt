@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import kotlin.test.assertEquals
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -64,14 +65,14 @@ constructor(
     fun insertSplit(
         trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id
     ): IntId<Split> {
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
         val sourceTrack =
             mainDraftContext.save(
                 locationTrack(trackNumberId = trackNumberId, state = LocationTrackState.DELETED),
-                alignment,
+                geometry,
             )
-        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), geometry)
 
         return splitDao.saveSplit(
             sourceLocationTrackVersion = sourceTrack,
@@ -113,9 +114,9 @@ constructor(
         duplicateOf: IntId<LocationTrack>? = null,
         trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): IntId<LocationTrack> {
-        val alignment = alignment(segments)
+        val geometry = trackGeometryOfSegments(segments)
         return mainOfficialContext
-            .save(locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf), alignment)
+            .save(locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf), geometry)
             .id
     }
 
@@ -123,11 +124,9 @@ constructor(
         segments: List<LayoutSegment>,
         trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): LayoutRowVersion<LocationTrack> {
-        val alignment = alignment(segments)
-        mainOfficialContext.save(referenceLine(trackNumberId), alignment)
-
-        return mainOfficialContext.save(locationTrack(trackNumberId), alignment).also { r ->
-            val (dbTrack, dbAlignment) = locationTrackService.getWithAlignment(r)
+        mainOfficialContext.save(referenceLine(trackNumberId), alignment(segments))
+        return mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segments)).also { r ->
+            val (dbTrack, dbAlignment) = locationTrackService.getWithGeometry(r)
             assertEquals(trackNumberId, dbTrack.trackNumberId)
             assertEquals(segments.size, dbAlignment.segments.size)
             assertEquals(segments.sumOf { s -> s.length }, dbAlignment.length, 0.001)

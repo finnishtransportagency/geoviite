@@ -35,11 +35,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -191,7 +191,7 @@ class LocationTrackService(
         saveDraft(
             branch,
             draftAsset,
-            getSourceVersion(draftAsset)?.let(alignmentDao::get) ?: LocationTrackGeometry.empty,
+            getSourceVersion(draftAsset)?.let(alignmentDao::fetch) ?: LocationTrackGeometry.empty,
         )
 
     private fun getSourceVersion(track: LocationTrack): LayoutRowVersion<LocationTrack>? =
@@ -276,7 +276,7 @@ class LocationTrackService(
     @Transactional
     fun clearDuplicateReferences(branch: LayoutBranch, id: IntId<LocationTrack>) =
         dao.fetchDuplicateVersions(branch.draft, id, includeDeleted = true)
-            .map { version -> asDraft(branch, dao.fetch(version)) to alignmentDao.get(version) }
+            .map { version -> asDraft(branch, dao.fetch(version)) to alignmentDao.fetch(version) }
             .forEach { (dup, geom) -> saveDraft(branch, dup.copy(duplicateOf = null), geom) }
 
     fun listNonLinked(branch: LayoutBranch): List<LocationTrack> {
@@ -474,7 +474,7 @@ class LocationTrackService(
     ): List<FreeText> {
         val startAndEndSwitchIds =
             locationTracks.map { locationTrack ->
-                alignmentDao.get(locationTrack.versionOrThrow).let { geom ->
+                alignmentDao.fetch(locationTrack.versionOrThrow).let { geom ->
                     geom.startSwitchLink?.id to geom.endSwitchLink?.id
                 }
             }
@@ -669,7 +669,7 @@ class LocationTrackService(
     ): LocationTrackDuplicate? =
         childTrack.duplicateOf?.let { parentId ->
             getWithGeometry(layoutContext, parentId)?.let { (parentTrack, parentTrackAlignment) ->
-                val childAlignment = alignmentDao.get(childTrack.versionOrThrow)
+                val childAlignment = alignmentDao.fetch(childTrack.versionOrThrow)
                 getDuplicateTrackParentStatus(parentTrack, parentTrackAlignment, childTrack, childAlignment)
             }
         }
@@ -791,7 +791,7 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun getAlignmentsForTracks(tracks: List<LocationTrack>): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
-        return tracks.map { track -> track to alignmentDao.get(track.versionOrThrow) }
+        return tracks.map { track -> track to alignmentDao.fetch(track.versionOrThrow) }
     }
 
     override fun mergeToMainBranch(
@@ -975,7 +975,7 @@ fun locationTrackWithGeometry(
     locationTrackDao: LocationTrackDao,
     alignmentDao: LayoutAlignmentDao,
     rowVersion: LayoutRowVersion<LocationTrack>,
-) = locationTrackDao.fetch(rowVersion) to alignmentDao.get(rowVersion)
+) = locationTrackDao.fetch(rowVersion) to alignmentDao.fetch(rowVersion)
 
 fun locationTrackWithAlignment(
     locationTrackDao: LocationTrackDao,

@@ -10,12 +10,12 @@ import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.OVERWRITE
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.TRANSFER
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -257,9 +258,9 @@ constructor(
         assertEquals(SplitTargetOperation.TRANSFER, request.getOperation())
 
         val (track, alignment) =
-            locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, response.locationTrackId)
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
         val (originalTrack, originalAlignment) =
-            locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.official, response.locationTrackId)
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.official, response.locationTrackId)
 
         // TRANSFER operation should not change the duplicate track geometry or fields
         assertEquals(originalTrack.name, track.name)
@@ -279,9 +280,9 @@ constructor(
         // This assert is not for TRANSFER operation: use assertTransferTargetTrack for that
         assertNotEquals(SplitTargetOperation.TRANSFER, request.getOperation())
 
-        val (_, source) = locationTrackService.getWithAlignment(sourceResponse)
+        val (_, source) = locationTrackService.getWithGeometry(sourceResponse)
         val (track, alignment) =
-            locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, response.locationTrackId)
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
 
         assertEquals(request.name, track.name)
         assertEquals(request.descriptionBase, track.descriptionBase)
@@ -341,9 +342,9 @@ constructor(
         val switchStartPoints =
             listOf(Point(100.0, 0.0), Point(200.0, 0.0), Point(300.0, 0.0), Point(400.0, 0.0), Point(500.0, 0.0))
 
-        val (switchesAndSegments, alignment) = alignmentWithMultipleSwitches(switchStartPoints)
+        val (switchesAndSegments, geometry) = alignmentWithMultipleSwitches(switchStartPoints)
 
-        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
 
         val duplicateIds =
             listOf(
@@ -353,7 +354,7 @@ constructor(
                             trackNumberId = trackNumberId,
                             duplicateOf = sourceTrack.id,
                         ),
-                        alignment(segment(Point(100.0, 0.0), Point(200.0, 0.0))),
+                        trackGeometryOfSegments(segment(Point(100.0, 0.0), Point(200.0, 0.0))),
                     ),
                     mainOfficialContext.save(
                         locationTrack(
@@ -361,7 +362,7 @@ constructor(
                             trackNumberId = trackNumberId,
                             duplicateOf = sourceTrack.id,
                         ),
-                        alignment(segment(Point(250.0, 0.0), Point(275.0, 0.0))),
+                        trackGeometryOfSegments(segment(Point(250.0, 0.0), Point(275.0, 0.0))),
                     ),
                     mainOfficialContext.save(
                         locationTrack(
@@ -369,7 +370,7 @@ constructor(
                             trackNumberId = trackNumberId,
                             duplicateOf = sourceTrack.id,
                         ),
-                        alignment(segment(Point(275.0, 0.0), Point(350.0, 0.0))),
+                        trackGeometryOfSegments(segment(Point(275.0, 0.0), Point(350.0, 0.0))),
                     ),
                     mainOfficialContext.save(
                         locationTrack(
@@ -377,7 +378,7 @@ constructor(
                             trackNumberId = trackNumberId,
                             duplicateOf = sourceTrack.id,
                         ),
-                        alignment(segment(Point(370.0, 0.0), Point(410.0, 0.0))),
+                        trackGeometryOfSegments(segment(Point(370.0, 0.0), Point(410.0, 0.0))),
                     ),
                 )
                 .map { daoResponse -> daoResponse.id }
@@ -441,13 +442,13 @@ constructor(
         val sourceTrack =
             mainOfficialContext.save(
                 locationTrack(trackNumberId),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
 
         val endTrack =
             mainOfficialContext.save(
                 locationTrack(trackNumberId),
-                alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+                trackGeometryOfSegments(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
             )
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
@@ -469,7 +470,7 @@ constructor(
     private fun alignmentWithMultipleSwitches(
         startPoints: List<Point>,
         structure: SwitchStructure = getYvStructure(),
-    ): Pair<SwitchesAndSegments, LayoutAlignment> {
+    ): Pair<SwitchesAndSegments, LocationTrackGeometry> {
         val segmentsBeforeFirstSwitch =
             startPoints.first().toPoint().let { firstSwitchStart ->
                 listOf(
@@ -486,34 +487,36 @@ constructor(
 
         val initialSwitchesAndSegments = SwitchesAndSegments(segments = segmentsBeforeFirstSwitch)
 
-        return startPoints
-            .zip(startPoints.drop(1) + null)
-            .fold(initialSwitchesAndSegments) { switchesAndSegments, (startPoint, nextStartPoint) ->
-                val (switch, switchSegments, turningSegments) =
-                    splitTestDataService.createSwitchAndGeometry(startPoint, structure)
-                // For the switch relinking to have another track to find near the start of every
-                // switch.
-                splitTestDataService.insertAsTrack(turningSegments)
-
-                val switchEnd = switchSegments.last().segmentPoints.last()
-                val pointAfterSwitch = switchEnd + Point(10.0, startPoint.y)
-                val segmentAfterSwitch = segment(switchEnd, pointAfterSwitch)
-
-                val postSwitchSegments =
-                    nextStartPoint?.let { actualNextStartPoint ->
-                        listOf(segmentAfterSwitch, segment(pointAfterSwitch, actualNextStartPoint))
-                    }
-                        ?: listOf(
-                            segmentAfterSwitch,
-                            segment(pointAfterSwitch, Point(pointAfterSwitch.x + 10.0, pointAfterSwitch.y)),
-                        )
-
-                SwitchesAndSegments(
-                    switchIds = switchesAndSegments.switchIds + switch.id,
-                    switchStartPoints = switchesAndSegments.switchStartPoints + startPoint,
-                    segments = switchesAndSegments.segments + switchSegments + postSwitchSegments,
-                )
-            }
-            .let { switchesAndSegments -> switchesAndSegments to alignment(switchesAndSegments.segments) }
+        // TODO: GVT-2927
+        TODO()
+        //        return startPoints
+        //            .zip(startPoints.drop(1) + null)
+        //            .fold(initialSwitchesAndSegments) { switchesAndSegments, (startPoint, nextStartPoint) ->
+        //                val (switch, switchSegments, turningSegments) =
+        //                    splitTestDataService.createSwitchAndGeometry(startPoint, structure)
+        //                // For the switch relinking to have another track to find near the start of every
+        //                // switch.
+        //                splitTestDataService.insertAsTrack(turningSegments)
+        //
+        //                val switchEnd = switchSegments.last().segmentPoints.last()
+        //                val pointAfterSwitch = switchEnd + Point(10.0, startPoint.y)
+        //                val segmentAfterSwitch = segment(switchEnd, pointAfterSwitch)
+        //
+        //                val postSwitchSegments =
+        //                    nextStartPoint?.let { actualNextStartPoint ->
+        //                        listOf(segmentAfterSwitch, segment(pointAfterSwitch, actualNextStartPoint))
+        //                    }
+        //                        ?: listOf(
+        //                            segmentAfterSwitch,
+        //                            segment(pointAfterSwitch, Point(pointAfterSwitch.x + 10.0, pointAfterSwitch.y)),
+        //                        )
+        //
+        //                SwitchesAndSegments(
+        //                    switchIds = switchesAndSegments.switchIds + switch.id,
+        //                    switchStartPoints = switchesAndSegments.switchStartPoints + startPoint,
+        //                    segments = switchesAndSegments.segments + switchSegments + postSwitchSegments,
+        //                )
+        //            }
+        //            .let { switchesAndSegments -> switchesAndSegments to alignment(switchesAndSegments.segments) }
     }
 }

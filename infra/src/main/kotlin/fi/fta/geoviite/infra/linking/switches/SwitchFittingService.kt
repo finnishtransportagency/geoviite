@@ -42,6 +42,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import kotlin.math.max
@@ -759,7 +760,7 @@ fun createFittedSwitchByPoint(
     switchId: IntId<LayoutSwitch>,
     location: IPoint,
     switchStructure: SwitchStructure,
-    nearbyLocationTracks: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
+    nearbyLocationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): FittedSwitch? =
     findBestSwitchFitForAllPointsInSamplingGrid(
             SwitchPlacingRequest(SamplingGridPoints(location.toPoint()), switchId),
@@ -772,7 +773,7 @@ fun createFittedSwitchByPoint(
 fun findBestSwitchFitForAllPointsInSamplingGrid(
     request: SwitchPlacingRequest,
     switchStructure: SwitchStructure,
-    nearbyLocationTracks: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
+    nearbyLocationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): PointAssociation<FittedSwitch> {
     val (grid, switchId) = request
     val bboxExpansion = max(switchStructure.bbox.width, switchStructure.bbox.height) * 1.125
@@ -781,7 +782,8 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
     val pointBboxes =
         grid.points.associateWith { point -> BoundingBox(0.0..pointBboxSize, 0.0..pointBboxSize).centerAt(point) }
 
-    val croppedTracks = nearbyLocationTracks.map { (track, alignment) -> track to cropPoints(alignment, gridBbox) }
+    val croppedTracks =
+        nearbyLocationTracks.map { (track, alignment) -> track to cropPoints(track.id as IntId, alignment, gridBbox) }
 
     val intersections = findTrackIntersectionsForGridPoints(croppedTracks.map { it.second }, grid)
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
@@ -835,10 +837,15 @@ private data class TrackIntersection(
 )
 
 /** Returns a copy of the alignment filtering out points that do not locate in the given bounding box. */
-fun cropPoints(geometry: DbLocationTrackGeometry, bbox: BoundingBox): CroppedAlignment = cropPoints(geometry, bbox, 0)
+fun cropPoints(geometry: DbLocationTrackGeometry, bbox: BoundingBox): CroppedAlignment =
+    cropPoints(geometry.trackRowVersion.id, geometry, bbox, 0)
+
+fun cropPoints(trackId: IntId<LocationTrack>, geometry: LocationTrackGeometry, bbox: BoundingBox): CroppedAlignment =
+    cropPoints(trackId, geometry, bbox, 0)
 
 fun cropPoints(
-    geometry: DbLocationTrackGeometry,
+    trackId: IntId<LocationTrack>,
+    geometry: LocationTrackGeometry,
     bbox: BoundingBox,
     underlyingAlignmentCropStartSegmentIndex: Int,
 ): CroppedAlignment {
@@ -858,7 +865,7 @@ fun cropPoints(
         underlyingAlignmentCropStartSegmentIndex + (filteredSegments.firstOrNull()?.first ?: 0),
         filteredSegments.map { it.second.first },
         filteredSegments.map { it.second.second },
-        geometry.trackRowVersion.id,
+        trackId,
     )
 }
 
@@ -875,5 +882,7 @@ data class CroppedAlignment(
     override fun toLog(): String = logFormat("id" to id, "segments" to segmentMValues)
 }
 
-fun cropNothing(geometry: DbLocationTrackGeometry) =
-    CroppedAlignment(0, geometry.segments, geometry.segmentMValues, geometry.trackRowVersion.id)
+fun cropNothing(geometry: DbLocationTrackGeometry) = cropNothing(geometry.trackRowVersion.id, geometry)
+
+fun cropNothing(trackId: IntId<LocationTrack>, geometry: LocationTrackGeometry) =
+    CroppedAlignment(0, geometry.segments, geometry.segmentMValues, trackId)

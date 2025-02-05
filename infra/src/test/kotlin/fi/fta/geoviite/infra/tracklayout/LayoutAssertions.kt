@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
+import kotlin.test.assertNull
 
 private const val COORDINATE_DELTA: Double = 0.000000001
 private const val LENGTH_DELTA: Double = 0.00001
@@ -38,6 +38,11 @@ fun assertMatches(expected: LocationTrack, actual: LocationTrack, contextMatch: 
         assertEquals(expectedWithSameFloats, unified)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
+}
+
+fun assertMatches(expected: LocationTrackGeometry, actual: LocationTrackGeometry, idMatch: Boolean = false) {
+    // TODO: GVT-2915
+    TODO()
 }
 
 fun assertMatches(expected: LayoutAlignment, actual: LayoutAlignment, idMatch: Boolean = false) {

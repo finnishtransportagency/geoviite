@@ -34,6 +34,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -48,6 +49,7 @@ import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertEquals
@@ -145,6 +147,7 @@ constructor(
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId).let { lt ->
                 lt.copy(name = AlignmentName("${lt.name} TEST"))
             },
+            LocationTrackGeometry.empty,
         )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
@@ -162,6 +165,7 @@ constructor(
             locationTrackService
                 .getOrThrow(MainLayoutContext.official, draft.id as IntId)
                 .copy(state = LocationTrackState.DELETED),
+            LocationTrackGeometry.empty,
         )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
@@ -182,6 +186,7 @@ constructor(
             locationTrackService
                 .getOrThrow(MainLayoutContext.official, draft.id as IntId)
                 .copy(state = LocationTrackState.IN_USE),
+            LocationTrackGeometry.empty,
         )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
@@ -310,24 +315,24 @@ constructor(
         val track1Main =
             mainOfficialContext.save(
                 locationTrack(trackNumber),
-                alignment(
+                trackGeometryOfSegments(
                     segment(Point(0.0, 0.0), Point(1.0, 0.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
                 ),
             )
         val track2Main =
             mainOfficialContext.save(
                 locationTrack(trackNumber),
-                alignment(
+                trackGeometryOfSegments(
                     segment(Point(0.0, 0.0), Point(1.0, 0.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
                 ),
             )
         mainDraftContext.save(
             locationTrackDao.fetch(track1Main),
-            alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
         )
         mainDraftContext.save(
             locationTrackDao.fetch(track2Main),
-            alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
         )
 
         assertEquals(
@@ -357,60 +362,47 @@ constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val switchByAlignment = switchDao.save(switch(draft = false)).id
         val switchByTopo = switchDao.save(switch(draft = false)).id
-        val dummyAlignment = alignmentDao.insert(alignment())
         val officialLinkedTopo =
             locationTrackDao.save(
                 locationTrack(
                     trackNumberId,
                     topologyStartSwitch = TopologyLocationTrackSwitch(switchByTopo, JointNumber(1)),
-                    alignmentVersion = dummyAlignment,
                     draft = false,
-                )
+                ),
+                LocationTrackGeometry.empty,
             )
         val draftLinkedTopo =
             locationTrackDao.save(
                 locationTrack(
                     trackNumberId,
                     topologyStartSwitch = TopologyLocationTrackSwitch(switchByTopo, JointNumber(3)),
-                    alignmentVersion = dummyAlignment,
                     draft = true,
-                )
+                ),
+                LocationTrackGeometry.empty,
             )
         val officialLinkedAlignment =
             locationTrackDao.save(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    alignmentVersion =
-                        alignmentDao.insert(
-                            alignment(
-                                segment(
-                                    Point(0.0, 0.0),
-                                    Point(1.0, 1.0),
-                                    switchId = switchByAlignment,
-                                    startJointNumber = JointNumber(1),
-                                )
-                            )
-                        ),
-                    draft = false,
-                )
+                locationTrack(trackNumberId = trackNumberId, draft = false),
+                trackGeometryOfSegments(
+                    segment(
+                        Point(0.0, 0.0),
+                        Point(1.0, 1.0),
+                        switchId = switchByAlignment,
+                        startJointNumber = JointNumber(1),
+                    )
+                ),
             )
         val draftLinkedAlignment =
             locationTrackDao.save(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    alignmentVersion =
-                        alignmentDao.insert(
-                            alignment(
-                                segment(
-                                    Point(2.0, 2.0),
-                                    Point(3.0, 3.0),
-                                    switchId = switchByAlignment,
-                                    startJointNumber = JointNumber(3),
-                                )
-                            )
-                        ),
-                    draft = true,
-                )
+                locationTrack(trackNumberId = trackNumberId, draft = true),
+                trackGeometryOfSegments(
+                    segment(
+                        Point(2.0, 2.0),
+                        Point(3.0, 3.0),
+                        switchId = switchByAlignment,
+                        startJointNumber = JointNumber(3),
+                    )
+                ),
             )
         val target = draftTransitionOrOfficialState(PublicationState.DRAFT, LayoutBranch.main)
         assertEquals(
@@ -548,12 +540,10 @@ constructor(
     }
 
     private fun insertAndCheck(locationTrack: LocationTrack): Pair<LayoutRowVersion<LocationTrack>, LocationTrack> {
-        val dbAlignmentVersion = alignmentDao.insert(alignment())
-        val trackWithAlignment = locationTrack.copy(alignmentVersion = dbAlignmentVersion)
-        val official = locationTrackDao.save(trackWithAlignment)
+        val official = locationTrackDao.save(locationTrack, LocationTrackGeometry.empty)
         val fromDb = locationTrackDao.fetch(official)
         assertEquals(official.id, fromDb.id)
-        assertMatches(trackWithAlignment, fromDb, contextMatch = false)
+        assertMatches(locationTrack, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, locationTrack.dataType)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)

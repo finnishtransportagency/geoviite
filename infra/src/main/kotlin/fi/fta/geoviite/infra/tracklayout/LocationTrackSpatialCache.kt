@@ -11,9 +11,9 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
-import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class LocationTrackSpatialCache
@@ -31,7 +31,8 @@ constructor(
             ?: error("Cache should have been created")
     }
 
-    private fun newCache(): ContextCache = ContextCache(locationTrackDao::fetch, alignmentDao::get, alignmentDao::fetch)
+    private fun newCache(): ContextCache =
+        ContextCache(locationTrackDao::fetch, alignmentDao::fetch, alignmentDao::fetch)
 
     private fun refresh(cache: ContextCache, newTracks: Map<IntId<LocationTrack>, LocationTrack>): ContextCache {
         // TODO: GVT-1727 This could possibly be optimized by edges, since their geometries don't change
@@ -52,7 +53,7 @@ constructor(
 
         // Add all new items (tracks that have been added or updated)
         fun addEntry(track: LocationTrack) =
-            createEntry(track, alignmentDao.get(track.versionOrThrow)).also { entry ->
+            createEntry(track, alignmentDao.fetch(track.versionOrThrow)).also { entry ->
                 newNet = entry.segmentData.fold(newNet) { net, (segment, rect) -> net.add(segment, rect) }
             }
 
@@ -60,8 +61,8 @@ constructor(
 
         return ContextCache(
             LazyMap(locationTrackDao::fetch)::get,
-            LazyMap(alignmentDao::get)::get,
-            LazyMap(alignmentDao::fetch)::get,
+            LazyMap<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry>(alignmentDao::fetch)::get,
+            LazyMap<RowVersion<LayoutAlignment>, LayoutAlignment>(alignmentDao::fetch)::get,
             newNet,
             newItems.toMap(),
         )

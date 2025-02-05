@@ -3,23 +3,24 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.SwitchTopologicalConnectivityTest.MakeSwitchLinkPair
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchStructureRR54_4x1_9
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import org.junit.jupiter.api.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import org.junit.jupiter.api.Test
 
 class SwitchTopologicalConnectivityTest {
 
@@ -305,7 +306,7 @@ class SwitchTopologicalConnectivityTest {
         isDuplicate: Boolean = false,
         isDeleted: Boolean = false,
         topologyLinks: SwitchLinkPair? = null,
-    ): Pair<LocationTrack, LayoutAlignment> {
+    ): Pair<LocationTrack, LocationTrackGeometry> {
         val locationTrack =
             locationTrack(
                 IntId(1),
@@ -322,8 +323,9 @@ class SwitchTopologicalConnectivityTest {
                         t.endJointNumber?.let { jointNumber -> TopologyLocationTrackSwitch(t.switchId, jointNumber) }
                     },
             )
-        val alignment =
-            alignment(
+        val geometry =
+            trackGeometryOfSegments(
+                // TODO: GVT-2927
                 switchLinks.mapIndexed { index, link ->
                     segment(
                         Point(0.0, index.toDouble()),
@@ -334,7 +336,7 @@ class SwitchTopologicalConnectivityTest {
                     )
                 }
             )
-        return locationTrack to alignment
+        return locationTrack to geometry
     }
 
     private fun switchAndLink(

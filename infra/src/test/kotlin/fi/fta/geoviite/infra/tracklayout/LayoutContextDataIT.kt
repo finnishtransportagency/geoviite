@@ -53,12 +53,12 @@ constructor(
 
     @Test
     fun draftAndOfficialLocationTracksHaveSameOfficialId() {
-        val dbAlignment = insertAndVerifyTrack(createLocationTrackAndAlignment(false))
-        val (dbDraft, _) = insertAndVerifyTrack(alterTrack(createAndVerifyDraftTrack(dbAlignment)))
+        val dbTrackAndGeometry = insertAndVerifyTrack(createLocationTrackAndGeometry(false))
+        val (dbDraft, _) = insertAndVerifyTrack(alterTrack(createAndVerifyDraftTrack(dbTrackAndGeometry)))
 
-        assertNotEquals(dbAlignment, dbDraft)
-        assertEquals(dbAlignment.first.id, dbDraft.id)
-        assertFalse(dbAlignment.first.isDraft)
+        assertNotEquals(dbTrackAndGeometry, dbDraft)
+        assertEquals(dbTrackAndGeometry.first.id, dbDraft.id)
+        assertFalse(dbTrackAndGeometry.first.isDraft)
         assertTrue(dbDraft.isDraft)
     }
 
@@ -102,7 +102,7 @@ constructor(
 
     @Test
     fun draftLocationTracksAreIncludedInDraftListingsOnly() {
-        val dbOfficial = insertAndVerifyTrack(createLocationTrackAndAlignment(false))
+        val dbOfficial = insertAndVerifyTrack(createLocationTrackAndGeometry(false))
         val dbDraft = insertAndVerifyTrack(alterTrack(createAndVerifyDraftTrack(dbOfficial)))
 
         val officials = locationTrackService.list(MainLayoutContext.official)
@@ -158,10 +158,10 @@ constructor(
 
     @Test
     fun `location track save is an upsert`() {
-        val (track, _) = insertAndVerifyTrack(createLocationTrackAndAlignment(false))
+        val (track, geometry) = insertAndVerifyTrack(createLocationTrackAndGeometry(false))
 
-        val draft1 = locationTrackDao.save(asMainDraft(track))
-        val draft2 = locationTrackDao.save(asMainDraft(track))
+        val draft1 = locationTrackDao.save(asMainDraft(track), geometry)
+        val draft2 = locationTrackDao.save(asMainDraft(track), geometry)
 
         assertEquals(draft2, locationTrackDao.fetchVersion(MainLayoutContext.draft, draft1.id))
     }
@@ -232,7 +232,7 @@ constructor(
             draft = draft,
         )
 
-    private fun createLocationTrackAndAlignment(draft: Boolean): Pair<LocationTrack, LayoutAlignment> =
+    private fun createLocationTrackAndGeometry(draft: Boolean): Pair<LocationTrack, LocationTrackGeometry> =
         locationTrackAndGeometry(
             mainOfficialContext.createLayoutTrackNumber().id,
             segment(Point(10.0, 10.0), Point(11.0, 11.0)),
@@ -255,18 +255,17 @@ constructor(
     }
 
     private fun createAndVerifyDraftTrack(
-        dbTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>
-    ): Pair<LocationTrack, LayoutAlignment> {
-        val (dbTrack, dbAlignment) = dbTrackAndAlignment
+        dbTrackAndGeometry: Pair<LocationTrack, DbLocationTrackGeometry>
+    ): Pair<LocationTrack, LocationTrackGeometry> {
+        val (dbTrack, dbGeometry) = dbTrackAndGeometry
         assertTrue(dbTrack.id is IntId)
-        assertTrue(dbAlignment.id is IntId)
-        assertEquals(dbAlignment.id, dbTrack.alignmentVersion?.id)
+        assertEquals(dbGeometry.trackRowVersion, dbTrack.version)
         assertFalse(dbTrack.isDraft)
         val draft = asMainDraft(dbTrack)
         assertTrue(draft.isDraft)
         assertEquals(dbTrack.id, draft.id)
         assertMatches(dbTrack, draft, contextMatch = false)
-        return draft to dbAlignment
+        return draft to dbGeometry
     }
 
     private fun createAndVerifyDraft(dbSwitch: LayoutSwitch): LayoutSwitch {
@@ -293,9 +292,8 @@ constructor(
         lineAndAlignment.first.copy(startAddress = lineAndAlignment.first.startAddress + 10.0) to
             lineAndAlignment.second
 
-    private fun alterTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) =
-        trackAndAlignment.first.copy(name = AlignmentName("${trackAndAlignment.first.name}-D")) to
-            trackAndAlignment.second
+    private fun alterTrack(trackAndGeometry: Pair<LocationTrack, LocationTrackGeometry>) =
+        trackAndGeometry.first.copy(name = AlignmentName("${trackAndGeometry.first.name}-D")) to trackAndGeometry.second
 
     private fun alter(switch: LayoutSwitch): LayoutSwitch = switch.copy(name = SwitchName("${switch.name}-D"))
 
@@ -320,20 +318,18 @@ constructor(
     }
 
     private fun insertAndVerifyTrack(
-        trackAndAlignment: Pair<LocationTrack, LayoutAlignment>
-    ): Pair<LocationTrack, LayoutAlignment> {
-        val (track, alignment) = trackAndAlignment
+        trackAndAlignment: Pair<LocationTrack, LocationTrackGeometry>
+    ): Pair<LocationTrack, DbLocationTrackGeometry> {
+        val (track, geometry) = trackAndAlignment
         assertEquals(DataType.TEMP, track.dataType)
-        val alignmentVersion = alignmentDao.insert(alignment)
-        val trackWithAlignment = track.copy(alignmentVersion = alignmentVersion)
-        val trackResponse = locationTrackDao.save(trackWithAlignment)
-        val alignmentFromDb = alignmentDao.fetch(alignmentVersion)
-        assertMatches(alignment, alignmentFromDb)
+        val trackResponse = locationTrackDao.save(track, geometry)
+        val geometryFromDb = alignmentDao.fetch(trackResponse)
+        assertMatches(geometry, geometryFromDb)
         val trackFromDb = locationTrackDao.fetch(trackResponse)
         assertEquals(DataType.STORED, trackFromDb.dataType)
         assertEquals(trackResponse.id, trackFromDb.id)
-        assertMatches(trackWithAlignment, trackFromDb, contextMatch = false)
-        return trackFromDb to alignmentFromDb
+        assertMatches(track, trackFromDb, contextMatch = false)
+        return trackFromDb to geometryFromDb
     }
 
     private fun insertAndVerify(switch: LayoutSwitch): LayoutSwitch {

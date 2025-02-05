@@ -37,13 +37,11 @@ import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -51,6 +49,9 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -137,12 +138,12 @@ constructor(
                     topologyStartSwitch = TopologyLocationTrackSwitch(switchAtStart.id, JointNumber(1)),
                     topologyEndSwitch = TopologyLocationTrackSwitch(switchAtEnd.id, JointNumber(1)),
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
         val locationTrack2 =
             mainOfficialContext.save(
                 locationTrack(trackNumber),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
         locationTrackDao.insertExternalId(locationTrack1.id, LayoutBranch.main, Oid("3.2.3.4.5"))
         locationTrackDao.insertExternalId(locationTrack2.id, LayoutBranch.main, Oid("3.2.3.4.6"))
@@ -245,7 +246,7 @@ constructor(
             mainDraftContext
                 .save(
                     locationTrack(trackNumber),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(Point(0.0, 0.0), Point(1.0, 0.0)),
                         segment(Point(1.0, 0.0), Point(10.0, 0.0))
                             .copy(startJointNumber = JointNumber(1), switchId = switch),

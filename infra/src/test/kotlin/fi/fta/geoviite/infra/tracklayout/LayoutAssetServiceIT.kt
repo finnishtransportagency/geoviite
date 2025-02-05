@@ -11,15 +11,15 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -44,8 +44,8 @@ constructor(
         val designOfficialContext = testDBService.testContext(someDesignBranch, PublicationState.OFFICIAL)
 
         val trackNumberId = designOfficialContext.save(trackNumber()).id
-        val referenceLineId = designOfficialContext.save(referenceLineAndAlignment(trackNumberId)).id
-        val locationTrackId = designOfficialContext.save(locationTrackAndGeometry(trackNumberId)).id
+        val referenceLineId = designOfficialContext.saveReferenceLine(referenceLineAndAlignment(trackNumberId)).id
+        val locationTrackId = designOfficialContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId)).id
 
         layoutTrackNumberService.mergeToMainBranch(someDesignBranch, trackNumberId)
         layoutReferenceLineService.mergeToMainBranch(someDesignBranch, referenceLineId)
@@ -82,8 +82,8 @@ constructor(
         val designOfficialContext = testDBService.testContext(someDesignBranch, PublicationState.OFFICIAL)
 
         val trackNumberId = designOfficialContext.save(trackNumber()).id
-        val referenceLineId = designOfficialContext.save(referenceLineAndAlignment(trackNumberId)).id
-        val locationTrackId = designOfficialContext.save(locationTrackAndGeometry(trackNumberId)).id
+        val referenceLineId = designOfficialContext.saveReferenceLine(referenceLineAndAlignment(trackNumberId)).id
+        val locationTrackId = designOfficialContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId)).id
         val switchId = designOfficialContext.save(switch()).id
         val kmPostId = designOfficialContext.save(kmPost(trackNumberId, KmNumber(123))).id
 
@@ -113,8 +113,8 @@ constructor(
         val designDraftContext = testDBService.testContext(someDesignBranch, PublicationState.DRAFT)
 
         val trackNumberId = mainOfficialContext.save(trackNumber()).id
-        val referenceLineId = mainOfficialContext.save(referenceLineAndAlignment(trackNumberId)).id
-        val locationTrackId = mainOfficialContext.save(locationTrackAndGeometry(trackNumberId)).id
+        val referenceLineId = mainOfficialContext.saveReferenceLine(referenceLineAndAlignment(trackNumberId)).id
+        val locationTrackId = mainOfficialContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId)).id
         val switchId = mainOfficialContext.save(switch()).id
         val kmPostId = mainOfficialContext.save(kmPost(trackNumberId, KmNumber(123))).id
 
@@ -211,8 +211,8 @@ constructor(
         val designDraftContext = testDBService.testContext(someDesignBranch, PublicationState.DRAFT)
 
         val trackNumber = designOfficialContext.save(trackNumber())
-        val referenceLine = designOfficialContext.save(referenceLineAndAlignment(trackNumber.id))
-        val locationTrack = designOfficialContext.save(locationTrackAndGeometry(trackNumber.id))
+        val referenceLine = designOfficialContext.saveReferenceLine(referenceLineAndAlignment(trackNumber.id))
+        val locationTrack = designOfficialContext.saveLocationTrack(locationTrackAndGeometry(trackNumber.id))
         val switch = designOfficialContext.save(switch())
         val kmPost = designOfficialContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
@@ -242,8 +242,8 @@ constructor(
         val designDraftContext = testDBService.testContext(someDesignBranch, PublicationState.DRAFT)
 
         val trackNumber = mainOfficialContext.save(trackNumber())
-        val referenceLine = mainOfficialContext.save(referenceLineAndAlignment(trackNumber.id))
-        val locationTrack = mainOfficialContext.save(locationTrackAndGeometry(trackNumber.id))
+        val referenceLine = mainOfficialContext.saveReferenceLine(referenceLineAndAlignment(trackNumber.id))
+        val locationTrack = mainOfficialContext.saveLocationTrack(locationTrackAndGeometry(trackNumber.id))
         val switch = mainOfficialContext.save(switch())
         val kmPost = mainOfficialContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
@@ -339,8 +339,8 @@ constructor(
                 val trackNumber = context.save(trackNumber()).id
                 return AllAssetTypes(
                     trackNumber = trackNumber,
-                    referenceLine = context.save(referenceLineAndAlignment(trackNumber)).id,
-                    locationTrack = context.save(locationTrackAndGeometry(trackNumber)).id,
+                    referenceLine = context.saveReferenceLine(referenceLineAndAlignment(trackNumber)).id,
+                    locationTrack = context.saveLocationTrack(locationTrackAndGeometry(trackNumber)).id,
                     switch = context.save(switch()).id,
                     kmPost = context.save(kmPost(trackNumber, KmNumber(123))).id,
                 )

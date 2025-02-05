@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.util.getIntId
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -29,7 +30,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -103,19 +103,12 @@ constructor(
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
 
         val alignmentOrphan = alignment(someSegment())
-        val alignmentLocationTrack = alignment(someSegment())
+        val trackGeometry = trackGeometryOfSegments(someSegment())
         val alignmentReferenceLine = alignment(someSegment())
 
         val orphanAlignmentVersion = alignmentDao.insert(alignmentOrphan)
-        val locationTrackAlignmentVersion = alignmentDao.insert(alignmentLocationTrack)
-        locationTrackDao.save(
-            locationTrack(
-                trackNumberId = trackNumberId,
-                alignment = alignmentLocationTrack,
-                alignmentVersion = locationTrackAlignmentVersion,
-                draft = false,
-            )
-        )
+        val trackVersion =
+            locationTrackDao.save(locationTrack(trackNumberId = trackNumberId, draft = false), trackGeometry)
         val referenceLineAlignmentVersion = alignmentDao.insert(alignmentReferenceLine)
         referenceLineDao.save(
             referenceLine(
@@ -128,14 +121,14 @@ constructor(
 
         val orphanAlignmentBeforeDelete = alignmentDao.fetch(orphanAlignmentVersion)
         assertMatches(alignmentOrphan, orphanAlignmentBeforeDelete)
-        assertMatches(alignmentLocationTrack, alignmentDao.fetch(locationTrackAlignmentVersion))
+        assertMatches(trackGeometry, alignmentDao.fetch(trackVersion))
         assertMatches(alignmentReferenceLine, alignmentDao.fetch(referenceLineAlignmentVersion))
 
         alignmentDao.deleteOrphanedAlignments()
 
         assertEquals(orphanAlignmentBeforeDelete, alignmentDao.fetch(orphanAlignmentVersion))
         assertThrows<NoSuchEntityException> { alignmentDao.fetch(orphanAlignmentVersion.next()) }
-        assertMatches(alignmentLocationTrack, alignmentDao.fetch(locationTrackAlignmentVersion))
+        assertMatches(trackGeometry, alignmentDao.fetch(trackVersion))
         assertMatches(alignmentReferenceLine, alignmentDao.fetch(referenceLineAlignmentVersion))
     }
 
@@ -297,8 +290,8 @@ constructor(
         val geometryAlignmentWithoutCrs = planWithoutCrs.alignments.first()
         val geometryElementWithoutCrs = geometryAlignmentWithoutCrs.elements.first()
 
-        val alignment =
-            alignment(
+        val geometry =
+            trackGeometryOfSegments(
                 segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement),
                 segment(points = points2, source = GeometrySource.IMPORTED),
                 segment(points = points3, source = GeometrySource.GENERATED),
@@ -306,8 +299,7 @@ constructor(
                 segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement),
                 segment(points = points6, source = GeometrySource.PLAN, sourceId = geometryElementWithCrsButNoProfile),
             )
-        val version = alignmentDao.insert(alignment)
-        locationTrackDao.save(locationTrack(trackNumberId, alignmentVersion = version, draft = false))
+        locationTrackDao.save(locationTrack(trackNumberId, draft = false), geometry)
 
         val boundingBox = boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
         val profileInfo =

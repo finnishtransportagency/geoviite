@@ -34,11 +34,11 @@ import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -124,11 +124,11 @@ constructor(
         locationTrackService.publish(LayoutBranch.main, locationTrackVersion)
         val locationTrackId = locationTrackVersion.id
 
-        val (officialTrack, officialAlignment) =
-            locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.official, locationTrackId)
+        val (officialTrack, officialGeometry) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.official, locationTrackId)
         assertMatches(
-            officialTrack to officialAlignment,
-            locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId),
+            officialTrack to officialGeometry,
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, locationTrackId),
         )
 
         // Pick the whole geometry as interval
@@ -144,8 +144,8 @@ constructor(
                 alignmentId = locationTrackId,
                 mRange =
                     Range(
-                        officialAlignment.segmentMs[0].min,
-                        officialAlignment.segmentsWithM[1].let { (s, m) -> m.min + s.segmentPoints[4].m },
+                        officialGeometry.segmentMValues[0].min,
+                        officialGeometry.segmentsWithM[1].let { (s, m) -> m.min + s.segmentPoints[4].m },
                     ),
             )
 
@@ -154,12 +154,12 @@ constructor(
             LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval),
         )
         assertEquals(
-            officialTrack to officialAlignment,
+            officialTrack to officialGeometry,
             locationTrackService.getWithGeometry(MainLayoutContext.official, locationTrackId),
         )
 
-        val (_, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId)
-        assertNotEquals(officialAlignment, draftAlignment)
+        val (_, draftAlignment) = locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, locationTrackId)
+        assertNotEquals(officialGeometry, draftAlignment)
         // Should be split so that we have;
         // all geometry segments
         // 1 generated segment from geometry end to 2:nd segment middle
@@ -313,7 +313,7 @@ constructor(
                 locationTrackService.publish(LayoutBranch.main, rowVersion)
             }
 
-        val (_, officialAlignment) = locationTrackService.getWithAlignment(locationTrackResponse)
+        val (_, officialAlignment) = locationTrackService.getWithGeometry(locationTrackResponse)
 
         val geometryInterval =
             GeometryInterval(
@@ -371,7 +371,7 @@ constructor(
         val trackNumberId = mainOfficialContext.save(trackNumber(trackNumber)).id
         val linkedLocationTrack =
             mainDraftContext
-                .save(
+                .saveLocationTrack(
                     locationTrackAndGeometry(
                         trackNumberId,
                         segment(Point(0.0, 0.0), Point(10.0, 0.0))
@@ -381,7 +381,7 @@ constructor(
                 .id
         val linkedReferenceLine =
             mainDraftContext
-                .save(
+                .saveReferenceLine(
                     referenceLineAndAlignment(
                         trackNumberId,
                         segment(Point(0.0, 0.0), Point(10.0, 0.0))
@@ -392,7 +392,7 @@ constructor(
         val linkedSwitch = mainDraftContext.save(switch(stateCategory = LayoutStateCategory.EXISTING)).id
         val linkedLocationTrackAlongSwitch =
             mainDraftContext
-                .save(
+                .saveLocationTrack(
                     locationTrackAndGeometry(
                         trackNumberId,
                         segment(Point(0.0, 0.0), Point(10.0, 0.0))
@@ -463,8 +463,8 @@ constructor(
         )
 
     fun assertMatches(
-        trackAndAlignment1: Pair<LocationTrack, LayoutAlignment>,
-        trackAndAlignment2: Pair<LocationTrack, LayoutAlignment>,
+        trackAndAlignment1: Pair<LocationTrack, LocationTrackGeometry>,
+        trackAndAlignment2: Pair<LocationTrack, LocationTrackGeometry>,
     ) {
         assertMatches(trackAndAlignment1.first, trackAndAlignment2.first, contextMatch = false)
         assertMatches(trackAndAlignment1.second, trackAndAlignment2.second)

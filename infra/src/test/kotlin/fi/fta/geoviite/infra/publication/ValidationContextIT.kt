@@ -102,10 +102,14 @@ constructor(
     @Test
     fun `ValidationContext returns correct versions for LocationTrack`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val lt1OfficialVersion = mainOfficialContext.save(locationTrackAndGeometry(trackNumberId))
+        val lt1OfficialVersion = mainOfficialContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId))
         val lt1Id = lt1OfficialVersion.id
-        val lt1DraftVersion = locationTrackDao.save(asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)))
-        val lt2DraftVersion = mainDraftContext.save(locationTrackAndGeometry(trackNumberId))
+        val lt1DraftVersion =
+            locationTrackDao.save(
+                asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)),
+                alignmentDao.fetch(lt1OfficialVersion),
+            )
+        val lt2DraftVersion = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId))
         val lt2Id = lt2DraftVersion.id
 
         assertEquals(locationTrackDao.fetch(lt1OfficialVersion), validationContext().getLocationTrack(lt1Id))

@@ -7,9 +7,9 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -28,10 +28,10 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
     @Test
     fun `should save split in pending state`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
-        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
+        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), geometry)
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
@@ -56,10 +56,10 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
     @Test
     fun `should update split with new state, errorCause, and publicationId`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
-        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
+        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), geometry)
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
@@ -97,11 +97,11 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
     @Test
     fun `should fetch unfinished splits only`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
-        val targetTrack1 = mainDraftContext.save(locationTrack(trackNumberId), alignment)
-        val targetTrack2 = mainDraftContext.save(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
+        val targetTrack1 = mainDraftContext.save(locationTrack(trackNumberId), geometry)
+        val targetTrack2 = mainDraftContext.save(locationTrack(trackNumberId), geometry)
 
         val relinkedSwitchId1 = mainOfficialContext.createSwitch().id
         val relinkedSwitchId2 = mainOfficialContext.createSwitch().id
@@ -136,11 +136,11 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
     @Test
     fun `should delete split`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
-        val someDuplicateTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment)
-        val targetTrack1 = mainDraftContext.save(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
+        val someDuplicateTrack = mainDraftContext.save(locationTrack(trackNumberId), geometry)
+        val targetTrack1 = mainDraftContext.save(locationTrack(trackNumberId), geometry)
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
@@ -162,10 +162,10 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
     @Test
     fun `Should fetch split header`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
-        val targetTrack1 = mainDraftContext.save(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
+        val targetTrack1 = mainDraftContext.save(locationTrack(trackNumberId), geometry)
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
@@ -241,11 +241,11 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
 
     private fun createSplit(): IntId<Split> {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
-        val someDuplicateTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment)
-        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
+        val someDuplicateTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
+        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), geometry)
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 

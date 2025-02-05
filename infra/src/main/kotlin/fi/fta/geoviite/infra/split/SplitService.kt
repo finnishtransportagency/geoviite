@@ -333,7 +333,7 @@ class SplitService(
         val sourceAddressPointRange =
             context
                 .getGeocodingContext(sourceTrack.trackNumberId)
-                ?.getPartialAddressRange(alignmentDao.get(sourceTrack.versionOrThrow), target.segmentIndices)
+                ?.getPartialAddressRange(alignmentDao.fetch(sourceTrack.versionOrThrow), target.segmentIndices)
         val sourceAddresses: List<AddressPoint>? =
             sourceAddressPointRange?.let { (start, end) ->
                 context

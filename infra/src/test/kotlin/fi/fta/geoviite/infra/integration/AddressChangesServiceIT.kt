@@ -43,16 +43,16 @@ import fi.fta.geoviite.infra.tracklayout.splitSegment
 import fi.fta.geoviite.infra.tracklayout.toAlignmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import kotlin.math.ceil
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -674,7 +674,7 @@ constructor(
         val alignmentPoints = referenceLinePoints.subList(2, referenceLinePoints.count() - 2)
 
         val (locationTrack, geometry) =
-            mainOfficialContext.insertAndFetch(
+            mainOfficialContext.saveAndFetch(
                 locationTrack(trackNumberId = trackNumber.id as IntId, name = "TEST LocTr $sequence", draft = false),
                 trackGeometryOfSegments(splitSegment(segment(*alignmentPoints.toTypedArray()), 3)),
             )

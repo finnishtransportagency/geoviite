@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
@@ -23,6 +22,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
@@ -44,6 +44,7 @@ import fi.fta.geoviite.infra.tracklayout.switchAndMatchingAlignments
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import kotlin.math.PI
 import kotlin.test.assertContains
@@ -166,8 +167,8 @@ class PublicationValidationTest {
     fun switchValidationCatchesLocationMismatch() {
         val (switch, alignments) = switchAndMatchingAlignments(IntId(0), structure, draft = true)
         val broken =
-            alignments.mapIndexed { index, (track, alignment) ->
-                if (index == 0) track to offsetAlignment(alignment, Point(5.0, 0.0)) else track to alignment
+            alignments.mapIndexed { index, (track, geometry) ->
+                if (index == 0) track to offsetAlignment(geometry, Point(5.0, 0.0)) else track to geometry
             }
         assertSwitchSegmentStructureError(
             hasError = false,
@@ -203,8 +204,12 @@ class PublicationValidationTest {
 
     @Test
     fun alignmentFieldValidationCatchesLackingGeometry() {
-        assertLocationTrackFieldError(true, alignment(listOf()), "$VALIDATION_LOCATION_TRACK.empty-segments")
-        assertLocationTrackFieldError(false, alignment(someSegment()), "$VALIDATION_LOCATION_TRACK.empty-segments")
+        assertLocationTrackFieldError(true, LocationTrackGeometry.empty, "$VALIDATION_LOCATION_TRACK.empty-segments")
+        assertLocationTrackFieldError(
+            false,
+            trackGeometryOfSegments(someSegment()),
+            "$VALIDATION_LOCATION_TRACK.empty-segments",
+        )
     }
 
     @Test
@@ -841,8 +846,8 @@ class PublicationValidationTest {
         )
     }
 
-    private fun assertLocationTrackFieldError(hasError: Boolean, alignment: LayoutAlignment, error: String) =
-        assertContainsError(hasError, validateLocationTrackGeometry(alignment), error)
+    private fun assertLocationTrackFieldError(hasError: Boolean, geometry: LocationTrackGeometry, error: String) =
+        assertContainsError(hasError, validateLocationTrackGeometry(geometry), error)
 
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
@@ -897,20 +902,20 @@ class PublicationValidationTest {
     private fun assertSwitchSegmentStructureError(
         hasError: Boolean,
         switch: LayoutSwitch,
-        track: Pair<LocationTrack, LayoutAlignment>,
+        track: Pair<LocationTrack, LocationTrackGeometry>,
         error: String,
     ) = assertSwitchSegmentStructureError(hasError, switch, listOf(track), error)
 
     private fun assertSwitchSegmentStructureError(
         hasError: Boolean,
         switch: LayoutSwitch,
-        tracks: List<Pair<LocationTrack, LayoutAlignment>>,
+        tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
         error: String,
     ) = assertContainsError(hasError, getSwitchSegmentStructureErrors(switch, tracks), error)
 
     private fun getSwitchSegmentStructureErrors(
         switch: LayoutSwitch,
-        tracks: List<Pair<LocationTrack, LayoutAlignment>>,
+        tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     ): List<LayoutValidationIssue> = validateSwitchLocationTrackLinkStructure(switch, structure, tracks)
 
     private fun assertAddressPointError(hasError: Boolean, geocode: () -> AlignmentAddresses?, error: String) {

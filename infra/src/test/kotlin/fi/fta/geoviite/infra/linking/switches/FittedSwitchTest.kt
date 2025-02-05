@@ -8,11 +8,10 @@ import fi.fta.geoviite.infra.math.degreesToRads
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import kotlin.math.absoluteValue
 import kotlin.test.fail
@@ -32,11 +31,11 @@ class FittedSwitchTest {
         return rotateAroundOrigin(rotation, point) + translation
     }
 
-    private fun createAlignmentBySwitchAlignment(
+    private fun createGeometryBySwitchStructureAlignment(
         switchAlignment: SwitchStructureAlignment,
         translation: Point,
         rotation: Double,
-    ): LayoutAlignment {
+    ): LocationTrackGeometry {
         val points =
             listOf<Point>() +
                 Point(-300.0, 0.0) +
@@ -45,12 +44,14 @@ class FittedSwitchTest {
                 Point(400.0, 0.0)
         val transformedPoints = points.map { point -> transformPoint(point, translation, rotation) }
 
-        return alignment(
-            segments =
-                (0 until transformedPoints.lastIndex).map { index ->
-                    segment(transformedPoints[index], transformedPoints[index + 1])
-                }
-        )
+        // TODO: GVT-2915
+        TODO()
+        //        return alignment(
+        //            segments =
+        //                (0 until transformedPoints.lastIndex).map { index ->
+        //                    segment(transformedPoints[index], transformedPoints[index + 1])
+        //                }
+        //        )
     }
 
     private enum class SegmentEndPoint {
@@ -81,10 +82,13 @@ class FittedSwitchTest {
         val translation = Point(2000.0, 3000.0)
 
         val trackId: IntId<LocationTrack> = IntId(1)
-        val alignmentContainingSwitchSegments =
-            createAlignmentBySwitchAlignment(switchAlignment_1_5_2, translation = translation, rotation = rotation)
-        val locationTrack =
-            locationTrack(IntId(0), alignment = alignmentContainingSwitchSegments, trackId, draft = false)
+        val geometryWithSwitchNodes =
+            createGeometryBySwitchStructureAlignment(
+                switchAlignment_1_5_2,
+                translation = translation,
+                rotation = rotation,
+            )
+        val locationTrack = locationTrack(IntId(0), id = trackId, draft = false)
 
         val suggestedSwitch =
             fitSwitch(
@@ -92,19 +96,16 @@ class FittedSwitchTest {
                     listOf(
                         SwitchStructureJoint(
                             JointNumber(1),
-                            alignmentContainingSwitchSegments.segments[1].segmentStart.toPoint(),
+                            geometryWithSwitchNodes.segments[1].segmentStart.toPoint(),
                         ),
                         SwitchStructureJoint(
                             JointNumber(5),
-                            alignmentContainingSwitchSegments.segments[2].segmentStart.toPoint(),
+                            geometryWithSwitchNodes.segments[2].segmentStart.toPoint(),
                         ),
-                        SwitchStructureJoint(
-                            JointNumber(2),
-                            alignmentContainingSwitchSegments.segments[3].segmentStart.toPoint(),
-                        ),
+                        SwitchStructureJoint(JointNumber(2), geometryWithSwitchNodes.segments[3].segmentStart.toPoint()),
                     ),
                 switchStructure,
-                alignments = listOf(locationTrack to cropNothing(alignmentContainingSwitchSegments)),
+                alignments = listOf(locationTrack to cropNothing(trackId, geometryWithSwitchNodes)),
                 locationAccuracy = null,
             )
 

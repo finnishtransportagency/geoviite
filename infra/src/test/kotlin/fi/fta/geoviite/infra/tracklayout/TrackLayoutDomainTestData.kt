@@ -408,11 +408,10 @@ fun locationTrackAndGeometry(
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val alignment = alignment(segments)
+    val geometry = trackGeometryOfSegments(segments)
     val locationTrack =
         locationTrack(
             trackNumberId = trackNumberId,
-            alignment = alignment,
             id = id,
             draft = draft,
             name = name,
@@ -423,19 +422,19 @@ fun locationTrackAndGeometry(
             topologyStartSwitch = topologyStartSwitch,
             topologyEndSwitch = topologyEndSwitch,
         )
-    return locationTrack to alignment
+    return locationTrack to geometry
 }
 
 fun locationTrack(
     trackNumberId: IntId<LayoutTrackNumber>,
-    alignment: LayoutAlignment? = null,
+    //    geometry: LocationTrackGeometry? = null,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    alignmentVersion: RowVersion<LayoutAlignment>? = if (id != null) someRowVersion() else null,
+    //    alignmentVersion: RowVersion<LayoutAlignment>? = if (id != null) someRowVersion() else null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
@@ -446,13 +445,13 @@ fun locationTrack(
 ) =
     locationTrack(
         trackNumberId = trackNumberId,
-        alignment = alignment,
+        //        alignment = alignment,
         contextData = contextData,
         name = name,
         description = description,
         type = type,
         state = state,
-        alignmentVersion = alignmentVersion,
+        //        alignmentVersion = alignmentVersion,
         topologicalConnectivity = topologicalConnectivity,
         topologyStartSwitch = topologyStartSwitch,
         topologyEndSwitch = topologyEndSwitch,
@@ -463,13 +462,13 @@ fun locationTrack(
 
 fun locationTrack(
     trackNumberId: IntId<LayoutTrackNumber>,
-    alignment: LayoutAlignment? = null,
+    //    alignment: LayoutAlignment? = null,
     contextData: LayoutContextData<LocationTrack>,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    alignmentVersion: RowVersion<LayoutAlignment>? = null,
+    //    alignmentVersion: RowVersion<LayoutAlignment>? = null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
@@ -485,14 +484,14 @@ fun locationTrack(
         state = state,
         trackNumberId = trackNumberId,
         sourceId = null,
-        boundingBox = alignment?.boundingBox,
-        segmentCount = alignment?.segments?.size ?: 0,
-        length = alignment?.length ?: 0.0,
+        boundingBox = null, // alignment?.boundingBox,
+        segmentCount = 0, // alignment?.segments?.size ?: 0,
+        length = 0.0, // alignment?.length ?: 0.0,
         duplicateOf = duplicateOf,
         topologicalConnectivity = topologicalConnectivity,
         topologyStartSwitch = topologyStartSwitch,
         topologyEndSwitch = topologyEndSwitch,
-        alignmentVersion = alignmentVersion,
+        //        alignmentVersion = alignmentVersion,
         ownerId = ownerId,
         contextData = contextData,
     )
@@ -571,25 +570,27 @@ fun attachSwitchToStart(
 
 fun attachSwitchToStart(
     locationTrack: LocationTrack,
-    alignment: LocationTrackGeometry,
+    geometry: LocationTrackGeometry,
     switchId: IntId<LayoutSwitch>,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    if (alignment.segments.count() < 3) throw IllegalArgumentException("Alignment must contain at least 3 segments")
-    return locationTrack to
-        alignment.copy(
-            segments =
-                alignment.segments.mapIndexed { index, segment ->
-                    when (index) {
-                        0 -> segment.copy(switchId = switchId, startJointNumber = JointNumber(1))
-
-                        1 -> segment.copy(switchId = switchId)
-
-                        2 -> segment.copy(switchId = switchId, endJointNumber = JointNumber(2))
-
-                        else -> segment
-                    }
-                }
-        )
+    if (geometry.segments.count() < 3) throw IllegalArgumentException("Alignment must contain at least 3 segments")
+    // TODO: GVT-2927
+    TODO()
+    //    return locationTrack to
+    //        geometry.copy(
+    //            segments =
+    //                geometry.segments.mapIndexed { index, segment ->
+    //                    when (index) {
+    //                        0 -> segment.copy(switchId = switchId, startJointNumber = JointNumber(1))
+    //
+    //                        1 -> segment.copy(switchId = switchId)
+    //
+    //                        2 -> segment.copy(switchId = switchId, endJointNumber = JointNumber(2))
+    //
+    //                        else -> segment
+    //                    }
+    //                }
+    //        )
 }
 
 fun attachSwitchToEnd(
@@ -605,21 +606,23 @@ fun attachSwitchToEnd(
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val segmentCount = alignment.segments.count()
     if (segmentCount < 3) throw IllegalArgumentException("Alignment must contain at least 3 segments")
-    return locationTrack to
-        alignment.copy(
-            segments =
-                alignment.segments.mapIndexed { index, segment ->
-                    when (index) {
-                        segmentCount - 3 -> segment.copy(switchId = switchId, startJointNumber = JointNumber(2))
-
-                        segmentCount - 2 -> segment.copy(switchId = switchId)
-
-                        segmentCount - 1 -> segment.copy(switchId = switchId, endJointNumber = JointNumber(1))
-
-                        else -> segment
-                    }
-                }
-        )
+    // TODO: GVT-2927
+    TODO()
+    //    return locationTrack to
+    //        alignment.copy(
+    //            segments =
+    //                alignment.segments.mapIndexed { index, segment ->
+    //                    when (index) {
+    //                        segmentCount - 3 -> segment.copy(switchId = switchId, startJointNumber = JointNumber(2))
+    //
+    //                        segmentCount - 2 -> segment.copy(switchId = switchId)
+    //
+    //                        segmentCount - 1 -> segment.copy(switchId = switchId, endJointNumber = JointNumber(1))
+    //
+    //                        else -> segment
+    //                    }
+    //                }
+    //        )
 }
 
 fun attachSwitchToIndex(
@@ -636,20 +639,22 @@ fun attachSwitchToIndex(
 ): LocationTrackGeometry {
     if (alignment.segments.count() < segmentIndex + 3)
         throw IllegalArgumentException("Alignment must contain at least ${segmentIndex + 3} segments")
-    return alignment.copy(
-        segments =
-            alignment.segments.mapIndexed { index, segment ->
-                when (index) {
-                    segmentIndex -> segment.copy(switchId = switchId, startJointNumber = JointNumber(1))
-
-                    segmentIndex + 1 -> segment.copy(switchId = switchId)
-
-                    segmentIndex + 2 -> segment.copy(switchId = switchId, endJointNumber = JointNumber(2))
-
-                    else -> segment
-                }
-            }
-    )
+    // TODO: GVT-2927
+    TODO()
+    //    return alignment.copy(
+    //        segments =
+    //            alignment.segments.mapIndexed { index, segment ->
+    //                when (index) {
+    //                    segmentIndex -> segment.copy(switchId = switchId, startJointNumber = JointNumber(1))
+    //
+    //                    segmentIndex + 1 -> segment.copy(switchId = switchId)
+    //
+    //                    segmentIndex + 2 -> segment.copy(switchId = switchId, endJointNumber = JointNumber(2))
+    //
+    //                    else -> segment
+    //                }
+    //            }
+    //    )
 }
 
 fun attachSwitchToIndex(
@@ -660,21 +665,23 @@ fun attachSwitchToIndex(
     if (alignment.segments.count() < segmentIndex + 3) {
         throw IllegalArgumentException("Alignment must contain at least ${segmentIndex + 3} segments")
     }
-
-    return alignment.copy(
-        segments =
-            alignment.segments.mapIndexed { index, segment ->
-                when (index) {
-                    segmentIndex -> segment.copy(switchId = switch.id as IntId, startJointNumber = JointNumber(1))
-
-                    segmentIndex + 1 -> segment.copy(switchId = switch.id as IntId)
-
-                    segmentIndex + 2 -> segment.copy(switchId = switch.id as IntId, endJointNumber = JointNumber(2))
-
-                    else -> segment
-                }
-            }
-    )
+    // TODO: GVT-2927
+    TODO()
+    //    return alignment.copy(
+    //        segments =
+    //            alignment.segments.mapIndexed { index, segment ->
+    //                when (index) {
+    //                    segmentIndex -> segment.copy(switchId = switch.id as IntId, startJointNumber = JointNumber(1))
+    //
+    //                    segmentIndex + 1 -> segment.copy(switchId = switch.id as IntId)
+    //
+    //                    segmentIndex + 2 -> segment.copy(switchId = switch.id as IntId, endJointNumber =
+    // JointNumber(2))
+    //
+    //                    else -> segment
+    //                }
+    //            }
+    //    )
 }
 
 fun geocodingContext(
@@ -1052,6 +1059,10 @@ fun someKmNumber(): KmNumber {
 fun offsetAlignment(alignment: LayoutAlignment, amount: Point) =
     alignment.copy(segments = alignment.segments.map { origSegment -> offsetSegment(origSegment, amount) })
 
+fun offsetAlignment(geometry: LocationTrackGeometry, amount: Point): LocationTrackGeometry =
+    // TODO: GVT-2927
+    TODO()
+
 fun offsetSegment(segment: LayoutSegment, amount: Point): LayoutSegment {
     val newPoints = toSegmentPoints(*(segment.segmentPoints.map { p -> p + amount }.toTypedArray()))
     return segment.copy(geometry = segment.geometry.withPoints(newPoints))
@@ -1128,7 +1139,6 @@ fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int,
         locationTrackId = locationTrackId as IntId<LocationTrack>,
         segmentIndex = segmentIndex,
         m = m,
-        trackId = null,
         distance = 0.1,
         switchJoint = SwitchStructureJoint(JointNumber(jointNumber), Point(0.0, 0.0)),
         distanceToAlignment = 0.1,

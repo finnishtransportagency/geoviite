@@ -45,8 +45,8 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 data class TrackNumberChange(
     val trackNumberId: IntId<LayoutTrackNumber>,
@@ -299,7 +299,7 @@ class CalculatedChangesService(
         fetchSwitchById: (id: IntId<LayoutSwitch>) -> LayoutSwitch?,
         getGeocodingContext: (id: IntId<LayoutTrackNumber>) -> GeocodingContext?,
     ): List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>> {
-        val geometry = alignmentDao.get(locationTrack.versionOrThrow)
+        val geometry = alignmentDao.fetch(locationTrack.versionOrThrow)
         val trackNumberId = locationTrack.trackNumberId
         val geocodingContext = getGeocodingContext(trackNumberId)
 

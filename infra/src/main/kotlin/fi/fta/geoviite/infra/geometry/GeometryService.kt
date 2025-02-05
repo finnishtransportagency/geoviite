@@ -535,7 +535,7 @@ constructor(
         locationTrackId: IntId<LocationTrack>,
     ): List<PlanLinkingSummaryItem>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
-        val alignment = layoutAlignmentDao.get(locationTrack.versionOrThrow)
+        val alignment = layoutAlignmentDao.fetch(locationTrack.versionOrThrow)
         val segmentSources = collectSegmentSources(alignment.segments)
         val planLinkEndSegmentIndices =
             segmentSources
@@ -567,7 +567,7 @@ constructor(
         tickLength: Int,
     ): List<KmHeights>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
-        val alignment = layoutAlignmentDao.get(locationTrack.versionOrThrow)
+        val alignment = layoutAlignmentDao.fetch(locationTrack.versionOrThrow)
         val boundingBox = alignment.boundingBox ?: return null
         val geocodingContext =
             geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId) ?: return null

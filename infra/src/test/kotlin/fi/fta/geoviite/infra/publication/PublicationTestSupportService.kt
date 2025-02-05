@@ -15,7 +15,7 @@ import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
-import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetReader
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -36,6 +36,7 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -90,17 +91,18 @@ constructor(
 
         val startSegment = segment(Point(0.0, 0.0), Point(5.0, 0.0))
         val endSegment = segment(Point(5.0, 0.0), Point(10.0, 0.0))
-        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), alignment(startSegment, endSegment))
+        val sourceTrack =
+            mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(startSegment, endSegment))
         locationTrackDao.insertExternalId(sourceTrack.id, LayoutBranch.main, someOid())
 
         val draftSource =
             locationTrackDao.fetch(sourceTrack).copy(state = sourceLocationTrackState).let { d ->
-                locationTrackService.saveDraft(LayoutBranch.main, d)
+                locationTrackService.saveDraft(LayoutBranch.main, d, alignmentDao.fetch(sourceTrack))
             }
 
-        val startTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment(startSegment))
+        val startTrack = mainDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(startSegment))
 
-        val endTrack = mainDraftContext.save(locationTrack(trackNumberId), alignment(endSegment))
+        val endTrack = mainDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(endSegment))
 
         return SplitSetup(draftSource, listOf(startTrack to 0..0, endTrack to 1..1))
     }
@@ -207,7 +209,7 @@ fun <T : LayoutAsset<T>> verifyVersions(ids: List<IntId<T>>, versions: List<Layo
     ids.forEach { id -> assertTrue(versions.any { v -> v.id == id }) }
 }
 
-fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyVersionsAreDrafts(
+fun <T : LayoutAsset<T>, S : LayoutAssetReader<T>> verifyVersionsAreDrafts(
     branch: LayoutBranch,
     dao: S,
     versions: List<LayoutRowVersion<T>>,

@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxCombining
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -12,9 +11,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.NONE
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH
-import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -23,8 +23,8 @@ class SplitTest {
     @Test
     fun `minimal location track split works`() {
         val track = locationTrack(trackNumberId = IntId(123), draft = false)
-        val alignment =
-            alignment(
+        val geometry =
+            trackGeometryOfSegments(
                 linearSegment(0..1, switchId = null, startJoint = null, endJoint = null),
                 linearSegment(1..2, switchId = IntId(1), startJoint = 1, endJoint = 2),
             )
@@ -33,43 +33,43 @@ class SplitTest {
                 targetParams(null, null, "split1", "split desc 1"),
                 targetParams(IntId(1), JointNumber(1), "split2", "split desc 2"),
             )
-        val resultTracks = splitLocationTrack(track, alignment, targets)
+        val resultTracks = splitLocationTrack(track, geometry, targets)
         assertEquals(targets.size, resultTracks.size)
         resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
-        assertSegmentsMatch(alignment.segments.subList(0, 1), resultTracks[0].alignment)
-        assertSegmentsMatch(alignment.segments.subList(1, 2), resultTracks[1].alignment)
+        assertSegmentsMatch(geometry.segments.subList(0, 1), resultTracks[0].alignment)
+        assertSegmentsMatch(geometry.segments.subList(1, 2), resultTracks[1].alignment)
     }
 
     @Test
     fun `location track split works when overriding existing duplicate`() {
         val track = locationTrack(trackNumberId = IntId(123), draft = false)
-        val alignment =
-            alignment(
+        val geometry =
+            trackGeometryOfSegments(
                 linearSegment(0..1, switchId = null, startJoint = null, endJoint = null),
                 linearSegment(1..2, switchId = IntId(1), startJoint = 1, endJoint = 2),
             )
         val dupTrack = locationTrack(trackNumberId = IntId(123), draft = false)
         // over-large duplicate, but the geometry should be overridden anyhow, so just make it
         // different
-        val dupAlignment = alignment(linearSegment(-1..5))
+        val dupGeometry = trackGeometryOfSegments(linearSegment(-1..5))
         val targets =
             listOf(
-                targetParams(null, null, name = "split1", duplicate = dupTrack to dupAlignment),
+                targetParams(null, null, name = "split1", duplicate = dupTrack to dupGeometry),
                 targetParams(IntId(1), JointNumber(1), "split2"),
             )
-        val resultTracks = splitLocationTrack(track, alignment, targets)
+        val resultTracks = splitLocationTrack(track, geometry, targets)
         assertEquals(targets.size, resultTracks.size)
         resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
         assertEquals(dupTrack.id, resultTracks[0].locationTrack.id)
-        assertSegmentsMatch(alignment.segments.subList(0, 1), resultTracks[0].alignment)
-        assertSegmentsMatch(alignment.segments.subList(1, 2), resultTracks[1].alignment)
+        assertSegmentsMatch(geometry.segments.subList(0, 1), resultTracks[0].alignment)
+        assertSegmentsMatch(geometry.segments.subList(1, 2), resultTracks[1].alignment)
     }
 
     @Test
     fun `complex location track split works`() {
         val track = locationTrack(trackNumberId = IntId(123), draft = false)
-        val alignment =
-            alignment(
+        val geometry =
+            trackGeometryOfSegments(
                 linearSegment(0..2, switchId = null, startJoint = null, endJoint = null),
                 linearSegment(2..5, switchId = IntId(1), startJoint = 5, endJoint = 4),
                 // Split point 1: id=1 & joint=4
@@ -90,13 +90,13 @@ class SplitTest {
                 targetParams(IntId(2), JointNumber(3), "split3", "split desc 3", SWITCH_TO_OWNERSHIP_BOUNDARY),
                 targetParams(IntId(3), JointNumber(2), "split4", "split desc 4", SWITCH_TO_SWITCH),
             )
-        val resultTracks = splitLocationTrack(track, alignment, targets)
+        val resultTracks = splitLocationTrack(track, geometry, targets)
         assertEquals(targets.size, resultTracks.size)
         resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
-        assertSegmentsMatch(alignment.segments.subList(0, 2), resultTracks[0].alignment)
-        assertSegmentsMatch(alignment.segments.subList(2, 5), resultTracks[1].alignment)
-        assertSegmentsMatch(alignment.segments.subList(5, 7), resultTracks[2].alignment)
-        assertSegmentsMatch(alignment.segments.subList(7, 8), resultTracks[3].alignment)
+        assertSegmentsMatch(geometry.segments.subList(0, 2), resultTracks[0].alignment)
+        assertSegmentsMatch(geometry.segments.subList(2, 5), resultTracks[1].alignment)
+        assertSegmentsMatch(geometry.segments.subList(5, 7), resultTracks[2].alignment)
+        assertSegmentsMatch(geometry.segments.subList(7, 8), resultTracks[3].alignment)
     }
 }
 
@@ -113,11 +113,13 @@ fun linearSegment(
         endJointNumber = endJoint?.let(::JointNumber),
     )
 
-private fun assertSegmentsMatch(expectedSegments: List<LayoutSegment>, result: LayoutAlignment) {
+private fun assertSegmentsMatch(expectedSegments: List<LayoutSegment>, result: LocationTrackGeometry) {
     assertEquals(expectedSegments.size, result.segments.size)
     expectedSegments.forEachIndexed { index, expected ->
         val actual = result.segments[index]
         assertEquals(expected.segmentPoints, actual.segmentPoints)
+        // TODO: GVT-2915
+        TODO()
         assertEquals(expected.switchId, actual.switchId)
         assertEquals(expected.startJointNumber, actual.startJointNumber)
         assertEquals(expected.endJointNumber, actual.endJointNumber)

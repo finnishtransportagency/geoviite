@@ -11,13 +11,12 @@ import fi.fta.geoviite.infra.math.interpolate
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
@@ -28,9 +27,10 @@ import fi.fta.geoviite.infra.tracklayout.someSegment
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class SwitchLinkingTest {
@@ -54,19 +54,19 @@ class SwitchLinkingTest {
         SwitchLinkingJoint(ss.switchJoint.number, ss.segmentIndex, ss.m, Point(0.0, 0.0))
 
     private fun switchLinkingJointAtStart(
-        alignment: LayoutAlignment,
+        alignment: LocationTrackGeometry,
         segmentIndex: Int,
         jointNumber: Int,
     ): SwitchLinkingJoint = toSwitchLinkingJoint(switchLinkingAtStart(IntId(-1), alignment, segmentIndex, jointNumber))
 
     private fun switchLinkingJointAtHalf(
-        alignment: LayoutAlignment,
+        alignment: LocationTrackGeometry,
         segmentIndex: Int,
         jointNumber: Int,
     ): SwitchLinkingJoint = toSwitchLinkingJoint(switchLinkingAtHalf(IntId(-1), alignment, segmentIndex, jointNumber))
 
     private fun switchLinkingJointAtEnd(
-        alignment: LayoutAlignment,
+        alignment: LocationTrackGeometry,
         segmentIndex: Int,
         jointNumber: Int,
     ): SwitchLinkingJoint = toSwitchLinkingJoint(switchLinkingAtEnd(IntId(-1), alignment, segmentIndex, jointNumber))
@@ -238,7 +238,7 @@ class SwitchLinkingTest {
                 draft = false,
             )
         val (locationTrackWithStartLinkCleared, _) =
-            clearLinksToSwitch(locationTrackWithStartLink, alignment(someSegment()), testLayoutSwitchId)
+            clearLinksToSwitch(locationTrackWithStartLink, trackGeometryOfSegments(someSegment()), testLayoutSwitchId)
         assertEquals(null, locationTrackWithStartLinkCleared.topologyStartSwitch)
         assertEquals(locationTrackWithStartLink.topologyEndSwitch, locationTrackWithStartLinkCleared.topologyEndSwitch)
     }
@@ -253,7 +253,7 @@ class SwitchLinkingTest {
                 draft = false,
             )
         val (locationTrackWithEndLinkCleared, _) =
-            clearLinksToSwitch(locationTrackWithEndLink, alignment(someSegment()), testLayoutSwitchId)
+            clearLinksToSwitch(locationTrackWithEndLink, trackGeometryOfSegments(someSegment()), testLayoutSwitchId)
         assertEquals(null, locationTrackWithEndLinkCleared.topologyEndSwitch)
         assertEquals(locationTrackWithEndLink.topologyStartSwitch, locationTrackWithEndLinkCleared.topologyStartSwitch)
     }
@@ -297,21 +297,25 @@ class SwitchLinkingTest {
             )
 
         val locationTrack1 = locationTrack(IntId(1), id = IntId(1), draft = false)
-        val alignment1 = LayoutAlignment(segments = listOf(segment(Point(0.0, 0.0), Point(5.0, 0.0), Point(10.0, 0.0))))
+        val geometry1 =
+            trackGeometryOfSegments(segments = listOf(segment(Point(0.0, 0.0), Point(5.0, 0.0), Point(10.0, 0.0))))
 
         val locationTrack2 = locationTrack(IntId(1), id = IntId(2), draft = false)
-        val alignment2 = LayoutAlignment(segments = listOf(segment(Point(0.0, 0.0), Point(5.0, 5.0))))
+        val geometry2 = trackGeometryOfSegments(segments = listOf(segment(Point(0.0, 0.0), Point(5.0, 5.0))))
 
         val suggestedSwitch =
             fitSwitch(
                 joints,
                 switch,
-                listOf(locationTrack1 to cropNothing(alignment1), locationTrack2 to cropNothing(alignment2)),
+                listOf(
+                    locationTrack1 to cropNothing(locationTrack1.id as IntId, geometry1),
+                    locationTrack2 to cropNothing(locationTrack2.id as IntId, geometry2),
+                ),
                 null,
             )
 
         listOf(1, 5, 2, 3).forEach { jointNumber ->
-            Assertions.assertTrue(suggestedSwitch.joints.any { it.number.intValue == jointNumber })
+            assertTrue(suggestedSwitch.joints.any { it.number.intValue == jointNumber })
         }
 
         val joint1 = getJoint(suggestedSwitch, 1)
@@ -320,13 +324,13 @@ class SwitchLinkingTest {
         val joint3 = getJoint(suggestedSwitch, 3)
 
         // Line 1-5-2
-        Assertions.assertTrue(joint1.matches.any { it.locationTrackId == locationTrack1.id })
-        Assertions.assertTrue(joint5.matches.any { it.locationTrackId == locationTrack1.id })
-        Assertions.assertTrue(joint2.matches.any { it.locationTrackId == locationTrack1.id })
+        assertTrue(joint1.matches.any { it.locationTrackId == locationTrack1.id })
+        assertTrue(joint5.matches.any { it.locationTrackId == locationTrack1.id })
+        assertTrue(joint2.matches.any { it.locationTrackId == locationTrack1.id })
 
         // Line 1-3
-        Assertions.assertTrue(joint1.matches.any { it.locationTrackId == locationTrack2.id })
-        Assertions.assertTrue(joint3.matches.any { it.locationTrackId == locationTrack2.id })
+        assertTrue(joint1.matches.any { it.locationTrackId == locationTrack2.id })
+        assertTrue(joint3.matches.any { it.locationTrackId == locationTrack2.id })
     }
 
     @Test
@@ -341,8 +345,8 @@ class SwitchLinkingTest {
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
-        val alignment =
-            LayoutAlignment(
+        val geometry =
+            trackGeometryOfSegments(
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(2.5, 0.0), Point(5.0, 0.0)),
@@ -352,9 +356,10 @@ class SwitchLinkingTest {
                     )
             )
 
-        val tracks = listOf(locationTrack to alignment)
+        val tracks = listOf(locationTrack to geometry)
 
-        val suggestedSwitch = fitSwitch(joints, switch, listOf(locationTrack to cropNothing(alignment)), null)
+        val suggestedSwitch =
+            fitSwitch(joints, switch, listOf(locationTrack to cropNothing(locationTrack.id as IntId, geometry)), null)
 
         assertOnlyJointMatch(suggestedSwitch, tracks, 1, locationTrack.id, 1, SuggestedSwitchJointMatchType.START)
         assertOnlyJointMatch(suggestedSwitch, tracks, 2, locationTrack.id, 2, SuggestedSwitchJointMatchType.END)
@@ -373,7 +378,7 @@ class SwitchLinkingTest {
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
         val alignment =
-            LayoutAlignment(
+            trackGeometryOfSegments(
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(2.5, 0.0), Point(5.0, 0.0)),
@@ -385,7 +390,8 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(a) }, null)
+        val suggestedSwitch =
+            fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
 
         assertOnlyJointMatch(suggestedSwitch, tracks, 1, locationTrack.id, 1, SuggestedSwitchJointMatchType.START)
         assertOnlyJointMatch(suggestedSwitch, tracks, 2, locationTrack.id, 2, SuggestedSwitchJointMatchType.END)
@@ -403,7 +409,7 @@ class SwitchLinkingTest {
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
         val alignment =
-            LayoutAlignment(
+            trackGeometryOfSegments(
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(0.1, 0.0), Point(0.5, 0.0)),
@@ -415,7 +421,8 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(a) }, null)
+        val suggestedSwitch =
+            fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
 
         assertOnlyJointMatch(suggestedSwitch, tracks, 1, locationTrack.id, 1, SuggestedSwitchJointMatchType.START)
         assertOnlyJointMatch(suggestedSwitch, tracks, 2, locationTrack.id, 2, SuggestedSwitchJointMatchType.END)
@@ -433,7 +440,7 @@ class SwitchLinkingTest {
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
         val alignment =
-            LayoutAlignment(
+            trackGeometryOfSegments(
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(0.5, 0.0), Point(1.0, 0.0)),
@@ -443,7 +450,8 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(a) }, null)
+        val suggestedSwitch =
+            fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
 
         assertOnlyJointMatch(suggestedSwitch, tracks, 1, locationTrack.id, 0, SuggestedSwitchJointMatchType.START)
         assertOnlyJointMatch(suggestedSwitch, tracks, 2, locationTrack.id, 1, SuggestedSwitchJointMatchType.END)
@@ -458,10 +466,10 @@ class SwitchLinkingTest {
                 SwitchStructureJoint(JointNumber(2), Point(10.0, 0.0)),
             )
 
-        val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
+        val track = locationTrack(IntId(1), id = IntId(1), draft = false)
 
-        val alignment =
-            LayoutAlignment(
+        val geometry =
+            trackGeometryOfSegments(
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(4.9991, 0.0)),
@@ -469,14 +477,12 @@ class SwitchLinkingTest {
                     )
             )
 
-        val suggestedSwitch = fitSwitch(joints, switch, listOf(locationTrack to cropNothing(alignment)), null)
+        val suggestedSwitch = fitSwitch(joints, switch, listOf(track to cropNothing(track.id as IntId, geometry)), null)
 
         val joint1 = getJoint(suggestedSwitch, 1)
         assertEquals(1, joint1.matches.size)
-        Assertions.assertTrue(
-            joint1.matches.none {
-                it.locationTrackId == locationTrack.id && it.matchType == SuggestedSwitchJointMatchType.END
-            }
+        assertTrue(
+            joint1.matches.none { it.locationTrackId == track.id && it.matchType == SuggestedSwitchJointMatchType.END }
         )
     }
 
@@ -489,10 +495,10 @@ class SwitchLinkingTest {
                 SwitchStructureJoint(JointNumber(2), Point(11.0005, 0.0)),
             )
 
-        val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
+        val track = locationTrack(IntId(1), id = IntId(1), draft = false)
 
-        val alignment =
-            LayoutAlignment(
+        val geometry =
+            trackGeometryOfSegments(
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(5.0, 0.0)),
@@ -501,13 +507,13 @@ class SwitchLinkingTest {
                     )
             )
 
-        val suggestedSwitch = fitSwitch(joints, switch, listOf(locationTrack to cropNothing(alignment)), null)
+        val suggestedSwitch = fitSwitch(joints, switch, listOf(track to cropNothing(track.id as IntId, geometry)), null)
 
         val joint2 = getJoint(suggestedSwitch, 2)
         assertEquals(1, joint2.matches.size)
-        Assertions.assertTrue(
+        assertTrue(
             joint2.matches.none {
-                it.locationTrackId == locationTrack.id && it.matchType == SuggestedSwitchJointMatchType.START
+                it.locationTrackId == track.id && it.matchType == SuggestedSwitchJointMatchType.START
             }
         )
     }
@@ -523,7 +529,7 @@ class SwitchLinkingTest {
 
         val locationTrack1 = locationTrack(IntId(1), id = IntId(1), draft = false)
         val alignment1 =
-            LayoutAlignment(
+            trackGeometryOfSegments(
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(4.0, 0.0)),
@@ -538,7 +544,7 @@ class SwitchLinkingTest {
 
         val locationTrack2 = locationTrack(IntId(1), id = IntId(2), draft = false)
         val alignment2 =
-            LayoutAlignment(
+            trackGeometryOfSegments(
                 segments =
                     listOf(
                         segment(
@@ -572,7 +578,8 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack1 to alignment1, locationTrack2 to alignment2)
 
-        val suggestedSwitch = fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(a) }, null)
+        val suggestedSwitch =
+            fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
 
         val joint1 = getJoint(suggestedSwitch, 1)
         assertEquals(2, joint1.matches.size)
@@ -597,7 +604,7 @@ class SwitchLinkingTest {
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
         val alignment =
-            LayoutAlignment(
+            trackGeometryOfSegments(
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(5.0, 0.0)),
@@ -608,7 +615,8 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(a) }, null)
+        val suggestedSwitch =
+            fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
 
         assertOnlyJointMatch(suggestedSwitch, tracks, 2, locationTrack.id, 1)
     }
@@ -625,7 +633,7 @@ class SwitchLinkingTest {
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
         val alignment =
-            LayoutAlignment(
+            trackGeometryOfSegments(
                 segments =
                     listOf(
                         segment(Point(0.0, 0.0), Point(5.0, 0.0)),
@@ -636,7 +644,8 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(a) }, null)
+        val suggestedSwitch =
+            fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
 
         assertOnlyJointMatch(suggestedSwitch, tracks, 2, locationTrack.id, 1, SuggestedSwitchJointMatchType.LINE)
     }
@@ -657,7 +666,7 @@ class SwitchLinkingTest {
 
         val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(origAlignment, IntId(100), linkingJoints)
 
-        Assertions.assertTrue { updatedAlignment.segments.none { it.switchId == testLayoutSwitchId } }
+        assertTrue { updatedAlignment.segments.none { it.switchId == testLayoutSwitchId } }
     }
 
     @Test
@@ -670,7 +679,7 @@ class SwitchLinkingTest {
                 segment(Point(2.0, 0.0), Point(3.0, 0.0), Point(4.0, 0.0), Point(5.0, 0.0)),
                 draft = false,
             )
-        val croppedAlignment = cropPoints(locationTrackInArea.second, bbox)
+        val croppedAlignment = cropPoints(IntId(1), locationTrackInArea.second, bbox)
 
         assertEquals(2, croppedAlignment.segments.size)
         assertEquals(Point(-2.0, 0.0), croppedAlignment.firstSegmentStart?.toPoint())
@@ -694,9 +703,9 @@ class SwitchLinkingTest {
         val bbox = BoundingBox(-5.0..-4.0, 4.0..5.0)
         val locationTrack =
             locationTrackAndGeometry(segment(points = arrayOf(Point(-5.0, 0.0), Point(5.0, 5.0))), draft = false)
-        val croppedAlignment = cropPoints(locationTrack.second, bbox)
+        val croppedAlignment = cropPoints(IntId(1), locationTrack.second, bbox)
 
-        Assertions.assertTrue(bbox.intersects(locationTrack.second.segments.first().boundingBox))
+        assertTrue(bbox.intersects(locationTrack.second.segments.first().boundingBox))
         assertEquals(0, croppedAlignment.segments.size)
     }
 
@@ -741,10 +750,10 @@ class SwitchLinkingTest {
         // let's say the switch's main joint is at (5.0, 5.0), this geometry incidentally doesn't
         // *quite* come to the
         // front joint, but close enough to link anyway
-        val topoAlignment = alignment(segment(Point(4.0, 5.0), Point(4.9, 5.0)))
+        val topoAlignment = trackGeometryOfSegments(segment(Point(4.0, 5.0), Point(4.9, 5.0)))
 
-        val alignmentOn152 =
-            alignment(
+        val geometryOn152 =
+            trackGeometryOfSegments(
                 segment(
                     Point(5.0, 5.0),
                     Point(6.0, 5.0),
@@ -761,8 +770,8 @@ class SwitchLinkingTest {
                 ),
                 segment(Point(7.0, 5.0), Point(8.0, 5.0)),
             )
-        val alignmentOn13 =
-            alignment(
+        val geometryOn13 =
+            trackGeometryOfSegments(
                 segment(
                     Point(5.0, 5.0),
                     Point(6.0, 6.0),
@@ -774,14 +783,14 @@ class SwitchLinkingTest {
         val tracks =
             listOf(
                 topoLinkedTrack to topoAlignment,
-                locationTrack(IntId(1), draft = false) to alignmentOn152,
-                locationTrack(IntId(1), draft = false) to alignmentOn13,
+                locationTrack(IntId(1), draft = false) to geometryOn152,
+                locationTrack(IntId(1), draft = false) to geometryOn13,
             )
         assertEquals(
             boundingBoxAroundPoints(listOf(Point(4.9, 5.0), Point(7.0, 6.0))),
-            getSwitchBoundsFromTracks(tracks, IntId(1)),
+            getSwitchBoundsFromTracks(tracks.map { (_, g) -> g }, IntId(1)),
         )
-        assertEquals(null, getSwitchBoundsFromTracks(tracks, IntId(2)))
+        assertEquals(null, getSwitchBoundsFromTracks(tracks.map { (_, g) -> g }, IntId(2)))
     }
 
     @Test
@@ -805,19 +814,19 @@ class SwitchLinkingTest {
             locationTrack(
                 trackNumberId = tnId,
                 topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
-            ) to alignment(segment(point1, point1 + Point(5.0, 5.0)))
+            ) to trackGeometryOfSegments(segment(point1, point1 + Point(5.0, 5.0)))
 
         // Linked from the end only -> first point shouldn't matter
         val track2 =
             locationTrack(
                 trackNumberId = tnId,
                 topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
-            ) to alignment(segment(point2 - Point(5.0, 5.0), point2))
+            ) to trackGeometryOfSegments(segment(point2 - Point(5.0, 5.0), point2))
 
         // Linked by segment ends -> both points matter
         val track3 =
             locationTrack(tnId) to
-                alignment(
+                trackGeometryOfSegments(
                     segment(
                         point3e1,
                         point3e2,
@@ -829,7 +838,7 @@ class SwitchLinkingTest {
 
         assertEquals(
             boundingBoxAroundPoints(point1, point2, point3e1, point3e2),
-            getSwitchBoundsFromTracks(listOf(track1, track2, track3), switchId),
+            getSwitchBoundsFromTracks(listOf(track1, track2, track3).map { (_, geom) -> geom }, switchId),
         )
     }
 }
@@ -839,7 +848,7 @@ private fun getJoint(switchSuggestion: FittedSwitch, jointNumber: Int) =
 
 private fun assertOnlyJointMatch(
     switchSuggestion: FittedSwitch,
-    tracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     jointNumber: Int,
     locationTrackId: DomainId<LocationTrack>,
     segmentIndex: Int?,
@@ -851,7 +860,7 @@ private fun assertOnlyJointMatch(
 
 private fun assertJointMatchExists(
     switchSuggestion: FittedSwitch,
-    tracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     jointNumber: Int,
     locationTrackId: DomainId<LocationTrack>,
     segmentIndex: Int?,

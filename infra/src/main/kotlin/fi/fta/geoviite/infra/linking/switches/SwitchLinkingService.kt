@@ -46,9 +46,9 @@ import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
 import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
+import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import java.util.stream.Collectors
 
 private val temporarySwitchId: IntId<LayoutSwitch> = IntId(-1)
 
@@ -320,7 +320,7 @@ constructor(
         track: LocationTrack,
     ): List<Pair<IntId<LayoutSwitch>, SuggestedSwitch?>> {
         // TODO: GVT-1727 Should be able to just use track.switchIds here, unless something funky about the args
-        val switchIds = alignmentDao.get(track.versionOrThrow).switchLinks.map { s -> s.id }.distinct()
+        val switchIds = alignmentDao.fetch(track.versionOrThrow).switchLinks.map { s -> s.id }.distinct()
         val replacementSwitchLocations =
             switchIds.map { switchId ->
                 val switch = switchService.getOrThrow(layoutContext, switchId)
@@ -681,9 +681,9 @@ private fun withTopologicalLinks(
 
 private fun withSegmentLinks(
     suggestedSwitch: SuggestedSwitch,
-    existingLinksCleared: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
+    existingLinksCleared: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
     switchId: IntId<LayoutSwitch>,
-): Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>> {
+): Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>> {
     val segmentLinksMade =
         suggestedSwitch.trackLinks.entries
             .mapNotNull { (locationTrackId, trackLink) ->
@@ -722,14 +722,14 @@ fun updateLocationTrackWithTopologyEndLinking(
 }
 
 fun updateAlignmentSegmentsWithSwitchLinking(
-    alignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
     layoutSwitchId: IntId<LayoutSwitch>,
     matchingJoints: List<SwitchLinkingJoint>,
-): LayoutAlignment {
+): LocationTrackGeometry {
     val segmentIndexRange = matchingJoints.map { it.segmentIndex }.let { ixes -> ixes.min()..ixes.max() }
 
     val overriddenSwitches =
-        alignment.segments
+        geometry.segments
             .mapIndexedNotNull { index, segment -> if (index in segmentIndexRange) segment.switchId else null }
             .distinct()
 
@@ -737,9 +737,9 @@ fun updateAlignmentSegmentsWithSwitchLinking(
         // Collections#contains mapped over a long alignment is surprisingly expensive, but usually
         // we're overriding nothing anyway
         if (overriddenSwitches.isEmpty()) {
-            alignment.segments
+            geometry.segments
         } else
-            alignment.segments.map { segment ->
+            geometry.segments.map { segment ->
                 if (overriddenSwitches.contains(segment.switchId)) segment.withoutSwitch() else segment
             }
 
@@ -758,7 +758,7 @@ fun updateAlignmentSegmentsWithSwitchLinking(
                     getSegmentsByLinkingJoints(
                         switchLinkingJoints,
                         segment,
-                        alignment.segmentMValues[index],
+                        geometry.segmentMValues[index],
                         layoutSwitchId,
                         index == segmentIndexRange.first,
                         index == segmentIndexRange.last,
@@ -767,14 +767,16 @@ fun updateAlignmentSegmentsWithSwitchLinking(
             }
             .let { segments -> combineAdjacentSegmentJointNumbers(segments, layoutSwitchId) }
 
-    return alignment.withSegments(
-        listOf(
-                cleanedSegments.subList(0, segmentIndexRange.first),
-                segmentsWithNewSwitch,
-                cleanedSegments.subList(segmentIndexRange.last + 1, cleanedSegments.size),
-            )
-            .flatten()
-    )
+    // TODO: GVT-2927 Switch linking in graph model
+    TODO()
+    //    return geometry.withSegments(
+    //        listOf(
+    //                cleanedSegments.subList(0, segmentIndexRange.first),
+    //                segmentsWithNewSwitch,
+    //                cleanedSegments.subList(segmentIndexRange.last + 1, cleanedSegments.size),
+    //            )
+    //            .flatten()
+    //    )
 }
 
 private fun filterMatchingJointsBySwitchAlignment(

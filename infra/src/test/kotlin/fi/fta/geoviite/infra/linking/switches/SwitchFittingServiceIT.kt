@@ -163,6 +163,6 @@ constructor(
         val segment =
             segment(Point(0.0, 0.0), Point(1.0, 0.0))
                 .copy(sourceId = plan.alignments[0].elements[0].id as IndexedId<GeometryElement>)
-        context.save(locationTrackAndGeometry(trackNumber, segment))
+        context.saveLocationTrack(locationTrackAndGeometry(trackNumber, segment))
     }
 }
