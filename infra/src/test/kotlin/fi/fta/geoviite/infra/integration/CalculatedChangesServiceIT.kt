@@ -64,11 +64,6 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -78,6 +73,11 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1424,22 +1424,16 @@ constructor(
         var locationTrackSequence = 0
         val locationTracksAndAlignments =
             locationTrackData.map { line ->
-                val locationTrackGeometryVersion =
-                    layoutAlignmentDao.insert(alignment(segments(refPoint + line.start, refPoint + line.end, 10.0)))
-                val locationTrackGeometry = layoutAlignmentDao.fetch(locationTrackGeometryVersion)
-                val locationTrack =
-                    locationTrackDao.fetch(
-                        locationTrackDao.save(
-                            locationTrack(
-                                trackNumberId = trackNumber.id as IntId,
-                                alignment = locationTrackGeometry,
-                                name = "TEST LocTr $sequence ${locationTrackSequence++}",
-                                alignmentVersion = locationTrackGeometryVersion,
-                                draft = false,
-                            )
-                        )
+                locationTrackService.getWithGeometry(
+                    locationTrackDao.save(
+                        locationTrack(
+                            trackNumberId = trackNumber.id as IntId,
+                            name = "TEST LocTr $sequence ${locationTrackSequence++}",
+                            draft = false,
+                        ),
+                        trackGeometryOfSegments(segments(refPoint + line.start, refPoint + line.end, 10.0)),
                     )
-                locationTrack to locationTrackGeometry
+                )
             }
 
         val switches =
@@ -1489,8 +1483,8 @@ constructor(
 
     fun linkTestSwitch(
         switchLocation: IPoint,
-        trackA: Pair<LocationTrack, LayoutAlignment>,
-        trackB: Pair<LocationTrack, LayoutAlignment>,
+        trackA: Pair<LocationTrack, LocationTrackGeometry>,
+        trackB: Pair<LocationTrack, LocationTrackGeometry>,
         name: String?,
     ): LayoutSwitch {
         val switch =
@@ -1556,10 +1550,10 @@ constructor(
         return switch
     }
 
-    private fun firstPoint(alignment: LayoutAlignment, segmentIndex: Int): Point =
+    private fun firstPoint(alignment: LocationTrackGeometry, segmentIndex: Int): Point =
         alignment.segments[segmentIndex].segmentStart.toPoint()
 
-    private fun lastPoint(alignment: LayoutAlignment, segmentIndex: Int): Point =
+    private fun lastPoint(alignment: LocationTrackGeometry, segmentIndex: Int): Point =
         alignment.segments[segmentIndex].segmentEnd.toPoint()
 
     private fun assertContainsSwitchJoint152Change(
