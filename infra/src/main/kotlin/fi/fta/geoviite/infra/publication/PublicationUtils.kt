@@ -525,16 +525,19 @@ fun findJointPoint(
         .find { (node, _) -> node.containsJoint(switchId, jointNumber) }
         ?.let { (_, location) -> location }
 
-fun getChangedGeometryRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>): GeometryChangeRanges {
+fun getChangedGeometryRanges(
+    newSegments: List<Pair<LayoutSegment, Range<Double>>>,
+    oldSegments: List<Pair<LayoutSegment, Range<Double>>>,
+): GeometryChangeRanges {
     // TODO If some kind of segment filtering remains after GVT-2967, segments should be grouped for better performance
     val added =
         newSegments
-            .filter { s -> oldSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
-            .map { s -> Range(s.startM, s.endM) }
+            .filter { (s, _) -> oldSegments.none { (s2, _) -> s.geometry.id == s2.geometry.id } }
+            .map { (_, m) -> m }
     val removed =
         oldSegments
-            .filter { s -> newSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
-            .map { s -> Range(s.startM, s.endM) }
+            .filter { (s, _) -> newSegments.none { (s2, _) -> s.geometry.id == s2.geometry.id } }
+            .map { (_, m) -> m }
 
     return GeometryChangeRanges(added = combineOverlappingRanges(added), removed = combineOverlappingRanges(removed))
 }
