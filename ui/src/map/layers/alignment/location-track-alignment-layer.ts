@@ -2,7 +2,7 @@ import { LineString, Point as OlPoint } from 'ol/geom';
 import OlView from 'ol/View';
 import { MapLayerName, MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
@@ -15,8 +15,6 @@ import {
 } from 'map/layers/utils/alignment-layer-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
-import Feature from 'ol/Feature';
 import {
     getLocationTrackMapAlignmentsByTiles,
     LocationTrackAlignmentDataHolder,
@@ -48,7 +46,7 @@ const layerName: MapLayerName = 'location-track-alignment-layer';
 
 export function createLocationTrackAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString | OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString | OlPoint> | undefined,
     selection: Selection,
     isSplitting: boolean,
     layoutContext: LayoutContext,

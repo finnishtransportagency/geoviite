@@ -9,8 +9,7 @@ import {
     getSelectedLocationTrackMapAlignmentByTiles,
     getSelectedReferenceLineMapAlignmentByTiles,
 } from 'track-layout/layout-map-api';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import VectorLayer from 'ol/layer/Vector';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { LineString } from 'ol/geom';
 import Feature from 'ol/Feature';
 import { blueHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
@@ -79,7 +78,7 @@ function getAlignments(
 
 export function createPlanSectionHighlightLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

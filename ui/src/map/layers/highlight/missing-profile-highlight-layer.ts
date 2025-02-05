@@ -12,9 +12,7 @@ import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { createHighlightFeatures } from 'map/layers/utils/highlight-layer-utils';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import Feature from 'ol/Feature';
-import VectorLayer from 'ol/layer/Vector';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 
 const highlightBackgroundStyle = new Style({
     stroke: new Stroke({
@@ -27,7 +25,7 @@ const layerName: MapLayerName = 'missing-profile-highlight-layer';
 
 export function createMissingProfileHighlightLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

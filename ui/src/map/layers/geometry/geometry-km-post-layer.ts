@@ -4,6 +4,7 @@ import { GeometryPlanLayout, LayoutKmPost, PlanAndStatus } from 'track-layout/tr
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import {
     createLayer,
+    GeoviiteMapLayer,
     getManualPlanWithStatus,
     getVisiblePlansWithStatus,
     loadLayerData,
@@ -14,19 +15,17 @@ import {
     getKmPostStepByResolution,
 } from '../utils/km-post-layer-utils';
 import { Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerName, MapTile } from 'map/map-model';
 import { LayoutContext } from 'common/common-model';
-import Feature from 'ol/Feature';
 
 const layerName: MapLayerName = 'geometry-km-post-layer';
 
 export function createGeometryKmPostLayer(
     mapTiles: MapTile[],
     resolution: number,
-    existingOlLayer: VectorLayer<Feature<OlPoint | Rectangle>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint | Rectangle> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,

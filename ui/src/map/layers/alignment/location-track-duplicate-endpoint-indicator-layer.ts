@@ -4,8 +4,12 @@ import { ChangeTimes } from 'common/common-slice';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
-import VectorLayer from 'ol/layer/Vector';
+import {
+    createLayer,
+    GeoviiteMapLayer,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import Feature from 'ol/Feature';
 import { AlignmentStartAndEnd, LocationTrackDuplicate } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
@@ -252,7 +256,7 @@ const layerName: MapLayerName = 'location-track-duplicate-endpoint-address-layer
 
 export function createDuplicateTrackEndpointAddressLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

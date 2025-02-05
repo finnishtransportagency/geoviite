@@ -5,7 +5,7 @@ import { Selection } from 'selection/selection-model';
 import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createKmPostFeatures,
@@ -13,8 +13,6 @@ import {
     getKmPostStepByResolution,
 } from 'map/layers/utils/km-post-layer-utils';
 import { Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
-import Feature from 'ol/Feature';
 import { filterUniqueById } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 
@@ -24,7 +22,7 @@ const layerName: MapLayerName = 'km-post-layer';
 
 export function createKmPostLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<OlPoint | Rectangle>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint | Rectangle> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,

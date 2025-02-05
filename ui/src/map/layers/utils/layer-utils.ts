@@ -19,6 +19,8 @@ import BaseLayer from 'ol/layer/Base';
 import { expectCoordinate, tuple } from 'utils/type-utils';
 import { LayoutContext } from 'common/common-model';
 
+export type GeoviiteMapLayer<T extends Geometry> = VectorLayer<VectorSource<Feature<T>>>;
+
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
 
@@ -162,7 +164,7 @@ export type LayerResult<FeatureType extends Geometry> = {
 
 export function createLayer<FeatureType extends Geometry>(
     name: MapLayerName,
-    existingLayer: VectorLayer<Feature<FeatureType>> | undefined,
+    existingLayer: GeoviiteMapLayer<FeatureType> | undefined,
     allowDefaultStyle: boolean = true,
     declutter: boolean = false,
 ): LayerResult<FeatureType> {
