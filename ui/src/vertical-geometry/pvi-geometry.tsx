@@ -25,7 +25,7 @@ function tangentArrow(
     tangent: number,
     pviAssistLineHeightPx: number,
     coordinates: Coordinates,
-): JSX.Element {
+): React.JSX.Element {
     const tangentX = mToX(coordinates, tangentStation);
     const tangentBottomPx = heightToY(coordinates, tangentHeight);
     const tangentTopPx = tangentBottomPx - pviAssistLineHeightPx / 1.5;
@@ -310,7 +310,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
     if (!firstItem) {
         return <React.Fragment />;
     }
-    const pvis: JSX.Element[] = [];
+    const pvis: React.JSX.Element[] = [];
     let pviKey = 0;
 
     const leftmostPviInViewR = geometry.findIndex(

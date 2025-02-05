@@ -265,7 +265,7 @@ const PVFileListRow = ({
     const [isOpen, setIsOpen] = React.useState(false);
     const [fileActionMenuVisible, setFileActionMenuVisible] = React.useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
-    const dialogParams = React.useRef<{
+    const dialogParams = React.createRef<{
         title: string;
         message: { key: string; params: Record<string, string | number | undefined> };
         onConfirm: () => void;

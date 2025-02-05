@@ -54,7 +54,7 @@ export const DesignSelection: React.FC<DesignSelectionProps> = ({ designId, onDe
     const { t } = useTranslation();
     const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] = React.useState(false);
     const [savingWorkspace, setSavingWorkspace] = React.useState(false);
-    const selectWorkspaceDropdownRef = React.useRef<HTMLInputElement>(null);
+    const selectWorkspaceDropdownRef = React.createRef<HTMLInputElement>();
 
     React.useEffect(() => {
         setTimeout(() => selectWorkspaceDropdownRef?.current?.focus(), 0);

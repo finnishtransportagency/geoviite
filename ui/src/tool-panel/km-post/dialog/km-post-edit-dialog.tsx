@@ -39,6 +39,7 @@ import { draftLayoutContext, LayoutContext, Srid } from 'common/common-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { KmPostEditDialogGkLocationSection } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
 import { GeometryPoint } from 'model/geometry';
+import { UnknownAction } from 'redux';
 
 export type KmPostEditDialogType = 'MODIFY' | 'CREATE' | 'LINKING';
 
@@ -89,20 +90,23 @@ export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps>
 
 export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostEditDialogProps) => {
     const { t } = useTranslation();
-    const [state, dispatcher] = React.useReducer(reducer, {
-        ...initialKmPostEditState,
-        gkLocationEnabled: !!props.geometryKmPostGkLocation,
-    });
+    const [state, dispatcher] = React.useReducer<KmPostEditState, [action: UnknownAction]>(
+        reducer,
+        {
+            ...initialKmPostEditState,
+            gkLocationEnabled: !!props.geometryKmPostGkLocation,
+        },
+    );
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
-    const canSetDeleted = state.existingKmPost?.hasOfficial;
+    const canSetDeleted = state?.existingKmPost?.hasOfficial;
     const kmPostStateOptions = layoutStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
 
-    const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
+    const debouncedKmNumber = useDebouncedState(state?.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
-        React.useState<boolean>(state.kmPost?.state === 'DELETED');
+        React.useState<boolean>(state?.kmPost?.state === 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
     const trackNumbers = useTrackNumbersIncludingDeleted(

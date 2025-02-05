@@ -102,7 +102,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
     const [alignmentAndExtents, setAlignmentAndExtents] = React.useState<AlignmentAndExtents>();
     const { t } = useTranslation();
 
-    const ref = React.useRef<HTMLDivElement>(null);
+    const ref = React.createRef<HTMLDivElement>();
 
     const horizontalTickLengthMeters = minimumIntervalOrLongest(
         diagramWidth !== undefined &&

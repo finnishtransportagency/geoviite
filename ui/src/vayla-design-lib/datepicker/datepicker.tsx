@@ -143,7 +143,7 @@ function getHeaderElement({
 export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, ...props }) => {
     const [open, setOpen] = React.useState(false);
     const ref = React.useRef<HTMLInputElement>(null);
-    const iconRef = React.useRef<SVGSVGElement>(null);
+    const iconRef = React.createRef<SVGSVGElement>();
     const className = createClassName(styles['datepicker'], wide && styles['datepicker--wide']);
 
     return (
