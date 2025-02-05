@@ -1,7 +1,6 @@
 @use 'vayla-design-lib' as vayla-design;
 
 .linking-status-label {
-    @include vayla-design.typography-sub-heading;
     display: inline-flex;
     align-items: center;
     user-select: none;

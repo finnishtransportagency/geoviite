@@ -72,11 +72,11 @@ Sekä virallisen paikannuspohjan että suunnitelmien muutokset tehdään aina lu
 valmistuminenkin on virallisen paikannuspohjan muutos ja menee luonnoksen kautta. Mahdollisia siirtymiä kontekstien
 välillä ovat siis:
 
--   Virallinen paikannuspohja -> Luonnospaikannuspohja (luonnosmuutos)
--   Luonnospaikannuspohja -> Virallinen paikannuspohja (paikannuspohjan julkaisu)
--   Virallinen paikannuspohja -> Luonnossuunnitelma (suunniteltu muutos)
--   Luonnossuunnitelma -> Julkaistu suunnitelma (suunnitelman julkaisu)
--   Julkaistu suunnitelma -> Luonnospaikannuspohja (suunnitelman valmistuminen)
+- Virallinen paikannuspohja -> Luonnospaikannuspohja (luonnosmuutos)
+- Luonnospaikannuspohja -> Virallinen paikannuspohja (paikannuspohjan julkaisu)
+- Virallinen paikannuspohja -> Luonnossuunnitelma (suunniteltu muutos)
+- Luonnossuunnitelma -> Julkaistu suunnitelma (suunnitelman julkaisu)
+- Julkaistu suunnitelma -> Luonnospaikannuspohja (suunnitelman valmistuminen)
 
 Siirtymät toteutetaan tallentamalla olion tila kohdekontekstiin (mahdollisen olemassaolevan rivin päälle), ja
 julkaisuiden tapauksessa poistamalla lisäksi luonnoskontekstin rivi.

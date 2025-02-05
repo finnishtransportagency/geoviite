@@ -294,7 +294,7 @@ constructor(
         kmPostLinkingInfoBox.link()
         waitAndClearToast("linking-succeed-msg")
 
-        assertEquals("KYLLÄ", toolPanel.geometryKmPostLinking.linked)
+        assertEquals("Kyllä", toolPanel.geometryKmPostLinking.linked)
         toolPanel.selectToolPanelTab("0123")
         assertNotEquals(layoutKmPostCoordinatesBeforeLinking, toolPanel.layoutKmPostLocation.coordinates)
     }

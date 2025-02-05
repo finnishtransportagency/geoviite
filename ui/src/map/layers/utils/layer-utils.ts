@@ -2,7 +2,7 @@ import Feature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
 import { Geometry, LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { GeometryPlanLayout, LAYOUT_SRID, PlanAndStatus } from 'track-layout/track-layout-model';
-import { OptionalItemCollections, VisiblePlanLayout } from 'selection/selection-model';
+import { VisiblePlanLayout } from 'selection/selection-model';
 import { LayerItemSearchResult, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import proj4 from 'proj4';
 import { coordsToPoint, Point, Rectangle } from 'model/geometry';
@@ -217,9 +217,9 @@ function mergeOptionalArrays<T>(a1: T[] | undefined, a2: T[] | undefined): T[] |
 }
 
 export function mergePartialItemSearchResults(
-    ...searchResults: OptionalItemCollections[]
+    ...searchResults: LayerItemSearchResult[]
 ): LayerItemSearchResult {
-    return searchResults.reduce<OptionalItemCollections>((merged, searchResult) => {
+    return searchResults.reduce<LayerItemSearchResult>((merged, searchResult) => {
         return {
             locationTracks: mergeOptionalArrays(merged.locationTracks, searchResult.locationTracks),
             kmPosts: mergeOptionalArrays(merged.kmPosts, searchResult.kmPosts),
@@ -251,6 +251,26 @@ export function mergePartialItemSearchResults(
                 searchResult.suggestedSwitches,
             ),
             geometryPlans: mergeOptionalArrays(merged.geometryPlans, searchResult.geometryPlans),
+            locationTrackPublicationCandidates: mergeOptionalArrays(
+                merged.locationTrackPublicationCandidates,
+                searchResult.locationTrackPublicationCandidates,
+            ),
+            referenceLinePublicationCandidates: mergeOptionalArrays(
+                merged.referenceLinePublicationCandidates,
+                searchResult.referenceLinePublicationCandidates,
+            ),
+            trackNumberPublicationCandidates: mergeOptionalArrays(
+                merged.trackNumberPublicationCandidates,
+                searchResult.trackNumberPublicationCandidates,
+            ),
+            switchPublicationCandidates: mergeOptionalArrays(
+                merged.switchPublicationCandidates,
+                searchResult.switchPublicationCandidates,
+            ),
+            kmPostPublicationCandidates: mergeOptionalArrays(
+                merged.kmPostPublicationCandidates,
+                searchResult.kmPostPublicationCandidates,
+            ),
         };
     }, {});
 }

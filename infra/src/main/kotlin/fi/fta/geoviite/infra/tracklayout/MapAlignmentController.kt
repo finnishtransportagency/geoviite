@@ -12,6 +12,8 @@ import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.AlignmentPolyLine
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.AlignmentFetchType.ALL
+import fi.fta.geoviite.infra.util.toResponse
+import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -48,9 +50,9 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @PathVariable("id") locationTrackId: IntId<LocationTrack>,
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("resolution") resolution: Int,
-    ): AlignmentPolyLine<LocationTrack>? {
+    ): ResponseEntity<AlignmentPolyLine<LocationTrack>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return mapAlignmentService.getAlignmentPolyline(layoutContext, locationTrackId, bbox, resolution)
+        return toResponse(mapAlignmentService.getAlignmentPolyline(layoutContext, locationTrackId, bbox, resolution))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

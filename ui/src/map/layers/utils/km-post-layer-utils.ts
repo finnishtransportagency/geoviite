@@ -4,6 +4,7 @@ import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
 import Style, { RenderFunction } from 'ol/style/Style';
 import KmPost from 'vayla-design-lib/icon/glyphs/misc/kmpost.svg';
+import DeletedKmPost from 'vayla-design-lib/icon/glyphs/misc/kmpost-deleted.svg';
 import {
     drawCircle,
     drawRect,
@@ -23,7 +24,11 @@ import { expectCoordinate } from 'utils/type-utils';
 const kmPostImg: HTMLImageElement = new Image();
 kmPostImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(KmPost)}`;
 
+const deletedKmPostImg: HTMLImageElement = new Image();
+deletedKmPostImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(DeletedKmPost)}`;
+
 export type KmPostType = 'layoutKmPost' | 'geometryKmPost';
+export type KmPostIconType = 'NORMAL' | 'DELETED';
 
 /**
  * Steps of km post skip step
@@ -32,6 +37,64 @@ const kmPostSteps = [1, 2, 5, 10, 20, 50, 100];
 export function getKmPostStepByResolution(resolution: number): number {
     return kmPostSteps.find((step) => step * 10 >= resolution) || 0;
 }
+
+export function createKmPostFeature(
+    kmPost: LayoutKmPost,
+    isSelected: (kmPost: LayoutKmPost) => boolean,
+    kmPostType: 'layoutKmPost' | 'geometryKmPost',
+    isLinked: ((kmPost: LayoutKmPost) => boolean) | undefined,
+    resolution: number,
+    planId: string | undefined,
+): [Feature<OlPoint>, Feature<Polygon>] {
+    const location = kmPost.layoutLocation as Point;
+    const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
+
+    const selected = isSelected(kmPost);
+
+    feature.setStyle(
+        new Style({
+            zIndex: selected ? 1 : 0,
+            renderer: selected
+                ? getSelectedKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost))
+                : getKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost)),
+        }),
+    );
+
+    // Create a feature to act as a clickable area
+    const width = 35 * resolution;
+    const height = 15 * resolution;
+    const clickableX = location.x - 5 * resolution; // offset x a bit
+    const polygon = new Polygon([
+        [
+            [clickableX, location.y - height / 2],
+            [clickableX + width, location.y - height / 2],
+            [clickableX + width, location.y + height / 2],
+            [clickableX, location.y + height / 2],
+            [clickableX, location.y - height / 2],
+        ],
+    ]);
+    const hitAreaFeature = new Feature({ geometry: polygon });
+    setKmPostFeatureProperty(hitAreaFeature, { kmPost, planId });
+
+    return [feature, hitAreaFeature];
+}
+
+export const createKmPostBadgeFeature = (
+    kmPost: LayoutKmPost,
+    iconType: KmPostIconType = 'NORMAL',
+) => {
+    const location = kmPost.layoutLocation as Point;
+    const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
+
+    feature.setStyle(
+        new Style({
+            zIndex: 2,
+            renderer: getRenderer(kmPost, 14, [kmPostIconDrawFunction(6, 12, iconType)]),
+        }),
+    );
+
+    return [feature];
+};
 
 export function createKmPostFeatures(
     kmPosts: LayoutKmPost[],
@@ -43,43 +106,9 @@ export function createKmPostFeatures(
 ): Feature<OlPoint | Rectangle>[] {
     return kmPosts
         .filter((kmPost) => kmPost.layoutLocation)
-        .flatMap((kmPost) => {
-            const location = kmPost.layoutLocation as Point;
-            const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
-
-            const selected = isSelected(kmPost);
-
-            feature.setStyle(
-                new Style({
-                    zIndex: selected ? 1 : 0,
-                    renderer: selected
-                        ? getSelectedKmPostRenderer(
-                              kmPost,
-                              kmPostType,
-                              isLinked && isLinked(kmPost),
-                          )
-                        : getKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost)),
-                }),
-            );
-
-            // Create a feature to act as a clickable area
-            const width = 35 * resolution;
-            const height = 15 * resolution;
-            const clickableX = location.x - 5 * resolution; // offset x a bit
-            const polygon = new Polygon([
-                [
-                    [clickableX, location.y - height / 2],
-                    [clickableX + width, location.y - height / 2],
-                    [clickableX + width, location.y + height / 2],
-                    [clickableX, location.y + height / 2],
-                    [clickableX, location.y - height / 2],
-                ],
-            ]);
-            const hitAreaFeature = new Feature({ geometry: polygon });
-            setKmPostFeatureProperty(hitAreaFeature, { kmPost, planId });
-
-            return [feature, hitAreaFeature];
-        });
+        .flatMap((kmPost) =>
+            createKmPostFeature(kmPost, isSelected, kmPostType, isLinked, resolution, planId),
+        );
 }
 
 function getRenderer(
@@ -193,10 +222,24 @@ function getSelectedKmPostRenderer(
     return getRenderer(kmPost, 14, dFunctions);
 }
 
+const kmPostIconDrawFunction =
+    (iconRadius: number, iconSize: number, iconType: KmPostIconType = 'NORMAL') =>
+    (_: LayoutKmPost, coord: Coordinate, ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
+        const [x, y] = expectCoordinate(coord);
+        ctx.drawImage(
+            iconType === 'NORMAL' ? kmPostImg : deletedKmPostImg,
+            x - iconRadius * pixelRatio,
+            y - iconRadius * pixelRatio,
+            iconSize * pixelRatio,
+            iconSize * pixelRatio,
+        );
+    };
+
 function getKmPostRenderer(
     kmPost: LayoutKmPost,
     kmPostType: KmPostType,
     isLinked = false,
+    iconType: KmPostIconType = 'NORMAL',
 ): RenderFunction {
     const dFunctions: PointRenderFunction<LayoutKmPost>[] = [];
 
@@ -242,23 +285,7 @@ function getKmPostRenderer(
         },
     );
 
-    dFunctions.push(
-        (
-            _: LayoutKmPost,
-            coord: Coordinate,
-            ctx: CanvasRenderingContext2D,
-            { pixelRatio }: State,
-        ) => {
-            const [x, y] = expectCoordinate(coord);
-            ctx.drawImage(
-                kmPostImg,
-                x - iconRadius * pixelRatio,
-                y - iconRadius * pixelRatio,
-                iconSize * pixelRatio,
-                iconSize * pixelRatio,
-            );
-        },
-    );
+    dFunctions.push(kmPostIconDrawFunction(iconRadius, iconSize, iconType));
 
     dFunctions.push(
         (

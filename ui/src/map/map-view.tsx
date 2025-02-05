@@ -21,11 +21,9 @@ import {
 } from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
-import { selectTool } from './tools/select-tool';
-import { MapToolActivateOptions } from './tools/tool-model';
+import { MapTool, MapToolActivateOptions, MapToolWithButton } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
-import { highlightTool } from 'map/tools/highlight-tool';
 import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
@@ -36,9 +34,7 @@ import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
 import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
-import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
-import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
 import { createTrackNumberDiagramLayer } from 'map/layers/highlight/track-number-diagram-layer';
 import VectorLayer from 'ol/layer/Vector';
@@ -87,6 +83,10 @@ import { layersCoveringLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import Feature from 'ol/Feature';
+import { createPublicationCandidateLayer } from 'map/layers/preview/publication-candidate-layer';
+import { PublicationCandidate } from 'publication/publication-model';
+import { DesignPublicationMode } from 'preview/preview-tool-bar';
+import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
 
 declare global {
     interface Window {
@@ -117,6 +117,10 @@ export type MapViewProps = {
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayerNames: MapLayerName[];
+    publicationCandidates?: PublicationCandidate[];
+    customActiveMapTool?: MapTool;
+    designPublicationMode?: DesignPublicationMode;
+    mapTools?: MapToolWithButton[];
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -193,14 +197,17 @@ const MapView: React.FC<MapViewProps> = ({
     onMapLayerChange,
     mapLayerMenuGroups,
     visibleLayerNames,
+    publicationCandidates,
+    customActiveMapTool,
+    designPublicationMode,
+    mapTools,
 }: MapViewProps) => {
     const { t } = useTranslation();
-
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
-    const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
+    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(customActiveMapTool);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
@@ -362,6 +369,33 @@ const MapView: React.FC<MapViewProps> = ({
                             map.layerSettings['track-number-diagram-layer'],
                             (loading) => onLayerLoading(layerName, loading),
                         );
+                    case 'deleted-publication-candidate-icon-layer':
+                        return designPublicationMode
+                            ? createDeletedPublicationCandidateIconLayer(
+                                  mapTiles,
+                                  existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
+                                  publicationCandidates ?? [],
+                                  designPublicationMode,
+                                  layoutContext,
+                                  changeTimes,
+                                  onShownLayerItemsChange,
+                                  (loading) => onLayerLoading(layerName, loading),
+                                  resolution,
+                              )
+                            : undefined;
+                    case 'publication-candidate-layer':
+                        return designPublicationMode
+                            ? createPublicationCandidateLayer(
+                                  mapTiles,
+                                  existingOlLayer as VectorLayer<Feature<LineString>>,
+                                  changeTimes,
+                                  layoutContext,
+                                  resolution,
+                                  (loading) => onLayerLoading(layerName, loading),
+                                  publicationCandidates?.length ? publicationCandidates : [],
+                                  designPublicationMode,
+                              )
+                            : undefined;
                     case 'track-number-addresses-layer':
                         return createTrackNumberEndPointAddressesLayer(
                             mapTiles,
@@ -678,74 +712,69 @@ const MapView: React.FC<MapViewProps> = ({
         hoveredOverPlanSection,
         manuallySetPlan,
         mapLayerMenuGroups,
+        publicationCandidates,
     ]);
+
+    const toolActivateOptions: MapToolActivateOptions = {
+        onSelect: onSelect,
+        onHighlightItems: onHighlightItems,
+        onHoverLocation: (p) => setHoveredLocation(p),
+        onClickLocation: onClickLocation,
+    };
 
     React.useEffect(() => {
         if (!olMap) return;
-
-        // Activate current tool
-        const toolActivateOptions: MapToolActivateOptions = {
-            onSelect: onSelect,
-            onHighlightItems: onHighlightItems,
-            onHoverLocation: (p) => setHoveredLocation(p),
-            onClickLocation: onClickLocation,
-        };
 
         const deactivateCallbacks = [
             pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
         ];
 
-        if (!measurementToolActive) {
-            deactivateCallbacks.push(
-                selectTool.activate(olMap, visibleLayers, toolActivateOptions),
-            );
-
-            deactivateCallbacks.push(
-                highlightTool.activate(olMap, visibleLayers, toolActivateOptions),
-            );
-        }
-
         // Return function to clean up initialized stuff
         return () => {
             deactivateCallbacks.forEach((f) => f());
         };
-    }, [olMap, visibleLayers, measurementToolActive]);
+    }, [olMap, visibleLayers, activeTool]);
 
     React.useEffect(() => {
-        if (measurementToolActive && olMap) {
-            return measurementTool.activate(olMap);
+        setActiveTool(customActiveMapTool);
+    }, [customActiveMapTool]);
+
+    React.useEffect(() => {
+        if (activeTool && olMap) {
+            return activeTool.activate(olMap, visibleLayers, toolActivateOptions);
         } else {
             return () => undefined;
         }
-    }, [olMap, measurementToolActive]);
+    }, [olMap, activeTool, visibleLayers]);
+
+    const mapClassNames = createClassName(
+        styles.map,
+        //activeTool?.hideDefaultCursor && styles['map--hide-cursor'],
+    );
+
+    const cssProperties = {
+        ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
+    };
 
     return (
-        <div className={styles.map}>
-            <ol className="map__map-tools">
-                <li
-                    onClick={() => setMeasurementToolActive(false)}
-                    className={createClassName(
-                        styles['map__map-tool'],
-                        !measurementToolActive && styles['map__map-tool--active'],
-                    )}>
-                    <Icons.Select color={IconColor.INHERIT} />
-                </li>
-                <li
-                    onClick={() => setMeasurementToolActive(true)}
-                    className={createClassName(
-                        styles['map__map-tool'],
-                        measurementToolActive && styles['map__map-tool--active'],
-                    )}>
-                    <Icons.Measure color={IconColor.INHERIT} />
-                </li>
-            </ol>
-
+        <div className={mapClassNames} style={cssProperties}>
+            {mapTools && (
+                <ol className="map__map-tools">
+                    {mapTools.map((tool) => (
+                        <React.Fragment key={tool.id}>
+                            {tool.component({
+                                isActive: activeTool === tool,
+                                setActiveTool: setActiveTool,
+                            })}
+                        </React.Fragment>
+                    ))}
+                </ol>
+            )}
             <div
                 ref={olMapContainer}
                 qa-resolution={olMap?.getView()?.getResolution()}
                 className={styles['map__ol-map']}
             />
-
             <div id="clusteroverlay">
                 {first(selection.selectedItems.clusterPoints) && (
                     <div className={styles['map__popup-menu']}>
@@ -779,14 +808,12 @@ const MapView: React.FC<MapViewProps> = ({
                     visibleLayers={visibleLayerNames}
                 />
             </div>
-
             <LocationHolderView
                 hoveredCoordinate={hoveredLocation}
                 trackNumbers={selection.selectedItems.trackNumbers}
                 locationTracks={selection.selectedItems.locationTracks}
                 layoutContext={layoutContext}
             />
-
             {isLoading() && (
                 <div className={styles['map__loading-spinner']} qa-id="map-loading-spinner">
                     <Spinner />

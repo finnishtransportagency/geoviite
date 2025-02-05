@@ -6,6 +6,9 @@ type EmptyObject = {};
 
 export const first = <T>(arr: readonly T[]) => arr[0];
 export const last = <T>(arr: readonly T[]) => arr[arr.length - 1];
+export const init = <T>(arr: readonly T[]) => arr.slice(0, -1);
+
+export const lastIndex = <T>(arr: readonly T[]) => arr.length - 1;
 
 export function nonEmptyArray<T>(...values: Array<T | undefined>): T[] {
     return values.filter(filterNotEmpty);
@@ -174,10 +177,13 @@ export function groupBy<T, K extends string | number>(
     array: T[],
     getKey: (item: T) => K,
 ): Record<K, T[]> {
-    return array.reduce((acc, item) => {
-        (acc[getKey(item)] ||= []).push(item);
-        return acc;
-    }, {} as Record<K, T[]>);
+    return array.reduce(
+        (acc, item) => {
+            (acc[getKey(item)] ||= []).push(item);
+            return acc;
+        },
+        {} as Record<K, T[]>,
+    );
 }
 
 /**

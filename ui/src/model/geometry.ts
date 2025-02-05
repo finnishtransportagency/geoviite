@@ -175,13 +175,21 @@ export function boundingBoxIntersectsLine(bbox: BoundingBox, line: Line): boolea
 }
 
 export const rangesIntersect = (range1: Range<number>, range2: Range<number>): boolean =>
-    range1.min < range2.max && range1.max > range1.min;
+    range1.min < range2.max && range1.max > range2.min;
+
+export const rangesIntersectInclusive = (range1: Range<number>, range2: Range<number>): boolean =>
+    range1.min <= range2.max && range1.max >= range2.min;
 
 export const rangeContainsExclusive = (range: Range<number>, value: number): boolean =>
     range.min < value && range.max > value;
 
 export const rangeContainsInclusive = (range: Range<number>, value: number): boolean =>
     range.min <= value && range.max >= value;
+
+export const mergeRanges = (range1: Range<number>, range2: Range<number>): Range<number> => ({
+    min: Math.min(range1.min, range2.min),
+    max: Math.max(range1.max, range2.max),
+});
 
 export const centerForBoundingBox = (bbox: BoundingBox): Point => ({
     x: (bbox.x.min + bbox.x.max) / 2,

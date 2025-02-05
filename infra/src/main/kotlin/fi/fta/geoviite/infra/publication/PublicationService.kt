@@ -71,10 +71,40 @@ constructor(
         return PublicationCandidates(
             transition = transition,
             trackNumbers = publicationDao.fetchTrackNumberPublicationCandidates(transition),
-            locationTracks = publicationDao.fetchLocationTrackPublicationCandidates(transition),
-            referenceLines = publicationDao.fetchReferenceLinePublicationCandidates(transition),
+            locationTracks =
+                publicationDao.fetchLocationTrackPublicationCandidates(transition).map { ltc ->
+                    ltc.copy(geometryChanges = fetchChangedLocationTrackGeometryRanges(ltc.id, transition))
+                },
+            referenceLines =
+                publicationDao.fetchReferenceLinePublicationCandidates(transition).map { rlc ->
+                    rlc.copy(geometryChanges = fetchChangedReferenceLineGeometryRanges(rlc.id, transition))
+                },
             switches = publicationDao.fetchSwitchPublicationCandidates(transition),
             kmPosts = publicationDao.fetchKmPostPublicationCandidates(transition),
+        )
+    }
+
+    fun fetchChangedLocationTrackGeometryRanges(
+        id: IntId<LocationTrack>,
+        transition: LayoutContextTransition,
+    ): GeometryChangeRanges {
+        val trackWithAlignment1 = locationTrackService.getWithAlignment(transition.candidateContext, id)
+        val trackWithAlignment2 = locationTrackService.getWithAlignment(transition.baseContext, id)
+        return getChangedGeometryRanges(
+            trackWithAlignment1?.second?.segments ?: emptyList(),
+            trackWithAlignment2?.second?.segments ?: emptyList(),
+        )
+    }
+
+    fun fetchChangedReferenceLineGeometryRanges(
+        id: IntId<ReferenceLine>,
+        transition: LayoutContextTransition,
+    ): GeometryChangeRanges {
+        val lineWithAlignment1 = referenceLineService.getWithAlignment(transition.candidateContext, id)
+        val lineWithAlignment2 = referenceLineService.getWithAlignment(transition.baseContext, id)
+        return getChangedGeometryRanges(
+            lineWithAlignment1?.second?.segments ?: emptyList(),
+            lineWithAlignment2?.second?.segments ?: emptyList(),
         )
     }
 

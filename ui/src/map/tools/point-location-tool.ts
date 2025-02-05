@@ -5,6 +5,7 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import { expectCoordinate } from 'utils/type-utils';
 
 export const pointLocationTool: MapTool = {
+    id: 'point-location',
     activate: (map: OlMap, _: MapLayer[], options: MapToolActivateOptions) => {
         const debouncedMoveHandlerPointLocation = debounce(
             ({ coordinate }) => {

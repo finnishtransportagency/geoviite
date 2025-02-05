@@ -87,7 +87,7 @@ abstract class E2ESelectionList<T : E2ESelectionListItem>(
 }
 
 data class E2EKmPostSelectionListItem(override val name: String) : E2ESelectionListItem {
-    constructor(element: WebElement) : this(element.findElement(By.xpath("./div/span")).text)
+    constructor(element: WebElement) : this(element.findElement(byQaId("km-post-badge")).text)
 }
 
 data class E2ELocationTrackSelectionListItem(override val name: String, val type: String) : E2ESelectionListItem {

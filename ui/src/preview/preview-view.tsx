@@ -71,6 +71,9 @@ import { cancelSwitch } from 'track-layout/layout-switch-api';
 import { cancelTrackNumber } from 'track-layout/layout-track-number-api';
 import { cancelKmPost } from 'track-layout/layout-km-post-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
+import { measurementTool } from 'map/tools/measurement-tool';
+import { previewViewAreaSelectTool } from 'map/tools/preview-view-area-select-tool';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -287,6 +290,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             ? filterByUser(unstagedPublicationCandidates, user)
             : unstagedPublicationCandidates;
 
+    const diplayedOnMapPublicationCandidates =
+        user && props.showOnlyOwnUnstagedChanges
+            ? filterByUser(publicationCandidates, user)
+            : publicationCandidates;
+
     const [changesBeingReverted, setChangesBeingReverted] = React.useState<ChangesBeingReverted>();
 
     const publicationAssetChangeAmounts: PublicationAssetChangeAmounts = {
@@ -472,6 +480,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         cancel: cancelCandidate,
     };
 
+    const publishCandidateSelectTool = React.useMemo(
+        () => previewViewAreaSelectTool(publicationCandidates, setStageForSpecificChanges, t),
+        [publicationCandidates],
+    );
+
     return (
         <React.Fragment>
             <div className={styles['preview-view']} qa-id="preview-content">
@@ -603,6 +616,14 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 ? draftLayoutContext(props.layoutContext)
                                 : officialLayoutContext(props.layoutContext)
                         }
+                        publicationCandidates={diplayedOnMapPublicationCandidates}
+                        mapTools={[
+                            selectOrHighlightComboTool,
+                            measurementTool,
+                            publishCandidateSelectTool,
+                        ]}
+                        customActiveMapTool={publishCandidateSelectTool}
+                        designPublicationMode={designPublicationMode}
                     />
                 </MapContext.Provider>
                 <PreviewFooter

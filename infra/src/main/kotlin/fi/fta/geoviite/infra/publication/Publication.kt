@@ -87,7 +87,7 @@ data object PublishedInMain : PublishedInBranch() {
     override val branch = LayoutBranch.main
 }
 
-data class PublishedInDesign(val designBranch: DesignBranch, val designVersion: Int) : PublishedInBranch() {
+data class PublishedInDesign(val designBranch: DesignBranch, @JsonIgnore val designVersion: Int) : PublishedInBranch() {
     override val branch = designBranch
 }
 
@@ -398,6 +398,7 @@ data class ReferenceLinePublicationCandidate(
     override val publicationGroup: PublicationGroup? = null,
     override val cancelled: Boolean,
     val boundingBox: BoundingBox?,
+    val geometryChanges: GeometryChangeRanges?,
 ) : PublicationCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
 }
@@ -414,6 +415,7 @@ data class LocationTrackPublicationCandidate(
     override val publicationGroup: PublicationGroup? = null,
     override val cancelled: Boolean,
     val boundingBox: BoundingBox?,
+    val geometryChanges: GeometryChangeRanges?,
 ) : PublicationCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
 }

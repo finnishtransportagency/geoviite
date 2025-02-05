@@ -24,6 +24,9 @@ const tickImageCache = cache<string, RegularShape>();
 export const OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING = 0.5;
 export const NORMAL_ALIGNMENT_OPACITY = 1;
 
+export const REFERENCE_LINE_ALIGNMENT_WIDTH = 3;
+export const LOCATION_TRACK_ALIGNMENT_WIDTH = 1;
+
 export function getTickStyle(
     point1: Coordinate,
     point2: Coordinate,
@@ -128,13 +131,13 @@ export function createAlignmentFeatures(
     selection: Selection,
     showEndTicks: boolean,
     style: Style,
-    hightlightStyle: Style,
+    hightlightStyle?: Style,
 ): Feature<LineString | OlPoint>[] {
     return alignments.flatMap((alignment) =>
         createAlignmentFeature(
             alignment,
             showEndTicks,
-            isHighlighted(selection, alignment.header) ? hightlightStyle : style,
+            isHighlighted(selection, alignment.header) && hightlightStyle ? hightlightStyle : style,
         ),
     );
 }

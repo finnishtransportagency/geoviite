@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Switch } from 'vayla-design-lib/switch/switch';
 import { useTranslation } from 'react-i18next';
 import styles from './preview-view.scss';
 import { mergeCandidatesToMain, publishPublicationCandidates } from 'publication/publication-api';
@@ -142,17 +141,6 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     }>
                     {t('preview-footer.publish-changes')}
                 </Button>
-            </div>
-            <div className={styles['preview-footer__map-toggle']}>
-                <Switch
-                    onCheckedChange={(check) =>
-                        props.onChangeMapDisplayTransitionSide(
-                            check ? 'WITH_CHANGES' : 'BASE_CONTEXT',
-                        )
-                    }
-                    checked={props.mapDisplayTransitionSide === 'WITH_CHANGES'}>
-                    {t('preview-footer.publish-tracklayout')}
-                </Switch>
             </div>
             {publishConfirmVisible &&
                 (props.designPublicationMode === 'PUBLISH_CHANGES' ? (
