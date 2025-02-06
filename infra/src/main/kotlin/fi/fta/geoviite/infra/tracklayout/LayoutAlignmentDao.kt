@@ -1196,6 +1196,52 @@ class LayoutAlignmentDao(
         segmentGeometryCache.putAll(parseGeometries(rowResults))
         return rowResults.size
     }
+
+    fun getActiveContextEdges(
+        context: LayoutContext,
+        bbox: BoundingBox,
+    ): List<Pair<LayoutEdge, List<IntId<LocationTrack>>>> {
+        val sql =
+            """
+            select
+              ltv_e.edge_id,
+              array_agg(distinct lt.id) as location_track_ids
+            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+              inner join layout.location_track_version_edge ltv_e
+                         on lt.id = ltv_e.location_track_id
+                           and lt.layout_context_id = ltv_e.location_track_layout_context_id
+                           and lt.version = ltv_e.location_track_version
+              inner join layout.edge edge on ltv_e.edge_id = edge.id
+            where postgis.st_intersects(
+                    postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                    edge.bounding_box
+                  )
+            group by ltv_e.edge_id;
+          """
+
+        val params =
+            mapOf(
+                "x_min" to bbox.min.x,
+                "y_min" to bbox.min.y,
+                "x_max" to bbox.max.x,
+                "y_max" to bbox.max.y,
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+                "layout_srid" to LAYOUT_SRID.code,
+            )
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val edgeId = rs.getIntId<LayoutEdge>("edge_id")
+                val trackIds = rs.getIntIdArray<LocationTrack>("location_track_ids")
+                edgeId to trackIds
+            }
+            .let { result ->
+                val edges = getEdges(result.map { it.first })
+                result.map { (edgeId, trackIds) ->
+                    requireNotNull(edges[edgeId]) { "Failed to fetch edge $edgeId" } to trackIds
+                }
+            }
+    }
 }
 
 data class GeometryRowResult(

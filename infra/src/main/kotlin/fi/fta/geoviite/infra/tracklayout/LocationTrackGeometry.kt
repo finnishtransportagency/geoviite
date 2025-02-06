@@ -154,12 +154,6 @@ fun calculateEdgeMs(edges: List<ILayoutEdge>): List<Range<Double>> {
 
 data class TmpLocationTrackGeometry(@get:JsonIgnore override val edges: List<ILayoutEdge>) : LocationTrackGeometry() {
     init {
-        edges.firstOrNull()?.startNode?.let { node ->
-            require(node.nodeType != TRACK_END) { "First node must not be a a track end: node=$node" }
-        }
-        edges.lastOrNull()?.endNode?.let { node ->
-            require(node.nodeType != TRACK_START) { "First node must not be a a track end: node=$node" }
-        }
         edges.zipWithNext().forEach { (prev, next) ->
             require(prev.endNode.contentHash == next.startNode.contentHash) {
                 "Edges should be connected: prev=${prev.endNode} next=${next.startNode}"
@@ -184,12 +178,6 @@ data class DbLocationTrackGeometry(
     @get:JsonIgnore override val edges: List<LayoutEdge>,
 ) : LocationTrackGeometry() {
     init {
-        edges.firstOrNull()?.startNode?.let { node ->
-            require(node.nodeType != TRACK_END) { "First node must not be a a track end: node=$node" }
-        }
-        edges.lastOrNull()?.endNode?.let { node ->
-            require(node.nodeType != TRACK_START) { "First node must not be a a track end: node=$node" }
-        }
         edges.zipWithNext().forEach { (prev, next) ->
             require(prev.endNode.contentHash == next.startNode.contentHash) {
                 "Edges should be connected: prev=${prev.endNode} next=${next.startNode}"
@@ -299,6 +287,8 @@ data class LayoutEdgeContent(
                 "Edge segments should begin where the previous one ends: prev=${prev.segmentEnd} next=${next.segmentStart}"
             }
         }
+        require(startNode.nodeType != TRACK_END) { "Edge start node must not be a a track end: $this node=$startNode" }
+        require(endNode.nodeType != TRACK_START) { "Edge end node must not be a a track start: $this node=$endNode" }
         // TODO: GVT-2926 We shouldn't have edges like this, but we do. What's up?
         // We shouldn't really have edges between null and a joint, but due to old data, we do
         //        require(
