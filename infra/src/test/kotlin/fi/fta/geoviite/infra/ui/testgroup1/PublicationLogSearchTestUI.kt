@@ -59,7 +59,10 @@ constructor(
                     message = FreeTextWithNewLines.of("some test publication 2"),
                 ),
                 PublicationRequest(
-                    content = publicationRequestIds(locationTracks = listOf(mainDraftContext.save(someTrack).id)),
+                    content =
+                        publicationRequestIds(
+                            locationTracks = listOf(mainDraftContext.save(someTrack.first, someTrack.second).id)
+                        ),
                     message = FreeTextWithNewLines.of("some test publication 3"),
                 ),
             )

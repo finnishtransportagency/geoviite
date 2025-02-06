@@ -10,8 +10,6 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
-import kotlin.test.assertContains
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
@@ -21,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -207,14 +207,14 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
         val officialTrack =
             mainOfficialContext.save(
                 locationTrack(trackNumber),
-                alignment(
+                trackGeometryOfSegments(
                     segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch, startJointNumber = JointNumber(1))
                 ),
             )
         locationTrackDao.insertExternalId(officialTrack.id, LayoutBranch.main, oid)
         mainDraftContext.save(
             asMainDraft(mainOfficialContext.fetch(officialTrack.id)!!),
-            alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
         assertEquals(
             listOf(LayoutSwitchDao.LocationTrackIdentifiers(officialTrack, oid)),

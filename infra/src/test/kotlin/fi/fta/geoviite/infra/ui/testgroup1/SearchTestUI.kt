@@ -24,7 +24,9 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
         val ltNames =
             listOf("test-lt A1" to "test-desc-1", "test-lt B2" to "test-desc-2", "test-lt B3" to "test-desc-3")
         ltNames.forEach { (name, desc) ->
-            mainOfficialContext.save(locationTrackAndGeometry(trackNumberId = tnId, name = name, description = desc))
+            mainOfficialContext.saveLocationTrack(
+                locationTrackAndGeometry(trackNumberId = tnId, name = name, description = desc)
+            )
         }
 
         startGeoviite()
@@ -44,7 +46,7 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
     fun `Search opens specific location track`() {
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val (track, _) =
-            mainOfficialContext.saveAndFetch(
+            mainOfficialContext.saveAndFetchLocationTrack(
                 locationTrackAndGeometry(
                     trackNumberId = trackNumberId,
                     name = "test-lt specific 001",

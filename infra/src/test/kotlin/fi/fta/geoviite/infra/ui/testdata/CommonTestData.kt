@@ -60,6 +60,7 @@ import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchOwnerVayla
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.logger
 import java.math.BigDecimal
@@ -122,18 +123,17 @@ fun locationTrack(
     description: String = "$name location track description",
     draft: Boolean = false,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val alignment = alignmentFromPointIncrementList(basePoint, incrementPoints)
+    val geometry = trackGeometryFromPointIncrementList(basePoint, incrementPoints)
     val track =
         locationTrack(
             trackNumberId = trackNumber,
-            alignment = alignment,
             name = "lt-$name",
             description = description,
             type = layoutAlignmentType,
             state = LocationTrackState.IN_USE,
             draft = draft,
         )
-    return track to alignment
+    return track to geometry
 }
 
 fun referenceLine(
@@ -147,14 +147,20 @@ fun referenceLine(
     return line to alignment
 }
 
+private fun trackGeometryFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): LocationTrackGeometry {
+    return trackGeometryOfSegments(segmentsFromPointIncrementList(basePoint, incrementPoints))
+}
+
 private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): LayoutAlignment {
+    return alignment(segmentsFromPointIncrementList(basePoint, incrementPoints))
+}
+
+private fun segmentsFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): List<LayoutSegment> {
     val points = pointsFromIncrementList(basePoint, incrementPoints)
-    val segments =
-        points.dropLast(1).mapIndexed { index, pointA ->
-            val pointB = points[index + 1]
-            segment(points = toSegmentPoints(pointA, pointB))
-        }
-    return alignment(segments)
+    return points.dropLast(1).mapIndexed { index, pointA ->
+        val pointB = points[index + 1]
+        segment(points = toSegmentPoints(pointA, pointB))
+    }
 }
 
 fun layoutSwitch(name: String, jointPoints: List<Point>, switchStructure: SwitchStructure) =

@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import java.math.BigDecimal
@@ -114,7 +115,7 @@ constructor(
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrack(trackNumberId = trackNumberId, name = "foo bar", draft = true),
-            alignment(
+            trackGeometryOfSegments(
                 segment(DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0))
                     .copy(sourceId = plan.alignments[0].elements[0].id as IndexedId, sourceStart = 0.0)
             ),

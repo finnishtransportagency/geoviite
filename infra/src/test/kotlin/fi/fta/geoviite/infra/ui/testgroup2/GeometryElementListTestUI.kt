@@ -19,9 +19,9 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import kotlin.test.assertNotNull
@@ -150,26 +150,17 @@ constructor(
     ) {
         val geometryPlan = geometryDao.fetchPlan(planVersion)
         val geoAlignmentA = geometryPlan.alignments[0]
-        val locationTrackAlignment =
-            alignmentDao.insert(
-                alignment(
-                    segment(Point(1.0, 1.0), Point(2.0, 2.0))
-                        .copy(sourceId = geoAlignmentA.elements[0].id as IndexedId),
-                    segment(Point(2.0, 2.0), Point(3.0, 3.0))
-                        .copy(sourceId = geoAlignmentA.elements[1].id as IndexedId),
-                    segment(Point(3.0, 3.0), Point(4.0, 4.0)),
-                    segment(Point(4.0, 4.0), Point(5.0, 5.0))
-                        .copy(sourceId = geoAlignmentA.elements[2].id as IndexedId),
-                    segment(Point(5.0, 5.0), Point(6.0, 6.0)).copy(sourceId = geoAlignmentA.elements[3].id as IndexedId),
-                )
+        val locationTrackGeometry =
+            trackGeometryOfSegments(
+                segment(Point(1.0, 1.0), Point(2.0, 2.0)).copy(sourceId = geoAlignmentA.elements[0].id as IndexedId),
+                segment(Point(2.0, 2.0), Point(3.0, 3.0)).copy(sourceId = geoAlignmentA.elements[1].id as IndexedId),
+                segment(Point(3.0, 3.0), Point(4.0, 4.0)),
+                segment(Point(4.0, 4.0), Point(5.0, 5.0)).copy(sourceId = geoAlignmentA.elements[2].id as IndexedId),
+                segment(Point(5.0, 5.0), Point(6.0, 6.0)).copy(sourceId = geoAlignmentA.elements[3].id as IndexedId),
             )
         locationTrackDao.save(
-            locationTrack(
-                trackNumberId = trackNumberId,
-                name = "foo test track",
-                alignmentVersion = locationTrackAlignment,
-                draft = false,
-            )
+            locationTrack(trackNumberId = trackNumberId, name = "foo test track", draft = false),
+            locationTrackGeometry,
         )
     }
 }

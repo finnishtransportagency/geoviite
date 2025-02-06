@@ -16,12 +16,6 @@ import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
-import java.math.BigDecimal
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -29,6 +23,12 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -63,9 +63,9 @@ constructor(
         assertNull(trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id as IntId))
 
         val newExternalId = externalIdForTrackNumber()
-        trackNumberService.insertExternalId(LayoutBranch.main, trackNumber.id, newExternalId)
+        trackNumberService.insertExternalId(LayoutBranch.main, trackNumber.id as IntId, newExternalId)
 
-        assertEquals(newExternalId, trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id)?.oid)
+        assertEquals(newExternalId, trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id as IntId)?.oid)
     }
 
     @Test
@@ -348,7 +348,7 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
 
         val trackNumber = mainOfficialContext.save(trackNumber())
-        val referenceLine = mainOfficialContext.save(referenceLineAndAlignment(trackNumber.id))
+        val referenceLine = mainOfficialContext.saveReferenceLine(referenceLineAndAlignment(trackNumber.id))
 
         val firstTrackNumberDraft =
             trackNumberService.saveDraft(designBranch, mainOfficialContext.fetch(trackNumber.id)!!)

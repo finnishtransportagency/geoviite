@@ -109,28 +109,28 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
         val design = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(design, PublicationState.OFFICIAL)
         val existingMainAndNearby =
-            mainOfficialContext.save(
+            mainOfficialContext.saveReferenceLine(
                 referenceLineAndAlignment(
                     mainOfficialContext.createLayoutTrackNumber().id,
                     segment(Point(0.0, 0.0), Point(1.0, 0.0)),
                 )
             )
         val existingMainButDistant =
-            mainOfficialContext.save(
+            mainOfficialContext.saveReferenceLine(
                 referenceLineAndAlignment(
                     mainOfficialContext.createLayoutTrackNumber().id,
                     segment(Point(0.0, 100.0), Point(1.0, 100.0)),
                 )
             )
         val nearbyAndMainButDeleted =
-            mainOfficialContext.save(
+            mainOfficialContext.saveReferenceLine(
                 referenceLineAndAlignment(
                     mainOfficialContext.save(trackNumber(TrackNumber("123"), state = LayoutState.DELETED)).id,
                     segment(Point(0.0, 0.0), Point(1.0, 0.0)),
                 )
             )
         val existingAndNearbyInDesign =
-            mainOfficialContext.save(
+            mainOfficialContext.saveReferenceLine(
                 referenceLineAndAlignment(
                     designOfficialContext.createLayoutTrackNumber().id,
                     segment(Point(0.0, 0.0), Point(1.0, 0.0)),

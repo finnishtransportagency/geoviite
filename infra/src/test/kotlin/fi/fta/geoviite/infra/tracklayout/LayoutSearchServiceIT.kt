@@ -13,13 +13,13 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.util.FreeText
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -108,7 +108,7 @@ constructor(
     }
 
     @Test
-    fun `free text search using locationt track as search scope should return only assets relating to search scope`() {
+    fun `free text search using location track as search scope should return only assets relating to search scope`() {
         val trackNumberId =
             saveTrackNumbersWithSaveRequests(listOf(TrackNumber("track number 1")), LayoutState.IN_USE).first()
 
@@ -160,7 +160,7 @@ constructor(
                     topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
                     topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
                 ),
-                someAlignment(),
+                someTrackGeometry(),
             )
         val lt2 =
             mainDraftContext.save( // Duplicate based on duplicateOf, should be included
@@ -170,7 +170,7 @@ constructor(
                     topologyStartSwitch = TopologyLocationTrackSwitch(duplicateStartSwitchId, JointNumber(3)),
                     duplicateOf = lt1.id,
                 ),
-                someAlignment(),
+                someTrackGeometry(),
             )
         val lt3 =
             mainDraftContext.save( // Duplicate based on switches, should be included
@@ -180,11 +180,11 @@ constructor(
                     topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
                     topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
                 ),
-                someAlignment(),
+                someTrackGeometry(),
             )
         mainDraftContext.save( // Non-duplicate, shouldn't be included in search results
             locationTrack(trackNumberId = trackNumberId, name = "bluu"),
-            someAlignment(),
+            someTrackGeometry(),
         )
 
         val searchResults = searchService.searchAssets(MainLayoutContext.draft, FreeText("bl"), 100, lt1.id)

@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.TestGeometryPlanService
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -159,10 +160,7 @@ constructor(
         val geometryTrackEndPoint = geometryAlignment.elements.last().end
 
         val (locationTrackStartPoint, locationTrackEndPoint) =
-            alignmentDao.fetch(locationTrackDao.fetch(originalLocationTrack).getAlignmentVersionOrThrow()).let {
-                alignment ->
-                alignment.start!! to alignment.end!!
-            }
+            alignmentDao.fetch(originalLocationTrack).let { geometry -> geometry.start!! to geometry.end!! }
 
         trackLayoutPage.clickAtCoordinates(geometryTrackStartPoint)
         trackLayoutPage.clickAtCoordinates(geometryTrackEndPoint)
@@ -200,7 +198,7 @@ constructor(
                     incrementPoints = listOf(Point(1.0, 2.0), Point(1.0, 1.5), Point(4.0, 4.7)),
                 )
             )
-        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack)
+        val (_, originalAlignment) = locationTrackService.getWithGeometry(originalLocationTrack)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val selectionPanel = trackLayoutPage.selectionPanel
@@ -235,7 +233,7 @@ constructor(
                     incrementPoints = (1..10).map { Point(2.0, 3.0) },
                 )
             )
-        val (_, locationTrackAlignment) = locationTrackService.getWithAlignment(originalLocationTrack)
+        val (_, locationTrackAlignment) = locationTrackService.getWithGeometry(originalLocationTrack)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
@@ -438,7 +436,7 @@ constructor(
                     incrementPoints = (1..10).map { Point(1.0, 1.0) },
                 )
             )
-        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack)
+        val (_, originalAlignment) = locationTrackService.getWithGeometry(originalLocationTrack)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
@@ -470,7 +468,7 @@ constructor(
 
         Assertions.assertThat(locationTrackLengthBeforeLinking).isLessThan(lengthAfterLinking)
         val editedLocationTrack =
-            locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, originalLocationTrack.id)
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, originalLocationTrack.id)
 
         // Check that there's a new segment between GT-end and old LT-start
         assertTrue(
@@ -509,7 +507,7 @@ constructor(
                     incrementPoints = (1..10).map { Point(1.0, 1.0) },
                 )
             )
-        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack)
+        val (_, originalAlignment) = locationTrackService.getWithGeometry(originalLocationTrack)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
@@ -539,7 +537,7 @@ constructor(
         waitAndClearToast("linking-succeeded-and-previous-unlinked")
 
         val locationTrackAfterLinking =
-            locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, originalLocationTrack.id)
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, originalLocationTrack.id)
 
         toolPanel.selectToolPanelTab("lt-track to extend")
         val lengthAfterLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
@@ -759,7 +757,7 @@ constructor(
     private fun getGeometrySwitchFromPlan(switchName: String, geometryPlan: GeometryPlan) =
         geometryPlan.switches.find { switch -> switch.name.toString() == switchName }!!
 
-    private fun hasSegmentBetweenPoints(start: Point, end: Point, layoutAlignment: LayoutAlignment): Boolean {
+    private fun hasSegmentBetweenPoints(start: Point, end: Point, layoutAlignment: IAlignment): Boolean {
         return layoutAlignment.segments.any { segment -> segment.includes(start) && segment.includes(end) }
     }
 }

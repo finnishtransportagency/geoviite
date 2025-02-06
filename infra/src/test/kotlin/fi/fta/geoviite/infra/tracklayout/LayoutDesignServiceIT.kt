@@ -15,14 +15,14 @@ import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.queryOne
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -52,10 +52,11 @@ constructor(
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
         val trackNumber = designDraftContext.save(trackNumber())
         designDraftContext.save(referenceLine(trackNumber.id), alignment)
-        designDraftContext.save(locationTrack(trackNumber.id), alignment)
+        designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
         designDraftContext.save(switch())
         designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
@@ -114,10 +115,11 @@ constructor(
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
         val trackNumber = designDraftContext.save(trackNumber())
         val referenceLine = designDraftContext.save(referenceLine(trackNumber.id), alignment)
-        val locationTrack = designDraftContext.save(locationTrack(trackNumber.id), alignment)
+        val locationTrack = designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
         val switch = designDraftContext.save(switch())
         val kmPost = designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
@@ -155,10 +157,11 @@ constructor(
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
         val trackNumber = designDraftContext.save(trackNumber())
         designDraftContext.save(referenceLine(trackNumber.id), alignment)
-        designDraftContext.save(locationTrack(trackNumber.id), alignment)
+        designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
         designDraftContext.save(switch())
         designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
@@ -192,7 +195,7 @@ constructor(
             mainOfficialContext
                 .save(
                     locationTrack(trackNumber),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(Point(0.0, 0.0), Point(10.0, 0.0))
                             .copy(switchId = switch, endJointNumber = JointNumber(1))
                     ),
@@ -221,10 +224,10 @@ constructor(
 
     private fun <T : LayoutAsset<T>> assertContainsSingleCancelledOfficialObject(
         versions: List<LayoutRowVersion<T>>,
-        dao: LayoutAssetDao<T>,
+        reader: LayoutAssetReader<T>,
     ) {
         assertEquals(1, versions.size)
-        val asset = dao.fetch(versions[0])
+        val asset = reader.fetch(versions[0])
         assertTrue(asset.isCancelled)
         assertTrue(asset.isOfficial)
     }

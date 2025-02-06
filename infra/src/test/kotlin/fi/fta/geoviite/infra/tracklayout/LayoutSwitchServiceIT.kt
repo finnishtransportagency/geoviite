@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
-import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -307,19 +307,19 @@ constructor(
             insertDraft(
                 locationTrack(tnId, draft = true)
                     .copy(topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1))),
-                alignment(someSegment()),
+                trackGeometryOfSegments(someSegment()),
                 someOid(),
             )
         val (_, withEndLink) =
             insertDraft(
                 locationTrack(tnId, draft = true)
                     .copy(topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2))),
-                alignment(someSegment()),
+                trackGeometryOfSegments(someSegment()),
             )
         val (_, withSegmentLink) =
             insertDraft(
                 locationTrack(tnId, draft = true),
-                alignment(
+                trackGeometryOfSegments(
                     someSegment()
                         .copy(
                             switchId = switch.id as IntId,
@@ -355,7 +355,7 @@ constructor(
                     name = "LT 1",
                     topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
                 ),
-                alignment(someSegment()),
+                trackGeometryOfSegments(someSegment()),
             )
         locationTrackService.insertExternalId(LayoutBranch.main, locationTrack1.id, locationTrack1Oid)
 
@@ -366,7 +366,7 @@ constructor(
                     name = "LT 2",
                     topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
                 ),
-                alignment(someSegment()),
+                trackGeometryOfSegments(someSegment()),
             )
 
         val locationTrack3Oid = someOid<LocationTrack>()
@@ -377,7 +377,7 @@ constructor(
                     name = "LT 3",
                     topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
                 ),
-                alignment(
+                trackGeometryOfSegments(
                     someSegment()
                         .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(2))
                 ),
@@ -413,7 +413,7 @@ constructor(
         val switch = switch(IntId(1), joints = listOf(switchJoint(1, Point(1.0, 1.0))), draft = false)
         val switchVersion = switchDao.save(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
-        val (locationTrack, alignment) =
+        val (locationTrack, geometry) =
             locationTrackAndGeometry(
                 mainDraftContext.createLayoutTrackNumber().id,
                 segment(joint1Point - 1.0, joint1Point),
@@ -423,7 +423,7 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrack.copy(topologyEndSwitch = TopologyLocationTrackSwitch(switchVersion.id, JointNumber(1))),
-                alignment,
+                geometry,
             )
         val connections = switchService.getSwitchJointConnections(MainLayoutContext.draft, switchVersion.id)
 
@@ -456,10 +456,10 @@ constructor(
 
     private fun insertDraft(
         locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
+        geometry: LocationTrackGeometry,
         oid: Oid<LocationTrack>? = null,
     ): Pair<LocationTrack, LocationTrackIdentifiers> {
-        val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry)
         if (oid != null) {
             locationTrackService.insertExternalId(LayoutBranch.main, version.id, oid)
         }
