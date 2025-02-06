@@ -19,7 +19,7 @@ const colorOpacity = '80'; //~50% opacity in hex
 
 const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) => {
     const [showSelector, setShowSelector] = React.useState(false);
-    const ref = React.createRef<HTMLDivElement>();
+    const ref = React.useRef<HTMLDivElement>(null);
     const { t } = useTranslation();
 
     const selectedColor = color && getColor(color);

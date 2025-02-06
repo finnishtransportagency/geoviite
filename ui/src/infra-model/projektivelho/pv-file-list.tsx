@@ -265,12 +265,12 @@ const PVFileListRow = ({
     const [isOpen, setIsOpen] = React.useState(false);
     const [fileActionMenuVisible, setFileActionMenuVisible] = React.useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
-    const dialogParams = React.createRef<{
+    const dialogParams = React.useRef<{
         title: string;
         message: { key: string; params: Record<string, string | number | undefined> };
         onConfirm: () => void;
         confirmText: string;
-    }>();
+    }>(undefined);
 
     const actionMenuRef = React.useRef(null);
     const suggestedList = listMode === 'SUGGESTED';

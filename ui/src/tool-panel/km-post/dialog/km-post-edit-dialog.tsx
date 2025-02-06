@@ -98,15 +98,15 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         },
     );
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
-    const canSetDeleted = state?.existingKmPost?.hasOfficial;
+    const canSetDeleted = state.existingKmPost?.hasOfficial;
     const kmPostStateOptions = layoutStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
 
-    const debouncedKmNumber = useDebouncedState(state?.kmPost?.kmNumber, 300);
+    const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
-        React.useState<boolean>(state?.kmPost?.state === 'DELETED');
+        React.useState<boolean>(state.kmPost?.state === 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
     const trackNumbers = useTrackNumbersIncludingDeleted(
