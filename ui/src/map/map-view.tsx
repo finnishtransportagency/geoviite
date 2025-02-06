@@ -762,13 +762,11 @@ const MapView: React.FC<MapViewProps> = ({
                         const ToolComponent = tool.component;
 
                         return (
-                            ToolComponent && (
-                                <ToolComponent
-                                    key={tool.id}
-                                    isActive={activeTool === tool}
-                                    setActiveTool={setActiveTool}
-                                />
-                            )
+                            <ToolComponent
+                                key={tool.id}
+                                isActive={activeTool === tool}
+                                setActiveTool={setActiveTool}
+                            />
                         );
                     })}
                 </ol>
