@@ -5,8 +5,8 @@ run-name: ${{ github.actor }} wants to merge ${{ github.ref_name }}
 on:
   pull_request:
     branches: [ main ]
-    paths-ignore:
-      - 'README.md'
+    paths:
+      - 'infra/**'
 
 jobs:
   runner-job:
