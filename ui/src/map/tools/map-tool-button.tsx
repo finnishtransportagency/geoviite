@@ -21,7 +21,7 @@ export const MapToolButton = ({
                 styles['map__map-tool'],
                 isActive && styles['map__map-tool--active'],
             )}>
-            <IconComponent color={IconColor.INHERIT} />;
+            <IconComponent color={IconColor.INHERIT} />
         </li>
     );
 };
