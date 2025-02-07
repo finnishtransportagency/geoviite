@@ -37,7 +37,6 @@ import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
 import { createClassName } from 'vayla-design-lib/utils';
 import { ChangeTimes } from 'common/common-slice';
 import { createTrackNumberDiagramLayer } from 'map/layers/highlight/track-number-diagram-layer';
-import useResizeObserver from 'use-resize-observer';
 import { createGeometryAlignmentLayer } from 'map/layers/geometry/geometry-alignment-layer';
 import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-layer';
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
@@ -85,6 +84,7 @@ import { createPublicationCandidateLayer } from 'map/layers/preview/publication-
 import { PublicationCandidate } from 'publication/publication-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
+import { useResizeObserver } from 'utils/use-resize-observer';
 
 declare global {
     interface Window {
