@@ -108,7 +108,8 @@ $-color-warning: vayla-design.$color-lemon-dark;
 }
 
 .preview-table__container {
-    overflow-y: auto;
+    overflow: auto;
+    scrollbar-gutter: stable;
     border-bottom: 1px solid vayla-design.$color-white-dark;
 }
 
@@ -120,6 +121,30 @@ $-color-warning: vayla-design.$color-lemon-dark;
     position: sticky;
     top: 0;
     z-index: 1;
+}
+
+.preview-table__header--change-target {
+    width: auto;
+}
+
+.preview-table__header--track-number-short,
+.preview-table__header--status {
+    width: 15%;
+}
+
+.preview-table__header--modified-moment {
+    width: 115px;
+}
+
+.preview-table__header--change-type,
+.preview-table__header--user,
+.preview-table__header--actions {
+    width: 70px;
+}
+
+.preview-table-item__track-number {
+    display: inline-block;
+    margin-right: 4px;
 }
 
 .preview-table-item {
@@ -150,11 +175,13 @@ $-color-warning: vayla-design.$color-lemon-dark;
 }
 
 .preview-table-item__error-status {
+    display: block;
     color: $-color-error;
     fill: $-color-error;
 }
 
 .preview-table-item__warning-status {
+    display: block;
     color: $-color-warning;
     fill: $-color-warning;
 }
