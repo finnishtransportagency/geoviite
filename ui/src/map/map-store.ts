@@ -110,6 +110,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'operating-points': ['operating-points-layer'],
     'debug-1m': ['debug-1m-points-layer'],
     'debug': ['debug-layer'],
+    'debug-layout-graph': ['debug-geometry-graph-layer'],
 };
 
 export const initialMapState: Map = {
@@ -132,6 +133,7 @@ export const initialMapState: Map = {
         'location-track-selected-alignment-layer',
         'location-track-split-alignment-layer',
         'reference-line-selected-alignment-layer',
+        'debug-geometry-graph-layer',
     ],
     layerMenu: {
         layout: [
@@ -187,6 +189,7 @@ export const initialMapState: Map = {
         debug: [
             { name: 'debug-1m', visible: false },
             { name: 'debug', visible: false },
+            { name: 'debug-layout-graph', visible: false },
         ],
     },
     layerSettings: {

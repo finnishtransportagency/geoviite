@@ -40,6 +40,7 @@ const mapLayerOrder: MapLayerName[] = [
     'operating-points-layer',
     'debug-1m-points-layer',
     'debug-layer',
+    'debug-geometry-graph-layer',
 ];
 
 export const mapLayerZIndexes = mapLayerOrder.reduce(
