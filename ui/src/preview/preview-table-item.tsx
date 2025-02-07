@@ -215,14 +215,11 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     //
     // This does not work in case the display cell is narrower than a single track number, which causes the individual
     // track number to break in the middle and wrap.
-    const trackNumbers = tableEntry.trackNumber
-        .split(',')
-        .map((individualTrackNumber) => individualTrackNumber.trim());
 
-    const trackNumberSpans = trackNumbers.map((individualTrackNumber, index) => (
+    const trackNumberSpans = tableEntry.trackNumbers.map((individualTrackNumber, index) => (
         <span key={index} className={styles['preview-table-item__track-number']}>
             {individualTrackNumber}
-            {index < trackNumbers.length - 1 && ', '}
+            {index < tableEntry.trackNumbers.length - 1 && ', '}
         </span>
     ));
 
