@@ -74,7 +74,7 @@ type GeometryAlignmentLinkingLocationTrackCandidatesProps = {
 
 type AlignmentRef = {
     id: LocationTrackId | ReferenceLineId;
-    ref: React.RefObject<HTMLLIElement>;
+    ref: React.RefObject<HTMLLIElement | null>;
 };
 
 type LayoutReferenceLineSearchResult = LayoutReferenceLine & {
@@ -102,7 +102,7 @@ function byDraftsFirst<T extends { isDraft: boolean }>(a: T, b: T) {
 function createReference(id: ReferenceLineId | LocationTrackId): AlignmentRef {
     return {
         id: id,
-        ref: React.createRef(),
+        ref: React.createRef<HTMLLIElement>(),
     };
 }
 

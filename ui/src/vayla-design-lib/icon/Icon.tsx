@@ -150,7 +150,7 @@ export type IconProps = {
     extraClassName?: string;
 } & Pick<React.HTMLProps<HTMLOrSVGElement>, 'onClick'>;
 
-export type IconComponent = React.FC<IconProps>;
+export type IconComponent = React.ComponentType<IconProps>;
 
 export type SvgIconProps = IconProps & {
     svg: string;

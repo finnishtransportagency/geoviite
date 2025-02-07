@@ -758,14 +758,17 @@ const MapView: React.FC<MapViewProps> = ({
         <div className={mapClassNames} style={cssProperties}>
             {mapTools && (
                 <ol className="map__map-tools">
-                    {mapTools.map((tool) => (
-                        <React.Fragment key={tool.id}>
-                            {tool.component({
-                                isActive: activeTool === tool,
-                                setActiveTool: setActiveTool,
-                            })}
-                        </React.Fragment>
-                    ))}
+                    {mapTools.map((tool) => {
+                        const ToolComponent = tool.component;
+
+                        return (
+                            <ToolComponent
+                                key={tool.id}
+                                isActive={activeTool === tool}
+                                setActiveTool={setActiveTool}
+                            />
+                        );
+                    })}
                 </ol>
             )}
             <div

@@ -6,7 +6,7 @@ type ResizeDimensions = {
 };
 
 type ResizeObserverOptions = {
-    ref: RefObject<HTMLElement>;
+    ref: RefObject<HTMLElement | null>;
     onResize: (size: ResizeDimensions) => void;
 };
 
@@ -22,8 +22,8 @@ export function useResizeObserver({ ref, onResize }: ResizeObserverOptions) {
             }
         });
 
-        if (ref.current) {
-            observer.observe(ref.current);
+        if (ref?.current) {
+            observer.observe(ref?.current);
         }
 
         return () => observer.disconnect();

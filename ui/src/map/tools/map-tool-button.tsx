@@ -9,7 +9,11 @@ type MapToolButtonProps = {
     icon: IconComponent;
 };
 
-export const MapToolButton: React.FC<MapToolButtonProps> = ({ isActive, setActive, icon }) => {
+export const MapToolButton = ({
+    isActive,
+    setActive,
+    icon: IconComponent,
+}: MapToolButtonProps): React.JSX.Element => {
     return (
         <li
             onClick={() => setActive()}
@@ -17,7 +21,7 @@ export const MapToolButton: React.FC<MapToolButtonProps> = ({ isActive, setActiv
                 styles['map__map-tool'],
                 isActive && styles['map__map-tool--active'],
             )}>
-            {icon({ color: IconColor.INHERIT })}
+            <IconComponent color={IconColor.INHERIT} />;
         </li>
     );
 };

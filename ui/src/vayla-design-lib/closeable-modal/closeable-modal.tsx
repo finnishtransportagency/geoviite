@@ -11,7 +11,7 @@ export type ModalPosition = 'LEFT' | 'RIGHT' | 'ABOVE' | 'BELOW';
 export type OpenTowards = 'LEFT' | 'RIGHT';
 
 type CloseableModalProps = {
-    anchorElementRef: React.MutableRefObject<HTMLElement | null>;
+    anchorElementRef: React.RefObject<HTMLElement | null>;
     openingElementRef?: React.RefObject<HTMLElement | SVGSVGElement | null>;
     onClickOutside: () => void;
     children: React.ReactNode;

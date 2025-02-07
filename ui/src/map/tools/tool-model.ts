@@ -26,11 +26,11 @@ export type MapToolProps = {
 export type MapTool = {
     activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => DeactivateToolFn;
     customCursor?: CssType.Property.Cursor;
-    component?: React.FC<MapToolProps>;
+    component?: React.ComponentType<MapToolProps>;
     id: string;
 };
 
 export type MapToolWithButton = MapTool & {
-    component: React.FC<MapToolProps>;
+    component: React.ComponentType<MapToolProps>;
     id: string;
 };
