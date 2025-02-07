@@ -50,7 +50,8 @@ export type MapLayerName =
     | 'virtual-km-post-linking-layer'
     | 'virtual-hide-geometry-layer'
     | 'publication-candidate-layer'
-    | 'deleted-publication-candidate-icon-layer';
+    | 'deleted-publication-candidate-icon-layer'
+    | 'debug-geometry-graph-layer';
 
 export type MapViewportSource = 'Map';
 
@@ -111,7 +112,8 @@ export type MapLayerMenuItemName =
     | 'geometry-km-post'
     | 'operating-points'
     | 'debug-1m'
-    | 'debug';
+    | 'debug'
+    | 'debug-layout-graph';
 
 export type TrackNumberDiagramLayerSetting = {
     [key: LayoutTrackNumberId]: {

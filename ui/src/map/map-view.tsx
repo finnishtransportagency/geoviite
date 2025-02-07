@@ -87,6 +87,7 @@ import { createPublicationCandidateLayer } from 'map/layers/preview/publication-
 import { PublicationCandidate } from 'publication/publication-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
+import { createDebugGeometryGraphLayer } from 'map/layers/debug/debug-geometry-graph-layer';
 
 declare global {
     interface Window {
@@ -679,6 +680,14 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'debug-layer':
                         return createDebugLayer(existingOlLayer as VectorLayer<Feature<OlPoint>>);
+                    case 'debug-geometry-graph-layer':
+                        return createDebugGeometryGraphLayer(
+                            existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
+                            (loading) => onLayerLoading(layerName, loading),
+                            layoutContext,
+                            mapTiles,
+                            resolution,
+                        );
                     case 'virtual-km-post-linking-layer': // Virtual map layers
                     case 'virtual-hide-geometry-layer':
                         return undefined;
