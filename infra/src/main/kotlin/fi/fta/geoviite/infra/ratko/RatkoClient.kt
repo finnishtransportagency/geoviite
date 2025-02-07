@@ -103,7 +103,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {
         logger.integrationCall("getLocationTrack", "locationTrackOid" to locationTrackOid)
-
+        println("RATKO MSG: Geoviite hakee sijaintiraiteen tiedot Ratkosta.")
         return getSpec(combinePaths(LOCATION_TRACK_LOCATIONS_PATH, locationTrackOid))
             .bodyToMono<String>()
             .onErrorResume(WebClientResponseException::class.java) {
@@ -119,24 +119,40 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun updateLocationTrackProperties(locationTrack: RatkoLocationTrack) {
+        println("RATKO MSG: Geoviite pävittää Ratkoon sijaintiraiteen ominaisuustiedot.")
+
         logger.integrationCall("updateLocationTrackProperties", "locationTrack" to locationTrack)
 
         putWithoutResponseBody(LOCATION_TRACK_PATH, locationTrack)
     }
 
     fun deleteLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, km: KmNumber?) {
+        if (km == null) {
+            println("RATKO MSG: Geoviite poistaa Ratkosta sijaintiraiteen kaikki pisteet.")
+        } else {
+            println("RATKO MSG: Geoviite poistaa Ratkosta sijaintiraiteen pisteet kilometriltä \"$km\".")
+        }
         logger.integrationCall("deleteLocationTrackPoints", "locationTrackOid" to locationTrackOid, "km" to km)
 
         deletePoints(combinePaths(LOCATION_TRACK_POINTS_PATH, locationTrackOid, km))
     }
 
     fun deleteRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, km: KmNumber?) {
+        if (km == null) {
+            println("RATKO MSG: Geoviite poistaa Ratkosta pituusmittauslinjan kaikki pisteet.")
+        } else {
+            println("RATKO MSG: Geoviite poistaa Ratkosta pituusmittauslinjan pisteet kilometriltä \"$km\".")
+        }
         logger.integrationCall("deleteRouteNumberPoints", "routeNumberOid" to routeNumberOid, "km" to km)
 
         deletePoints(combinePaths(ROUTE_NUMBER_POINTS_PATH, routeNumberOid, km))
     }
 
     fun updateRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, points: List<RatkoPoint>) {
+        println(
+            "RATKO MSG: Geoviite päivittää Ratkoon pituusmittauslinjan pisteet rataosoitevälille ${points.first().kmM} - ${points.last().kmM}."
+        )
+
         logger.integrationCall(
             "updateRouteNumberPoints",
             "routeNumberOid" to routeNumberOid,
@@ -156,6 +172,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun createRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, points: List<RatkoPoint>) {
+        println(
+            "RATKO MSG: Geoviite lisää Ratkon pituusmittauslinjalle pisteet rataosoitevälille ${points.first().kmM} - ${points.last().kmM}."
+        )
+
         logger.integrationCall(
             "createRouteNumberPoints",
             "routeNumberOid" to routeNumberOid,
@@ -178,6 +198,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun updateLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, points: List<RatkoPoint>) {
+        println(
+            "RATKO MSG: Geoviite päivittää Ratkoon sijaintiraiteen pisteet rataosoitevälille ${points.first().kmM} - ${points.last().kmM}."
+        )
+
         logger.integrationCall(
             "updateLocationTrackPoints",
             "locationTrackOid" to locationTrackOid,
@@ -197,6 +221,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun createLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, points: List<RatkoPoint>) {
+        println(
+            "RATKO MSG: Geoviite lisää Ratkon sijaintiraiteelle pisteet rataosoitevälille ${points.first().kmM} - ${points.last().kmM}."
+        )
+
         logger.integrationCall(
             "createLocationTrackPoints",
             "locationTrackOid" to locationTrackOid,
@@ -219,6 +247,12 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun forceRatkoToRedrawLocationTrack(locationTrackOids: Set<RatkoOid<RatkoLocationTrack>>) {
+        if (locationTrackOids.size == 1) {
+            println("RATKO MSG: Geoviite pytää M-arvojen laskennan Ratkon sijaintiraiteelle.")
+        } else {
+            println("RATKO MSG: Geoviite pytää M-arvojen laskennan Ratkon sijaintiraiteille.")
+        }
+
         logger.integrationCall("updateLocationTrackGeometryMValues", "locationTrackOids" to locationTrackOids)
 
         patchSpec(combinePaths(LOCATION_TRACK_PATH, "geom"), locationTrackOids.map { it.id })
@@ -227,12 +261,14 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun newLocationTrack(locationTrack: RatkoLocationTrack): RatkoOid<RatkoLocationTrack>? {
+        println("RATKO MSG: Geoviite lisää Ratkoon sijaintiraiteen.")
         logger.integrationCall("newLocationTrack", "locationTrack" to locationTrack)
 
         return postWithResponseBody(LOCATION_TRACK_PATH, locationTrack)
     }
 
     fun <T : RatkoAsset> newAsset(asset: RatkoAsset): RatkoOid<T>? {
+        println("RATKO MSG: Geoviite lisää Ratkoon vaihteen. / Geoviite lisää Ratkoon päivitetyn osuuden metatiedot.")
         logger.integrationCall("newAsset", "asset" to asset)
 
         return postWithResponseBody<String>(ASSET_PATH, asset.withoutGeometries())
@@ -241,6 +277,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun <T : RatkoAsset> replaceAssetLocations(assetOid: RatkoOid<T>, locations: List<RatkoAssetLocation>) {
+        println("RATKO MSG: Geoviite päivittää Ratkoon vaihteen sijainnin raiteilla (locations).")
         logger.integrationCall("replaceAssetLocations", "assetOid" to assetOid, "locations" to locations)
 
         putWithoutResponseBody(
@@ -251,12 +288,14 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun <T : RatkoAsset> replaceAssetGeoms(assetOid: RatkoOid<T>, geoms: Collection<RatkoAssetGeometry>) {
+        println("RATKO MSG: Geoviite päivittää Ratkoon vaihteen pisteiden sijainnit (geometria).")
         logger.integrationCall("replaceAssetGeoms", "assetOid" to assetOid, "geoms" to geoms)
 
         putWithoutResponseBody(combinePaths(ASSET_PATH, assetOid, "geoms"), geoms, RatkoPushErrorType.GEOMETRY)
     }
 
     fun <T : RatkoAsset> getSwitchAsset(assetOid: RatkoOid<T>): RatkoSwitchAsset? {
+        println("RATKO MSG: Geoviite hakee Ratkosta vaihteen tiedot.")
         logger.integrationCall("getSwitchAsset", "assetOid" to assetOid)
 
         return getSpec(combinePaths(ASSET_PATH, assetOid))
@@ -280,6 +319,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun <T : RatkoAsset> updateAssetState(assetOid: RatkoOid<T>, state: RatkoAssetState) {
+        println("RATKO MSG: Geoviite päivittää Ratkoon vaihteen tilan.")
+
         logger.integrationCall("updateAssetState", "assetOid" to assetOid, "state" to state)
 
         val responseJson =
@@ -344,6 +385,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun <T : RatkoAsset> updateAssetProperties(assetOid: RatkoOid<T>, properties: Collection<RatkoAssetProperty>) {
+        println("RATKO MSG: Geoviite päivittää Ratkoon vaihteen ominaisuustiedot.")
+
         logger.integrationCall("updateAssetProperties", "assetOid" to assetOid, "properties" to properties)
 
         putWithoutResponseBody(combinePaths(ASSET_PATH, assetOid, "properties"), properties)
@@ -384,6 +427,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun getRouteNumber(routeNumberOid: RatkoOid<RatkoRouteNumber>): RatkoRouteNumber? {
+        println("RATKO MSG: Geoviite hakee Ratkosta ratanumeron tiedot.")
+
         logger.integrationCall("getRouteNumber", "routeNumberOid" to routeNumberOid)
 
         return getSpec(combinePaths(ROUTE_NUMBER_LOCATIONS_PATH, routeNumberOid))
@@ -403,12 +448,16 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun newRouteNumber(routeNumber: RatkoRouteNumber): RatkoOid<RatkoRouteNumber>? {
+        println("RATKO MSG: Geoviite lisää Ratkoon uuden ratanumeron.")
+
         logger.integrationCall("newRouteNumber", "routeNumber" to routeNumber)
 
         return postWithResponseBody(ROUTE_NUMBER_PATH, routeNumber)
     }
 
     fun forceRatkoToRedrawRouteNumber(routeNumberOids: Set<RatkoOid<RatkoRouteNumber>>) {
+        println("RATKO MSG: Geoviite pytää M-arvojen laskennan Ratkon pituusmittauslinjalle.")
+
         logger.integrationCall("updateRouteNumberGeometryMValues", "routeNumberOids" to routeNumberOids)
 
         patchSpec(combinePaths(ROUTE_NUMBER_PATH, "geom"), routeNumberOids.map { it.id })
@@ -417,6 +466,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun updateRouteNumber(routeNumber: RatkoRouteNumber) {
+        println("RATKO MSG: Geoviite päivittää Ratkoon ratanumeron ominaisuustiedot.")
+
         logger.integrationCall("updateRouteNumber", "routeNumber" to routeNumber)
 
         putWithoutResponseBody(ROUTE_NUMBER_PATH, routeNumber)

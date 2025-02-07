@@ -129,6 +129,8 @@ constructor(
                     manageRatkoBulkTransfers(layoutBranch)
                 }
             }
+
+            println("RATKO MSG: Päivitys valmis")
         }
     }
 
