@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -512,18 +511,34 @@ class LayoutSwitchDao(
         topologyJointNumber: JointNumber,
         moment: Instant,
     ): List<LocationTrackIdentifiers> {
-        assertMainBranch(layoutBranch)
         val sql =
             """ 
-            select distinct
+            select
               location_track.id,
               location_track.design_id,
               location_track.draft,
               location_track.version,
               location_track_external_id.external_id
             from (select * from layout.location_track_version lt
-                  where lt.layout_context_id = 'main_official'
+                  where not lt.draft
+                    and not lt.deleted
+                    and (lt.design_id is null or lt.design_id = :design_id::int)
                     and change_time <= :moment
+                    and not (:design_id::int is not null
+                             and lt.design_id is null
+                             and exists (select * from layout.location_track_version overrider_lt
+                                         where overrider_lt.id = lt.id
+                                           and not overrider_lt.draft
+                                           and not overrider_lt.deleted
+                                           and overrider_lt.design_id = :design_id
+                                           and overrider_lt.change_time <= :moment
+                                           and not exists (select * from layout.location_track_version overrider_deletion
+                                                           where overrider_deletion.id = lt.id
+                                                             and overrider_deletion.layout_context_id = overrider_lt.layout_context_id
+                                                             and overrider_deletion.version > overrider_lt.version
+                                                             and overrider_deletion.deleted
+                                                             and overrider_deletion.change_time <= :moment))
+                             )
                     and not exists (select * from layout.location_track_version future_lt
                                     where future_lt.id = lt.id
                                       and future_lt.layout_context_id = lt.layout_context_id
@@ -548,6 +563,7 @@ class LayoutSwitchDao(
 
         val params =
             mapOf(
+                "design_id" to layoutBranch.designId?.intValue,
                 "switch_id" to switchId.intValue,
                 "topology_joint_number" to topologyJointNumber.intValue,
                 "moment" to Timestamp.from(moment),

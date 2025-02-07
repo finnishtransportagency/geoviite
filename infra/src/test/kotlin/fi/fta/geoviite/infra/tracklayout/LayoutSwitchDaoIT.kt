@@ -265,6 +265,45 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
         assertEquals(setOf(lt1o1.id, lt2o1.id, lt3o1.id), tracksLinkedAtVersionSaveTime(lt1o3))
     }
 
+    @Test
+    fun `findLocationTracksLinkedToSwitchAtMoment handles branch inheritance and deletions`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val switch = mainOfficialContext.insert(switch()).id
+        val connectedAlignment =
+            alignment(
+                segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
+            )
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+
+        fun tracksLinkedAtVersionSaveTime(version: LayoutRowVersion<LocationTrack>) =
+            switchDao
+                .findLocationTracksLinkedToSwitchAtMoment(
+                    designBranch,
+                    switch,
+                    JointNumber(123),
+                    locationTrackVersionChangeTime(version),
+                )
+                .map { it.rowVersion }
+                .toSet()
+
+        val lt1 = designOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
+        val lt1MainCopy = mainOfficialContext.copyFrom(lt1)
+        val lt2 = mainOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
+        val lt2DesignCopy = designOfficialContext.copyFrom(lt2)
+        locationTrackDao.deleteRow(lt2DesignCopy.rowId)
+        val lt3 = designOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
+        locationTrackDao.deleteRow(lt3.rowId)
+        val lt2DesignRecopy = designOfficialContext.copyFrom(lt2)
+
+        assertEquals(setOf(lt1), tracksLinkedAtVersionSaveTime(lt1))
+        assertEquals(setOf(lt1), tracksLinkedAtVersionSaveTime(lt1MainCopy))
+        assertEquals(setOf(lt1, lt2), tracksLinkedAtVersionSaveTime(lt2))
+        assertEquals(setOf(lt1, lt2DesignCopy), tracksLinkedAtVersionSaveTime(lt2DesignCopy))
+        assertEquals(setOf(lt1, lt2, lt3), tracksLinkedAtVersionSaveTime(lt3))
+        assertEquals(setOf(lt1, lt2DesignRecopy), tracksLinkedAtVersionSaveTime(lt2DesignRecopy))
+    }
+
     private fun locationTrackVersionChangeTime(version: LayoutRowVersion<LocationTrack>): Instant {
         val sql =
             """
