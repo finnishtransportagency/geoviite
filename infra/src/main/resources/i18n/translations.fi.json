@@ -809,7 +809,6 @@
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
             "cannot-shorten-deleted-track": "Poistettua raidetta ei voi lyhentää",
             "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa",
-            "no-geometry": "Raiteella ei ole geometriaa",
             "cant-edit-while-splitting": "Raiteen tietoja ei voi muokata koska sen jakaminen on kesken",
             "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa"
         },
