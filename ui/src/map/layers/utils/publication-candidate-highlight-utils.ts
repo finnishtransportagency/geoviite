@@ -76,10 +76,10 @@ export type PointRange = {
 };
 
 const UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH = 23;
-const STAGED_ALIGNMENT_HIGHLIGHT_WIDTH = 11;
+const STAGED_ALIGNMENT_HIGHLIGHT_WIDTH = 16;
 
 const UNSTAGED_POINT_FEATURE_RADIUS = 25;
-const STAGED_POINT_FEATURE_RADIUS = 18;
+const STAGED_POINT_FEATURE_RADIUS = 20;
 
 const HIGHEST_HIGHLIGHT_Z_INDEX = 15;
 
@@ -367,7 +367,7 @@ export const createBaseLocationTrackFeatures = (
         showEndPointTicks,
         new Style({
             stroke: new Stroke({
-                color: mapStyles.alignmentPreviewOfficialLine,
+                color: '#de3618', //mapStyles.alignmentPreviewOfficialLine,
                 width: LOCATION_TRACK_ALIGNMENT_WIDTH,
             }),
             zIndex: DELETED_LOCATION_TRACK_Z_INDEX,
