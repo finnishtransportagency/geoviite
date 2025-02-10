@@ -351,7 +351,7 @@ interface ILayoutNodeContent {
     val startingTrackId: IntId<LocationTrack>?
         get() = null
 
-    val endingTrack: IntId<LocationTrack>?
+    val endingTrackId: IntId<LocationTrack>?
         get() = null
 
     val nodeType: LayoutNodeType
@@ -386,26 +386,24 @@ interface ILayoutNodeContent {
         }
 }
 
-sealed class LayoutNodeContent : ILayoutNodeContent
-
-data class LayoutNodeTemp(override val nodeType: LayoutNodeType) : LayoutNodeContent() {
-    @get:JsonIgnore override val contentHash: Int by lazy { error("Node content is not defined: type=$nodeType") }
+sealed class LayoutNodeContent : ILayoutNodeContent {
+    @get:JsonIgnore
+    override val contentHash: Int by lazy { Objects.hash(switchIn, switchOut, startingTrackId, endingTrackId) }
 }
+
+data class LayoutNodeTemp(override val nodeType: LayoutNodeType) : LayoutNodeContent()
 
 data class LayoutNodeStartTrack(override val startingTrackId: IntId<LocationTrack>) : LayoutNodeContent() {
     override val nodeType: LayoutNodeType = TRACK_START
-    @get:JsonIgnore override val contentHash: Int by lazy { hashCode() }
 }
 
-data class LayoutNodeEndTrack(override val endingTrack: IntId<LocationTrack>) : LayoutNodeContent() {
+data class LayoutNodeEndTrack(override val endingTrackId: IntId<LocationTrack>) : LayoutNodeContent() {
     override val nodeType: LayoutNodeType = TRACK_END
-    @get:JsonIgnore override val contentHash: Int by lazy { hashCode() }
 }
 
 data class LayoutNodeSwitch(override val switchIn: SwitchLink?, override val switchOut: SwitchLink?) :
     LayoutNodeContent() {
     override val nodeType: LayoutNodeType = LayoutNodeType.SWITCH
-    @get:JsonIgnore override val contentHash: Int by lazy { hashCode() }
 
     init {
         require(switchIn != null || switchOut != null) { "A switch node must have at least one switch" }

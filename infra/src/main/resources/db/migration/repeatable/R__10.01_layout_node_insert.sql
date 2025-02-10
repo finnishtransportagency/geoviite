@@ -1,4 +1,5 @@
-create or replace function layout.get_or_insert_node(
+drop function if exists layout.get_or_insert_node;
+create function layout.get_or_insert_node(
   switch_in int,
   switch_in_joint_number int,
   switch_in_joint_role int,
@@ -10,7 +11,7 @@ create or replace function layout.get_or_insert_node(
 ) returns int as
 $$
 declare
-  new_key         uuid := (
+  new_hash         uuid := (
     select layout.calculate_node_hash(
         switch_in,
         switch_in_joint_number,
@@ -28,7 +29,7 @@ begin
   -- Try inserting node: if it already exists, the key will conflict
   insert into layout.node
     (
-      key,
+      hash,
       switch_in_id,
       switch_in_joint_number,
       switch_in_joint_role,
@@ -40,7 +41,7 @@ begin
     )
     values
       (
-        key,
+        new_hash,
         switch_in,
         switch_in_joint_number,
         switch_in_joint_role,
@@ -50,14 +51,14 @@ begin
         start_track,
         end_track
       )
-  on conflict (key) do nothing
+  on conflict (hash) do nothing
     returning id into result_id;
 
   -- If the row was inserted (no conflict) then the id is not null
   if result_id is not null then
     return result_id;
   else -- Insert yielded nothing, so the node already exists
-    select id from layout.node where key = new_key into result_id;
+    select id from layout.node where hash = new_hash into result_id;
     return result_id;
   end if;
 end;

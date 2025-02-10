@@ -1,4 +1,5 @@
-create or replace function layout.get_or_insert_edge(
+drop function if exists layout.get_or_insert_edge;
+create function layout.get_or_insert_edge(
   start_node_id int,
   end_node_id int,
   geometry_alignment_ids int[],
@@ -15,7 +16,8 @@ declare
   declare edge_length decimal(13, 6);
   declare result_id int;
 begin
-  create temporary table segments as
+  drop table if exists segment_tmp;
+  create temporary table segment_tmp as
     select
       tmp.*,
       layout.calculate_segment_hash(
@@ -40,10 +42,10 @@ begin
         left join layout.segment_geometry sg on tmp.geometry_id = sg.id;
 
   select into edge_hash, edge_bbox, edge_length
-    layout.calculate_edge_hash(start_node_id, end_node_id, array_agg(hash)),
-    postgis.st_extent(bounding_box),
-    sum(length)
-    from segments;
+    layout.calculate_edge_hash(start_node_id, end_node_id, array_agg(segment_tmp.hash)),
+    postgis.st_extent(segment_tmp.bounding_box),
+    sum(segment_tmp.length)
+    from segment_tmp;
 
   -- Try inserting edge: if it already exists, the hash will conflict
   insert into layout.edge(start_node_id, end_node_id, bounding_box, segment_count, length, hash)
@@ -71,10 +73,12 @@ begin
       source_start,
       source,
       geometry_id
-    from segments;
+    from segment_tmp;
+    drop table segment_tmp;
     return result_id;
   else -- Insert yielded nothing, so the edge already exists
     select id from layout.edge where hash = edge_hash into result_id;
+    drop table segment_tmp;
     return result_id;
   end if;
 end;

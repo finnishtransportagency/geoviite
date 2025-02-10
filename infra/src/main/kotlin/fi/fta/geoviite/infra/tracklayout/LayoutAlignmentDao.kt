@@ -158,7 +158,7 @@ class LayoutAlignmentDao(
                 "switch_out_joint_number" to content.switchOut?.jointNumber?.intValue,
                 "switch_out_joint_role" to content.switchOut?.jointRole?.name,
                 "start_track_id" to content.startingTrackId?.intValue,
-                "end_track_id" to content.endingTrack?.intValue,
+                "end_track_id" to content.endingTrackId?.intValue,
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutNode>("id") }.single()
     }

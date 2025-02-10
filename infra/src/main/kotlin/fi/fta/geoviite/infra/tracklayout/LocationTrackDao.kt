@@ -28,12 +28,12 @@ import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersionOrNull
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -403,7 +403,10 @@ class LocationTrackDao(
         //                }
         //            else -> alignmentDao.saveLocationTrackGeometry(response, geometry)
         //        }
+        logger.info("Writing: ${geometry.withLocationTrackId(response.id).nodes}")
         alignmentDao.saveLocationTrackGeometry(response, geometry.withLocationTrackId(response.id))
+        // TODO: GVT-2915 this is unnecessary but makes the transaction fail if the write was unreadable
+        alignmentDao.fetch(response)
         return response
     }
 
