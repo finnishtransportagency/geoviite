@@ -55,8 +55,8 @@ type SplitProps = CommonProps & {
     nameIssues: FieldValidationIssue<SplitTargetCandidate>[];
     descriptionIssues: FieldValidationIssue<SplitTargetCandidate>[];
     switchIssues: FieldValidationIssue<SplitTargetCandidate>[];
-    nameRef: React.RefObject<HTMLInputElement>;
-    descriptionBaseRef: React.RefObject<HTMLInputElement>;
+    nameRef: React.RefObject<HTMLInputElement | null>;
+    descriptionBaseRef: React.RefObject<HTMLInputElement | null>;
     deletingDisabled: boolean;
     allDuplicateLocationTracks: SplitDuplicateTrack[];
     duplicateLocationTrack: LayoutLocationTrack | undefined;

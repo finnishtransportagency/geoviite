@@ -53,7 +53,7 @@ const parseRatkoConnectionError = (
     );
 };
 
-const parseRatkoOfflineStatus = (ratkoStatus: number | undefined): JSX.Element => {
+const parseRatkoOfflineStatus = (ratkoStatus: number | undefined): React.JSX.Element => {
     if (ratkoStatus === undefined) {
         return parseRatkoConnectionError(
             'connection-error-without-status-code',

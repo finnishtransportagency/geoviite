@@ -415,6 +415,7 @@ class LocationTrackDao(
         bbox: BoundingBox,
         includeDeleted: Boolean = false,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
+        minLength: Double? = null,
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
@@ -427,6 +428,7 @@ class LocationTrackDao(
                   select *
                     from layout.alignment
                     where location_track.alignment_id = alignment.id
+                      and (:min_length::numeric is null or alignment.length>=:min_length)
                       and location_track.alignment_version = alignment.version
                       and postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
                                                 alignment.bounding_box)
@@ -456,6 +458,7 @@ class LocationTrackDao(
                 "design_id" to context.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
                 "track_number_id" to trackNumberId?.intValue,
+                "min_length" to minLength,
             )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->

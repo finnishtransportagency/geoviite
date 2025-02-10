@@ -19,6 +19,7 @@ import {
     getErrors,
     initialTrackNumberEditState,
     reducer,
+    TrackNumberEditState,
     TrackNumberSaveRequest,
 } from './track-number-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
@@ -41,6 +42,7 @@ import { ChangesBeingReverted } from 'preview/preview-view';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { UnknownAction } from 'redux';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -106,7 +108,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
 }: TrackNumberEditDialogProps) => {
     const { t } = useTranslation();
 
-    const [state, dispatcher] = React.useReducer(
+    const [state, dispatcher] = React.useReducer<TrackNumberEditState, [action: UnknownAction]>(
         reducer,
         initialTrackNumberEditState(inEditTrackNumber, inEditReferenceLine, trackNumbers),
     );

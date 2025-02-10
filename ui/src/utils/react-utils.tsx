@@ -290,9 +290,9 @@ export function useRateLimitedEffect(
     waitBetweenCalls: number,
     deps?: DependencyList,
 ): void {
-    const lastFireTime = useRef<number>();
-    const nextWakeup = useRef<ReturnType<typeof setTimeout>>();
-    const lastDestructor = useRef<void | (() => void)>();
+    const lastFireTime = useRef<number>(undefined);
+    const nextWakeup = useRef<ReturnType<typeof setTimeout>>(undefined);
+    const lastDestructor = useRef<void | (() => void)>(undefined);
 
     useEffect(() => {
         // always reset the next wakeup: If we are firing the effect, then we don't want to keep the wakeup around,

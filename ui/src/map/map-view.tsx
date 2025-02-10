@@ -37,7 +37,6 @@ import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
 import { createClassName } from 'vayla-design-lib/utils';
 import { ChangeTimes } from 'common/common-slice';
 import { createTrackNumberDiagramLayer } from 'map/layers/highlight/track-number-diagram-layer';
-import useResizeObserver from 'use-resize-observer';
 import { createGeometryAlignmentLayer } from 'map/layers/geometry/geometry-alignment-layer';
 import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-layer';
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
@@ -54,7 +53,10 @@ import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { filterNotEmpty, first, objectEntries } from 'utils/array-utils';
-import { ALL_ALIGNMENTS, mapLayerZIndexes } from 'map/layers/utils/layer-visibility-limits';
+import {
+    mapLayerZIndexes,
+    REFERENCE_LINE_AUTO_HIDE_MAX_RESOLUTION,
+} from 'map/layers/utils/layer-visibility-limits';
 import { createLocationTrackAlignmentLayer } from 'map/layers/alignment/location-track-alignment-layer';
 import { createReferenceLineAlignmentLayer } from 'map/layers/alignment/reference-line-alignment-layer';
 import { createLocationTrackBackgroundLayer } from 'map/layers/alignment/location-track-background-layer';
@@ -85,6 +87,7 @@ import { createPublicationCandidateLayer } from 'map/layers/preview/publication-
 import { PublicationCandidate } from 'publication/publication-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
+import { useResizeObserver } from 'utils/use-resize-observer';
 
 declare global {
     interface Window {
@@ -339,7 +342,7 @@ const MapView: React.FC<MapViewProps> = ({
 
         const hideReferenceLinesWhenZoomedClose =
             referenceLineHideWhenZoomedCloseSetting(mapLayerMenuGroups) &&
-            resolution <= ALL_ALIGNMENTS;
+            resolution <= REFERENCE_LINE_AUTO_HIDE_MAX_RESOLUTION;
 
         // Create OpenLayers objects by domain layers
         const updatedLayers = map.visibleLayers
@@ -363,7 +366,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as GeoviiteMapLayer<LineString>,
                             changeTimes,
                             layoutContext,
-                            resolution,
                             map.layerSettings['track-number-diagram-layer'],
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -459,8 +461,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as GeoviiteMapLayer<LineString>,
                             layoutContext,
                             changeTimes,
-                            resolution,
-                            selection,
                             !!splittingState,
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -758,14 +758,17 @@ const MapView: React.FC<MapViewProps> = ({
         <div className={mapClassNames} style={cssProperties}>
             {mapTools && (
                 <ol className="map__map-tools">
-                    {mapTools.map((tool) => (
-                        <React.Fragment key={tool.id}>
-                            {tool.component({
-                                isActive: activeTool === tool,
-                                setActiveTool: setActiveTool,
-                            })}
-                        </React.Fragment>
-                    ))}
+                    {mapTools.map((tool) => {
+                        const ToolComponent = tool.component;
+
+                        return (
+                            <ToolComponent
+                                key={tool.id}
+                                isActive={activeTool === tool}
+                                setActiveTool={setActiveTool}
+                            />
+                        );
+                    })}
                 </ol>
             )}
             <div
