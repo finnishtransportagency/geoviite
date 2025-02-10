@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styles from './button.scss';
-import { IconColor, IconComponent, IconSize } from 'vayla-design-lib/icon/Icon';
+import { IconColor, IconComponent, IconProps, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 
 /**
@@ -33,6 +33,7 @@ export type ButtonProps = {
     variant?: ButtonVariant;
     size?: ButtonSize;
     icon?: IconComponent;
+    iconProps?: IconProps;
     iconPosition?: ButtonIconPosition;
     isProcessing?: boolean;
     children?: React.ReactNode;
@@ -49,6 +50,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
         id,
         variant = ButtonVariant.PRIMARY,
         icon: Icon,
+        iconProps,
         iconPosition = ButtonIconPosition.START,
         size,
         isProcessing = false,
@@ -84,7 +86,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
                 {isProcessing && <div className={styles['button__animation']} />}
                 {Icon && (
                     <span className={styles['button__icon']}>
-                        <Icon size={IconSize.SMALL} color={IconColor.INHERIT} />
+                        <Icon size={IconSize.SMALL} color={IconColor.INHERIT} {...iconProps} />
                     </span>
                 )}
             </span>

@@ -7,7 +7,7 @@ import {
 } from 'map/map-model';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import styles from './map-layer-menu.scss';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
 import { EnvRestricted } from 'environment/env-restricted';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
@@ -151,17 +151,15 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
         <React.Fragment>
             <div ref={buttonRef}>
                 <Button
+                    className={styles['map-layers-button']}
+                    qa-id="map-layers-button"
+                    title={t('map-layer-menu.title')}
                     variant={ButtonVariant.GHOST}
                     size={ButtonSize.BY_CONTENT}
+                    icon={Icons.Layers}
+                    iconProps={{ size: IconSize.INHERIT, extraClassName: 'map-layers-button-icon' }}
                     onClick={() => setShowMapLayerMenu(!showMapLayerMenu)}
-                    qa-id="map-layers-button"
-                    title={t('map-layer-menu.title')}>
-                    <div className={styles['map-layer-button-content']}>
-                        <div className={styles['map-layer-button-content__icon']}>
-                            <Icons.Layers color={IconColor.INHERIT} size={IconSize.INHERIT} />
-                        </div>
-                    </div>
-                </Button>
+                />
             </div>
             {showMapLayerMenu && (
                 <CloseableModal
