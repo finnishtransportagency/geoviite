@@ -856,7 +856,7 @@ constructor(
                 .trimIndent()
         val params =
             mapOf(
-                "sources" to (sources.ifEmpty { PlanSource.values().toList() }).map(PlanSource::name),
+                "sources" to (sources.ifEmpty { PlanSource.entries }).map(PlanSource::name),
                 "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
                 "map_srid" to LAYOUT_SRID.code,
             )

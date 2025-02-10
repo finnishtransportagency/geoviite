@@ -101,7 +101,7 @@ private fun parseCurveRadius(curveRadiusList: String): List<Int> {
 }
 
 private fun findFinnishSwitchTypeHand(abbreviation: String): SwitchHand {
-    return SwitchHand.values().find { hand -> hand.abbreviation == abbreviation } ?: SwitchHand.NONE
+    return SwitchHand.entries.find { hand -> hand.abbreviation == abbreviation } ?: SwitchHand.NONE
 }
 
 private fun findSwedishSwitchTypeHand(abbreviation: String): SwitchHand =

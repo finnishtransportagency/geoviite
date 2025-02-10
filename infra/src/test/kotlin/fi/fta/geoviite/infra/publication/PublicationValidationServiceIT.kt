@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
-import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
@@ -130,7 +129,7 @@ constructor(
 
     @Test
     fun `Validating official switch should work`() {
-        val switchId = switchDao.save(switch(draft = false, stateCategory = EXISTING)).id
+        val switchId = switchDao.save(switch(draft = false, stateCategory = LayoutStateCategory.EXISTING)).id
 
         val validation =
             publicationValidationService.validateSwitches(

@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
-val maxFileSize: Int = 100 * 1024 * 1024
+const val maxFileSize: Int = 100 * 1024 * 1024
 
 class PVWebClient(val client: WebClient) : WebClient by client
 

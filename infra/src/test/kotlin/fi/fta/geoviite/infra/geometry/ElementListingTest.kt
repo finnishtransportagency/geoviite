@@ -29,13 +29,13 @@ import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.util.FileName
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Test
 
-private val allElementTypes = GeometryElementType.values().toList()
-private val allTrackElementTypes = TrackGeometryElementType.values().toList()
+private val allElementTypes = GeometryElementType.entries
+private val allTrackElementTypes = TrackGeometryElementType.entries
 private val getTransformation = { srid: Srid -> geotoolsTransformation(srid, LAYOUT_SRID) }
 
 class ElementListingTest {

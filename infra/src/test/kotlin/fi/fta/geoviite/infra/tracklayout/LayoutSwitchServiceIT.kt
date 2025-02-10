@@ -17,7 +17,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
 import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -57,7 +56,7 @@ constructor(
 
     @Test
     fun whenAddingSwitchShouldReturnIt() {
-        val switch = switch(draft = false, stateCategory = EXISTING)
+        val switch = switch(draft = false, stateCategory = LayoutStateCategory.EXISTING)
         val id = switchDao.save(switch).id
 
         val fetched = switchService.get(MainLayoutContext.official, id)!!
@@ -67,7 +66,7 @@ constructor(
 
     @Test
     fun someSwitchesAreReturnedEvenWithoutParameters() {
-        switchDao.save(switch(draft = false, stateCategory = EXISTING))
+        switchDao.save(switch(draft = false, stateCategory = LayoutStateCategory.EXISTING))
         assertTrue(switchService.list(MainLayoutContext.official).isNotEmpty())
     }
 
@@ -81,7 +80,7 @@ constructor(
                         switchJoint(5, Point(428412.6499928745, 7210278.867815434)),
                     ),
                 draft = false,
-                stateCategory = EXISTING,
+                stateCategory = LayoutStateCategory.EXISTING,
             )
         val id = switchDao.save(switch).id
 
@@ -115,7 +114,7 @@ constructor(
     @Test
     fun switchIsReturnedByName() {
         val name = testDBService.getUnusedSwitchName()
-        val switch = switch(name = name.toString(), draft = false, stateCategory = EXISTING)
+        val switch = switch(name = name.toString(), draft = false, stateCategory = LayoutStateCategory.EXISTING)
 
         val id = switchDao.save(switch).id
 
@@ -187,7 +186,7 @@ constructor(
                 .insert(
                     switch(
                         name = testDBService.getUnusedSwitchName().toString(),
-                        stateCategory = EXISTING,
+                        stateCategory = LayoutStateCategory.EXISTING,
                         joints = listOf(),
                     )
                 )
@@ -232,7 +231,7 @@ constructor(
                 .insert(
                     switch(
                         name = testDBService.getUnusedSwitchName().toString(),
-                        stateCategory = EXISTING,
+                        stateCategory = LayoutStateCategory.EXISTING,
                         joints =
                             listOf(
                                 LayoutSwitchJoint(
@@ -265,7 +264,8 @@ constructor(
 
     @Test
     fun switchIsReturnedBySwitchType() {
-        val switch = switchDao.fetch(switchDao.save(switch(draft = false, stateCategory = EXISTING)))
+        val switch =
+            switchDao.fetch(switchDao.save(switch(draft = false, stateCategory = LayoutStateCategory.EXISTING)))
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
         val typeName = structure.type.typeName
 
@@ -442,7 +442,7 @@ constructor(
             LayoutSwitchSaveRequest(
                 SwitchName("XYZ-987"),
                 IntId(5),
-                EXISTING,
+                LayoutStateCategory.EXISTING,
                 ownerId = IntId(3),
                 trapPoint = null,
                 draftOid = null,

@@ -400,7 +400,7 @@ class LocationTrackDao(
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
-                "names" to names.map { name -> name.toString().lowercase() }.joinToString(","),
+                "names" to names.joinToString(",") { name -> name.toString().lowercase() },
             )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getLayoutRowVersion("id", "design_id", "draft", "version")

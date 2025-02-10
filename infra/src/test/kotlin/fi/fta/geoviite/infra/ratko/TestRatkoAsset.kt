@@ -96,7 +96,7 @@ fun ratkoLocationTrack(
         duplicateOf,
         topologicalConnectivityType,
         planItemIds = planItemIds,
-        isPlanContext = planItemIds != null && !planItemIds.isEmpty(),
+        isPlanContext = !planItemIds.isNullOrEmpty(),
     )
 
 fun ratkoSwitch(
@@ -114,5 +114,5 @@ fun ratkoSwitch(
         locations = locations,
         assetGeoms = assetGeoms,
         planItemIds = planItemIds,
-        isPlanContext = planItemIds != null && !planItemIds.isEmpty(),
+        isPlanContext = !planItemIds.isNullOrEmpty(),
     )

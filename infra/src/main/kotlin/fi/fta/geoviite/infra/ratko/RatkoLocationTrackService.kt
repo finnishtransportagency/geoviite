@@ -165,7 +165,7 @@ constructor(
                 }
 
             val midPoints = (addresses.midPoints + switchPoints).sortedBy { p -> p.address }
-            createLocationTrackPoints(RatkoOid<RatkoLocationTrack>(locationTrackExternalId.oid.toString()), midPoints)
+            createLocationTrackPoints(RatkoOid(locationTrackExternalId.oid.toString()), midPoints)
             if (branch is MainBranch) {
                 val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
                 createLocationTrackMetadata(

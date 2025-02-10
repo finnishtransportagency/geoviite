@@ -516,7 +516,7 @@ fun xmlCoordinateToPoint(name: String, xmlCoordinate: String): Point {
 }
 
 fun switchTypeHand(switchHand: String): SwitchHand {
-    return SwitchHand.values().find { h -> h.name.startsWith(switchHand.uppercase()) }
+    return SwitchHand.entries.find { h -> h.name.startsWith(switchHand.uppercase()) }
         ?: throw InputValidationException(
             message = "Can't recognize switch hand type from value: ${formatForException(switchHand)}",
             type = SwitchHand::class,

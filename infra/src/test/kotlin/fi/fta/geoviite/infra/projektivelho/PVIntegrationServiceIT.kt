@@ -56,12 +56,12 @@ constructor(
     fun `Dictionary update works`(): Unit =
         fakeProjektiVelho().use { fakeProjektiVelho ->
             fakeProjektiVelho.login()
-            PVDictionaryType.values().forEach { type -> assertEquals(mapOf(), pvDao.fetchDictionary(type)) }
+            PVDictionaryType.entries.forEach { type -> assertEquals(mapOf(), pvDao.fetchDictionary(type)) }
 
             fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries)
             fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries)
             pvIntegrationService.updateDictionaries()
-            PVDictionaryType.values().forEach { type ->
+            PVDictionaryType.entries.forEach { type ->
                 assertEquals(
                     (materialDictionaries + projectDictionaries)[type]!!
                         .map { e -> e.code to PVDictionaryName(e.name) }
@@ -115,7 +115,7 @@ constructor(
             fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries2)
             fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries2)
             pvIntegrationService.updateDictionaries()
-            PVDictionaryType.values().forEach { type ->
+            PVDictionaryType.entries.forEach { type ->
                 assertEquals(
                     (materialDictionaries2 + projectDictionaries2)[type]!!
                         .map { e -> e.code to PVDictionaryName(e.name) }
