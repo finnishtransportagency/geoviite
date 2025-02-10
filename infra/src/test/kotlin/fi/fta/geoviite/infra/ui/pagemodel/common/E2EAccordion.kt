@@ -32,7 +32,7 @@ open class E2EAccordion(accordionBy: By) : E2EViewFragment(accordionBy) {
     fun open(): E2EAccordion = apply {
         logger.info("Open accordion")
         if (!childExists(By.className("accordion__body"))) {
-            clickChild(By.cssSelector(".accordion-toggle svg"))
+            clickChild(By.cssSelector(".accordion-toggle"))
             waitUntilChildVisible(By.className("accordion__body"))
         }
     }
@@ -40,7 +40,7 @@ open class E2EAccordion(accordionBy: By) : E2EViewFragment(accordionBy) {
     fun close(): E2EAccordion = apply {
         logger.info("Close accordion")
         if (childExists(By.className("accordion__body"))) {
-            clickChild(By.cssSelector(".accordion-toggle svg"))
+            clickChild(By.cssSelector(".accordion-toggle"))
             waitUntilChildInvisible(By.className("accordion__body"))
         }
     }
