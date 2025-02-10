@@ -374,9 +374,14 @@ class LayoutSwitchDao(
         """
                 .trimIndent()
 
-        val switches = jdbcTemplate.query(sql) { rs, _ -> getLayoutSwitch(rs) }.associateBy(LayoutSwitch::version)
+        val switches =
+            jdbcTemplate
+                .query(sql) { rs, _ -> getLayoutSwitch(rs) }
+                .associateBy { switch -> requireNotNull(switch.version) }
+
         logger.daoAccess(FETCH, LayoutSwitch::class, switches.keys)
         cache.putAll(switches)
+
         return switches.size
     }
 

@@ -8,6 +8,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
 import org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED
 import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR
 import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "32.2"
@@ -73,7 +74,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:6.2.1")
     implementation("org.flywaydb:flyway-core:11.3.1")
     implementation("org.flywaydb:flyway-database-postgresql:11.3.1")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.2.0")
     implementation("org.geotools:gt-main:$geotoolsVersion") {
         // Excluded as the license (JDL or JRL) compatibility is unconfirmed. We don't need this.
         exclude("javax.media", "jai_core")
@@ -122,9 +123,9 @@ licenseReport {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions {
+    compilerOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict", "-Xconsistent-data-class-copy-visibility")
-        jvmTarget = "17"
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
