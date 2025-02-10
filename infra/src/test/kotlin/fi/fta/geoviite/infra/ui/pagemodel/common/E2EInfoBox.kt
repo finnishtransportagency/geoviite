@@ -16,7 +16,9 @@ abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
     protected fun getEnumValueForField(fieldQaId: String): String {
         logger.info("Get enum value for field $fieldQaId")
 
-        return childElement(ByChained(getValueBy(fieldQaId), By.tagName("span"))).getAttribute("qa-id")
+        return childElement(ByChained(getValueBy(fieldQaId), By.tagName("span"))).getAttribute("qa-id").let { value ->
+            checkNotNull(value) { "could not find value for fieldQaId=$fieldQaId" }
+        }
     }
 
     protected fun getValueForField(fieldQaId: String): String {
