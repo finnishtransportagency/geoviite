@@ -10,19 +10,27 @@ import { ShowMoreButton } from 'show-more-button/show-more-button';
 import { MAP_POINT_CLOSEUP_BBOX_OFFSET } from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
-const formatJointTrackMeter = (
-    jointTrackMeter: SwitchJointTrackMeter,
-    addressPlaceHolder: string,
-) => {
+type JointTrackMeterProps = {
+    jointTrackMeter: SwitchJointTrackMeter;
+    addressPlaceHolder: string;
+};
+
+const JointTrackMeter: React.FC<JointTrackMeterProps> = ({
+    jointTrackMeter,
+    addressPlaceHolder,
+}) => {
+    const { t } = useTranslation();
     return (
         <span>
-            {jointTrackMeter.trackMeter && (
+            {jointTrackMeter.trackMeter ? (
                 <NavigableTrackMeter
                     trackMeter={jointTrackMeter.trackMeter}
                     location={jointTrackMeter.location}
                     mapNavigationBboxOffset={MAP_POINT_CLOSEUP_BBOX_OFFSET}
                     placeholder={addressPlaceHolder}
                 />
+            ) : (
+                t('tool-panel.switch.layout.no-location')
             )}
             <br />
             <LocationTrackLink
@@ -69,7 +77,10 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
                         <li
                             key={pja.locationTrackId}
                             className={styles['switch-infobox-track-meters__track-meter']}>
-                            {formatJointTrackMeter(pja, addressMissingText)}
+                            <JointTrackMeter
+                                jointTrackMeter={pja}
+                                addressPlaceHolder={addressMissingText}
+                            />
                         </li>
                     ))}
                 </ol>
@@ -91,7 +102,10 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
                                         className={
                                             styles['switch-infobox-track-meters__track-meter']
                                         }>
-                                        {formatJointTrackMeter(a, addressMissingText)}
+                                        <JointTrackMeter
+                                            jointTrackMeter={a}
+                                            addressPlaceHolder={addressMissingText}
+                                        />
                                     </li>
                                 ))}
                             </ol>

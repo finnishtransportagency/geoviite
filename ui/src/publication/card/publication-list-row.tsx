@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BulkTransferState, PublicationDetails } from 'publication/publication-model';
 import { ratkoPushFailed, ratkoPushInProgress, ratkoPushSucceeded } from 'ratko/ratko-model';
@@ -22,7 +22,7 @@ type PublicationListRowProps = {
     setSelectedPublicationId: (id: string) => void;
 };
 
-const publicationStateIcon: React.FC<PublicationDetails> = (publication) => {
+const publicationStateIcon = (publication: PublicationDetails): ReactNode => {
     if (ratkoPushSucceeded(publication.ratkoPushStatus)) {
         return (
             <span className={styles['publication-list-item--success']}>

@@ -6,8 +6,12 @@ import {
     getLocationTrackMapAlignmentsByTiles,
     LocationTrackAlignmentDataHolder,
 } from 'track-layout/layout-map-api';
-import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
-import VectorLayer from 'ol/layer/Vector';
+import {
+    createLayer,
+    GeoviiteMapLayer,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { LineString } from 'ol/geom';
 import Feature from 'ol/Feature';
 import {
@@ -131,7 +135,7 @@ const layerName: MapLayerName = 'duplicate-split-section-highlight-layer';
 
 export function createDuplicateSplitSectionHighlightLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

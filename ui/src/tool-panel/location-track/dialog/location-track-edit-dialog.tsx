@@ -23,6 +23,7 @@ import {
     canSaveLocationTrack,
     initialLocationTrackEditState,
     isProcessing,
+    LocationTrackEditState,
     reducer,
     setVaylavirastoOwnerIdFrom,
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
@@ -61,6 +62,7 @@ import { getChangeTimes } from 'common/change-time-api';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { first } from 'utils/array-utils';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { UnknownAction } from 'redux';
 
 type LocationTrackDialogContainerProps = {
     locationTrackId?: LocationTrackId;
@@ -111,7 +113,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const { t } = useTranslation();
 
     const firstInputRef = React.useRef<HTMLInputElement>(null);
-    const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
+    const [state, dispatcher] = React.useReducer<LocationTrackEditState, [action: UnknownAction]>(
+        reducer,
+        initialLocationTrackEditState,
+    );
     const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
         LayoutLocationTrack | undefined
     >(undefined);

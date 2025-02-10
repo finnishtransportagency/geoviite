@@ -2,9 +2,11 @@ import * as React from 'react';
 import styles from './track-number-infobox.scss';
 import Infobox from 'tool-panel/infobox/infobox';
 import {
+    AlignmentEndPoint,
     LAYOUT_SRID,
     LayoutReferenceLine,
     LayoutTrackNumber,
+    MapAlignmentType,
 } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -56,6 +58,25 @@ type TrackNumberInfoboxProps = {
     visibilities: TrackNumberInfoboxVisibilities;
     onVisibilityChange: (visibilities: TrackNumberInfoboxVisibilities) => void;
     onHighlightItem: (item: HighlightedAlignment | undefined) => void;
+};
+
+type TrackNumberEndpointAddressInfoProps = {
+    endpoint: AlignmentEndPoint | undefined;
+};
+
+const TrackNumberEndpointAddressInfo: React.FC<TrackNumberEndpointAddressInfoProps> = ({
+    endpoint,
+}) => {
+    const { t } = useTranslation();
+    return (
+        <React.Fragment>
+            {endpoint?.address ? (
+                <NavigableTrackMeter trackMeter={endpoint.address} location={endpoint.point} />
+            ) : (
+                <span>{t('tool-panel.reference-line.no-geometry')}</span>
+            )}
+        </React.Fragment>
+    );
 };
 
 const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
@@ -154,6 +175,17 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         }
     };
 
+    const editingDisabled = isOfficial || !!linkingState;
+    const editingDisabledReason = () => {
+        if (isOfficial) {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        }
+        if (linkingState !== undefined) {
+            return t('tool-panel.track-number.cant-edit-while-linking');
+        }
+        return undefined;
+    };
+
     return (
         <React.Fragment>
             <Infobox
@@ -162,7 +194,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 title={t('tool-panel.track-number.general-title')}
                 qa-id="track-number-infobox"
                 onEdit={() => setShowEditDialog(true)}
-                iconDisabled={isOfficial}>
+                iconDisabled={editingDisabled}
+                disabledReason={editingDisabledReason()}>
                 <InfoboxContent>
                     <InfoboxField
                         qaId="track-number-oid"
@@ -172,6 +205,9 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                 id={trackNumber.id}
                                 branch={layoutContext.branch}
                                 changeTimes={changeTimes}
+                                getFallbackTextIfNoOid={() =>
+                                    t('tool-panel.track-number.unpublished')
+                                }
                             />
                         }
                     />
@@ -199,15 +235,15 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     title={t('tool-panel.reference-line.basic-info-heading')}
                     qa-id="reference-line-location-infobox"
                     onEdit={() => setShowEditDialog(true)}
-                    iconDisabled={isOfficial}>
+                    iconDisabled={editingDisabled}
+                    disabledReason={editingDisabledReason()}>
                     <InfoboxContent>
                         <InfoboxField
                             qaId="track-number-start-track-meter"
                             label={t('tool-panel.reference-line.start-location')}
                             value={
-                                <NavigableTrackMeter
-                                    trackMeter={startAndEndPoints?.start?.address}
-                                    location={startAndEndPoints?.start?.point}
+                                <TrackNumberEndpointAddressInfo
+                                    endpoint={startAndEndPoints?.start}
                                 />
                             }
                         />
@@ -215,10 +251,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             qaId="track-number-end-track-meter"
                             label={t('tool-panel.reference-line.end-location')}
                             value={
-                                <NavigableTrackMeter
-                                    trackMeter={startAndEndPoints?.end?.address}
-                                    location={startAndEndPoints?.end?.point}
-                                />
+                                <TrackNumberEndpointAddressInfo endpoint={startAndEndPoints?.end} />
                             }
                         />
                         {linkingState === undefined && referenceLine && (
@@ -233,7 +266,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                             getEndLinkPoints(
                                                 referenceLine.id,
                                                 layoutContext,
-                                                'REFERENCE_LINE',
+                                                MapAlignmentType.ReferenceLine,
                                                 changeTimes.layoutReferenceLine,
                                             ).then(onStartReferenceLineGeometryChange);
                                         }}>
@@ -289,7 +322,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             value={
                                 startAndEndPoints?.start
                                     ? formatToTM35FINString(startAndEndPoints.start.point)
-                                    : ''
+                                    : t('tool-panel.reference-line.no-geometry')
                             }
                         />
                         <InfoboxField
@@ -300,7 +333,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             value={
                                 startAndEndPoints?.end
                                     ? formatToTM35FINString(startAndEndPoints.end.point)
-                                    : ''
+                                    : t('tool-panel.reference-line.no-geometry')
                             }
                         />
                         <InfoboxButtons>

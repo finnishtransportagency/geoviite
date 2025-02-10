@@ -13,6 +13,7 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
+    MapAlignmentType,
 } from 'track-layout/track-layout-model';
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import { SelectedGeometryItem } from 'selection/selection-model';
@@ -44,6 +45,7 @@ import { GeometrySwitchInfoboxContainer } from 'tool-panel/switch/dialog/geometr
 import { LocationTrackTaskListContainer } from 'tool-panel/location-track/location-track-task-list/location-track-task-list-container';
 import { TabHeader, TabHeaderSize } from 'geoviite-design-lib/tab-header/tab-header';
 import { LayoutContext } from 'common/common-model';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -91,6 +93,17 @@ type ToolPanelTab = {
 
 const isSameAsset = (a: ToolPanelAsset | undefined, b: ToolPanelAsset | undefined) =>
     !!a && !!b && a.id === b.id && a.type === b.type;
+
+const linkingStateLayoutAlignmentTabType = (type: MapAlignmentType) => {
+    switch (type) {
+        case MapAlignmentType.LocationTrack:
+            return 'LOCATION_TRACK';
+        case MapAlignmentType.ReferenceLine:
+            return 'TRACK_NUMBER';
+        default:
+            return exhaustiveMatchingGuard(type);
+    }
+};
 
 const ToolPanel: React.FC<ToolPanelProps> = ({
     planIds,
@@ -429,9 +442,13 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         let lockToAsset;
 
         if (linkingState?.type === LinkingType.LinkingAlignment) {
+            const tabTypeToFind = linkingStateLayoutAlignmentTabType(
+                linkingState.layoutAlignment.type,
+            );
+
             lockToAsset = tabs.find(
                 (t) =>
-                    t.asset.type === 'LOCATION_TRACK' &&
+                    t.asset.type === tabTypeToFind &&
                     t.asset.id === linkingState.layoutAlignment.id,
             )?.asset;
         } else if (

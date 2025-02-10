@@ -42,6 +42,7 @@ type LocationTrackBasicInfoInfoboxContainerProps = {
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
     openEditLocationTrackDialog: () => void;
     editingDisabled: boolean;
+    editingDisabledReason: string | undefined;
 };
 
 export const LocationTrackBasicInfoInfoboxContainer: React.FC<
@@ -74,6 +75,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
     visibilityChange,
     openEditLocationTrackDialog,
     editingDisabled,
+    editingDisabledReason,
     onSelect,
     showArea,
 }) => {
@@ -129,6 +131,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
             title={t('tool-panel.location-track.basic-info-heading')}
             onEdit={openEditLocationTrackDialog}
             iconDisabled={editingDisabled}
+            disabledReason={editingDisabledReason}
             qa-id="location-track-infobox">
             <InfoboxContent>
                 <InfoboxField
@@ -176,8 +179,8 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                         locationTrack.duplicateOf
                             ? t('tool-panel.location-track.duplicate-of')
                             : extraInfo?.duplicates?.length ?? 0 > 0
-                            ? t('tool-panel.location-track.has-duplicates')
-                            : t('tool-panel.location-track.not-a-duplicate')
+                              ? t('tool-panel.location-track.has-duplicates')
+                              : t('tool-panel.location-track.not-a-duplicate')
                     }
                     value={
                         <LocationTrackInfoboxDuplicateOf

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import {
@@ -63,6 +64,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onVerticalGeometryDiagramVisibilityChange,
     onHighlightItem,
 }: LocationTrackInfoboxProps) => {
+    const { t } = useTranslation();
     const trackNumber = useTrackNumber(locationTrack.trackNumberId, layoutContext);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
@@ -71,6 +73,18 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 
     const editingDisabled =
         layoutContext.publicationState === 'OFFICIAL' || !!linkingState || !!splittingState;
+    const editingDisabledReason = () => {
+        if (layoutContext.publicationState !== 'DRAFT') {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        }
+        if (linkingState !== undefined) {
+            return t('tool-panel.location-track.cant-edit-while-linking');
+        }
+        if (splittingState !== undefined) {
+            return t('tool-panel.location-track.cant-edit-while-splitting');
+        }
+        return undefined;
+    };
 
     function openEditLocationTrackDialog() {
         setShowEditDialog(true);
@@ -99,6 +113,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 layoutContext={layoutContext}
                 trackNumber={trackNumber}
                 editingDisabled={editingDisabled}
+                editingDisabledReason={editingDisabledReason()}
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}
                 openEditLocationTrackDialog={openEditLocationTrackDialog}

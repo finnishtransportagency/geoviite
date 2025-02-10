@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { Dimensions, Point } from 'model/geometry';
-import useResizeObserver from 'use-resize-observer';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { useResizeObserver } from 'utils/use-resize-observer';
 
 const DEFAULT_MARGIN_BETWEEN_ANCHOR_ELEMENT_AND_MODAL = 6;
 
@@ -11,7 +11,7 @@ export type ModalPosition = 'LEFT' | 'RIGHT' | 'ABOVE' | 'BELOW';
 export type OpenTowards = 'LEFT' | 'RIGHT';
 
 type CloseableModalProps = {
-    anchorElementRef: React.MutableRefObject<HTMLElement | null>;
+    anchorElementRef: React.RefObject<HTMLElement | null>;
     openingElementRef?: React.RefObject<HTMLElement | SVGSVGElement | null>;
     onClickOutside: () => void;
     children: React.ReactNode;
@@ -334,7 +334,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     React.useEffect(updateModalPosition, [anchorElementRef, modalRef, children]);
 
     useResizeObserver({
-        ref: document.body,
+        ref: React.useRef<HTMLElement>(document.body),
         onResize: updateModalPosition,
     });
 

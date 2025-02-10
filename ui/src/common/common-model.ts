@@ -110,7 +110,7 @@ export const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(
 
 const splitTrackMeterIntoComponents = (trackMeterString: string) => {
     const components = trackMeterString.match(TRACK_METER_REGEX);
-    
+
     return {
         kms: components?.[1]?.padStart(4, '0'),
         letters: components?.[2],
@@ -170,7 +170,6 @@ export type JointNumber = string;
 export type Oid = string;
 export type Srid = string;
 export type SwitchStructureId = string;
-export type SwitchAlignmentId = string;
 export type VerticalCoordinateSystem = string;
 export type SwitchOwnerId = string;
 export type LocationTrackOwnerId = string;
@@ -194,7 +193,6 @@ export type SwitchElement = {
 };
 
 export type SwitchAlignment = {
-    id: SwitchAlignmentId;
     jointNumbers: JointNumber[];
     elements: SwitchElement[];
 };

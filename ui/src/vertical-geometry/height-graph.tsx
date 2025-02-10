@@ -9,7 +9,7 @@ interface HeightGraphProps {
 }
 
 export const HeightGraph: React.FC<HeightGraphProps> = ({ coordinates, kmHeights }) => {
-    const lines: JSX.Element[] = [];
+    const lines: React.JSX.Element[] = [];
     let linePoints: [number, number][] = [];
     let lineIndex = 0;
     const finishLineIfStarted = () => {

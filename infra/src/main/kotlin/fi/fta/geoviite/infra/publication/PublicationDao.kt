@@ -278,7 +278,7 @@ class PublicationDao(
               and candidate_switch.design_id is not distinct from :candidate_design_id
               and not (candidate_switch.design_id is not null and not candidate_switch.draft
                        and (cancelled or exists (
-                         select * from layout.track_number drafted_cancellation
+                         select * from layout.switch drafted_cancellation
                          where drafted_cancellation.draft
                            and drafted_cancellation.design_id = design_id
                            and drafted_cancellation.id = candidate_switch.id)))

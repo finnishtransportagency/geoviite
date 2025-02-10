@@ -27,9 +27,11 @@ const TrackMeter: React.FC<TrackMeterProps> = ({
     return onClickAction ? (
         <span className={styles['track-meter-value-container']}>
             {displayedValue}
-            <a className={styles['position-pin-container']} onClick={onClickAction}>
-                <Icons.Target size={IconSize.SMALL} />
-            </a>
+            {trackMeter && (
+                <a className={styles['position-pin-container']} onClick={onClickAction}>
+                    <Icons.Target size={IconSize.SMALL} />
+                </a>
+            )}
         </span>
     ) : (
         <React.Fragment>{displayedValue}</React.Fragment>

@@ -3,8 +3,12 @@ import { Point as OlPoint } from 'ol/geom';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { clearFeatures, createLayer, pointToCoords } from 'map/layers/utils/layer-utils';
-import VectorLayer from 'ol/layer/Vector';
+import {
+    clearFeatures,
+    createLayer,
+    GeoviiteMapLayer,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { MapLayerName } from 'map/map-model';
 
 type DebugLayerPoint = {
@@ -70,9 +74,7 @@ function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
 
 const layerName: MapLayerName = 'debug-layer';
 
-export function createDebugLayer(
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
-): MapLayer {
+export function createDebugLayer(existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined): MapLayer {
     const { layer, source } = createLayer(layerName, existingOlLayer);
 
     function updateFeatures(features: Feature<OlPoint>[]) {

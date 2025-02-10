@@ -168,8 +168,9 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
         setSortInfo(newSortInfo);
     };
 
-    const sortableTableHeader = (prop: SortProps, translationKey: string) => (
+    const sortableTableHeader = (prop: SortProps, translationKey: string, className: string) => (
         <Th
+            className={className}
             onClick={() => sortByProp(prop)}
             qa-id={translationKey}
             icon={
@@ -188,19 +189,39 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             <Table wide>
                 <thead className={styles['preview-table__header']}>
                     <tr>
-                        {sortableTableHeader(SortProps.NAME, 'preview-table.change-target')}
+                        {sortableTableHeader(
+                            SortProps.NAME,
+                            'preview-table.change-target',
+                            styles['preview-table__header--change-target'],
+                        )}
                         {sortableTableHeader(
                             SortProps.TRACK_NUMBER,
                             'preview-table.track-number-short',
+                            styles['preview-table__header--track-number-short'],
                         )}
-                        {sortableTableHeader(SortProps.OPERATION, 'preview-table.change-type')}
+                        {sortableTableHeader(
+                            SortProps.OPERATION,
+                            'preview-table.change-type',
+                            styles['preview-table__header--change-type'],
+                        )}
                         {sortableTableHeader(
                             SortProps.CHANGE_TIME,
                             'preview-table.modified-moment',
+                            styles['preview-table__header--modified-moment'],
                         )}
-                        {sortableTableHeader(SortProps.USER_NAME, 'preview-table.user')}
-                        {sortableTableHeader(SortProps.ISSUES, 'preview-table.status')}
-                        <Th>{t('preview-table.actions')}</Th>
+                        {sortableTableHeader(
+                            SortProps.USER_NAME,
+                            'preview-table.user',
+                            styles['preview-table__header--user'],
+                        )}
+                        {sortableTableHeader(
+                            SortProps.ISSUES,
+                            'preview-table.status',
+                            styles['preview-table__header--status'],
+                        )}
+                        <Th className={styles['preview-table__header--actions']}>
+                            {t('preview-table.actions')}
+                        </Th>
                     </tr>
                 </thead>
                 <tbody>

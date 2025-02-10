@@ -46,7 +46,21 @@ class SynchronizedScssTypingsPlugin {
     createScssTypings() {
         console.log('Updating SCSS typings...');
         try {
-            execSync('npm run scss', { stdio: 'inherit' });
+            const output = execSync('npm run scss', { encoding: 'utf8', stdio: 'pipe' });
+
+            // typed-scss-modules uses an old api and has no way to pass a deprecation warning disabling flag
+            // Follow progress: https://github.com/skovy/typed-scss-modules/issues/232
+            const filteredOutput = output
+                .split('\n')
+                .filter(
+                    (line) =>
+                        !line.match(
+                            /Deprecation Warning \[legacy-js-api\]:[\s\S]*?More info: https:\/\/sass-lang\.com\/d\/legacy-js-api/g,
+                        ),
+                )
+                .join('\n');
+
+            console.log(filteredOutput);
             console.log('SCSS typings updated.');
         } catch (error) {
             console.error('Error updating SCSS typings:', error);
@@ -171,6 +185,8 @@ module.exports = (env) => {
                                 importLoaders: 1,
                                 modules: {
                                     localIdentName: '[local]',
+                                    namedExport: false,
+                                    exportLocalsConvention: 'as-is',
                                 },
                             },
                         },

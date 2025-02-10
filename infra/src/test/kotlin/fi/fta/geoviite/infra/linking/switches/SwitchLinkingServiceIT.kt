@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryDao
@@ -61,6 +62,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -1468,6 +1470,32 @@ constructor(
                 .fetch(locationTrackDao.fetchVersion(MainLayoutContext.draft, branchingTrackContinuation)!!)
                 .topologyStartSwitch
         assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `linking to deleted layout switch is not allowed`() {
+        val insertedSwitch =
+            switchDao.fetch(switchDao.save(switch(draft = false, stateCategory = LayoutStateCategory.NOT_EXISTING)))
+        val fittedSwitch =
+            FittedSwitch(
+                joints = emptyList(),
+                switchStructure = switchLibraryService.getSwitchStructure(insertedSwitch.switchStructureId),
+            )
+        val suggestedSwitch =
+            matchFittedSwitchToTracks(
+                fittedSwitch,
+                switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
+                    LayoutBranch.main,
+                    fittedSwitch,
+                    insertedSwitch.id as IntId,
+                ),
+                insertedSwitch.id as IntId,
+            )
+        val ex =
+            assertThrows<LinkingFailureException> {
+                switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, insertedSwitch.id as IntId)
+            }
+        assertEquals(ex.localizationKey, LocalizationKey("error.linking.switch-deleted"))
     }
 
     @Test

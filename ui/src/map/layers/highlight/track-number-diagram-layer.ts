@@ -8,13 +8,17 @@ import { groupBy, objectEntries } from 'utils/array-utils';
 import Feature from 'ol/Feature';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
-import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    createLayer,
+    GeoviiteMapLayer,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import {
     getColor,
     getDefaultColorKey,
     TrackNumberColor,
 } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
-import VectorLayer from 'ol/layer/Vector';
 
 const getColorForTrackNumber = (
     id: LayoutTrackNumberId,
@@ -62,7 +66,7 @@ const layerName: MapLayerName = 'track-number-diagram-layer';
 
 export function createTrackNumberDiagramLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     changeTimes: ChangeTimes,
     layoutContext: LayoutContext,
     layerSettings: TrackNumberDiagramLayerSetting,

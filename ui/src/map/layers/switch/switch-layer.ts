@@ -9,7 +9,7 @@ import {
     getSwitchesValidation,
     getSwitchesValidationByTile,
 } from 'track-layout/layout-switch-api';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import {
@@ -21,12 +21,10 @@ import { getSwitchStructures } from 'common/common-api';
 import { ChangeTimes } from 'common/common-slice';
 import { filterUniqueById } from 'utils/array-utils';
 import { Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
 import { fromExtent } from 'ol/geom/Polygon';
 import { getAllowedSwitchesFromState, SplittingState } from 'tool-panel/location-track/split-store';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ValidatedSwitch } from 'publication/publication-model';
-import Feature from 'ol/Feature';
 
 let shownSwitchesCompare: string;
 
@@ -50,7 +48,7 @@ const layerName: MapLayerName = 'switch-layer';
 
 export function createSwitchLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     selection: Selection,
     splittingState: SplittingState | undefined,
     layoutContext: LayoutContext,

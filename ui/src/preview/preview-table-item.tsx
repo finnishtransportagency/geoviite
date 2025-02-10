@@ -1,4 +1,5 @@
 import * as React from 'react';
+import styles from './preview-view.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
@@ -209,11 +210,24 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             : t(`enum.Operation.${tableEntry.operation}`)
         : '';
 
+    // Attempt to display each track number on their own line if the entire comma separated string does not fit
+    // on a single line.
+    //
+    // This does not work in case the display cell is narrower than a single track number, which causes the individual
+    // track number to break in the middle and wrap.
+
+    const trackNumberSpans = tableEntry.trackNumbers.map((individualTrackNumber, index) => (
+        <span key={index} className={styles['preview-table-item__track-number']}>
+            {individualTrackNumber}
+            {index < tableEntry.trackNumbers.length - 1 && ', '}
+        </span>
+    ));
+
     return (
         <React.Fragment>
             <tr className={'preview-table-item'}>
                 <td>{tableEntry.uiName}</td>
-                <td>{tableEntry.trackNumber ? tableEntry.trackNumber : ''}</td>
+                <td>{trackNumberSpans}</td>
                 <td>{operation}</td>
                 <td>{formatDateFull(tableEntry.changeTime)}</td>
                 <td>{tableEntry.userName}</td>
