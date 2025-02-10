@@ -126,7 +126,7 @@ class PublicationValidationTest {
     fun switchValidationCatchesNonContinuousAlignment() {
         val switch =
             switch(
-                structureId = structure.id as IntId,
+                structureId = structure.id,
                 id = IntId(1),
                 draft = true,
                 stateCategory = EXISTING,

@@ -131,7 +131,7 @@ constructor(
     }
 
     private fun yv60SwitchId() =
-        switchLibraryService.getSwitchStructures().find { it.type == SwitchType("YV60-300-1:9-O") }!!.id as IntId
+        switchLibraryService.getSwitchStructures().find { it.type == SwitchType("YV60-300-1:9-O") }!!.id
 
     private fun firstSwitchFitResult(
         plan: GeometryPlan,

@@ -446,7 +446,7 @@ constructor(
         val switchId =
             switchDao
                 .save(
-                    switch(name = "TV123", structureId = switchStructureYV60_300_1_9().id as IntId, draft = false)
+                    switch(name = "TV123", structureId = switchStructureYV60_300_1_9().id, draft = false)
                         .copy(stateCategory = LayoutStateCategory.EXISTING)
                 )
                 .id
@@ -561,7 +561,7 @@ constructor(
                                     locationAccuracy = null,
                                 )
                             ),
-                        structureId = switchStructureYV60_300_1_9().id as IntId,
+                        structureId = switchStructureYV60_300_1_9().id,
                         stateCategory = LayoutStateCategory.EXISTING,
                         draft = false,
                     )
@@ -979,7 +979,7 @@ constructor(
                             switchStructureDao
                                 .fetchSwitchStructures()
                                 .find { ss -> ss.type.typeName == "KRV43-233-1:9" }!!
-                                .id as IntId,
+                                .id,
                         stateCategory = LayoutStateCategory.EXISTING,
                         draft = true,
                     ),
@@ -1043,7 +1043,7 @@ constructor(
                     switch(
                         name = "TV123",
                         joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null)),
-                        structureId = switchStructureYV60_300_1_9().id as IntId,
+                        structureId = switchStructureYV60_300_1_9().id,
                         stateCategory = LayoutStateCategory.EXISTING,
                         draft = true,
                     ),

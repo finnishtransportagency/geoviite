@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.FeatureTypeCode
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.ProjectName
@@ -66,14 +65,14 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.formatForException
 import fi.fta.geoviite.infra.util.formatForLog
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.BigDecimal.ZERO
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 const val INFRAMODEL_SWITCH_CODE = "IM_switch"
 const val INFRAMODEL_SWITCH_TYPE = "switchType"
@@ -597,7 +596,7 @@ fun collectGeometrySwitches(
                         ),
                 state = combineSwitchState(xmlSwitches.mapNotNull(TempSwitch::state)),
                 joints = deduplicatedJoints,
-                switchStructureId = switchStructure?.id as? IntId,
+                switchStructureId = switchStructure?.id,
                 typeName = tryParseGeometrySwitchTypeName(switchTypeName) ?: GeometrySwitchTypeName(""),
             )
         }
