@@ -19,6 +19,7 @@ begin
   drop table if exists segment_tmp;
   create temporary table segment_tmp as
     select
+      row_number() over (order by tmp.start_m) - 1 as segment_index,
       tmp.*,
       layout.calculate_segment_hash(
           geometry_alignment_id,
@@ -31,7 +32,6 @@ begin
       postgis.st_m(postgis.st_endpoint(sg.geometry)) as length
       from (
         select
-          row_number() over () - 1 as segment_index,
           unnest(geometry_alignment_ids) as geometry_alignment_id,
           unnest(geometry_element_indices) as geometry_element_index,
           unnest(start_m_values) as start_m,
@@ -66,13 +66,13 @@ begin
       (edge_id, segment_index, geometry_alignment_id, geometry_element_index, start, source_start, source, geometry_id)
     select
       result_id as edge_id,
-      segment_index,
-      geometry_alignment_id,
-      geometry_element_index,
-      start_m,
-      source_start,
-      source,
-      geometry_id
+      segment_tmp.segment_index,
+      segment_tmp.geometry_alignment_id,
+      segment_tmp.geometry_element_index,
+      segment_tmp.start_m,
+      segment_tmp.source_start,
+      segment_tmp.source,
+      segment_tmp.geometry_id
     from segment_tmp;
     drop table segment_tmp;
     return result_id;
