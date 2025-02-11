@@ -234,10 +234,15 @@ class LayoutKmPostDao(
         """
                 .trimIndent()
 
-        val posts = jdbcTemplate.query(sql) { rs, _ -> getLayoutKmPost(rs) }.associateBy(LayoutKmPost::version)
-        logger.daoAccess(AccessType.FETCH, LayoutKmPost::class, posts.keys)
-        cache.putAll(posts)
-        return posts.size
+        val kmPosts =
+            jdbcTemplate
+                .query(sql) { rs, _ -> getLayoutKmPost(rs) }
+                .associateBy { kmPost -> requireNotNull(kmPost.version) }
+
+        logger.daoAccess(AccessType.FETCH, LayoutKmPost::class, kmPosts.keys)
+        cache.putAll(kmPosts)
+
+        return kmPosts.size
     }
 
     private fun getLayoutKmPost(rs: ResultSet): LayoutKmPost {

@@ -102,9 +102,13 @@ class ReferenceLineDao(
                 .trimIndent()
 
         val referenceLines =
-            jdbcTemplate.query(sql) { rs, _ -> getReferenceLine(rs) }.associateBy(ReferenceLine::version)
+            jdbcTemplate
+                .query(sql) { rs, _ -> getReferenceLine(rs) }
+                .associateBy { referenceLine -> requireNotNull(referenceLine.version) }
+
         logger.daoAccess(AccessType.FETCH, ReferenceLine::class, referenceLines.keys)
         cache.putAll(referenceLines)
+
         return referenceLines.size
     }
 

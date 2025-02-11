@@ -75,8 +75,8 @@ constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boole
     }
 }
 
-private fun <Key, Value> cache(maxSize: Int, duration: Duration): Cache<Key, Value> =
-    Caffeine.newBuilder().maximumSize(maxSize.toLong()).expireAfterAccess(duration).build()
+private fun <Key : Any, Value> cache(maxSize: Int, duration: Duration): Cache<Key, Value> =
+    Caffeine.newBuilder().maximumSize(maxSize.toLong()).expireAfterAccess(duration).recordStats().build()
 
-private fun <Key, Value> ephemeralCache(maxSize: Int, lifetime: Duration): Cache<Key, Value> =
-    Caffeine.newBuilder().maximumSize(maxSize.toLong()).expireAfterWrite(lifetime).build()
+private fun <Key : Any, Value> ephemeralCache(maxSize: Int, lifetime: Duration): Cache<Key, Value> =
+    Caffeine.newBuilder().maximumSize(maxSize.toLong()).expireAfterWrite(lifetime).recordStats().build()
