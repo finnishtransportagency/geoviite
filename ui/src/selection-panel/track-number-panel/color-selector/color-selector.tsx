@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useRef } from 'react';
 import styles from './color-selector.scss';
 import { useTranslation } from 'react-i18next';
 import { createClassName } from 'vayla-design-lib/utils';
@@ -20,7 +19,7 @@ const colorOpacity = '80'; //~50% opacity in hex
 
 const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) => {
     const [showSelector, setShowSelector] = React.useState(false);
-    const ref = useRef<HTMLDivElement>(null);
+    const ref = React.useRef<HTMLDivElement>(null);
     const { t } = useTranslation();
 
     const selectedColor = color && getColor(color);

@@ -74,7 +74,7 @@ constructor(
                     getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation)
                 }
 
-        checkForDuplicateFile(file, geometryPlan.source)
+        checkForDuplicateFile(file.hash, geometryPlan.source)
 
         return geometryDao.insertPlan(geometryPlan, file, transformedBoundingBox)
     }
@@ -153,7 +153,7 @@ constructor(
         val overriddenPlan = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters, extraInfoParameters)
 
         if (overriddenPlan.source != geometryPlan.source) {
-            checkForDuplicateFile(geometryService.getPlanFile(planId), overriddenPlan.source)
+            checkForDuplicateFile(geometryService.getPlanFileHash(planId), overriddenPlan.source)
         }
 
         return geometryDao.updatePlan(planId, overriddenPlan)
@@ -213,8 +213,8 @@ constructor(
         )
     }
 
-    private fun checkForDuplicateFile(planFile: InfraModelFile, source: PlanSource) {
-        geometryService.fetchDuplicateGeometryPlanHeader(planFile, source)?.also { duplicate ->
+    private fun checkForDuplicateFile(planFileHash: FileHash, source: PlanSource) {
+        geometryService.fetchDuplicateGeometryPlanHeader(planFileHash, source)?.also { duplicate ->
             throw InframodelParsingException(
                 message = "InfraModel file exists already",
                 localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",

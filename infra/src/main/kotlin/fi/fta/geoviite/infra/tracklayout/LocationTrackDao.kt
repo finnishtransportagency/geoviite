@@ -222,9 +222,14 @@ class LocationTrackDao(
         """
                 .trimIndent()
 
-        val tracks = jdbcTemplate.query(sql) { rs, _ -> getLocationTrack(rs) }.associateBy(LocationTrack::version)
+        val tracks =
+            jdbcTemplate
+                .query(sql) { rs, _ -> getLocationTrack(rs) }
+                .associateBy { locationTrack -> requireNotNull(locationTrack.version) }
+
         logger.daoAccess(AccessType.FETCH, LocationTrack::class, tracks.keys)
         cache.putAll(tracks)
+
         return tracks.size
     }
 

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Id, toast, ToastOptions } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.minimal.css';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import './snackbar.scss';
 import styles from './snackbar.scss';

@@ -270,7 +270,7 @@ const PVFileListRow = ({
         message: { key: string; params: Record<string, string | number | undefined> };
         onConfirm: () => void;
         confirmText: string;
-    }>();
+    }>(undefined);
 
     const actionMenuRef = React.useRef(null);
     const suggestedList = listMode === 'SUGGESTED';

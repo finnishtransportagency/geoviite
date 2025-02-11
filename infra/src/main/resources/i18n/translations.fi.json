@@ -33,6 +33,7 @@
             "plan-hidden": "Linkitystä ei voida tehdä, koska suunnitelma on poistettu",
             "unfinished-splits": "Linkitystä ei voida tehdä, koska raiteen jakaminen ei ole valmis",
             "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa",
+            "switch-deleted": "Linkitystä ei voida tehdä, koska vaihde on poistettu",
             "invalid-gk-srid": "Asetettu koordinaattijärjestelmä (EPSG:{{srid}}) ei ole GK-koordinaattijärjestelmä",
             "invalid-gk-location": "Sijainnin määritys on virheellinen: {{y}} N {{x}} E (EPSG:{{srid}})"
         },
@@ -482,12 +483,14 @@
             "start-address": "Alkusijainti (km + m)",
             "cannot-shorten-deleted-track-number": "Poistettua ratanumeroa ei voi lyhentää",
             "no-geometry": "Ratanumerolla ei ole geometriaa",
+            "cant-edit-while-linking": "Ratanumeron tietoja ei voi muokata linkitystilassa",
             "revert-dialog": {
                 "revert-draft-confirm": "Hylätäänkö luonnos?",
                 "can-be-reverted": "Luonnoksen hylkääminen palauttaa ratanumeron ja pituusmittauslinjan takaisin uusimpaan viralliseen tilaan. Ratanumero ja pituusmittauslinja poistetaan jos niitä ei ole vielä julkaistu Ratkoon.",
                 "revert-succeeded": "Ratanumeron ja pituusmittauslinjan luonnokset hylätty.",
                 "revert-failed": "Luonnosten hylkääminen epäonnistui."
-            }
+            },
+            "unpublished": "Julkaisematon"
         },
         "km-post": {
             "layout": {
@@ -558,8 +561,11 @@
                 "unpublished": "Julkaisematon",
                 "start-switch-placing": "Aloita linkitys",
                 "switch-placing-help": "Klikkaa kartalta sijainti, johon haluat linkittää vaihteen",
+                "cant-link-deleted": "Poistettua vaihdetta ei voi linkittää",
                 "no-location": "Ei sijaintia",
-                "joint-number": "Piste {{number}}"
+                "joint-number": "Piste {{number}}",
+                "switch-not-existing": "Vaihde on poistettu",
+                "cant-edit-while-linking": "Vaihteen tietoja ei voi muokata linkitystilassa"
             },
             "geometry": {
                 "geometry-title": "Raidegeometria: vaihde",
@@ -589,7 +595,8 @@
                 "unknown": "Ei tiedossa",
                 "geometry-plan-title": "Infra model metatiedot",
                 "manual-linking-info": "Manuaalisesti linkitettävään vaihteeseen ei liity suunnitelman vaihdetta, vaan linkitys tehdään lähtötietojen perusteella.",
-                "no-linkable-switches": "Sopivia vaihteita ei löytynyt linkitettäväksi."
+                "no-linkable-switches": "Sopivia vaihteita ei löytynyt linkitettäväksi.",
+                "layout-switch-not-existing": "Valittu vaihde on poistettu"
             }
         },
         "reference-line": {
@@ -680,7 +687,7 @@
             "not-a-duplicate": "Ei duplikaatti",
             "change-info-heading": "Lokitiedot",
             "type": "Raidetyyppi",
-            "identifier": "Tunniste",
+            "identifier": "OID",
             "track-location-heading": "Raiteen sijaintitiedot",
             "start-point": "Alkupiste",
             "end-point": "Loppupiste",
@@ -802,7 +809,8 @@
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
             "cannot-shorten-deleted-track": "Poistettua raidetta ei voi lyhentää",
             "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa",
-            "no-geometry": "Raiteella ei ole geometriaa"
+            "cant-edit-while-splitting": "Raiteen tietoja ei voi muokata koska sen jakaminen on kesken",
+            "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
@@ -856,7 +864,6 @@
         },
         "element-list": {
             "element-list-title": "Elementtiluettelo",
-            "element-list-whole-network-title": "Elementtiluettelo (koko rataverkko)",
             "location-track-geometry": "Raiteen geometria",
             "location-track-legend": "Raiteen geometria näyttää luettelossa paikannuspohjan raiteeseen liityvät geometriaelementit. Tämä elementtiluettelo ei täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää  epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
             "plan-geometry": "Suunnitelman geometria",
@@ -927,7 +934,6 @@
         "vertical-geometry": {
             "pvi-points": "Taitepisteet ({{amount}} kpl)",
             "vertical-geometry-title": "Pystygeometria",
-            "vertical-geometry-whole-network-title": "Pystygeometria (koko rataverkko)",
             "location-track-vertical-geometry": "Raiteen pystygeometria",
             "plan-vertical-geometry": "Suunnitelman pystygeometria",
             "location-track-search-legend": "Raiteen pystygeometria näyttää luettelossa paikannuspohjan raiteeseen liityvät taitepisteet. Paikannuspohjan raide voi olla koostettu useasta suunnitelmasta, eikä täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
@@ -1003,7 +1009,6 @@
         "km-lengths": {
             "track-number-km-lengths": "Ratanumeron ratakilometrit",
             "entire-rail-network-km-lengths": "Koko rataverkon ratakilometrit",
-            "entire-rail-network-km-lengths-file-name-without-date": "Ratakilometrien pituudet (koko rataverkko)",
             "amount": "Ratakilometrit ({{amount}} kpl)",
             "title": "Ratakilometrien pituudet",
             "legend": "Ratakilometrien tiedot on laskettu paikannuspohjan tietojen perusteella. Paikannuspohjan tiedot eivät ole tarkkoja, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. tilastointiin tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. suunnittelutyön lähtötietona.",
@@ -2007,5 +2012,19 @@
             "view-publication": "Oikeus listata ja tarkastella julkaisuja",
             "download-publication": "Oikeus ladata julkaisuja"
         }
+    },
+    "filename": {
+        "unreliable-plan-file": "PAIKANNUSPALVELU EPÄLUOTETTAVA {{originalFileName}}",
+        "km-lengths-csv-precise": "Ratakilometrien pituudet {{trackNumber}}.csv",
+        "km-lengths-csv-approximation": "Ratakilometrien pituudet (paikannuspohjan tarkkuus) {{trackNumber}}.csv",
+        "km-lengths-entire-track-network": "Ratakilometrien pituudet (koko rataverkko) {{date}}.csv",
+        "element-list-csv": "Elementtiluettelo {{locationTrackName}}.csv",
+        "element-list-plan-csv": "Elementtiluettelo {{planFileName}}.csv",
+        "element-list-entire-track-network": "Elementtiluettelo (koko rataverkko) {{date}}.csv",
+        "vertical-geometry-list-csv": "Pystygeometria {{locationTrackName}}.csv",
+        "vertical-geometry-list-plan-csv": "Pystygeometria {{planFileName}}.csv",
+        "vertical-geometry-list-entire-track-network": "Pystygeometria (koko rataverkko) {{date}}.csv",
+        "publication-log": "Julkaisuloki {{dateRange}}.csv",
+        "split-details": "Raiteen jakaminen {{locationTrackName}}.csv"
     }
 }

@@ -4,7 +4,7 @@ import { Selection } from 'selection/selection-model';
 import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 import {
     getReferenceLineMapAlignmentsByTiles,
@@ -18,10 +18,8 @@ import {
 } from 'map/layers/utils/alignment-layer-utils';
 import { ReferenceLineId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
-import Feature from 'ol/Feature';
 
 let shownReferenceLinesCompare: string;
 
@@ -45,7 +43,7 @@ const layerName: MapLayerName = 'reference-line-alignment-layer';
 
 export function createReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString | OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString | OlPoint> | undefined,
     selection: Selection,
     isSplitting: boolean,
     layoutContext: LayoutContext,

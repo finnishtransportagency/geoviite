@@ -7,6 +7,8 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkedItems
 import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.util.toFileDownloadResponse
 import org.springframework.beans.factory.annotation.Autowired
@@ -23,6 +25,7 @@ constructor(
     private val infraModelService: InfraModelService,
     private val geometryService: GeometryService,
     private val pvDocumentService: PVDocumentService,
+    private val localizationService: LocalizationService,
 ) {
 
     @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
@@ -80,8 +83,13 @@ constructor(
 
     @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
     @GetMapping("{id}/file", MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    fun downloadFile(@PathVariable("id") id: IntId<GeometryPlan>): ResponseEntity<ByteArray> {
-        return geometryService.getPlanFile(id).let(::toFileDownloadResponse)
+    fun downloadFile(
+        @PathVariable("id") id: IntId<GeometryPlan>,
+        @RequestParam(name = "lang", defaultValue = "fi") lang: LocalizationLanguage,
+    ): ResponseEntity<ByteArray> {
+        val translation = localizationService.getLocalization(lang)
+
+        return geometryService.getPlanFile(id, translation).let(::toFileDownloadResponse)
     }
 
     @PreAuthorize(AUTH_VIEW_PV_DOCUMENTS)

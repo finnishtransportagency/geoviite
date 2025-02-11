@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.localization
 
 import com.fasterxml.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.util.FileName
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Value
@@ -26,6 +27,10 @@ data class Translation(val lang: LocalizationLanguage, val localization: String)
             val propKey = it.value.substring(2, it.value.length - 2).trim()
             params.get(propKey)
         }
+    }
+
+    fun filename(key: String, params: LocalizationParams, branch: String = "filename"): FileName {
+        return t("$branch.$key", params).let(::FileName)
     }
 
     inline fun <reified T : Enum<*>> enum(variant: T, branch: String = "enum", lowercase: Boolean = false): String {

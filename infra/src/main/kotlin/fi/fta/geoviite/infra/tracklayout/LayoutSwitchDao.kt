@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -379,9 +378,14 @@ class LayoutSwitchDao(
         """
                 .trimIndent()
 
-        val switches = jdbcTemplate.query(sql) { rs, _ -> getLayoutSwitch(rs) }.associateBy(LayoutSwitch::version)
+        val switches =
+            jdbcTemplate
+                .query(sql) { rs, _ -> getLayoutSwitch(rs) }
+                .associateBy { switch -> requireNotNull(switch.version) }
+
         logger.daoAccess(FETCH, LayoutSwitch::class, switches.keys)
         cache.putAll(switches)
+
         return switches.size
     }
 
@@ -522,25 +526,46 @@ class LayoutSwitchDao(
         topologyJointNumber: JointNumber,
         moment: Instant,
     ): List<LocationTrackIdentifiers> {
-        assertMainBranch(layoutBranch)
         val sql =
             """ 
-            select distinct
+            select
               location_track.id,
               location_track.design_id,
               location_track.draft,
               location_track.version,
               location_track_external_id.external_id
-            from layout.switch_at(:moment) switch
-              inner join layout.location_track_at(:moment) location_track on not location_track.draft
+            from (select * from layout.location_track_version lt
+                  where not lt.draft
+                    and not lt.deleted
+                    and (lt.design_id is null or lt.design_id = :design_id::int)
+                    and change_time <= :moment
+                    and not (:design_id::int is not null
+                             and lt.design_id is null
+                             and exists (select * from layout.location_track_version overrider_lt
+                                         where overrider_lt.id = lt.id
+                                           and not overrider_lt.draft
+                                           and not overrider_lt.deleted
+                                           and overrider_lt.design_id = :design_id
+                                           and overrider_lt.change_time <= :moment
+                                           and not exists (select * from layout.location_track_version overrider_deletion
+                                                           where overrider_deletion.id = lt.id
+                                                             and overrider_deletion.layout_context_id = overrider_lt.layout_context_id
+                                                             and overrider_deletion.version > overrider_lt.version
+                                                             and overrider_deletion.deleted
+                                                             and overrider_deletion.change_time <= :moment))
+                             )
+                    and not exists (select * from layout.location_track_version future_lt
+                                    where future_lt.id = lt.id
+                                      and future_lt.layout_context_id = lt.layout_context_id
+                                      and future_lt.version > lt.version
+                                      and future_lt.change_time <= :moment)) location_track
               inner join layout.segment_version segment 
                 on segment.alignment_id = location_track.alignment_id 
                   and segment.alignment_version = location_track.alignment_version
               left join layout.location_track_external_id
                 on location_track.id = location_track_external_id.id
                   and location_track.layout_context_id = location_track_external_id.layout_context_id
-            where switch.id = :switch_id 
-                and (segment.switch_id = :switch_id
+            where (segment.switch_id = :switch_id
                   or (location_track.topology_start_switch_id = :switch_id 
                     and location_track.topology_start_switch_joint_number = :topology_joint_number
                   )
@@ -553,6 +578,7 @@ class LayoutSwitchDao(
 
         val params =
             mapOf(
+                "design_id" to layoutBranch.designId?.intValue,
                 "switch_id" to switchId.intValue,
                 "topology_joint_number" to topologyJointNumber.intValue,
                 "moment" to Timestamp.from(moment),

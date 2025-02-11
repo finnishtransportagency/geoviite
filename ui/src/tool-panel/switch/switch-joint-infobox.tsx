@@ -106,43 +106,36 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                 <dd className={styles['switch-joint-infobox__joint-title']}>
                     {t('tool-panel.switch.layout.joint-alignments-location-tracks-title')}
                 </dd>
-                {switchAlignments.map((a) => {
-                    return (
-                        <React.Fragment key={a.id}>
-                            <dt className={styles['switch-joint-infobox__joint-alignments-title']}>
-                                {a.jointNumbers.map((j) => switchJointNumberToString(j)).join('-')}
-                            </dt>
-                            <dd className={styles['switch-joint-infobox__location-tracks']}>
-                                <div>{getLocationTracksForJointNumbers(a.jointNumbers)}</div>
-                            </dd>
-                        </React.Fragment>
-                    );
-                })}
+                {switchAlignments.map((a) => (
+                    <React.Fragment key={a.jointNumbers.join('_')}>
+                        <dt className={styles['switch-joint-infobox__joint-alignments-title']}>
+                            {a.jointNumbers.map((j) => switchJointNumberToString(j)).join('-')}
+                        </dt>
+                        <dd className={styles['switch-joint-infobox__location-tracks']}>
+                            <div>{getLocationTracksForJointNumbers(a.jointNumbers)}</div>
+                        </dd>
+                    </React.Fragment>
+                ))}
                 {displayedLocationTracksEndingAtJoint.length > 0 && (
-                    <>
+                    <React.Fragment>
                         <dt className={styles['switch-joint-infobox__joint-title']}>
                             {t('tool-panel.switch.layout.joint-number-title')}
                         </dt>
                         <dd className={styles['switch-joint-infobox__joint-title']}>
                             {t('tool-panel.switch.layout.location-tracks-end-at-joint-title')}
                         </dd>
-                        {displayedLocationTracksEndingAtJoint?.map((a) => {
-                            return (
-                                <React.Fragment key={a.jointNumber}>
-                                    <dt
-                                        className={
-                                            styles['switch-joint-infobox__joint-points-title']
-                                        }>
-                                        {switchJointNumberToString(a.jointNumber)}.{' '}
-                                        {t('tool-panel.switch.layout.point')}
-                                    </dt>
-                                    <dd className={styles['switch-joint-infobox__location-tracks']}>
-                                        <div>{getLocationTrackBadges(a.locationTrackIds)}</div>
-                                    </dd>
-                                </React.Fragment>
-                            );
-                        })}
-                    </>
+                        {displayedLocationTracksEndingAtJoint?.map((a) => (
+                            <React.Fragment key={a.jointNumber}>
+                                <dt className={styles['switch-joint-infobox__joint-points-title']}>
+                                    {switchJointNumberToString(a.jointNumber)}.{' '}
+                                    {t('tool-panel.switch.layout.point')}
+                                </dt>
+                                <dd className={styles['switch-joint-infobox__location-tracks']}>
+                                    <div>{getLocationTrackBadges(a.locationTrackIds)}</div>
+                                </dd>
+                            </React.Fragment>
+                        ))}
+                    </React.Fragment>
                 )}
             </dl>
         </React.Fragment>

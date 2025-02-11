@@ -8,19 +8,17 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import VectorLayer from 'ol/layer/Vector';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import {
     NORMAL_ALIGNMENT_OPACITY,
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
-import Feature from 'ol/Feature';
 
 const layerName: MapLayerName = 'reference-line-background-layer';
 
 export function createReferenceLineBackgroundLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     isSplitting: boolean,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,

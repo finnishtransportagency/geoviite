@@ -212,7 +212,7 @@ const getPublicationCandidateComponent = (
     layoutContext: LayoutContext,
     candidate: PublicationCandidateReference,
     changeTimes: ChangeTimes,
-): JSX.Element => {
+): React.JSX.Element => {
     const candidateType = candidate.type;
     const candidateComponentKey = `${candidateType}-${candidate.id}`;
 

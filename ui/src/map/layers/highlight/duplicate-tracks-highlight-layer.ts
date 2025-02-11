@@ -5,12 +5,16 @@ import {
     AlignmentDataHolder,
     getLocationTrackMapAlignmentsByTiles,
 } from 'track-layout/layout-map-api';
-import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    createLayer,
+    GeoviiteMapLayer,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { ChangeTimes } from 'common/common-slice';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { redHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
-import VectorLayer from 'ol/layer/Vector';
 import { LayoutContext } from 'common/common-model';
 
 function createHighlightFeatures(locationTracks: AlignmentDataHolder[]): Feature<LineString>[] {
@@ -29,7 +33,7 @@ const layerName: MapLayerName = 'duplicate-tracks-highlight-layer';
 
 export function createDuplicateTracksHighlightLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

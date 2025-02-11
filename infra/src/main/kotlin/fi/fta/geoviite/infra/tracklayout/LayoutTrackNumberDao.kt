@@ -142,10 +142,15 @@ class LayoutTrackNumberDao(
             order by tn.id
         """
                 .trimIndent()
+
         val trackNumbers =
-            jdbcTemplate.query(sql) { rs, _ -> getLayoutTrackNumber(rs) }.associateBy(LayoutTrackNumber::version)
+            jdbcTemplate
+                .query(sql) { rs, _ -> getLayoutTrackNumber(rs) }
+                .associateBy { trackNumber -> requireNotNull(trackNumber.version) }
+
         logger.daoAccess(AccessType.FETCH, LayoutTrackNumber::class, trackNumbers.keys)
         cache.putAll(trackNumbers)
+
         return trackNumbers.size
     }
 

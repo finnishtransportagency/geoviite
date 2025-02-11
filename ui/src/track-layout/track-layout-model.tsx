@@ -78,13 +78,16 @@ export type ReferenceLineId = Brand<string, 'ReferenceLineId'>;
 export type LocationTrackId = Brand<string, 'LocationTrackId'>;
 export type LocationTrackType = 'MAIN' | 'SIDE' | 'TRAP' | 'CHORD';
 export type MapAlignmentSource = 'LAYOUT' | 'GEOMETRY';
-export type MapAlignmentType = 'LOCATION_TRACK' | 'REFERENCE_LINE';
 export type TopologicalConnectivityType = 'NONE' | 'START' | 'END' | 'START_AND_END';
 export type LocationTrackDescriptionSuffixMode =
     | 'NONE'
     | 'SWITCH_TO_SWITCH'
     | 'SWITCH_TO_BUFFER'
     | 'SWITCH_TO_OWNERSHIP_BOUNDARY';
+export enum MapAlignmentType {
+    LocationTrack = 'LOCATION_TRACK',
+    ReferenceLine = 'REFERENCE_LINE',
+}
 
 export type LayoutAssetFields = {
     version?: RowVersion;

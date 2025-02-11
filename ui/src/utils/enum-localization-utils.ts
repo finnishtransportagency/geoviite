@@ -78,7 +78,7 @@ export const ratkoPushErrorTypes: LocalizedEnum<RatkoPushErrorType>[] = values(
 );
 
 export const ratkoPushErrorOperations: LocalizedEnum<RatkoPushErrorOperation>[] = values(
-    'ratko-push-error-operation',
+    'RatkoPushErrorOperation',
     ['CREATE', 'UPDATE', 'DELETE', 'FETCH_EXISTING'],
 );
 

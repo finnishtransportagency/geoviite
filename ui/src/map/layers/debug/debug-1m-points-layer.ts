@@ -6,8 +6,12 @@ import { AddressPoint, LayoutContext } from 'common/common-model';
 import { AlignmentAddresses, getAddressPoints } from 'common/geocoding-api';
 import { DEBUG_1M_POINTS } from '../utils/layer-visibility-limits';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
-import VectorLayer from 'ol/layer/Vector';
+import {
+    createLayer,
+    GeoviiteMapLayer,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { first } from 'utils/array-utils';
 import { MapLayerName } from 'map/map-model';
 
@@ -78,7 +82,7 @@ function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
 const layerName: MapLayerName = 'debug-1m-points-layer';
 
 export function createDebug1mPointsLayer(
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     resolution: number,

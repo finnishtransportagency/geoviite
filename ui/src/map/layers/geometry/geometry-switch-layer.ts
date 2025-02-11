@@ -3,6 +3,7 @@ import { Selection } from 'selection/selection-model';
 import { GeometryPlanLayout, LayoutSwitch, PlanAndStatus } from 'track-layout/track-layout-model';
 import {
     createLayer,
+    GeoviiteMapLayer,
     getManualPlanWithStatus,
     getVisiblePlansWithStatus,
     loadLayerData,
@@ -16,17 +17,15 @@ import {
     findMatchingSwitches,
 } from 'map/layers/utils/switch-layer-utils';
 import { Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerName, MapTile } from 'map/map-model';
-import Feature from 'ol/Feature';
 
 const layerName: MapLayerName = 'geometry-switch-layer';
 
 export function createGeometrySwitchLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,

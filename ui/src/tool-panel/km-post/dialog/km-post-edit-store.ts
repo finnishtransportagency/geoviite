@@ -392,7 +392,7 @@ const kmPostEditSlice = createSlice({
         onUpdateProp: function <TKey extends keyof KmPostEditFields>(
             state: KmPostEditState,
             { payload: propEdit }: PayloadAction<PropEdit<KmPostEditFields, TKey>>,
-        ) {
+        ): void {
             if (state.kmPost) {
                 state.kmPost[propEdit.key] = propEdit.value;
                 state.validationIssues = validateLinkingKmPost(state);
@@ -424,7 +424,7 @@ const kmPostEditSlice = createSlice({
         onCommitField: function <TKey extends keyof KmPostEditFields>(
             state: KmPostEditState,
             { payload: key }: PayloadAction<TKey>,
-        ) {
+        ): void {
             // Valid value entered for a field, mark that field as committed
             state.committedFields = [...state.committedFields, key];
             if (key === 'gkSrid' && state.kmPost.gkLocationX !== '') {

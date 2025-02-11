@@ -11,6 +11,7 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     createLayer,
+    GeoviiteMapLayer,
     getVisiblePlans,
     loadLayerData,
     pointToCoords,
@@ -27,7 +28,6 @@ import {
     setAlignmentFeatureProperty,
 } from 'map/layers/utils/alignment-layer-utils';
 import { Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { cache } from 'cache/cache';
 import { MapLayerName, MapTile } from 'map/map-model';
@@ -148,7 +148,7 @@ type PlanAlignments = {
 
 export function createGeometryAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,

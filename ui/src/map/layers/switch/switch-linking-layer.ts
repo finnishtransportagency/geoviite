@@ -7,6 +7,7 @@ import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import {
     createLayer,
     findMatchingEntities,
+    GeoviiteMapLayer,
     loadLayerData,
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
@@ -16,7 +17,6 @@ import {
     suggestedSwitchHasMatchOnJoint,
 } from 'map/layers/utils/switch-layer-utils';
 import { Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 
 function createSwitchFeatures(
@@ -51,7 +51,7 @@ function createSwitchFeatures(
 const layerName: MapLayerName = 'switch-linking-layer';
 
 export function createSwitchLinkingLayer(
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     selection: Selection,
     linkingState: LinkingSwitch | undefined,
     onLoadingData: (loading: boolean) => void,

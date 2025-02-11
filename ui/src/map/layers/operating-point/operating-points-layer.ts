@@ -1,8 +1,12 @@
 import { MapLayerName, MapTile } from 'map/map-model';
-import VectorLayer from 'ol/layer/Vector';
 import { Point as OlPoint } from 'ol/geom';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    createLayer,
+    GeoviiteMapLayer,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { getOperatingPoints } from 'track-layout/layout-operating-point-api';
 import Feature from 'ol/Feature';
 import { OperatingPoint } from 'track-layout/track-layout-model';
@@ -39,7 +43,7 @@ const operatingPointStyleResolutions = [
 
 export function createOperatingPointLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     olView: OlView,
     changeTimes: ChangeTimes,
 ): MapLayer {

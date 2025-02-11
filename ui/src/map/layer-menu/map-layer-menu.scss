@@ -1,6 +1,6 @@
 @use 'vayla-design-lib' as vayla-design;
 
-.map-layer-button-content {
+.button.map-layers-button {
     width: 26px;
     height: 26px;
     display: flex;
@@ -8,8 +8,7 @@
     justify-content: center;
 }
 
-.map-layer-button-content__icon {
-    fill: vayla-design.$color-blue-dark;
+.map-layers-button-icon {
     width: 18px;
     height: 18px;
 }

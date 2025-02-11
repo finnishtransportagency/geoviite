@@ -1,11 +1,15 @@
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { Point as OlPoint } from 'ol/geom';
-import VectorLayer from 'ol/layer/Vector';
 import Feature from 'ol/Feature';
 import Style from 'ol/style/Style';
 import { Circle, Fill, Stroke } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
-import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    createLayer,
+    GeoviiteMapLayer,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import { LayoutSwitch, splitPointsAreSame } from 'track-layout/track-layout-model';
@@ -51,7 +55,7 @@ const deletedSplitPointStyle = new Style({
 const layerName: MapLayerName = 'location-track-split-location-layer';
 
 export const createLocationTrackSplitLocationLayer = (
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     onLoadingData: (loading: boolean) => void,
@@ -98,7 +102,8 @@ export const createLocationTrackSplitLocationLayer = (
                 const getSelectedStyle = () => {
                     if (splittingState?.disabled) {
                         return splitPointDisabledStyle;
-                    } if (isDeletedSwitch) {
+                    }
+                    if (isDeletedSwitch) {
                         return deletedSplitPointStyle;
                     } else if (isHighlighted) {
                         return splitPointFocusedStyle;

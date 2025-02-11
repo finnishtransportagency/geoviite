@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.configuration
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,7 +13,6 @@ import org.springframework.cache.caffeine.CaffeineCacheManager
 import org.springframework.cache.support.NoOpCacheManager
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import java.time.Duration
 
 const val CACHE_GEOMETRY_PLAN = "geometry-plan"
 const val CACHE_GEOMETRY_SWITCH = "geometry-switch"
@@ -75,8 +75,8 @@ constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boole
     }
 }
 
-private fun <Key, Value> cache(maxSize: Int, duration: Duration): Cache<Key, Value> =
-    Caffeine.newBuilder().maximumSize(maxSize.toLong()).expireAfterAccess(duration).build()
+private fun <Key : Any, Value> cache(maxSize: Int, duration: Duration): Cache<Key, Value> =
+    Caffeine.newBuilder().maximumSize(maxSize.toLong()).expireAfterAccess(duration).recordStats().build()
 
-private fun <Key, Value> ephemeralCache(maxSize: Int, lifetime: Duration): Cache<Key, Value> =
-    Caffeine.newBuilder().maximumSize(maxSize.toLong()).expireAfterWrite(lifetime).build()
+private fun <Key : Any, Value> ephemeralCache(maxSize: Int, lifetime: Duration): Cache<Key, Value> =
+    Caffeine.newBuilder().maximumSize(maxSize.toLong()).expireAfterWrite(lifetime).recordStats().build()
