@@ -422,12 +422,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         verticalGeometryDiagramVisible,
     ]);
 
-    React.useEffect(() => {
-        if (selectedAsset && tabs.some((tab) => isSameAsset(tab.asset, selectedAsset))) {
-            changeTab(selectedAsset);
-        }
-    }, [tabs]);
-
     function changeTab(tab: ToolPanelAsset) {
         let lockToAsset;
 
