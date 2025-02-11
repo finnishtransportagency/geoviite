@@ -35,20 +35,7 @@ constructor(
 
     @BeforeEach
     fun cleanup() {
-        val sql =
-            """
-                truncate publication.publication,
-                         integrations.lock,
-                         layout.track_number_id,
-                         layout.location_track_id,
-                         layout.switch_id,
-                         layout.operating_point,
-                         layout.operating_point_version,
-                         layout.design
-                  cascade;
-            """
-                .trimIndent()
-        jdbc.execute(sql) { it.execute() }
+        splitTestDataService.clearSplits()
         jdbc.execute("update integrations.ratko_push set status = 'SUCCESSFUL' where status != 'SUCCESSFUL'") {
             it.execute()
         }

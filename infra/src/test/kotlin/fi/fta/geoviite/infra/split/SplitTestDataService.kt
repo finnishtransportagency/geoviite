@@ -62,6 +62,8 @@ constructor(
         truncate publication.split_target_location_track_version cascade;
         truncate publication.split_updated_duplicate cascade;
         truncate publication.split_updated_duplicate_version cascade;
+        truncate integrations.ratko_bulk_transfer cascade;
+        truncate integrations.ratko_bulk_transfer_version cascade;
     """
                 .trimIndent()
         jdbc.execute(sql) { it.execute() }
