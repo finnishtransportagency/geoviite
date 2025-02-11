@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
+import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -29,7 +30,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -385,7 +385,7 @@ constructor(
         locationTrackService.insertExternalId(LayoutBranch.main, locationTrack3.id, locationTrack3Oid)
 
         // add confuser draft; should have no effect
-        mainDraftContext.insert(mainOfficialContext.fetch(locationTrack1.id)!!)
+        mainDraftContext.save(mainOfficialContext.fetch(locationTrack1.id)!!)
 
         val linkedLocationTracks =
             switchDao.findLocationTracksLinkedToSwitchAtMoment(

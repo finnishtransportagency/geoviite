@@ -12,9 +12,6 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.queryOne
-import java.time.Instant
-import kotlin.test.assertContains
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
@@ -24,6 +21,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import kotlin.test.assertContains
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -232,19 +232,19 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
     @Test
     fun `findLocationTracksLinkedToSwitchAtMoment handles changing connectivity over time`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val switch = mainOfficialContext.insert(switch()).id
+        val switch = mainOfficialContext.save(switch()).id
         val connectedAlignment =
-            alignment(
+            trackGeometryOfSegments(
                 segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
             )
-        val disconnectedAlignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        val disconnectedAlignment = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
 
-        val lt1o1 = mainOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
-        val lt2o1 = mainOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
-        val lt3o1 = mainOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
+        val lt1o1 = mainOfficialContext.save(locationTrack(trackNumber), connectedAlignment)
+        val lt2o1 = mainOfficialContext.save(locationTrack(trackNumber), connectedAlignment)
+        val lt3o1 = mainOfficialContext.save(locationTrack(trackNumber), connectedAlignment)
         val lt1d1 = mainDraftContext.copyFrom(lt1o1)
-        val lt1o2 = mainOfficialContext.insert(locationTrackDao.fetch(lt1o1), disconnectedAlignment)
-        val lt1o3 = mainOfficialContext.insert(locationTrackDao.fetch(lt1o1), connectedAlignment)
+        val lt1o2 = mainOfficialContext.save(locationTrackDao.fetch(lt1o1), disconnectedAlignment)
+        val lt1o3 = mainOfficialContext.save(locationTrackDao.fetch(lt1o1), connectedAlignment)
 
         fun tracksLinkedAtVersionSaveTime(version: LayoutRowVersion<LocationTrack>) =
             switchDao
@@ -268,9 +268,9 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
     @Test
     fun `findLocationTracksLinkedToSwitchAtMoment handles branch inheritance and deletions`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val switch = mainOfficialContext.insert(switch()).id
+        val switch = mainOfficialContext.save(switch()).id
         val connectedAlignment =
-            alignment(
+            trackGeometryOfSegments(
                 segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
             )
         val designBranch = testDBService.createDesignBranch()
@@ -287,12 +287,12 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
                 .map { it.rowVersion }
                 .toSet()
 
-        val lt1 = designOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
+        val lt1 = designOfficialContext.save(locationTrack(trackNumber), connectedAlignment)
         val lt1MainCopy = mainOfficialContext.copyFrom(lt1)
-        val lt2 = mainOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
+        val lt2 = mainOfficialContext.save(locationTrack(trackNumber), connectedAlignment)
         val lt2DesignCopy = designOfficialContext.copyFrom(lt2)
         locationTrackDao.deleteRow(lt2DesignCopy.rowId)
-        val lt3 = designOfficialContext.insert(locationTrack(trackNumber), connectedAlignment)
+        val lt3 = designOfficialContext.save(locationTrack(trackNumber), connectedAlignment)
         locationTrackDao.deleteRow(lt3.rowId)
         val lt2DesignRecopy = designOfficialContext.copyFrom(lt2)
 
