@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -974,7 +974,7 @@ class PublicationDao(
                         duplicateOf = rs.getChange("duplicate_of_location_track_id", rs::getIntIdOrNull),
                         type = rs.getChange("type") { rs.getEnumOrNull<LocationTrackType>(it) },
                         length = rs.getChange("length", rs::getDoubleOrNull),
-                        alignmentVersion = rs.getChangeRowVersion<LayoutAlignment>("alignment_id", "alignment_version"),
+                        alignmentVersion = rs.getChangeRowVersion("alignment_id", "alignment_version"),
                         geometryChangeSummaries =
                             if (!rs.getBoolean("geometry_change_summary_computed")) null
                             else fetchGeometryChangeSummaries(publicationId, rs.getIntId("location_track_id")),

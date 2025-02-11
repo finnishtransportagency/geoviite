@@ -32,7 +32,7 @@ class CsvFile<T : Enum<T>>(val filePath: String, private val type: KClass<T>) : 
         if (!file.isFile) throw IllegalStateException("No such CSV file found: ${file.absolutePath}")
         return CSVParser(file.bufferedReader(Charsets.UTF_8), csvFormat).use { parser ->
             validateHeaders(parser)
-            parser.mapNotNull { record -> handler(CsvLine<T>(record)) }
+            parser.mapNotNull { record -> handler(CsvLine(record)) }
         }
     }
 
@@ -40,7 +40,7 @@ class CsvFile<T : Enum<T>>(val filePath: String, private val type: KClass<T>) : 
         if (!file.isFile) throw IllegalStateException("No such CSV file found: ${file.absolutePath}")
         parser = CSVParser(file.bufferedReader(Charsets.UTF_8), csvFormat)
         validateHeaders(parser ?: throw IllegalStateException("Parser lost"))
-        return parser?.asSequence()?.mapNotNull { record -> handler(CsvLine<T>(record)) }
+        return parser?.asSequence()?.mapNotNull { record -> handler(CsvLine(record)) }
             ?: throw IllegalStateException("Parser lost")
     }
 

@@ -171,7 +171,7 @@ fun switchAndMatchingAlignments(
     val switch =
         switch(
             id = switchId,
-            structureId = structure.id as IntId,
+            structureId = structure.id,
             joints =
                 jointLocations.map { (number, point) ->
                     LayoutSwitchJoint(number, SwitchJointRole.of(structure, number), point, null)
@@ -920,7 +920,7 @@ fun switchFromDbStructure(
 ): LayoutSwitch =
     switch(
         name = name,
-        structureId = structure.id as IntId,
+        structureId = structure.id,
         draft = draft,
         joints =
             structure.joints.map { j ->

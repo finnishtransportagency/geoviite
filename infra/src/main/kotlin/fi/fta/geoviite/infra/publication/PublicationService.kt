@@ -245,7 +245,7 @@ constructor(
     private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<LayoutSwitch>) {
         val switchOid =
             switchDao.get(branch.draft, switchId)?.draftOid?.also(::ensureDraftIdExists)?.toString()
-                ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()?.id) { "No OID received from RATKO" } }
+                ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid().id) { "No OID received from RATKO" } }
         switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(switchOid)) }
     }
 

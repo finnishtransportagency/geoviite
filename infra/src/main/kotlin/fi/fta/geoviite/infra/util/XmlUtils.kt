@@ -30,7 +30,7 @@ fun encodingsFromXmlStream(stream: InputStream): Pair<String?, String?> =
         xmlStreamReader.encoding to xmlStreamReader.characterEncodingScheme
     }
 
-fun findXmlCharset(name: String): Charset? = XmlCharset.values().find { cs -> cs.charset.name() == name }?.charset
+fun findXmlCharset(name: String): Charset? = XmlCharset.entries.find { cs -> cs.charset.name() == name }?.charset
 
 fun getEncodingAndBom(bytes: ByteArray): Pair<Charset, Boolean> {
     BOMInputStream.builder().setInputStream(ByteArrayInputStream(bytes)).get().use { stream ->

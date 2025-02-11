@@ -301,7 +301,7 @@ private fun validateKmPostCollection(kmPosts: List<GeometryKmPost>): List<Collec
                     "duplicate-km-posts",
                     VALIDATION_KM_POST,
                     VALIDATION_ERROR,
-                    duplicateKmPosts.map { it.toString() }.joinToString(", "),
+                    duplicateKmPosts.joinToString(", ") { kmPost -> kmPost.toString() },
                 )
             },
             validate(firstKmPost != null && firstKmPost.staAhead <= BigDecimal.ZERO) {

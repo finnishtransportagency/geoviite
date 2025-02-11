@@ -40,8 +40,7 @@ data class RatkoMetadataAsset(
 }
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class RatkoSwitchAsset
-constructor(
+data class RatkoSwitchAsset(
     val id: String?,
     override val state: RatkoAssetState,
     override val properties: Collection<RatkoAssetProperty>,

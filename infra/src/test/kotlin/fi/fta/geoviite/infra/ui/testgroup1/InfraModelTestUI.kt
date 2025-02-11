@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.testgroup1
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
-import fi.fta.geoviite.infra.ui.util.scrollIntoView
 import java.io.File
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
@@ -15,15 +14,14 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
+const val TESTFILE_SIMPLE_PATH = "src/test/resources/inframodel/testfile_simple.xml"
+const val TESTFILE_CLOTHOID_AND_PARABOLA_PATH = "src/test/resources/inframodel/testfile_clothoid_and_parabola.xml"
+const val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH = "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
+
 @ActiveProfiles("dev", "test", "e2e")
 @EnableAutoConfiguration
 @SpringBootTest
 class InfraModelTestUI : SeleniumTest() {
-    val TESTFILE_SIMPLE_PATH: String = "src/test/resources/inframodel/testfile_simple.xml"
-    val TESTFILE_CLOTHOID_AND_PARABOLA_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola.xml"
-    val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String =
-        "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
-
     @BeforeEach
     fun clearDb() {
         testDBService.clearAllTables()

@@ -16,7 +16,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected open val dao: DaoType
 ) {
 
-    protected open val logger: Logger = LoggerFactory.getLogger(this::class.java)
+    protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun list(context: LayoutContext, includeDeleted: Boolean = false): List<ObjectType> {
         return dao.list(context, includeDeleted)
@@ -64,10 +64,10 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected fun cancelInternal(asset: ObjectType, designBranch: DesignBranch) =
         cancelled(asset, designBranch.designId)
 
-    protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
+    protected fun contentMatches(term: String, item: ObjectType): Boolean = false
 
     @Transactional
-    open fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): LayoutRowVersion<ObjectType> {
+    fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): LayoutRowVersion<ObjectType> {
         return saveDraftInternal(branch, draftAsset)
     }
 
@@ -78,12 +78,12 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     }
 
     @Transactional
-    open fun deleteDraft(branch: LayoutBranch, id: IntId<ObjectType>): LayoutRowVersion<ObjectType> {
+    fun deleteDraft(branch: LayoutBranch, id: IntId<ObjectType>): LayoutRowVersion<ObjectType> {
         return dao.deleteDraft(branch, id)
     }
 
     @Transactional
-    open fun publish(branch: LayoutBranch, version: LayoutRowVersion<ObjectType>): LayoutRowVersion<ObjectType> {
+    fun publish(branch: LayoutBranch, version: LayoutRowVersion<ObjectType>): LayoutRowVersion<ObjectType> {
         return publishInternal(branch, version)
     }
 

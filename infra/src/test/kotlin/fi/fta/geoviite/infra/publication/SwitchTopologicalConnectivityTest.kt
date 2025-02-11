@@ -344,7 +344,7 @@ class SwitchTopologicalConnectivityTest {
         val switch =
             switch(
                 id = switchId,
-                structureId = switchStructure.id as IntId,
+                structureId = switchStructure.id,
                 joints =
                     switchStructure.joints.map { j ->
                         LayoutSwitchJoint(j.number, SwitchJointRole.of(switchStructure, j.number), j.location, null)
