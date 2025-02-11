@@ -751,6 +751,7 @@
             "splitting": {
                 "title": "Raiteen jakaminen osiin",
                 "confirm-split": "Suorita jako",
+                "confirm-split-point-removal": "Poista katkaisukohta",
                 "splitting-success": "Sijaintiraide {{locationTrackName}} jaettu {{count}} osaan",
                 "splitting-guide": "Valitse kartalta vaihteet, joiden kohdalta raide katkaistaan.",
                 "start-address": "Alkusijainti (km + m)",
