@@ -686,7 +686,7 @@ const MapView: React.FC<MapViewProps> = ({
             })
             .filter(filterNotEmpty);
 
-        updatedLayers.forEach((l) => l.layer.setZIndex(expectDefined(mapLayerZIndexes[l.name])));
+        updatedLayers.forEach((l) => l.layer.setZIndex(mapLayerZIndexes[l.name]));
 
         visibleLayers
             .filter((vl) => !updatedLayers.some((ul) => ul.name === vl.name))
