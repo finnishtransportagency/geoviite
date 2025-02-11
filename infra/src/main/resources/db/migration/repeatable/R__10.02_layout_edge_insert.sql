@@ -7,12 +7,12 @@ create function layout.get_or_insert_edge(
   start_m_values decimal(13,6)[],
   source_start_m_values decimal(13,6)[],
   sources varchar[],
-  geometry_ids int[]
+  geometry_ids int[],
+  edge_bbox postgis.geometry(polygon, 3067)
 ) returns int as
 $$
 declare
   declare edge_hash uuid;
-  declare edge_bbox postgis.box2d;
   declare edge_length decimal(13, 6);
   declare result_id int;
 begin
@@ -28,8 +28,7 @@ begin
           source,
           geometry_id
       ) as hash,
-      sg.bounding_box,
-      postgis.st_m(postgis.st_endpoint(sg.geometry)) as length
+      sg.geometry
       from (
         select
           unnest(geometry_alignment_ids) as geometry_alignment_id,
@@ -40,11 +39,18 @@ begin
           unnest(geometry_ids) as geometry_id
       ) tmp
         left join layout.segment_geometry sg on tmp.geometry_id = sg.id;
+  alter table segment_tmp
+    add primary key (segment_index),
+    alter column start_m set not null,
+    alter column source set not null,
+    alter column geometry_id set not null,
+    alter column segment_index set not null,
+    alter column geometry set not null;
 
-  select into edge_hash, edge_bbox, edge_length
+  select
     layout.calculate_edge_hash(start_node_id, end_node_id, array_agg(segment_tmp.hash)),
-    postgis.st_extent(segment_tmp.bounding_box),
-    sum(segment_tmp.length)
+    sum(postgis.st_m(postgis.st_endpoint(segment_tmp.geometry)))
+    into edge_hash, edge_length
     from segment_tmp;
 
   -- Try inserting edge: if it already exists, the hash will conflict

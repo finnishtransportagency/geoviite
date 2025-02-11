@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
@@ -18,6 +19,11 @@ import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_END
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_START
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MATH
 import fi.fta.geoviite.infra.util.getIntId
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -328,6 +334,80 @@ constructor(
         assertEquals(2, onlyProfileful.size)
         assertEquals(listOf(profileInfo[0], profileInfo[4]), onlyProfileful)
     }
+
+    @Test
+    fun `LocationTrackGeometry is saved and loaded correctly`() {
+        val track = locationTrack(mainDraftContext.createLayoutTrackNumber().id)
+        val switch1Id = mainDraftContext.save(switch()).id
+        val switch2Id = mainDraftContext.save(switch()).id
+        val switch3Id = mainDraftContext.save(switch()).id
+        val geometry1 =
+            trackGeometry(
+                edgesBetweenNodes(
+                    listOf(
+                        LayoutNodeTemp(TRACK_START),
+                        LayoutNodeSwitch(null, SwitchLink(switch1Id, MAIN, JointNumber(1))),
+                        LayoutNodeSwitch(
+                            SwitchLink(switch1Id, CONNECTION, JointNumber(2)),
+                            SwitchLink(switch2Id, MAIN, JointNumber(1)),
+                        ),
+                        LayoutNodeSwitch(SwitchLink(switch2Id, CONNECTION, JointNumber(2)), null),
+                        LayoutNodeTemp(TRACK_END),
+                    ),
+                    edgeLength = 100.0,
+                    edgeSegments = 3,
+                )
+            )
+        val insertVersion = mainDraftContext.save(track, geometry1)
+        val insertedGeometry = alignmentDao.fetch(insertVersion)
+        assertEquals(insertVersion, insertedGeometry.trackRowVersion)
+        assertMatches(geometry1, insertedGeometry)
+
+        val geometry2 =
+            trackGeometry(
+                edgesBetweenNodes(
+                    listOf(
+                        LayoutNodeSwitch(
+                            SwitchLink(switch2Id, MAIN, JointNumber(1)),
+                            SwitchLink(switch1Id, MAIN, JointNumber(1)),
+                        ),
+                        LayoutNodeSwitch(
+                            SwitchLink(switch1Id, MATH, JointNumber(5)),
+                            SwitchLink(switch1Id, MATH, JointNumber(5)),
+                        ),
+                        LayoutNodeSwitch(
+                            SwitchLink(switch1Id, CONNECTION, JointNumber(2)),
+                            SwitchLink(switch3Id, CONNECTION, JointNumber(2)),
+                        ),
+                    ),
+                    edgeLength = 50.0,
+                    edgeSegments = 1,
+                )
+            )
+        val updateVersion = mainDraftContext.save(locationTrackDao.fetch(insertVersion), geometry2)
+        val updatedGeometry = alignmentDao.fetch(updateVersion)
+        assertEquals(updateVersion, updatedGeometry.trackRowVersion)
+        assertMatches(geometry2, updatedGeometry)
+    }
+
+    fun edgesBetweenNodes(
+        nodes: List<LayoutNodeContent> = listOf(LayoutNodeTemp(TRACK_START), LayoutNodeTemp(TRACK_END)),
+        edgeLength: Double = 10.0,
+        edgeSegments: Int = 1,
+    ): List<LayoutEdgeContent> =
+        nodes.zipWithNext().mapIndexed { edgeIndex, (startNode, endNode) ->
+            val segmentLength = edgeLength / edgeSegments
+            val segments =
+                (0 until edgeSegments).map { segmentIndex ->
+                    //                    val interpolated = edgeIndex * edgeLength + segmentIndex * segmentLength
+                    //                    val startPoint = Point(interpolated, interpolated)
+                    //                    val endPoint = startPoint + Point(segmentLength, segmentLength)
+                    val startPoint = Point(edgeIndex * edgeLength + segmentIndex * segmentLength, 0.0)
+                    val endPoint = startPoint + Point(segmentLength, 0.0)
+                    segment(startPoint, endPoint)
+                }
+            LayoutEdgeContent(startNode, endNode, segments)
+        }
 
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20): LayoutAlignment =
         alignment(segmentsWithZAndCant(alignmentSeed, segmentCount))

@@ -1,26 +1,26 @@
 drop function if exists layout.get_or_insert_node;
 create function layout.get_or_insert_node(
-  switch_in int,
+  switch_in_id int,
   switch_in_joint_number int,
-  switch_in_joint_role int,
-  switch_out int,
+  switch_in_joint_role common.switch_joint_role,
+  switch_out_id int,
   switch_out_joint_number int,
-  switch_out_joint_role int,
-  start_track int,
-  end_track int
+  switch_out_joint_role common.switch_joint_role,
+  start_track_id int,
+  end_track_id int
 ) returns int as
 $$
 declare
   new_hash         uuid := (
     select layout.calculate_node_hash(
-        switch_in,
+        switch_in_id,
         switch_in_joint_number,
         switch_in_joint_role,
-        switch_out,
+        switch_out_id,
         switch_out_joint_number,
         switch_out_joint_role,
-        start_track,
-        end_track
+        start_track_id,
+        end_track_id
     )
   );
   declare result_id int;
@@ -42,14 +42,14 @@ begin
     values
       (
         new_hash,
-        switch_in,
+        switch_in_id,
         switch_in_joint_number,
         switch_in_joint_role,
-        switch_out,
+        switch_out_id,
         switch_out_joint_number,
         switch_out_joint_role,
-        start_track,
-        end_track
+        start_track_id,
+        end_track_id
       )
   on conflict (hash) do nothing
     returning id into result_id;

@@ -40,9 +40,41 @@ fun assertMatches(expected: LocationTrack, actual: LocationTrack, contextMatch: 
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
 }
 
-fun assertMatches(expected: LocationTrackGeometry, actual: LocationTrackGeometry, idMatch: Boolean = false) {
-    // TODO: GVT-2915
-    TODO()
+fun assertMatches(expected: LocationTrackGeometry, actual: LocationTrackGeometry, idMatch: Boolean = false) =
+    if (idMatch) {
+        assertEquals(expected, actual)
+    } else {
+        assertEquals(expected.edges.size, actual.edges.size)
+        expected.edges.forEachIndexed { index, expectedEdge -> assertMatches(expectedEdge, actual.edges[index]) }
+    }
+
+fun assertMatches(expected: ILayoutEdge, actual: ILayoutEdge, idMatch: Boolean = false) =
+    if (idMatch) {
+        assertEquals(expected, actual)
+    } else {
+        assertMatches(expected.startNode, actual.startNode)
+        assertMatches(expected.endNode, actual.endNode)
+        assertEquals(expected.length, actual.length, LENGTH_DELTA)
+        assertEquals(expected.segments.size, actual.segments.size)
+        expected.segments.forEachIndexed { index, expectedSegment ->
+            assertMatches(expectedSegment, actual.segments[index], idMatch)
+        }
+        expected.segmentMValues.forEachIndexed { index, m ->
+            assertEquals(m.min, actual.segmentMValues[index].min, LENGTH_DELTA)
+            assertEquals(m.max, actual.segmentMValues[index].max, LENGTH_DELTA)
+        }
+    }
+
+fun assertMatches(expected: ILayoutNodeContent, actual: ILayoutNodeContent, idMatch: Boolean = false) {
+    if (idMatch) {
+        assertEquals(expected, actual)
+    } else {
+        assertEquals(expected.nodeType, actual.nodeType)
+        if (expected.nodeType == LayoutNodeType.SWITCH) {
+            assertEquals(expected.switchIn, actual.switchIn)
+            assertEquals(expected.switchOut, actual.switchOut)
+        }
+    }
 }
 
 fun assertMatches(expected: LayoutAlignment, actual: LayoutAlignment, idMatch: Boolean = false) {

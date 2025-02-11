@@ -13,15 +13,15 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -141,13 +141,13 @@ class LayoutAlignmentDao(
             select layout.get_or_insert_node(
                 :switch_in_id,
                 :switch_in_joint_number,
-                :switch_in_joint_role,
+                :switch_in_joint_role::common.switch_joint_role,
                 :switch_out_id,
                 :switch_out_joint_number,
-                :switch_out_joint_role,
+                :switch_out_joint_role::common.switch_joint_role,
                 :start_track_id,
                 :end_track_id
-            )
+            ) as id
         """
         val params =
             mapOf(
@@ -175,7 +175,6 @@ class LayoutAlignmentDao(
 
     fun preloadEdges(): Int {
         val edges = fetchEdges(ids = null, active = true)
-        //        logger.info("Preloaded: ${edges.keys.toList()}")
         edgesCache.putAll(edges)
         edgeIdsByHash.putAll(edges.values.associate { n -> n.contentHash to n.id })
         return edges.size
@@ -229,7 +228,6 @@ class LayoutAlignmentDao(
                     rs.getIntIdArray<SegmentGeometry>("geometry_ids").also { require(it.size == segmentIndices.size) }
                 val segmentGeometries = fetchSegmentGeometries(geometryIds)
                 val segments =
-                    //                    segmentIndices.mapIndexed { i, segmentIndex ->
                     segmentIndices.map { i ->
                         val geometryAlignmentId = geometryAlignmentIds[i]
                         val geometryElementIndex = geometryElementIndices[i]
@@ -240,7 +238,6 @@ class LayoutAlignmentDao(
                                 null
                             }
                         LayoutSegment(
-                            //                            id = IndexedId(edgeId.intValue, segmentIndex),
                             sourceId = sourceId,
                             sourceStart = sourceStartMValues[i]?.toDouble(),
                             source = sources[i],
@@ -251,8 +248,6 @@ class LayoutAlignmentDao(
                     id = edgeId,
                     content =
                         LayoutEdgeContent(
-                            //                            startNodeId = rs.getIntId("start_node_id"),
-                            //                            endNodeId = rs.getIntId("end_node_id"),
                             // TODO: GVT-1727 fetch with single query or just trust in the cache?
                             startNode = getNode(rs.getIntId("start_node_id")),
                             endNode = getNode(rs.getIntId("end_node_id")),
@@ -287,7 +282,8 @@ class LayoutAlignmentDao(
               :start_m_values,
               :source_start_m_values,
               :sources,
-              :geometry_ids
+              :geometry_ids,
+               postgis.st_polygonfromtext(:polygon_string, 3067)
             ) as id
         """
         val params =
@@ -301,6 +297,7 @@ class LayoutAlignmentDao(
                     content.segments.map { s -> s.sourceStart?.let(::roundTo6Decimals) }.toTypedArray(),
                 "sources" to content.segments.map { s -> s.source.name }.toTypedArray(),
                 "geometry_ids" to content.segments.map { s -> (s.geometry.id as IntId).intValue }.toTypedArray(),
+                "polygon_string" to create2DPolygonString(content.boundingBox.polygonFromCorners),
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutEdge>("id") }.single()
     }

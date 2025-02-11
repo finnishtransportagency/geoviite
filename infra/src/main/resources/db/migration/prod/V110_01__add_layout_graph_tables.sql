@@ -1,12 +1,12 @@
-create or replace function layout.calculate_node_hash(
+create function layout.calculate_node_hash(
   switch_in_id int,
   switch_in_joint_number int,
   switch_in_joint_role common.switch_joint_role,
   switch_out_id int,
   switch_out_joint_number int,
   switch_out_joint_role common.switch_joint_role,
-  start_track int,
-  end_track int
+  start_track_id int,
+  end_track_id int
 ) returns uuid
   language sql as
 $$
@@ -25,10 +25,10 @@ select
         switch_out_joint_role
         )::text
       )::uuid
-    when start_track is not null then
-      md5(row ('TRACK_START', start_track)::text)::uuid
-    when end_track is not null then
-      md5(row ('TRACK_END', end_track)::text)::uuid
+    when start_track_id is not null then
+      md5(row ('TRACK_START', start_track_id)::text)::uuid
+    when end_track_id is not null then
+      md5(row ('TRACK_END', end_track_id)::text)::uuid
   end
 $$ immutable;
 
@@ -97,7 +97,7 @@ create table layout.edge
 );
 comment on table layout.edge is 'Layout edge: an immutable geometry connecting two location track nodes';
 
-create or replace function layout.calculate_segment_hash(
+create function layout.calculate_segment_hash(
   geometry_alignment_id int,
   geometry_element_index int,
   source_start decimal(13, 6),
@@ -109,7 +109,7 @@ $$
 select md5(row (geometry_alignment_id, geometry_element_index, source_start, source, geometry_id)::text)::uuid
 $$ immutable;
 
-create or replace function layout.calculate_edge_hash(
+create function layout.calculate_edge_hash(
   start_node_id int,
   end_node_id int,
   segment_hashes uuid[]
