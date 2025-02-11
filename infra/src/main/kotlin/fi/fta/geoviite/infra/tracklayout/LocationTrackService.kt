@@ -36,11 +36,12 @@ import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
+import fi.fta.geoviite.infra.util.measureAndCollect
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -280,13 +281,22 @@ class LocationTrackService(
         includeDeleted: Boolean = false,
         boundingBox: BoundingBox? = null,
         minLength: Double? = null,
+        locationTrackIds: Set<IntId<LocationTrack>>? = null,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         return if (boundingBox == null) {
                 dao.list(layoutContext, includeDeleted, trackNumberId)
             } else {
-                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId, minLength).map(dao::fetch)
+                measureAndCollect("XXXX fetchVersionsNear") {
+                    dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId, minLength)
+                        .map(dao::fetch)
+                }
             }
-            .let { list -> filterByBoundingBox(list, boundingBox) }
+            .let { list ->
+                if (locationTrackIds == null) list
+                else
+                    list.filter { locationTrack -> locationTrackIds.contains(locationTrack.id as IntId<LocationTrack>) }
+            }
+            .let { list -> measureAndCollect("XXXX filterByBoundingBox") { filterByBoundingBox(list, boundingBox) } }
             .let(::associateWithAlignments)
     }
 

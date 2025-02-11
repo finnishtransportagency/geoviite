@@ -29,9 +29,9 @@ import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import {
     CandidateDataProperties,
-    createCandidateLocationTrackFeatures,
     createBaseLocationTrackFeatures,
     createBaseReferenceLineFeatures,
+    createCandidateLocationTrackFeatures,
     createCandidatePointFeatures,
     createCandidateReferenceLineFeatures,
     createCandidateTrackNumberFeatures,
@@ -108,12 +108,16 @@ export function createPublicationCandidateLayer(
         return { candidateTrackNumbers: tnCandidates, candidateReferenceLines: rlCandidates };
     });
 
+    console.log('track count input', locationTrackIds.length);
     const candidateLocationTrackAlignmentPromise = getLocationTrackMapAlignmentsByTiles(
         changeTimes,
         mapTiles,
         layoutContext,
-    ).then((locationTrackAlignments) =>
-        locationTrackAlignments
+        true,
+        locationTrackIds,
+    ).then((locationTrackAlignments) => {
+        console.log('track count', locationTrackAlignments.length);
+        return locationTrackAlignments
             .map((alignment) => {
                 const candidate = locationTrackCandidates.find((c) => c.id === alignment.header.id);
                 return candidate
@@ -123,8 +127,8 @@ export function createPublicationCandidateLayer(
                       } as LocationTrackCandidateAndAlignment)
                     : undefined;
             })
-            .filter(filterNotEmpty),
-    );
+            .filter(filterNotEmpty);
+    });
 
     const baseLocationTrackAlignmentsPromise =
         locationTrackCandidates.length > 0

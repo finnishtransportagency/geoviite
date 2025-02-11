@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.AlignmentPolyLine
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.AlignmentFetchType.ALL
+import fi.fta.geoviite.infra.util.measureAndCollect
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -32,16 +33,20 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @RequestParam("type") type: AlignmentFetchType? = null,
         @RequestParam("includeSegmentEndPoints") includeSegmentEndPoints: Boolean = false,
         @RequestParam("minLength") minLength: Double? = null,
+        @RequestParam("locationTrackIds") locationTrackIds: List<IntId<LocationTrack>>? = null,
     ): List<AlignmentPolyLine<*>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return mapAlignmentService.getAlignmentPolyLines(
-            layoutContext,
-            bbox,
-            resolution,
-            type ?: ALL,
-            includeSegmentEndPoints,
-            minLength,
-        )
+        return measureAndCollect("XXXX getAlignmentPolyLines") {
+            mapAlignmentService.getAlignmentPolyLines(
+                layoutContext,
+                bbox,
+                resolution,
+                type ?: ALL,
+                includeSegmentEndPoints,
+                minLength,
+                locationTrackIds?.toSet(),
+            )
+        }
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

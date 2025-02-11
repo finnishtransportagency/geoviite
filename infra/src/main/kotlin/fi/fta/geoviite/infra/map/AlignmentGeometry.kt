@@ -127,7 +127,11 @@ fun <T> toAlignmentPolyLine(
     resolution: Int? = null,
     bbox: BoundingBox? = null,
     includeSegmentEndPoints: Boolean,
-) = AlignmentPolyLine(id, type, simplify(alignment, resolution, bbox, includeSegmentEndPoints))
+) = AlignmentPolyLine(id, type, simplify(alignment, resolution, null, includeSegmentEndPoints))
+
+// fun seekAlignmentPoint(segments:List<ISegment>, targetM:Double, ):AlignmentPoint {
+//
+// }
 
 fun simplify(
     alignment: IAlignment,
@@ -138,8 +142,11 @@ fun simplify(
     val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segments
     var previousM = Double.NEGATIVE_INFINITY
     val isOverResolution = { mValue: Double -> resolution?.let { r -> (mValue - previousM).roundToInt() >= r } ?: true }
+    val res = resolution ?: 1
+
     return segments
         .flatMapIndexed { sIndex, s ->
+            //            measureAndPrintLength({(_) -> s.segmentPoints.size}, "point count")
             val isEndPoint = { pIndex: Int ->
                 val isTrackEndPoint =
                     (sIndex == 0 && pIndex == 0) ||
@@ -151,16 +158,43 @@ fun simplify(
             val bboxContains = { pIndex: Int ->
                 bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
             }
-            s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-                if (isPointIncluded(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
-                    if (!isSegmentEndPoint(pIndex)) {
+
+            val aList = mutableListOf<AlignmentPoint>()
+            var index = 0
+            while (index <= s.segmentPoints.lastIndex) {
+                val p = s.segmentPoints[index]
+
+                if (isPointIncluded(index, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
+                    val isMiddlePoint = !isSegmentEndPoint(index)
+                    if (isMiddlePoint || previousM < 0) {
                         // segment end points should be additional points,
                         // so increase m-counter only when handling middle points
-                        previousM = s.startM + p.m
                     }
-                    p.toAlignmentPoint(s.startM)
-                } else null
+                    previousM = s.startM + p.m
+                    aList.add(p.toAlignmentPoint(s.startM))
+                }
+
+                if (index + res < s.segmentPoints.lastIndex) {
+                    index += res
+                } else if (index == s.segmentPoints.lastIndex) {
+                    index++
+                } else {
+                    index = s.segmentPoints.lastIndex
+                }
             }
+            aList
+
+            //            s.segmentPoints.mapIndexedNotNull { pIndex, p ->
+            //                if (isPointIncluded(pIndex, p.m + s.startM, isEndPoint,
+            // isOverResolution, bboxContains)) {
+            //                    if (!isSegmentEndPoint(pIndex)) {
+            //                        // segment end points should be additional points,
+            //                        // so increase m-counter only when handling middle points
+            //                        previousM = s.startM + p.m
+            //                    }
+            //                    p.toAlignmentPoint(s.startM)
+            //                } else null
+            //            }
         }
         .let { points -> if (points.size >= 2) points else listOf() }
 }

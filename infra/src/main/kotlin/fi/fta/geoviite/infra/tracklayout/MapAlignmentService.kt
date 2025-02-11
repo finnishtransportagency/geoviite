@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.map.toAlignmentPolyLine
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.combineContinuous
+import fi.fta.geoviite.infra.util.measureAndCollect
 import org.springframework.transaction.annotation.Transactional
 
 enum class AlignmentFetchType {
@@ -42,13 +43,22 @@ class MapAlignmentService(
         type: AlignmentFetchType,
         includeSegmentEndPoints: Boolean = false,
         minLength: Double? = null,
+        locationTrackIds: Set<IntId<LocationTrack>>? = null,
     ): List<AlignmentPolyLine<*>> {
         val referenceLines =
             if (type == AlignmentFetchType.LOCATION_TRACKS) listOf()
             else getReferenceLinePolyLines(layoutContext, bbox, resolution, includeSegmentEndPoints)
         val locationTracks =
             if (type == AlignmentFetchType.REFERENCE_LINES) listOf()
-            else getLocationTrackPolyLines(layoutContext, bbox, resolution, includeSegmentEndPoints, minLength)
+            else
+                getLocationTrackPolyLines(
+                    layoutContext,
+                    bbox,
+                    resolution,
+                    includeSegmentEndPoints,
+                    minLength,
+                    locationTrackIds,
+                )
 
         return (referenceLines + locationTracks).filter { pl -> pl.points.isNotEmpty() }
     }
@@ -166,11 +176,31 @@ class MapAlignmentService(
         resolution: Int,
         includeSegmentEndPoints: Boolean,
         minLength: Double? = null,
+        locationTrackIds: Set<IntId<LocationTrack>>? = null,
     ): List<AlignmentPolyLine<LocationTrack>> =
         locationTrackService
-            .listWithAlignments(layoutContext, includeDeleted = false, boundingBox = bbox, minLength = minLength)
+            .listWithAlignments(
+                layoutContext,
+                includeDeleted = false,
+                boundingBox = bbox,
+                minLength = minLength,
+                locationTrackIds = locationTrackIds,
+            )
+            .let { list ->
+                val sSum = list.sumOf { (_, a) -> a.segments.size }
+                val pSum = list.sumOf { (_, a) -> a.segments.sumOf { s -> s.segmentPoints.size } }
+                println("XXXX input counts $sSum $pSum")
+                list
+            }
             .map { (track, alignment) ->
-                toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints)
+                measureAndCollect("XXXX toAlignmentPolyLine") {
+                    toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints)
+                }
+            }
+            .let { list ->
+                val pSum = list.sumOf { l -> l.points.size }
+                println("XXXX output counts $pSum")
+                list
             }
 
     private fun getReferenceLinePolyLines(

@@ -14,7 +14,10 @@ import {
 } from 'map/layers/utils/alignment-layer-utils';
 import { LocationTrackId, LocationTrackState } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
-import { getLocationTrackMapAlignmentsByTiles, LocationTrackAlignmentDataHolder } from 'track-layout/layout-map-api';
+import {
+    getLocationTrackMapAlignmentsByTiles,
+    LocationTrackAlignmentDataHolder,
+} from 'track-layout/layout-map-api';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import { LayoutContext } from 'common/common-model';
@@ -107,7 +110,7 @@ export function createLocationTrackAlignmentLayer(
     onViewContentChanged: (items: OptionalShownItems) => void,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const {layer, source, isLatest} = createLayer(layerName, existingOlLayer);
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     layer.setOpacity(
         isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
@@ -120,7 +123,7 @@ export function createLocationTrackAlignmentLayer(
 
         if (compare !== shownLocationTracksCompare) {
             shownLocationTracksCompare = compare;
-            onViewContentChanged({locationTracks: locationTrackIds});
+            onViewContentChanged({ locationTracks: locationTrackIds });
         }
     }
 
@@ -131,6 +134,7 @@ export function createLocationTrackAlignmentLayer(
     );
 
     const createFeatures = (locationTracks: LocationTrackAlignmentDataHolder[]) => {
+        console.log('track count, location track layer', locationTracks.length);
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
         return createAlignmentFeatures(locationTracks, selection, showEndPointTicks);
     };
@@ -140,7 +144,7 @@ export function createLocationTrackAlignmentLayer(
         locationTracks: LocationTrackAlignmentDataHolder[] | undefined,
     ) => {
         if (!loading) {
-            updateShownLocationTracks(locationTracks?.map(({header}) => header.id) ?? []);
+            updateShownLocationTracks(locationTracks?.map(({ header }) => header.id) ?? []);
         }
         onLoadingData(loading);
     };
@@ -151,7 +155,7 @@ export function createLocationTrackAlignmentLayer(
         name: layerName,
         layer: layer,
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => ({
-            locationTracks: findMatchingAlignments(hitArea, source, options).map(({header}) =>
+            locationTracks: findMatchingAlignments(hitArea, source, options).map(({ header }) =>
                 brand(header.id),
             ),
         }),
