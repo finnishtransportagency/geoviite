@@ -180,11 +180,11 @@ constructor(
         }
 
         require(split.bulkTransfer.state == BulkTransferState.CREATED) {
-            "Bulk transfer expedited start can only be accomplished to bulk transfers with CREATED status, splitId=${split.id} has bulkTransferState=${split.bulkTransfer.state}"
+            "Bulk transfer expedited start can only be accomplished to bulk transfers with CREATED status, " +
+                "splitId=${split.id} has bulkTransferState=${split.bulkTransfer.state}"
         }
 
-        // TODO This repeats in all 3 different HTTP calls
-        try {
+        withBulkTransferHttpErrorHandler(split, "expedited start") {
             //            ratkoClient.forceStartBulkTransfer(split.bulkTransfer.ratkoBulkTransferId,
             // timeout) // TODO Set the timeout based on input instead
             ratkoClient.forceStartBulkTransfer(
@@ -196,35 +196,43 @@ constructor(
                 temporaryFailure = false,
                 bulkTransferState = BulkTransferState.IN_PROGRESS,
             )
-        } catch (ex: IllegalStateException) {
-            if (ex.cause is java.util.concurrent.TimeoutException) {
-                logger.info("Bulk transfer expedited start request timed out: $ex")
-                handleTimeoutException(split)
-            } else {
-                throw ex
-            }
-        } catch (ex: WebClientResponseException) {
-            logger.info("Bulk transfer expedited start request web client exception: $ex")
-            handleWebClientBulkTransferResponseException(split, ex)
-        } catch (ex: Exception) {
-            logger.info("Unhandled bulk transfer expedited start request exception")
-            throw ex
         }
 
         return splitService.getOrThrow(split.id)
     }
 
-    fun pollBulkTransferStateUpdate(split: Split, timeout: Duration): Split {
-        val statesToPollDuring = listOf(BulkTransferState.CREATED, BulkTransferState.IN_PROGRESS)
+    fun withBulkTransferHttpErrorHandler(split: Split, requestType: String, httpRequest: () -> Unit) {
+        try {
+            httpRequest()
+        } catch (ex: IllegalStateException) {
+            if (ex.cause is java.util.concurrent.TimeoutException) {
+                logger.info("Bulk transfer request timed out, requestType=$requestType: $ex")
+                handleTimeoutException(split)
+            } else {
+                throw ex
+            }
+        } catch (ex: WebClientResponseException) {
+            logger.info("Bulk transfer request web client exception, requestType=$requestType: $ex")
+            handleWebClientBulkTransferResponseException(split, ex)
+        } catch (ex: Exception) {
+            logger.info("Unhandled bulk transfer request exception, requestType=$requestType")
+            throw ex
+        }
+    }
 
+    fun pollBulkTransferStateUpdate(split: Split, timeout: Duration): Split {
         requireNotNull(split.bulkTransfer) {
             "Bulk transfer poll was ran for a split which had bulkTransfer=null, splitId=${split.id}"
         }
 
+        val statesToPollDuring = listOf(BulkTransferState.CREATED, BulkTransferState.IN_PROGRESS)
+
         if (!statesToPollDuring.contains(split.bulkTransfer.state)) {
             logger.info(
-                "Skipping bulk transfer state poll: split is not in a state that should be polled, splitId=${split.id}, bulkTransferState=${split.bulkTransfer.state})"
+                "Skipping bulk transfer state poll: split is not in a state that should be polled, " +
+                    "splitId=${split.id}, bulkTransferState=${split.bulkTransfer.state})"
             )
+
             return split
         }
 
@@ -232,7 +240,7 @@ constructor(
             "Was about to poll bulk transfer state for split, but ratkoBulkTransferId was null for splitId=${split.id}!"
         }
 
-        try {
+        withBulkTransferHttpErrorHandler(split, "poll") {
             ratkoClient.pollBulkTransferState(split.bulkTransfer.ratkoBulkTransferId, timeout).let {
                 (polledState, response) ->
                 val previouslyInProgress = split.bulkTransfer.state == BulkTransferState.IN_PROGRESS
@@ -264,19 +272,6 @@ constructor(
                     trexAssetsRemaining = response.remainingTrexAssets,
                 )
             }
-        } catch (ex: IllegalStateException) {
-            if (ex.cause is java.util.concurrent.TimeoutException) {
-                logger.info("Bulk transfer poll request timed out: $ex")
-                handleTimeoutException(split)
-            } else {
-                throw ex
-            }
-        } catch (ex: WebClientResponseException) {
-            logger.info("Bulk transfer poll request web client exception: $ex")
-            handleWebClientBulkTransferResponseException(split, ex)
-        } catch (ex: Exception) {
-            logger.info("Unhandled bulk transfer poll request exception")
-            throw ex
         }
 
         return splitService.getOrThrow(split.id)
@@ -285,7 +280,7 @@ constructor(
     fun beginNewBulkTransfer(branch: LayoutBranch, split: Split, timeout: Duration) {
         val request = newBulkTransferCreateRequest(branch, split)
 
-        try {
+        withBulkTransferHttpErrorHandler(split, "create") {
             ratkoClient.sendBulkTransferCreateRequest(request, timeout).let { (bulkTransferId, bulkTransferState) ->
                 logger.info(
                     "Bulk transfer create request completed for splitId=${split.id}, bulkTransferId=$bulkTransferId"
@@ -298,19 +293,6 @@ constructor(
                     temporaryFailure = false,
                 )
             }
-        } catch (ex: IllegalStateException) {
-            if (ex.cause is java.util.concurrent.TimeoutException) {
-                logger.info("Bulk transfer create request timed out: $ex")
-                handleTimeoutException(split)
-            } else {
-                throw ex
-            }
-        } catch (ex: WebClientResponseException) {
-            logger.info("Bulk transfer create request web client exception: $ex")
-            handleWebClientBulkTransferResponseException(split, ex)
-        } catch (ex: Exception) {
-            logger.info("Unhandled bulk transfer create request exception")
-            throw ex
         }
     }
 
