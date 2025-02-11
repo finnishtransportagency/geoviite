@@ -205,6 +205,15 @@ export function substituteLayoutStationsForGeometryStations(
     };
 }
 
+export function processPlanGeometries(geometry: VerticalGeometryItem[], staStart: number) {
+    return geometry.map((item) => ({
+        ...item,
+        start: { ...item.start, station: item.start.station - staStart },
+        point: { ...item.point, station: item.point.station - staStart },
+        end: { ...item.end, station: item.end.station - staStart },
+    }));
+}
+
 export function processLayoutGeometries(
     geometry: VerticalGeometryItem[],
     linkingSummary: PlanLinkingSummaryItem[],

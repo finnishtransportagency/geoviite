@@ -522,6 +522,7 @@ fun mapAlignment(segments: List<PlanLayoutSegment>) =
                 length = segments.map(PlanLayoutSegment::length).sum(),
                 boundingBox = boundingBoxCombining(segments.mapNotNull(PlanLayoutSegment::boundingBox)),
             ),
+        staStart = 0.0,
         segments = segments,
     )
 
