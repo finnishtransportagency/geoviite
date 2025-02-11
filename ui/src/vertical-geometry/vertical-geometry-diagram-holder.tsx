@@ -19,7 +19,7 @@ import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { OnSelectOptions } from 'selection/selection-model';
 import { BoundingBox } from 'model/geometry';
-import { processLayoutGeometries } from 'vertical-geometry/util';
+import { processLayoutGeometries, processPlanGeometries } from 'vertical-geometry/util';
 import { useTranslation } from 'react-i18next';
 import {
     planAlignmentKey,
@@ -51,7 +51,6 @@ type AlignmentAndExtents = {
     endM: number;
 };
 
-// we don't really need the station values in the plan geometry for anything in this entire diagram
 async function getStartAndEnd(
     changeTimes: ChangeTimes,
     alignmentId: VerticalGeometryDiagramAlignmentId,
@@ -165,7 +164,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                     setProcessedGeometry(
                         (linkingSummary
                             ? processLayoutGeometries(geometry, linkingSummary)
-                            : geometry
+                            : processPlanGeometries(geometry, startEnd?.staStart ?? 0)
                         ).sort((a, b) =>
                             !a.point || !b.point ? 0 : a.point.station - b.point.station,
                         ),
