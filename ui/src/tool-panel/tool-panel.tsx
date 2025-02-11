@@ -18,7 +18,7 @@ import {
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import { SelectedGeometryItem } from 'selection/selection-model';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
-import { filterNotEmpty, filterUnique, first } from 'utils/array-utils';
+import { compareByField, filterNotEmpty, filterUnique, first } from 'utils/array-utils';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
 import { getKmPosts } from 'track-layout/layout-km-post-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
@@ -33,6 +33,7 @@ import {
     GeometryKmPostInfoboxVisibilities,
     InfoboxVisibilities,
     KmPostInfoboxVisibilities,
+    TOOL_PANEL_ASSET_ORDER,
 } from 'track-layout/track-layout-slice';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -71,18 +72,20 @@ type ToolPanelProps = {
     onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
 };
 
+export type ToolPanelAssetType =
+    | 'LOCATION_TRACK'
+    | 'SWITCH'
+    | 'KM_POST'
+    | 'REFERENCE_LINE'
+    | 'TRACK_NUMBER'
+    | 'GEOMETRY_ALIGNMENT'
+    | 'GEOMETRY_PLAN'
+    | 'GEOMETRY_KM_POST'
+    | 'GEOMETRY_SWITCH'
+    | 'GEOMETRY_SWITCH_SUGGESTION';
 export type ToolPanelAsset = {
     id: string;
-    type:
-        | 'LOCATION_TRACK'
-        | 'SWITCH'
-        | 'KM_POST'
-        | 'REFERENCE_LINE'
-        | 'TRACK_NUMBER'
-        | 'GEOMETRY_ALIGNMENT'
-        | 'GEOMETRY_PLAN'
-        | 'GEOMETRY_KM_POST'
-        | 'GEOMETRY_SWITCH';
+    type: ToolPanelAssetType;
 };
 
 type ToolPanelTab = {
@@ -128,7 +131,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     verticalGeometryDiagramVisible,
     onHoverOverPlanSection,
 }: ToolPanelProps) => {
-    const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
 
     const tracksSwitchesKmPostsPlans = useLoader(() => {
@@ -303,7 +305,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
         const suggestedSwitchTabs: ToolPanelTab[] = suggestedSwitches.map((ss) => {
             return {
-                asset: { type: 'GEOMETRY_SWITCH', id: ss.id },
+                asset: { type: 'GEOMETRY_SWITCH_SUGGESTION', id: ss.id },
                 title: ss.name ?? '...',
                 element: (
                     <SuggestedSwitchInfoboxContainer
@@ -396,7 +398,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             ...locationTrackTabs,
             ...trackNumberTabs,
             ...planTabs,
-        ];
+        ].toSorted((t1, t2) =>
+            compareByField(t1, t2, (t) => TOOL_PANEL_ASSET_ORDER.indexOf(t.asset.type)),
+        );
         setTabs(allTabs);
     }, [
         planHeaders,
@@ -419,23 +423,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     ]);
 
     React.useEffect(() => {
-        const newTabs = tabs.filter(
-            (t) => !previousTabs.some((pt) => isSameAsset(t.asset, pt.asset)),
-        );
-
-        const firstTab = first(newTabs);
-        if (firstTab) {
-            if (selectedAsset && newTabs.some((nt) => isSameAsset(nt.asset, selectedAsset))) {
-                changeTab(selectedAsset);
-            } else {
-                changeTab(firstTab.asset);
-            }
+        if (selectedAsset && tabs.some((tab) => isSameAsset(tab.asset, selectedAsset))) {
+            changeTab(selectedAsset);
         }
-
-        if (!tabs.length) {
-            setSelectedAsset(undefined);
-        }
-        setPreviousTabs(tabs);
     }, [tabs]);
 
     function changeTab(tab: ToolPanelAsset) {
@@ -464,7 +454,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         } else if (linkingState?.type === LinkingType.LinkingSwitch) {
             lockToAsset = tabs.find((t) => {
                 return (
-                    (t.asset.type === 'GEOMETRY_SWITCH' &&
+                    ((t.asset.type === 'GEOMETRY_SWITCH' ||
+                        t.asset.type === 'GEOMETRY_SWITCH_SUGGESTION') &&
                         t.asset.id === linkingState.suggestedSwitch.geometrySwitchId) ||
                     suggestedSwitches.some((s) => t.asset.id === s.id)
                 );
