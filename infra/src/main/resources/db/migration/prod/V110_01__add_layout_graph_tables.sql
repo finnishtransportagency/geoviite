@@ -1,10 +1,10 @@
 create function layout.calculate_node_hash(
-  switch_in_id int,
-  switch_in_joint_number int,
-  switch_in_joint_role common.switch_joint_role,
-  switch_out_id int,
-  switch_out_joint_number int,
-  switch_out_joint_role common.switch_joint_role,
+  switch_1_id int,
+  switch_1_joint_number int,
+  switch_1_joint_role common.switch_joint_role,
+  switch_2_id int,
+  switch_2_joint_number int,
+  switch_2_joint_role common.switch_joint_role,
   start_track_id int,
   end_track_id int
 ) returns uuid
@@ -13,16 +13,16 @@ $$
 select
   case
     -- Hash by type so we don't need the nulls in the rows: this allows adding more types without changing existing hashes
-    when switch_in_id is not null or switch_out_id is not null then
+    when switch_1_id is not null or switch_2_id is not null then
       md5(row
         (
         'SWITCH',
-        switch_in_id,
-        switch_in_joint_number,
-        switch_in_joint_role,
-        switch_out_id,
-        switch_out_joint_number,
-        switch_out_joint_role
+        switch_1_id,
+        switch_1_joint_number,
+        switch_1_joint_role,
+        switch_2_id,
+        switch_2_joint_number,
+        switch_2_joint_role
         )::text
       )::uuid
     when start_track_id is not null then
@@ -40,60 +40,63 @@ create table layout.node
     case
       when starting_location_track_id is not null then 'TRACK_START'::layout.node_type
       when ending_location_track_id is not null then 'TRACK_END'::layout.node_type
-      when switch_in_id is not null or switch_out_id is not null then 'SWITCH'::layout.node_type
+      when switch_1_id is not null or switch_2_id is not null then 'SWITCH'::layout.node_type
       -- This fallback will fail the insert as the value cannot be null
       else null::layout.node_type
     end
     ) stored,
-  hash                        uuid                     not null unique,
+  hash                       uuid                     not null unique,
   -- TODO: GVT-2930: this could as well be a generated column, or even a unique constraint
   -- That does mean the migration is a little trickier and the insert function more verbose, though
 --   generated always as (
 --     layout.calculate_node_hash(
---         switch_in_id,
---         switch_in_joint_number,
---         switch_in_joint_role,
---         switch_out_id,
---         switch_out_joint_number,
---         switch_out_joint_role,
+--         switch_1_id,
+--         switch_1_joint_number,
+--         switch_1_joint_role,
+--         switch_2_id,
+--         switch_2_joint_number,
+--         switch_2_joint_role,
 --         starting_location_track_id,
 --         ending_location_track_id
 --     )) stored,
   -- This cannot be an actual foreign key reference, as tracks are sometimes deleted and this table is immutable, like version tables
-  switch_in_id               int                      null,
-  switch_in_joint_number     int                      null,
-  switch_in_joint_role       common.switch_joint_role null,
-  switch_out_id              int                      null,
-  switch_out_joint_number    int                      null,
-  switch_out_joint_role      common.switch_joint_role null,
+  switch_1_id               int                      null,
+  switch_1_joint_number     int                      null,
+  switch_1_joint_role       common.switch_joint_role null,
+  switch_2_id              int                      null,
+  switch_2_joint_number    int                      null,
+  switch_2_joint_role      common.switch_joint_role null,
   starting_location_track_id int                      null unique,
   ending_location_track_id   int                      null unique,
   -- Unique constraint for enforcing type through foreign key references
   constraint node_type_unique unique (id, type),
   constraint chk_node_type check (
     -- Switch link must have a joint number (if id exists, joint must exist)
-    ((switch_in_id is null) = (switch_in_joint_number is null)) and
-    ((switch_out_id is null) = (switch_out_joint_number is null)) and
+    ((switch_1_id is null) = (switch_1_joint_number is null)) and
+    ((switch_2_id is null) = (switch_2_joint_number is null)) and
       -- Track end nodes cant be start and end at the same time
     (starting_location_track_id is null or ending_location_track_id is null) and
       -- Switch nodes are not track ends
     (
-      (switch_in_id is null and switch_out_id is null) or
+      (switch_1_id is null and switch_2_id is null) or
       (starting_location_track_id is null and ending_location_track_id is null)
       )
     )
 );
 comment on table layout.node is 'Layout node: a connecting point in the layout graph. Immutable and un-versioned, this is really just an identity with no data.';
 
+create type layout.node_direction as enum ('INCREASING', 'DECREASING');
 create table layout.edge
 (
-  id            int primary key generated always as identity,
-  start_node_id int                             not null references layout.node (id),
-  end_node_id   int                             not null references layout.node (id),
-  bounding_box  postgis.geometry(polygon, 3067) null,
-  segment_count int                             not null,
-  length        decimal(13, 6)                  not null,
-  hash          uuid                            not null unique
+  id                   int primary key generated always as identity,
+  start_node_id        int                             not null references layout.node (id),
+  start_node_direction layout.node_direction      not null,
+  end_node_id          int                             not null references layout.node (id),
+  end_node_direction   layout.node_direction      not null,
+  bounding_box         postgis.geometry(polygon, 3067) null,
+  segment_count        int                             not null,
+  length               decimal(13, 6)                  not null,
+  hash                 uuid                            not null unique
 );
 comment on table layout.edge is 'Layout edge: an immutable geometry connecting two location track nodes';
 
@@ -111,12 +114,14 @@ $$ immutable;
 
 create function layout.calculate_edge_hash(
   start_node_id int,
+  start_node_direction layout.node_direction,
   end_node_id int,
+  end_node_direction layout.node_direction,
   segment_hashes uuid[]
 ) returns uuid
   language sql as
 $$
-select md5(row (start_node_id, end_node_id, segment_hashes)::text)::uuid
+select md5(row (start_node_id, start_node_direction, end_node_id, end_node_direction, segment_hashes)::text)::uuid
 $$ immutable;
 
 create table layout.edge_segment

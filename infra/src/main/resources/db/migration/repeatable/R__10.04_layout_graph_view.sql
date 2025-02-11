@@ -24,11 +24,11 @@ select distinct on (switch_id, location_track_id, location_track_layout_context_
       ltvn.location_track_id,
       ltvn.location_track_layout_context_id,
       ltvn.location_track_version,
-      unnest(array[node.switch_in_id, node.switch_out_id]) as switch_id,
+      unnest(array[node.switch_1_id, node.switch_2_id]) as switch_id,
       unnest(array[2*ltvn.node_sort, 2*ltvn.node_sort + 1]) as switch_sort
       from layout.location_track_version_node_view ltvn
         inner join layout.node node on ltvn.node_id = node.id
-      where node.switch_in_id is not null or node.switch_out_id is not null
+      where node.switch_1_id is not null or node.switch_2_id is not null
   ) tmp
   where switch_id is not null;
 
@@ -59,7 +59,7 @@ select distinct
   ltve.location_track_layout_context_id,
   ltve.location_track_version
   from layout.switch_version sv
-    inner join layout.node on sv.id in (node.switch_in_id, node.switch_out_id)
+    inner join layout.node on sv.id in (node.switch_1_id, node.switch_2_id)
     inner join layout.edge on node.id in (edge.start_node_id, edge.end_node_id)
     inner join layout.location_track_version_edge ltve on edge.id = ltve.edge_id;
 
@@ -77,7 +77,7 @@ select distinct
 --     inner join layout.edge on node.id in (edge.start_node_id, edge.end_node_id)
 --     inner join layout.location_track_version_edge ltve on edge.id = ltve.edge_id
 --   where
---     14 in (switch_in_id, switch_out_id)
+--     14 in (switch_1_id, switch_2_id)
 --     and ltve.location_track_layout_context_id = 'main_official';
 --
 -- select distinct
@@ -87,5 +87,5 @@ select distinct
 -- from layout.node
 --   inner join layout.edge on node.id in (edge.start_node_id, edge.end_node_id)
 --   inner join layout.location_track_version_edge ltve on edge.id = ltve.edge_id
--- where 14 in (switch_in_id, switch_out_id)
+-- where 14 in (switch_1_id, switch_2_id)
 --   and ltve.location_track_layout_context_id = 'main_official';

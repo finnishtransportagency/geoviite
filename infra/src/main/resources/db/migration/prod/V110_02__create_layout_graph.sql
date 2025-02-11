@@ -139,6 +139,35 @@ create temporary table node_point_version_temp as (
         node.*,
         joint_in.role as switch_in_joint_role,
         joint_out.role as switch_out_joint_role
+--         node.location_track_id,
+--         node.location_track_layout_context_id,
+--         node.location_track_version,
+--         node.location_track_change_time,
+--         node.alignment_id,
+--         node.alignment_version,
+--         node.start_segment_index,
+--         node.end_segment_index,
+--         node.start_track_link,
+--         node.end_track_link,
+--         case
+--           when array [switch_in_id, switch_in_joint_number] <= array [switch_out_id, switch_out_joint_number] then 'INCREASING'
+--           else 'DECREASING'
+--         end as node_direction,
+--         case
+--           when array [switch_in_id, switch_in_joint_number] <= array [switch_out_id, switch_out_joint_number] then switch_in_id
+--           else switch_out_id
+--         end as switch_1_id,
+--         (least(array [switch_in_id, switch_in_joint_number], array [switch_out_id, switch_out_joint_number]))[2] as switch_1_joint_number,
+--         case
+--           when array [switch_in_id, switch_in_joint_number] <= array [switch_out_id, switch_out_joint_number] then joint_in.role
+--           else joint_out.role
+--         end as switch_1_joint_role,
+--         (greatest(array [switch_in_id, switch_in_joint_number], array [switch_out_id, switch_out_joint_number]))[1] as switch_2_id,
+--         (greatest(array [switch_in_id, switch_in_joint_number], array [switch_out_id, switch_out_joint_number]))[2] as switch_2_joint_number,
+--         case
+--           when array [switch_in_id, switch_in_joint_number] <= array [switch_out_id, switch_out_joint_number] then joint_out.role
+--           else joint_in.role
+--         end as switch_2_joint_role
         from node_point node
           -- Join draft version if (and only if) the location track is a draft
           left join switch_version_temp switch_in_d
@@ -188,6 +217,7 @@ create temporary table node_point_version_temp as (
         row_number() over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by start_segment_index, end_segment_index) as node_index,
         -- The grouping contracts the duplicated locations to a single node which may have multiple switch links
         -- There can only be one or null of these per node
+--         (array_agg(distinct node_direction) filter (where node_direction is not null))[1] as node_direction,
         (array_agg(distinct switch_in_id) filter (where switch_in_id is not null))[1] as switch_in_id,
         (array_agg(distinct switch_in_joint_number) filter (where switch_in_joint_number is not null))[1] as switch_in_joint_number,
         (array_agg(distinct switch_in_joint_role) filter (where switch_in_joint_role is not null))[1] as switch_in_joint_role,
@@ -210,48 +240,68 @@ create temporary table node_point_version_temp as (
       alignment_id,
       alignment_version,
       node_index,
-      switch_in_id,
-      switch_in_joint_number,
-      switch_in_joint_role,
-      switch_out_id,
-      switch_out_joint_number,
-      switch_out_joint_role,
+--       node_direction,
+--       switch_1_id,
+--       switch_1_joint_number,
+--       switch_1_joint_role,
+--       switch_2_id,
+--       switch_2_joint_number,
+--       switch_2_joint_role,
       case when switch_in_id is null and switch_out_id is null then start_track_link end as start_track_link,
       case when switch_in_id is null and switch_out_id is null then end_track_link end as end_track_link,
       start_segment_index,
       end_segment_index,
-      layout.calculate_node_hash(
-          switch_in_id,
-          switch_in_joint_number,
-          switch_in_joint_role,
-          switch_out_id,
-          switch_out_joint_number,
-          switch_out_joint_role,
-          start_track_link,
-          end_track_link
-      ) as node_hash
-    from track_node_version_candidate
+      -- A node has 0-2 switches, but it can be joined from either direction by an edge -> make nodes consistent & maintain direction for edge creation
+      tmp.direction::layout.node_direction as node_direction,
+      case when tmp.direction = 'INCREASING' then switch_in_id else switch_out_id end as switch_1_id,
+      case when tmp.direction = 'INCREASING' then switch_in_joint_number else switch_out_joint_number end as switch_1_joint_number,
+      case when tmp.direction = 'INCREASING' then switch_in_joint_role else switch_out_joint_role end as switch_1_joint_role,
+      case when tmp.direction = 'INCREASING' then switch_out_id else switch_in_id end as switch_2_id,
+      case when tmp.direction = 'INCREASING' then switch_out_joint_number else switch_in_joint_number end as switch_2_joint_number,
+      case when tmp.direction = 'INCREASING' then switch_out_joint_role else switch_in_joint_role end as switch_2_joint_role
+    from track_node_version_candidate ,
+      lateral (
+        select
+          case
+            when array [switch_in_id, switch_in_joint_number] <= array [switch_out_id, switch_out_joint_number] then 'INCREASING' else 'DECREASING'
+          end as direction
+        ) as tmp
 );
+alter table node_point_version_temp
+  add column node_hash uuid not null generated always as (
+    layout.calculate_node_hash(
+        switch_1_id,
+        switch_1_joint_number,
+        switch_1_joint_role,
+        switch_2_id,
+        switch_2_joint_number,
+        switch_2_joint_role,
+        start_track_link,
+        end_track_link
+    )
+  ) stored;
+-- select * from node_point_version_temp where switch_1_id is not null;
+-- select * from node_point_version_temp where switch_2_id is not null;
 
 -- Create immutable nodes
 insert into layout.node (
   hash,
-  switch_in_id,
-  switch_in_joint_number,
-  switch_in_joint_role,
-  switch_out_id,
-  switch_out_joint_number,
-  switch_out_joint_role,
+  switch_1_id,
+  switch_1_joint_number,
+  switch_1_joint_role,
+  switch_2_id,
+  switch_2_joint_number,
+  switch_2_joint_role,
   starting_location_track_id,
   ending_location_track_id
 ) select distinct on (node_hash)
   node_hash as hash,
-  switch_in_id,
-  switch_in_joint_number,
-  switch_in_joint_role,
-  switch_out_id,
-  switch_out_joint_number,
-  switch_out_joint_role,
+  switch_1_id,
+  switch_1_joint_number,
+  switch_1_joint_role,
+  switch_2_id,
+  switch_2_joint_number,
+  switch_2_joint_role,
   start_track_link,
   end_track_link
   from node_point_version_temp
@@ -273,10 +323,15 @@ create temp table track_edge_version_temp as (
         order by node.node_index
       ) as end_node_index,
       node.node_hash as start_node_hash,
+      node.node_direction as start_node_direction,
       lead(node.node_hash) over (
         partition by node.location_track_id, node.location_track_layout_context_id, node.location_track_version
         order by node.node_index
       ) as end_node_hash,
+      lead(node.node_direction) over (
+        partition by node.location_track_id, node.location_track_layout_context_id, node.location_track_version
+        order by node.node_index
+      ) as end_node_direction,
       node.start_segment_index,
       lead(node.end_segment_index) over (
         partition by node.location_track_id, node.location_track_layout_context_id, node.location_track_version
@@ -318,7 +373,9 @@ create temporary table edge_temp as (
         e.start_segment_index,
         e.end_segment_index,
         e.start_node_id,
+        e.start_node_direction,
         e.end_node_id,
+        e.end_node_direction,
         e.change_time,
         e.change_user,
         e.deleted,
@@ -339,8 +396,15 @@ create temporary table edge_temp as (
         group by e.location_track_id, e.location_track_layout_context_id, e.location_track_version, e.start_node_index
     ),
     edge_candidates_with_hash as (
-      select *,
-        layout.calculate_edge_hash(start_node_id, end_node_id, segment_hashes) as edge_hash
+      select
+        *,
+        layout.calculate_edge_hash(
+            start_node_id,
+            start_node_direction,
+            end_node_id,
+            end_node_direction,
+            segment_hashes
+        ) as edge_hash
         from edge_candidates
     ),
     edges as (
@@ -361,9 +425,11 @@ create temporary table edge_temp as (
         (array_agg(change_user order by alignment_id, alignment_version))[1] as change_user,
         edge_hash,
         start_node_id,
-        end_node_id
+        start_node_direction,
+        end_node_id,
+        end_node_direction
         from edge_candidates_with_hash
-        group by edge_hash, start_node_id, end_node_id
+        group by edge_hash, start_node_id, start_node_direction, end_node_id, end_node_direction
     )
   select *
     from edges
@@ -372,7 +438,9 @@ alter table edge_temp add primary key (edge_hash);
 
 insert into layout.edge(
   start_node_id,
+  start_node_direction,
   end_node_id,
+  end_node_direction,
   bounding_box,
   segment_count,
   length,
@@ -380,7 +448,9 @@ insert into layout.edge(
 )
 select
   e.start_node_id,
+  e.start_node_direction,
   e.end_node_id,
+  e.end_node_direction,
   postgis.st_extent(sg.geometry) as bounding_box,
   e.end_segment_index - e.start_segment_index + 1 as segment_count,
   sum(postgis.st_m(postgis.st_endpoint(sg.geometry))) as length,

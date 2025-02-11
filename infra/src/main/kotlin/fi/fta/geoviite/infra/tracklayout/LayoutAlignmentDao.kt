@@ -13,15 +13,15 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -83,12 +83,12 @@ class LayoutAlignmentDao(
             select 
               node.id,
               node.type,
-              node.switch_in_id,
-              node.switch_in_joint_number,
-              node.switch_in_joint_role,
-              node.switch_out_id,
-              node.switch_out_joint_number,
-              node.switch_out_joint_role,
+              node.switch_1_id,
+              node.switch_1_joint_number,
+              node.switch_1_joint_role,
+              node.switch_2_id,
+              node.switch_2_joint_number,
+              node.switch_2_joint_role,
               node.starting_location_track_id,
               node.ending_location_track_id
             from layout.node
@@ -106,19 +106,19 @@ class LayoutAlignmentDao(
                     LayoutNodeType.SWITCH -> {
                         LayoutNodeSwitch(
                             switchIn =
-                                rs.getIntIdOrNull<LayoutSwitch>("switch_in_id")?.let { id ->
+                                rs.getIntIdOrNull<LayoutSwitch>("switch_1_id")?.let { id ->
                                     SwitchLink(
                                         id,
-                                        rs.getEnum("switch_in_joint_role"),
-                                        rs.getJointNumber("switch_in_joint_number"),
+                                        rs.getEnum("switch_1_joint_role"),
+                                        rs.getJointNumber("switch_1_joint_number"),
                                     )
                                 },
                             switchOut =
-                                rs.getIntIdOrNull<LayoutSwitch>("switch_out_id")?.let { id ->
+                                rs.getIntIdOrNull<LayoutSwitch>("switch_2_id")?.let { id ->
                                     SwitchLink(
                                         id,
-                                        rs.getEnum("switch_out_joint_role"),
-                                        rs.getJointNumber("switch_out_joint_number"),
+                                        rs.getEnum("switch_2_joint_role"),
+                                        rs.getJointNumber("switch_2_joint_number"),
                                     )
                                 },
                         )
@@ -139,24 +139,24 @@ class LayoutAlignmentDao(
         val sql =
             """
             select layout.get_or_insert_node(
-                :switch_in_id,
-                :switch_in_joint_number,
-                :switch_in_joint_role::common.switch_joint_role,
-                :switch_out_id,
-                :switch_out_joint_number,
-                :switch_out_joint_role::common.switch_joint_role,
+                :switch_1_id,
+                :switch_1_joint_number,
+                :switch_1_joint_role::common.switch_joint_role,
+                :switch_2_id,
+                :switch_2_joint_number,
+                :switch_2_joint_role::common.switch_joint_role,
                 :start_track_id,
                 :end_track_id
             ) as id
         """
         val params =
             mapOf(
-                "switch_in_id" to content.switchIn?.id?.intValue,
-                "switch_in_joint_number" to content.switchIn?.jointNumber?.intValue,
-                "switch_in_joint_role" to content.switchIn?.jointRole?.name,
-                "switch_out_id" to content.switchOut?.id?.intValue,
-                "switch_out_joint_number" to content.switchOut?.jointNumber?.intValue,
-                "switch_out_joint_role" to content.switchOut?.jointRole?.name,
+                "switch_1_id" to content.switchIn?.id?.intValue,
+                "switch_1_joint_number" to content.switchIn?.jointNumber?.intValue,
+                "switch_1_joint_role" to content.switchIn?.jointRole?.name,
+                "switch_2_id" to content.switchOut?.id?.intValue,
+                "switch_2_joint_number" to content.switchOut?.jointNumber?.intValue,
+                "switch_2_joint_role" to content.switchOut?.jointRole?.name,
                 "start_track_id" to content.startingTrackId?.intValue,
                 "end_track_id" to content.endingTrackId?.intValue,
             )
