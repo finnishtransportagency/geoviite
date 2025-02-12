@@ -161,6 +161,9 @@ enum class RatkoAssetGeomAccuracyType(@get:JsonValue val value: String) {
     DIGITALIZED_AERIAL_IMAGE("DIGITIZED AERIAL IMAGE"),
     UNKNOWN("UNKNOWN"),
     GEOMETRY_CALCULATED("GEOMETRY CALCULATED"),
+    @Suppress("unused") RAILWAY_PLAN("RAILWAY PLAN"),
+    @Suppress("unused") SELECTED_FROM_MAP("SELECTED FROM MAP"),
+    @Suppress("unused") GENERATED_FROM_TRACK_ADDRESS("GENERATED FROM TRACK ADDRESS"),
 }
 
 enum class RatkoAccuracyType(@get:JsonValue val value: String) {
@@ -171,6 +174,7 @@ enum class RatkoAccuracyType(@get:JsonValue val value: String) {
     @Suppress("unused") MEASURED_GEODETICALLY("MEASURED GEODETICALLY"),
     @Suppress("unused") DIGITALIZED_AERIAL_IMAGE("DIGITIZED AERIAL IMAGE"),
     @Suppress("unused") ESTIMATED_TRACK_ADDRESS("ESTIMATED TRACKADDRESS"),
+    @Suppress("unused") PROJECTED_FROM_COORDINATES("PROJECTED FROM COORDINATES"),
 }
 
 data class RatkoPlan(
