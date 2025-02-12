@@ -24,7 +24,14 @@
     color: vayla-design.$color-lemon-dark;
 }
 
-.switch-edit-dialog__error-color {
-    @include vayla-design.typography-caption;
-    color: vayla-design.$color-red-default;
+.switch-edit-dialog__switch-oid-ok {
+    margin-top: 4px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.switch-edit-dialog__switch-oid-ok svg {
+    fill: vayla-design.$color-green-dark;
+    margin-right: 4px;
 }

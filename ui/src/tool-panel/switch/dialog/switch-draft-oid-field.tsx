@@ -16,6 +16,8 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { moveToEditLinkText } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { LayoutSwitchId } from 'track-layout/track-layout-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
+import { filterNotEmpty } from 'utils/array-utils';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 
 const SWITCH_OID_REQUIRED_PREFIX = '1.2.246.578.3.117.';
 
@@ -67,13 +69,44 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
     );
 
     const existingInGeoviite = oidPresence?.existsInGeoviiteAs;
+    const oidPresenceErrors =
+        !loadingOidPresence && oidPresence && oidIsLocallyValid
+            ? [
+                  oidPresence.existsInRatko === undefined
+                      ? t('switch-dialog.ratko-connection-is-down')
+                      : undefined,
+
+                  oidPresence.existsInRatko === false
+                      ? t('switch-dialog.oid-doesnt-exist-in-ratko')
+                      : undefined,
+
+                  existingInGeoviite?.stateCategory &&
+                  existingInGeoviite.stateCategory === 'NOT_EXISTING'
+                      ? t('switch-dialog.oid-in-use-deleted')
+                      : undefined,
+
+                  existingInGeoviite?.stateCategory &&
+                  existingInGeoviite.stateCategory !== 'NOT_EXISTING'
+                      ? t('switch-dialog.oid-in-use')
+                      : undefined,
+              ].filter(filterNotEmpty)
+            : [];
+
+    const combinedErrors = [...errors, ...oidPresenceErrors];
+
+    const oidOk =
+        !loadingOidPresence &&
+        combinedErrors.length === 0 &&
+        draftOid.length > 0 &&
+        oidPresence?.existsInRatko === true;
+
     return existingSwitchOid !== undefined ||
         existingSwitchOidLoaderStatus !== LoaderStatus.Ready ? (
         <React.Fragment />
     ) : (
         <FieldLayout
             label={`${t('switch-dialog.switch-draft-oid')} *`}
-            errors={errors}
+            errors={combinedErrors}
             value={
                 draftOidFieldOpen ? (
                     <React.Fragment>
@@ -81,43 +114,30 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
                             qa-id="switch-draft-oid"
                             value={draftOid}
                             onChange={(e) => setDraftOid(e.target.value)}
-                            hasError={errors.length > 0}
+                            hasError={combinedErrors.length > 0}
                             onBlur={visitField}
                             wide
                         />
-
-                        {loadingOidPresence && <Spinner />}
-                        {!loadingOidPresence && oidPresence && oidIsLocallyValid && (
-                            <>
-                                {oidPresence.existsInRatko === undefined && (
-                                    <div className={styles['switch-edit-dialog__error-color']}>
-                                        {t('switch-dialog.ratko-connection-is-down')}
-                                    </div>
-                                )}
-                                {oidPresence.existsInRatko === false && (
-                                    <div className={styles['switch-edit-dialog__error-color']}>
-                                        {t('switch-dialog.oid-doesnt-exist-in-ratko')}
-                                    </div>
-                                )}
-                                {existingInGeoviite !== undefined && (
-                                    <>
-                                        <div className={styles['switch-edit-dialog__alert-color']}>
-                                            {existingInGeoviite.stateCategory === 'NOT_EXISTING'
-                                                ? t('switch-dialog.oid-in-use-deleted')
-                                                : t('switch-dialog.oid-in-use')}
-                                        </div>
-                                        <Link
-                                            className={styles['switch-edit-dialog__alert']}
-                                            onClick={() => {
-                                                setDraftOid('');
-                                                setDraftOidFieldOpen(false);
-                                                onEdit(existingInGeoviite.id);
-                                            }}>
-                                            {moveToEditLinkText(t, existingInGeoviite)}
-                                        </Link>
-                                    </>
-                                )}
-                            </>
+                        {loadingOidPresence && <Spinner inputField />}
+                        {!loadingOidPresence &&
+                            oidPresence &&
+                            oidIsLocallyValid &&
+                            existingInGeoviite && (
+                                <Link
+                                    className={styles['switch-edit-dialog__alert']}
+                                    onClick={() => {
+                                        setDraftOid('');
+                                        setDraftOidFieldOpen(false);
+                                        onEdit(existingInGeoviite.id);
+                                    }}>
+                                    {moveToEditLinkText(t, existingInGeoviite)}
+                                </Link>
+                            )}
+                        {oidOk && (
+                            <span className={styles['switch-edit-dialog__switch-oid-ok']}>
+                                <Icons.Tick size={IconSize.SMALL} color={IconColor.INHERIT} />
+                                {t('switch-dialog.oid-was-found-from-ratko')}
+                            </span>
                         )}
                     </React.Fragment>
                 ) : (
