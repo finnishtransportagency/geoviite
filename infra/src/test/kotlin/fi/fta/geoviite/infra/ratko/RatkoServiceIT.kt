@@ -1438,7 +1438,7 @@ constructor(
             PublicationRequest(publicationRequestIds(), message = FreeTextWithNewLines.of("aoeu")),
         )
         ratkoService.pushChangesToRatko(design)
-        assertEquals(123, layoutDesignDao.fetch(design.designId).ratkoId?.intValue)
+        assertEquals(123, layoutDesignDao.fetchRatkoId(design.designId)?.intValue)
     }
 
     @Test

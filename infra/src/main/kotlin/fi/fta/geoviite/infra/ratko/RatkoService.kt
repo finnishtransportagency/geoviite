@@ -457,11 +457,9 @@ constructor(
         val lastPublicationDesign =
             layoutDesignDao.fetchVersion(RowVersion(designBranch.designId, lastPublicationDesignVersion))
 
-        // An interrupted push can leave the design itself knowing its Ratko ID, but the most recent
-        // publication pointing at a version before it was saved; so always look up the current ID
-        val presentRatkoId = layoutDesignDao.fetch(designBranch.designId).ratkoId
+        val existingRatkoId = layoutDesignDao.fetchRatkoId(designBranch.designId)
         val ratkoId =
-            if (presentRatkoId == null) {
+            if (existingRatkoId == null) {
                 createPlanInRatko(lastPublicationDesign, designBranch.designId)
             } else {
                 updatePlanInRatkoIfNeeded(
@@ -469,9 +467,9 @@ constructor(
                     designBranch,
                     lastPublicationDesignVersion,
                     lastPublicationDesign,
-                    presentRatkoId,
+                    existingRatkoId,
                 )
-                presentRatkoId
+                existingRatkoId
             }
         return PushableDesignBranch(designBranch, ratkoId)
     }
