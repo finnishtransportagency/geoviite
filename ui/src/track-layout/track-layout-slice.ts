@@ -41,7 +41,7 @@ import {
     PublicationCandidateReference,
     PublicationStage,
 } from 'publication/publication-model';
-import { ToolPanelAsset } from 'tool-panel/tool-panel';
+import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
 import { PURGE } from 'redux-persist';
@@ -49,6 +49,7 @@ import { previewReducers, PreviewState } from 'preview/preview-store';
 import { filterByPublicationStage } from 'preview/preview-view-filters';
 import { asPublicationCandidateReferences } from 'publication/publication-utils';
 import { PlanSource } from 'geometry/geometry-model';
+import { brand } from 'common/brand';
 
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
@@ -361,6 +362,10 @@ const trackLayoutSlice = createSlice({
                 ...action,
                 payload: options,
             });
+            state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                state.selection,
+                state.selectedToolPanelTab,
+            );
 
             const onlyLayoutLinkPoint =
                 options.layoutLinkPoints?.length === 1 &&
@@ -444,6 +449,10 @@ const trackLayoutSlice = createSlice({
                 ]);
 
                 selectionReducers.togglePlanVisibility(state.selection, action);
+                state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                    state.selection,
+                    state.selectedToolPanelTab,
+                );
             }
         },
         toggleAlignmentVisibility: (
@@ -461,6 +470,10 @@ const trackLayoutSlice = createSlice({
             updateMapLayerVisibilities(state.map, hideLayer, ['geometry-alignment-layer']);
 
             selectionReducers.toggleAlignmentVisibility(state.selection, action);
+            state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                state.selection,
+                state.selectedToolPanelTab,
+            );
         },
         toggleSwitchVisibility: (
             state: TrackLayoutState,
@@ -473,6 +486,10 @@ const trackLayoutSlice = createSlice({
             updateMapLayerVisibilities(state.map, hideLayer, ['geometry-switch-layer']);
 
             selectionReducers.toggleSwitchVisibility(state.selection, action);
+            state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                state.selection,
+                state.selectedToolPanelTab,
+            );
         },
         toggleKmPostsVisibility: (
             state: TrackLayoutState,
@@ -485,6 +502,10 @@ const trackLayoutSlice = createSlice({
             updateMapLayerVisibilities(state.map, hideLayer, ['geometry-km-post-layer']);
 
             selectionReducers.toggleKmPostsVisibility(state.selection, action);
+            state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                state.selection,
+                state.selectedToolPanelTab,
+            );
         },
         onPublicationStateChange: (
             state: TrackLayoutState,
@@ -498,6 +519,11 @@ const trackLayoutSlice = createSlice({
             state.layoutContextMode = inferLayoutContextMode(newLayoutContext);
 
             if (publicationState === 'OFFICIAL') linkingReducers.stopLinking(state);
+
+            state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                state.selection,
+                state.selectedToolPanelTab,
+            );
         },
         onLayoutContextModeChange: function (
             state: TrackLayoutState,
@@ -508,6 +534,11 @@ const trackLayoutSlice = createSlice({
 
             if (state.layoutContext.publicationState === 'OFFICIAL')
                 linkingReducers.stopLinking(state);
+
+            state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                state.selection,
+                state.selectedToolPanelTab,
+            );
         },
         onDesignIdChange: function (
             state: TrackLayoutState,
@@ -519,8 +550,13 @@ const trackLayoutSlice = createSlice({
                 designId !== undefined
                     ? 'DESIGN'
                     : state.layoutContext.publicationState === 'OFFICIAL'
-                    ? 'MAIN_OFFICIAL'
-                    : 'MAIN_DRAFT';
+                      ? 'MAIN_OFFICIAL'
+                      : 'MAIN_DRAFT';
+
+            state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                state.selection,
+                state.selectedToolPanelTab,
+            );
         },
         onLayoutModeChange: (
             state: TrackLayoutState,
@@ -592,3 +628,82 @@ function getLayoutContext(
         return officialMainLayoutContext();
     }
 }
+
+export const toolPanelAssetExists = (selection: Selection, asset: ToolPanelAsset): boolean => {
+    switch (asset.type) {
+        case 'GEOMETRY_PLAN':
+            return selection.selectedItems.geometryPlans.includes(asset.id);
+        case 'TRACK_NUMBER':
+            return selection.selectedItems.trackNumbers.includes(brand(asset.id));
+        case 'KM_POST':
+            return selection.selectedItems.kmPosts.includes(brand(asset.id));
+        case 'GEOMETRY_KM_POST':
+            return selection.selectedItems.geometryKmPostIds.some((g) => g.geometryId === asset.id);
+        case 'SWITCH':
+            return selection.selectedItems.switches.includes(brand(asset.id));
+        case 'GEOMETRY_SWITCH_SUGGESTION':
+            return selection.selectedItems.suggestedSwitches.some((s) => s.id === asset.id);
+        case 'GEOMETRY_SWITCH':
+            return selection.selectedItems.geometrySwitchIds.some(
+                (sw) => sw.geometryId === asset.id,
+            );
+        case 'LOCATION_TRACK':
+            return selection.selectedItems.locationTracks.includes(brand(asset.id));
+        case 'GEOMETRY_ALIGNMENT':
+            return selection.selectedItems.geometryAlignmentIds.some(
+                (g) => g.geometryId === asset.id,
+            );
+        default:
+            return false;
+    }
+};
+
+export const TOOL_PANEL_ASSET_ORDER: ToolPanelAssetType[] = [
+    'GEOMETRY_KM_POST',
+    'KM_POST',
+    'GEOMETRY_SWITCH_SUGGESTION',
+    'GEOMETRY_SWITCH',
+    'SWITCH',
+    'GEOMETRY_ALIGNMENT',
+    'LOCATION_TRACK',
+    'TRACK_NUMBER',
+    'GEOMETRY_PLAN',
+];
+
+export const getFirstOfTypeInSelection = (
+    selection: Selection,
+    type: ToolPanelAssetType,
+): ToolPanelAsset | undefined => {
+    const { selectedItems } = selection;
+    const assetGetters: Record<ToolPanelAssetType, () => string | undefined> = {
+        GEOMETRY_PLAN: () => first(selectedItems.geometryPlans),
+        TRACK_NUMBER: () => first(selectedItems.trackNumbers),
+        KM_POST: () => first(selectedItems.kmPosts),
+        GEOMETRY_KM_POST: () => first(selectedItems.geometryKmPostIds)?.geometryId,
+        SWITCH: () => first(selectedItems.switches),
+        GEOMETRY_SWITCH_SUGGESTION: () => first(selectedItems.suggestedSwitches)?.id,
+        GEOMETRY_SWITCH: () => first(selectedItems.switches),
+        LOCATION_TRACK: () => first(selectedItems.locationTracks),
+        GEOMETRY_ALIGNMENT: () => first(selectedItems.geometryAlignmentIds)?.geometryId,
+    };
+    const id = assetGetters[type]();
+    return id ? { id, type } : undefined;
+};
+
+export const getFirstToolPanelAsset = (selection: Selection): ToolPanelAsset | undefined => {
+    const firstAssetType = TOOL_PANEL_ASSET_ORDER.find(
+        (type) => getFirstOfTypeInSelection(selection, type) !== undefined,
+    );
+    return firstAssetType ? getFirstOfTypeInSelection(selection, firstAssetType) : undefined;
+};
+
+const updateSelectedToolPanelTab = (
+    selection: Selection,
+    currentlySelectedTab: ToolPanelAsset | undefined,
+): ToolPanelAsset | undefined => {
+    if (!currentlySelectedTab || !toolPanelAssetExists(selection, currentlySelectedTab)) {
+        return getFirstToolPanelAsset(selection);
+    }
+
+    return currentlySelectedTab;
+};
