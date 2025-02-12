@@ -89,7 +89,17 @@ enum class RatkoAssetGeometryType(@get:JsonValue val value: String) {
     MATH_POINT_AB("MATH_POINT_AB"),
     MATH_POINT_AC("MATH_POINT_AC"),
     MATH_POINT_AD("MATH_POINT_AD"),
+    @Suppress("unused") MATH_POINT_BC("MATH_POINT_BC"),
+    @Suppress("unused") START_POINT("START POINT"),
+    @Suppress("unused") END_POINT("END POINT"),
+    @Suppress("unused") VERIFIED_POINT("VERIFIED POINT"),
+    @Suppress("unused") AREA_POLYGON("AREA_POLYGON"),
     @Suppress("unused") CACHE_POINT("CACHE_POINT"),
+    @Suppress("unused") CACHE_LINE("CACHE_LINE"),
+    @Suppress("unused") CACHE_MULTILINE("CACHE_MULTILINE"),
+    @Suppress("unused") CACHE_MULTILINE_AND_POINT("CACHE_MULTILINE_AND_POINT"),
+    @Suppress("unused") NO_GEOMETRY("NO_GEOMETRY"),
+    @Suppress("unused") MULTILINE("MULTILINE"),
 }
 
 enum class RatkoAssetState(@get:JsonValue val value: String, val category: LayoutStateCategory? = null) {
