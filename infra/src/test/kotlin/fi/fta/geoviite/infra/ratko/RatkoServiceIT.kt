@@ -284,7 +284,7 @@ constructor(
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
         fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
         val officialVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.official, locationTrackOriginal.id)
-        val createdPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
+        val createdPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
         assertEquals("abcde", createdPush.name)
         assertEquals("cdefg", createdPush.description)
         assertEquals(RatkoAssetState.BUILT.name, createdPush.state.name)
@@ -297,7 +297,7 @@ constructor(
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
 
         assertEquals(listOf(""), fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6"))
-        val deletedPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
+        val deletedPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
         assertEquals(RatkoLocationTrackState.DELETED.name, deletedPush.state.name)
     }
 
@@ -337,7 +337,7 @@ constructor(
             ),
         )
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
-        val pushed = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
+        val pushed = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
         val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
         val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
         val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
