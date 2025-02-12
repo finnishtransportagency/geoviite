@@ -29,6 +29,7 @@ type SwitchDraftOidFieldProps = {
     setDraftOidExistsInRatko: (exists: boolean) => void;
     errors: string[];
     visitField: () => void;
+    isVisited: boolean;
     draftOidFieldOpen: boolean;
     setDraftOidFieldOpen: (open: boolean) => void;
     onEdit: (id: LayoutSwitchId) => void;
@@ -42,6 +43,7 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
     setDraftOidExistsInRatko,
     errors,
     visitField,
+    isVisited,
     draftOidFieldOpen,
     setDraftOidFieldOpen,
     onEdit,
@@ -92,7 +94,12 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
               ].filter(filterNotEmpty)
             : [];
 
-    const combinedErrors = [...errors, ...oidPresenceErrors];
+    const mandatoryFieldError =
+        isVisited && draftOidFieldOpen && draftOid.trim().length === 0
+            ? [t('switch-dialog.mandatory-field')]
+            : [];
+
+    const combinedErrors = [...errors, ...mandatoryFieldError, ...oidPresenceErrors];
 
     const oidOk =
         !loadingOidPresence &&
@@ -114,7 +121,7 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
                             qa-id="switch-draft-oid"
                             value={draftOid}
                             onChange={(e) => setDraftOid(e.target.value)}
-                            hasError={combinedErrors.length > 0}
+                            hasError={isVisited && combinedErrors.length > 0}
                             onBlur={visitField}
                             wide
                         />
