@@ -22,7 +22,7 @@ data class Oid<T> @JsonCreator(mode = DELEGATING) constructor(private val value:
 
 class RatkoExternalId<T>(val oid: Oid<T>, val planItemId: RatkoPlanItemId?)
 
-sealed class FullRatkoExternalId<T>(open val oid: Oid<T>, open val realOid: Oid<T>? = null)
+sealed class FullRatkoExternalId<T>(open val oid: Oid<T>)
 
 data class MainBranchRatkoExternalId<T>(override val oid: Oid<T>) : FullRatkoExternalId<T>(oid)
 
