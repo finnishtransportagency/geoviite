@@ -674,38 +674,20 @@ export const getFirstOfTypeInSelection = (
     selection: Selection,
     type: ToolPanelAssetType,
 ): ToolPanelAsset | undefined => {
-    let id: string | undefined;
-    switch (type) {
-        case 'GEOMETRY_PLAN':
-            id = first(selection.selectedItems.geometryPlans);
-            return id ? { id: id, type: 'GEOMETRY_PLAN' } : undefined;
-        case 'TRACK_NUMBER':
-            id = first(selection.selectedItems.trackNumbers);
-            return id ? { id: id, type: 'TRACK_NUMBER' } : undefined;
-        case 'KM_POST':
-            id = first(selection.selectedItems.kmPosts);
-            return id ? { id: id, type: 'KM_POST' } : undefined;
-        case 'GEOMETRY_KM_POST':
-            id = first(selection.selectedItems.geometryKmPostIds)?.geometryId;
-            return id ? { id: id, type: 'GEOMETRY_KM_POST' } : undefined;
-        case 'SWITCH':
-            id = first(selection.selectedItems.switches);
-            return id ? { id: id, type: 'SWITCH' } : undefined;
-        case 'GEOMETRY_SWITCH_SUGGESTION':
-            id = first(selection.selectedItems.suggestedSwitches)?.id;
-            return id ? { id: id, type: 'GEOMETRY_SWITCH_SUGGESTION' } : undefined;
-        case 'GEOMETRY_SWITCH':
-            id = first(selection.selectedItems.switches);
-            return id ? { id: id, type: 'GEOMETRY_SWITCH' } : undefined;
-        case 'LOCATION_TRACK':
-            id = first(selection.selectedItems.locationTracks);
-            return id ? { id: id, type: 'LOCATION_TRACK' } : undefined;
-        case 'GEOMETRY_ALIGNMENT':
-            id = first(selection.selectedItems.geometryAlignmentIds)?.geometryId;
-            return id ? { id: id, type: 'GEOMETRY_ALIGNMENT' } : undefined;
-        default:
-            return exhaustiveMatchingGuard(type);
-    }
+    const { selectedItems } = selection;
+    const assetGetters: Record<ToolPanelAssetType, () => string | undefined> = {
+        GEOMETRY_PLAN: () => first(selectedItems.geometryPlans),
+        TRACK_NUMBER: () => first(selectedItems.trackNumbers),
+        KM_POST: () => first(selectedItems.kmPosts),
+        GEOMETRY_KM_POST: () => first(selectedItems.geometryKmPostIds)?.geometryId,
+        SWITCH: () => first(selectedItems.switches),
+        GEOMETRY_SWITCH_SUGGESTION: () => first(selectedItems.suggestedSwitches)?.id,
+        GEOMETRY_SWITCH: () => first(selectedItems.switches),
+        LOCATION_TRACK: () => first(selectedItems.locationTracks),
+        GEOMETRY_ALIGNMENT: () => first(selectedItems.geometryAlignmentIds)?.geometryId,
+    };
+    const id = assetGetters[type]();
+    return id ? { id, type } : undefined;
 };
 
 export const getFirstToolPanelAsset = (selection: Selection): ToolPanelAsset | undefined => {
