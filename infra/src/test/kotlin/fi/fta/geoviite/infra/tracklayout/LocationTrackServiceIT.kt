@@ -807,6 +807,6 @@ constructor(
 
     private fun publish(id: IntId<LocationTrack>): LayoutRowVersion<LocationTrack> =
         locationTrackDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
-            locationTrackService.publish(LayoutBranch.main, version)
+            locationTrackService.publish(LayoutBranch.main, version).published
         }
 }

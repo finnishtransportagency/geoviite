@@ -158,6 +158,13 @@ fun mapJointNumberToGeometryType(number: JointNumber, baseType: SwitchBaseType):
     return checkNotNull(geometryType) { "Unknown switch joint number ${number.intValue} for switch type $baseType" }
 }
 
+fun mapDesignAssetStateToRatkoPlanState(state: DesignAssetState): RatkoPlanState =
+    when (state) {
+        DesignAssetState.OPEN -> RatkoPlanState.OPEN
+        DesignAssetState.COMPLETED -> RatkoPlanState.COMPLETED
+        DesignAssetState.CANCELLED -> RatkoPlanState.CANCELLED
+    }
+
 fun convertToRatkoLocationTrack(
     locationTrack: LocationTrack,
     locationTrackExternalId: FullRatkoExternalId<LocationTrack>?,
@@ -366,7 +373,7 @@ fun convertToRatkoAssetLocations(
 }
 
 fun asPlanItemIdsList(extId: FullRatkoExternalId<*>?): List<Int>? =
-    (extId as? DesignRatkoExternalId)?.let { listOf(it.planItemId.id) }
+    (extId as? DesignRatkoExternalId)?.let { listOf(it.planItemId.intValue) }
 
 fun newRatkoPlan(design: LayoutDesign): RatkoPlan =
     RatkoPlan(
@@ -383,4 +390,4 @@ fun newRatkoPlan(design: LayoutDesign): RatkoPlan =
             },
     )
 
-fun existingRatkoPlan(design: LayoutDesign, id: RatkoPlanId): RatkoPlan = newRatkoPlan(design).copy(id = id.id)
+fun existingRatkoPlan(design: LayoutDesign, id: RatkoPlanId): RatkoPlan = newRatkoPlan(design).copy(id = id)

@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.split.SplitDao
@@ -207,7 +208,7 @@ class LocationTrackService(
     override fun publish(
         branch: LayoutBranch,
         version: LayoutRowVersion<LocationTrack>,
-    ): LayoutRowVersion<LocationTrack> {
+    ): PublicationResultVersions<LocationTrack> {
         val publishedVersion = publishInternal(branch, version)
         // Some of the versions may get deleted in publication -> delete any alignments they left
         // behind

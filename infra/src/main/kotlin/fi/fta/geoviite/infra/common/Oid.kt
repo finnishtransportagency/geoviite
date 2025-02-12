@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.common
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.publication.RatkoPlanItemId
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.util.assertSanitized
 
 data class Oid<T> @JsonCreator(mode = DELEGATING) constructor(private val value: String) : CharSequence by value {
@@ -20,7 +20,7 @@ data class Oid<T> @JsonCreator(mode = DELEGATING) constructor(private val value:
     @JsonValue override fun toString(): String = value
 }
 
-data class RatkoExternalId<T>(val oid: Oid<T>, val planItemId: RatkoPlanItemId?)
+class RatkoExternalId<T>(val oid: Oid<T>, val planItemId: RatkoPlanItemId?)
 
 sealed class FullRatkoExternalId<T>(open val oid: Oid<T>)
 

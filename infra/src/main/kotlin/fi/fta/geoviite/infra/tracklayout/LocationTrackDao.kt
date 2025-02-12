@@ -12,10 +12,10 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getEnum
@@ -122,7 +122,7 @@ class LocationTrackDao(
               ltv.version,
               ltv.design_id,
               ltv.draft,
-              ltv.cancelled,
+              ltv.design_asset_state,
               ltv.alignment_id,
               ltv.alignment_version,
               ltv.track_number_id, 
@@ -182,7 +182,7 @@ class LocationTrackDao(
               lt.version,
               lt.design_id,
               lt.draft,
-              lt.cancelled,
+              lt.design_asset_state,
               lt.alignment_id,
               lt.alignment_version,
               lt.track_number_id, 
@@ -261,7 +261,7 @@ class LocationTrackDao(
                     "design_id",
                     "draft",
                     "version",
-                    "cancelled",
+                    "design_asset_state",
                     "has_official",
                     "origin_design_id",
                 ),
@@ -285,7 +285,7 @@ class LocationTrackDao(
               type,
               state,
               draft, 
-              cancelled,
+              design_asset_state,
               design_id,
               duplicate_of_location_track_id,
               topological_connectivity,
@@ -308,7 +308,7 @@ class LocationTrackDao(
               :type::layout.track_type,
               :state::layout.location_track_state,
               :draft, 
-              :cancelled,
+              :design_asset_state::layout.design_asset_state,
               :design_id,
               :duplicate_of_location_track_id,
               :topological_connectivity::layout.track_topological_connectivity_type,
@@ -327,7 +327,7 @@ class LocationTrackDao(
               description_suffix = excluded.description_suffix,
               type = excluded.type,
               state = excluded.state,
-              cancelled = excluded.cancelled,
+              design_asset_state = excluded.design_asset_state,
               duplicate_of_location_track_id = excluded.duplicate_of_location_track_id,
               topological_connectivity = excluded.topological_connectivity,
               topology_start_switch_id = excluded.topology_start_switch_id,
@@ -352,7 +352,7 @@ class LocationTrackDao(
                 "type" to item.type.name,
                 "state" to item.state.name,
                 "draft" to item.isDraft,
-                "cancelled" to item.isCancelled,
+                "design_asset_state" to item.designAssetState?.name,
                 "design_id" to item.contextData.designId?.intValue,
                 "duplicate_of_location_track_id" to item.duplicateOf?.intValue,
                 "topological_connectivity" to item.topologicalConnectivity.name,

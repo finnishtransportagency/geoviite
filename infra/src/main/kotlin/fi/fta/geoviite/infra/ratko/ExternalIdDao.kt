@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RatkoExternalId
-import fi.fta.geoviite.infra.publication.RatkoPlanItemId
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.util.DaoBase
@@ -59,7 +59,7 @@ class ExternalIdDao<T : LayoutAsset<T>>(
             mapOf(
                 "id" to id.intValue,
                 "layout_context_id" to branch.official.toSqlString(),
-                "plan_item_id" to planItemId.id,
+                "plan_item_id" to planItemId.intValue,
             ),
         )
     }
