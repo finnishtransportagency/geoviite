@@ -71,7 +71,6 @@ data class StoredAssetId<T : LayoutAsset<T>>(override val version: LayoutRowVers
 }
 
 sealed class LayoutContextData<T : LayoutAsset<T>> : LayoutContextAware<T> {
-    @get:JsonIgnore abstract val hasOfficial: Boolean
     @get:JsonIgnore abstract val layoutAssetId: LayoutAssetId<T>
 
     override val version: LayoutRowVersion<T>?
@@ -115,7 +114,6 @@ sealed class LayoutContextData<T : LayoutAsset<T>> : LayoutContextAware<T> {
                 is MainBranch ->
                     MainDraftContextData(
                         layoutAssetId = id?.let(::IdentifiedAssetId) ?: TemporaryAssetId(),
-                        hasOfficial = false,
                         originBranch = LayoutBranch.main,
                     )
                 is DesignBranch ->
@@ -123,7 +121,6 @@ sealed class LayoutContextData<T : LayoutAsset<T>> : LayoutContextAware<T> {
                         layoutAssetId = id?.let(::IdentifiedAssetId) ?: TemporaryAssetId(),
                         designId = branch.designId,
                         designAssetState = DesignAssetState.OPEN,
-                        hasOfficial = false,
                     )
             }
 
@@ -150,19 +147,12 @@ sealed class DesignContextData<T : LayoutAsset<T>> : LayoutContextData<T>() {
 
 data class MainOfficialContextData<T : LayoutAsset<T>>(override val layoutAssetId: LayoutAssetId<T>) :
     MainContextData<T>() {
-    override val hasOfficial: Boolean
-        get() = true
-
     override val isOfficial: Boolean
         get() = true
 
     fun asMainDraft(): MainDraftContextData<T> {
         val ownRowVersion = requireStoredRowVersion()
-        return MainDraftContextData(
-            layoutAssetId = EditedAssetId(ownRowVersion),
-            hasOfficial = true,
-            originBranch = LayoutBranch.main,
-        )
+        return MainDraftContextData(layoutAssetId = EditedAssetId(ownRowVersion), originBranch = LayoutBranch.main)
     }
 
     fun asDesignDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> {
@@ -171,7 +161,6 @@ data class MainOfficialContextData<T : LayoutAsset<T>>(override val layoutAssetI
             layoutAssetId = EditedAssetId(ownRowVersion),
             designId = designId,
             designAssetState = DesignAssetState.OPEN,
-            hasOfficial = true,
         )
     }
 
@@ -181,7 +170,6 @@ data class MainOfficialContextData<T : LayoutAsset<T>>(override val layoutAssetI
 
 data class MainDraftContextData<T : LayoutAsset<T>>(
     override val layoutAssetId: LayoutAssetId<T>,
-    override val hasOfficial: Boolean,
     override val originBranch: LayoutBranch,
 ) : MainContextData<T>() {
     override val isDraft: Boolean
@@ -198,9 +186,6 @@ data class DesignOfficialContextData<T : LayoutAsset<T>>(
     override val designId: IntId<LayoutDesign>,
     override val designAssetState: DesignAssetState,
 ) : DesignContextData<T>() {
-    override val hasOfficial: Boolean
-        get() = true
-
     override val isOfficial: Boolean
         get() = true
 
@@ -214,7 +199,6 @@ data class DesignOfficialContextData<T : LayoutAsset<T>>(
         val ownRowVersion = requireStoredRowVersion()
         return MainDraftContextData(
             layoutAssetId = EditedAssetId(sourceRowVersion = ownRowVersion),
-            hasOfficial = true,
             originBranch = DesignBranch.of(designId),
         )
     }
@@ -225,7 +209,6 @@ data class DesignOfficialContextData<T : LayoutAsset<T>>(
             layoutAssetId = EditedAssetId(ownRowVersion),
             designId = designId,
             designAssetState = designAssetState,
-            hasOfficial = true,
         )
     }
 
@@ -238,7 +221,6 @@ data class DesignDraftContextData<T : LayoutAsset<T>>(
     override val layoutAssetId: LayoutAssetId<T>,
     override val designId: IntId<LayoutDesign>,
     override val designAssetState: DesignAssetState,
-    override val hasOfficial: Boolean,
 ) : DesignContextData<T>() {
 
     override val isDraft: Boolean

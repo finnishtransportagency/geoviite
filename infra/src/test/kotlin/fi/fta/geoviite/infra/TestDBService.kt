@@ -547,9 +547,8 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                     }
                 DRAFT ->
                     when (branch) {
-                        is MainBranch -> MainDraftContextData(rowContextId, false, LayoutBranch.main)
-                        is DesignBranch ->
-                            DesignDraftContextData(rowContextId, branch.designId, DesignAssetState.OPEN, false)
+                        is MainBranch -> MainDraftContextData(rowContextId, LayoutBranch.main)
+                        is DesignBranch -> DesignDraftContextData(rowContextId, branch.designId, DesignAssetState.OPEN)
                     }
             }
         }

@@ -409,14 +409,12 @@ fun <T : LayoutAsset<T>> ResultSet.getLayoutContextData(
     draftFlagName: String,
     versionName: String,
     designAssetStateName: String,
-    hasOfficialName: String,
     originDesignIdName: String,
 ): LayoutContextData<T> {
     val designId = getIntIdOrNull<LayoutDesign>(designIdName)
     val isDraft = getBoolean(draftFlagName)
     val rowVersion = getLayoutRowVersion<T>(idName, designIdName, draftFlagName, versionName)
     val designAssetState = getEnumOrNull<DesignAssetState>(designAssetStateName)
-    val hasOfficial = getBoolean(hasOfficialName)
     val originBranch = getLayoutBranch(originDesignIdName)
     return if (designId != null) {
         requireNotNull(designAssetState) { "Expected design asset state for $idName in design" }
@@ -425,7 +423,6 @@ fun <T : LayoutAsset<T>> ResultSet.getLayoutContextData(
                 layoutAssetId = StoredAssetId(rowVersion),
                 designId = designId,
                 designAssetState = designAssetState,
-                hasOfficial = hasOfficial,
             )
         } else {
             DesignOfficialContextData(
@@ -435,11 +432,7 @@ fun <T : LayoutAsset<T>> ResultSet.getLayoutContextData(
             )
         }
     } else if (isDraft) {
-        MainDraftContextData(
-            layoutAssetId = StoredAssetId(rowVersion),
-            hasOfficial = hasOfficial,
-            originBranch = originBranch,
-        )
+        MainDraftContextData(layoutAssetId = StoredAssetId(rowVersion), originBranch = originBranch)
     } else {
         MainOfficialContextData(layoutAssetId = StoredAssetId(rowVersion))
     }

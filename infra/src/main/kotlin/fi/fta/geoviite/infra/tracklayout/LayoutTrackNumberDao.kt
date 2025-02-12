@@ -93,10 +93,6 @@ class LayoutTrackNumberDao(
               tn.state,
               -- Track number reference line identity never changes, so any instance whatsoever is fine
               (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
-              exists (select * from layout.track_number official_tn
-                      where official_tn.id = tn.id
-                        and (official_tn.design_id is null or official_tn.design_id = tn.design_id)
-                        and not official_tn.draft) has_official,
               tn.origin_design_id
             from layout.track_number_version tn
             where tn.id = :id
@@ -131,10 +127,6 @@ class LayoutTrackNumberDao(
               tn.design_asset_state,
               -- Track number reference line identity never changes, so any instance whatsoever is fine
               (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
-              exists (select * from layout.track_number official_tn
-                      where official_tn.id = tn.id
-                        and (official_tn.design_id is null or official_tn.design_id = tn.design_id)
-                        and not official_tn.draft) has_official,
               tn.origin_design_id
             from layout.track_number tn
             order by tn.id
@@ -161,15 +153,7 @@ class LayoutTrackNumberDao(
             // data
             referenceLineId = rs.getIntIdOrNull("reference_line_id"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "design_asset_state",
-                    "has_official",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
 
     @Transactional

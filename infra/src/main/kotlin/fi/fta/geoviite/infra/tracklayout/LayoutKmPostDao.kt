@@ -174,11 +174,7 @@ class LayoutKmPostDao(
               gk_location_source,
               gk_location_confirmed,
               state,
-              origin_design_id,
-              exists(select * from layout.km_post official_kp
-                     where kpv.id = official_kp.id
-                       and (official_kp.design_id is null or official_kp.design_id = kpv.design_id)
-                       and not official_kp.draft) as has_official
+              origin_design_id
             from layout.km_post_version kpv
             where id = :id 
               and version = :version
@@ -225,10 +221,6 @@ class LayoutKmPostDao(
               kp.gk_location_source,
               kp.gk_location_confirmed,
               kp.state,
-              exists(select * from layout.km_post official_kp
-                     where kp.id = official_kp.id
-                       and (official_kp.design_id is null or official_kp.design_id = kp.design_id)
-                       and not official_kp.draft) as has_official,
               kp.origin_design_id
             from layout.km_post kp
         """
@@ -254,15 +246,7 @@ class LayoutKmPostDao(
             state = rs.getEnum("state"),
             sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "design_asset_state",
-                    "has_official",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
     }
 

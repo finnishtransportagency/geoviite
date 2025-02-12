@@ -51,10 +51,6 @@ class ReferenceLineDao(
               av.length,
               av.segment_count,
               rlv.start_address,
-              exists(select * from layout.reference_line official_rl
-                     where rlv.id = official_rl.id
-                       and (official_rl.design_id is null or official_rl.design_id = rlv.design_id)
-                       and not official_rl.draft) as has_official,
               origin_design_id
             from layout.reference_line_version rlv
               left join layout.alignment_version av on rlv.alignment_id = av.id and rlv.alignment_version = av.version
@@ -91,10 +87,6 @@ class ReferenceLineDao(
               av.length,
               av.segment_count,
               rl.start_address,
-              exists(select * from layout.reference_line official_rl
-                     where rl.id = official_rl.id
-                       and (official_rl.design_id is null or official_rl.design_id = rl.design_id)
-                       and not official_rl.draft) as has_official,
               rl.origin_design_id
             from layout.reference_line rl
               left join layout.alignment_version av on rl.alignment_id = av.id and rl.alignment_version = av.version
@@ -122,15 +114,7 @@ class ReferenceLineDao(
             length = rs.getDouble("length"),
             segmentCount = rs.getInt("segment_count"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "design_asset_state",
-                    "has_official",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
 
     @Transactional

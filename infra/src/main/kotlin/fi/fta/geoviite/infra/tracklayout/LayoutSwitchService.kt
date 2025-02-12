@@ -86,7 +86,7 @@ constructor(
         // main-official or null
         val draft = dao.get(branch.draft, id)
         // If removal also breaks references, clear them out first
-        if (draft?.contextData?.hasOfficial != true) {
+        if (dao.fetchVersion(branch.official, id) != null) {
             clearSwitchInformationFromSegments(branch, id)
         }
         return super.deleteDraft(branch, id)
