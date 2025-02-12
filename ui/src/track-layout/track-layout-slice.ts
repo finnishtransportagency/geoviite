@@ -703,8 +703,6 @@ export const getFirstOfTypeInSelection = (
         case 'GEOMETRY_ALIGNMENT':
             id = first(selection.selectedItems.geometryAlignmentIds)?.geometryId;
             return id ? { id: id, type: 'GEOMETRY_ALIGNMENT' } : undefined;
-        case 'REFERENCE_LINE':
-            return undefined;
         default:
             return exhaustiveMatchingGuard(type);
     }

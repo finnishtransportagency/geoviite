@@ -76,7 +76,6 @@ export type ToolPanelAssetType =
     | 'LOCATION_TRACK'
     | 'SWITCH'
     | 'KM_POST'
-    | 'REFERENCE_LINE'
     | 'TRACK_NUMBER'
     | 'GEOMETRY_ALIGNMENT'
     | 'GEOMETRY_PLAN'
