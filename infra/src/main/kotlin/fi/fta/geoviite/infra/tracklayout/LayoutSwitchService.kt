@@ -129,7 +129,8 @@ constructor(
     private fun checkRatkoOidPresence(oid: Oid<LayoutSwitch>): Boolean? {
         return try {
             ratkoClient?.getSwitchAsset(RatkoOid(oid.toString())) != null
-        } catch (_: Exception) {
+        } catch (ex: Exception) {
+            logger.warn("checkRatkoOidPresence exception: $ex")
             null
         }
     }
