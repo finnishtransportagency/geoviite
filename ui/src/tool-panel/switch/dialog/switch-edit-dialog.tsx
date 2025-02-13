@@ -22,6 +22,7 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
     draftLayoutContext,
     LayoutContext,
+    officialLayoutContext,
     SwitchOwner,
     SwitchOwnerId,
     SwitchStructure,
@@ -40,7 +41,7 @@ import {
 import styles from './switch-edit-dialog.scss';
 import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
-import { getSaveDisabledReasons } from 'track-layout/track-layout-react-utils';
+import { getSaveDisabledReasons, useSwitch } from 'track-layout/track-layout-react-utils';
 import SwitchRevertConfirmationDialog from './switch-revert-confirmation-dialog';
 import { first } from 'utils/array-utils';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
@@ -129,7 +130,10 @@ export const SwitchEditDialog = ({
     const switchStructureChanged =
         isExistingSwitch && switchStructureId !== existingSwitch?.switchStructureId;
 
-    const canSetDeleted = isExistingSwitch && !!existingSwitch?.hasOfficial;
+    const hasExistingOfficial =
+        useSwitch(existingSwitch?.id, officialLayoutContext(layoutContext), changeTime) !==
+        undefined;
+    const canSetDeleted = isExistingSwitch && hasExistingOfficial;
     const stateCategoryOptions = layoutStateCategories
         .map((s) => (s.value !== 'NOT_EXISTING' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((sc) => ({ ...sc, qaId: sc.value }));

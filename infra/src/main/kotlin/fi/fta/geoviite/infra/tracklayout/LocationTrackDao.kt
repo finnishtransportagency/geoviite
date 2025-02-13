@@ -149,10 +149,6 @@ class LocationTrackDao(
                     and sv.alignment_version = ltv.alignment_version
                     and sv.switch_id is not null
               ) as segment_switch_ids,
-              exists(select * from layout.location_track official_lt
-                     where official_lt.id = ltv.id
-                       and (official_lt.design_id is null or official_lt.design_id = ltv.design_id)
-                       and not official_lt.draft) as has_official,
               ltv.origin_design_id
             from layout.location_track_version ltv
               left join layout.alignment_version av on ltv.alignment_id = av.id and ltv.alignment_version = av.version
@@ -209,10 +205,6 @@ class LocationTrackDao(
                     and sv.alignment_version = lt.alignment_version
                     and sv.switch_id is not null
               ) as segment_switch_ids,
-              exists(select * from layout.location_track official_lt
-                     where official_lt.id = lt.id
-                       and (official_lt.design_id is null or official_lt.design_id = lt.design_id)
-                       and not official_lt.draft) as has_official,
               lt.origin_design_id
             from layout.location_track lt
               left join layout.alignment_version av on lt.alignment_id = av.id and lt.alignment_version = av.version
@@ -256,15 +248,7 @@ class LocationTrackDao(
                 },
             segmentSwitchIds = rs.getIntIdArray("segment_switch_ids"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "design_asset_state",
-                    "has_official",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
 
     @Transactional

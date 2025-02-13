@@ -295,10 +295,6 @@ class LayoutSwitchDao(
               sv.source,
               origin_design_id,
               sv.draft_oid,
-              exists(select * from layout.switch official_sv
-                     where official_sv.id = sv.id
-                       and (official_sv.design_id is null or official_sv.design_id = sv.design_id)
-                       and not official_sv.draft) as has_official,
               coalesce(joint_numbers, '{}') as joint_numbers,
               coalesce(joint_roles, '{}') as joint_roles,
               coalesce(joint_x_values, '{}') as joint_x_values,
@@ -354,10 +350,6 @@ class LayoutSwitchDao(
               joint_y_values,
               joint_location_accuracies,
               s.draft_oid,
-              exists(select * from layout.switch official_sv
-                     where official_sv.id = s.id
-                       and (official_sv.design_id is null or official_sv.design_id = s.design_id)
-                       and not official_sv.draft) as has_official,
               s.origin_design_id
             from layout.switch s
               left join lateral
@@ -405,15 +397,7 @@ class LayoutSwitchDao(
             source = rs.getEnum("source"),
             draftOid = rs.getOidOrNull("draft_oid"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "design_asset_state",
-                    "has_official",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
     }
 

@@ -92,7 +92,6 @@ export type LayoutAssetFields = {
     version?: RowVersion;
     dataType: DataType;
     isDraft: boolean;
-    hasOfficial: boolean;
 };
 
 export type LayoutAsset =

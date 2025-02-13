@@ -964,7 +964,6 @@ fun <T : LayoutAsset<T>> createMainContext(id: IntId<T>?, draft: Boolean): Layou
     if (draft) {
         MainDraftContextData(
             if (id != null) IdentifiedAssetId(id) else TemporaryAssetId(),
-            hasOfficial = false,
             originBranch = LayoutBranch.main,
         )
     } else {
