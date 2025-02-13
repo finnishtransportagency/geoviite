@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import java.time.Duration
+import java.util.NoSuchElementException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -57,19 +58,7 @@ constructor(
                 }
             }
             ?.let { split -> pollBulkTransferStateUpdate(split, timeout) }
-            ?.takeIf { split ->
-                ratkoPushDao.fetchPreviousPush().let { previousPush ->
-                    if (previousPush.status == RatkoPushStatus.FAILED) {
-                        logger.info(
-                            "Previous ratkoPushId=${previousPush.id}) has FAILED," +
-                                "skipping bulk transfer creation for splitId=${split.id}"
-                        )
-                        false
-                    } else {
-                        true
-                    }
-                }
-            }
+            ?.takeIf(::previousRatkoPushHasNotFailed)
             .takeIf { split -> split?.bulkTransfer?.state == BulkTransferState.PENDING }
             ?.let { split -> beginNewBulkTransfer(branch, split, timeout) }
     }
@@ -270,6 +259,25 @@ constructor(
                 // TODO Should this use dao directly?
                 bulkTransferDao.update(splitId = split.id, state = BulkTransferState.FAILED)
             }
+        }
+    }
+
+    fun previousRatkoPushHasNotFailed(split: PublishedSplit): Boolean {
+        return try {
+            ratkoPushDao.fetchPreviousPush().let { previousPush ->
+                if (previousPush.status == RatkoPushStatus.FAILED) {
+                    logger.info(
+                        "Previous ratkoPushId=${previousPush.id}) has FAILED," +
+                            "skipping bulk transfer creation for splitId=${split.id}"
+                    )
+                    false
+                } else {
+                    true
+                }
+            }
+        } catch (_: NoSuchElementException) {
+            logger.warn("Previous Ratko push did not exist")
+            true
         }
     }
 }

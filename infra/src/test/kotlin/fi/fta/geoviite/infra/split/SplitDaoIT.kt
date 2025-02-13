@@ -171,15 +171,14 @@ constructor(val splitDao: SplitDao, val bulkTransferDao: BulkTransferDao, val pu
     }
 
     @Test
-    fun `Initial split bulk transfer state is null`() {
-        val splitId = createSplit()
-        assertInstanceOf<UnpublishedSplit>(splitId)
+    fun `Initial split is unpublished`() {
+        val split = createSplit().let(splitDao::getOrThrow)
+        assertInstanceOf<UnpublishedSplit>(split)
     }
 
     @Test
     fun `Split bulk transfer state can be updated`() {
         val splitId = createSplit()
-        assertInstanceOf<UnpublishedSplit>(splitId)
 
         publicationDao
             .createPublication(

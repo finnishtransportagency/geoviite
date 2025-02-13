@@ -70,6 +70,7 @@ constructor(
 
     fun cleanupPublicationTables() {
         testDBService.clearPublicationTables()
+        testDBService.clearSplitTables()
         testDBService.clearLayoutTables()
         val request =
             publicationService.collectPublicationCandidates(PublicationInMain).let {

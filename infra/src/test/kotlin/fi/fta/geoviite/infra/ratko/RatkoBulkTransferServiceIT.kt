@@ -42,10 +42,9 @@ constructor(
 
     @BeforeEach
     fun cleanup() {
-        splitTestDataService.clearSplits()
-        jdbc.execute("update integrations.ratko_push set status = 'SUCCESSFUL' where status != 'SUCCESSFUL'") {
-            it.execute()
-        }
+        testDBService.clearRatkoTables()
+        testDBService.clearSplitTables()
+        testDBService.clearPublicationTables()
     }
 
     @BeforeEach
@@ -518,6 +517,7 @@ constructor(
 
         val someBulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(someBulkTransferId)
+
         ratkoBulkTransferService.manageRatkoBulkTransfers(LayoutBranch.main)
 
         val splitAfterSecondExpectedBulkTransferStart = splitDao.getPublishedSplitOrThrow(splitIds[0])
@@ -580,12 +580,12 @@ constructor(
                         )
                     BulkTransferState.CREATED ->
                         fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(
-                            requireNotNull(split.bulkTransfer?.ratkoBulkTransferId),
+                            requireNotNull(split.bulkTransfer.ratkoBulkTransferId),
                             BulkTransferState.CREATED,
                         )
                     else ->
                         fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(
-                            requireNotNull(split.bulkTransfer?.ratkoBulkTransferId),
+                            requireNotNull(split.bulkTransfer.ratkoBulkTransferId),
                             BulkTransferState.IN_PROGRESS,
                         )
                 }

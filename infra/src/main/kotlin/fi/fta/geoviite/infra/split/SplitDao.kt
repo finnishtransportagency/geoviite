@@ -15,7 +15,7 @@ import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getBooleanOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
-import fi.fta.geoviite.infra.util.getInstantOrNull
+import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
@@ -54,7 +54,7 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>, bulk
             }
         }
 
-        val publicationTime = requireNotNull(rs.getInstantOrNull("publication_time"))
+        val publicationTime = rs.getInstant("publication_time")
 
         PublishedSplit(
             id,
