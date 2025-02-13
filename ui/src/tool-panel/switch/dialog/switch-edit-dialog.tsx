@@ -362,6 +362,7 @@ export const SwitchEditDialog = ({
                                 setDraftOidExistsInRatko={setSwitchDraftOidExistsInRatko}
                                 errors={getVisibleErrorsByProp('draftOid')}
                                 visitField={() => visitField('draftOid')}
+                                isVisited={visitedFields.includes('draftOid')}
                                 draftOidFieldOpen={draftOidFieldOpen}
                                 setDraftOidFieldOpen={setDraftOidFieldOpen}
                                 onEdit={onEdit}
