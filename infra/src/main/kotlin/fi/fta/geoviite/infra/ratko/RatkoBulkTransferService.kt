@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferCreateRequest
 import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferDestinationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoTrackMeter
+import fi.fta.geoviite.infra.split.BulkTransferDao
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitDao
@@ -37,6 +38,7 @@ constructor(
     private val splitService: SplitService,
     private val geocodingService: GeocodingService,
     private val locationTrackDao: LocationTrackDao, // TODO Use a service?
+    private val bulkTransferDao: BulkTransferDao, // TODO Use a service?
     private val locationTrackService: LocationTrackService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -71,9 +73,9 @@ constructor(
                     "Bulk transfer create request completed for splitId=${split.id}, bulkTransferId=$bulkTransferId"
                 )
 
-                splitDao.updateBulkTransfer(
+                bulkTransferDao.update(
                     splitId = split.id,
-                    bulkTransferState = bulkTransferState,
+                    state = bulkTransferState,
                     ratkoBulkTransferId = bulkTransferId,
                     temporaryFailure = false,
                 )
@@ -121,10 +123,10 @@ constructor(
                         else -> polledState
                     }
 
-                splitDao.updateBulkTransfer(
+                bulkTransferDao.update(
                     splitId = split.id,
                     temporaryFailure = false,
-                    bulkTransferState = bulkTransferState,
+                    state = bulkTransferState,
                     ratkoStartTime = response.locationTrackChange.startTime,
                     ratkoEndTime = response.locationTrackChange.endTime,
                     assetsTotal = response.locationTrackChange.assetsToMove,
@@ -222,11 +224,7 @@ constructor(
                 split.bulkTransfer.ratkoBulkTransferId,
                 Duration.ofMinutes(60),
             ) // TODO Set the timeout based on input instead again
-            splitDao.updateBulkTransfer(
-                splitId = split.id,
-                temporaryFailure = false,
-                bulkTransferState = BulkTransferState.IN_PROGRESS,
-            )
+            bulkTransferDao.update(splitId = split.id, temporaryFailure = false, state = BulkTransferState.IN_PROGRESS)
         }
 
         return splitService.getOrThrow(split.id)
@@ -254,7 +252,7 @@ constructor(
     fun handleTimeoutException(split: Split) {
         if (!requireNotNull(split.bulkTransfer).temporaryFailure) {
             logger.info("Setting bulk transfer to temporarily failed for splitId=${split.id}")
-            splitDao.updateBulkTransfer(splitId = split.id, temporaryFailure = true)
+            bulkTransferDao.update(splitId = split.id, temporaryFailure = true)
         } else {
             logger.info("Bulk transfer was already set to temporarily failed for splitId=${split.id}")
         }
@@ -268,14 +266,14 @@ constructor(
                 logger.info("Received HTTP temporary failure status, statusCode=${ex.statusCode}, splitId=${split.id}")
                 logger.info("Response body: ${ex.responseBodyAsString}")
                 logger.info("Setting split bulk transfer temporary failure status to true")
-                splitDao.updateBulkTransfer(splitId = split.id, temporaryFailure = true)
+                bulkTransferDao.update(splitId = split.id, temporaryFailure = true)
             }
             else -> {
                 logger.info("Unhandled or fatal HTTP error, statusCode=${ex.statusCode}")
                 logger.info("Response body: ${ex.responseBodyAsString}")
                 logger.info("Setting split bulk transfer state to ${BulkTransferState.FAILED}, splitId=${split.id}")
                 // TODO Should this use dao directly?
-                splitDao.updateBulkTransfer(splitId = split.id, bulkTransferState = BulkTransferState.FAILED)
+                bulkTransferDao.update(splitId = split.id, state = BulkTransferState.FAILED)
             }
         }
     }

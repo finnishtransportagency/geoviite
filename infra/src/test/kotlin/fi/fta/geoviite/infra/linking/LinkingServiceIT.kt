@@ -30,6 +30,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.split.BulkTransferDao
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTarget
@@ -76,6 +77,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val kmPostService: LayoutKmPostService,
     private val splitDao: SplitDao,
+    private val bulkTransferDao: BulkTransferDao,
     private val publicationDao: PublicationDao,
 ) : DBTestBase() {
 
@@ -366,8 +368,8 @@ constructor(
                                 ),
                         )
 
-                        splitDao.insertBulkTransfer(splitId = splitId)
-                        splitDao.updateBulkTransfer(splitId = splitId, bulkTransferState = BulkTransferState.DONE)
+                        bulkTransferDao.create(splitId = splitId)
+                        bulkTransferDao.update(splitId = splitId, state = BulkTransferState.DONE)
                     }
             )
 

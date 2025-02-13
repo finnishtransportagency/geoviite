@@ -54,7 +54,9 @@ class SplitService(
     private val switchLibraryService: SwitchLibraryService,
     private val switchService: LayoutSwitchService,
     private val alignmentDao: LayoutAlignmentDao,
+    private val bulkTransferDao: BulkTransferDao,
 ) {
+
     fun getChangeTime(): Instant {
         return splitDao.fetchChangeTime()
     }
@@ -122,7 +124,7 @@ class SplitService(
                         )
                     }
                 }
-                .also { splitDao.insertBulkTransfer(split.id) }
+                .also { bulkTransferDao.create(split.id) }
         }
     }
 

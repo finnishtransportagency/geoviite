@@ -46,6 +46,7 @@ constructor(
     private val switchStructureDao: SwitchStructureDao,
     private val locationTrackService: LocationTrackService,
     private val splitDao: SplitDao,
+    private val bulkTransferDao: BulkTransferDao,
     private val splitService: SplitService,
     private val switchDao: LayoutSwitchDao,
     private val publicationDao: PublicationDao,
@@ -100,7 +101,7 @@ constructor(
     ): IntId<Split> {
         return insertSplit(trackNumberId)
             .let { splitId -> splitDao.updateSplit(splitId = splitId, publicationId = publicationId).id }
-            .also { splitId -> splitDao.insertBulkTransfer(splitId) }
+            .also { splitId -> bulkTransferDao.create(splitId) }
     }
 
     fun insertGeocodableSplit(
@@ -155,7 +156,7 @@ constructor(
     ): IntId<Split> {
         return insertGeocodableSplit(trackNumberId)
             .let { splitId -> splitDao.updateSplit(splitId = splitId, publicationId = publicationId).id }
-            .also { splitId -> splitDao.insertBulkTransfer(splitId) }
+            .also { splitId -> bulkTransferDao.create(splitId) }
     }
 
     fun createSwitchAndGeometry(
@@ -221,7 +222,7 @@ constructor(
         assertMainBranch(branch)
 
         splitService.findUnfinishedSplits(branch).forEach { split ->
-            splitDao.updateBulkTransfer(splitId = split.id, bulkTransferState = BulkTransferState.DONE)
+            bulkTransferDao.update(splitId = split.id, state = BulkTransferState.DONE)
         }
     }
 }

@@ -16,10 +16,7 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 
 @GeoviiteController("/location-track-split")
-class SplitController(
-    private val splitService: SplitService,
-    private val splitDao: SplitDao, // TODO Create BulkTransferService
-) {
+class SplitController(private val splitService: SplitService, private val bulkTransferService: BulkTransferService) {
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/{$LAYOUT_BRANCH}")
@@ -42,8 +39,7 @@ class SplitController(
         @PathVariable("id") id: IntId<Split>,
         @RequestBody state: BulkTransferState,
     ): IntId<Split> {
-        // TODO Should not use dao here
-        splitDao.updateBulkTransfer(splitId = id, bulkTransferState = state)
+        bulkTransferService.updateState(splitId = id, state = state)
         return id
     }
 
@@ -53,9 +49,7 @@ class SplitController(
         @PathVariable("id") id: IntId<Split>,
         @RequestBody expeditedStart: Boolean,
     ): IntId<Split> {
-        // TODO Should not use dao here
-        splitDao.updateBulkTransfer(splitId = id, expeditedStart = expeditedStart)
-        //        splitService.updateSplit(splitId = id)
+        bulkTransferService.updateExpeditedStart(splitId = id, expeditedStart = expeditedStart)
         return id
     }
 }

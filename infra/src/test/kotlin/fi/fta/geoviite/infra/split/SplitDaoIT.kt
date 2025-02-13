@@ -21,36 +21,10 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationDao: PublicationDao) : DBTestBase() {
-
-    //    @Test // TODO Should this even work like this anymore?
-    //    fun `should save split in pending state`() {
-    //        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-    //        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-    //
-    //        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
-    //        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
-    //
-    //        val relinkedSwitchId = mainOfficialContext.createSwitch().id
-    //
-    //        val split =
-    //            splitDao
-    //                .saveSplit(
-    //                    sourceTrack,
-    //                    listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
-    //                    listOf(relinkedSwitchId),
-    //                    updatedDuplicates = emptyList(),
-    //                )
-    //                .let(splitDao::getOrThrow)
-    //
-    //        assertTrue { split.bulkTransferState == BulkTransferState.PENDING }
-    //        assertNull(split.publicationId)
-    //        assertEquals(sourceTrack.id, split.sourceLocationTrackId)
-    //        assertEquals(sourceTrack, split.sourceLocationTrackVersion)
-    //        assertContains(split.targetLocationTracks, SplitTarget(targetTrack.id, 0..0,
-    // SplitTargetOperation.CREATE))
-    //        assertContains(split.relinkedSwitches, relinkedSwitchId)
-    //    }
+class SplitDaoIT
+@Autowired
+constructor(val splitDao: SplitDao, val bulkTransferDao: BulkTransferDao, val publicationDao: PublicationDao) :
+    DBTestBase() {
 
     @Test
     fun `should update split with new state, errorCause, and publicationId`() {
@@ -78,13 +52,14 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                 FreeTextWithNewLines.of("SPLIT PUBLICATION"),
                 PublicationCause.MANUAL,
             )
+
         val updatedSplit =
             splitDao
                 .updateSplit(splitId = split.id, publicationId = publicationId)
                 .id
                 .also {
-                    splitDao.insertBulkTransfer(splitId = split.id)
-                    splitDao.updateBulkTransfer(splitId = split.id, bulkTransferState = BulkTransferState.FAILED)
+                    bulkTransferDao.create(splitId = split.id)
+                    bulkTransferDao.update(splitId = split.id, state = BulkTransferState.FAILED)
                 }
                 .let(splitDao::getOrThrow)
 
@@ -114,8 +89,8 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                     updatedDuplicates = emptyList(),
                 )
                 .also { splitId ->
-                    splitDao.insertBulkTransfer(splitId = splitId)
-                    splitDao.updateBulkTransfer(splitId = splitId, bulkTransferState = BulkTransferState.DONE)
+                    bulkTransferDao.create(splitId = splitId)
+                    bulkTransferDao.update(splitId = splitId, state = BulkTransferState.DONE)
                 }
 
         val pendingSplitId =
@@ -213,14 +188,14 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                 PublicationCause.MANUAL,
             )
             .let { publicationId -> splitDao.updateSplit(splitId = splitId, publicationId = publicationId) }
-            .also { splitDao.insertBulkTransfer(splitId) }
+            .also { bulkTransferDao.create(splitId) }
 
         assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransfer?.state)
 
         BulkTransferState.entries.forEach { newBulkTransferState ->
-            splitDao.updateBulkTransfer(
+            bulkTransferDao.update(
                 splitId = splitId,
-                bulkTransferState = newBulkTransferState,
+                state = newBulkTransferState,
                 ratkoBulkTransferId = testDBService.getUnusedRatkoBulkTransferId(),
             )
 
@@ -242,11 +217,11 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                         ),
                 )
 
-                splitDao.insertBulkTransfer(splitId)
+                bulkTransferDao.create(splitId)
             }
 
         val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
-        splitDao.updateBulkTransfer(splitId = splitId, ratkoBulkTransferId = bulkTransferId)
+        bulkTransferDao.update(splitId = splitId, ratkoBulkTransferId = bulkTransferId)
 
         assertEquals(bulkTransferId, splitDao.getOrThrow(splitId).bulkTransfer?.ratkoBulkTransferId)
     }

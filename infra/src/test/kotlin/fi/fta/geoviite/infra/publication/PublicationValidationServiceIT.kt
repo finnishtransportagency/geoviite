@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.split.BulkTransferDao
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.validateSplitContent
@@ -88,6 +89,7 @@ constructor(
     val switchService: LayoutSwitchService,
     val switchStructureDao: SwitchStructureDao,
     val splitDao: SplitDao,
+    val bulkTransferDao: BulkTransferDao,
     val publicationTestSupportService: PublicationTestSupportService,
 ) : DBTestBase() {
     @BeforeEach
@@ -1185,7 +1187,7 @@ constructor(
         val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
         publish(publicationService, locationTracks = splitSetup.trackIds)
 
-        splitDao.updateBulkTransfer(splitId = splitId, bulkTransferState = BulkTransferState.DONE)
+        bulkTransferDao.update(splitId = splitId, state = BulkTransferState.DONE)
 
         val draft =
             locationTrackService.saveDraft(
@@ -1227,7 +1229,7 @@ constructor(
         val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
         publish(publicationService, locationTracks = splitSetup.trackIds)
 
-        splitDao.updateBulkTransfer(splitId = splitId, bulkTransferState = BulkTransferState.DONE)
+        bulkTransferDao.update(splitId = splitId, state = BulkTransferState.DONE)
 
         val draft =
             locationTrackService.saveDraft(
@@ -1348,8 +1350,8 @@ constructor(
 
         publicationTestSupportService.saveSplit(locationTrackResponse).also { splitId ->
             splitDao.getOrThrow(splitId)
-            splitDao.insertBulkTransfer(splitId = splitId)
-            splitDao.updateBulkTransfer(splitId = splitId, bulkTransferState = BulkTransferState.DONE)
+            bulkTransferDao.create(splitId = splitId)
+            bulkTransferDao.update(splitId = splitId, state = BulkTransferState.DONE)
         }
 
         val validation =
