@@ -433,8 +433,34 @@ constructor(
         assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransfer?.state)
     }
 
-    // TODO
-    @Test fun `In progress bulk transfer should be polled even if the previous Ratko push failed`() {}
+    @Test
+    fun `In progress bulk transfer should be polled even if the previous Ratko push failed`() {
+        val branch = LayoutBranch.main
+
+        val somePublication =
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of("some publication"),
+                PublicationCause.MANUAL,
+            )
+
+        ratkoPushDao.startPushing(listOf(somePublication)).let { ratkoPushId ->
+            ratkoPushDao.updatePushStatus(ratkoPushId, RatkoPushStatus.FAILED)
+        }
+
+        val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
+        val splitId = splitTestDataService.insertPublishedGeocodableSplit()
+        splitDao.updateBulkTransfer(
+            splitId = splitId,
+            ratkoBulkTransferId = bulkTransferId,
+            bulkTransferState = BulkTransferState.IN_PROGRESS,
+        )
+
+        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.DONE)
+        ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
+
+        assertEquals(BulkTransferState.DONE, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+    }
 
     // TODO Move to SplitDao or elsewhere
     @Test

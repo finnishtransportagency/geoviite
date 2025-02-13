@@ -63,7 +63,6 @@ constructor(
     }
 
     fun beginNewBulkTransfer(branch: LayoutBranch, split: Split, timeout: Duration) {
-
         val request = newBulkTransferCreateRequest(branch, split)
 
         withBulkTransferHttpErrorHandler(split, "create") {
