@@ -31,13 +31,13 @@ import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 const val SWITCH_CACHE_SIZE = 10000L
 
@@ -48,7 +48,7 @@ class LayoutSwitchDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<LayoutSwitch, Unit>(
+    LayoutAssetDao<LayoutSwitch, NoParams>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_SWITCH,
         cacheEnabled,
@@ -60,7 +60,7 @@ class LayoutSwitchDao(
         "layout.switch_external_id_version",
     ) {
 
-    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutSwitch>) = Unit
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutSwitch>) = NoParams.instance
 
     override fun fetchVersions(
         layoutContext: LayoutContext,
@@ -154,10 +154,10 @@ class LayoutSwitchDao(
         }
     }
 
-    @Transactional fun save(item: LayoutSwitch): LayoutRowVersion<LayoutSwitch> = save(item, Unit)
+    @Transactional fun save(item: LayoutSwitch): LayoutRowVersion<LayoutSwitch> = save(item, NoParams.instance)
 
     @Transactional
-    override fun save(item: LayoutSwitch, params: Unit): LayoutRowVersion<LayoutSwitch> {
+    override fun save(item: LayoutSwitch, params: NoParams): LayoutRowVersion<LayoutSwitch> {
         val id = item.id as? IntId ?: createId()
 
         val sql =

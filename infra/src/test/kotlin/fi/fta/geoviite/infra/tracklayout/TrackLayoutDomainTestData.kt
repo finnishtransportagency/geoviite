@@ -412,6 +412,7 @@ fun locationTrackAndGeometry(
     val locationTrack =
         locationTrack(
             trackNumberId = trackNumberId,
+            geometry = geometry,
             id = id,
             draft = draft,
             name = name,
@@ -427,14 +428,13 @@ fun locationTrackAndGeometry(
 
 fun locationTrack(
     trackNumberId: IntId<LayoutTrackNumber>,
-    //    geometry: LocationTrackGeometry? = null,
+    geometry: LocationTrackGeometry = LocationTrackGeometry.empty,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    //    alignmentVersion: RowVersion<LayoutAlignment>? = if (id != null) someRowVersion() else null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
@@ -445,13 +445,12 @@ fun locationTrack(
 ) =
     locationTrack(
         trackNumberId = trackNumberId,
-        //        alignment = alignment,
+        geometry = geometry,
         contextData = contextData,
         name = name,
         description = description,
         type = type,
         state = state,
-        //        alignmentVersion = alignmentVersion,
         topologicalConnectivity = topologicalConnectivity,
         topologyStartSwitch = topologyStartSwitch,
         topologyEndSwitch = topologyEndSwitch,
@@ -462,13 +461,12 @@ fun locationTrack(
 
 fun locationTrack(
     trackNumberId: IntId<LayoutTrackNumber>,
-    //    alignment: LayoutAlignment? = null,
+    geometry: LocationTrackGeometry = LocationTrackGeometry.empty,
     contextData: LayoutContextData<LocationTrack>,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    //    alignmentVersion: RowVersion<LayoutAlignment>? = null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
@@ -484,14 +482,13 @@ fun locationTrack(
         state = state,
         trackNumberId = trackNumberId,
         sourceId = null,
-        boundingBox = null, // alignment?.boundingBox,
-        segmentCount = 0, // alignment?.segments?.size ?: 0,
-        length = 0.0, // alignment?.length ?: 0.0,
+        boundingBox = geometry.boundingBox,
+        segmentCount = geometry.segments.size,
+        length = geometry.length,
         duplicateOf = duplicateOf,
         topologicalConnectivity = topologicalConnectivity,
         topologyStartSwitch = topologyStartSwitch,
         topologyEndSwitch = topologyEndSwitch,
-        //        alignmentVersion = alignmentVersion,
         ownerId = ownerId,
         contextData = contextData,
     )
@@ -508,20 +505,17 @@ fun alignment(vararg segments: LayoutSegment) = alignment(segments.toList())
 
 fun alignment(segments: List<LayoutSegment>) = LayoutAlignment(segments = segments)
 
-fun trackGeometryOfSegments(vararg segments: LayoutSegment) = trackGeometryOfSegments(segments.toList())
+fun trackGeometryOfSegments(vararg segments: LayoutSegment): TmpLocationTrackGeometry =
+    trackGeometryOfSegments(segments.toList())
 
-fun trackGeometryOfSegments(segments: List<LayoutSegment>) =
-    trackGeometry(
-        listOf(
-            LayoutEdgeContent(
-                startNode = LayoutNodeTemp(LayoutNodeType.TRACK_START),
-                endNode = LayoutNodeTemp(LayoutNodeType.TRACK_END),
-                segments = segments,
-            )
+fun trackGeometryOfSegments(segments: List<LayoutSegment>): TmpLocationTrackGeometry =
+    if (segments.isEmpty()) LocationTrackGeometry.empty
+    else
+        trackGeometry(
+            listOf(TmpLayoutEdge(startNode = EdgeNode.placeHolder, endNode = EdgeNode.placeHolder, segments = segments))
         )
-    )
 
-fun trackGeometry(edges: List<ILayoutEdge>) = TmpLocationTrackGeometry(edges)
+fun trackGeometry(edges: List<LayoutEdge>): TmpLocationTrackGeometry = TmpLocationTrackGeometry(edges)
 
 fun mapAlignment(vararg segments: PlanLayoutSegment) = mapAlignment(segments.toList())
 

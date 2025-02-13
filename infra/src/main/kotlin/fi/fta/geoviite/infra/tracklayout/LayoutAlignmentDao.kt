@@ -13,15 +13,15 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -44,11 +44,11 @@ class LayoutAlignmentDao(
 ) : DaoBase(jdbcTemplateParam) {
 
     private val nodeIdsByHash: ConcurrentHashMap<Int, IntId<LayoutNode>> = ConcurrentHashMap()
-    private val nodesCache: Cache<IntId<LayoutNode>, LayoutNode> =
+    private val nodesCache: Cache<IntId<LayoutNode>, DbLayoutNode> =
         Caffeine.newBuilder().maximumSize(NODE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     private val edgeIdsByHash: ConcurrentHashMap<Int, IntId<LayoutEdge>> = ConcurrentHashMap()
-    private val edgesCache: Cache<IntId<LayoutEdge>, LayoutEdge> =
+    private val edgesCache: Cache<IntId<LayoutEdge>, DbLayoutEdge> =
         Caffeine.newBuilder().maximumSize(EDGE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     private val locationTrackGeometryCache: Cache<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> =
@@ -63,7 +63,7 @@ class LayoutAlignmentDao(
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-    fun getNode(id: IntId<LayoutNode>): LayoutNode =
+    fun getNode(id: IntId<LayoutNode>): DbLayoutNode =
         nodesCache.get(id) {
             val node = fetchNodes(id).single()
             nodeIdsByHash[node.contentHash] = id
@@ -72,12 +72,12 @@ class LayoutAlignmentDao(
 
     fun preloadNodes(): Int {
         val nodes = fetchNodes(id = null)
-        nodesCache.putAll(nodes.associateBy(LayoutNode::id))
+        nodesCache.putAll(nodes.associateBy(DbLayoutNode::id))
         nodeIdsByHash.putAll(nodes.associate { n -> n.contentHash to n.id })
         return nodes.size
     }
 
-    private fun fetchNodes(id: IntId<LayoutNode>?): List<LayoutNode> {
+    private fun fetchNodes(id: IntId<LayoutNode>?): List<DbLayoutNode> {
         val sql =
             """
             select 
@@ -98,44 +98,40 @@ class LayoutAlignmentDao(
                 .trimIndent()
         val params = mapOf("id" to id?.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
+            val id = rs.getIntId<LayoutNode>("id")
             val type = rs.getEnum<LayoutNodeType>("type")
-            val content =
-                when (type) {
-                    LayoutNodeType.TRACK_START -> LayoutNodeStartTrack(rs.getIntId("starting_location_track_id"))
-                    LayoutNodeType.TRACK_END -> LayoutNodeEndTrack(rs.getIntId("ending_location_track_id"))
-                    LayoutNodeType.SWITCH -> {
-                        LayoutNodeSwitch(
-                            switchIn =
-                                rs.getIntIdOrNull<LayoutSwitch>("switch_1_id")?.let { id ->
-                                    SwitchLink(
-                                        id,
-                                        rs.getEnum("switch_1_joint_role"),
-                                        rs.getJointNumber("switch_1_joint_number"),
-                                    )
-                                },
-                            switchOut =
-                                rs.getIntIdOrNull<LayoutSwitch>("switch_2_id")?.let { id ->
-                                    SwitchLink(
-                                        id,
-                                        rs.getEnum("switch_2_joint_role"),
-                                        rs.getJointNumber("switch_2_joint_number"),
-                                    )
-                                },
-                        )
-                    }
+            when (type) {
+                LayoutNodeType.TRACK_START -> DbTrackStartNode(id, rs.getIntId("starting_location_track_id"))
+                LayoutNodeType.TRACK_END -> DbTrackEndNode(id, rs.getIntId("ending_location_track_id"))
+                LayoutNodeType.SWITCH -> {
+                    DbSwitchNode(
+                        id = id,
+                        switch1 =
+                            SwitchLink(
+                                rs.getIntId("switch_1_id"),
+                                rs.getEnum("switch_1_joint_role"),
+                                rs.getJointNumber("switch_1_joint_number"),
+                            ),
+                        switch2 =
+                            rs.getIntIdOrNull<LayoutSwitch>("switch_2_id")?.let { id ->
+                                SwitchLink(
+                                    id,
+                                    rs.getEnum("switch_2_joint_role"),
+                                    rs.getJointNumber("switch_2_joint_number"),
+                                )
+                            },
+                    )
                 }
-            LayoutNode(rs.getIntId("id"), content)
+                LayoutNodeType.PLACEHOLDER -> error("Placeholder nodes cannot exist in DB")
+            }
         }
     }
 
     @Transactional
-    fun getOrCreateNode(content: ILayoutNodeContent): LayoutNode =
-        if (content is LayoutNode) content else getNode(nodeIdsByHash[content.contentHash] ?: saveNode(content))
+    fun getOrCreateNode(content: LayoutNode): DbLayoutNode =
+        if (content is DbLayoutNode) content else getNode(nodeIdsByHash[content.contentHash] ?: saveNode(content))
 
-    private fun saveNode(content: ILayoutNodeContent): IntId<LayoutNode> {
-        require(content !is LayoutNodeTemp) {
-            "Cannot save a temporary node: it should be mapped to an actual node (switch or track-end)"
-        }
+    private fun saveNode(content: LayoutNode): IntId<LayoutNode> {
         val sql =
             """
             select layout.get_or_insert_node(
@@ -151,12 +147,12 @@ class LayoutAlignmentDao(
         """
         val params =
             mapOf(
-                "switch_1_id" to content.switchIn?.id?.intValue,
-                "switch_1_joint_number" to content.switchIn?.jointNumber?.intValue,
-                "switch_1_joint_role" to content.switchIn?.jointRole?.name,
-                "switch_2_id" to content.switchOut?.id?.intValue,
-                "switch_2_joint_number" to content.switchOut?.jointNumber?.intValue,
-                "switch_2_joint_role" to content.switchOut?.jointRole?.name,
+                "switch_1_id" to content.switch1?.id?.intValue,
+                "switch_1_joint_number" to content.switch1?.jointNumber?.intValue,
+                "switch_1_joint_role" to content.switch1?.jointRole?.name,
+                "switch_2_id" to content.switch2?.id?.intValue,
+                "switch_2_joint_number" to content.switch2?.jointNumber?.intValue,
+                "switch_2_joint_role" to content.switch2?.jointRole?.name,
                 "start_track_id" to content.startingTrackId?.intValue,
                 "end_track_id" to content.endingTrackId?.intValue,
             )
@@ -164,7 +160,7 @@ class LayoutAlignmentDao(
     }
 
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-    fun getEdge(id: IntId<LayoutEdge>): LayoutEdge =
+    fun getEdge(id: IntId<LayoutEdge>): DbLayoutEdge =
         edgesCache.get(id) {
             val edge = fetchEdges(ids = listOf(id), active = false).values.single()
             edgeIdsByHash[edge.contentHash] = id
@@ -180,14 +176,16 @@ class LayoutAlignmentDao(
         return edges.size
     }
 
-    private fun fetchEdges(ids: Iterable<IntId<LayoutEdge>>?, active: Boolean): Map<IntId<LayoutEdge>, LayoutEdge> {
+    private fun fetchEdges(ids: Iterable<IntId<LayoutEdge>>?, active: Boolean): Map<IntId<LayoutEdge>, DbLayoutEdge> {
         logger.info("Fetching edges: ids=$ids active=$active")
         val sql =
             """
             select
               e.id,
               e.start_node_id,
+              e.start_node_direction,
               e.end_node_id,
+              e.end_node_direction,
               array_agg(s.segment_index order by s.segment_index) as indices,
               array_agg(s.geometry_alignment_id order by s.segment_index) as geometry_alignment_ids,
               array_agg(s.geometry_element_index order by s.segment_index) as geometry_element_indices,
@@ -244,39 +242,48 @@ class LayoutAlignmentDao(
                             geometry = requireNotNull(segmentGeometries[geometryIds[i]]),
                         )
                     }
-                LayoutEdge(
+                DbLayoutEdge(
                     id = edgeId,
-                    content =
-                        LayoutEdgeContent(
-                            // TODO: GVT-1727 fetch with single query or just trust in the cache?
-                            startNode = getNode(rs.getIntId("start_node_id")),
-                            endNode = getNode(rs.getIntId("end_node_id")),
-                            segments = segments,
+                    // TODO: GVT-1727 fetch with single query or just trust in the cache?
+                    startNode =
+                        DbEdgeNode(
+                            direction = rs.getEnum("start_node_direction"),
+                            node = getNode(rs.getIntId("start_node_id")),
                         ),
+                    endNode =
+                        DbEdgeNode(
+                            direction = rs.getEnum("end_node_direction"),
+                            node = getNode(rs.getIntId("end_node_id")),
+                        ),
+                    segments = segments,
                 )
             }
-            .associateBy(LayoutEdge::id)
+            .associateBy(DbLayoutEdge::id)
     }
 
     @Transactional
-    fun getOrCreateEdge(content: ILayoutEdge): LayoutEdge =
+    fun getOrCreateEdge(content: LayoutEdge): DbLayoutEdge =
         when (content) {
-            is LayoutEdge -> content
-            is LayoutEdgeContent ->
+            is DbLayoutEdge -> content
+            is TmpLayoutEdge ->
                 saveContentGeometry(content).let { updatedContent ->
                     getEdge(edgeIdsByHash[updatedContent.contentHash] ?: saveEdge(updatedContent))
                 }
-            else -> error("Unknown edge content type ${content::class.simpleName}")
         }
 
-    private fun saveEdge(content: LayoutEdgeContent): IntId<LayoutEdge> {
-        val startNodeId = getOrCreateNode(content.startNode).id
-        val endNodeId = getOrCreateNode(content.endNode).id
+    private fun getOrSaveEdgeNode(node: EdgeNode): IntId<LayoutNode> =
+        getOrCreateNode(requireNotNull(node.node) { "Cannot save edge with non-reified nodes: $node" }).id
+
+    private fun saveEdge(content: TmpLayoutEdge): IntId<LayoutEdge> {
+        val startNodeId = getOrSaveEdgeNode(content.startNode)
+        val endNodeId = getOrSaveEdgeNode(content.endNode)
         val sql =
             """
             select layout.get_or_insert_edge(
               :start_node_id,
+              :start_node_direction::layout.node_direction,
               :end_node_id,
+              :end_node_direction::layout.node_direction,
               :geometry_alignment_ids,
               :geometry_element_indices,
               :start_m_values,
@@ -289,7 +296,9 @@ class LayoutAlignmentDao(
         val params =
             mapOf(
                 "start_node_id" to startNodeId.intValue,
+                "start_node_direction" to content.startNode.direction.name,
                 "end_node_id" to endNodeId.intValue,
+                "end_node_direction" to content.endNode.direction.name,
                 "geometry_alignment_ids" to content.segments.map { s -> s.sourceId?.parentId }.toTypedArray(),
                 "geometry_element_indices" to content.segments.map { s -> s.sourceId?.index }.toTypedArray(),
                 "start_m_values" to content.segmentMValues.map { m -> roundTo6Decimals(m.min) }.toTypedArray(),
@@ -302,7 +311,7 @@ class LayoutAlignmentDao(
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutEdge>("id") }.single()
     }
 
-    private fun saveContentGeometry(content: LayoutEdgeContent): LayoutEdgeContent {
+    private fun saveContentGeometry(content: TmpLayoutEdge): TmpLayoutEdge {
         val newGeometryIds =
             insertSegmentGeometries(
                 content.segments.mapNotNull { s -> if (s.geometry.id is StringId) s.geometry else null }
@@ -337,20 +346,22 @@ class LayoutAlignmentDao(
         val sql =
             """
             select
-              location_track_id as id,
-              location_track_layout_context_id as layout_context_id,
-              location_track_version as version,
-              array_agg(edge_id order by edge_index) as edge_ids
-            from layout.location_track_version_edge
-            where (:id::int is null or (
-                location_track_id = :id and location_track_layout_context_id = :layout_context_id and location_track_version = :version
-              ))
-              and (:active = false or exists(
-                select 1
-                from layout.location_track t
-                where t.id = location_track_id and t.layout_context_id = location_track_layout_context_id and t.version = location_track_version
-              ))
-            group by location_track_id, location_track_layout_context_id, location_track_version
+              lt.id,
+              lt.layout_context_id,
+              lt.version,
+              array_agg(edge_id order by edge_index) filter (where edge_id is not null) as edge_ids
+              from layout.location_track_version lt
+                left join layout.location_track_version_edge lt_e
+                          on lt_e.location_track_id = lt.id
+                            and lt_e.location_track_layout_context_id = lt.layout_context_id
+                            and lt_e.location_track_version = lt.version
+                          where (:id::int is null or (lt.id = :id and lt.layout_context_id = :layout_context_id and lt.version = :version))
+                and (:active = false or exists(
+                  select 1
+                    from layout.location_track t
+                    where t.id = lt.id and t.layout_context_id = lt.layout_context_id and t.version = lt.version
+                ))
+              group by lt.id, lt.layout_context_id, lt.version
         """
                 .trimIndent()
         val params =
@@ -937,6 +948,7 @@ class LayoutAlignmentDao(
         }
     }
 
+    // TODO: GVT-2932 fetch track profiles through edge geometry
     fun <T> fetchProfileInfoForSegmentsInBoundingBox(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
@@ -1197,7 +1209,7 @@ class LayoutAlignmentDao(
     fun getActiveContextEdges(
         context: LayoutContext,
         bbox: BoundingBox,
-    ): List<Pair<LayoutEdge, List<IntId<LocationTrack>>>> {
+    ): List<Pair<DbLayoutEdge, List<IntId<LocationTrack>>>> {
         val sql =
             """
             select

@@ -20,7 +20,7 @@ class ReferenceLineService(
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
     private val geocodingService: GeocodingService,
-) : LayoutAssetService<ReferenceLine, Unit, ReferenceLineDao>(dao) {
+) : LayoutAssetService<ReferenceLine, NoParams, ReferenceLineDao>(dao) {
 
     @Transactional
     fun addTrackNumberReferenceLine(
@@ -62,13 +62,13 @@ class ReferenceLineService(
 
     @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: ReferenceLine): LayoutRowVersion<ReferenceLine> =
-        saveDraftInternal(branch, draftAsset, Unit)
+        saveDraftInternal(branch, draftAsset, NoParams.instance)
 
     @Transactional
     override fun saveDraftInternal(
         branch: LayoutBranch,
         draftAsset: ReferenceLine,
-        params: Unit,
+        params: NoParams,
     ): LayoutRowVersion<ReferenceLine> =
         super.saveDraftInternal(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)), params)
 
@@ -95,7 +95,7 @@ class ReferenceLineService(
             } else {
                 alignmentService.save(alignment)
             }
-        return saveDraftInternal(branch, draftAsset.copy(alignmentVersion = alignmentVersion), Unit)
+        return saveDraftInternal(branch, draftAsset.copy(alignmentVersion = alignmentVersion), NoParams.instance)
     }
 
     private fun updatedAlignmentVersion(line: ReferenceLine) =

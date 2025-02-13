@@ -338,10 +338,14 @@ class TestDBService(
     fun insertAuthor(): RowVersion<Author> = geometryDao.insertAuthor(Author(getUnusedAuthorCompanyName()))
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : LayoutAsset<T>> save(asset: LayoutAsset<T>): LayoutRowVersion<T> =
+    fun <T : LayoutAsset<T>> save(
+        asset: LayoutAsset<T>,
+        originVersion: LayoutRowVersion<T>? = asset.version,
+    ): LayoutRowVersion<T> =
         when (asset) {
             is LayoutTrackNumber -> trackNumberDao.save(asset)
-            is LocationTrack -> locationTrackDao.save(asset, alignmentDao.fetch(asset.versionOrThrow))
+            is LocationTrack ->
+                locationTrackDao.save(asset, asset.version?.let(alignmentDao::fetch) ?: LocationTrackGeometry.empty)
             is ReferenceLine -> referenceLineDao.save(asset)
             is LayoutKmPost -> kmPostDao.save(asset)
             is LayoutSwitch -> switchDao.save(asset)
@@ -448,7 +452,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         val withNewContext = original.withContext(createContextData(EditedAssetId(rowVersion)))
         return when (withNewContext) {
             // Also copy alignment for polyline assets
-            is LocationTrack -> save(withNewContext, alignmentDao.fetch(withNewContext.versionOrThrow))
+            is LocationTrack -> save(withNewContext, alignmentDao.fetch(rowVersion as LayoutRowVersion<LocationTrack>))
             is ReferenceLine -> save(withNewContext, alignmentDao.fetch(withNewContext.getAlignmentVersionOrThrow()))
             is PolyLineLayoutAsset<*> -> error("Unhandled PolyLineAsset type: ${T::class.simpleName}")
             else -> save(withNewContext)
@@ -463,6 +467,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
      * If desired, you can also mutate the asset before moving it to the new context by providing a [mutate] function.
      * </p>
      */
+    @Suppress("UNCHECKED_CAST")
     inline fun <reified T : LayoutAsset<T>> moveFrom(
         rowVersion: LayoutRowVersion<T>,
         mutate: (T) -> T = { it },
@@ -471,7 +476,14 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         val mutated = mutate(original)
         val withNewContext = mutated.withContext(createContextData(rowContextId = EditedAssetId(rowVersion)))
         testService.delete<T>(original.version!!)
-        return save(withNewContext)
+        return when (withNewContext) {
+            // Also move alignment for polyline assets
+            is LocationTrack -> save(withNewContext, alignmentDao.fetch(rowVersion as LayoutRowVersion<LocationTrack>))
+            is ReferenceLine -> save(withNewContext, alignmentDao.fetch(withNewContext.getAlignmentVersionOrThrow()))
+            is PolyLineLayoutAsset<*> -> error("Unhandled PolyLineAsset type: ${T::class.simpleName}")
+            else -> save(withNewContext)
+        }
+            as LayoutRowVersion<T>
     }
 
     fun <T : LayoutAsset<T>> saveMany(vararg asset: T): List<LayoutRowVersion<T>> = asset.map(::save)

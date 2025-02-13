@@ -12,11 +12,11 @@ data class LayoutGraph(
 ) {
     constructor(
         context: LayoutContext,
-        edges: List<Pair<LayoutEdge, List<IntId<LocationTrack>>>>,
+        edges: List<Pair<DbLayoutEdge, List<IntId<LocationTrack>>>>,
     ) : this(context, creteGraphNodes(edges.map { (e, _) -> e }), createGraphEdges(edges))
 }
 
-private fun creteGraphNodes(edges: List<LayoutEdge>): Map<IntId<LayoutNode>, LayoutGraphNode> =
+private fun creteGraphNodes(edges: List<DbLayoutEdge>): Map<IntId<LayoutNode>, LayoutGraphNode> =
     edges
         .flatMap { edge ->
             listOf(LayoutGraphNode(edge.startNode, edge.start), LayoutGraphNode(edge.endNode, edge.end))
@@ -24,7 +24,7 @@ private fun creteGraphNodes(edges: List<LayoutEdge>): Map<IntId<LayoutNode>, Lay
         .associateBy { it.id }
 
 private fun createGraphEdges(
-    edges: List<Pair<LayoutEdge, List<IntId<LocationTrack>>>>
+    edges: List<Pair<DbLayoutEdge, List<IntId<LocationTrack>>>>
 ): Map<IntId<LayoutEdge>, LayoutGraphEdge> =
     edges.associate { (edge, tracks) -> edge.id to LayoutGraphEdge(edge, tracks) }
 
@@ -36,7 +36,7 @@ data class LayoutGraphEdge(
     val tracks: List<IntId<LocationTrack>>,
 ) {
     constructor(
-        edge: LayoutEdge,
+        edge: DbLayoutEdge,
         tracks: List<IntId<LocationTrack>>,
     ) : this(edge.id, edge.startNode.id, edge.endNode.id, edge.length, tracks)
 }
@@ -48,7 +48,7 @@ data class LayoutGraphNode(
     val location: Point,
 ) {
     constructor(
-        node: LayoutNode,
+        node: DbEdgeNode,
         location: IPoint,
-    ) : this(node.id, node.nodeType, listOfNotNull(node.switchIn, node.switchOut), location.toPoint())
+    ) : this(node.id, node.type, listOfNotNull(node.switchIn, node.switchOut), location.toPoint())
 }

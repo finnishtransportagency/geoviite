@@ -46,7 +46,7 @@ class LayoutTrackNumberService(
     private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
-) : LayoutAssetService<LayoutTrackNumber, Unit, LayoutTrackNumberDao>(dao) {
+) : LayoutAssetService<LayoutTrackNumber, NoParams, LayoutTrackNumberDao>(dao) {
 
     @Transactional
     fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutRowVersion<LayoutTrackNumber> {
@@ -209,7 +209,7 @@ class LayoutTrackNumberService(
 
     @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> =
-        saveDraftInternal(branch, draftAsset, Unit)
+        saveDraftInternal(branch, draftAsset, NoParams.instance)
 }
 
 private fun asCsvFile(

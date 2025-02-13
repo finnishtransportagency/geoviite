@@ -1760,6 +1760,7 @@ constructor(
         return mapOf("${name}_x" to point?.x, "${name}_y" to point?.y)
     }
 
+    // TODO: GVT-2932 fetch track links through edge geometry
     /** If planIds is null, returns all plans' linking summaries */
     fun getLinkingSummaries(
         planIds: List<IntId<GeometryPlan>>? = null

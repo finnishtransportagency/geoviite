@@ -32,7 +32,7 @@ constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
     private val ratkoClient: RatkoClient?,
-) : LayoutAssetService<LayoutSwitch, Unit, LayoutSwitchDao>(dao) {
+) : LayoutAssetService<LayoutSwitch, NoParams, LayoutSwitchDao>(dao) {
 
     @Transactional
     fun insertSwitch(branch: LayoutBranch, request: LayoutSwitchSaveRequest): IntId<LayoutSwitch> {
@@ -204,7 +204,7 @@ constructor(
 
     @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutSwitch): LayoutRowVersion<LayoutSwitch> =
-        saveDraftInternal(branch, draftAsset, Unit)
+        saveDraftInternal(branch, draftAsset, NoParams.instance)
 }
 
 fun pageSwitches(
@@ -248,7 +248,7 @@ fun clearLinksToSwitch(
     layoutSwitchId: IntId<LayoutSwitch>,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val trackId = track.id as IntId
-    val newEdges = combineEdges(geometry.edges.map { edge -> edge.withoutSwitch(layoutSwitchId, trackId) })
+    val newEdges = combineEdges(geometry.edges.map { edge -> edge.withoutSwitch(layoutSwitchId) })
     return track to TmpLocationTrackGeometry(newEdges)
 }
 

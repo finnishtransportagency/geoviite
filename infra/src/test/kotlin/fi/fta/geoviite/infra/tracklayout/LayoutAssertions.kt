@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
-import org.junit.jupiter.api.Assertions.assertEquals
 import kotlin.test.assertNull
+import org.junit.jupiter.api.Assertions.assertEquals
 
 private const val COORDINATE_DELTA: Double = 0.000000001
 private const val LENGTH_DELTA: Double = 0.00001
@@ -48,7 +48,7 @@ fun assertMatches(expected: LocationTrackGeometry, actual: LocationTrackGeometry
         expected.edges.forEachIndexed { index, expectedEdge -> assertMatches(expectedEdge, actual.edges[index]) }
     }
 
-fun assertMatches(expected: ILayoutEdge, actual: ILayoutEdge, idMatch: Boolean = false) =
+fun assertMatches(expected: LayoutEdge, actual: LayoutEdge, idMatch: Boolean = false) =
     if (idMatch) {
         assertEquals(expected, actual)
     } else {
@@ -65,12 +65,12 @@ fun assertMatches(expected: ILayoutEdge, actual: ILayoutEdge, idMatch: Boolean =
         }
     }
 
-fun assertMatches(expected: ILayoutNodeContent, actual: ILayoutNodeContent, idMatch: Boolean = false) {
+fun assertMatches(expected: EdgeNode, actual: EdgeNode, idMatch: Boolean = false) {
     if (idMatch) {
         assertEquals(expected, actual)
     } else {
-        assertEquals(expected.nodeType, actual.nodeType)
-        if (expected.nodeType == LayoutNodeType.SWITCH) {
+        if (expected.type != LayoutNodeType.PLACEHOLDER) assertEquals(expected.type, actual.type)
+        if (expected.type == LayoutNodeType.SWITCH) {
             assertEquals(expected.switchIn, actual.switchIn)
             assertEquals(expected.switchOut, actual.switchOut)
         }

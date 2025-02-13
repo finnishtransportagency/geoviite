@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -396,6 +396,7 @@ class PublicationDao(
      *   null to have all candidate location tracks considered in the publication unit.
      * @param includeDeleted Filters location tracks, not switches
      */
+    // TODO: GVT-2932 fetch track links through edge geometry
     fun fetchLinkedLocationTracks(
         target: ValidationTarget,
         switchIds: List<IntId<LayoutSwitch>>,
@@ -1026,6 +1027,7 @@ class PublicationDao(
     fun fetchUnprocessedGeometryChangeRemarks(maxCount: Int): List<UnprocessedGeometryChange> =
         fetchUnprocessedGeometryChangeRemarks(null, maxCount)
 
+    // TODO: GVT-2932 fetch track change remarks through edge geometry
     private fun fetchUnprocessedGeometryChangeRemarks(
         publicationId: IntId<Publication>?,
         maxCount: Int?,

@@ -8,23 +8,21 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.radsToDegrees
+import fi.fta.geoviite.infra.tracklayout.EdgeNode
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.IAlignment
-import fi.fta.geoviite.infra.tracklayout.ILayoutEdge
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutEdgeContent
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeTemp
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_END
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_START
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import kotlin.math.PI
@@ -193,11 +191,7 @@ private fun tryCreateLinkedTrackGeometry(newSegments: List<LayoutSegment>): Loca
     try {
         TmpLocationTrackGeometry(
             listOf(
-                LayoutEdgeContent(
-                    startNode = LayoutNodeTemp(TRACK_START),
-                    endNode = LayoutNodeTemp(TRACK_END),
-                    segments = newSegments,
-                )
+                TmpLayoutEdge(startNode = EdgeNode.placeHolder, endNode = EdgeNode.placeHolder, segments = newSegments)
             )
         )
     } catch (e: IllegalArgumentException) {
@@ -256,12 +250,7 @@ fun splice(
     val startGap = listOfNotNull(createGapIfNeeded(startEdges.lastOrNull()?.segments ?: listOf(), added))
     val endEdges = slice(geometry, Range(mRange.max, geometry.length), snapDistance)
     val endGap = listOfNotNull(createGapIfNeeded(added, endEdges.firstOrNull()?.segments ?: listOf()))
-    val midEdge =
-        LayoutEdgeContent(
-            startNode = LayoutNodeTemp(TRACK_START),
-            endNode = LayoutNodeTemp(TRACK_END),
-            segments = startGap + added + endGap,
-        )
+    val midEdge = TmpLayoutEdge.of(startGap + added + endGap)
     // TODO: GVT-2915 validations, like on LayoutAlignment?
     return TmpLocationTrackGeometry(combineEdges(startEdges + midEdge + endEdges))
 }
@@ -292,7 +281,7 @@ fun slice(
     geometry: LocationTrackGeometry,
     mRange: Range<Double>,
     snapDistance: Double = ALIGNMENT_LINKING_SNAP,
-): List<ILayoutEdge> {
+): List<LayoutEdge> {
     return geometry.edgesWithM.mapNotNull { (e, m) ->
         if (m.max - snapDistance <= mRange.min || m.min + snapDistance >= mRange.max) {
             null
@@ -304,10 +293,10 @@ fun slice(
     }
 }
 
-fun slice(edge: ILayoutEdge, mRange: Range<Double>, snapDistance: Double = ALIGNMENT_LINKING_SNAP): ILayoutEdge =
-    LayoutEdgeContent(
-        startNode = edge.startNode.takeIf { mRange.min - snapDistance <= 0.0 } ?: LayoutNodeTemp(TRACK_START),
-        endNode = edge.endNode.takeIf { mRange.max + snapDistance >= edge.length } ?: LayoutNodeTemp(TRACK_END),
+fun slice(edge: LayoutEdge, mRange: Range<Double>, snapDistance: Double = ALIGNMENT_LINKING_SNAP): LayoutEdge =
+    TmpLayoutEdge(
+        startNode = edge.startNode.takeIf { mRange.min - snapDistance <= 0.0 } ?: EdgeNode.placeHolder,
+        endNode = edge.endNode.takeIf { mRange.max + snapDistance >= edge.length } ?: EdgeNode.placeHolder,
         segments = slice(edge.segmentsWithM, mRange, snapDistance),
     )
 

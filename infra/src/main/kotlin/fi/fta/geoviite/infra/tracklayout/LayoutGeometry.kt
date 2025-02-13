@@ -118,14 +118,21 @@ interface IAlignment : Loggable {
             index,
             (segment, segmentM) ->
             segment.segmentPoints
-                .let { points -> if (index == 0) points else points.subList(1, points.size) }
+                .let { points ->
+                    if (downward && index == 0 || !downward && index == segments.lastIndex) points
+                    else points.subList(0, points.size - 1)
+                }
                 .let { sPoints -> sPoints.map { point -> point.toAlignmentPoint(segmentM.min) } }
                 .let { aPoints -> if (downward) aPoints.asReversed() else aPoints }
         }
 
     @get:JsonIgnore
     val allSegmentPoints: Sequence<SegmentPoint>
-        get() = segments.asSequence().flatMap { s -> s.segmentPoints }
+        get() =
+            segments.asSequence().flatMapIndexed { index, s ->
+                if (index == segments.lastIndex) s.segmentPoints
+                else s.segmentPoints.subList(0, s.segmentPoints.size - 1)
+            }
 
     @get:JsonIgnore
     val allAlignmentPoints: Sequence<AlignmentPoint>
@@ -139,7 +146,7 @@ interface IAlignment : Loggable {
         return if (!bbox.intersects(boundingBox)) {
             listOf() // Shortcut: if it doesn't hit the alignment, it won't hit segments either
         } else {
-            segmentsWithM.filter { (s, _) -> s.boundingBox?.intersects(bbox) ?: false }
+            segmentsWithM.filter { (s, _) -> s.boundingBox.intersects(bbox) }
         }
     }
 
