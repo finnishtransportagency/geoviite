@@ -5,7 +5,13 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getInstantOrNull
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getIntOrNull
 import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.Timestamp
@@ -105,5 +111,45 @@ class BulkTransferDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
                 jdbcTemplate.query(sql, params) { rs, _ -> rs.getRowVersion<BulkTransfer>("split_id", "version") },
             )
             .also { logger.daoAccess(AccessType.UPDATE, BulkTransfer::class, splitId) }
+    }
+
+    fun getBySplitId(splitId: IntId<Split>): BulkTransfer? {
+        val sql =
+            """
+          select
+              split_id,
+              state,
+              expedited_start,
+              temporary_failure,
+              ratko_bulk_transfer_id,
+              ratko_start_time,
+              ratko_end_time,
+              assets_total,
+              assets_moved,
+              trex_assets_total,
+              trex_assets_remaining
+          from integrations.ratko_bulk_transfer
+          where split_id = :split_id
+            """
+                .trimIndent()
+
+        return getOptional(
+            splitId,
+            jdbcTemplate.query(sql, mapOf("split_id" to splitId.intValue)) { rs, _ ->
+                BulkTransfer(
+                    splitId = rs.getIntId("split_id"),
+                    state = rs.getEnum("state"),
+                    expeditedStart = rs.getBoolean("expedited_start"),
+                    temporaryFailure = rs.getBoolean("temporary_failure"),
+                    ratkoBulkTransferId = rs.getIntIdOrNull("ratko_bulk_transfer_id"),
+                    ratkoStartTime = rs.getInstantOrNull("ratko_start_time"),
+                    ratkoEndTime = rs.getInstantOrNull("ratko_end_time"),
+                    assetsTotal = rs.getIntOrNull("assets_total"),
+                    assetsMoved = rs.getIntOrNull("assets_moved"),
+                    trexAssetsTotal = rs.getIntOrNull("trex_assets_total"),
+                    trexAssetsRemaining = rs.getIntOrNull("trex_assets_remaining"),
+                )
+            },
+        )
     }
 }

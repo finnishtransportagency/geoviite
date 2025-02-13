@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
-import fi.fta.geoviite.infra.util.getIntOrNull
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getOptional
@@ -52,24 +51,12 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>, bulk
         bulkTransfer = bulkTransfer,
     )
 
-private fun toBulkTransfer(rs: ResultSet): BulkTransfer =
-    BulkTransfer(
-        splitId = rs.getIntId("split_id"),
-        state = rs.getEnum("state"),
-        expeditedStart = rs.getBoolean("expedited_start"),
-        temporaryFailure = rs.getBoolean("temporary_failure"),
-        ratkoBulkTransferId = rs.getIntIdOrNull("ratko_bulk_transfer_id"),
-        ratkoStartTime = rs.getInstantOrNull("ratko_start_time"),
-        ratkoEndTime = rs.getInstantOrNull("ratko_end_time"),
-        assetsTotal = rs.getIntOrNull("assets_total"),
-        assetsMoved = rs.getIntOrNull("assets_moved"),
-        trexAssetsTotal = rs.getIntOrNull("trex_assets_total"),
-        trexAssetsRemaining = rs.getIntOrNull("trex_assets_remaining"),
-    )
-
 @Transactional(readOnly = true)
 @Component
-class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class SplitDao(
+    private val bulkTransferDao: BulkTransferDao, // TODO This should not be here
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+) : DaoBase(jdbcTemplateParam) {
 
     @Transactional
     fun saveSplit(
@@ -223,7 +210,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         return getOptional(
                 splitId,
                 jdbcTemplate.query(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
-                    toSplit(rs, getSplitTargets(splitId), getBulkTransfer(splitId))
+                    toSplit(rs, getSplitTargets(splitId), bulkTransferDao.getBySplitId(splitId))
                 },
             )
             .also { logger.daoAccess(AccessType.FETCH, Split::class, splitId) }
@@ -292,13 +279,6 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 "source_track_version" to sourceTrackVersion?.version,
             )
 
-        // TODO Fix/remove/modify callers
-        //        if (publicationId != null && listOfNotNull(bulkTransferId,
-        // bulkTransferState).isNotEmpty()) {
-        //            upsertBulkTransfer(splitId, bulkTransferState = bulkTransferState,
-        // ratkoBulkTransferId = bulkTransferId)
-        //        }
-
         jdbcTemplate.setUser()
         return getOne(splitId, jdbcTemplate.query(sql, params) { rs, _ -> rs.getRowVersion<Split>("id", "version") })
             .also { logger.daoAccess(AccessType.UPDATE, Split::class, splitId) }
@@ -324,33 +304,6 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 operation = rs.getEnum("operation"),
             )
         }
-    }
-
-    // TODO Should not be here
-    fun getBulkTransfer(splitId: IntId<Split>): BulkTransfer? {
-        val sql =
-            """
-          select
-              split_id,
-              state,
-              expedited_start,
-              temporary_failure,
-              ratko_bulk_transfer_id,
-              ratko_start_time,
-              ratko_end_time,
-              assets_total,
-              assets_moved,
-              trex_assets_total,
-              trex_assets_remaining
-          from integrations.ratko_bulk_transfer
-          where split_id = :split_id
-            """
-                .trimIndent()
-
-        return getOptional(
-            splitId,
-            jdbcTemplate.query(sql, mapOf("split_id" to splitId.intValue)) { rs, _ -> toBulkTransfer(rs) },
-        )
     }
 
     fun fetchUnfinishedSplits(branch: LayoutBranch): List<Split> {
@@ -386,7 +339,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         return jdbcTemplate
             .query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
                 val splitId = rs.getIntId<Split>("id")
-                toSplit(rs, getSplitTargets(splitId), getBulkTransfer(splitId))
+                toSplit(rs, getSplitTargets(splitId), bulkTransferDao.getBySplitId(splitId))
             }
             .also { ids -> logger.daoAccess(AccessType.FETCH, SplitTarget::class, ids.map { it.id }) }
     }
