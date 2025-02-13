@@ -13,13 +13,12 @@ import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferDestinationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoTrackMeter
 import fi.fta.geoviite.infra.split.BulkTransferDao
 import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.PublishedSplit
 import fi.fta.geoviite.infra.split.Split
-import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import java.time.Duration
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -34,7 +33,6 @@ class RatkoBulkTransferService
 constructor(
     private val ratkoClient: RatkoClient,
     private val ratkoPushDao: RatkoPushDao,
-    private val splitDao: SplitDao, // TODO use service level instead?
     private val splitService: SplitService,
     private val geocodingService: GeocodingService,
     private val locationTrackDao: LocationTrackDao, // TODO Use a service?
@@ -48,23 +46,35 @@ constructor(
 
         splitService
             .findUnfinishedSplits(branch)
-            .filter { split -> split.publicationId != null && split.publicationTime != null }
-            .sortedWith(compareBy { split -> split.publicationTime ?: Instant.MAX })
+            .filterIsInstance<PublishedSplit>()
+            .sortedWith(compareBy { split -> split.publicationTime })
             .firstOrNull()
             ?.let { split ->
-                if (split.bulkTransfer?.state == BulkTransferState.CREATED && split.bulkTransfer.expeditedStart) {
+                if (split.bulkTransfer.state == BulkTransferState.CREATED && split.bulkTransfer.expeditedStart) {
                     expediteBulkTransferStart(split, timeout)
                 } else {
                     split
                 }
             }
             ?.let { split -> pollBulkTransferStateUpdate(split, timeout) }
-            ?.takeIf(::previousRatkoPushHasNotFailed)
+            ?.takeIf { split ->
+                ratkoPushDao.fetchPreviousPush().let { previousPush ->
+                    if (previousPush.status == RatkoPushStatus.FAILED) {
+                        logger.info(
+                            "Previous ratkoPushId=${previousPush.id}) has FAILED," +
+                                "skipping bulk transfer creation for splitId=${split.id}"
+                        )
+                        false
+                    } else {
+                        true
+                    }
+                }
+            }
             .takeIf { split -> split?.bulkTransfer?.state == BulkTransferState.PENDING }
             ?.let { split -> beginNewBulkTransfer(branch, split, timeout) }
     }
 
-    fun beginNewBulkTransfer(branch: LayoutBranch, split: Split, timeout: Duration) {
+    fun beginNewBulkTransfer(branch: LayoutBranch, split: PublishedSplit, timeout: Duration) {
         val request = newBulkTransferCreateRequest(branch, split)
 
         withBulkTransferHttpErrorHandler(split, "create") {
@@ -83,7 +93,7 @@ constructor(
         }
     }
 
-    fun pollBulkTransferStateUpdate(split: Split, timeout: Duration): Split {
+    fun pollBulkTransferStateUpdate(split: PublishedSplit, timeout: Duration): PublishedSplit {
         requireNotNull(split.bulkTransfer) {
             "Bulk transfer poll was ran for a split which had bulkTransfer=null, splitId=${split.id}"
         }
@@ -137,22 +147,7 @@ constructor(
             }
         }
 
-        return splitService.getOrThrow(split.id)
-    }
-
-    fun previousRatkoPushHasNotFailed(split: Split): Boolean {
-        return ratkoPushDao.fetchPreviousPush().let { previousPush ->
-            if (previousPush.status == RatkoPushStatus.FAILED) {
-                logger.info(
-                    "Previous ratkoPushId=${previousPush.id}) has FAILED," +
-                        "skipping bulk transfer creation for splitId=${split.id}"
-                )
-
-                false
-            } else {
-                true
-            }
-        }
+        return splitService.getOrThrow(split.id) as PublishedSplit
     }
 
     fun newBulkTransferCreateRequest(branch: LayoutBranch, split: Split): RatkoBulkTransferCreateRequest {
@@ -203,7 +198,7 @@ constructor(
         )
     }
 
-    fun expediteBulkTransferStart(split: Split, timeout: Duration): Split {
+    fun expediteBulkTransferStart(split: PublishedSplit, timeout: Duration): PublishedSplit {
         requireNotNull(split.bulkTransfer) {
             "Bulk transfer expedited start was ran for a split which had bulkTransfer=null, splitId=${split.id}"
         }
@@ -227,10 +222,10 @@ constructor(
             bulkTransferDao.update(splitId = split.id, temporaryFailure = false, state = BulkTransferState.IN_PROGRESS)
         }
 
-        return splitService.getOrThrow(split.id)
+        return splitService.getOrThrow(split.id) as PublishedSplit
     }
 
-    fun withBulkTransferHttpErrorHandler(split: Split, requestType: String, httpRequest: () -> Unit) {
+    fun withBulkTransferHttpErrorHandler(split: PublishedSplit, requestType: String, httpRequest: () -> Unit) {
         try {
             httpRequest()
         } catch (ex: IllegalStateException) {
@@ -249,7 +244,7 @@ constructor(
         }
     }
 
-    fun handleTimeoutException(split: Split) {
+    fun handleTimeoutException(split: PublishedSplit) {
         if (!requireNotNull(split.bulkTransfer).temporaryFailure) {
             logger.info("Setting bulk transfer to temporarily failed for splitId=${split.id}")
             bulkTransferDao.update(splitId = split.id, temporaryFailure = true)

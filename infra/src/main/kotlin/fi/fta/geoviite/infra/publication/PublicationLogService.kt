@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
+import fi.fta.geoviite.infra.split.PublishedSplit
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
@@ -75,7 +76,7 @@ constructor(
         val (publishedDirectTrackNumbers, publishedIndirectTrackNumbers) = publicationDao.fetchPublishedTrackNumbers(id)
         val (publishedDirectTracks, publishedIndirectTracks) = publicationDao.fetchPublishedLocationTracks(id)
         val (publishedDirectSwitches, publishedIndirectSwitches) = publicationDao.fetchPublishedSwitches(id)
-        val split = splitService.getSplitIdByPublicationId(id)?.let(splitService::get)
+        val split = splitService.getSplitIdByPublicationId(id)?.let(splitService::get) as? PublishedSplit
 
         return PublicationDetails(
             id = publication.id,

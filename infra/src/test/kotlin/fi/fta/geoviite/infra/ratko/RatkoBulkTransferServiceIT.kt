@@ -7,9 +7,12 @@ import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.split.BulkTransferDao
 import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.PublishedSplit
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTestDataService
+import fi.fta.geoviite.infra.split.UnpublishedSplit
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import fi.fta.geoviite.infra.util.assertInstanceOf
 import java.time.Duration
 import java.time.Instant
 import org.junit.jupiter.api.AfterEach
@@ -64,9 +67,7 @@ constructor(
         ratkoBulkTransferService.manageRatkoBulkTransfers(LayoutBranch.main)
         val splitAfterManagerRun = splitDao.getOrThrow(splitId)
 
-        assertEquals(null, splitAfterManagerRun.publicationId)
-        assertEquals(null, splitAfterManagerRun.bulkTransfer?.ratkoBulkTransferId)
-        assertEquals(null, splitAfterManagerRun.bulkTransfer?.state)
+        assertInstanceOf<UnpublishedSplit>(splitAfterManagerRun)
     }
 
     @Test
@@ -89,9 +90,9 @@ constructor(
         fakeRatko.acceptsNewBulkTransferGivingItId(someBulkTransferId)
         ratkoBulkTransferService.manageRatkoBulkTransfers(LayoutBranch.main)
 
-        val splitAfterBulkTransferStart = splitDao.getOrThrow(splitId)
-        assertEquals(BulkTransferState.CREATED, splitAfterBulkTransferStart.bulkTransfer?.state)
-        assertEquals(someBulkTransferId, splitAfterBulkTransferStart.bulkTransfer?.ratkoBulkTransferId)
+        val splitAfterBulkTransferStart = splitDao.getOrThrow(splitId) as PublishedSplit
+        assertEquals(BulkTransferState.CREATED, splitAfterBulkTransferStart.bulkTransfer.state)
+        assertEquals(someBulkTransferId, splitAfterBulkTransferStart.bulkTransfer.ratkoBulkTransferId)
 
         fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(
             bulkTransferId = someBulkTransferId,
@@ -99,9 +100,9 @@ constructor(
         )
         ratkoBulkTransferService.manageRatkoBulkTransfers(LayoutBranch.main)
 
-        val splitAfterPoll = splitDao.getOrThrow(splitId)
-        assertEquals(BulkTransferState.IN_PROGRESS, splitAfterPoll.bulkTransfer?.state)
-        assertEquals(someBulkTransferId, splitAfterPoll.bulkTransfer?.ratkoBulkTransferId)
+        val splitAfterPoll = splitDao.getPublishedSplitOrThrow(splitId)
+        assertEquals(BulkTransferState.IN_PROGRESS, splitAfterPoll.bulkTransfer.state)
+        assertEquals(someBulkTransferId, splitAfterPoll.bulkTransfer.ratkoBulkTransferId)
     }
 
     @Test
@@ -121,9 +122,9 @@ constructor(
         fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(someBulkTransferId, BulkTransferState.IN_PROGRESS)
         ratkoBulkTransferService.manageRatkoBulkTransfers(LayoutBranch.main)
 
-        val pendingSplitAfterBulkTransferProcessing = splitDao.getOrThrow(pendingSplitId)
+        val pendingSplitAfterBulkTransferProcessing = splitDao.getPublishedSplitOrThrow(pendingSplitId)
         assertEquals(null, requireNotNull(pendingSplitAfterBulkTransferProcessing.bulkTransfer).ratkoBulkTransferId)
-        assertEquals(BulkTransferState.PENDING, pendingSplitAfterBulkTransferProcessing.bulkTransfer?.state)
+        assertEquals(BulkTransferState.PENDING, pendingSplitAfterBulkTransferProcessing.bulkTransfer.state)
     }
 
     @Test
@@ -137,15 +138,15 @@ constructor(
 
             fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
             ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-            assertEquals(bulkTransferId, splitDao.getOrThrow(splitId).bulkTransfer?.ratkoBulkTransferId)
+            assertEquals(bulkTransferId, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.ratkoBulkTransferId)
 
             fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.IN_PROGRESS)
             ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-            assertEquals(false, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+            assertEquals(false, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.temporaryFailure)
 
             fakeRatko.respondsToBulkTransferPollWithHttpStatus(bulkTransferId, httpStatus)
             ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-            assertEquals(true, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+            assertEquals(true, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.temporaryFailure)
 
             // Consider this one finished so that the next split bulk transfer can be started.
             bulkTransferDao.update(splitId = splitId, state = BulkTransferState.DONE)
@@ -167,13 +168,13 @@ constructor(
 
                 fakeRatko.respondsToBulkTransferCreateWithHttpStatus(502)
                 ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-                assertEquals(true, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+                assertEquals(true, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.temporaryFailure)
 
                 fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
                 ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-                splitDao.getOrThrow(splitId).let { split ->
-                    assertEquals(false, split.bulkTransfer?.temporaryFailure)
-                    assertEquals(bulkTransferId, split.bulkTransfer?.ratkoBulkTransferId)
+                splitDao.getPublishedSplitOrThrow(splitId).let { split ->
+                    assertEquals(false, split.bulkTransfer.temporaryFailure)
+                    assertEquals(bulkTransferId, split.bulkTransfer.ratkoBulkTransferId)
                 }
             } else {
                 bulkTransferDao.update(
@@ -185,14 +186,14 @@ constructor(
 
                 fakeRatko.respondsToBulkTransferPollWithHttpStatus(bulkTransferId, 502)
                 ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-                assertEquals(true, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+                assertEquals(true, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.temporaryFailure)
 
                 fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(
                     bulkTransferId,
                     BulkTransferState.IN_PROGRESS,
                 )
                 ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-                assertEquals(false, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+                assertEquals(false, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.temporaryFailure)
             }
 
             bulkTransferDao.update(splitId = splitId, state = BulkTransferState.DONE)
@@ -204,34 +205,34 @@ constructor(
         val branch = LayoutBranch.main
 
         val splitId = splitTestDataService.insertPublishedGeocodableSplit()
-        assertEquals(false, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+        assertEquals(false, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.temporaryFailure)
 
         fakeRatko.delayedOkPostResponse(BULK_TRANSFER_CREATE_PATH, delay = Duration.ofSeconds(2))
         ratkoBulkTransferService.manageRatkoBulkTransfers(branch, timeout = Duration.ofSeconds(1))
-        assertEquals(true, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+        assertEquals(true, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.temporaryFailure)
 
         val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
         ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-        splitDao.getOrThrow(splitId).let { split ->
-            assertEquals(false, split.bulkTransfer?.temporaryFailure)
-            assertEquals(bulkTransferId, split.bulkTransfer?.ratkoBulkTransferId)
+        splitDao.getPublishedSplitOrThrow(splitId).let { split ->
+            assertEquals(false, split.bulkTransfer.temporaryFailure)
+            assertEquals(bulkTransferId, split.bulkTransfer.ratkoBulkTransferId)
         }
 
         fakeRatko.delayedOkGetResponse(bulkTransferPollPath(bulkTransferId), delay = Duration.ofSeconds(2))
         ratkoBulkTransferService.manageRatkoBulkTransfers(branch, timeout = Duration.ofSeconds(1))
-        splitDao.getOrThrow(splitId).let { split ->
-            assertEquals(true, split.bulkTransfer?.temporaryFailure)
-            assertEquals(bulkTransferId, split.bulkTransfer?.ratkoBulkTransferId)
+        splitDao.getPublishedSplitOrThrow(splitId).let { split ->
+            assertEquals(true, split.bulkTransfer.temporaryFailure)
+            assertEquals(bulkTransferId, split.bulkTransfer.ratkoBulkTransferId)
         }
 
         fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.IN_PROGRESS)
         ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-        splitDao.getOrThrow(splitId).let { split ->
-            assertEquals(false, split.bulkTransfer?.temporaryFailure)
-            assertEquals(bulkTransferId, split.bulkTransfer?.ratkoBulkTransferId)
-            assertEquals(BulkTransferState.IN_PROGRESS, split.bulkTransfer?.state)
+        splitDao.getPublishedSplitOrThrow(splitId).let { split ->
+            assertEquals(false, split.bulkTransfer.temporaryFailure)
+            assertEquals(bulkTransferId, split.bulkTransfer.ratkoBulkTransferId)
+            assertEquals(BulkTransferState.IN_PROGRESS, split.bulkTransfer.state)
         }
     }
 
@@ -250,7 +251,10 @@ constructor(
                 if (bulkTransferState == BulkTransferState.PENDING) {
                     fakeRatko.respondsToBulkTransferCreateWithHttpStatus(httpStatus)
                     ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-                    assertEquals(BulkTransferState.FAILED, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+                    assertEquals(
+                        BulkTransferState.FAILED,
+                        splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state,
+                    )
                 } else {
                     bulkTransferDao.update(
                         splitId = splitId,
@@ -260,7 +264,10 @@ constructor(
 
                     fakeRatko.respondsToBulkTransferPollWithHttpStatus(bulkTransferId, httpStatus)
                     ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-                    assertEquals(BulkTransferState.FAILED, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+                    assertEquals(
+                        BulkTransferState.FAILED,
+                        splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state,
+                    )
                 }
 
                 // Finish the current test case so that a new split can be created and tested
@@ -281,20 +288,23 @@ constructor(
             state = BulkTransferState.FAILED,
             ratkoBulkTransferId = failedBulkTransferId,
         )
-        assertEquals(BulkTransferState.FAILED, splitDao.getOrThrow(failedSplitId).bulkTransfer?.state)
+        assertEquals(BulkTransferState.FAILED, splitDao.getPublishedSplitOrThrow(failedSplitId).bulkTransfer.state)
 
         val anotherSplitId = splitTestDataService.insertPublishedSplit()
-        assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(anotherSplitId).bulkTransfer?.state)
+        assertEquals(BulkTransferState.PENDING, splitDao.getPublishedSplitOrThrow(anotherSplitId).bulkTransfer.state)
 
         val newBulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(newBulkTransferId) // Should not be called though.
         ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
 
-        assertEquals(BulkTransferState.FAILED, splitDao.getOrThrow(failedSplitId).bulkTransfer?.state)
-        assertEquals(failedBulkTransferId, splitDao.getOrThrow(failedSplitId).bulkTransfer?.ratkoBulkTransferId)
+        assertEquals(BulkTransferState.FAILED, splitDao.getPublishedSplitOrThrow(failedSplitId).bulkTransfer.state)
+        assertEquals(
+            failedBulkTransferId,
+            splitDao.getPublishedSplitOrThrow(failedSplitId).bulkTransfer.ratkoBulkTransferId,
+        )
 
-        assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(anotherSplitId).bulkTransfer?.state)
-        assertEquals(null, splitDao.getOrThrow(anotherSplitId).bulkTransfer?.ratkoBulkTransferId)
+        assertEquals(BulkTransferState.PENDING, splitDao.getPublishedSplitOrThrow(anotherSplitId).bulkTransfer.state)
+        assertEquals(null, splitDao.getPublishedSplitOrThrow(anotherSplitId).bulkTransfer.ratkoBulkTransferId)
     }
 
     @Test
@@ -302,14 +312,14 @@ constructor(
         val branch = LayoutBranch.main
 
         val splitId = splitTestDataService.insertPublishedGeocodableSplit()
-        assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+        assertEquals(BulkTransferState.PENDING, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
 
-        splitDao.getOrThrow(splitId).let { split ->
-            assertEquals(null, split.bulkTransfer?.assetsMoved)
-            assertEquals(null, split.bulkTransfer?.assetsTotal)
+        splitDao.getPublishedSplitOrThrow(splitId).let { split ->
+            assertEquals(null, split.bulkTransfer.assetsMoved)
+            assertEquals(null, split.bulkTransfer.assetsTotal)
 
-            assertEquals(null, split.bulkTransfer?.trexAssetsRemaining)
-            assertEquals(null, split.bulkTransfer?.trexAssetsTotal)
+            assertEquals(null, split.bulkTransfer.trexAssetsRemaining)
+            assertEquals(null, split.bulkTransfer.trexAssetsTotal)
         }
 
         val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
@@ -334,12 +344,12 @@ constructor(
 
             ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
 
-            splitDao.getOrThrow(splitId).let { split ->
-                assertEquals(valueList[0], split.bulkTransfer?.assetsMoved)
-                assertEquals(valueList[1], split.bulkTransfer?.assetsTotal)
+            splitDao.getPublishedSplitOrThrow(splitId).let { split ->
+                assertEquals(valueList[0], split.bulkTransfer.assetsMoved)
+                assertEquals(valueList[1], split.bulkTransfer.assetsTotal)
 
-                assertEquals(valueList[2], split.bulkTransfer?.trexAssetsRemaining)
-                assertEquals(valueList[3], split.bulkTransfer?.trexAssetsTotal)
+                assertEquals(valueList[2], split.bulkTransfer.trexAssetsRemaining)
+                assertEquals(valueList[3], split.bulkTransfer.trexAssetsTotal)
             }
         }
     }
@@ -360,8 +370,8 @@ constructor(
         fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
         ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
 
-        assertEquals(BulkTransferState.CREATED, splitDao.getOrThrow(splitId).bulkTransfer?.state)
-        assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(anotherSplitId).bulkTransfer?.state)
+        assertEquals(BulkTransferState.CREATED, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
+        assertEquals(BulkTransferState.PENDING, splitDao.getPublishedSplitOrThrow(anotherSplitId).bulkTransfer.state)
     }
 
     @Test
@@ -370,18 +380,18 @@ constructor(
 
         val splitId = splitTestDataService.insertPublishedGeocodableSplit()
         bulkTransferDao.update(splitId = splitId, expeditedStart = true)
-        assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+        assertEquals(BulkTransferState.PENDING, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
 
         val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
         ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-        assertEquals(BulkTransferState.CREATED, splitDao.getOrThrow(splitId).bulkTransfer?.state)
-        assertEquals(bulkTransferId, splitDao.getOrThrow(splitId).bulkTransfer?.ratkoBulkTransferId)
+        assertEquals(BulkTransferState.CREATED, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
+        assertEquals(bulkTransferId, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.ratkoBulkTransferId)
 
         fakeRatko.acceptsBulkTransferExpeditedStart(bulkTransferId, times = Times.exactly(1))
         fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.IN_PROGRESS)
         ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
-        assertEquals(BulkTransferState.IN_PROGRESS, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+        assertEquals(BulkTransferState.IN_PROGRESS, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
     }
 
     @Test
@@ -402,7 +412,7 @@ constructor(
 
         (0..2).forEach { _ -> ratkoBulkTransferService.manageRatkoBulkTransfers(branch) }
 
-        assertEquals(BulkTransferState.IN_PROGRESS, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+        assertEquals(BulkTransferState.IN_PROGRESS, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
     }
 
     @Test
@@ -428,7 +438,7 @@ constructor(
 
         ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
 
-        assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+        assertEquals(BulkTransferState.PENDING, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
     }
 
     @Test
@@ -457,32 +467,32 @@ constructor(
         fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.DONE)
         ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
 
-        assertEquals(BulkTransferState.DONE, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+        assertEquals(BulkTransferState.DONE, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
     }
 
     // TODO Move to SplitDao or elsewhere
     @Test
     fun `Bulk transfer expedited start can be toggled`() {
         val splitId = splitTestDataService.insertPublishedSplit()
-        assertEquals(false, splitDao.getOrThrow(splitId).bulkTransfer?.expeditedStart)
+        assertEquals(false, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.expeditedStart)
 
         bulkTransferDao.update(splitId = splitId, expeditedStart = true)
-        assertEquals(true, splitDao.getOrThrow(splitId).bulkTransfer?.expeditedStart)
+        assertEquals(true, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.expeditedStart)
 
         bulkTransferDao.update(splitId = splitId, expeditedStart = false)
-        assertEquals(false, splitDao.getOrThrow(splitId).bulkTransfer?.expeditedStart)
+        assertEquals(false, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.expeditedStart)
     }
 
     @Test
     fun `Bulk transfer temporary failure can be toggled`() {
         val splitId = splitTestDataService.insertPublishedSplit()
-        assertEquals(false, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+        assertEquals(false, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.temporaryFailure)
 
         bulkTransferDao.update(splitId = splitId, temporaryFailure = true)
-        assertEquals(true, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+        assertEquals(true, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.temporaryFailure)
 
         bulkTransferDao.update(splitId = splitId, temporaryFailure = false)
-        assertEquals(false, splitDao.getOrThrow(splitId).bulkTransfer?.temporaryFailure)
+        assertEquals(false, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.temporaryFailure)
     }
 
     @Test
@@ -510,9 +520,9 @@ constructor(
         fakeRatko.acceptsNewBulkTransferGivingItId(someBulkTransferId)
         ratkoBulkTransferService.manageRatkoBulkTransfers(LayoutBranch.main)
 
-        val splitAfterSecondExpectedBulkTransferStart = splitDao.getOrThrow(splitIds[0])
-        assertEquals(someBulkTransferId, splitAfterSecondExpectedBulkTransferStart.bulkTransfer?.ratkoBulkTransferId)
-        assertEquals(BulkTransferState.CREATED, splitAfterSecondExpectedBulkTransferStart.bulkTransfer?.state)
+        val splitAfterSecondExpectedBulkTransferStart = splitDao.getPublishedSplitOrThrow(splitIds[0])
+        assertEquals(someBulkTransferId, splitAfterSecondExpectedBulkTransferStart.bulkTransfer.ratkoBulkTransferId)
+        assertEquals(BulkTransferState.CREATED, splitAfterSecondExpectedBulkTransferStart.bulkTransfer.state)
     }
 
     @Test
@@ -562,8 +572,8 @@ constructor(
                 }
 
         splitsAndExpectedBulkTransferStates.forEach { (splitId, _) ->
-            splitDao.getOrThrow(splitId).let { split ->
-                when (requireNotNull(split.bulkTransfer).state) {
+            splitDao.getPublishedSplitOrThrow(splitId).let { split ->
+                when (split.bulkTransfer.state) {
                     BulkTransferState.PENDING ->
                         fakeRatko.acceptsNewBulkTransferGivingItId(
                             bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
@@ -585,7 +595,7 @@ constructor(
         }
 
         splitsAndExpectedBulkTransferStates.forEach { (splitId, expectedBulkTransferState) ->
-            assertEquals(expectedBulkTransferState, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+            assertEquals(expectedBulkTransferState, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
         }
     }
 }

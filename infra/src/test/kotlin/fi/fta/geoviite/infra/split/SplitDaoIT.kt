@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import fi.fta.geoviite.infra.util.assertInstanceOf
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
@@ -61,9 +62,9 @@ constructor(val splitDao: SplitDao, val bulkTransferDao: BulkTransferDao, val pu
                     bulkTransferDao.create(splitId = split.id)
                     bulkTransferDao.update(splitId = split.id, state = BulkTransferState.FAILED)
                 }
-                .let(splitDao::getOrThrow)
+                .let(splitDao::getPublishedSplitOrThrow)
 
-        assertEquals(BulkTransferState.FAILED, updatedSplit.bulkTransfer?.state)
+        assertEquals(BulkTransferState.FAILED, updatedSplit.bulkTransfer.state)
         assertEquals(publicationId, updatedSplit.publicationId)
         assertEquals(split.id, splitDao.fetchSplitIdByPublication(publicationId))
     }
@@ -172,14 +173,13 @@ constructor(val splitDao: SplitDao, val bulkTransferDao: BulkTransferDao, val pu
     @Test
     fun `Initial split bulk transfer state is null`() {
         val splitId = createSplit()
-        assertEquals(null, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+        assertInstanceOf<UnpublishedSplit>(splitId)
     }
 
     @Test
     fun `Split bulk transfer state can be updated`() {
         val splitId = createSplit()
-
-        assertEquals(null, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+        assertInstanceOf<UnpublishedSplit>(splitId)
 
         publicationDao
             .createPublication(
@@ -190,7 +190,7 @@ constructor(val splitDao: SplitDao, val bulkTransferDao: BulkTransferDao, val pu
             .let { publicationId -> splitDao.updateSplit(splitId = splitId, publicationId = publicationId) }
             .also { bulkTransferDao.create(splitId) }
 
-        assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+        assertEquals(BulkTransferState.PENDING, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
 
         BulkTransferState.entries.forEach { newBulkTransferState ->
             bulkTransferDao.update(
@@ -199,7 +199,7 @@ constructor(val splitDao: SplitDao, val bulkTransferDao: BulkTransferDao, val pu
                 ratkoBulkTransferId = testDBService.getUnusedRatkoBulkTransferId(),
             )
 
-            assertEquals(newBulkTransferState, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+            assertEquals(newBulkTransferState, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.state)
         }
     }
 
@@ -223,7 +223,7 @@ constructor(val splitDao: SplitDao, val bulkTransferDao: BulkTransferDao, val pu
         val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
         bulkTransferDao.update(splitId = splitId, ratkoBulkTransferId = bulkTransferId)
 
-        assertEquals(bulkTransferId, splitDao.getOrThrow(splitId).bulkTransfer?.ratkoBulkTransferId)
+        assertEquals(bulkTransferId, splitDao.getPublishedSplitOrThrow(splitId).bulkTransfer.ratkoBulkTransferId)
     }
 
     private fun createSplit(): IntId<Split> {

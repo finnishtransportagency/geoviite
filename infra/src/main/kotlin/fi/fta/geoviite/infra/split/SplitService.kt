@@ -69,8 +69,7 @@ class SplitService(
         branch: LayoutBranch,
         locationTrackIds: List<IntId<LocationTrack>>? = null,
         switchIds: List<IntId<LayoutSwitch>>? = null,
-    ): List<Split> =
-        findUnfinishedSplits(branch, locationTrackIds, switchIds).filter { split -> split.publicationId == null }
+    ): List<Split> = findUnfinishedSplits(branch, locationTrackIds, switchIds).filter { split -> split.isUnpublished }
 
     /**
      * Fetches all splits that are not marked as DONE. Can be filtered by location tracks or switches. If both filters
@@ -270,7 +269,7 @@ class SplitService(
         // splits
         // - Published DONE splits don't matter and shouldn't affect future changes
         // - Changes to the geocoding context are blocked for any tracks associated with a split
-        val draftSplits = splits.filter { (split, _) -> split.publicationId == null }
+        val draftSplits = splits.filter { (split, _) -> split.isUnpublished }
 
         val trackNumberMismatchErrors =
             draftSplits.mapNotNull { (split, sourceTrack) ->

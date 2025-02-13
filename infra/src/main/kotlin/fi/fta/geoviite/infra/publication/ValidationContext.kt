@@ -204,7 +204,7 @@ class ValidationContext(
         allUnfinishedSplits.filter { split -> publicationSet.containsSplit(split.id) }
 
     fun getUnfinishedSplits(): List<Split> =
-        allUnfinishedSplits.filter { split -> split.publicationId != null || publicationSet.containsSplit(split.id) }
+        allUnfinishedSplits.filter { split -> split.isPublished || publicationSet.containsSplit(split.id) }
 
     fun getGeocodingContext(trackNumberId: IntId<LayoutTrackNumber>) =
         getGeocodingContextCacheKey(trackNumberId)?.let { key -> geocodingService.getGeocodingContext(key) }

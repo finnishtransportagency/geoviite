@@ -29,27 +29,59 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
-private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>, bulkTransfer: BulkTransfer?) =
-    Split(
-        id = rs.getIntId("id"),
-        rowVersion = rs.getRowVersion("id", "version"),
-        sourceLocationTrackId = rs.getIntId("source_location_track_id"),
-        sourceLocationTrackVersion =
-            rs.getLayoutRowVersion(
-                "source_location_track_id",
-                "source_location_track_design_id",
-                "source_location_track_draft",
-                "source_location_track_version",
-            ),
-        publicationId = rs.getIntIdOrNull("publication_id"),
-        publicationTime = rs.getInstantOrNull("publication_time"),
-        targetLocationTracks = targetLocationTracks,
-        relinkedSwitches = rs.getIntIdArray("switch_ids"),
-        updatedDuplicates = rs.getIntIdArray("updated_duplicate_ids"),
+private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>, bulkTransfer: BulkTransfer?): Split {
+    val id = rs.getIntId<Split>("id")
+    val rowVersion = rs.getRowVersion<Split>("id", "version")
+    val sourceLocationTrackId = rs.getIntId<LocationTrack>("source_location_track_id")
+    val sourceLocationTrackVersion =
+        rs.getLayoutRowVersion<LocationTrack>(
+            "source_location_track_id",
+            "source_location_track_design_id",
+            "source_location_track_draft",
+            "source_location_track_version",
+        )
+    val publicationId = rs.getIntIdOrNull<Publication>("publication_id")
+    val relinkedSwitches = rs.getIntIdArray<LayoutSwitch>("switch_ids")
+    val updatedDuplicates = rs.getIntIdArray<LocationTrack>("updated_duplicate_ids")
 
-        // Unpublished splits don't have bulk transfer information available
-        bulkTransfer = bulkTransfer,
-    )
+    return if (publicationId != null) {
+        require(id == rowVersion.id) { "Split source row version must refer to official row, once published" }
+        requireNotNull(bulkTransfer) { "splitId=$id must have a non-null bulk transfer state when published" }
+
+        if (bulkTransfer.state == BulkTransferState.IN_PROGRESS) {
+            requireNotNull(bulkTransfer.ratkoBulkTransferId) {
+                "Split must have a non-null bulk transfer id when bulk transfer state is set to be in progress"
+            }
+        }
+
+        val publicationTime = requireNotNull(rs.getInstantOrNull("publication_time"))
+
+        PublishedSplit(
+            id,
+            rowVersion,
+            sourceLocationTrackId,
+            sourceLocationTrackVersion,
+            targetLocationTracks,
+            relinkedSwitches,
+            updatedDuplicates,
+            publicationId,
+            publicationTime,
+            bulkTransfer,
+        )
+    } else {
+        require(bulkTransfer == null) { "Split bulk transfer must be null if the split is not published" }
+
+        UnpublishedSplit(
+            id,
+            rowVersion,
+            sourceLocationTrackId,
+            sourceLocationTrackVersion,
+            targetLocationTracks,
+            relinkedSwitches,
+            updatedDuplicates,
+        )
+    }
+}
 
 @Transactional(readOnly = true)
 @Component
@@ -178,6 +210,8 @@ class SplitDao(
     }
 
     fun getOrThrow(splitId: IntId<Split>): Split = get(splitId) ?: throw NoSuchEntityException(Split::class, splitId)
+
+    fun getPublishedSplitOrThrow(splitId: IntId<Split>): PublishedSplit = getOrThrow(splitId) as PublishedSplit
 
     fun get(splitId: IntId<Split>): Split? {
         val sql =

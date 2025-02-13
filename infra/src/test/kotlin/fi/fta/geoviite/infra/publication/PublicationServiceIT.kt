@@ -22,10 +22,12 @@ import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationExcept
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.split.PublishedSplit
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
+import fi.fta.geoviite.infra.split.UnpublishedSplit
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -65,6 +67,7 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import fi.fta.geoviite.infra.util.assertInstanceOf
 import java.math.BigDecimal
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -690,7 +693,7 @@ constructor(
                 split.sourceLocationTrackId == splitSetup.sourceTrack.id
             }
 
-        assertNull(splitBeforePublish.publicationId)
+        assertInstanceOf<UnpublishedSplit>(splitBeforePublish)
 
         val publicationId =
             publicationService
@@ -707,7 +710,8 @@ constructor(
                         .publicationId
                 }
 
-        assertEquals(publicationId, splitDao.getOrThrow(splitBeforePublish.id).publicationId)
+        val splitAfterPublish = splitDao.getOrThrow(splitBeforePublish.id) as PublishedSplit
+        assertEquals(publicationId, splitAfterPublish.publicationId)
     }
 
     @Test
@@ -1302,7 +1306,7 @@ constructor(
 
         splitDao.get(splitId).let { split ->
             assertNotNull(split)
-            assertEquals(null, split.publicationId)
+            assertInstanceOf<UnpublishedSplit>(split)
         }
 
         val publicationId =
@@ -1320,7 +1324,7 @@ constructor(
 
         splitDao.get(splitId).let { split ->
             assertNotNull(split)
-            assertEquals(publicationId, split.publicationId)
+            assertEquals(publicationId, (split as PublishedSplit).publicationId)
         }
 
         val (targetTrackToModify, targetAlignment) =
