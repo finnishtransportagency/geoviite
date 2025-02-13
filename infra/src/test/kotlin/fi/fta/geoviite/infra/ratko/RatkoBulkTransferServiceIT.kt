@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.split.BulkTransferState
@@ -28,6 +29,7 @@ constructor(
     private val splitDao: SplitDao,
     private val publicationDao: PublicationDao,
     private val splitTestDataService: SplitTestDataService,
+    private val ratkoPushDao: RatkoPushDao,
     private val ratkoBulkTransferService: RatkoBulkTransferService,
 ) : DBTestBase() {
 
@@ -405,8 +407,31 @@ constructor(
         assertEquals(BulkTransferState.IN_PROGRESS, splitDao.getOrThrow(splitId).bulkTransfer?.state)
     }
 
-    // TODO
-    @Test fun `New bulk transfer should not be created if the previous Ratko push failed`() {}
+    @Test
+    fun `New bulk transfer should not be created if the previous Ratko push failed`() {
+        val branch = LayoutBranch.main
+
+        val somePublication =
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of("some publication"),
+                PublicationCause.MANUAL,
+            )
+
+        ratkoPushDao.startPushing(listOf(somePublication)).let { ratkoPushId ->
+            ratkoPushDao.updatePushStatus(ratkoPushId, RatkoPushStatus.FAILED)
+        }
+
+        val splitId = splitTestDataService.insertPublishedGeocodableSplit()
+
+        val bulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
+        fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferId)
+        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(bulkTransferId, BulkTransferState.IN_PROGRESS)
+
+        ratkoBulkTransferService.manageRatkoBulkTransfers(branch)
+
+        assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransfer?.state)
+    }
 
     // TODO
     @Test fun `In progress bulk transfer should be polled even if the previous Ratko push failed`() {}

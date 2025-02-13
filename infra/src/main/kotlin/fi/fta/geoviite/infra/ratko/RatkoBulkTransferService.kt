@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.getSplitTargetTrackStartAndEndAddresses
+import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferCreateRequest
 import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferDestinationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoTrackMeter
@@ -31,6 +32,7 @@ class RatkoBulkTransferService
 @Autowired
 constructor(
     private val ratkoClient: RatkoClient,
+    private val ratkoPushDao: RatkoPushDao,
     private val splitDao: SplitDao, // TODO use service level instead?
     private val splitService: SplitService,
     private val geocodingService: GeocodingService,
@@ -55,11 +57,13 @@ constructor(
                 }
             }
             ?.let { split -> pollBulkTransferStateUpdate(split, timeout) }
+            ?.takeIf(::previousRatkoPushHasNotFailed)
             .takeIf { split -> split?.bulkTransfer?.state == BulkTransferState.PENDING }
             ?.let { split -> beginNewBulkTransfer(branch, split, timeout) }
     }
 
     fun beginNewBulkTransfer(branch: LayoutBranch, split: Split, timeout: Duration) {
+
         val request = newBulkTransferCreateRequest(branch, split)
 
         withBulkTransferHttpErrorHandler(split, "create") {
@@ -133,6 +137,21 @@ constructor(
         }
 
         return splitService.getOrThrow(split.id)
+    }
+
+    fun previousRatkoPushHasNotFailed(split: Split): Boolean {
+        return ratkoPushDao.fetchPreviousPush().let { previousPush ->
+            if (previousPush.status == RatkoPushStatus.FAILED) {
+                logger.info(
+                    "Previous ratkoPushId=${previousPush.id}) has FAILED," +
+                        "skipping bulk transfer creation for splitId=${split.id}"
+                )
+
+                false
+            } else {
+                true
+            }
+        }
     }
 
     fun newBulkTransferCreateRequest(branch: LayoutBranch, split: Split): RatkoBulkTransferCreateRequest {
