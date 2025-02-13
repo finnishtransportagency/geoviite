@@ -563,6 +563,7 @@ data class LocationTrackPublicationSwitchLinkChanges(
 data class SplitInPublication(
     val id: IntId<Publication>,
     val splitId: IntId<Split>,
+    val split: Split, // TODO Use this or flat? (SplitId is unnecessary if using this)
     val locationTrack: LocationTrack,
     val locationTrackOid: Oid<LocationTrack>,
     val targetLocationTracks: List<SplitTargetInPublication>,

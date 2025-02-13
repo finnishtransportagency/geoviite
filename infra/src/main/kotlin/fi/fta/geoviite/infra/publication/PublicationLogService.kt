@@ -225,6 +225,7 @@ constructor(
                 SplitInPublication(
                     id = publication.id,
                     splitId = split.id,
+                    split = split,
                     locationTrack = sourceLocationTrack,
                     locationTrackOid = oid,
                     targetLocationTracks = targetLocationTracks,

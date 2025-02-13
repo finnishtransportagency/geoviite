@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.split
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
@@ -36,6 +38,11 @@ data class SplitHeader(
     )
 }
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonSubTypes(
+    JsonSubTypes.Type(value = UnpublishedSplit::class, name = "UnpublishedSplit"),
+    JsonSubTypes.Type(value = PublishedSplit::class, name = "PublishedSplit"),
+)
 sealed class Split {
     abstract val id: IntId<Split>
     abstract val rowVersion: RowVersion<Split>
@@ -90,7 +97,17 @@ data class PublishedSplit(
     val publicationId: IntId<Publication>,
     val publicationTime: Instant,
     val bulkTransfer: BulkTransfer,
-) : Split()
+) : Split() {
+    init {
+        require(id == rowVersion.id) { "Split source row version must refer to official row, once published" }
+
+        if (bulkTransfer.state == BulkTransferState.IN_PROGRESS) {
+            requireNotNull(bulkTransfer.ratkoBulkTransferId) {
+                "Split must have a non-null bulk transfer id when bulk transfer state is set to be in progress"
+            }
+        }
+    }
+}
 
 enum class SplitTargetOperation {
     CREATE,

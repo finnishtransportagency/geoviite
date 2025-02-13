@@ -45,17 +45,6 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>, bulk
     val updatedDuplicates = rs.getIntIdArray<LocationTrack>("updated_duplicate_ids")
 
     return if (publicationId != null) {
-        require(id == rowVersion.id) { "Split source row version must refer to official row, once published" }
-        requireNotNull(bulkTransfer) { "splitId=$id must have a non-null bulk transfer state when published" }
-
-        if (bulkTransfer.state == BulkTransferState.IN_PROGRESS) {
-            requireNotNull(bulkTransfer.ratkoBulkTransferId) {
-                "Split must have a non-null bulk transfer id when bulk transfer state is set to be in progress"
-            }
-        }
-
-        val publicationTime = rs.getInstant("publication_time")
-
         PublishedSplit(
             id,
             rowVersion,
@@ -65,8 +54,8 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>, bulk
             relinkedSwitches,
             updatedDuplicates,
             publicationId,
-            publicationTime,
-            bulkTransfer,
+            rs.getInstant("publication_time"),
+            requireNotNull(bulkTransfer) { "splitId=$id must have a non-null bulk transfer state when published" },
         )
     } else {
         require(bulkTransfer == null) { "Split bulk transfer must be null if the split is not published" }

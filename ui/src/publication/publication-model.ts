@@ -180,9 +180,9 @@ export type SplitId = string;
 export type SplitHeader = {
     id: SplitId;
     locationTrackId: LocationTrackId;
-    bulkTransferState?: BulkTransferState;
-    bulkTransferExpeditedStart?: boolean;
-    publicationId?: PublicationId;
+    bulkTransferState: BulkTransferState;
+    bulkTransferExpeditedStart: boolean;
+    publicationId: PublicationId;
 };
 
 // export type SplitHeader = UnpublishedSplitHeader | PublishedSplitHeader;
@@ -206,6 +206,7 @@ export type Split = UnpublishedSplit | PublishedSplit;
 
 export type UnpublishedSplit = {
     id: SplitId;
+    type: 'UnpublishedSplit';
     locationTrackId: LocationTrackId;
     targetLocationTracks: SplitTarget[];
     relinkedSwitches: LayoutSwitchId[];
@@ -224,8 +225,10 @@ type PublishedInDesign = {
 
 export type PublishedInBranch = PublishedInMain | PublishedInDesign;
 
-export type PublishedSplit = UnpublishedSplit & {
+export type PublishedSplit = Omit<UnpublishedSplit, 'type'> & {
+    type: 'PublishedSplit';
     publicationId: PublicationId;
+    publicationTime: TimeStamp;
     bulkTransfer: BulkTransfer;
 };
 
@@ -424,6 +427,7 @@ export type PublicationSearch = {
 export type SplitInPublication = {
     id: PublicationId;
     splitId: string;
+    split: Split; // TODO Use this or unstructure stuff?
     locationTrack: LayoutLocationTrack;
     locationTrackOid: Oid;
     targetLocationTracks: SplitTargetInPublication[];
