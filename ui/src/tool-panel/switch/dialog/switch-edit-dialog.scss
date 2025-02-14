@@ -24,6 +24,12 @@
     color: vayla-design.$color-lemon-dark;
 }
 
+.switch-edit-dialog__oid-input-grid {
+    display: grid;
+    grid-template-columns: 60fr 40fr;
+    align-items: center;
+}
+
 .switch-edit-dialog__switch-oid-ok {
     margin-top: 4px;
     font-size: 12px;
