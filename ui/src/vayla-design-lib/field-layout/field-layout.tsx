@@ -6,8 +6,8 @@ export type FieldLayoutProps = {
     label?: React.ReactNode;
     value?: React.ReactNode;
     help?: React.ReactNode;
-    warnings?: string[];
-    errors?: string[];
+    warnings?: React.ReactNode[];
+    errors?: React.ReactNode[];
     disabled?: boolean;
     children?: React.ReactNode;
     spacing?: boolean;
