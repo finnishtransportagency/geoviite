@@ -10,7 +10,6 @@ export enum SpinnerSize {
 export type SpinnerProps = {
     size?: SpinnerSize;
     inline?: boolean;
-    inputField?: boolean;
     tableHeader?: boolean;
     qaId?: string;
 };
@@ -18,7 +17,6 @@ export type SpinnerProps = {
 export const Spinner: React.FC<SpinnerProps> = ({
     size = SpinnerSize.NORMAL,
     inline = false,
-    inputField = false,
     tableHeader = false,
     qaId,
 }: SpinnerProps) => {
@@ -27,7 +25,6 @@ export const Spinner: React.FC<SpinnerProps> = ({
         inline && styles['spinner--inline'],
         tableHeader && styles['spinner--table-header'],
         size === SpinnerSize.SMALL && styles['spinner--small'],
-        inputField && styles['spinner--input-field'],
     );
 
     return <div className={className} {...(qaId && { 'qa-id': qaId })} />;
