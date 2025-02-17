@@ -4,6 +4,7 @@
 .field-layout {
     display: flex;
     flex-direction: column;
+    padding-bottom: 3px;
 }
 
 .field-layout--extra-spacing {
@@ -31,7 +32,11 @@
 .field-layout__help {
     @include typography.typography-caption;
     color: colors.$color-black-light;
-    padding: 3px 0;
+    padding-top: 3px;
+}
+
+.field-layout__notice-area {
+    padding-top: 3px;
 }
 
 .field-layout__notices {

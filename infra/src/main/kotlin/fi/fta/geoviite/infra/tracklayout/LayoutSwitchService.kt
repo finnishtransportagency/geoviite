@@ -127,12 +127,14 @@ constructor(
         )
 
     private fun checkRatkoOidPresence(oid: Oid<LayoutSwitch>): Boolean? {
-        return try {
-            ratkoClient?.getSwitchAsset(RatkoOid(oid.toString())) != null
-        } catch (ex: Exception) {
-            logger.warn("checkRatkoOidPresence exception: $ex")
-            null
-        }
+        if (ratkoClient != null)
+            return try {
+                ratkoClient.getSwitchAsset(RatkoOid(oid.toString())) != null
+            } catch (ex: Exception) {
+                logger.warn("checkRatkoOidPresence exception: $ex")
+                null
+            }
+        else return null
     }
 
     fun idMatches(
