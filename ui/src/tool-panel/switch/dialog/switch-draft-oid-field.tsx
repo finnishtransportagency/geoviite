@@ -160,16 +160,23 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
                   ) : undefined,
               ].filter(filterNotEmpty)
             : [];
-    const spinnerIfLoading =
-        editingOid && loadingOidPresence ? (
-            <Spinner size={SpinnerSize.SMALL} inline inputField />
-        ) : undefined;
 
     const oidOk =
         !loadingOidPresence &&
         combinedErrors.length === 0 &&
         draftOid.length > 0 &&
         oidPresence?.existsInRatko === true;
+
+    const spinnerIfLoading =
+        editingOid && loadingOidPresence ? <Spinner size={SpinnerSize.SMALL} inline /> : undefined;
+    const oidOkIndicator = oidOk && (
+        <span className={styles['switch-edit-dialog__switch-oid-ok']}>
+            <Icons.Tick size={IconSize.SMALL} color={IconColor.INHERIT} />
+            {t('switch-dialog.oid-was-found-from-ratko')}
+        </span>
+    );
+
+    const helpComponent = spinnerIfLoading ?? oidOkIndicator;
 
     return existingSwitchOid !== undefined ||
         existingSwitchOidLoaderStatus !== LoaderStatus.Ready ? (
@@ -180,7 +187,7 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
                 label={`${t('switch-dialog.switch-draft-oid')} *`}
                 errors={combinedErrors}
                 warnings={oidPresenceWarnings}
-                help={spinnerIfLoading}
+                help={helpComponent}
                 value={
                     <React.Fragment>
                         <div className={styles['switch-edit-dialog__oid-input-grid']}>
@@ -212,12 +219,6 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
                     </React.Fragment>
                 }
             />
-            {oidOk && (
-                <span className={styles['switch-edit-dialog__switch-oid-ok']}>
-                    <Icons.Tick size={IconSize.SMALL} color={IconColor.INHERIT} />
-                    {t('switch-dialog.oid-was-found-from-ratko')}
-                </span>
-            )}
         </React.Fragment>
     );
 };

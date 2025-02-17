@@ -241,7 +241,7 @@ export const SwitchEditDialog = ({
                 stateCategory: switchStateCategory,
                 ownerId: switchOwnerId,
                 trapPoint: trapPointToBoolean(trapPoint),
-                draftOid: switchDraftOid === '' ? undefined : switchDraftOid,
+                draftOid: editingOid ? switchDraftOid : undefined,
             };
             if (existingSwitch) saveUpdatedSwitch(existingSwitch, newSwitch);
             else saveNewSwitch(newSwitch);
@@ -306,9 +306,7 @@ export const SwitchEditDialog = ({
     }
 
     const canSave =
-        validationIssues.length === 0 &&
-        !isSaving &&
-        (!editingOid || switchDraftOid === '' || switchDraftOidExistsInRatko);
+        validationIssues.length === 0 && !isSaving && (!editingOid || switchDraftOidExistsInRatko);
 
     return (
         <React.Fragment>
