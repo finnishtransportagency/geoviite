@@ -37,6 +37,9 @@ import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { useUserHasPrivilege } from 'store/hooks';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { VIEW_LAYOUT_DRAFT } from 'user/user-model';
 
 type GeometrySwitchLinkingInfoboxProps = {
     geometrySwitchId?: GeometrySwitchId;
@@ -81,8 +84,11 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     onVisibilityChange,
 }) => {
     const { t } = useTranslation();
+    const canViewDraft = useUserHasPrivilege(VIEW_LAYOUT_DRAFT);
     const [suggestedSwitchResult, suggestedSwitchFetchStatus] = useLoaderWithStatus(() => {
-        if (selectedSuggestedSwitch) {
+        if (!canViewDraft) {
+            return undefined;
+        } else if (selectedSuggestedSwitch) {
             return Promise.resolve({ switch: selectedSuggestedSwitch });
         } else if (geometrySwitchId !== undefined) {
             return getSuggestedSwitchForGeometrySwitch(layoutContext.branch, geometrySwitchId);
@@ -199,17 +205,21 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                                 switchChangeTime={switchChangeTime}
                                 locationTrackChangeTime={locationTrackChangeTime}
                             />
-                            {suggestedSwitchFetchStatus === LoaderStatus.Ready ? (
-                                <GeometrySwitchLinkingInitiation
-                                    onStartLinking={startLinking}
-                                    geometrySwitchInvalidityReason={geometrySwitchInvalidityReason}
-                                    hasSuggestedSwitch={!!suggestedSwitch}
-                                    linkingState={linkingState}
-                                    layoutContext={layoutContext}
-                                />
-                            ) : (
-                                <Spinner />
-                            )}
+                            <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
+                                {suggestedSwitchFetchStatus === LoaderStatus.Ready ? (
+                                    <GeometrySwitchLinkingInitiation
+                                        onStartLinking={startLinking}
+                                        geometrySwitchInvalidityReason={
+                                            geometrySwitchInvalidityReason
+                                        }
+                                        hasSuggestedSwitch={!!suggestedSwitch}
+                                        linkingState={linkingState}
+                                        layoutContext={layoutContext}
+                                    />
+                                ) : (
+                                    <Spinner />
+                                )}
+                            </PrivilegeRequired>
                         </React.Fragment>
                     )}
                     {linkingState && (
