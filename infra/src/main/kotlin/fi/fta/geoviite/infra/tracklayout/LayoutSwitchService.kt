@@ -82,11 +82,8 @@ constructor(
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<LayoutSwitch>): LayoutRowVersion<LayoutSwitch> {
-        // cancellations are hidden, so if we're deleting a cancellation, this will return
-        // main-official or null
-        val draft = dao.get(branch.draft, id)
         // If removal also breaks references, clear them out first
-        if (dao.fetchVersion(branch.official, id) != null) {
+        if (dao.fetchVersion(branch.official, id) == null) {
             clearSwitchInformationFromSegments(branch, id)
         }
         return super.deleteDraft(branch, id)
