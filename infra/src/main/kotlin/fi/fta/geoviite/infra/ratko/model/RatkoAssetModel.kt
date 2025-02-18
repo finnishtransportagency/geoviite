@@ -4,10 +4,8 @@ import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import java.time.Instant
@@ -188,7 +186,7 @@ data class RatkoBulkTransferPollResponse(
 )
 
 data class RatkoBulkTransferPollResponseLocationTrackChange(
-    val id: IntId<BulkTransfer>,
+    val id: Int,
     @JsonProperty("sourceLocationtrackOid") val sourceLocationTrackOid: Oid<LocationTrack>,
     @JsonProperty("destinationLocationtracks") val destinationLocationTracks: List<RatkoBulkTransferDestinationTrack>,
     val startKmM: TrackMeter,

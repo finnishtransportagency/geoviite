@@ -161,7 +161,7 @@ fun bulkTransferPollResponse(
         remainingTrexAssets = remainingTrexAssets,
         locationTrackChange =
             RatkoBulkTransferPollResponseLocationTrackChange(
-                id = bulkTransferId,
+                id = bulkTransferId.intValue,
                 sourceLocationTrackOid = sourceLocationTrackOid,
                 destinationLocationTracks = destinationLocationTracks,
                 startKmM = startKmM,
