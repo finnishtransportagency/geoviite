@@ -714,6 +714,25 @@ constructor(
         assertEquals(listOf("track 1 V123 - V456", "track 2 V456 - Puskin"), descriptions)
     }
 
+    @Test
+    fun `deleteDraft deletes duplicate references if track is only draft, but not if official exists`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val onlyDraftReal = mainDraftContext.insert(locationTrack(trackNumber), alignment).id
+        val onlyDraftDuplicate =
+            mainDraftContext.insert(locationTrack(trackNumber, duplicateOf = onlyDraftReal), alignment).id
+        val officialReal = mainOfficialContext.insert(locationTrack(trackNumber), alignment)
+        mainDraftContext.copyFrom(officialReal)
+        val officialDuplicate =
+            mainDraftContext.insert(locationTrack(trackNumber, duplicateOf = officialReal.id), alignment).id
+
+        locationTrackService.deleteDraft(LayoutBranch.main, onlyDraftReal)
+        locationTrackService.deleteDraft(LayoutBranch.main, officialReal.id)
+
+        assertNull(mainDraftContext.fetch(onlyDraftDuplicate)!!.duplicateOf)
+        assertEquals(officialReal.id, mainDraftContext.fetch(officialDuplicate)!!.duplicateOf)
+    }
+
     private fun insertAndFetchDraft(switch: LayoutSwitch): LayoutSwitch =
         switchDao.fetch(switchService.saveDraft(LayoutBranch.main, switch))
 

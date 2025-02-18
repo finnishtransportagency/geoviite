@@ -457,6 +457,34 @@ constructor(
         assertEquals(switch.switchStructureId, fetchedSwitch.switchStructureId)
     }
 
+    @Test
+    fun `deleteDraft clears references if the switch is draft-only, but not if official exists`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val draftOnlySwitch = mainDraftContext.insert(switch()).id
+        val officialSwitch = mainOfficialContext.insert(switch())
+        mainDraftContext.copyFrom(officialSwitch)
+
+        val locationTrack =
+            mainDraftContext.insert(
+                locationTrack(trackNumber),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(1.0, 0.0))
+                        .copy(switchId = draftOnlySwitch, startJointNumber = JointNumber(1)),
+                    segment(Point(1.0, 0.0), Point(2.0, 0.0))
+                        .copy(switchId = officialSwitch.id, startJointNumber = JointNumber(1)),
+                ),
+            )
+        switchService.deleteDraft(LayoutBranch.main, draftOnlySwitch)
+        switchService.deleteDraft(LayoutBranch.main, officialSwitch.id)
+
+        assertEquals(
+            listOf(null, officialSwitch.id),
+            locationTrackService.getWithAlignment(MainLayoutContext.draft, locationTrack.id)!!.second.segments.map {
+                it.switchId
+            },
+        )
+    }
+
     private fun insertDraft(
         locationTrack: LocationTrack,
         alignment: LayoutAlignment,

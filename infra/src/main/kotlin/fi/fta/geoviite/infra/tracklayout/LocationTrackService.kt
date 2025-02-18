@@ -218,11 +218,8 @@ class LocationTrackService(
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<LocationTrack>): LayoutRowVersion<LocationTrack> {
-        // cancellations are hidden, so if we're deleting a cancellation, this will return
-        // main-official or null
-        val draft = dao.get(branch.draft, id)
         // If removal also breaks references, clear them out first
-        if (dao.fetchVersion(branch.official, id) != null) {
+        if (dao.fetchVersion(branch.official, id) == null) {
             clearDuplicateReferences(branch, id)
         }
         val deletedVersion = super.deleteDraft(branch, id)
