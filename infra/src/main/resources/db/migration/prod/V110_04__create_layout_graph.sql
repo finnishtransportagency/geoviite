@@ -1,3 +1,5 @@
+-- do $$ begin raise exception 'TODO'; end $$;
+
 drop table if exists switch_version_temp;
 create temp table switch_version_temp as
 select id, layout_context_id, version, switch_structure_id, start_time, end_time
@@ -45,7 +47,7 @@ create temporary table node_point_version_temp as (
           inner join layout.segment_geometry sg on sg.id = s.geometry_id
         where s.switch_id is not null
           and (s.switch_start_joint_number is not null or s.switch_end_joint_number is not null)
-          and lt.deleted = false -- TODO: ignore these, right? there wont be any edges/nodes for deleted tracks in the future?
+--           and lt.deleted = false -- TODO: ignore these, right? there wont be any edges/nodes for deleted tracks in the future?
     ),
     -- All potential locations/versions that could produce a node. Note that there will be duplicates here
     node_point as (
@@ -60,12 +62,12 @@ create temporary table node_point_version_temp as (
         alignment_version,
         null as switch_in_id,
         null as switch_in_joint_number,
-        switch_id switch_out_id,
+        case when switch_start_joint_number is not null then switch_id end as switch_out_id,
         switch_start_joint_number as switch_out_joint_number,
         segment_index as start_segment_index,
         case when segment_index = 0 then null else segment_index - 1 end as end_segment_index,
-        null::int as start_track_link,
-        null::int as end_track_link
+        null::int as boundary_location_track_id,
+        null::layout.boundary_type boundary_type
         from node_switch_segments
         where switch_start_joint_number is not null
       union all
@@ -77,14 +79,14 @@ create temporary table node_point_version_temp as (
         location_track_change_time,
         alignment_id,
         alignment_version,
-        switch_id as switch_in_id,
+        case when switch_end_joint_number is not null then switch_id end as switch_in_id,
         switch_end_joint_number as switch_in_joint_number,
         null as switch_out_id,
         null as switch_out_joint_number,
         case when segment_index = segment_count - 1 then null else segment_index + 1 end as start_segment_index,
         segment_index as end_segment_index,
-        null::int as start_track_link,
-        null::int as end_track_link
+        null::int as boundary_location_track_id,
+        null::layout.boundary_type boundary_type
         from node_switch_segments
         where switch_end_joint_number is not null
       union all
@@ -97,14 +99,14 @@ create temporary table node_point_version_temp as (
         lt.change_time as location_track_change_time,
         lt.alignment_id,
         lt.alignment_version,
-        lt.topology_start_switch_id as switch_in_id,
+        case when lt.topology_start_switch_joint_number is not null then lt.topology_start_switch_id end as switch_in_id,
         lt.topology_start_switch_joint_number as joint_in_joint_number,
         null as switch_out_id,
         null as switch_out_joint_number,
         0 as start_segment_index,
         null as end_segment_index,
-        lt.id as start_track_link,
-        null::int as end_track_link
+        lt.id as boundary_location_track_id,
+        'START'::layout.boundary_type boundary_type
         from layout.location_track_version lt
           inner join layout.alignment_version a on a.id = lt.alignment_id and a.version = lt.alignment_version
           inner join layout.segment_version s
@@ -121,12 +123,12 @@ create temporary table node_point_version_temp as (
         lt.alignment_version,
         null as switch_in_id,
         null as switch_in_joint_number,
-        lt.topology_end_switch_id as switch_out_id,
+        case when lt.topology_end_switch_joint_number is not null then lt.topology_end_switch_id end as switch_out_id,
         lt.topology_end_switch_joint_number as switch_out_joint_number,
         null as start_segment_index,
         a.segment_count - 1 as end_segment_index,
-        null::int as start_track_link,
-        lt.id end_track_link
+        lt.id as boundary_location_track_id,
+        'END'::layout.boundary_type boundary_type
         from layout.location_track_version lt
           inner join layout.alignment_version a on a.id = lt.alignment_id and a.version = lt.alignment_version
           inner join layout.segment_version s on s.alignment_id = a.id and s.alignment_version = a.version and
@@ -139,35 +141,6 @@ create temporary table node_point_version_temp as (
         node.*,
         joint_in.role as switch_in_joint_role,
         joint_out.role as switch_out_joint_role
---         node.location_track_id,
---         node.location_track_layout_context_id,
---         node.location_track_version,
---         node.location_track_change_time,
---         node.alignment_id,
---         node.alignment_version,
---         node.start_segment_index,
---         node.end_segment_index,
---         node.start_track_link,
---         node.end_track_link,
---         case
---           when array [switch_in_id, switch_in_joint_number] <= array [switch_out_id, switch_out_joint_number] then 'INCREASING'
---           else 'DECREASING'
---         end as node_direction,
---         case
---           when array [switch_in_id, switch_in_joint_number] <= array [switch_out_id, switch_out_joint_number] then switch_in_id
---           else switch_out_id
---         end as switch_1_id,
---         (least(array [switch_in_id, switch_in_joint_number], array [switch_out_id, switch_out_joint_number]))[2] as switch_1_joint_number,
---         case
---           when array [switch_in_id, switch_in_joint_number] <= array [switch_out_id, switch_out_joint_number] then joint_in.role
---           else joint_out.role
---         end as switch_1_joint_role,
---         (greatest(array [switch_in_id, switch_in_joint_number], array [switch_out_id, switch_out_joint_number]))[1] as switch_2_id,
---         (greatest(array [switch_in_id, switch_in_joint_number], array [switch_out_id, switch_out_joint_number]))[2] as switch_2_joint_number,
---         case
---           when array [switch_in_id, switch_in_joint_number] <= array [switch_out_id, switch_out_joint_number] then joint_out.role
---           else joint_in.role
---         end as switch_2_joint_role
         from node_point node
           -- Join draft version if (and only if) the location track is a draft
           left join switch_version_temp switch_in_d
@@ -217,95 +190,171 @@ create temporary table node_point_version_temp as (
         row_number() over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by start_segment_index, end_segment_index) as node_index,
         -- The grouping contracts the duplicated locations to a single node which may have multiple switch links
         -- There can only be one or null of these per node
---         (array_agg(distinct node_direction) filter (where node_direction is not null))[1] as node_direction,
         (array_agg(distinct switch_in_id) filter (where switch_in_id is not null))[1] as switch_in_id,
         (array_agg(distinct switch_in_joint_number) filter (where switch_in_joint_number is not null))[1] as switch_in_joint_number,
         (array_agg(distinct switch_in_joint_role) filter (where switch_in_joint_role is not null))[1] as switch_in_joint_role,
         (array_agg(distinct switch_out_id) filter (where switch_out_id is not null))[1] as switch_out_id,
         (array_agg(distinct switch_out_joint_number) filter (where switch_out_joint_number is not null))[1] as switch_out_joint_number,
         (array_agg(distinct switch_out_joint_role) filter (where switch_out_joint_role is not null))[1] as switch_out_joint_role,
-        (array_agg(distinct start_track_link) filter (where start_track_link is not null))[1] as start_track_link,
-        (array_agg(distinct end_track_link) filter (where end_track_link is not null))[1] as end_track_link,
-        -- The locations should all be approximately the same, but there might be minor variation due to floating point errors
+        (array_agg(distinct boundary_location_track_id) filter (where boundary_location_track_id is not null))[1] as boundary_location_track_id,
+        (array_agg(distinct boundary_type) filter (where boundary_location_track_id is not null))[1] as boundary_type,
         start_segment_index,
         end_segment_index
         from node_point_enriched
         group by location_track_id, location_track_layout_context_id, location_track_version, location_track_change_time, alignment_id, alignment_version, start_segment_index, end_segment_index
+    ),
+    track_node_version_with_ports as (
+      select
+        location_track_id,
+        location_track_layout_context_id,
+        location_track_version,
+        location_track_change_time,
+        alignment_id,
+        alignment_version,
+        node_index,
+        start_segment_index,
+        end_segment_index,
+        -- tmp.direction as node_track_direction,
+        -- Pick the start/end ports for edges by whether the track goes through the node in natural or reversed order
+        tmp.node_type,
+        tmp.increasing as dir_increasing,
+        (case
+          -- Switch nodes will always have both ports
+          -- Even when the other port content is null: only 1 switch at that point and it continues only in 1 direction
+           when node_type = 'SWITCH' and tmp.increasing then 'B'
+           when node_type = 'SWITCH' and not tmp.increasing then 'A'
+           -- A track boundary would only have both ports if there are two tracks and we don't have that in base data
+           when node_type = 'TRACK_BOUNDARY' and boundary_type = 'START' then 'A'
+           else null -- There cannot be a starting edge from a track boundary end
+         end)::layout.node_port_type as start_edge_port,
+        (case
+           -- Switch nodes will always have both ports
+           -- Even when the other port content is null: only 1 switch at that point and it continues only in 1 direction
+           when node_type = 'SWITCH' and tmp.increasing then 'A'
+           when node_type = 'SWITCH' and not tmp.increasing then 'B'
+           -- A track boundary would only have both ports if there are two tracks and we don't have that in base data
+           when node_type = 'TRACK_BOUNDARY' and boundary_type = 'END' then 'A'
+           else null -- There cannot be a ending edge at a track boundary start
+         end)::layout.node_port_type as end_edge_port,
+        -- The A track boundary is the end of the track in question, if and only if there are no switches for the node
+        (case
+           when switch_in_id is null and switch_out_id is null then boundary_location_track_id
+         end)::int as a_boundary_location_track_id,
+        (case
+           when switch_in_id is null and switch_out_id is null then boundary_type
+         end)::layout.boundary_type as a_boundary_type,
+        -- As the track's only link ends up in port A, there is no boundary on port B (the historical data does not hold any)
+        null::int as b_boundary_location_track_id,
+        null::layout.boundary_type as b_boundary_type,
+        -- Any node has 0-2 switches -> assign them to port A/B based on the direction
+        case when tmp.increasing then switch_in_id else switch_out_id end as a_switch_id,
+        case when tmp.increasing then switch_in_joint_number else switch_out_joint_number end as a_switch_joint_number,
+        case when tmp.increasing then switch_in_joint_role else switch_out_joint_role end as a_switch_joint_role,
+        case when tmp.increasing then switch_out_id else switch_in_id end as b_switch_id,
+        case when tmp.increasing then switch_out_joint_number else switch_in_joint_number end as b_switch_joint_number,
+        case when tmp.increasing then switch_out_joint_role else switch_in_joint_role end as b_switch_joint_role
+        from track_node_version_candidate,
+          lateral (
+            select
+              (case when switch_in_id is not null or switch_out_id is not null then 'SWITCH' else 'TRACK_BOUNDARY' end)::layout.node_type as node_type,
+              (array [switch_in_id, switch_in_joint_number, boundary_location_track_id]
+                <= array [switch_out_id, switch_out_joint_number, boundary_location_track_id]
+              ) as increasing
+            ) as tmp
     )
-    select
-      location_track_id,
-      location_track_layout_context_id,
-      location_track_version,
-      location_track_change_time,
-      alignment_id,
-      alignment_version,
-      node_index,
---       node_direction,
---       switch_1_id,
---       switch_1_joint_number,
---       switch_1_joint_role,
---       switch_2_id,
---       switch_2_joint_number,
---       switch_2_joint_role,
-      case when switch_in_id is null and switch_out_id is null then start_track_link end as start_track_link,
-      case when switch_in_id is null and switch_out_id is null then end_track_link end as end_track_link,
-      start_segment_index,
-      end_segment_index,
-      -- A node has 0-2 switches, but it can be joined from either direction by an edge -> make nodes consistent & maintain direction for edge creation
-      tmp.direction::layout.node_direction as node_direction,
-      case when tmp.direction = 'INCREASING' then switch_in_id else switch_out_id end as switch_1_id,
-      case when tmp.direction = 'INCREASING' then switch_in_joint_number else switch_out_joint_number end as switch_1_joint_number,
-      case when tmp.direction = 'INCREASING' then switch_in_joint_role else switch_out_joint_role end as switch_1_joint_role,
-      case when tmp.direction = 'INCREASING' then switch_out_id else switch_in_id end as switch_2_id,
-      case when tmp.direction = 'INCREASING' then switch_out_joint_number else switch_in_joint_number end as switch_2_joint_number,
-      case when tmp.direction = 'INCREASING' then switch_out_joint_role else switch_in_joint_role end as switch_2_joint_role
-    from track_node_version_candidate ,
-      lateral (
-        select
-          case
-            when array [switch_in_id, switch_in_joint_number] <= array [switch_out_id, switch_out_joint_number] then 'INCREASING' else 'DECREASING'
-          end as direction
-        ) as tmp
+  select
+    *,
+    layout.calculate_node_port_hash(
+        node_type,
+        a_switch_id,
+        a_switch_joint_number,
+        a_switch_joint_role,
+        a_boundary_location_track_id,
+        a_boundary_type
+    ) as a_port_hash,
+    case
+      -- Switch-nodes always have both ports.
+      -- Boundaries can only have the B port if there are two directly connected tracks and that is not the case in the base data
+      when node_type = 'SWITCH' then
+        layout.calculate_node_port_hash(
+            node_type,
+            b_switch_id,
+            b_switch_joint_number,
+            b_switch_joint_role,
+            b_boundary_location_track_id,
+            b_boundary_type
+        )
+    end as b_port_hash
+  from track_node_version_with_ports
 );
 alter table node_point_version_temp
   add column node_hash uuid not null generated always as (
-    layout.calculate_node_hash(
-        switch_1_id,
-        switch_1_joint_number,
-        switch_1_joint_role,
-        switch_2_id,
-        switch_2_joint_number,
-        switch_2_joint_role,
-        start_track_link,
-        end_track_link
-    )
+    layout.calculate_node_hash(a_port_hash, b_port_hash)
   ) stored;
 -- select * from node_point_version_temp where switch_1_id is not null;
 -- select * from node_point_version_temp where switch_2_id is not null;
 
+
+do $$
+  begin
+    if exists(
+      select * from (
+        select
+          node_hash,
+          count(distinct a_port_hash) distinct_a_ports,
+          count(distinct b_port_hash) distinct_b_ports
+          from node_point_version_temp
+          group by node_hash
+      ) tmp
+               where distinct_a_ports <> 1 or distinct_b_ports > 1
+    ) then
+      raise exception 'Node ports definition conflict';
+    end if;
+  end $$;
+
 -- Create immutable nodes
-insert into layout.node (
-  hash,
-  switch_1_id,
-  switch_1_joint_number,
-  switch_1_joint_role,
-  switch_2_id,
-  switch_2_joint_number,
-  switch_2_joint_role,
-  starting_location_track_id,
-  ending_location_track_id
-) select distinct on (node_hash)
+insert into layout.node (hash, type)
+select distinct on (node_hash)
   node_hash as hash,
-  switch_1_id,
-  switch_1_joint_number,
-  switch_1_joint_role,
-  switch_2_id,
-  switch_2_joint_number,
-  switch_2_joint_role,
-  start_track_link,
-  end_track_link
-  from node_point_version_temp
-on conflict (hash) do nothing;
+  node_type as type
+  from node_point_version_temp;
+-- Insert node ports
+insert into layout.node_port
+  (node_id, port, hash, switch_id, switch_joint_number, switch_joint_role, boundary_location_track_id, boundary_type)
+  select
+    node.id as node_id,
+--     tmp.node_hash,
+    tmp.port,
+    tmp.port_hash,
+    tmp.switch_id,
+    tmp.switch_joint_number,
+    tmp.switch_joint_role,
+    tmp.boundary_location_track_id,
+    tmp.boundary_type
+    from (
+      select distinct on (node_hash)
+        node_hash,
+        'A'::layout.node_port_type as port,
+        a_port_hash as port_hash,
+        a_switch_id as switch_id,
+        a_switch_joint_number as switch_joint_number,
+        a_switch_joint_role as switch_joint_role,
+        a_boundary_location_track_id as boundary_location_track_id,
+        a_boundary_type as boundary_type
+        from node_point_version_temp
+      union all
+      select distinct on (node_hash)
+        node_hash,
+        'B'::layout.node_port_type as port,
+        b_port_hash as port_hash,
+        b_switch_id as switch_id,
+        b_switch_joint_number as switch_joint_number,
+        b_switch_joint_role as switch_joint_role,
+        b_boundary_location_track_id as boundary_location_track_id,
+        b_boundary_type as boundary_type
+        from node_point_version_temp
+        where b_port_hash is not null
+    ) tmp inner join layout.node on node.hash = tmp.node_hash;
 
 -- All potential edges, as seen from the location track versions' point of view
 drop table if exists track_edge_version_temp;
@@ -323,15 +372,15 @@ create temp table track_edge_version_temp as (
         order by node.node_index
       ) as end_node_index,
       node.node_hash as start_node_hash,
-      node.node_direction as start_node_direction,
+      node.start_edge_port as start_node_port,
       lead(node.node_hash) over (
         partition by node.location_track_id, node.location_track_layout_context_id, node.location_track_version
         order by node.node_index
       ) as end_node_hash,
-      lead(node.node_direction) over (
+      lead(node.end_edge_port) over (
         partition by node.location_track_id, node.location_track_layout_context_id, node.location_track_version
         order by node.node_index
-      ) as end_node_direction,
+      ) as end_node_port,
       node.start_segment_index,
       lead(node.end_segment_index) over (
         partition by node.location_track_id, node.location_track_layout_context_id, node.location_track_version
@@ -358,6 +407,11 @@ create temp table track_edge_version_temp as (
 );
 alter table track_edge_version_temp
   add primary key (location_track_id, location_track_layout_context_id, location_track_version, start_node_index);
+-- TODO: what's wrong? Some of the nodes-ports are missing from the node_port table
+-- select * from track_edge_version_temp;
+--   ,
+--   add constraint start_port_fkey foreign key (start_node_id, start_node_port) references layout.node_port (node_id, port),
+--   add constraint end_port_fkey foreign key (end_node_id, end_node_port) references layout.node_port (node_id, port);
 
 drop table if exists edge_temp;
 create temporary table edge_temp as (
@@ -373,9 +427,9 @@ create temporary table edge_temp as (
         e.start_segment_index,
         e.end_segment_index,
         e.start_node_id,
-        e.start_node_direction,
+        e.start_node_port,
         e.end_node_id,
-        e.end_node_direction,
+        e.end_node_port,
         e.change_time,
         e.change_user,
         e.deleted,
@@ -383,7 +437,7 @@ create temporary table edge_temp as (
             layout.calculate_segment_hash(
                 s.geometry_alignment_id,
                 s.geometry_element_index,
-                s.source_start,
+                s.source_start::decimal(13, 6),
                 s.source,
                 s.geometry_id
             ) order by s.segment_index
@@ -400,9 +454,9 @@ create temporary table edge_temp as (
         *,
         layout.calculate_edge_hash(
             start_node_id,
-            start_node_direction,
+            start_node_port,
             end_node_id,
-            end_node_direction,
+            end_node_port,
             segment_hashes
         ) as edge_hash
         from edge_candidates
@@ -419,28 +473,53 @@ create temporary table edge_temp as (
         -- The version & change time could be picked by min, but we use the same syntax as others for consistency
         (array_agg(alignment_id order by alignment_id, alignment_version))[1] as alignment_id,
         (array_agg(alignment_version order by alignment_id, alignment_version))[1] as alignment_version,
+        (array_agg(alignment_id order by alignment_id, alignment_version)) as alignment_ids,
+        (array_agg(alignment_version order by alignment_id, alignment_version)) as alignment_versions,
         (array_agg(start_segment_index order by alignment_id, alignment_version))[1] as start_segment_index,
         (array_agg(end_segment_index order by alignment_id, alignment_version))[1] as end_segment_index,
         (array_agg(change_time order by alignment_id, alignment_version))[1] as change_time,
         (array_agg(change_user order by alignment_id, alignment_version))[1] as change_user,
+--         (array_agg(segment_hashes order by alignment_id, alignment_version))[1] as segment_hashes,
         edge_hash,
+        segment_hashes,
+--         array_agg(segment_hashes order by alignment_id, alignment_version) segment_hashes_2,
         start_node_id,
-        start_node_direction,
+        start_node_port,
         end_node_id,
-        end_node_direction
+        end_node_port
         from edge_candidates_with_hash
-        group by edge_hash, start_node_id, start_node_direction, end_node_id, end_node_direction
+        group by edge_hash, start_node_id, start_node_port, end_node_id, end_node_port, segment_hashes
     )
   select *
     from edges
 );
 alter table edge_temp add primary key (edge_hash);
+-- select * from edge_temp; where segment_hashes <> segment_hashes_2;
 
+-- select * from edge_temp where edge_hash = '005b3d7a-9f64-52ce-92b9-159a22034ca6';
+-- -- 6358b75c-9025-f4b4-0b6d-0126c29e91f4
+-- select
+--   layout.calculate_segment_hash(
+--       geometry_alignment_id,
+--       geometry_element_index,
+--       source_start,
+--       source,
+--       geometry_id
+--   )
+--     from layout.segment_version
+--       where alignment_id = 12522 and alignment_version = 1 and segment_index = 151;
+-- [2025-02-18 12:26:00] Detail: Key (start_node_id, start_node_port)=(23300, B) is not present in table "node_port".
+-- Node/port = 23300, B
+-- Track 3091, v1 (alignment 3351) & v2 (alignment 12034), segment 7 start,
+-- select * from edge_temp where start_node_id = 23300 or end_node_id = 23300;
+-- select * from node_point_version_temp where location_track_id = 3091 and location_track_version = 1 and location_track_layout_context_id = 'main_official' order by end_segment_index;
+
+-- delete from layout.edge where 1=1;
 insert into layout.edge(
   start_node_id,
-  start_node_direction,
+  start_node_port,
   end_node_id,
-  end_node_direction,
+  end_node_port,
   bounding_box,
   segment_count,
   length,
@@ -448,9 +527,9 @@ insert into layout.edge(
 )
 select
   e.start_node_id,
-  e.start_node_direction,
+  e.start_node_port,
   e.end_node_id,
-  e.end_node_direction,
+  e.end_node_port,
   postgis.st_extent(sg.geometry) as bounding_box,
   e.end_segment_index - e.start_segment_index + 1 as segment_count,
   sum(postgis.st_m(postgis.st_endpoint(sg.geometry))) as length,
@@ -463,6 +542,7 @@ select
     left join layout.segment_geometry sg on sg.id = sv.geometry_id
   group by e.edge_hash;
 
+-- delete from layout.edge_segment where 1=1;
 insert into layout.edge_segment
   (
     edge_id,
@@ -472,7 +552,8 @@ insert into layout.edge_segment
     start,
     source_start,
     source,
-    geometry_id
+    geometry_id,
+    hash
   )
 select
   edge.id,
@@ -482,7 +563,8 @@ select
   sv.start - first_sv.start,
   sv.source_start,
   sv.source,
-  sv.geometry_id
+  sv.geometry_id,
+  e.segment_hashes[sv.segment_index - e.start_segment_index + 1] as hash
   from edge_temp e
     inner join layout.edge on edge.hash = e.edge_hash
     left join layout.segment_version first_sv
@@ -493,6 +575,29 @@ select
               on sv.alignment_id = e.alignment_id
                 and sv.alignment_version = e.alignment_version
                 and sv.segment_index between e.start_segment_index and e.end_segment_index;
+
+-- Hash: 6358b75c-9025-f4b4-0b6d-0126c29e91f4
+-- Recalc: 4c7a412e-aa6e-258a-f574-71353795fb51
+
+do $$
+  begin
+    if exists(
+      select * from (
+        select
+          *,
+          layout.calculate_segment_hash(
+              geometry_alignment_id,
+              geometry_element_index,
+              source_start,
+              source,
+              geometry_id
+          ) as recalculated_hash
+          from layout.edge_segment
+      ) tmp where tmp.hash <> recalculated_hash
+    ) then
+      raise exception 'Edge segment hash does not match the migrated value';
+    end if;
+  end $$;
 
 insert into layout.location_track_version_edge
   (
@@ -516,3 +621,139 @@ select
                on start_segment.alignment_id = e.alignment_id
                  and start_segment.alignment_version = e.alignment_version
                  and start_segment.segment_index = e.start_segment_index;
+
+
+create temp table track_geometry_verify as
+with
+  alignment_geoms as (
+    select
+      ltv.id,
+      ltv.layout_context_id,
+      ltv.version,
+      array_agg(sv.geometry_id order by sv.segment_index) filter (where sv.geometry_id is not null) as geoms,
+      array_agg(distinct sv.geometry_id order by sv.geometry_id) filter (where sv.geometry_id is not null) as distinct_geoms
+      from layout.location_track_version ltv
+        left join layout.alignment_version a on a.id = ltv.alignment_id and a.version = ltv.alignment_version
+        left join layout.segment_version sv on sv.alignment_id = a.id and sv.alignment_version = a.version
+      group by ltv.id, ltv.layout_context_id, ltv.version
+  ),
+  edge_geoms as (
+    select
+      ltv.id,
+      ltv.layout_context_id,
+      ltv.version,
+      array_agg(es.geometry_id order by ltve.edge_index, es.segment_index) filter (where es.geometry_id is not null) geoms,
+      array_agg(distinct es.geometry_id order by es.geometry_id) filter (where es.geometry_id is not null) distinct_geoms
+      from layout.location_track_version ltv
+        left join layout.location_track_version_edge ltve
+                  on ltv.id = ltve.location_track_id
+                    and ltv.layout_context_id = ltve.location_track_layout_context_id
+                    and ltv.version = ltve.location_track_version
+        left join layout.edge e on ltve.edge_id = e.id
+        left join layout.edge_segment es on e.id = es.edge_id
+      group by ltv.id, ltv.layout_context_id, ltv.version
+  )
+select
+  ltv.id,
+  ltv.layout_context_id,
+  ltv.name,
+  a.geoms as alignment_geoms,
+  a.distinct_geoms as alignment_distinct_geoms,
+  e.geoms as edge_geoms,
+  e.distinct_geoms as edge_distinct_geoms
+  from layout.location_track_version ltv
+    left join alignment_geoms a on ltv.id = a.id and ltv.layout_context_id = a.layout_context_id and ltv.version = a.version
+    left join edge_geoms e on ltv.id = e.id and ltv.layout_context_id = e.layout_context_id and ltv.version = e.version;
+
+do $$
+  begin
+    if exists(
+      select *
+        from track_geometry_verify
+        where alignment_geoms <> edge_geoms
+           or alignment_distinct_geoms <> edge_distinct_geoms
+           or array_length(alignment_distinct_geoms, 1) <> array_length(alignment_geoms, 1)
+           or array_length(edge_distinct_geoms, 1) <> array_length(edge_geoms, 1)
+    ) then
+      raise exception 'Location track geometries have changed in the migration';
+    end if;
+  end $$;
+
+create temp table track_switches_verify as
+with
+  alignment_segment_switches_start as (
+    select
+      ltv.id,
+      ltv.layout_context_id,
+      ltv.version,
+      concat(switch_id, '_', switch_start_joint_number) switch
+      from layout.segment_version
+        inner join layout.location_track_version ltv on ltv.alignment_id = segment_version.alignment_id and ltv.alignment_version = segment_version.alignment_version
+      where switch_id is not null and switch_start_joint_number is not null
+  ),
+  alignment_segment_switches_end as (
+    select
+      lt.id,
+      lt.layout_context_id,
+      lt.version,
+      concat(switch_id, '_', switch_end_joint_number) switch
+      from layout.segment_version
+        inner join layout.location_track_version lt on lt.alignment_id = segment_version.alignment_id and lt.alignment_version = segment_version.alignment_version
+      where switch_id is not null and switch_end_joint_number is not null
+  ),
+  track_start_switches as (
+    select id, layout_context_id, version, concat(topology_start_switch_id, '_', topology_start_switch_joint_number) switch
+      from layout.location_track_version
+      where topology_start_switch_id is not null and topology_start_switch_joint_number is not null
+  ),
+  track_end_switches as (
+    select id, layout_context_id, version, concat(topology_end_switch_id, '_', topology_end_switch_joint_number) switch
+      from layout.location_track_version
+      where topology_end_switch_id is not null and topology_end_switch_joint_number is not null
+  ),
+  alignment_switches as (
+    select id, layout_context_id, version, array_agg(distinct switch order by switch) switches
+      from (
+        select * from alignment_segment_switches_start
+        union all
+        select * from alignment_segment_switches_end
+        union all
+        select * from track_start_switches
+        union all
+        select * from track_end_switches
+      ) asdf
+      group by id, layout_context_id, version
+  ),
+  edge_switches_unnest as (
+    select distinct
+      ltv.id,
+      ltv.layout_context_id,
+      ltv.version,
+      case when np.switch_id is not null then concat(np.switch_id, '_', np.switch_joint_number) end switch
+      from layout.location_track_version ltv
+        inner join layout.location_track_version_edge ltve
+                   on ltve.location_track_id = ltv.id
+                     and ltve.location_track_layout_context_id = ltv.layout_context_id
+                     and ltve.location_track_version = ltv.version
+        inner join layout.edge e on ltve.edge_id = e.id
+        left join layout.node_port np on e.end_node_id = np.node_id or e.start_node_id = np.node_id
+  ),
+  edge_switches as (
+    select id, layout_context_id, version, array_agg(switch order by switch) filter (where switch is not null) switches
+      from edge_switches_unnest
+      group by id, layout_context_id, version
+  )
+select a.id, a.layout_context_id, a.version, a.switches alignment_switches, e.switches edge_switches
+  from alignment_switches a
+    left join edge_switches e on a.id = e.id and a.layout_context_id = e.layout_context_id and a.version = e.version;
+
+do $$
+  begin
+    if exists(
+      select *
+        from pg_temp.track_switches_verify
+        where alignment_switches <> edge_switches
+    ) then
+      raise exception 'Location track switch links have changed in the migration';
+    end if;
+  end $$;

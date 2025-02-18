@@ -1,9 +1,9 @@
 drop function if exists layout.get_or_insert_edge;
 create function layout.get_or_insert_edge(
   start_node_id int,
-  start_node_direction layout.node_direction,
+  start_node_port layout.node_port_type,
   end_node_id int,
-  end_node_direction layout.node_direction,
+  end_node_port layout.node_port_type,
   geometry_alignment_ids int[],
   geometry_element_indices int[],
   start_m_values decimal(13, 6)[],
@@ -51,8 +51,13 @@ begin
     alter column geometry set not null;
 
   select
-    layout.calculate_edge_hash(start_node_id, start_node_direction, end_node_id, end_node_direction,
-                               array_agg(segment_tmp.hash)),
+    layout.calculate_edge_hash(
+        start_node_id,
+        start_node_port,
+        end_node_id,
+        end_node_port,
+        array_agg(segment_tmp.hash)
+    ),
     sum(postgis.st_m(postgis.st_endpoint(segment_tmp.geometry)))
     into edge_hash, edge_length
     from segment_tmp;
@@ -60,18 +65,18 @@ begin
   -- Try inserting edge: if it already exists, the hash will conflict
   insert into layout.edge
     (start_node_id,
-     start_node_direction,
+     start_node_port,
      end_node_id,
-     end_node_direction,
+     end_node_port,
      bounding_box,
      segment_count,
      length,
      hash)
     values
       (start_node_id,
-       start_node_direction,
+       start_node_port,
        end_node_id,
-       end_node_direction,
+       end_node_port,
        edge_bbox,
        array_length(geometry_ids, 1),
        edge_length,
@@ -82,7 +87,7 @@ begin
   -- If the row was inserted (no conflict) then the id is not null -> insert the rest of the data
   if result_id is not null then
     insert into layout.edge_segment
-      (edge_id, segment_index, geometry_alignment_id, geometry_element_index, start, source_start, source, geometry_id)
+      (edge_id, segment_index, geometry_alignment_id, geometry_element_index, start, source_start, source, geometry_id, hash)
     select
       result_id as edge_id,
       segment_tmp.segment_index,
@@ -91,7 +96,8 @@ begin
       segment_tmp.start_m,
       segment_tmp.source_start,
       segment_tmp.source,
-      segment_tmp.geometry_id
+      segment_tmp.geometry_id,
+      segment_tmp.hash
       from segment_tmp;
     drop table segment_tmp;
     return result_id;

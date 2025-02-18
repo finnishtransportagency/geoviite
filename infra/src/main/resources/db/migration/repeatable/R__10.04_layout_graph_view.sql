@@ -1,36 +1,76 @@
 drop view if exists layout.location_track_version_switch_view;
 drop view if exists layout.location_track_version_node_view;
 
-create view layout.location_track_version_node_view as
-select distinct on (node_id, location_track_id, location_track_layout_context_id, location_track_version)
-  *
-  from (
-    select
-      ltve.location_track_id,
-      ltve.location_track_layout_context_id,
-      ltve.location_track_version,
-      unnest(array[edge.start_node_id, edge.end_node_id]) as node_id,
-      unnest(array[2*ltve.edge_index, 2*ltve.edge_index + 1]) as node_sort
-      from layout.location_track_version_edge ltve inner join layout.edge edge on ltve.edge_id = edge.id
-      where edge.start_node_id is not null or end_node_id is not null
-  ) tmp
-  where node_id is not null;
+-- create view layout.location_track_version_node_view as
+-- select distinct on (location_track_id, location_track_layout_context_id, location_track_version, node_id, node_port)
+--   *
+--   from (
+--     select
+--       ltve.location_track_id,
+--       ltve.location_track_layout_context_id,
+--       ltve.location_track_version,
+--       unnest(array[edge.start_node_id, edge.end_node_id]) as node_id,
+--       unnest(array[edge.start_node_port, edge.end_node_port]) as node_port,
+--       unnest(array[2*ltve.edge_index, 2*ltve.edge_index + 1]) as node_sort,
+--
+--       from layout.location_track_version_edge ltve inner join layout.edge edge on ltve.edge_id = edge.id
+--   ) tmp
+--   where node_id is not null;
 
 create view layout.location_track_version_switch_view as
-select distinct on (switch_id, location_track_id, location_track_layout_context_id, location_track_version)
-  *
-  from (
-    select
-      ltvn.location_track_id,
-      ltvn.location_track_layout_context_id,
-      ltvn.location_track_version,
-      unnest(array[node.switch_1_id, node.switch_2_id]) as switch_id,
-      unnest(array[2*ltvn.node_sort, 2*ltvn.node_sort + 1]) as switch_sort
-      from layout.location_track_version_node_view ltvn
-        inner join layout.node node on ltvn.node_id = node.id
-      where node.switch_1_id is not null or node.switch_2_id is not null
-  ) tmp
-  where switch_id is not null;
+select
+  distinct on (
+    location_track_id,
+    location_track_layout_context_id,
+    location_track_version,
+    switch_id,
+    switch_joint_number
+    )
+  ltve.location_track_id,
+  ltve.location_track_layout_context_id,
+  ltve.location_track_version,
+  np.switch_id,
+  np.switch_joint_number,
+  np.switch_joint_role,
+  -- Generate a sortable ordering for the links, based on how they connect to the edge
+  -- Note: the following edge will likely have share a node (and hence 2 links) so the distinct above is required
+  -- However, it does not matter which edge's version of the ordering number gets picked, it's still in the same place
+  case
+    when np.node_id = edge.start_node_id and np.port <> edge.start_node_port then 4 * ltve.edge_index
+    when np.node_id = edge.start_node_id and np.port = edge.start_node_port then 4 * ltve.edge_index + 1
+    when np.node_id = edge.end_node_id and np.port = edge.end_node_port then 4 * ltve.edge_index + 2
+    when np.node_id = edge.end_node_id and np.port <> edge.end_node_port then 4 * ltve.edge_index + 3
+  end as switch_sort
+  from layout.location_track_version_edge ltve
+    inner join layout.edge edge on ltve.edge_id = edge.id
+    inner join layout.node_port np on np.node_id in (edge.start_node_id, edge.end_node_id)
+  where switch_id is not null
+    and location_track_id = 1923
+    and location_track_layout_context_id = 'main_draft'
+    and location_track_version = 21;
+
+-- create view layout.location_track_version_switch_view as
+-- select distinct on (location_track_id, location_track_layout_context_id, location_track_version, switch_id)
+--   *
+--   from (
+--     select distinct
+--       ltvn.location_track_id,
+--       ltvn.location_track_layout_context_id,
+--       ltvn.location_track_version,
+--       np.switch_id,
+--       -- TODO: If included, also include in the distinct clause above
+-- --       np.switch_joint_number,
+-- --       np.switch_joint_role,
+--       case
+--         when node_port = np.port then node_sort
+--         when
+--       end as switch_sort
+-- --       unnest(array[2*ltvn.node_sort, 2*ltvn.node_sort + 1]) as switch_sort
+--       from layout.location_track_version_node_view ltvn
+--         inner join layout.node_port np on ltvn.node_id = np.node_id-- and ltvn.node_port = np.port
+--       where np.switch_id is not null
+--   ) tmp
+--   where switch_id is not null;
 
 -- select array_agg(switch_id order by switch_sort)
 --   from layout.location_track_version_switch_view
@@ -51,17 +91,17 @@ select distinct on (switch_id, location_track_id, location_track_layout_context_
 -- where switch_id = 14;
 
 
-drop view if exists switch_location_track_version_view;
-create view switch_location_track_version_view as
-select distinct
-  sv.id as switch_id,
-  ltve.location_track_id,
-  ltve.location_track_layout_context_id,
-  ltve.location_track_version
-  from layout.switch_version sv
-    inner join layout.node on sv.id in (node.switch_1_id, node.switch_2_id)
-    inner join layout.edge on node.id in (edge.start_node_id, edge.end_node_id)
-    inner join layout.location_track_version_edge ltve on edge.id = ltve.edge_id;
+-- drop view if exists switch_location_track_version_view;
+-- create view switch_location_track_version_view as
+-- select distinct
+--   sv.id as switch_id,
+--   ltve.location_track_id,
+--   ltve.location_track_layout_context_id,
+--   ltve.location_track_version
+--   from layout.switch_version sv
+--     inner join layout.node on sv.id in (node.switch_1_id, node.switch_2_id)
+--     inner join layout.edge on node.id in (edge.start_node_id, edge.end_node_id)
+--     inner join layout.location_track_version_edge ltve on edge.id = ltve.edge_id;
 
 -- select * from switch_location_track_version_view where switch_id = 14 and location_track_layout_context_id = 'main_official';
 -- select * from switch_location_track_version_view where location_track_id = 134 and location_track_layout_context_id = 'main_official';
