@@ -186,7 +186,12 @@ export function useAlignmentHeights(
     const changeTime =
         alignmentId && 'planId' in alignmentId
             ? changeTimes.geometryPlan
-            : getMaxTimestamp(changeTimes.geometryPlan, changeTimes.layoutLocationTrack);
+            : getMaxTimestamp(
+                  changeTimes.geometryPlan,
+                  changeTimes.layoutLocationTrack,
+                  changeTimes.layoutReferenceLine,
+                  changeTimes.layoutKmPost,
+              );
     const renderedRange = useRef({ alignmentId, startM, endM, tickLength, changeTime });
     renderedRange.current = { alignmentId, startM, endM, tickLength, changeTime };
 
