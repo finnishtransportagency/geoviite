@@ -114,7 +114,7 @@ export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
                 </span>
                 <div
                     className={createClassName(
-                        styles['location-track-infobox__split-close-button'],
+                        styles['location-track-infobox__split-close-button-container'],
                         styles['location-track-infobox__split-close-button--disabled'],
                     )}></div>
             </div>
@@ -231,6 +231,15 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     }
 
     const [showRemovalConfirmationMenu, setShowRemovalConfirmationMenu] = React.useState(false);
+    const closeButtonClassName = () => {
+        if (!onRemove) {
+            return undefined;
+        } else {
+            return deletingDisabled
+                ? styles['location-track-infobox__split-close-button--disabled']
+                : styles['location-track-infobox__split-close-button--enabled'];
+        }
+    };
 
     return (
         <div
@@ -287,10 +296,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         <div
                             ref={closeButtonRef}
                             className={createClassName(
-                                styles['location-track-infobox__split-close-button'],
-                                deletingDisabled
-                                    ? styles['location-track-infobox__split-close-button--disabled']
-                                    : styles['location-track-infobox__split-close-button--enabled'],
+                                styles['location-track-infobox__split-close-button-container'],
+                                closeButtonClassName(),
                             )}
                             onClick={() => {
                                 setShowRemovalConfirmationMenu(!showRemovalConfirmationMenu);

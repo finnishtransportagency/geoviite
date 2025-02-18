@@ -113,14 +113,16 @@ $-color-warning: vayla-design.$color-lemon-dark;
     }
 }
 
-.location-track-infobox__split-close-button {
+.location-track-infobox__split-close-button-container {
     width: 22px;
     height: 20px;
     fill: vayla-design.$color-blue-dark;
     display: flex;
     justify-content: center;
     align-items: center;
+}
 
+.location-track-infobox__split-close-button {
     &--disabled {
         fill: vayla-design.$color-black-lighter;
     }
