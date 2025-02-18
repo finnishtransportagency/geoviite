@@ -194,12 +194,9 @@ class FakeRatko(port: Int) {
             }
 
     fun acceptsNewBulkTransferGivingItId(bulkTransferId: IntId<BulkTransfer>) {
-        val responseStarted = RatkoBulkTransferStartResponse(locationTrackChangeId = bulkTransferId)
-        //        val responseFinished = bulkTransferPollResponseInProgress(bulkTransferId =
-        // bulkTransferId)
+        val responseStarted = RatkoBulkTransferStartResponse(locationTrackChangeId = bulkTransferId.intValue)
 
         post(BULK_TRANSFER_CREATE_PATH, times = Times.once()).respond(okJson(responseStarted))
-        //        get(bulkTransferPollPath(bulkTransferId)).respond(okJson(responseFinished))
     }
 
     fun allowsBulkTransferStatePollingAndAnswersWithState(
