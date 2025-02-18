@@ -480,7 +480,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
         // Expect that the bulk transfer has been started correctly if an id was received
         // successfully.
-        return bulkTransferId to BulkTransferState.CREATED
+        return IntId<BulkTransfer>(bulkTransferId) to BulkTransferState.CREATED
     }
 
     fun forceStartBulkTransfer(bulkTransferId: IntId<BulkTransfer>, timeout: Duration) {

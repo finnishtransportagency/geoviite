@@ -177,9 +177,7 @@ data class RatkoBulkTransferDestinationTrack(
     val endKmM: RatkoTrackMeter,
 )
 
-data class RatkoBulkTransferStartResponse(
-    @JsonProperty("locationtrackChangeId") val locationTrackChangeId: IntId<BulkTransfer>
-)
+data class RatkoBulkTransferStartResponse(@JsonProperty("locationtrackChangeId") val locationTrackChangeId: Int)
 
 data class RatkoBulkTransferPollResponse(
     @JsonProperty("locationtrackChange") val locationTrackChange: RatkoBulkTransferPollResponseLocationTrackChange,
