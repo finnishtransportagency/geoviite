@@ -193,10 +193,6 @@ constructor(
     }
 
     fun expediteBulkTransferStart(split: PublishedSplit, timeout: Duration): PublishedSplit {
-        requireNotNull(split.bulkTransfer) {
-            "Bulk transfer expedited start was ran for a split which had bulkTransfer=null, splitId=${split.id}"
-        }
-
         requireNotNull(split.bulkTransfer.ratkoBulkTransferId) {
             "Was about to expedite bulk transfer starting, but ratkoBulkTransferId was null for splitId=${split.id}!"
         }
