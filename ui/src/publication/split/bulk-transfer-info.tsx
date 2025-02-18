@@ -5,6 +5,7 @@ import { BulkTransfer } from 'publication/publication-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { useTranslation } from 'react-i18next';
 import { enumTranslation } from 'utils/translation-utils';
+import { formatDateFull } from 'utils/date-utils';
 
 export type BulkTransferInfoProps = {
     bulkTransfer: BulkTransfer;
@@ -30,8 +31,13 @@ export const BulkTransferInfo: React.FC<BulkTransferInfoProps> = ({ bulkTransfer
 
     const noValue = t('split-details-dialog.bulk-transfer.no-value');
 
-    const ratkoStartTime = bulkTransfer.ratkoStartTime ?? noValue;
-    const ratkoEndTime = bulkTransfer.ratkoEndTime ?? noValue;
+    const ratkoStartTime = bulkTransfer.ratkoStartTime
+        ? formatDateFull(bulkTransfer.ratkoStartTime)
+        : noValue;
+
+    const ratkoEndTime = bulkTransfer.ratkoEndTime
+        ? formatDateFull(bulkTransfer.ratkoEndTime)
+        : noValue;
 
     const assetsMoved = bulkTransfer.assetsMoved ?? '-';
     const assetsTotal = bulkTransfer.assetsTotal ?? '-';
@@ -48,7 +54,6 @@ export const BulkTransferInfo: React.FC<BulkTransferInfoProps> = ({ bulkTransfer
                     <tr>
                         <Th>{t('split-details-dialog.bulk-transfer.state')}</Th>
                         <Th>{t('split-details-dialog.bulk-transfer.expedited-start')}</Th>
-                        <Th>{t('split-details-dialog.bulk-transfer.temporary-failure')}</Th>
                         <Th>{t('split-details-dialog.bulk-transfer.ratko-start-time')}</Th>
                         <Th>{t('split-details-dialog.bulk-transfer.ratko-end-time')}</Th>
                         <Th>{t('split-details-dialog.bulk-transfer.assets')}</Th>
@@ -59,7 +64,6 @@ export const BulkTransferInfo: React.FC<BulkTransferInfoProps> = ({ bulkTransfer
                     <tr>
                         <td>{state}</td>
                         <td>{expeditedStart}</td>
-                        <td>{temporaryFailure}</td>
                         <td>{ratkoStartTime}</td>
                         <td>{ratkoEndTime}</td>
                         <td>{assetAmounts}</td>

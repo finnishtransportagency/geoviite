@@ -127,7 +127,8 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
             },
             t('publication-card.mark-as-expedited'),
             'mark-bulk-transfer-as-expedited',
-            publication.split?.bulkTransferExpeditedStart === true,
+            publication.split?.bulkTransferExpeditedStart === true ||
+                publication.split?.bulkTransferState === 'DONE',
         ),
         menuOption(
             () => {
