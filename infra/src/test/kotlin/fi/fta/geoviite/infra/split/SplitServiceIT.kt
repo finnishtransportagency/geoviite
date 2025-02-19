@@ -54,6 +54,7 @@ constructor(
     fun clear() {
         testDBService.clearPublicationTables()
         testDBService.clearLayoutTables()
+        testDBService.clearSplitTables()
     }
 
     @Test

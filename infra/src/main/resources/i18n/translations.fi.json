@@ -308,6 +308,13 @@
             "MAIN_OFFICIAL": "Nykytila",
             "MAIN_DRAFT": "Luonnostila",
             "DESIGN": "Suunnitelmatila"
+        },
+        "BulkTransferState": {
+            "PENDING": "Ei aloitettu",
+            "CREATED": "Luotu",
+            "IN_PROGRESS": "Aloitettu",
+            "DONE": "Valmis",
+            "FAILED": "Epäonnistunut"
         }
     },
     "environment": {
@@ -1694,9 +1701,13 @@
         "bulk-transfer-status": "Kohteiden siirto jaetulta raiteelta",
         "actions": "Toiminnot",
         "show-split-info": "Näytä raiteen jakamisen tiedot",
+        "mark-as-pending": "Aloita kohteiden siirto uudelleen",
+        "mark-as-expedited": "Aloita kohteiden siirto nopeutetusti",
         "mark-as-successful": "Merkitse kohteiden siirto onnistuneeksi",
         "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
         "transfer-starts-after-reconnect": "Vienti käynnistyy automaattisesti Ratko-yhteyden palautumisen jälkeen",
+        "bulk-transfer-marked-as-pending": "Kohteiden siirtoa yritetään uudelleen",
+        "bulk-transfer-marked-as-expedited": "Kohteiden siirto aloitetaan nopeutetusti",
         "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
         "push-error": {
             "location-track": "Sijaintiraiteen",
@@ -1718,7 +1729,22 @@
         "target-oid": "Raiteen OID",
         "operation": "Toimenpide",
         "start-address": "Rataosoite alku",
-        "end-address": "Rataosoite loppu"
+        "end-address": "Rataosoite loppu",
+        "bulk-transfer": {
+            "title": "Massasiirron tiedot",
+            "state": "Tila",
+            "expedited-start": "Aloitustyyli",
+            "expedited-start-disabled": "Normaali",
+            "expedited-start-enabled": "Nopeutettu",
+            "temporary-failure": "Hetkellinen virhe",
+            "temporary-failure-no": "Ei",
+            "temporary-failure-yes": "Kyllä",
+            "ratko-start-time": "Aloitettu",
+            "ratko-end-time": "Valmistunut",
+            "assets": "Kohteita (Siirretty / Yhteensä)",
+            "trex-assets": "TREX-kohteita (Siirretty / Yhteensä)",
+            "no-value": "Ei arvoa"
+        }
     },
     "split-details-csv": {
         "source-name": "Alkuperäinen raide",
