@@ -6,11 +6,12 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
-import fi.fta.geoviite.infra.tracklayout.EdgeNodeDirection.DECREASING
-import fi.fta.geoviite.infra.tracklayout.EdgeNodeDirection.INCREASING
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.SWITCH
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_END
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_START
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_BOUNDARY
+import fi.fta.geoviite.infra.tracklayout.NodePortType.A
+import fi.fta.geoviite.infra.tracklayout.NodePortType.B
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import java.util.*
 import kotlin.math.abs
 
@@ -150,7 +151,7 @@ fun calculateEdgeMs(edges: List<LayoutEdge>): List<Range<Double>> {
     return edges.map { edge -> Range(previousEnd, previousEnd + edge.length).also { previousEnd += edge.length } }
 }
 
-fun verifyTrackGeometry(edges: List<LayoutEdge>) {
+fun verifyTrackGeometry(trackId: IntId<LocationTrack>?, edges: List<LayoutEdge>) {
     edges.zipWithNext().forEach { (prev, next) ->
         require(prev.endNode.node?.contentHash == next.startNode.node?.contentHash) {
             "Edges should be connected: prev=${prev.endNode} next=${next.startNode}"
@@ -160,6 +161,18 @@ fun verifyTrackGeometry(edges: List<LayoutEdge>) {
         }
         require(next.startNode.type == SWITCH) {
             "Only switch nodes are allowed in the middle of the track: node=${next.endNode}"
+        }
+    }
+    trackId?.let { id ->
+        edges.firstOrNull()?.startNode?.trackBoundaryIn?.also { trackBoundary ->
+            require(trackBoundary.id == id) {
+                "Track geometry start node can only be the start of said track: trackId=$id trackBoundary=$trackBoundary"
+            }
+        }
+        edges.lastOrNull()?.endNode?.trackBoundaryIn?.also { trackBoundary ->
+            require(trackBoundary.id == id) {
+                "Track geometry end node can only be the end of said track: trackId=$id trackBoundary=$trackBoundary"
+            }
         }
     }
 }
@@ -174,7 +187,7 @@ data class TmpLocationTrackGeometry(@get:JsonIgnore override val edges: List<Lay
         get() = edges.lastOrNull()?.endNode
 
     init {
-        verifyTrackGeometry(edges)
+        verifyTrackGeometry(null, edges)
     }
 
     override fun withLocationTrackId(id: IntId<LocationTrack>): TmpLocationTrackGeometry {
@@ -188,17 +201,7 @@ data class DbLocationTrackGeometry(
     @get:JsonIgnore override val edges: List<DbLayoutEdge>,
 ) : LocationTrackGeometry() {
     init {
-        verifyTrackGeometry(edges)
-        edges.firstOrNull()?.startNode?.startingTrackId?.also { trackId ->
-            require(trackId == trackRowVersion.id) {
-                "Track geometry start node can only be the start of said track: trackVersion=$trackRowVersion trackId=$trackId"
-            }
-        }
-        edges.firstOrNull()?.endNode?.endingTrackId?.also { trackId ->
-            require(trackId == trackRowVersion.id) {
-                "Track geometry end node can only be the end of said track: trackVersion=$trackRowVersion trackId=$trackId"
-            }
-        }
+        verifyTrackGeometry(trackRowVersion.id, edges)
     }
 
     //    @Suppress("UNCHECKED_CAST")
@@ -269,9 +272,8 @@ sealed class LayoutEdge : IAlignment {
     }
 
     fun reifyNodeTrackId(id: IntId<LocationTrack>): LayoutEdge {
-        val newStart =
-            if (startNode is PlaceHolderEdgeNode) TmpEdgeNode(INCREASING, TmpTrackStartNode(id)) else startNode
-        val newEnd = if (endNode is PlaceHolderEdgeNode) TmpEdgeNode(INCREASING, TmpTrackEndNode(id)) else endNode
+        val newStart = startNode.takeIf { it !is PlaceHolderEdgeNode } ?: EdgeNode.trackBoundary(id, START)
+        val newEnd = endNode.takeIf { it !is PlaceHolderEdgeNode } ?: EdgeNode.trackBoundary(id, END)
         return if (newStart == startNode && newEnd == endNode) this else TmpLayoutEdge(newStart, newEnd, segments)
     }
 }
@@ -296,11 +298,15 @@ fun verifyEdgeContent(edge: LayoutEdge) {
             "Edge segments should begin where the previous one ends: prev=${prev.segmentEnd} next=${next.segmentStart}"
         }
     }
-    require(edge.startNode.type != TRACK_END) {
-        "Edge start node must not be a a track end: $edge node=${edge.startNode}"
+    edge.startNode.trackBoundaryIn?.let { innerBoundary ->
+        require(innerBoundary.type == START) {
+            "Edge start node must not be a a track end: $edge start(inner)=$innerBoundary"
+        }
     }
-    require(edge.endNode.type != TRACK_START) {
-        "Edge end node must not be a a track start: $edge node=${edge.endNode}"
+    edge.endNode.trackBoundaryIn?.let { innerBoundary ->
+        require(innerBoundary.type == END) {
+            "Edge end node must not be a a track start: $edge end(inner)=$innerBoundary"
+        }
     }
     // TODO: GVT-2926 We shouldn't have edges like this, but we do. What's up?
     // We shouldn't really have edges between null and a joint, but due to old data, we do
@@ -347,75 +353,67 @@ sealed class EdgeNode {
     companion object {
         val placeHolder = PlaceHolderEdgeNode()
 
-        fun trackStart(trackId: IntId<LocationTrack>) = TmpEdgeNode(INCREASING, TmpTrackStartNode(trackId))
+        fun trackBoundary(id: IntId<LocationTrack>, type: TrackBoundaryType) = trackBoundary(TrackBoundary(id, type))
 
-        fun trackEnd(trackId: IntId<LocationTrack>) = TmpEdgeNode(INCREASING, TmpTrackEndNode(trackId))
-
-        fun switch(linkIn: SwitchLink?, linkOut: SwitchLink?): TmpEdgeNode {
-            val (switch1, switch2) = inNodeOrder(linkIn, linkOut)
-            val direction = if (switch1 == linkIn) INCREASING else DECREASING
-            return TmpEdgeNode(direction, TmpSwitchNode(switch1, switch2))
+        fun trackBoundary(inner: TrackBoundary, outer: TrackBoundary? = null): TmpEdgeNode {
+            val (trackA, trackB) = inNodeOrder(inner, outer)
+            val portConnection = if (inner == trackA) A else B
+            return TmpEdgeNode(portConnection, TmpTrackBoundaryNode(trackA, trackB))
         }
 
-        private fun inNodeOrder(linkIn: SwitchLink?, linkOut: SwitchLink?): Pair<SwitchLink, SwitchLink?> {
-            require(linkIn != null || linkOut != null) { "A switch node must have at least one switch" }
-            return when {
-                linkIn == null -> requireNotNull(linkOut) to null
-                linkOut == null -> linkIn to null
-                linkIn.isLessThanOrEqual(linkOut) -> linkIn to linkOut
-                else -> linkOut to linkIn
-            }
+        fun switch(inner: SwitchLink?, outer: SwitchLink?): TmpEdgeNode {
+            val (switchA, switchB) = inNodeOrder(inner, outer)
+            val portConnection = if (inner == switchA) A else B
+            return TmpEdgeNode(portConnection, TmpSwitchNode(switchA, switchB))
         }
     }
 
-    @get:JsonIgnore abstract val direction: EdgeNodeDirection
+    @get:JsonIgnore abstract val portConnection: NodePortType
     @get:JsonIgnore abstract val node: LayoutNode?
+
+    val innerPort
+        get() = node?.get(portConnection)
+
+    val outerPort
+        get() = node?.get(portConnection.opposite)
+
     val type: LayoutNodeType
         get() = node?.type ?: LayoutNodeType.PLACEHOLDER
 
     val switchIn: SwitchLink?
-        get() =
-            when (direction) {
-                INCREASING -> node?.switch1
-                DECREASING -> node?.switch2
-            }
+        get() = innerPort?.let { it as? SwitchLink }
 
     val switchOut: SwitchLink?
-        get() =
-            when (direction) {
-                INCREASING -> node?.switch2
-                DECREASING -> node?.switch1
-            }
+        get() = outerPort?.let { it as? SwitchLink }
 
-    val startingTrackId: IntId<LocationTrack>?
-        get() = node?.startingTrackId
+    val switches: List<SwitchLink> = listOfNotNull(switchIn, switchOut)
 
-    val endingTrackId: IntId<LocationTrack>?
-        get() = node?.endingTrackId
+    val trackBoundaryIn: TrackBoundary?
+        get() = innerPort?.let { it as? TrackBoundary }
+
+    val trackBoundaryOut: TrackBoundary?
+        get() = outerPort?.let { it as? TrackBoundary }
+
+    fun containsSwitch(switchId: IntId<LayoutSwitch>) = switches.any { s -> s.id == switchId }
 
     fun containsJoint(switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
-        node?.switch1?.matches(switchId, jointNumber) ?: false || node?.switch2?.matches(switchId, jointNumber) ?: false
+        switches.any { s -> s.matches(switchId, jointNumber) }
 
-    @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(direction, node?.contentHash) }
+    @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(portConnection, node?.contentHash) }
 
     fun withoutSwitch(switchId: IntId<LayoutSwitch>): EdgeNode =
-        if (node?.switch1?.id == switchId || node?.switch2?.id == switchId) {
-            val newSwitch1 = node?.switch1?.takeIf { it.id != switchId }
-            val newSwitch2 = node?.switch2?.takeIf { it.id != switchId }
-            if (newSwitch1 != null || newSwitch2 != null) {
-                TmpEdgeNode(direction, TmpSwitchNode(requireNotNull(newSwitch1 ?: newSwitch2), null))
-            } else {
-                placeHolder
-            }
+        if (containsSwitch(switchId)) {
+            val remainingSwitch = switches.singleOrNull { it.id != switchId }
+            remainingSwitch?.let { switch ->
+                val newConnection = if (switch == node?.portA) portConnection else portConnection.opposite
+                TmpEdgeNode(newConnection, TmpSwitchNode(switch, null))
+            } ?: placeHolder
         } else {
             this
         }
-    //    fun withoutSwitch(switchId: IntId<LayoutSwitch>): EdgeNode? {
-    //        val newNode = node?.withoutSwitch()
-    //    }
 }
 
-data class DbEdgeNode(override val direction: EdgeNodeDirection, override val node: DbLayoutNode) : EdgeNode() {
+data class DbEdgeNode(override val portConnection: NodePortType, override val node: DbLayoutNode) : EdgeNode() {
     val id: IntId<LayoutNode>
         get() = node.id
 
@@ -424,34 +422,42 @@ data class DbEdgeNode(override val direction: EdgeNodeDirection, override val no
     }
 }
 
-data class TmpEdgeNode(override val direction: EdgeNodeDirection, override val node: LayoutNode) : EdgeNode() {}
+data class TmpEdgeNode(override val portConnection: NodePortType, override val node: LayoutNode) : EdgeNode()
 
-data class PlaceHolderEdgeNode(
-    override val direction: EdgeNodeDirection = INCREASING,
-    override val node: LayoutNode? = null,
-) : EdgeNode()
+data class PlaceHolderEdgeNode(override val portConnection: NodePortType = A, override val node: LayoutNode? = null) :
+    EdgeNode()
 
 enum class LayoutNodeType {
     SWITCH,
-    TRACK_START,
-    TRACK_END,
+    TRACK_BOUNDARY,
     PLACEHOLDER,
 }
 
-// enum class TrackEndType {
-//    START,
-//    END,
-// }
+enum class TrackBoundaryType {
+    START,
+    END,
+}
+
+enum class NodePortType {
+    A,
+    B;
+
+    val opposite
+        get() = if (this == A) B else A
+}
 
 sealed class LayoutNode {
-    open val switch1: SwitchLink? = null
-    open val switch2: SwitchLink? = null
-    open val startingTrackId: IntId<LocationTrack>? = null
-    open val endingTrackId: IntId<LocationTrack>? = null
+    abstract val portA: NodePort
+    abstract val portB: NodePort?
+
+    val ports: List<NodePort>
+        get() = listOfNotNull(portA, portB)
+
+    fun get(port: NodePortType) = if (port == A) portA else portB
 
     abstract val type: LayoutNodeType
 
-    @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(switch1, switch2, startingTrackId, endingTrackId) }
+    @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(portA, portB) }
 }
 
 sealed class DbLayoutNode : LayoutNode() {
@@ -462,74 +468,53 @@ sealed class TmpLayoutNode : LayoutNode()
 
 data class DbSwitchNode(
     override val id: IntId<LayoutNode>,
-    override val switch1: SwitchLink,
-    override val switch2: SwitchLink?,
+    override val portA: SwitchLink,
+    override val portB: SwitchLink?,
 ) : DbLayoutNode() {
     override val type: LayoutNodeType = SWITCH
 }
 
-data class TmpSwitchNode(override val switch1: SwitchLink, override val switch2: SwitchLink?) : TmpLayoutNode() {
+data class TmpSwitchNode(override val portA: SwitchLink, override val portB: SwitchLink? = null) : TmpLayoutNode() {
     override val type: LayoutNodeType = SWITCH
 }
 
-data class DbTrackStartNode(override val id: IntId<LayoutNode>, override val startingTrackId: IntId<LocationTrack>) :
-    DbLayoutNode() {
-    override val type: LayoutNodeType = TRACK_START
+data class DbTrackBoundaryNode(
+    override val id: IntId<LayoutNode>,
+    override val portA: TrackBoundary,
+    override val portB: TrackBoundary? = null,
+) : DbLayoutNode() {
+    override val type: LayoutNodeType = TRACK_BOUNDARY
 }
 
-data class DbTrackEndNode(override val id: IntId<LayoutNode>, override val endingTrackId: IntId<LocationTrack>) :
-    DbLayoutNode() {
-    override val type: LayoutNodeType = TRACK_END
+data class TmpTrackBoundaryNode(override val portA: TrackBoundary, override val portB: TrackBoundary? = null) :
+    TmpLayoutNode() {
+    constructor(id: IntId<LocationTrack>, type: TrackBoundaryType) : this(TrackBoundary(id, type), null)
+
+    override val type: LayoutNodeType = TRACK_BOUNDARY
 }
 
-data class TmpTrackStartNode(override val startingTrackId: IntId<LocationTrack>) : TmpLayoutNode() {
-    override val type: LayoutNodeType = TRACK_START
+sealed class NodePort {
+    abstract fun isLessThanOrEqual(other: NodePort): Boolean
 }
 
-data class TmpTrackEndNode(override val endingTrackId: IntId<LocationTrack>) : TmpLayoutNode() {
-    override val type: LayoutNodeType = TRACK_END
+data class TrackBoundary(val id: IntId<LocationTrack>, val type: TrackBoundaryType) : NodePort() {
+    override fun isLessThanOrEqual(other: NodePort): Boolean {
+        require(other is TrackBoundary) { "Cannot compare ${TrackBoundary::class.simpleName} with $other" }
+        return id.intValue < other.id.intValue ||
+            (id.intValue == other.id.intValue && type.ordinal <= other.type.ordinal)
+    }
 }
 
-// data class DbLayoutNode(val id: IntId<DbLayoutNode>, @JsonIgnore val content: LocationTrackNode) :
-//    ITrackNodeContent by content {
-//    init {
-//        require(content !is LayoutNodeTemp) { "Temp nodes are not allowed in DB" }
-//    }
-// }
-
-// interface ITrackNodeContent {}
-//
-// sealed class LocationTrackNode : ITrackNodeContent {
-//    @get:JsonIgnore
-//    override val contentHash: Int by lazy { Objects.hash(switchIn, switchOut, startingTrackId, endingTrackId) }
-// }
-//
-// data class LayoutNodeTemp(override val nodeType: LayoutNodeType) : LocationTrackNode()
-//
-// data class LocationTrackStartNode(override val startingTrackId: IntId<LocationTrack>) : LocationTrackNode() {
-//    override val nodeType: LayoutNodeType = TRACK_START
-// }
-//
-// data class LocationTrackEndNode(override val endingTrackId: IntId<LocationTrack>) : LocationTrackNode() {
-//    override val nodeType: LayoutNodeType = TRACK_END
-// }
-//
-// data class LayoutNodeSwitch(override val switchIn: SwitchLink?, override val switchOut: SwitchLink?) :
-//    LocationTrackNode() {
-//    override val nodeType: LayoutNodeType = SWITCH
-//
-//    init {
-//        require(switchIn != null || switchOut != null) { "A switch node must have at least one switch" }
-//    }
-// }
-
-data class SwitchLink(val id: IntId<LayoutSwitch>, val jointRole: SwitchJointRole, val jointNumber: JointNumber) {
+data class SwitchLink(val id: IntId<LayoutSwitch>, val jointRole: SwitchJointRole, val jointNumber: JointNumber) :
+    NodePort() {
     fun matches(switchId: IntId<LayoutSwitch>, switchJointNumber: JointNumber) =
         id == switchId && jointNumber == switchJointNumber
 
-    fun isLessThanOrEqual(other: SwitchLink) =
-        id.intValue < other.id.intValue ||
+    override fun isLessThanOrEqual(other: NodePort): Boolean {
+        require(other is SwitchLink) { "Cannot compare ${SwitchLink::class.simpleName} with $other" }
+        return id.intValue < other.id.intValue ||
             (id.intValue == other.id.intValue && jointNumber.intValue <= other.jointNumber.intValue)
+    }
 }
 
 /**
@@ -574,4 +559,14 @@ fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
     }
     previous?.let(combined::add)
     return combined.toList()
+}
+
+private fun <T : NodePort> inNodeOrder(linkIn: T?, linkOut: T?): Pair<T, T?> {
+    require(linkIn != null || linkOut != null) { "A node must have at least one port" }
+    return when {
+        linkIn == null -> requireNotNull(linkOut) to null
+        linkOut == null -> linkIn to null
+        linkIn.isLessThanOrEqual(linkOut) -> linkIn to linkOut
+        else -> linkOut to linkIn
+    }
 }

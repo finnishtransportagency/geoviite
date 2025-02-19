@@ -14,10 +14,9 @@ create function layout.get_or_insert_edge(
 ) returns int as
 $$
 declare
-  declare
-  edge_hash           uuid;
-  declare edge_length decimal(13, 6);
-  declare result_id   int;
+  edge_hash   uuid;
+  edge_length decimal(13, 6);
+  result_id   int;
 begin
   drop table if exists segment_tmp;
   create temporary table segment_tmp as

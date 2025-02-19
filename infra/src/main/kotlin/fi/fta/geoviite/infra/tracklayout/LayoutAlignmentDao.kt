@@ -83,43 +83,53 @@ class LayoutAlignmentDao(
             select 
               node.id,
               node.type,
-              node.switch_1_id,
-              node.switch_1_joint_number,
-              node.switch_1_joint_role,
-              node.switch_2_id,
-              node.switch_2_joint_number,
-              node.switch_2_joint_role,
-              node.starting_location_track_id,
-              node.ending_location_track_id
-            from layout.node
+              port_a.switch_id as a_switch_id,
+              port_a.switch_joint_number as a_switch_joint_number,
+              port_a.switch_joint_role as a_switch_joint_role,
+              port_a.boundary_location_track_id as a_boundary_location_track_id,
+              port_a.boundary_type as a_boundary_type,
+              port_b.switch_id as b_switch_id,
+              port_b.switch_joint_number as b_switch_joint_number,
+              port_b.switch_joint_role as b_switch_joint_role,
+              port_b.boundary_location_track_id as b_boundary_location_track_id,
+              port_b.boundary_type as b_boundary_type
+            from layout.node 
+              left join layout.node_port port_a on node.id = port_a.node_id and port_a.port = 'A'
+              left join layout.node_port port_b on node.id = port_a.node_id and port_a.port = 'B'
             where (:id::int is null or node.id = :id)
-            group by node.id 
         """
                 .trimIndent()
         val params = mapOf("id" to id?.intValue)
+
+        fun getTrackBoundary(rs: ResultSet, prefix: String): TrackBoundary? =
+            rs.getIntIdOrNull<LocationTrack>("${prefix}_boundary_location_track_id")?.let { id ->
+                TrackBoundary(id = id, type = rs.getEnum("${prefix}_boundary_type"))
+            }
+
+        fun getSwitchLink(rs: ResultSet, prefix: String): SwitchLink? =
+            rs.getIntIdOrNull<LayoutSwitch>("${prefix}_switch_id")?.let { id ->
+                SwitchLink(
+                    id = id,
+                    jointNumber = rs.getJointNumber("${prefix}_switch_joint_number"),
+                    jointRole = rs.getEnum("${prefix}_switch_joint_role"),
+                )
+            }
+
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            val id = rs.getIntId<LayoutNode>("id")
+            val dbId = rs.getIntId<LayoutNode>("id")
             val type = rs.getEnum<LayoutNodeType>("type")
             when (type) {
-                LayoutNodeType.TRACK_START -> DbTrackStartNode(id, rs.getIntId("starting_location_track_id"))
-                LayoutNodeType.TRACK_END -> DbTrackEndNode(id, rs.getIntId("ending_location_track_id"))
+                LayoutNodeType.TRACK_BOUNDARY ->
+                    DbTrackBoundaryNode(
+                        id = dbId,
+                        portA = requireNotNull(getTrackBoundary(rs, "a")) { "Node must have at least one port" },
+                        portB = getTrackBoundary(rs, "b"),
+                    )
                 LayoutNodeType.SWITCH -> {
                     DbSwitchNode(
-                        id = id,
-                        switch1 =
-                            SwitchLink(
-                                rs.getIntId("switch_1_id"),
-                                rs.getEnum("switch_1_joint_role"),
-                                rs.getJointNumber("switch_1_joint_number"),
-                            ),
-                        switch2 =
-                            rs.getIntIdOrNull<LayoutSwitch>("switch_2_id")?.let { id ->
-                                SwitchLink(
-                                    id,
-                                    rs.getEnum("switch_2_joint_role"),
-                                    rs.getJointNumber("switch_2_joint_number"),
-                                )
-                            },
+                        id = dbId,
+                        portA = requireNotNull(getSwitchLink(rs, "a")) { "Node must have at least one port" },
+                        portB = getSwitchLink(rs, "b"),
                     )
                 }
                 LayoutNodeType.PLACEHOLDER -> error("Placeholder nodes cannot exist in DB")
@@ -135,26 +145,22 @@ class LayoutAlignmentDao(
         val sql =
             """
             select layout.get_or_insert_node(
-                :switch_1_id,
-                :switch_1_joint_number,
-                :switch_1_joint_role::common.switch_joint_role,
-                :switch_2_id,
-                :switch_2_joint_number,
-                :switch_2_joint_role::common.switch_joint_role,
-                :start_track_id,
-                :end_track_id
+                :switch_ids::int[],
+                :switch_joint_numbers::int[],
+                :switch_joint_roles::common.switch_joint_role[],
+                :boundary_track_ids::int[],
+                :boundary_types::layout.boundary_type[]
             ) as id
         """
+        val switches = content.ports.filterIsInstance<SwitchLink>()
+        val boundaries = content.ports.filterIsInstance<TrackBoundary>()
         val params =
             mapOf(
-                "switch_1_id" to content.switch1?.id?.intValue,
-                "switch_1_joint_number" to content.switch1?.jointNumber?.intValue,
-                "switch_1_joint_role" to content.switch1?.jointRole?.name,
-                "switch_2_id" to content.switch2?.id?.intValue,
-                "switch_2_joint_number" to content.switch2?.jointNumber?.intValue,
-                "switch_2_joint_role" to content.switch2?.jointRole?.name,
-                "start_track_id" to content.startingTrackId?.intValue,
-                "end_track_id" to content.endingTrackId?.intValue,
+                "switch_ids" to switches.map { s -> s.id.intValue }.toTypedArray(),
+                "switch_joint_numbers" to switches.map { s -> s.jointNumber.intValue }.toTypedArray(),
+                "switch_joint_roles" to switches.map { s -> s.jointRole.name }.toTypedArray(),
+                "boundary_track_ids" to boundaries.map { b -> b.id.intValue }.toTypedArray(),
+                "boundary_types" to boundaries.map { b -> b.type.name }.toTypedArray(),
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutNode>("id") }.single()
     }
@@ -183,9 +189,9 @@ class LayoutAlignmentDao(
             select
               e.id,
               e.start_node_id,
-              e.start_node_direction,
+              e.start_node_port,
               e.end_node_id,
-              e.end_node_direction,
+              e.end_node_port,
               array_agg(s.segment_index order by s.segment_index) as indices,
               array_agg(s.geometry_alignment_id order by s.segment_index) as geometry_alignment_ids,
               array_agg(s.geometry_element_index order by s.segment_index) as geometry_element_indices,
@@ -208,6 +214,14 @@ class LayoutAlignmentDao(
         """
                 .trimIndent()
         val params = mapOf("ids" to ids?.map { id -> id.intValue }?.toTypedArray(), "active" to active)
+
+        fun getPort(rs: ResultSet, prefix: String) =
+            DbEdgeNode(
+                portConnection = rs.getEnum("${prefix}_node_port"),
+                // TODO: GVT-1727 fetch with single query or just trust in the cache?
+                node = getNode(rs.getIntId("${prefix}_node_id")),
+            )
+
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
                 val edgeId = rs.getIntId<LayoutEdge>("id")
@@ -242,21 +256,7 @@ class LayoutAlignmentDao(
                             geometry = requireNotNull(segmentGeometries[geometryIds[i]]),
                         )
                     }
-                DbLayoutEdge(
-                    id = edgeId,
-                    // TODO: GVT-1727 fetch with single query or just trust in the cache?
-                    startNode =
-                        DbEdgeNode(
-                            direction = rs.getEnum("start_node_direction"),
-                            node = getNode(rs.getIntId("start_node_id")),
-                        ),
-                    endNode =
-                        DbEdgeNode(
-                            direction = rs.getEnum("end_node_direction"),
-                            node = getNode(rs.getIntId("end_node_id")),
-                        ),
-                    segments = segments,
-                )
+                DbLayoutEdge(edgeId, getPort(rs, "start"), getPort(rs, "end"), segments)
             }
             .associateBy(DbLayoutEdge::id)
     }
@@ -281,9 +281,9 @@ class LayoutAlignmentDao(
             """
             select layout.get_or_insert_edge(
               :start_node_id,
-              :start_node_direction::layout.node_direction,
+              :start_node_port::layout.node_port_type,
               :end_node_id,
-              :end_node_direction::layout.node_direction,
+              :end_node_port::layout.node_port_type,
               :geometry_alignment_ids,
               :geometry_element_indices,
               :start_m_values,
@@ -296,9 +296,9 @@ class LayoutAlignmentDao(
         val params =
             mapOf(
                 "start_node_id" to startNodeId.intValue,
-                "start_node_direction" to content.startNode.direction.name,
+                "start_node_port" to content.startNode.portConnection.name,
                 "end_node_id" to endNodeId.intValue,
-                "end_node_direction" to content.endNode.direction.name,
+                "end_node_port" to content.endNode.portConnection.name,
                 "geometry_alignment_ids" to content.segments.map { s -> s.sourceId?.parentId }.toTypedArray(),
                 "geometry_element_indices" to content.segments.map { s -> s.sourceId?.index }.toTypedArray(),
                 "start_m_values" to content.segmentMValues.map { m -> roundTo6Decimals(m.min) }.toTypedArray(),
@@ -495,8 +495,8 @@ class LayoutAlignmentDao(
         val sql =
             """
           select 
-            a.id alignment_id,
-            a.version alignment_version,
+            a.id,
+            a.version,
             sv.segment_index,
             sv.start,
             sv.geometry_alignment_id,
@@ -517,7 +517,7 @@ class LayoutAlignmentDao(
 
         val alignmentAndSegment =
             jdbcTemplate.query(sql) { rs, _ ->
-                val alignmentData = AlignmentData(version = rs.getRowVersion("alignment_id", "alignment_version"))
+                val alignmentData = AlignmentData(version = rs.getRowVersion("id", "version"))
                 val segmentId = rs.getIndexedIdOrNull<LayoutSegment>("alignment_id", "segment_index")
                 val segment =
                     segmentId?.let { sId ->

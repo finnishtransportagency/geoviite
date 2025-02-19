@@ -77,6 +77,8 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -1571,8 +1573,8 @@ constructor(
             TmpLocationTrackGeometry(
                 listOf(
                     TmpLayoutEdge(
-                        startNode = EdgeNode.trackStart(locationTrackVersion.id),
-                        endNode = EdgeNode.trackEnd(locationTrackVersion.id),
+                        startNode = EdgeNode.trackBoundary(locationTrackVersion.id, START),
+                        endNode = EdgeNode.trackBoundary(locationTrackVersion.id, END),
                         segments = geometry.segments,
                     )
                 )

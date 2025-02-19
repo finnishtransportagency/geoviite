@@ -8,21 +8,19 @@ create function layout.get_or_insert_node(
 ) returns int as
 $$
 declare
-  declare
-  node_hash         uuid;
-  declare node_type layout.node_type = case
-                                         when array_length(switch_ids, 1) > 0 and
-                                              array_length(boundary_track_ids, 1) = 0 then 'SWITCH'
-                                         when array_length(switch_ids, 1) > 0 and
-                                              array_length(boundary_track_ids, 1) = 0 then 'TRACK_BOUNDARY'
-                                         else null -- if neither applies, the type is incorrect -> null will break the insert
-                                       end;
-  declare result_id int;
+  node_hash uuid;
+  node_type layout.node_type :=
+    case
+      when cardinality(switch_ids) > 0 and cardinality(boundary_track_ids) = 0 then 'SWITCH'
+      when cardinality(switch_ids) = 0 and cardinality(boundary_track_ids) > 0 then 'TRACK_BOUNDARY'
+      else 'invalid' -- if neither applies, the type is incorrect -> break the variable assignment
+    end;
+  result_id int;
 begin
   if node_type is null
   then
     raise exception
-      'Node type is inconclusive due to both arrays being non-empty: switch_ids=[%] boundary_track_ids=[%]', switch_ids, boundary_track_ids;
+      'Node type is inconclusive due to conflicting content: switch_ids=% boundary_track_ids=% type=%', switch_ids, boundary_track_ids, node_type;
   end if;
   -- Node contents must be in a consistent order for correct port resolution
   if array [switch_ids[1], switch_joint_numbers[1], boundary_track_ids[1]] >=
@@ -78,12 +76,11 @@ begin
   -- If the row was inserted (no conflict) then the id is not null
   if result_id is not null then
     insert into layout.node_port
-      (node_id, port, node_type, hash, switch_id, switch_joint_number, switch_joint_role, boundary_location_track_id,
+      (node_id, port, hash, switch_id, switch_joint_number, switch_joint_role, boundary_location_track_id,
        boundary_type)
     select
       result_id,
       port_tmp.port,
-      node_type,
       port_tmp.hash,
       port_tmp.switch_id,
       port_tmp.switch_joint_number,

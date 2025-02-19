@@ -5,6 +5,8 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
@@ -16,20 +18,41 @@ class LocationTrackGeometryTest {
         val track123 = IntId<LocationTrack>(123)
         val track124 = IntId<LocationTrack>(124)
 
-        assertEquals(TmpTrackStartNode(track123).contentHash, TmpTrackStartNode(track123).contentHash)
-        assertEquals(DbTrackStartNode(IntId(456), track123).contentHash, TmpTrackStartNode(track123).contentHash)
         assertEquals(
-            DbTrackStartNode(IntId(456), track123).contentHash,
-            DbTrackStartNode(IntId(654), track123).contentHash,
+            TmpTrackBoundaryNode(track123, START).contentHash,
+            TmpTrackBoundaryNode(track123, START).contentHash,
         )
-        assertNotEquals(TmpTrackStartNode(track123).contentHash, TmpTrackStartNode(track124).contentHash)
+        assertEquals(
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123, START)).contentHash,
+            TmpTrackBoundaryNode(track123, START).contentHash,
+        )
+        assertEquals(
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123, START)).contentHash,
+            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123, START)).contentHash,
+        )
+        assertNotEquals(
+            TmpTrackBoundaryNode(track123, START).contentHash,
+            TmpTrackBoundaryNode(track124, START).contentHash,
+        )
 
-        assertEquals(TmpTrackEndNode(track123).contentHash, TmpTrackEndNode(track123).contentHash)
-        assertEquals(DbTrackEndNode(IntId(456), track123).contentHash, TmpTrackEndNode(track123).contentHash)
-        assertEquals(DbTrackEndNode(IntId(456), track123).contentHash, DbTrackEndNode(IntId(654), track123).contentHash)
-        assertNotEquals(TmpTrackEndNode(track123).contentHash, TmpTrackEndNode(track124).contentHash)
+        assertEquals(TmpTrackBoundaryNode(track123, END).contentHash, TmpTrackBoundaryNode(track123, END).contentHash)
+        assertEquals(
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123, END)).contentHash,
+            TmpTrackBoundaryNode(track123, END).contentHash,
+        )
+        assertEquals(
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123, END)).contentHash,
+            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123, END)).contentHash,
+        )
+        assertNotEquals(
+            TmpTrackBoundaryNode(track123, END).contentHash,
+            TmpTrackBoundaryNode(track124, END).contentHash,
+        )
 
-        assertNotEquals(TmpTrackStartNode(track123).contentHash, TmpTrackEndNode(track123).contentHash)
+        assertNotEquals(
+            TmpTrackBoundaryNode(track123, START).contentHash,
+            TmpTrackBoundaryNode(track123, END).contentHash,
+        )
     }
 
     @Test
@@ -61,12 +84,18 @@ class LocationTrackGeometryTest {
     }
 
     @Test
-    fun `Edge node content hash works`() {
+    fun `Edge switch node content hash works`() {
         val switchNode1 = EdgeNode.switch(SwitchLink(IntId(1), MAIN, JointNumber(1)), null)
         val switchNode2 =
-            EdgeNode.switch(SwitchLink(IntId(2), MAIN, JointNumber(2)), SwitchLink(IntId(3), MAIN, JointNumber(3)))
+            EdgeNode.switch(
+                inner = SwitchLink(IntId(2), MAIN, JointNumber(2)),
+                outer = SwitchLink(IntId(3), MAIN, JointNumber(3)),
+            )
         val switchNode2Reverse =
-            EdgeNode.switch(SwitchLink(IntId(3), MAIN, JointNumber(3)), SwitchLink(IntId(2), MAIN, JointNumber(2)))
+            EdgeNode.switch(
+                inner = SwitchLink(IntId(3), MAIN, JointNumber(3)),
+                outer = SwitchLink(IntId(2), MAIN, JointNumber(2)),
+            )
         assertEquals(switchNode1.contentHash, switchNode1.contentHash)
         assertNotEquals(switchNode1.contentHash, switchNode2.contentHash)
         assertNotEquals(switchNode1.contentHash, switchNode2Reverse.contentHash)
@@ -76,10 +105,25 @@ class LocationTrackGeometryTest {
     }
 
     @Test
+    fun `Edge track boundary node content hash works`() {
+        val trackNode1 = EdgeNode.trackBoundary(IntId(1), START)
+        val trackNode2 =
+            EdgeNode.trackBoundary(inner = TrackBoundary(IntId(2), END), outer = TrackBoundary(IntId(3), START))
+        val trackNode2Reverse =
+            EdgeNode.trackBoundary(inner = TrackBoundary(IntId(3), START), outer = TrackBoundary(IntId(2), END))
+        assertEquals(trackNode1.contentHash, trackNode1.contentHash)
+        assertNotEquals(trackNode1.contentHash, trackNode2.contentHash)
+        assertNotEquals(trackNode1.contentHash, trackNode2Reverse.contentHash)
+        // Reverse ordering is still the same node but different from edge point of view due to direction
+        assertNotEquals(trackNode2.contentHash, trackNode2Reverse.contentHash)
+        assertEquals(trackNode2.node.contentHash, trackNode2Reverse.node.contentHash)
+    }
+
+    @Test
     fun `Edge content hash works`() {
         val trackId = IntId<LocationTrack>(1)
-        val startNode1 = EdgeNode.trackStart(trackId)
-        val endNode1 = EdgeNode.trackEnd(trackId)
+        val startNode1 = EdgeNode.trackBoundary(trackId, START)
+        val endNode1 = EdgeNode.trackBoundary(trackId, END)
         val switchNode1 = EdgeNode.switch(SwitchLink(IntId(1), MAIN, JointNumber(1)), null)
         val segments1 = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0)), segment(Point(1.0, 1.0), Point(2.0, 2.0)))
         val segments2 = listOf(segment(Point(1.0, 0.0), Point(2.0, 1.0)), segment(Point(2.0, 1.0), Point(3.0, 2.0)))
@@ -90,8 +134,8 @@ class LocationTrackGeometryTest {
             edgeContent.contentHash,
             DbLayoutEdge(
                     IntId(123),
-                    DbEdgeNode(EdgeNodeDirection.INCREASING, DbTrackStartNode(IntId(456), trackId)),
-                    DbEdgeNode(EdgeNodeDirection.INCREASING, DbTrackEndNode(IntId(457), trackId)),
+                    DbEdgeNode(NodePortType.A, DbTrackBoundaryNode(IntId(456), TrackBoundary(trackId, START))),
+                    DbEdgeNode(NodePortType.A, DbTrackBoundaryNode(IntId(457), TrackBoundary(trackId, END))),
                     segments1,
                 )
                 .contentHash,
