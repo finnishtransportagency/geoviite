@@ -778,12 +778,12 @@ constructor(
 
     @Test
     fun `Track number OID filter does not find any results when the track number OID does not match`() {
-        val trackOid = Oid<LayoutTrackNumber>("000.000.000")
+        val trackNumberOid = Oid<LayoutTrackNumber>("000.000.000")
         val searchOid = Oid<LayoutTrackNumber>("111.111.111")
 
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
 
-        mainOfficialContext.createLayoutTrackNumberWithOid(trackOid).let { trackNumber ->
+        mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).let { trackNumber ->
             val referenceLine =
                 mainOfficialContext.insert(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
@@ -808,7 +808,7 @@ constructor(
         val testOids = listOf<Oid<LayoutTrackNumber>>(someOid(), someOid())
 
         testOids.forEach { oid ->
-            val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid()
+            val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
             val referenceLine =
                 mainOfficialContext.insert(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)

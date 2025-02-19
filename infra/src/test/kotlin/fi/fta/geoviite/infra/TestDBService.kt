@@ -57,7 +57,6 @@ import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -463,7 +462,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     fun createLayoutTrackNumber(): LayoutRowVersion<LayoutTrackNumber> =
         insert(trackNumber(testService.getUnusedTrackNumber()))
 
-    fun createLayoutTrackNumberWithOid(oid: Oid<LayoutTrackNumber> = someOid()): LayoutRowVersion<LayoutTrackNumber> {
+    fun createLayoutTrackNumberWithOid(oid: Oid<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber> {
         return insert(trackNumber(testService.getUnusedTrackNumber())).also { trackNumber ->
             trackNumberDao.insertExternalId(trackNumber.id, context.branch, oid)
         }
