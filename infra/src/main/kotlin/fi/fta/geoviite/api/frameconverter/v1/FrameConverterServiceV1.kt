@@ -81,10 +81,13 @@ constructor(
         val spatialCache = locationTrackSpatialCache.get(layoutContext)
         val nearbyTracks =
             requestsWithPoints.map { (request, point) -> spatialCache.getClosest(point, request.searchRadius) }
+
         val trackNumbers = getTrackNumbersForNearbyTracks(nearbyTracks, layoutContext)
+        val trackNumberOids = getTrackNumberOidsForNearbyTracks(nearbyTracks, layoutContext)
+
         val closestTracks =
             requestsWithPoints.zip(nearbyTracks) { (request), nearby ->
-                nearby.find { (track, _) -> filterByRequest(track, trackNumbers, request) }
+                nearby.find { (track, _) -> filterByRequest(track, trackNumbers, trackNumberOids, request) }
             }
 
         val trackNumberInfo = getTrackNumberInfoForLocationTrackHits(closestTracks, layoutContext)
@@ -138,15 +141,33 @@ constructor(
             .toList()
             .let { trackNumberIds -> trackNumberService.getMany(layoutContext, trackNumberIds).associateBy { it.id } }
 
+    private fun getTrackNumberOidsForNearbyTracks(
+        nearbyTracks: List<List<LocationTrackCacheHit>>,
+        layoutContext: LayoutContext,
+    ) =
+        nearbyTracks
+            .asSequence()
+            .flatten()
+            .map { it.track.trackNumberId }
+            .distinct()
+            .toList()
+            .let { trackNumberIds ->
+                trackNumberDao.fetchExternalIds(layoutContext.branch, trackNumberIds).mapValues { (_, externalId) ->
+                    externalId.oid
+                }
+            }
+
     private fun filterByRequest(
         track: LocationTrack,
         trackNumbers: Map<DomainId<LayoutTrackNumber>, LayoutTrackNumber>,
+        trackNumberOids: Map<IntId<LayoutTrackNumber>, Oid<LayoutTrackNumber>>,
         request: ValidCoordinateToTrackAddressRequestV1,
     ): Boolean =
         all(
             // Spatial cache only returns non-deleted tracks -> no need to check the state here
             { request.locationTrackName?.let { locationTrackName -> locationTrackName == track.name } ?: true },
             { request.locationTrackType?.let { locationTrackType -> locationTrackType == track.type } ?: true },
+            { request.trackNumberOid?.let { oid -> oid == trackNumberOids[track.trackNumberId] } ?: true },
             {
                 request.trackNumberName?.let { trackNumberName ->
                     val trackNumber = trackNumbers[track.trackNumberId]
@@ -342,10 +363,22 @@ constructor(
                 trackNumberOrNull
             }
 
+        val trackNumberOidOrNull =
+            createValidTrackNumberOidOrNull(request.trackNumberOid).let { (trackNumberOidOrNull, errorOrNull) ->
+                errorOrNull?.also(errors::add)
+                trackNumberOidOrNull
+            }
+
         val locationTrackNameOrNull =
             createValidAlignmentNameOrNull(request.locationTrackName).let { (trackNameOrNull, errorOrNull) ->
                 errorOrNull?.also(errors::add)
                 trackNameOrNull
+            }
+
+        val locationTrackOidOrNull =
+            createValidLocationTrackOidOrNull(request.locationTrackOid).let { (locationTrackOid, errorOrNull) ->
+                errorOrNull?.also(errors::add)
+                locationTrackOid
             }
 
         val nonNullErrors = errors.filterNotNull()
@@ -363,7 +396,9 @@ constructor(
                         ),
                     searchRadius = requireNotNull(request.searchRadius),
                     trackNumberName = trackNumberNameOrNull,
+                    trackNumberOid = trackNumberOidOrNull,
                     locationTrackName = locationTrackNameOrNull,
+                    locationTrackOid = locationTrackOidOrNull,
                     locationTrackType = mappedLocationTrackTypeOrNull,
                 )
             )
@@ -686,6 +721,34 @@ private fun createValidTrackNumberNameOrNull(
     }
 }
 
+private fun createValidTrackNumberOidOrNull(
+    unvalidatedTrackNumberOid: FrameConverterStringV1?
+): Pair<Oid<TrackNumber>?, FrameConverterErrorV1?> {
+    return when (unvalidatedTrackNumberOid) {
+        null -> null to null
+        else ->
+            try {
+                Oid<TrackNumber>(unvalidatedTrackNumberOid.toString()) to null
+            } catch (e: InputValidationException) {
+                null to FrameConverterErrorV1.InvalidTrackNumberOid
+            }
+    }
+}
+
+private fun createValidLocationTrackOidOrNull(
+    unvalidatedLocationTrackOid: FrameConverterStringV1?
+): Pair<Oid<LocationTrack>?, FrameConverterErrorV1?> {
+    return when (unvalidatedLocationTrackOid) {
+        null -> null to null
+        else ->
+            try {
+                Oid<LocationTrack>(unvalidatedLocationTrackOid.toString()) to null
+            } catch (e: InputValidationException) {
+                null to FrameConverterErrorV1.InvalidLocationTrackOid
+            }
+    }
+}
+
 private fun createValidAlignmentNameOrNull(
     unvalidatedLocationTrackName: FrameConverterStringV1?
 ): Pair<AlignmentName?, FrameConverterErrorV1?> {
@@ -716,4 +779,18 @@ private fun pointToFrameConverterCoordinate(
                 )
             }
     }
+}
+
+private fun <FieldValue, ResultValue> getDistinctValuesForNearbyTracks(
+    nearbyTracks: List<List<LocationTrackCacheHit>>,
+    fieldMapper: (LocationTrackCacheHit) -> FieldValue,
+    multiValueGetter: (List<FieldValue>) -> List<ResultValue>,
+): List<ResultValue> {
+    return nearbyTracks
+        .asSequence()
+        .flatten()
+        .map { track -> fieldMapper(track) }
+        .distinct()
+        .toList()
+        .let { trackNumberIds -> multiValueGetter(trackNumberIds) }
 }

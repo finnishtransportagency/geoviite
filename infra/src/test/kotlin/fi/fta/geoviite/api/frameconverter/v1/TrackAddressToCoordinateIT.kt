@@ -1249,7 +1249,12 @@ constructor(
             )
 
         val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
-        assertEquals(0, featureCollection.features.size)
+
+        val featuresNotFoundErrorMessage = "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
+        assertContainsErrorMessage(
+            featuresNotFoundErrorMessage,
+            featureCollection.features[0].properties?.get("virheet"),
+        )
     }
 
     @Test

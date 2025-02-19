@@ -11,11 +11,13 @@ import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometry
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometryPoint
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonProperties
 import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.util.FreeText
 
@@ -28,7 +30,9 @@ const val FEATURE_DETAILS_PARAM = "lisatiedot"
 
 const val IDENTIFIER_PARAM = "tunniste"
 const val SEARCH_RADIUS_PARAM = "sade"
+const val TRACK_NUMBER_OID_PARAM = "ratanumero_oid"
 const val TRACK_NUMBER_NAME_PARAM = "ratanumero"
+const val LOCATION_TRACK_OID_PARAM = "sijaintiraide_oid"
 const val LOCATION_TRACK_NAME_PARAM = "sijaintiraide"
 const val LOCATION_TRACK_TYPE_PARAM = "sijaintiraide_tyyppi"
 const val TRACK_KILOMETER_PARAM = "ratakilometri"
@@ -123,7 +127,9 @@ sealed class FrameConverterRequestV1
  * @property x User provided x coordinate in ETRS-TM35FIN (EPSG:3067)
  * @property y User provided y coordinate in ETRS-TM35FIN (EPSG:3067)
  * @property searchRadius User provided search radius filter in meters, defaults to 100m.
+ * @property trackNumberOid User provided track number oid filter, optional.
  * @property trackNumberName User provided track number name filter, optional.
+ * @property locationTrackOid User provided location track oid filter, optional.
  * @property locationTrackName User provided location track name filter, optional.
  * @property locationTrackType User provided location track type filter, optional.
  */
@@ -132,7 +138,9 @@ data class CoordinateToTrackAddressRequestV1(
     val x: Double? = null,
     val y: Double? = null,
     @JsonProperty(SEARCH_RADIUS_PARAM) val searchRadius: Double? = DEFAULT_SEARCH_RADIUS,
+    @JsonProperty(TRACK_NUMBER_OID_PARAM) val trackNumberOid: FrameConverterStringV1? = null,
     @JsonProperty(TRACK_NUMBER_NAME_PARAM) val trackNumberName: FrameConverterStringV1? = null,
+    @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: FrameConverterStringV1? = null,
     @JsonProperty(LOCATION_TRACK_NAME_PARAM) val locationTrackName: FrameConverterStringV1? = null,
     @JsonProperty(LOCATION_TRACK_TYPE_PARAM) val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
 ) : FrameConverterRequestV1() {
@@ -144,7 +152,9 @@ data class CoordinateToTrackAddressRequestV1(
         x: Double?,
         y: Double?,
         searchRadius: Double?,
+        trackNumberOid: FrameConverterStringV1?,
         trackNumberName: FrameConverterStringV1?,
+        locationTrackOid: FrameConverterStringV1?,
         locationTrackName: FrameConverterStringV1?,
         locationTrackType: FrameConverterLocationTrackTypeV1?,
     ) : this(
@@ -152,7 +162,9 @@ data class CoordinateToTrackAddressRequestV1(
         x = x,
         y = y,
         searchRadius = searchRadius ?: DEFAULT_SEARCH_RADIUS,
+        trackNumberOid = trackNumberOid,
         trackNumberName = trackNumberName,
+        locationTrackOid = locationTrackOid,
         locationTrackName = locationTrackName,
         locationTrackType = locationTrackType,
     )
@@ -166,7 +178,9 @@ data class ValidCoordinateToTrackAddressRequestV1(
     val identifier: FrameConverterIdentifierV1?,
     val searchCoordinate: FrameConverterCoordinateV1,
     val searchRadius: Double,
+    val trackNumberOid: Oid<TrackNumber>?,
     val trackNumberName: TrackNumber?,
+    val locationTrackOid: Oid<LocationTrack>?,
     val locationTrackName: AlignmentName?,
     val locationTrackType: LocationTrackType?,
 ) : FrameConverterRequestV1()
