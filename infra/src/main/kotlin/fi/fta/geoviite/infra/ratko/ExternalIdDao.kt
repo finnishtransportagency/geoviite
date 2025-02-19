@@ -3,15 +3,18 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutBranch
-import fi.fta.geoviite.infra.util.getLayoutRowId
+import fi.fta.geoviite.infra.util.getLayoutRowIdOrNull
+import fi.fta.geoviite.infra.util.getOid
 import fi.fta.geoviite.infra.util.getRatkoExternalId
 import fi.fta.geoviite.infra.util.getRatkoExternalIdOrNull
 import fi.fta.geoviite.infra.util.queryOptional
@@ -37,6 +40,8 @@ interface IExternalIdDao<T : LayoutAsset<T>> {
     fun fetchExternalIdsByBranch(id: IntId<T>): Map<LayoutBranch, RatkoExternalId<T>>
 
     fun lookupByExternalId(oid: Oid<T>): LayoutRowId<T>?
+
+    fun lookupByExternalIds(oids: List<Oid<T>>): Map<Oid<T>, LayoutRowId<T>?>
 }
 
 class ExternalIdDao<T : LayoutAsset<T>>(
@@ -143,9 +148,49 @@ class ExternalIdDao<T : LayoutAsset<T>>(
     }
 
     override fun lookupByExternalId(oid: Oid<T>): LayoutRowId<T>? {
-        val sql = """select id, design_id, false as draft from $extIdTable where external_id = :external_id"""
-        return jdbcTemplate.queryOptional(sql, mapOf("external_id" to oid.toString())) { rs, _ ->
-            rs.getLayoutRowId("id", "design_id", "draft")
-        }
+        return lookupByExternalIds(listOf(oid))[oid]
     }
+
+    override fun lookupByExternalIds(oids: List<Oid<T>>): Map<Oid<T>, LayoutRowId<T>?> {
+        if (oids.isEmpty()) return emptyMap()
+
+        val sql =
+            """
+            select external_id, id, design_id, false as draft 
+            from $extIdTable 
+            where external_id = any(array[:external_ids])
+      """
+
+        val params = mapOf("external_ids" to oids.map { oid -> oid.toString() })
+
+        val result =
+            jdbcTemplate
+                .query(sql, params) { rs, _ ->
+                    val oid = rs.getOid<T>("external_id")
+                    val layoutRowId = rs.getLayoutRowIdOrNull<T>("id", "design_id", "draft")
+
+                    oid to layoutRowId
+                }
+                .toMap()
+
+        return oids.associateWith { oid -> result[oid] }
+    }
+}
+
+fun <DAO, T> getByExternalId(dao: DAO, oid: Oid<T>): T? where
+T : LayoutAsset<T>,
+DAO : LayoutAssetDao<T>,
+DAO : IExternalIdDao<T> {
+    return dao.lookupByExternalId(oid)?.let { rowByOid -> dao.get(rowByOid.context, rowByOid.id) }
+}
+
+fun <DAO, T> getByExternalIds(dao: DAO, context: LayoutContext, oids: List<Oid<T>>): Map<Oid<T>, T?> where
+T : LayoutAsset<T>,
+DAO : LayoutAssetDao<T>,
+DAO : IExternalIdDao<T> {
+    val oidMapping = dao.lookupByExternalIds(oids)
+    val oidToNonNullId = oidMapping.mapNotNull { (oid, rowId) -> rowId?.let { oid to rowId.id } }.toMap()
+    val assets = dao.getMany(context, oidToNonNullId.values.toList())
+
+    return oids.associateWith { oid -> oidToNonNullId[oid]?.let { id -> assets.find { asset -> asset.id == id } } }
 }
