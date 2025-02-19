@@ -53,7 +53,10 @@ import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { filterNotEmpty, first, objectEntries } from 'utils/array-utils';
-import { ALL_ALIGNMENTS, mapLayerZIndexes } from 'map/layers/utils/layer-visibility-limits';
+import {
+    mapLayerZIndexes,
+    REFERENCE_LINE_AUTO_HIDE_MAX_RESOLUTION,
+} from 'map/layers/utils/layer-visibility-limits';
 import { createLocationTrackAlignmentLayer } from 'map/layers/alignment/location-track-alignment-layer';
 import { createReferenceLineAlignmentLayer } from 'map/layers/alignment/reference-line-alignment-layer';
 import { createLocationTrackBackgroundLayer } from 'map/layers/alignment/location-track-background-layer';
@@ -339,7 +342,7 @@ const MapView: React.FC<MapViewProps> = ({
 
         const hideReferenceLinesWhenZoomedClose =
             referenceLineHideWhenZoomedCloseSetting(mapLayerMenuGroups) &&
-            resolution <= ALL_ALIGNMENTS;
+            resolution <= REFERENCE_LINE_AUTO_HIDE_MAX_RESOLUTION;
 
         // Create OpenLayers objects by domain layers
         const updatedLayers = map.visibleLayers
@@ -363,7 +366,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as GeoviiteMapLayer<LineString>,
                             changeTimes,
                             layoutContext,
-                            resolution,
                             map.layerSettings['track-number-diagram-layer'],
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -459,8 +461,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as GeoviiteMapLayer<LineString>,
                             layoutContext,
                             changeTimes,
-                            resolution,
-                            selection,
                             !!splittingState,
                             (loading) => onLayerLoading(layerName, loading),
                         );

@@ -15,11 +15,21 @@ import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import { first } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
+import { builtAlignmentLineDash } from 'map/layers/alignment/location-track-alignment-layer';
 
 const selectedLocationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 2,
+    }),
+    zIndex: 2,
+});
+
+const selectedLocationTrackBuildStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 2,
+        ...builtAlignmentLineDash,
     }),
     zIndex: 2,
 });
@@ -58,7 +68,13 @@ export function createLocationTrackSelectedAlignmentLayer(
         }
 
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
-        return createAlignmentFeature(selectedTrack, showEndPointTicks, selectedLocationTrackStyle);
+        return createAlignmentFeature(
+            selectedTrack,
+            showEndPointTicks,
+            selectedTrack.header.state === 'BUILT'
+                ? selectedLocationTrackBuildStyle
+                : selectedLocationTrackStyle,
+        );
     };
 
     loadLayerData(source, isLatest, onLoadingData, alignmentPromise, createFeatures);

@@ -169,7 +169,7 @@ export function createTrackNumberEndPointAddressesLayer(
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const dataPromise: Promise<AlignmentDataHolderWithAddresses[]> =
-        resolution <= Limits.ALL_ALIGNMENTS
+        resolution <= Limits.TRACK_NUMBER_DIAGRAM_ENDPOINT_MAX_RESOLUTION
             ? getTrackNumberEndPointData(mapTiles, changeTimes, layoutContext, layerSettings)
             : Promise.resolve([]);
 
