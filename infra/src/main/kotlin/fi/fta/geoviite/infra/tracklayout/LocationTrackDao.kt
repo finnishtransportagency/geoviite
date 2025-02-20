@@ -554,4 +554,8 @@ class LocationTrackDao(
         jdbcTemplate.setUser()
         insertExternalIdInExistingTransaction(branch, id, oid)
     }
+
+    fun getByExternalId(oid: Oid<LocationTrack>): LocationTrack? {
+        return lookupByExternalId(oid)?.let { rowByOid -> get(rowByOid.context, rowByOid.id) }
+    }
 }

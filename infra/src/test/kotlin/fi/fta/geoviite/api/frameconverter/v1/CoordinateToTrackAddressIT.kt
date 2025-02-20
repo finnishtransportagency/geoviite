@@ -844,6 +844,26 @@ constructor(
         }
     }
 
+    @Test
+    fun `Invalid location track OID returns an error`() {
+        val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide_oid = "invalid")
+        val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+        val expectedErrorMessage = "Pyyntö sisälsi virheellisen sijaintiraide_oid-asetuksen."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Invalid track number OID returns an error`() {
+        val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, ratanumero_oid = "invalid")
+        val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+        val expectedErrorMessage = "Pyyntö sisälsi virheellisen ratanumero_oid-asetuksen."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
     private fun insertGeocodableTrack(
         layoutContext: TestLayoutContext = mainOfficialContext,
         trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,

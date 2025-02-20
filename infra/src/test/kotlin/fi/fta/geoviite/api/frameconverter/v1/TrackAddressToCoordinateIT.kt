@@ -1172,7 +1172,12 @@ constructor(
             )
 
         val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
-        assertEquals(0, featureCollection.features.size)
+
+        val featuresNotFoundErrorMessage = "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
+        assertContainsErrorMessage(
+            featuresNotFoundErrorMessage,
+            featureCollection.features[0].properties?.get("virheet"),
+        )
     }
 
     @Test
@@ -1250,7 +1255,7 @@ constructor(
 
         val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
-        val featuresNotFoundErrorMessage = "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
+        val featuresNotFoundErrorMessage = "Pyynnön ratanumeroa ei löydetty."
         assertContainsErrorMessage(
             featuresNotFoundErrorMessage,
             featureCollection.features[0].properties?.get("virheet"),
@@ -1317,6 +1322,35 @@ constructor(
 
         val expectedErrorMessage =
             "Pyyntö ei sisältänyt hakuehtoa ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Invalid location track OID returns an error`() {
+        val request =
+            TestTrackAddressToCoordinateRequest(
+                ratakilometri = 0,
+                ratametri = 500,
+                ratanumero = "001",
+                sijaintiraide_oid = "invalid",
+            )
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+        val expectedErrorMessage = "Pyyntö sisälsi virheellisen sijaintiraide_oid-asetuksen."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Invalid track number OID returns an error`() {
+        val request =
+            TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500, ratanumero_oid = "invalid")
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+        val expectedErrorMessage = "Pyyntö sisälsi virheellisen ratanumero_oid-asetuksen."
 
         assertEquals(1, featureCollection.features.size)
         assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))

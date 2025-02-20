@@ -226,8 +226,8 @@ constructor(
         layoutContext: LayoutContext,
         requests: List<ValidTrackAddressToCoordinateRequestV1>,
         params: FrameConverterQueryParamsV1,
-    ): List<List<GeoJsonFeature>> =
-        requests
+    ): List<List<GeoJsonFeature>> {
+        return requests
             .groupBy { it.trackNumber }
             .values
             .let { allTrackNumberRequests ->
@@ -268,6 +268,7 @@ constructor(
             }
             .toList()
             .flatten()
+    }
 
     private fun processForwardGeocodingRequestsForTrackNumber(
         trackNumberDetails: TrackNumberDetails,
@@ -315,11 +316,20 @@ constructor(
         locationTrackDetails: Map<DomainId<LocationTrack>, LocationTrackDetails>?,
         trackNumberDetails: TrackNumberDetails,
     ): List<Pair<Int, TrackAddressToCoordinateResponseV1>> {
+        val locationTrackOidLookup =
+            requests
+                .mapNotNull { request -> request.locationTrackOid }
+                .distinct()
+                // TODO Speedup by a batch call
+                .mapNotNull { oid -> locationTrackDao.getByExternalId(oid)?.id?.let { id -> id as IntId to oid } }
+                .toMap()
+
         val requestIndicesOnTrack =
             requests.mapIndexedNotNull { index, request ->
                 index.takeIf {
                     filterByLocationTrackName(request.locationTrackName, locationTrack) &&
-                        filterByLocationTrackType(request.locationTrackType, locationTrack)
+                        filterByLocationTrackType(request.locationTrackType, locationTrack) &&
+                        filterByLocationTrackOid(request.locationTrackOid, locationTrack, locationTrackOidLookup)
                 }
             }
         val trackAddresses =
@@ -426,7 +436,8 @@ constructor(
             requests
                 .mapNotNull { request ->
                     createValidTrackNumberOidOrNull(request.trackNumberOid).first?.let { oid ->
-                        oid to trackNumberDao.getByExternalId(MainLayoutContext.official.branch, oid)?.number
+                        // TODO Speedup by a batch call
+                        oid to trackNumberDao.getByExternalId(oid)?.number
                     }
                 }
                 .toMap()
@@ -523,6 +534,12 @@ constructor(
                 }
             }
 
+        val locationTrackOidOrNull =
+            createValidLocationTrackOidOrNull(request.locationTrackOid).let { (oidOrNull, errorOrNull) ->
+                errorOrNull?.also(errors::add)
+                oidOrNull
+            }
+
         val locationTrackNameOrNull =
             createValidAlignmentNameOrNull(request.locationTrackName).let { (trackNameOrNull, errorOrNull) ->
                 errorOrNull?.also(errors::add)
@@ -536,6 +553,7 @@ constructor(
                     identifier = request.identifier,
                     trackNumber = requireNotNull(layoutTrackNumberOrNull),
                     trackAddress = requireNotNull(validTrackMeterOrNull),
+                    locationTrackOid = locationTrackOidOrNull,
                     locationTrackName = locationTrackNameOrNull,
                     locationTrackType = mappedLocationTrackTypeOrNull,
                 )
@@ -737,6 +755,18 @@ private fun filterByLocationTrackType(locationTrackType: LocationTrackType?, loc
         true
     } else {
         locationTrackType == locationTrack.type
+    }
+}
+
+private fun filterByLocationTrackOid(
+    oid: Oid<LocationTrack>?,
+    locationTrack: LocationTrack,
+    locationTrackOids: Map<IntId<LocationTrack>, Oid<LocationTrack>>,
+): Boolean {
+    return if (oid == null) {
+        true
+    } else {
+        locationTrackOids[locationTrack.id] == oid
     }
 }
 

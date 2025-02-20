@@ -273,7 +273,7 @@ class LayoutTrackNumberDao(
         insertExternalIdInExistingTransaction(branch, id, oid)
     }
 
-    fun getByExternalId(branch: LayoutBranch, oid: Oid<LayoutTrackNumber>): LayoutTrackNumber? {
+    fun getByExternalId(oid: Oid<LayoutTrackNumber>): LayoutTrackNumber? {
         return lookupByExternalId(oid)?.let { rowByOid -> get(rowByOid.context, rowByOid.id) }
     }
 }

@@ -249,26 +249,7 @@ data class TrackAddressToCoordinateRequestV1(
     @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: FrameConverterStringV1? = null,
     @JsonProperty(LOCATION_TRACK_NAME_PARAM) val locationTrackName: FrameConverterStringV1? = null,
     @JsonProperty(LOCATION_TRACK_TYPE_PARAM) val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
-) : FrameConverterRequestV1() {
-    constructor(
-        trackNumberOid: FrameConverterStringV1?,
-        trackNumberName: FrameConverterStringV1?,
-        trackKilometer: Int?,
-        trackMeter: Int?,
-        locationTrackOid: FrameConverterStringV1?,
-        locationTrackName: FrameConverterStringV1?,
-        locationTrackType: FrameConverterLocationTrackTypeV1?,
-    ) : this(
-        identifier = null,
-        trackNumberOid = trackNumberOid,
-        trackNumberName = trackNumberName,
-        trackKilometer = trackKilometer,
-        trackMeter = trackMeter,
-        locationTrackOid = locationTrackOid,
-        locationTrackName = locationTrackName,
-        locationTrackType = locationTrackType,
-    )
-}
+) : FrameConverterRequestV1()
 
 /**
  * Valid version of the track meter to coordinate request is created during processing, it is not created for an invalid
@@ -278,6 +259,7 @@ data class ValidTrackAddressToCoordinateRequestV1(
     val identifier: FrameConverterIdentifierV1?,
     val trackNumber: LayoutTrackNumber,
     val trackAddress: TrackMeter,
+    val locationTrackOid: Oid<LocationTrack>?,
     val locationTrackName: AlignmentName?,
     val locationTrackType: LocationTrackType?,
 ) : FrameConverterRequestV1()
