@@ -988,7 +988,7 @@ constructor(
                         name = "TV123",
                         joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null)),
                         structureId = switchStructureYV60_300_1_9().id,
-                        stateCategory = EXISTING,
+                        stateCategory = LayoutStateCategory.EXISTING,
                         draft = true,
                     ),
                 )

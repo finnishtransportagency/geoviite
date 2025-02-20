@@ -7,10 +7,10 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.util.FreeText
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 abstract class LayoutAssetService<
@@ -103,8 +103,9 @@ abstract class LayoutAssetService<
         val published = asOfficial(branch, draft)
         require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
 
+        val publishedSaveParams = dao.getBaseSaveParams(draftVersion)
         val publicationVersion =
-            dao.save(published, dao.getBaseSaveParams(draftVersion)).also { r ->
+            dao.save(published, publishedSaveParams).also { r ->
                 require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
             }
         dao.deleteRow(draftVersion.rowId)
@@ -127,7 +128,7 @@ abstract class LayoutAssetService<
                     require(designOfficial.context == originBranch.official) {
                         "Expected published object $draftVersion's origin object to be in $originBranch"
                     }
-                    val completedVersion = dao.save(completed(dao.fetch(designOfficial)))
+                    val completedVersion = dao.save(completed(dao.fetch(designOfficial)), publishedSaveParams)
                     originBranch to completedVersion
                 } else null
             }

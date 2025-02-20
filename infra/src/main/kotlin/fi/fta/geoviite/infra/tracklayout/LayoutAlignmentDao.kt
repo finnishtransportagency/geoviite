@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
@@ -13,15 +14,15 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -336,7 +337,8 @@ class LayoutAlignmentDao(
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetch(trackVersion: LayoutRowVersion<LocationTrack>): DbLocationTrackGeometry =
         locationTrackGeometryCache.get(trackVersion) { version ->
-            fetchLocationTrackGeometry(version, false).values.single()
+            fetchLocationTrackGeometry(version, false)[trackVersion]
+                ?: throw NoSuchEntityException(LocationTrackGeometry::class, trackVersion.toString())
         }
 
     private fun fetchLocationTrackGeometry(
@@ -355,7 +357,7 @@ class LayoutAlignmentDao(
                           on lt_e.location_track_id = lt.id
                             and lt_e.location_track_layout_context_id = lt.layout_context_id
                             and lt_e.location_track_version = lt.version
-                          where (:id::int is null or (lt.id = :id and lt.layout_context_id = :layout_context_id and lt.version = :version))
+              where (:id::int is null or (lt.id = :id and lt.layout_context_id = :layout_context_id and lt.version = :version and deleted = false))
                 and (:active = false or exists(
                   select 1
                     from layout.location_track t

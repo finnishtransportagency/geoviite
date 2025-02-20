@@ -57,9 +57,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -299,14 +296,14 @@ constructor(
 
     @Test
     fun `editing several objects and finishing merging all to main leaves design empty`() {
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
         val referenceLine =
             mainOfficialContext
-                .insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
         val switch =
             mainOfficialContext
-                .insert(
+                .save(
                     switch(
                         joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.0, 0.0), null))
                     )
@@ -314,25 +311,25 @@ constructor(
                 .id
         val locationTrack =
             mainOfficialContext
-                .insert(
+                .save(
                     locationTrack(trackNumber),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(Point(0.0, 0.0), Point(4.0, 0.0)),
                         segment(Point(4.0, 0.0), Point(8.0, 0.0))
                             .copy(switchId = switch, startJointNumber = JointNumber(1)),
                     ),
                 )
                 .id
-        val kmPost = mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), Point(2.0, 0.0))).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), Point(2.0, 0.0))).id
 
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
 
-        designDraftContext.insert(mainOfficialContext.fetch(trackNumber)!!)
-        designDraftContext.insert(mainOfficialContext.fetch(referenceLine)!!)
-        designDraftContext.insert(mainOfficialContext.fetch(locationTrack)!!)
-        designDraftContext.insert(mainOfficialContext.fetch(switch)!!)
-        designDraftContext.insert(mainOfficialContext.fetch(kmPost)!!)
+        designDraftContext.save(mainOfficialContext.fetch(trackNumber)!!)
+        designDraftContext.save(mainOfficialContext.fetch(referenceLine)!!)
+        designDraftContext.saveLocationTrack(mainOfficialContext.fetchWithGeometry(locationTrack)!!)
+        designDraftContext.save(mainOfficialContext.fetch(switch)!!)
+        designDraftContext.save(mainOfficialContext.fetch(kmPost)!!)
 
         val requestPublishAll =
             PublicationRequest(

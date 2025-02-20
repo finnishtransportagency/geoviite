@@ -394,10 +394,8 @@ class LocationTrackDao(
         //                }
         //            else -> alignmentDao.saveLocationTrackGeometry(response, geometry)
         //        }
-        logger.info("Writing: ${geometry.withLocationTrackId(response.id).nodes}")
+        //        logger.info("Writing: ${geometry.withLocationTrackId(response.id).nodes}")
         alignmentDao.saveLocationTrackGeometry(response, geometry.withLocationTrackId(response.id))
-        // TODO: GVT-2915 this is unnecessary but makes the transaction fail if the write was unreadable
-        alignmentDao.fetch(response)
         return response
     }
 

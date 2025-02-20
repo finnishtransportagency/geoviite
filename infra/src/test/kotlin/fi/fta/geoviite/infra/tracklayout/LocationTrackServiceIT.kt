@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -31,6 +30,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -708,14 +708,14 @@ constructor(
     @Test
     fun `deleteDraft deletes duplicate references if track is only draft, but not if official exists`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
-        val onlyDraftReal = mainDraftContext.insert(locationTrack(trackNumber), alignment).id
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val onlyDraftReal = mainDraftContext.save(locationTrack(trackNumber), geometry).id
         val onlyDraftDuplicate =
-            mainDraftContext.insert(locationTrack(trackNumber, duplicateOf = onlyDraftReal), alignment).id
-        val officialReal = mainOfficialContext.insert(locationTrack(trackNumber), alignment)
+            mainDraftContext.save(locationTrack(trackNumber, duplicateOf = onlyDraftReal), geometry).id
+        val officialReal = mainOfficialContext.save(locationTrack(trackNumber), geometry)
         mainDraftContext.copyFrom(officialReal)
         val officialDuplicate =
-            mainDraftContext.insert(locationTrack(trackNumber, duplicateOf = officialReal.id), alignment).id
+            mainDraftContext.save(locationTrack(trackNumber, duplicateOf = officialReal.id), geometry).id
 
         locationTrackService.deleteDraft(LayoutBranch.main, onlyDraftReal)
         locationTrackService.deleteDraft(LayoutBranch.main, officialReal.id)

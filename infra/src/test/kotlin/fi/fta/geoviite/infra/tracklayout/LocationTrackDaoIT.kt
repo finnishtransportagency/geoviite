@@ -19,6 +19,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.SIDE
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.queryOne
+import kotlin.random.Random
+import kotlin.test.assertContains
+import kotlin.test.assertFalse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -27,9 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
-import kotlin.random.Random
-import kotlin.test.assertContains
-import kotlin.test.assertFalse
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -114,10 +114,12 @@ constructor(
     fun locationTrackVersioningWorks() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val tempGeometry = trackGeometryOfSegments(segment(Point(1.0, 1.0), Point(2.0, 2.0)))
-        val tempTrack = locationTrack(trackNumberId = trackNumberId, name = "test1", draft = false)
+        val tempTrack =
+            locationTrack(trackNumberId = trackNumberId, geometry = tempGeometry, name = "test1", draft = false)
         val insertVersion = locationTrackDao.save(tempTrack, tempGeometry)
         val id = insertVersion.id
         val inserted = locationTrackDao.fetch(insertVersion)
+        assertEquals(tempTrack.segmentCount, inserted.segmentCount)
         assertMatches(tempTrack, inserted)
         assertEquals(id, inserted.id)
         assertEquals(insertVersion, locationTrackDao.fetchVersion(MainLayoutContext.official, id))
@@ -139,7 +141,10 @@ constructor(
         val draftId2 = draftVersion2.id
         val draft2 = locationTrackDao.fetch(draftVersion2)
         assertEquals(id, draftId2)
-        assertMatches(draft1, draft2)
+        assertMatches(
+            draft1.copy(length = newTempGeometry.length, segmentCount = newTempGeometry.segments.size),
+            draft2,
+        )
         assertMatches(newTempGeometry, alignmentDao.fetch(draftVersion2))
         assertEquals(insertVersion, locationTrackDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(draftVersion2, locationTrackDao.fetchVersion(MainLayoutContext.draft, id))

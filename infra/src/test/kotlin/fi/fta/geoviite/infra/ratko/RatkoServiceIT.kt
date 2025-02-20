@@ -283,7 +283,7 @@ constructor(
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
         fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
         val officialVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.official, locationTrackOriginal.id)
-        val createdPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
+        val createdPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
         assertEquals("abcde", createdPush.name)
         assertEquals("cdefg", createdPush.description)
         assertEquals(RatkoAssetState.BUILT.name, createdPush.state.name)
@@ -297,7 +297,7 @@ constructor(
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
 
         assertEquals(listOf(""), fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6"))
-        val deletedPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
+        val deletedPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
         assertEquals(RatkoLocationTrackState.DELETED.name, deletedPush.state.name)
     }
 
@@ -338,7 +338,7 @@ constructor(
             alignmentDao.fetch(officialVersion),
         )
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
-        val pushed = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
+        val pushed = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
         val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
         val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
         val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
@@ -1566,14 +1566,14 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
 
-        val trackNumber = designDraftContext.insert(trackNumber())
+        val trackNumber = designDraftContext.save(trackNumber())
         val referenceLine =
-            designDraftContext.insert(
+            designDraftContext.save(
                 referenceLine(trackNumber.id),
                 alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
         val switch =
-            designDraftContext.insert(
+            designDraftContext.save(
                 switch(
                     joints =
                         listOf(
@@ -1587,9 +1587,9 @@ constructor(
                 )
             )
         val locationTrack =
-            designDraftContext.insert(
+            designDraftContext.save(
                 locationTrack(trackNumber.id),
-                alignment(
+                trackGeometryOfSegments(
                     segment(Point(0.0, 0.0), Point(4.0, 0.0)),
                     segment(Point(4.0, 0.0), Point(8.0, 0.0))
                         .copy(switchId = switch.id, startJointNumber = JointNumber(1)),
@@ -1643,14 +1643,14 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
 
-        val trackNumber = designDraftContext.insert(trackNumber())
+        val trackNumber = designDraftContext.save(trackNumber())
         val referenceLine =
-            designDraftContext.insert(
+            designDraftContext.save(
                 referenceLine(trackNumber.id),
                 alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
         val switch =
-            designDraftContext.insert(
+            designDraftContext.save(
                 switch(
                     joints =
                         listOf(
@@ -1664,9 +1664,9 @@ constructor(
                 )
             )
         val locationTrack =
-            designDraftContext.insert(
+            designDraftContext.save(
                 locationTrack(trackNumber.id),
-                alignment(
+                trackGeometryOfSegments(
                     segment(Point(0.0, 0.0), Point(4.0, 0.0)),
                     segment(Point(4.0, 0.0), Point(8.0, 0.0))
                         .copy(switchId = switch.id, startJointNumber = JointNumber(1)),
@@ -1728,7 +1728,7 @@ constructor(
 
         val trackNumber = establishedTrackNumber("1.1.1.1.1")
         val switch =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 switch(
                     joints =
                         listOf(
@@ -1744,9 +1744,9 @@ constructor(
         switchDao.insertExternalId(switch.id, LayoutBranch.main, Oid("1.1.1.2.1"))
         fakeRatko.hasSwitch(ratkoSwitch("1.1.1.2.1"))
         val locationTrack =
-            mainOfficialContext.insert(
+            mainOfficialContext.save(
                 locationTrack(trackNumber.id),
-                alignment(
+                trackGeometryOfSegments(
                     segment(Point(0.0, 0.0), Point(4.0, 0.0)),
                     segment(Point(4.0, 0.0), Point(8.0, 0.0))
                         .copy(switchId = switch.id, startJointNumber = JointNumber(1)),
