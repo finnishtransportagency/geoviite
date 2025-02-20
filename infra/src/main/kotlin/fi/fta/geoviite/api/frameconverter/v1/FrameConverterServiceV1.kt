@@ -869,17 +869,3 @@ private fun pointToFrameConverterCoordinate(
             }
     }
 }
-
-private fun <FieldValue, ResultValue> getDistinctValuesForNearbyTracks(
-    nearbyTracks: List<List<LocationTrackCacheHit>>,
-    fieldMapper: (LocationTrackCacheHit) -> FieldValue,
-    multiValueGetter: (List<FieldValue>) -> List<ResultValue>,
-): List<ResultValue> {
-    return nearbyTracks
-        .asSequence()
-        .flatten()
-        .map { track -> fieldMapper(track) }
-        .distinct()
-        .toList()
-        .let { trackNumberIds -> multiValueGetter(trackNumberIds) }
-}
