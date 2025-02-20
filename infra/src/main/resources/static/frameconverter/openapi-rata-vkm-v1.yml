@@ -25,7 +25,9 @@ paths:
         - $ref: '#/components/parameters/y-koordinaatti-param'
         - $ref: '#/components/parameters/sade-param'
         - $ref: '#/components/parameters/ratanumero-param'
+        - $ref: '#/components/parameters/ratanumero_oid-param'
         - $ref: '#/components/parameters/sijaintiraide-param'
+        - $ref: '#/components/parameters/sijaintiraide_oid-param'
         - $ref: '#/components/parameters/sijaintiraide_tyyppi-param'
         - $ref: '#/components/parameters/geometriatiedot-param'
         - $ref: '#/components/parameters/perustiedot-param'
@@ -90,8 +92,10 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ratakilometri-param'
         - $ref: '#/components/parameters/ratametri-param'
-        - $ref: '#/components/parameters/ratanumero-param-required'
+        - $ref: '#/components/parameters/ratanumero-param-one-or-more-required'
+        - $ref: '#/components/parameters/ratanumero_oid-param-one-or-more-required'
         - $ref: '#/components/parameters/sijaintiraide-param'
+        - $ref: '#/components/parameters/sijaintiraide_oid-param'
         - $ref: '#/components/parameters/sijaintiraide_tyyppi-param'
         - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/geometriatiedot-param'
@@ -169,9 +173,15 @@ components:
     ratanumero:
       type: string
       description: 'Rajaa haun ratanumeron nimen perusteella.'
+    ratanumero_oid:
+      type: string
+      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.'
     sijaintiraide:
       type: string
       description: 'Rajaa haun sijaintiraiteen nimen perusteella.'
+    sijaintiraide_oid:
+      type: string
+      description: 'Rajaa haun sijaintiraiteen OID-tunnuksen perusteella.'
     sijaintiraide_tyyppi:
       type: string
       description: 'Rajaa haun sijaintiraidetyypin perusteella. Sallitut arvot: "pääraide", "sivuraide", "turvaraide", "kujaraide".'
@@ -193,12 +203,16 @@ components:
           $ref: '#/components/schemas/tunniste'
         ratanumero:
           $ref: '#/components/schemas/ratanumero'
+        ratanumero_oid:
+          $ref: '#/components/schemas/ratanumero_oid'
         ratakilometri:
           $ref: '#/components/schemas/ratakilometri'
         ratametri:
           $ref: '#/components/schemas/ratametri'
         sijaintiraide:
           $ref: '#/components/schemas/sijaintiraide'
+        sijaintiraide_oid:
+          $ref: '#/components/schemas/sijaintiraide_oid'
         sijaintiraide_tyyppi:
           $ref: '#/components/schemas/sijaintiraide_tyyppi'
 
@@ -218,8 +232,12 @@ components:
           $ref: '#/components/schemas/sade'
         ratanumero:
           $ref: '#/components/schemas/ratanumero'
+        ratanumero_oid:
+          $ref: '#/components/schemas/ratanumero_oid'
         sijaintiraide:
           $ref: '#/components/schemas/sijaintiraide'
+        sijaintiraide_oid:
+          $ref: '#/components/schemas/sijaintiraide_oid'
         sijaintiraide_tyyppi:
           $ref: '#/components/schemas/sijaintiraide_tyyppi'
   parameters:
@@ -258,13 +276,27 @@ components:
       description: 'Rajaa haun ratanumeron nimen perusteella.'
       schema:
         $ref: '#/components/schemas/ratanumero'
-    ratanumero-param-required:
+    ratanumero_oid-param:
+      name: ratanumero_oid
+      in: query
+      required: false
+      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.'
+      schema:
+        $ref: '#/components/schemas/ratanumero_oid'
+    ratanumero-param-one-or-more-required:
       name: ratanumero
       in: query
-      required: true
-      description: 'Rajaa haun ratanumeron nimen perusteella.'
+      required: false
+      description: 'Rajaa haun ratanumeron nimen perusteella.<br />*Huom*: Hakua tulee rajata vähintään yhdellä kentistä "ratanumero", "ratanumero_oid".'
       schema:
         $ref: '#/components/schemas/ratanumero'
+    ratanumero_oid-param-one-or-more-required:
+      name: ratanumero_oid
+      in: query
+      required: false
+      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.<br />*Huom*: Hakua tulee rajata vähintään yhdellä kentistä "ratanumero", "ratanumero_oid".'
+      schema:
+        $ref: '#/components/schemas/ratanumero_oid'
     sijaintiraide-param:
       name: sijaintiraide
       in: query
@@ -272,6 +304,13 @@ components:
       description: 'Rajaa haun sijaintiraiteen tunnuksen perusteella.'
       schema:
         $ref: '#/components/schemas/sijaintiraide'
+    sijaintiraide_oid-param:
+      name: sijaintiraide_oid
+      in: query
+      required: false
+      description: 'Rajaa haun sijaintiraiteen OID-tunnuksen perusteella.'
+      schema:
+        $ref: '#/components/schemas/sijaintiraide_oid'
     sijaintiraide_tyyppi-param:
       name: sijaintiraide_tyyppi
       in: query

@@ -82,12 +82,17 @@ constructor(
         val nearbyTracks =
             requestsWithPoints.map { (request, point) -> spatialCache.getClosest(point, request.searchRadius) }
 
-        val trackNumbers = getTrackNumbersForNearbyTracks(nearbyTracks, layoutContext)
-        val trackNumberOids = getTrackNumberOidsForNearbyTracks(nearbyTracks, layoutContext)
+        val distinctTrackNumberIds = distinctTrackNumberIds(nearbyTracks)
+
+        val trackNumbers = trackNumberService.getMany(layoutContext, distinctTrackNumberIds).associateBy { it.id }
+        val trackNumberOids = getTrackNumberOids(distinctTrackNumberIds, layoutContext)
+        val locationTrackOids = getLocationTrackOids(distinctLocationTrackIds(nearbyTracks), layoutContext)
 
         val closestTracks =
             requestsWithPoints.zip(nearbyTracks) { (request), nearby ->
-                nearby.find { (track, _) -> filterByRequest(track, trackNumbers, trackNumberOids, request) }
+                nearby.find { (track, _) ->
+                    filterByRequest(request, track, locationTrackOids, trackNumbers, trackNumberOids)
+                }
             }
 
         val trackNumberInfo = getTrackNumberInfoForLocationTrackHits(closestTracks, layoutContext)
@@ -129,45 +134,53 @@ constructor(
                 }
             }
 
-    private fun getTrackNumbersForNearbyTracks(
-        nearbyTracks: List<List<LocationTrackCacheHit>>,
+    private fun getTrackNumberOids(
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
         layoutContext: LayoutContext,
-    ) =
-        nearbyTracks
-            .asSequence()
-            .flatten()
-            .map { it.track.trackNumberId }
-            .distinct()
-            .toList()
-            .let { trackNumberIds -> trackNumberService.getMany(layoutContext, trackNumberIds).associateBy { it.id } }
+    ): Map<IntId<LayoutTrackNumber>, Oid<LayoutTrackNumber>> {
+        return trackNumberDao.fetchExternalIds(layoutContext.branch, trackNumberIds).mapValues { (_, externalId) ->
+            externalId.oid
+        }
+    }
 
-    private fun getTrackNumberOidsForNearbyTracks(
-        nearbyTracks: List<List<LocationTrackCacheHit>>,
+    private fun getLocationTrackOids(
+        locationTrackIds: List<IntId<LocationTrack>>,
         layoutContext: LayoutContext,
-    ) =
-        nearbyTracks
-            .asSequence()
-            .flatten()
-            .map { it.track.trackNumberId }
-            .distinct()
-            .toList()
-            .let { trackNumberIds ->
-                trackNumberDao.fetchExternalIds(layoutContext.branch, trackNumberIds).mapValues { (_, externalId) ->
-                    externalId.oid
-                }
-            }
+    ): Map<IntId<LocationTrack>, Oid<LocationTrack>> {
+        return locationTrackDao.fetchExternalIds(layoutContext.branch, locationTrackIds).mapValues { (_, externalId) ->
+            externalId.oid
+        }
+    }
+
+    private fun distinctTrackNumberIds(
+        nearbyTracks: List<List<LocationTrackCacheHit>>
+    ): List<IntId<LayoutTrackNumber>> {
+        return nearbyTracks.asSequence().flatten().map { it.track.trackNumberId }.distinct().toList()
+    }
+
+    private fun distinctLocationTrackIds(nearbyTracks: List<List<LocationTrackCacheHit>>): List<IntId<LocationTrack>> {
+        return nearbyTracks.asSequence().flatten().map { it.track.id as IntId }.distinct().toList()
+    }
 
     private fun filterByRequest(
+        request: ValidCoordinateToTrackAddressRequestV1,
         track: LocationTrack,
+        locationTrackOids: Map<IntId<LocationTrack>, Oid<LocationTrack>>,
         trackNumbers: Map<DomainId<LayoutTrackNumber>, LayoutTrackNumber>,
         trackNumberOids: Map<IntId<LayoutTrackNumber>, Oid<LayoutTrackNumber>>,
-        request: ValidCoordinateToTrackAddressRequestV1,
     ): Boolean =
         all(
             // Spatial cache only returns non-deleted tracks -> no need to check the state here
+            {
+                request.locationTrackOid?.let { locationTrackOid -> locationTrackOid == locationTrackOids[track.id] }
+                    ?: true
+            },
             { request.locationTrackName?.let { locationTrackName -> locationTrackName == track.name } ?: true },
             { request.locationTrackType?.let { locationTrackType -> locationTrackType == track.type } ?: true },
-            { request.trackNumberOid?.let { oid -> oid == trackNumberOids[track.trackNumberId] } ?: true },
+            {
+                request.trackNumberOid?.let { trackNumberOid -> trackNumberOid == trackNumberOids[track.trackNumberId] }
+                    ?: true
+            },
             {
                 request.trackNumberName?.let { trackNumberName ->
                     val trackNumber = trackNumbers[track.trackNumberId]

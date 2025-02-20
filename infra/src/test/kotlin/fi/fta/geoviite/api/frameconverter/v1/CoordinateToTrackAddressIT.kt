@@ -750,7 +750,8 @@ constructor(
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide_oid = searchOid.toString())
         val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
 
-        assertEquals(0, featureCollection.features.size)
+        val expectedErrorMessage = "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
     }
 
     @Test
