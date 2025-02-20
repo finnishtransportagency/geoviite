@@ -1290,6 +1290,38 @@ constructor(
         }
     }
 
+    @Test
+    fun `No multiple search conditions are allowed for track number`() {
+        val request =
+            TestTrackAddressToCoordinateRequest(
+                ratakilometri = 0,
+                ratametri = 500,
+                ratanumero = "001",
+                ratanumero_oid = someOid<LayoutTrackNumber>().toString(),
+            )
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        val expectedErrorMessage =
+            "Pyyntö sisälsi useamman kuin yhden hakuehdon ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `At least one search condition is required for track number`() {
+        val request = TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500)
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        val expectedErrorMessage =
+            "Pyyntö ei sisältänyt hakuehtoa ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
     fun insertTrackNumberAndReferenceLine(
         layoutContext: TestLayoutContext,
         trackNumberName: String,

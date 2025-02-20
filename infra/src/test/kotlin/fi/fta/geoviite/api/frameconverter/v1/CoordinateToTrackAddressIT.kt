@@ -778,6 +778,15 @@ constructor(
     }
 
     @Test
+    fun `Location track OID filter returns an error when an invalid OID is given`() {
+        val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide_oid = "invalid_oid")
+        val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+
+        val expectedErrorMessage = "Pyyntö sisälsi virheellisen sijaintiraide_oid-asetuksen."
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
     fun `Track number OID filter does not find any results when the track number OID does not match`() {
         val trackNumberOid = Oid<LayoutTrackNumber>("000.000.000")
         val searchOid = Oid<LayoutTrackNumber>("111.111.111")

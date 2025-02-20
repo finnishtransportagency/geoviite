@@ -178,7 +178,7 @@ data class ValidCoordinateToTrackAddressRequestV1(
     val identifier: FrameConverterIdentifierV1?,
     val searchCoordinate: FrameConverterCoordinateV1,
     val searchRadius: Double,
-    val trackNumberOid: Oid<TrackNumber>?,
+    val trackNumberOid: Oid<LayoutTrackNumber>?,
     val trackNumberName: TrackNumber?,
     val locationTrackOid: Oid<LocationTrack>?,
     val locationTrackName: AlignmentName?,
@@ -232,31 +232,39 @@ data class FeatureMatchDetailsV1(
 
 /**
  * @property identifier User provided request identifier which is also included in the response feature(s), optional.
- * @property trackNumberName User provided track number, required for valid requests.
+ * @property trackNumberName User provided track number, one of "trackNumberName, trackNumberOid" is required.
+ * @property trackNumberOid User provided track number oid, one of "trackNumberName, trackNumberOid" is required.
  * @property trackKilometer User provided track kilometer, required for valid requests.
  * @property trackMeter User provided track meter on the specified track kilometer, required for valid requests.
  * @property locationTrackName User provided location track name filter, optional.
+ * @property locationTrackOid User provided location track name filter, optional.
  * @property locationTrackType User provided location track type filter, optional.
  */
 data class TrackAddressToCoordinateRequestV1(
     @JsonProperty(IDENTIFIER_PARAM) val identifier: FrameConverterIdentifierV1? = null,
+    @JsonProperty(TRACK_NUMBER_OID_PARAM) val trackNumberOid: FrameConverterStringV1? = null,
     @JsonProperty(TRACK_NUMBER_NAME_PARAM) val trackNumberName: FrameConverterStringV1? = null,
     @JsonProperty(TRACK_KILOMETER_PARAM) val trackKilometer: Int? = null,
     @JsonProperty(TRACK_METER_PARAM) val trackMeter: Int? = null,
+    @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: FrameConverterStringV1? = null,
     @JsonProperty(LOCATION_TRACK_NAME_PARAM) val locationTrackName: FrameConverterStringV1? = null,
     @JsonProperty(LOCATION_TRACK_TYPE_PARAM) val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
 ) : FrameConverterRequestV1() {
     constructor(
+        trackNumberOid: FrameConverterStringV1?,
         trackNumberName: FrameConverterStringV1?,
         trackKilometer: Int?,
         trackMeter: Int?,
+        locationTrackOid: FrameConverterStringV1?,
         locationTrackName: FrameConverterStringV1?,
         locationTrackType: FrameConverterLocationTrackTypeV1?,
     ) : this(
         identifier = null,
+        trackNumberOid = trackNumberOid,
         trackNumberName = trackNumberName,
         trackKilometer = trackKilometer,
         trackMeter = trackMeter,
+        locationTrackOid = locationTrackOid,
         locationTrackName = locationTrackName,
         locationTrackType = locationTrackType,
     )

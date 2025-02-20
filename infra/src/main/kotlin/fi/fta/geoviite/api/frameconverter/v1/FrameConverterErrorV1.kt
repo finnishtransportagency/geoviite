@@ -21,6 +21,8 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     InvalidLocationTrackOid("invalid-location-track-oid"),
     InvalidLocationTrackType("invalid-location-track-type"),
     InvalidTrackAddress("invalid-track-address"),
+    NoTrackNumberSearchCondition("no-track-number-search-condition"),
+    BothNameAndOidForTrackNumber("both-name-and-oid-for-track-number"),
     TrackNumberNotFound("track-number-not-found"),
     InputCoordinateTransformationFailed("input-coordinate-transformation-failed");
 

@@ -272,4 +272,8 @@ class LayoutTrackNumberDao(
         jdbcTemplate.setUser()
         insertExternalIdInExistingTransaction(branch, id, oid)
     }
+
+    fun getByExternalId(branch: LayoutBranch, oid: Oid<LayoutTrackNumber>): LayoutTrackNumber? {
+        return lookupByExternalId(oid)?.let { rowByOid -> get(rowByOid.context, rowByOid.id) }
+    }
 }

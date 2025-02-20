@@ -90,10 +90,10 @@ paths:
         rataosoite on olemassa ja jotka täsmäävät muihin annettuihin hakuehtoihin. Mikäli yhtään sijaintia ei löydy, 
         palauttaa virheen.
       parameters:
+        - $ref: '#/components/parameters/ratanumero-param-exactly-one-required'
+        - $ref: '#/components/parameters/ratanumero_oid-param-exactly-required'
         - $ref: '#/components/parameters/ratakilometri-param'
         - $ref: '#/components/parameters/ratametri-param'
-        - $ref: '#/components/parameters/ratanumero-param-one-or-more-required'
-        - $ref: '#/components/parameters/ratanumero_oid-param-one-or-more-required'
         - $ref: '#/components/parameters/sijaintiraide-param'
         - $ref: '#/components/parameters/sijaintiraide_oid-param'
         - $ref: '#/components/parameters/sijaintiraide_tyyppi-param'
@@ -283,18 +283,18 @@ components:
       description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.'
       schema:
         $ref: '#/components/schemas/ratanumero_oid'
-    ratanumero-param-one-or-more-required:
+    ratanumero-param-exactly-one-required:
       name: ratanumero
       in: query
       required: false
-      description: 'Rajaa haun ratanumeron nimen perusteella.<br />*Huom*: Hakua tulee rajata vähintään yhdellä kentistä "ratanumero", "ratanumero_oid".'
+      description: 'Rajaa haun ratanumeron nimen perusteella.<br />*Huom*: Hakua tulee rajata yhdellä kentistä "ratanumero", "ratanumero_oid".'
       schema:
         $ref: '#/components/schemas/ratanumero'
-    ratanumero_oid-param-one-or-more-required:
+    ratanumero_oid-param-exactly-required:
       name: ratanumero_oid
       in: query
       required: false
-      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.<br />*Huom*: Hakua tulee rajata vähintään yhdellä kentistä "ratanumero", "ratanumero_oid".'
+      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.<br />*Huom*: Hakua tulee rajata yhdellä kentistä "ratanumero", "ratanumero_oid".'
       schema:
         $ref: '#/components/schemas/ratanumero_oid'
     sijaintiraide-param:
@@ -352,7 +352,7 @@ components:
       name: lisatiedot
       in: query
       required: false
-      description: "GeoJSON-tulos sisältää properties-kentässä kentät: ratanumero, sijaintiraide, sijaintiraide_kuvaus, sijaintiraide_tyyppi, ratakilometri, ratametri, ratametri_desimaalit."
+      description: "GeoJSON-tulos sisältää properties-kentässä kentät: ratanumero, ratanumero_oid, sijaintiraide, sijaintiraide_oid, sijaintiraide_kuvaus, sijaintiraide_tyyppi, ratakilometri, ratametri, ratametri_desimaalit."
       schema:
         type: boolean
         default: true
