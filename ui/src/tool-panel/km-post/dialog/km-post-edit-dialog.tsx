@@ -33,9 +33,15 @@ import KmPostRevertConfirmationDialog from 'tool-panel/km-post/dialog/km-post-re
 import { Link } from 'vayla-design-lib/link/link';
 import {
     getSaveDisabledReasons,
+    useKmPost,
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
-import { draftLayoutContext, LayoutContext, Srid } from 'common/common-model';
+import {
+    draftLayoutContext,
+    LayoutContext,
+    officialLayoutContext,
+    Srid,
+} from 'common/common-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { KmPostEditDialogGkLocationSection } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
 import { GeometryPoint } from 'model/geometry';
@@ -98,7 +104,9 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         },
     );
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
-    const canSetDeleted = state.existingKmPost?.hasOfficial;
+    const canSetDeleted =
+        useKmPost(state.existingKmPost?.id, officialLayoutContext(props.layoutContext)) !==
+        undefined;
     const kmPostStateOptions = layoutStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));

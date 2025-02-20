@@ -192,7 +192,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
             .includes(referenceLineSearchInput);
 
         const trackNumberWithEmptyGeometryIsAlreadyPublished =
-            !line.foundWithBoundingBox && line.hasOfficial && !line.isDraft;
+            !line.foundWithBoundingBox && !line.isDraft;
 
         const displayTrackNumberOption =
             (hasSearchInput && trackNumberMatchesSearchInput) ||

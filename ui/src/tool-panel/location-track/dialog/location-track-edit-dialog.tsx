@@ -61,7 +61,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { getChangeTimes } from 'common/change-time-api';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { first } from 'utils/array-utils';
-import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
 import { UnknownAction } from 'redux';
 
 type LocationTrackDialogContainerProps = {
@@ -144,7 +144,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.changeTimes,
     );
 
-    const canSetDeleted = !state.isNewLocationTrack && state.existingLocationTrack?.hasOfficial;
+    const hasOfficialLocationTrack =
+        useLocationTrack(
+            state.existingLocationTrack?.id,
+            officialLayoutContext(props.layoutContext),
+            props.changeTimes.layoutLocationTrack,
+        ) !== undefined;
+
+    const canSetDeleted = !state.isNewLocationTrack && hasOfficialLocationTrack;
     const stateOptions = locationTrackStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));

@@ -139,7 +139,7 @@ constructor(
     @Test
     fun linkingManualSwitchGetsGeometryCalculatedAccuracy() {
         setupJointLocationAccuracyTest()
-        val layoutSwitchId = switchDao.save(switch(structureId = switchStructure.id as IntId)).id
+        val layoutSwitchId = switchDao.save(switch(structureId = switchStructure.id)).id
         val suggestedSwitch =
             switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(50.0, 50.0), layoutSwitchId)!!
 
@@ -1521,9 +1521,9 @@ constructor(
             }
 
         val leftSwitch =
-            mainOfficialContext.save(switch(structureId = switchStructure.id as IntId, joints = leftSwitchJoints)).id
+            mainOfficialContext.save(switch(structureId = switchStructure.id, joints = leftSwitchJoints)).id
         val rightSwitch =
-            mainOfficialContext.save(switch(structureId = switchStructure.id as IntId, joints = rightSwitchJoints)).id
+            mainOfficialContext.save(switch(structureId = switchStructure.id, joints = rightSwitchJoints)).id
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val throughTrack =
             mainOfficialContext
@@ -1612,7 +1612,7 @@ constructor(
         // so with the branching track's continuation starting at 35, it doesn't fall within the
         // switch's bounding box
         val switchStructureId =
-            switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!.id as IntId
+            switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!.id
         val switchId =
             switchDao
                 .save(

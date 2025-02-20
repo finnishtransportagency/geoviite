@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.util.getIntOrNull
 import fi.fta.geoviite.infra.util.getLocalDate
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.queryOne
+import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
 import java.sql.ResultSet
@@ -33,7 +34,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
     fun fetch(id: IntId<LayoutDesign>): LayoutDesign {
         val sql =
             """
-            select id, ratko_id, name, estimated_completion, design_state
+            select id, name, estimated_completion, design_state
             from layout.design
             where id = :id
         """
@@ -44,7 +45,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
     fun fetchVersion(rowVersion: RowVersion<LayoutDesign>): LayoutDesign {
         val sql =
             """
-            select id, ratko_id, name, estimated_completion, design_state
+            select id, name, estimated_completion, design_state
             from layout.design_version
             where id = :id and version = :version
         """
@@ -59,7 +60,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
     fun list(includeCompleted: Boolean = false, includeDeleted: Boolean = false): List<LayoutDesign> {
         val sql =
             """
-            select id, ratko_id, name, estimated_completion, design_state
+            select id, name, estimated_completion, design_state
             from layout.design
             where design_state = 'ACTIVE'::layout.design_state 
               or :include_completed is true and design_state = 'COMPLETED'::layout.design_state
@@ -79,14 +80,20 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         jdbcTemplate.setUser()
         val sql =
             """
-            update layout.design
-            set ratko_id = :ratko_id
-            where id = :id and ratko_id is null
+            insert into integrations.ratko_design values (:design_id, :ratko_id)
         """
                 .trimIndent()
-        val updated = jdbcTemplate.update(sql, mapOf("id" to toDbId(id).intValue, "ratko_id" to ratkoId.id))
+        val updated =
+            jdbcTemplate.update(sql, mapOf("design_id" to toDbId(id).intValue, "ratko_id" to ratkoId.intValue))
         require(updated == 1) {
             "Expected initializing Ratko ID for design $id to update exactly one row, but updated count was $updated"
+        }
+    }
+
+    fun fetchRatkoId(id: IntId<LayoutDesign>): RatkoPlanId? {
+        val sql = """select ratko_plan_id from integrations.ratko_design where design_id = :id"""
+        return jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue)) { rs, _ ->
+            rs.getIntOrNull("ratko_plan_id")?.let(::RatkoPlanId)
         }
     }
 
@@ -185,7 +192,6 @@ fun asDuplicateNameException(e: DataIntegrityViolationException): DuplicateDesig
 private fun getLayoutDesign(rs: ResultSet) =
     LayoutDesign(
         rs.getIntId("id"),
-        rs.getIntOrNull("ratko_id")?.let(::RatkoPlanId),
         LayoutDesignName(rs.getString("name")),
         rs.getLocalDate("estimated_completion"),
         rs.getEnum("design_state"),

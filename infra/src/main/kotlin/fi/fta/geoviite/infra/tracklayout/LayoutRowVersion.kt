@@ -55,7 +55,7 @@ fun <T : LayoutAsset<T>> parseLayoutRowVersionValues(text: String): Triple<IntId
     }
     val versionSplit = idSplit[1].split(VERSION_SEPARATOR)
     require(versionSplit.size == 2) {
-        "LayoutRowVersion version text must consist of two parts split by $VERSION_SEPARATOR, but was ${versionSplit}"
+        "LayoutRowVersion version text must consist of two parts split by $VERSION_SEPARATOR, but was $versionSplit"
     }
     return Triple(IntId(idSplit[0].toInt()), parseLayoutContextSqlString(versionSplit[0]), versionSplit[1].toInt())
 }

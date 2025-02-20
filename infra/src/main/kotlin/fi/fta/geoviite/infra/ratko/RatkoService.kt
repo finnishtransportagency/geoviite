@@ -112,7 +112,7 @@ constructor(
             } else if (ratkoClient.getRatkoOnlineStatus().connectionStatus != RatkoConnectionStatus.ONLINE) {
                 logger.info("Ratko push cancelled because ratko connection is offline")
             } else {
-                val lastPublicationMoment = ratkoPushDao.getLatestPushedPublicationMoment()
+                val lastPublicationMoment = ratkoPushDao.getLatestPushedPublicationMoment(layoutBranch)
 
                 // Inclusive search, therefore the already pushed one is also returned
                 val publications =
@@ -122,7 +122,11 @@ constructor(
                         .map { publicationLogService.getPublicationDetails(it.id) }
 
                 if (publications.isNotEmpty()) {
-                    pushChanges(layoutBranch, publications, calculatedChangesService.getAllOids(layoutBranch))
+                    pushChanges(
+                        layoutBranch,
+                        publications,
+                        calculatedChangesService.getAllOidsWithInheritance(layoutBranch),
+                    )
                 }
 
                 if (ratkoClientConfiguration.bulkTransfersEnabled) {
@@ -200,7 +204,7 @@ constructor(
     ) {
         assertMainBranch(branch)
         val pushableBranch = PushableMainBranch
-        val extIds = extIdsProvided ?: calculatedChangesService.getAllOids(branch)
+        val extIds = extIdsProvided ?: calculatedChangesService.getAllOidsWithInheritance(branch)
 
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
             val previousPush = ratkoPushDao.fetchPreviousPush()
@@ -453,11 +457,9 @@ constructor(
         val lastPublicationDesign =
             layoutDesignDao.fetchVersion(RowVersion(designBranch.designId, lastPublicationDesignVersion))
 
-        // An interrupted push can leave the design itself knowing its Ratko ID, but the most recent
-        // publication pointing at a version before it was saved; so always look up the current ID
-        val presentRatkoId = layoutDesignDao.fetch(designBranch.designId).ratkoId
+        val existingRatkoId = layoutDesignDao.fetchRatkoId(designBranch.designId)
         val ratkoId =
-            if (presentRatkoId == null) {
+            if (existingRatkoId == null) {
                 createPlanInRatko(lastPublicationDesign, designBranch.designId)
             } else {
                 updatePlanInRatkoIfNeeded(
@@ -465,9 +467,9 @@ constructor(
                     designBranch,
                     lastPublicationDesignVersion,
                     lastPublicationDesign,
-                    presentRatkoId,
+                    existingRatkoId,
                 )
-                presentRatkoId
+                existingRatkoId
             }
         return PushableDesignBranch(designBranch, ratkoId)
     }

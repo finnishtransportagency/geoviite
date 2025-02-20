@@ -197,34 +197,6 @@ constructor(
         assertEquals(draft2, trackNumberDao.fetchVersion(MainLayoutContext.draft, draft1.id))
     }
 
-    @Test
-    fun `hasOfficial is calculated to be false for unpublished drafts`() {
-        val draft = kmPost(null, someKmNumber(), draft = true)
-        assertFalse(draft.hasOfficial)
-        assertFalse(draft.isOfficial)
-        assertTrue(draft.isDraft)
-    }
-
-    @Test
-    fun `hasOfficial is calculated to be true for unedited officials`() {
-        val official =
-            insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
-        assertTrue(official.hasOfficial)
-        assertTrue(official.isOfficial)
-        assertFalse(official.isDraft)
-    }
-
-    @Test
-    fun `hasOfficial is calculated to be true for drafts with an official version`() {
-        val edited =
-            asMainDraft(
-                insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
-            )
-        assertTrue(edited.hasOfficial)
-        assertFalse(edited.isOfficial)
-        assertTrue(edited.isDraft)
-    }
-
     private fun createReferenceLineAndAlignment(draft: Boolean): Pair<ReferenceLine, LayoutAlignment> =
         referenceLineAndAlignment(
             mainOfficialContext.createLayoutTrackNumber().id,

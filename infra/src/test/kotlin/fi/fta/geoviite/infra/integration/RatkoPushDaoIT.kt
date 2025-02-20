@@ -51,7 +51,7 @@ constructor(
     fun cleanUp() {
         // Mark off any old junk as done
         transactional {
-            val lastSuccessTime = ratkoPushDao.getLatestPushedPublicationMoment()
+            val lastSuccessTime = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
             val hangingPublications =
                 publicationDao.fetchPublicationsBetween(LayoutBranch.main, lastSuccessTime, null).filterNot {
                     it.publicationTime == lastSuccessTime
@@ -143,7 +143,7 @@ constructor(
 
     @Test
     fun shouldReturnPublishableAlignments() {
-        val lastPush = ratkoPushDao.getLatestPushedPublicationMoment()
+        val lastPush = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
         assertTrue(lastPush < publicationMoment)
 
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, lastPush, null)
@@ -158,7 +158,7 @@ constructor(
         val ratkoPublicationId = ratkoPushDao.startPushing(listOf(publicationId))
         ratkoPushDao.updatePushStatus(ratkoPublicationId, status = RatkoPushStatus.SUCCESSFUL)
 
-        val latestPushMoment = ratkoPushDao.getLatestPushedPublicationMoment()
+        val latestPushMoment = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
         assertEquals(publicationMoment, latestPushMoment)
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushMoment, null)
         assertEquals(1, publications.size)
@@ -169,7 +169,7 @@ constructor(
         val ratkoPublicationId = ratkoPushDao.startPushing(listOf(publicationId))
         ratkoPushDao.updatePushStatus(ratkoPublicationId, status = RatkoPushStatus.FAILED)
 
-        val latestPushedPublish = ratkoPushDao.getLatestPushedPublicationMoment()
+        val latestPushedPublish = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
         assertTrue(latestPushedPublish < publicationMoment)
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushedPublish, null)
         val (publishedLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(publications[1].id)
@@ -184,7 +184,7 @@ constructor(
         val locationTrack2Response = insertAndPublishLocationTrack()
         val publicationId2 = createPublication(locationTracks = listOf(locationTrack2Response), message = "Test")
 
-        val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment()
+        val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
         assertTrue(latestPushedMoment < publicationMoment)
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushedMoment, null)
 
@@ -246,7 +246,7 @@ constructor(
     fun insertAndPublishLocationTrack(): LayoutRowVersion<LocationTrack> =
         locationTrackAndGeometry(trackNumberId, draft = true).let { (track, alignment) ->
             val draftVersion = locationTrackService.saveDraft(LayoutBranch.main, track, alignment)
-            locationTrackService.publish(LayoutBranch.main, draftVersion)
+            locationTrackService.publish(LayoutBranch.main, draftVersion).published
         }
 
     fun createPublication(

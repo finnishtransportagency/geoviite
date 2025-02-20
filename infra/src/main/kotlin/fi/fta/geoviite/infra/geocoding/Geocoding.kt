@@ -31,6 +31,7 @@ import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -78,7 +79,12 @@ data class AlignmentAddresses(
     }
 }
 
-data class AlignmentStartAndEnd<T>(val id: IntId<T>, val start: AlignmentEndPoint?, val end: AlignmentEndPoint?) {
+data class AlignmentStartAndEnd<T>(
+    val id: IntId<T>,
+    val start: AlignmentEndPoint?,
+    val end: AlignmentEndPoint?,
+    val staStart: Double?,
+) {
     companion object {
         fun <T> of(id: IntId<T>, alignment: IAlignment, geocodingContext: GeocodingContext?): AlignmentStartAndEnd<T> {
             val start =
@@ -89,7 +95,7 @@ data class AlignmentStartAndEnd<T>(val id: IntId<T>, val start: AlignmentEndPoin
                 alignment.end?.let { p ->
                     AlignmentEndPoint(p, geocodingContext?.getAddress(p)?.let(::getAddressIfIWithin))
                 }
-            return AlignmentStartAndEnd(id, start, end)
+            return AlignmentStartAndEnd(id, start, end, (alignment as? PlanLayoutAlignment)?.staStart)
         }
     }
 }

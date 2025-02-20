@@ -34,8 +34,8 @@ import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
-private val allElementTypes = GeometryElementType.values().toList()
-private val allTrackElementTypes = TrackGeometryElementType.values().toList()
+private val allElementTypes = GeometryElementType.entries
+private val allTrackElementTypes = TrackGeometryElementType.entries
 private val getTransformation = { srid: Srid -> geotoolsTransformation(srid, LAYOUT_SRID) }
 
 class ElementListingTest {

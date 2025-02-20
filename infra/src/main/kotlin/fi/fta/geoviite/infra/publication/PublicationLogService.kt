@@ -203,7 +203,7 @@ constructor(
                             .fetchExternalId(publication.layoutBranch.branch, sourceLocationTrack.id as IntId)
                             ?.oid
                     ) {
-                        "expected to find oid for published location track ${sourceLocationTrack.id} in publication ${id}"
+                        "expected to find oid for published location track ${sourceLocationTrack.id} in publication $id"
                     }
                 val targetLocationTracks =
                     publicationDao
@@ -688,7 +688,7 @@ constructor(
                 }
                 .sortedBy { it.propKey.key }
 
-        val oldLinkedTrackNames = oldLinkedLocationTracks.values.mapNotNull { it.first.name }.sorted()
+        val oldLinkedTrackNames = oldLinkedLocationTracks.values.map { it.first.name }.sorted()
         val newLinkedTrackNames = changes.locationTracks.map { it.name }.sorted()
 
         return listOfNotNull(

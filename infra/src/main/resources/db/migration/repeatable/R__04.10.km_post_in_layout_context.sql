@@ -10,7 +10,7 @@ create function layout.km_post_is_in_layout_context(publication_state_in layout.
   stable as
 $$
 select
-  where not km_post.cancelled
+  where km_post.design_asset_state is distinct from 'CANCELLED'
     and case publication_state_in
           when 'OFFICIAL' then not km_post.draft
           else km_post.draft
@@ -18,7 +18,8 @@ select
                           from layout.km_post overriding_draft
                           where overriding_draft.design_id is not distinct from design_id_in
                             and overriding_draft.draft
-                            and not (km_post.design_id is null and overriding_draft.cancelled)
+                            and not (km_post.design_id is null
+                                       and overriding_draft.design_asset_state is not distinct from 'CANCELLED')
                             and overriding_draft.id = km_post.id)
         end
     and case
@@ -30,14 +31,14 @@ select
                                from layout.km_post overriding_design_official
                                where overriding_design_official.design_id = design_id_in
                                  and not overriding_design_official.draft
-                                 and not overriding_design_official.cancelled
+                                 and overriding_design_official.design_asset_state is distinct from 'CANCELLED'
                                  and overriding_design_official.id = km_post.id
                                    and (publication_state_in = 'OFFICIAL' or not exists (
                                      select *
                                        from layout.km_post design_cancellation
                                        where design_cancellation.design_id = design_id_in
                                          and design_cancellation.draft
-                                         and design_cancellation.cancelled
+                                         and design_cancellation.design_asset_state is not distinct from 'CANCELLED'
                                          and design_cancellation.id = km_post.id))))
         end
 $$;

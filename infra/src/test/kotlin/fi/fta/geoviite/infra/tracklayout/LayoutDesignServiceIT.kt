@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
@@ -94,12 +93,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val trackNumber = designDraftContext.save(trackNumber()).id
 
-        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber)))
-        trackNumberService.mergeToMainBranch(designBranch, trackNumber)
-        publicationTestSupportService.publish(
-            LayoutBranch.main,
-            publicationRequestIds(trackNumbers = listOf(trackNumber)),
-        )
+        val objectIds = publicationRequestIds(trackNumbers = listOf(trackNumber))
+        publicationTestSupportService.publish(designBranch, objectIds)
+        trackNumberService.cancel(designBranch, trackNumber)
+        publicationTestSupportService.publish(designBranch, objectIds)
+
         assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER))
         val latestPublicationsBeforeEdit = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
         layoutDesignService.update(designId, designForm(designId))

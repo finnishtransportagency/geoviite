@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.StringSanitizer
-import fi.fta.geoviite.infra.util.assertSanitized
 
 data class GeometrySwitch(
     val name: SwitchName,

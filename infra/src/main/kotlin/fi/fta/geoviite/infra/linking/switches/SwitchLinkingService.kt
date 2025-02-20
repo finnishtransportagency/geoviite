@@ -1105,9 +1105,7 @@ class SuggestedSwitchWithOriginallyLinkedTracks(
 
         other as SuggestedSwitchWithOriginallyLinkedTracks
 
-        if (suggestedSwitch != other.suggestedSwitch) return false
-
-        return true
+        return suggestedSwitch == other.suggestedSwitch
     }
 }
 

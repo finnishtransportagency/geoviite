@@ -29,7 +29,7 @@ private inline fun <reified T> parsingError(source: String): Nothing =
 
 sealed class DomainId<T> {
     companion object {
-        val stringLength = 5..100
+        private val stringLength = 5..100
 
         @JvmStatic
         @JsonCreator

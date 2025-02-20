@@ -1,9 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
@@ -11,6 +9,8 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -295,74 +295,5 @@ constructor(
         assertEquals(locationTrack, designDraftContext.fetchVersion(locationTrack.id))
         assertEquals(switch, designDraftContext.fetchVersion(switch.id))
         assertEquals(kmPost, designDraftContext.fetchVersion(kmPost.id))
-    }
-
-    @Test
-    fun `hasOfficial indicates having any official row above`() {
-        val someDesignBranch = testDBService.createDesignBranch()
-        val designOfficialContext = testDBService.testContext(someDesignBranch, PublicationState.OFFICIAL)
-        val designDraftContext = testDBService.testContext(someDesignBranch, PublicationState.DRAFT)
-
-        val assets = AllAssetTypes.createIn(mainDraftContext)
-
-        assets.fetchAllAndRun(mainDraftContext) { asset -> assertFalse(asset.hasOfficial) }
-        assets.copyFromTo(mainDraftContext, designDraftContext)
-
-        assets.fetchAllAndRun(mainDraftContext) { asset -> assertFalse(asset.hasOfficial) }
-        assets.fetchAllAndRun(designDraftContext) { asset -> assertFalse(asset.hasOfficial) }
-
-        assets.copyFromTo(designDraftContext, designOfficialContext)
-        // normally publication would delete drafts and hence force version increments, we'll just
-        // do it by hand here
-        assets.incrementVersionsInContext(designDraftContext)
-
-        assets.fetchAllAndRun(mainDraftContext) { asset -> assertFalse(asset.hasOfficial) }
-        assets.fetchAllAndRun(designDraftContext) { asset -> assertTrue(asset.hasOfficial) }
-
-        assets.copyFromTo(mainDraftContext, mainOfficialContext)
-        assets.incrementVersionsInContext(designDraftContext)
-        assets.incrementVersionsInContext(mainDraftContext)
-
-        assets.fetchAllAndRun(mainDraftContext) { asset -> assertTrue(asset.hasOfficial) }
-        assets.fetchAllAndRun(designDraftContext) { asset -> assertTrue(asset.hasOfficial) }
-    }
-
-    private data class AllAssetTypes(
-        val trackNumber: IntId<LayoutTrackNumber>,
-        val referenceLine: IntId<ReferenceLine>,
-        val locationTrack: IntId<LocationTrack>,
-        val switch: IntId<LayoutSwitch>,
-        val kmPost: IntId<LayoutKmPost>,
-    ) {
-        companion object {
-            fun createIn(context: TestLayoutContext): AllAssetTypes {
-                val trackNumber = context.save(trackNumber()).id
-                return AllAssetTypes(
-                    trackNumber = trackNumber,
-                    referenceLine = context.saveReferenceLine(referenceLineAndAlignment(trackNumber)).id,
-                    locationTrack = context.saveLocationTrack(locationTrackAndGeometry(trackNumber)).id,
-                    switch = context.save(switch()).id,
-                    kmPost = context.save(kmPost(trackNumber, KmNumber(123))).id,
-                )
-            }
-        }
-
-        fun copyFromTo(fromContext: TestLayoutContext, toContext: TestLayoutContext) {
-            toContext.save(fromContext.fetch(trackNumber)!!)
-            toContext.save(fromContext.fetch(referenceLine)!!)
-            toContext.save(fromContext.fetch(locationTrack)!!)
-            toContext.save(fromContext.fetch(switch)!!)
-            toContext.save(fromContext.fetch(kmPost)!!)
-        }
-
-        fun fetchAllAndRun(context: TestLayoutContext, callback: (asset: LayoutAsset<*>) -> Unit) {
-            callback(context.fetch(trackNumber)!!)
-            callback(context.fetch(referenceLine)!!)
-            callback(context.fetch(locationTrack)!!)
-            callback(context.fetch(switch)!!)
-            callback(context.fetch(kmPost)!!)
-        }
-
-        fun incrementVersionsInContext(context: TestLayoutContext) = copyFromTo(context, context)
     }
 }

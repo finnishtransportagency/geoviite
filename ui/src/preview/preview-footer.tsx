@@ -16,7 +16,7 @@ import {
     LayoutValidationIssue,
     LayoutValidationIssueType,
     PublicationCandidate,
-    PublicationResult,
+    PublicationResultSummary,
     validationIssueIsError,
 } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
@@ -67,7 +67,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         props.stagedPublicationCandidates,
         props.designPublicationMode,
     );
-    const describeResult = (result: PublicationResult | undefined): string => {
+    const describeResult = (result: PublicationResultSummary | undefined): string => {
         return [
             describe(t('publish.track-numbers'), result?.trackNumbers),
             describe(t('publish.km-posts'), result?.kmPosts),
@@ -81,7 +81,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
 
     const publishPreviewChanges = previewChangesCanBePublished(props.stagedPublicationCandidates);
 
-    const updateChangeTimes = (result: PublicationResult | undefined) => {
+    const updateChangeTimes = (result: PublicationResultSummary | undefined) => {
         if (result?.trackNumbers || 0 > 0) updateTrackNumberChangeTime();
         if (result?.kmPosts || 0 > 0) updateKmPostChangeTime();
         if (result?.referenceLines || 0 > 0) updateReferenceLineChangeTime();
@@ -94,7 +94,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
 
     const [isPublishing, setPublishing] = React.useState(false);
 
-    const publishWith = (publicationPromise: Promise<PublicationResult>) =>
+    const publishWith = (publicationPromise: Promise<PublicationResultSummary>) =>
         publicationPromise
             .then((r) => {
                 Snackbar.success('publish.publish-success', describeResult(r));

@@ -171,7 +171,7 @@ fun switchAndMatchingAlignments(
     val switch =
         switch(
             id = switchId,
-            structureId = structure.id as IntId,
+            structureId = structure.id,
             joints =
                 jointLocations.map { (number, point) ->
                     LayoutSwitchJoint(number, SwitchJointRole.of(structure, number), point, null)
@@ -532,6 +532,7 @@ fun mapAlignment(segments: List<PlanLayoutSegment>) =
                 length = segments.map(PlanLayoutSegment::length).sum(),
                 boundingBox = boundingBoxCombining(segments.mapNotNull(PlanLayoutSegment::boundingBox)),
             ),
+        staStart = 0.0,
         segments = segments,
     )
 
@@ -921,7 +922,7 @@ fun switchFromDbStructure(
 ): LayoutSwitch =
     switch(
         name = name,
-        structureId = structure.id as IntId,
+        structureId = structure.id,
         draft = draft,
         joints =
             structure.joints.map { j ->
@@ -964,7 +965,6 @@ fun <T : LayoutAsset<T>> createMainContext(id: IntId<T>?, draft: Boolean): Layou
     if (draft) {
         MainDraftContextData(
             if (id != null) IdentifiedAssetId(id) else TemporaryAssetId(),
-            hasOfficial = false,
             originBranch = LayoutBranch.main,
         )
     } else {

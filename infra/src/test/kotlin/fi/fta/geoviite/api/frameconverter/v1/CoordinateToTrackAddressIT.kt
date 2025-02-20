@@ -29,6 +29,7 @@ import java.util.*
 import kotlin.math.hypot
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -303,7 +304,7 @@ constructor(
 
             val properties = featureCollection.features[0].properties
             if (expectedError == null) {
-                assertEquals(expectedError, properties?.get("virheet"), "request=${request.tunniste}")
+                assertNull(properties?.get("virheet"), "request=${request.tunniste}")
             } else {
                 assertContainsErrorMessage(expectedError, properties?.get("virheet"), "request=${request.tunniste}")
             }

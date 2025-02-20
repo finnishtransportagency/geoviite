@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
@@ -108,7 +109,7 @@ class ReferenceLineService(
     override fun publish(
         branch: LayoutBranch,
         version: LayoutRowVersion<ReferenceLine>,
-    ): LayoutRowVersion<ReferenceLine> {
+    ): PublicationResultVersions<ReferenceLine> {
         val publishedVersion = publishInternal(branch, version)
         // Some of the versions may get deleted in publication -> delete any alignments they left
         // behind

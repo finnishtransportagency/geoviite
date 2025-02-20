@@ -12,9 +12,9 @@ import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBooleanOrNull
@@ -173,7 +173,7 @@ class LayoutSwitchDao(
                 trap_point,
                 owner_id,
                 draft,
-                cancelled,
+                design_asset_state,
                 design_id,
                 source,
                 draft_oid,
@@ -189,7 +189,7 @@ class LayoutSwitchDao(
               :trap_point,
               :owner_id,
               :draft,
-              :cancelled,
+              :design_asset_state::layout.design_asset_state,
               :design_id,
               :source::layout.geometry_source,
               :draft_oid,
@@ -202,7 +202,7 @@ class LayoutSwitchDao(
               state_category = excluded.state_category,
               trap_point = excluded.trap_point,
               owner_id = excluded.owner_id,
-              cancelled = excluded.cancelled,
+              design_asset_state = excluded.design_asset_state,
               source = excluded.source,
               draft_oid = excluded.draft_oid,
               origin_design_id = excluded.origin_design_id
@@ -223,7 +223,7 @@ class LayoutSwitchDao(
                     "trap_point" to item.trapPoint,
                     "owner_id" to item.ownerId?.intValue,
                     "draft" to item.isDraft,
-                    "cancelled" to item.isCancelled,
+                    "design_asset_state" to item.designAssetState?.name,
                     "design_id" to item.contextData.designId?.intValue,
                     "source" to item.source.name,
                     "draft_oid" to item.draftOid?.toString(),
@@ -289,7 +289,7 @@ class LayoutSwitchDao(
               sv.version,
               sv.design_id,
               sv.draft,
-              sv.cancelled,
+              sv.design_asset_state,
               sv.geometry_switch_id, 
               sv.name, 
               sv.switch_structure_id,
@@ -299,10 +299,6 @@ class LayoutSwitchDao(
               sv.source,
               origin_design_id,
               sv.draft_oid,
-              exists(select * from layout.switch official_sv
-                     where official_sv.id = sv.id
-                       and (official_sv.design_id is null or official_sv.design_id = sv.design_id)
-                       and not official_sv.draft) as has_official,
               coalesce(joint_numbers, '{}') as joint_numbers,
               coalesce(joint_roles, '{}') as joint_roles,
               coalesce(joint_x_values, '{}') as joint_x_values,
@@ -344,7 +340,7 @@ class LayoutSwitchDao(
               s.version,
               s.design_id,
               s.draft,
-              s.cancelled,
+              s.design_asset_state,
               s.geometry_switch_id, 
               s.name, 
               s.switch_structure_id,
@@ -358,10 +354,6 @@ class LayoutSwitchDao(
               joint_y_values,
               joint_location_accuracies,
               s.draft_oid,
-              exists(select * from layout.switch official_sv
-                     where official_sv.id = s.id
-                       and (official_sv.design_id is null or official_sv.design_id = s.design_id)
-                       and not official_sv.draft) as has_official,
               s.origin_design_id
             from layout.switch s
               left join lateral
@@ -409,15 +401,7 @@ class LayoutSwitchDao(
             source = rs.getEnum("source"),
             draftOid = rs.getOidOrNull("draft_oid"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "cancelled",
-                    "has_official",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
     }
 

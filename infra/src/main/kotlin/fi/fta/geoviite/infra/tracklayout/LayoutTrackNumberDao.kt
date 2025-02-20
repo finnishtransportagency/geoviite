@@ -9,9 +9,9 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstant
@@ -89,16 +89,12 @@ class LayoutTrackNumberDao(
               tn.version,
               tn.design_id,
               tn.draft,
-              tn.cancelled,
+              tn.design_asset_state,
               tn.number,
               tn.description,
               tn.state,
               -- Track number reference line identity never changes, so any instance whatsoever is fine
               (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
-              exists (select * from layout.track_number official_tn
-                      where official_tn.id = tn.id
-                        and (official_tn.design_id is null or official_tn.design_id = tn.design_id)
-                        and not official_tn.draft) has_official,
               tn.origin_design_id
             from layout.track_number_version tn
             where tn.id = :id
@@ -130,13 +126,9 @@ class LayoutTrackNumberDao(
               tn.number, 
               tn.description,
               tn.state,
-              tn.cancelled,
+              tn.design_asset_state,
               -- Track number reference line identity never changes, so any instance whatsoever is fine
               (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
-              exists (select * from layout.track_number official_tn
-                      where official_tn.id = tn.id
-                        and (official_tn.design_id is null or official_tn.design_id = tn.design_id)
-                        and not official_tn.draft) has_official,
               tn.origin_design_id
             from layout.track_number tn
             order by tn.id
@@ -163,15 +155,7 @@ class LayoutTrackNumberDao(
             // data
             referenceLineId = rs.getIntIdOrNull("reference_line_id"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "cancelled",
-                    "has_official",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
 
     @Transactional
@@ -190,7 +174,7 @@ class LayoutTrackNumberDao(
                                             description,
                                             state,
                                             draft,
-                                            cancelled,
+                                            design_asset_state,
                                             design_id,
                                             origin_design_id)
               values
@@ -200,14 +184,14 @@ class LayoutTrackNumberDao(
                  :description,
                  :state::layout.state,
                  :draft,
-                 :cancelled,
+                 :design_asset_state::layout.design_asset_state,
                  :design_id,
                  :origin_design_id)
               on conflict (id, layout_context_id) do update
                 set number = excluded.number,
                     description = excluded.description,
                     state = excluded.state,
-                    cancelled = excluded.cancelled,
+                    design_asset_state = excluded.design_asset_state,
                     origin_design_id = excluded.origin_design_id
               returning id, design_id, draft, version;
         """
@@ -220,7 +204,7 @@ class LayoutTrackNumberDao(
                 "description" to item.description,
                 "state" to item.state.name,
                 "draft" to item.isDraft,
-                "cancelled" to item.isCancelled,
+                "design_asset_state" to item.designAssetState?.name,
                 "design_id" to item.contextData.designId?.intValue,
                 "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
             )

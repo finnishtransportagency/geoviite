@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ratko.model
 
 import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
@@ -161,6 +162,9 @@ enum class RatkoAssetGeomAccuracyType(@get:JsonValue val value: String) {
     DIGITALIZED_AERIAL_IMAGE("DIGITIZED AERIAL IMAGE"),
     UNKNOWN("UNKNOWN"),
     GEOMETRY_CALCULATED("GEOMETRY CALCULATED"),
+    @Suppress("unused") RAILWAY_PLAN("RAILWAY PLAN"),
+    @Suppress("unused") SELECTED_FROM_MAP("SELECTED FROM MAP"),
+    @Suppress("unused") GENERATED_FROM_TRACK_ADDRESS("GENERATED FROM TRACK ADDRESS"),
 }
 
 enum class RatkoAccuracyType(@get:JsonValue val value: String) {
@@ -171,15 +175,21 @@ enum class RatkoAccuracyType(@get:JsonValue val value: String) {
     @Suppress("unused") MEASURED_GEODETICALLY("MEASURED GEODETICALLY"),
     @Suppress("unused") DIGITALIZED_AERIAL_IMAGE("DIGITIZED AERIAL IMAGE"),
     @Suppress("unused") ESTIMATED_TRACK_ADDRESS("ESTIMATED TRACKADDRESS"),
+    @Suppress("unused") PROJECTED_FROM_COORDINATES("PROJECTED FROM COORDINATES"),
 }
 
-data class RatkoPlan(
-    val id: Int?,
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class RatkoPlan
+@JsonCreator
+constructor(
+    val id: RatkoPlanId? = null,
     val name: String,
     val estimatedCompletion: String,
     val phase: RatkoPlanPhase,
     val state: RatkoPlanState,
 )
+
+data class RatkoPlanResponse(val id: RatkoPlanId)
 
 sealed class PushableLayoutBranch {
     abstract val branch: LayoutBranch
@@ -191,7 +201,17 @@ data object PushableMainBranch : PushableLayoutBranch() {
 
 data class PushableDesignBranch(override val branch: DesignBranch, val planId: RatkoPlanId) : PushableLayoutBranch()
 
-data class RatkoPlanId(val id: Int)
+data class RatkoPlanId @JsonCreator(mode = DELEGATING) constructor(@JsonValue val intValue: Int)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class RatkoPlanItem(
+    val id: RatkoPlanItemId?,
+    val planId: RatkoPlanId,
+    val realOid: Oid<*>?,
+    val state: RatkoPlanState,
+)
+
+data class RatkoPlanItemId @JsonCreator(mode = DELEGATING) constructor(@JsonValue val intValue: Int)
 
 enum class RatkoPlanPhase {
     GENERAL_PLAN,

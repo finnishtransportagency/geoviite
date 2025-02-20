@@ -251,7 +251,7 @@ private fun filter(logEntries: List<LogEntry>, regex: Regex): List<LogEntry> {
 }
 
 private fun hasEntryLevel(logEntries: List<LogEntry>, level: Level): Boolean {
-    val filtered = logEntries.filter { logEntry -> logEntry.level.equals(level) }
+    val filtered = logEntries.filter { logEntry -> logEntry.level == level }
     return filtered.isNotEmpty()
 }
 

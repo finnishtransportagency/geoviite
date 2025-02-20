@@ -34,7 +34,8 @@ import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublishedInBranch
 import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.PublishedInMain
-import fi.fta.geoviite.infra.publication.RatkoPlanItemId
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -456,37 +457,31 @@ fun <T : LayoutAsset<T>> ResultSet.getLayoutContextData(
     designIdName: String,
     draftFlagName: String,
     versionName: String,
-    cancelledName: String,
-    hasOfficialName: String,
+    designAssetStateName: String,
     originDesignIdName: String,
 ): LayoutContextData<T> {
     val designId = getIntIdOrNull<LayoutDesign>(designIdName)
     val isDraft = getBoolean(draftFlagName)
     val rowVersion = getLayoutRowVersion<T>(idName, designIdName, draftFlagName, versionName)
-    val cancelled = getBoolean(cancelledName)
-    val hasOfficial = getBoolean(hasOfficialName)
+    val designAssetState = getEnumOrNull<DesignAssetState>(designAssetStateName)
     val originBranch = getLayoutBranch(originDesignIdName)
     return if (designId != null) {
+        requireNotNull(designAssetState) { "Expected design asset state for $idName in design" }
         if (isDraft) {
             DesignDraftContextData(
                 layoutAssetId = StoredAssetId(rowVersion),
                 designId = designId,
-                cancelled = cancelled,
-                hasOfficial = hasOfficial,
+                designAssetState = designAssetState,
             )
         } else {
             DesignOfficialContextData(
                 layoutAssetId = StoredAssetId(rowVersion),
                 designId = designId,
-                cancelled = cancelled,
+                designAssetState = designAssetState,
             )
         }
     } else if (isDraft) {
-        MainDraftContextData(
-            layoutAssetId = StoredAssetId(rowVersion),
-            hasOfficial = hasOfficial,
-            originBranch = originBranch,
-        )
+        MainDraftContextData(layoutAssetId = StoredAssetId(rowVersion), originBranch = originBranch)
     } else {
         MainOfficialContextData(layoutAssetId = StoredAssetId(rowVersion))
     }

@@ -10,6 +10,7 @@ import { createTrackNumber, updateTrackNumber } from 'track-layout/layout-track-
 import {
     getSaveDisabledReasons,
     useReferenceLineStartAndEnd,
+    useTrackNumber,
     useTrackNumberReferenceLine,
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
@@ -41,7 +42,7 @@ import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { useTrackLayoutAppSelector } from 'store/hooks';
-import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
 import { UnknownAction } from 'redux';
 
 type TrackNumberEditDialogContainerProps = {
@@ -74,7 +75,11 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
         editTrackNumberId,
     );
     const editReferenceLine = useTrackNumberReferenceLine(trackNumberId, layoutContext);
-    const isNewDraft = !!editReferenceLine && !editReferenceLine.hasOfficial;
+    const hasOfficialTrackNumber = useTrackNumber(
+        trackNumberId,
+        officialLayoutContext(layoutContext),
+    );
+    const isNewDraft = !!editReferenceLine && !hasOfficialTrackNumber;
 
     if (trackNumbers !== undefined && trackNumberId === editReferenceLine?.trackNumberId) {
         return (

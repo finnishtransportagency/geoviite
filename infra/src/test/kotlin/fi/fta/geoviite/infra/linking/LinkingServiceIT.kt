@@ -257,7 +257,7 @@ constructor(
             locationTrackAndGeometry(mainOfficialContext.createLayoutTrackNumber().id, draft = true)
         val locationTrackResponse =
             locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { rowVersion ->
-                locationTrackService.publish(LayoutBranch.main, rowVersion)
+                locationTrackService.publish(LayoutBranch.main, rowVersion).published
             }
 
         val geometryInterval = GeometryInterval(alignmentId = IntId(0), mRange = Range(0.0, 0.0))
@@ -310,7 +310,7 @@ constructor(
             locationTrackAndGeometry(mainOfficialContext.createLayoutTrackNumber().id, segment1, draft = true)
         val locationTrackResponse =
             locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { rowVersion ->
-                locationTrackService.publish(LayoutBranch.main, rowVersion)
+                locationTrackService.publish(LayoutBranch.main, rowVersion).published
             }
 
         val (_, officialAlignment) = locationTrackService.getWithGeometry(locationTrackResponse)

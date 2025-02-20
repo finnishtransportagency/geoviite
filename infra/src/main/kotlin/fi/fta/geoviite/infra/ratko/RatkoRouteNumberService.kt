@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoNodeCollection
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoRouteNumber
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -48,9 +49,10 @@ constructor(
             .sortedBy { sortByDeletedStateFirst(it.first.state) }
             .map { (trackNumber, changedKmNumbers) ->
                 val externalId =
-                    getOrCreateFullExternalId(
+                    getFullExtIdAndManagePlanItem(
                         branch,
                         trackNumber.id as IntId,
+                        trackNumber.designAssetState,
                         ratkoClient,
                         trackNumberDao::fetchExternalId,
                         trackNumberDao::savePlanItemId,
@@ -58,7 +60,10 @@ constructor(
                 requireNotNull(externalId) { "OID required for track number, tn=${trackNumber.id}" }
                 try {
                     ratkoClient.getRouteNumber(RatkoOid(externalId.oid))?.let { existingRouteNumber ->
-                        if (trackNumber.state == LayoutState.DELETED) {
+                        if (
+                            trackNumber.state == LayoutState.DELETED ||
+                                trackNumber.designAssetState == DesignAssetState.CANCELLED
+                        ) {
                             deleteRouteNumber(trackNumber, externalId, existingRouteNumber)
                         } else {
                             updateRouteNumber(
@@ -71,7 +76,10 @@ constructor(
                             )
                         }
                     }
-                        ?: if (trackNumber.state != LayoutState.DELETED) {
+                        ?: if (
+                            trackNumber.state != LayoutState.DELETED &&
+                                trackNumber.designAssetState != DesignAssetState.CANCELLED
+                        ) {
                             createRouteNumber(branch.branch, trackNumber, externalId, publicationTime)
                         } else {
                             null

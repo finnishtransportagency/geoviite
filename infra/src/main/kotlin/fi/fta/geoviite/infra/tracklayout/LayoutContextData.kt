@@ -36,6 +36,10 @@ interface LayoutContextAware<T : LayoutAsset<T>> {
         get() = false
 
     @get:JsonIgnore
+    val designAssetState: DesignAssetState?
+        get() = null
+
+    @get:JsonIgnore
     val layoutContext: LayoutContext
         get() = LayoutContext.of(branch, if (isDraft) DRAFT else OFFICIAL)
 }
@@ -67,7 +71,6 @@ data class StoredAssetId<T : LayoutAsset<T>>(override val version: LayoutRowVers
 }
 
 sealed class LayoutContextData<T : LayoutAsset<T>> : LayoutContextAware<T> {
-    @get:JsonIgnore abstract val hasOfficial: Boolean
     @get:JsonIgnore abstract val layoutAssetId: LayoutAssetId<T>
 
     override val version: LayoutRowVersion<T>?
@@ -111,15 +114,13 @@ sealed class LayoutContextData<T : LayoutAsset<T>> : LayoutContextAware<T> {
                 is MainBranch ->
                     MainDraftContextData(
                         layoutAssetId = id?.let(::IdentifiedAssetId) ?: TemporaryAssetId(),
-                        hasOfficial = false,
                         originBranch = LayoutBranch.main,
                     )
                 is DesignBranch ->
                     DesignDraftContextData(
                         layoutAssetId = id?.let(::IdentifiedAssetId) ?: TemporaryAssetId(),
                         designId = branch.designId,
-                        cancelled = false,
-                        hasOfficial = false,
+                        designAssetState = DesignAssetState.OPEN,
                     )
             }
 
@@ -131,7 +132,7 @@ sealed class LayoutContextData<T : LayoutAsset<T>> : LayoutContextAware<T> {
                     DesignOfficialContextData(
                         layoutAssetId = id?.let { IdentifiedAssetId(id) } ?: TemporaryAssetId(),
                         designId = branch.designId,
-                        cancelled = false,
+                        designAssetState = DesignAssetState.OPEN,
                     )
             }
     }
@@ -141,24 +142,17 @@ sealed class MainContextData<T : LayoutAsset<T>> : LayoutContextData<T>()
 
 sealed class DesignContextData<T : LayoutAsset<T>> : LayoutContextData<T>() {
     abstract override val designId: IntId<LayoutDesign>
-    abstract val cancelled: Boolean
+    abstract override val designAssetState: DesignAssetState
 }
 
 data class MainOfficialContextData<T : LayoutAsset<T>>(override val layoutAssetId: LayoutAssetId<T>) :
     MainContextData<T>() {
-    override val hasOfficial: Boolean
-        get() = true
-
     override val isOfficial: Boolean
         get() = true
 
     fun asMainDraft(): MainDraftContextData<T> {
         val ownRowVersion = requireStoredRowVersion()
-        return MainDraftContextData(
-            layoutAssetId = EditedAssetId(ownRowVersion),
-            hasOfficial = true,
-            originBranch = LayoutBranch.main,
-        )
+        return MainDraftContextData(layoutAssetId = EditedAssetId(ownRowVersion), originBranch = LayoutBranch.main)
     }
 
     fun asDesignDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> {
@@ -166,18 +160,16 @@ data class MainOfficialContextData<T : LayoutAsset<T>>(override val layoutAssetI
         return DesignDraftContextData(
             layoutAssetId = EditedAssetId(ownRowVersion),
             designId = designId,
-            cancelled = false,
-            hasOfficial = true,
+            designAssetState = DesignAssetState.OPEN,
         )
     }
 
     fun asCancelledDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> =
-        asDesignDraft(designId).copy(cancelled = true)
+        asDesignDraft(designId).copy(designAssetState = DesignAssetState.CANCELLED)
 }
 
 data class MainDraftContextData<T : LayoutAsset<T>>(
     override val layoutAssetId: LayoutAssetId<T>,
-    override val hasOfficial: Boolean,
     override val originBranch: LayoutBranch,
 ) : MainContextData<T>() {
     override val isDraft: Boolean
@@ -192,11 +184,8 @@ data class MainDraftContextData<T : LayoutAsset<T>>(
 data class DesignOfficialContextData<T : LayoutAsset<T>>(
     override val layoutAssetId: LayoutAssetId<T>,
     override val designId: IntId<LayoutDesign>,
-    override val cancelled: Boolean,
+    override val designAssetState: DesignAssetState,
 ) : DesignContextData<T>() {
-    override val hasOfficial: Boolean
-        get() = true
-
     override val isOfficial: Boolean
         get() = true
 
@@ -204,13 +193,12 @@ data class DesignOfficialContextData<T : LayoutAsset<T>>(
         get() = true
 
     override val isCancelled: Boolean
-        get() = cancelled
+        get() = designAssetState == DesignAssetState.CANCELLED
 
     fun asMainDraft(): MainDraftContextData<T> {
         val ownRowVersion = requireStoredRowVersion()
         return MainDraftContextData(
             layoutAssetId = EditedAssetId(sourceRowVersion = ownRowVersion),
-            hasOfficial = true,
             originBranch = DesignBranch.of(designId),
         )
     }
@@ -220,19 +208,19 @@ data class DesignOfficialContextData<T : LayoutAsset<T>>(
         return DesignDraftContextData(
             layoutAssetId = EditedAssetId(ownRowVersion),
             designId = designId,
-            cancelled = cancelled,
-            hasOfficial = true,
+            designAssetState = designAssetState,
         )
     }
 
-    fun cancelled(): DesignDraftContextData<T> = asDesignDraft().copy(cancelled = true)
+    fun cancelled(): DesignDraftContextData<T> = asDesignDraft().copy(designAssetState = DesignAssetState.CANCELLED)
+
+    fun completed(): DesignDraftContextData<T> = asDesignDraft().copy(designAssetState = DesignAssetState.COMPLETED)
 }
 
 data class DesignDraftContextData<T : LayoutAsset<T>>(
     override val layoutAssetId: LayoutAssetId<T>,
     override val designId: IntId<LayoutDesign>,
-    override val cancelled: Boolean,
-    override val hasOfficial: Boolean,
+    override val designAssetState: DesignAssetState,
 ) : DesignContextData<T>() {
 
     override val isDraft: Boolean
@@ -242,14 +230,14 @@ data class DesignDraftContextData<T : LayoutAsset<T>>(
         get() = true
 
     override val isCancelled: Boolean
-        get() = cancelled
+        get() = designAssetState == DesignAssetState.CANCELLED
 
     fun asDesignOfficial(): DesignOfficialContextData<T> {
         val ownRowVersion = requireStoredRowVersion()
         return DesignOfficialContextData(
             layoutAssetId = EditedAssetId(sourceRowVersion = ownRowVersion),
             designId = designId,
-            cancelled = cancelled,
+            designAssetState = designAssetState,
         )
     }
 }
@@ -325,5 +313,13 @@ fun <T : LayoutAsset<T>> cancelled(item: T, designId: IntId<LayoutDesign>): T =
             is DesignOfficialContextData -> item.withContext(ctx.cancelled())
             is MainOfficialContextData -> item.withContext(ctx.asCancelledDraft(designId))
             else -> error("The cancellation operation is only allowed for official items")
+        }
+    }
+
+fun <T : LayoutAsset<T>> completed(item: T): T =
+    item.contextData.let { ctx ->
+        when (ctx) {
+            is DesignOfficialContextData -> item.withContext(ctx.completed())
+            else -> error("Only design-official items can be merged to main")
         }
     }

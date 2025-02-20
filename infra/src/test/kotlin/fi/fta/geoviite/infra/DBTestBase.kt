@@ -11,7 +11,7 @@ import org.springframework.transaction.support.TransactionTemplate
 
 const val TEST_USER = "TEST_USER"
 
-abstract class DBTestBase(val testUser: String = TEST_USER) {
+abstract class DBTestBase(private val testUser: String = TEST_USER) {
 
     @Autowired var testDBServiceIn: TestDBService? = null
 

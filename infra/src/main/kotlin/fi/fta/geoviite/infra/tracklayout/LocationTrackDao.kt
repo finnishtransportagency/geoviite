@@ -13,10 +13,10 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getEnum
@@ -127,7 +127,7 @@ class LocationTrackDao(
               ltv.version,
               ltv.design_id,
               ltv.draft,
-              ltv.cancelled,
+              ltv.design_asset_state,
               ltv.alignment_id,
               ltv.alignment_version,
               ltv.track_number_id, 
@@ -155,10 +155,6 @@ class LocationTrackDao(
                     and lt_s_view.location_track_version = ltv.version
                 ) as switch_ids_unnest
               ) as switch_ids,
-              exists(select * from layout.location_track official_lt
-                     where official_lt.id = ltv.id
-                       and (official_lt.design_id is null or official_lt.design_id = ltv.design_id)
-                       and not official_lt.draft) as has_official,
               ltv.origin_design_id
             from layout.location_track_version ltv
             where ltv.id = :id
@@ -187,7 +183,7 @@ class LocationTrackDao(
               lt.version,
               lt.design_id,
               lt.draft,
-              lt.cancelled,
+              lt.design_asset_state,
               lt.alignment_id,
               lt.alignment_version,
               lt.track_number_id, 
@@ -215,10 +211,6 @@ class LocationTrackDao(
                     and lt_s_view.location_track_version = lt.version
                 ) as switch_ids_unnest
               ) as switch_ids,
-              exists(select * from layout.location_track official_lt
-                     where official_lt.id = lt.id
-                       and (official_lt.design_id is null or official_lt.design_id = lt.design_id)
-                       and not official_lt.draft) as has_official,
               lt.origin_design_id
             from layout.location_track lt
         """
@@ -262,15 +254,7 @@ class LocationTrackDao(
                 },
             switchIds = rs.getIntIdArray("switch_ids"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "cancelled",
-                    "has_official",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
 
     @Transactional
@@ -292,7 +276,7 @@ class LocationTrackDao(
               type,
               state,
               draft, 
-              cancelled,
+              design_asset_state,
               design_id,
               duplicate_of_location_track_id,
               topological_connectivity,
@@ -318,7 +302,7 @@ class LocationTrackDao(
               :type::layout.track_type,
               :state::layout.location_track_state,
               :draft, 
-              :cancelled,
+              :design_asset_state::layout.design_asset_state,
               :design_id,
               :duplicate_of_location_track_id,
               :topological_connectivity::layout.track_topological_connectivity_type,
@@ -340,7 +324,7 @@ class LocationTrackDao(
               description_suffix = excluded.description_suffix,
               type = excluded.type,
               state = excluded.state,
-              cancelled = excluded.cancelled,
+              design_asset_state = excluded.design_asset_state,
               duplicate_of_location_track_id = excluded.duplicate_of_location_track_id,
               topological_connectivity = excluded.topological_connectivity,
               topology_start_switch_id = excluded.topology_start_switch_id,
@@ -370,7 +354,7 @@ class LocationTrackDao(
                 "type" to item.type.name,
                 "state" to item.state.name,
                 "draft" to item.isDraft,
-                "cancelled" to item.isCancelled,
+                "design_asset_state" to item.designAssetState?.name,
                 "design_id" to item.contextData.designId?.intValue,
                 "duplicate_of_location_track_id" to item.duplicateOf?.intValue,
                 "topological_connectivity" to item.topologicalConnectivity.name,
@@ -449,7 +433,7 @@ class LocationTrackDao(
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
-                "names" to names.map { name -> name.toString().lowercase() }.joinToString(","),
+                "names" to names.joinToString(",") { name -> name.toString().lowercase() },
             )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getLayoutRowVersion("id", "design_id", "draft", "version")

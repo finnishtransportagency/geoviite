@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
-import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
@@ -131,7 +130,7 @@ constructor(
 
     @Test
     fun `Validating official switch should work`() {
-        val switchId = switchDao.save(switch(draft = false, stateCategory = EXISTING)).id
+        val switchId = switchDao.save(switch(draft = false, stateCategory = LayoutStateCategory.EXISTING)).id
 
         val validation =
             publicationValidationService.validateSwitches(
@@ -434,7 +433,7 @@ constructor(
         val switchId =
             switchDao
                 .save(
-                    switch(name = "TV123", structureId = switchStructureYV60_300_1_9().id as IntId, draft = false)
+                    switch(name = "TV123", structureId = switchStructureYV60_300_1_9().id, draft = false)
                         .copy(stateCategory = LayoutStateCategory.EXISTING)
                 )
                 .id
@@ -527,7 +526,7 @@ constructor(
                                     locationAccuracy = null,
                                 )
                             ),
-                        structureId = switchStructureYV60_300_1_9().id as IntId,
+                        structureId = switchStructureYV60_300_1_9().id,
                         stateCategory = LayoutStateCategory.EXISTING,
                         draft = false,
                     )
@@ -924,7 +923,7 @@ constructor(
                             switchStructureDao
                                 .fetchSwitchStructures()
                                 .find { ss -> ss.type.typeName == "KRV43-233-1:9" }!!
-                                .id as IntId,
+                                .id,
                         stateCategory = LayoutStateCategory.EXISTING,
                         draft = true,
                     ),

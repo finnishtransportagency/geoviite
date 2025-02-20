@@ -326,11 +326,37 @@ data class PublicationRequestIds(
             (switches.toSet() + other.switches).toList(),
             (kmPosts.toSet() + other.kmPosts).toList(),
         )
+
+    fun isEmpty() =
+        trackNumbers.isEmpty() &&
+            locationTracks.isEmpty() &&
+            referenceLines.isEmpty() &&
+            switches.isEmpty() &&
+            kmPosts.isEmpty()
 }
 
 data class PublicationRequest(val content: PublicationRequestIds, val message: FreeTextWithNewLines)
 
 data class PublicationResult(
+    val publicationId: IntId<Publication>?,
+    val trackNumbers: List<PublicationResultVersions<LayoutTrackNumber>>,
+    val referenceLines: List<PublicationResultVersions<ReferenceLine>>,
+    val locationTracks: List<PublicationResultVersions<LocationTrack>>,
+    val switches: List<PublicationResultVersions<LayoutSwitch>>,
+    val kmPosts: List<PublicationResultVersions<LayoutKmPost>>,
+) {
+    fun summarize() =
+        PublicationResultSummary(
+            publicationId,
+            trackNumbers = trackNumbers.size,
+            referenceLines = referenceLines.size,
+            locationTracks = locationTracks.size,
+            switches = switches.size,
+            kmPosts = kmPosts.size,
+        )
+}
+
+data class PublicationResultSummary(
     val publicationId: IntId<Publication>?,
     val trackNumbers: Int,
     val locationTracks: Int,
@@ -365,10 +391,13 @@ interface PublicationCandidate<T : LayoutAsset<T>> {
     val issues: List<LayoutValidationIssue>
     val operation: Operation?
     val publicationGroup: PublicationGroup?
-    val cancelled: Boolean
+    val designAssetState: DesignAssetState?
 
     val id: IntId<T>
         get() = rowVersion.id
+
+    val cancelled: Boolean
+        get() = designAssetState == DesignAssetState.CANCELLED
 
     fun getPublicationVersion() = rowVersion
 }
@@ -381,7 +410,7 @@ data class TrackNumberPublicationCandidate(
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
-    override val cancelled: Boolean,
+    override val designAssetState: DesignAssetState?,
     val boundingBox: BoundingBox?,
 ) : PublicationCandidate<LayoutTrackNumber> {
     override val type = DraftChangeType.TRACK_NUMBER
@@ -396,7 +425,7 @@ data class ReferenceLinePublicationCandidate(
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation?,
     override val publicationGroup: PublicationGroup? = null,
-    override val cancelled: Boolean,
+    override val designAssetState: DesignAssetState?,
     val boundingBox: BoundingBox?,
     val geometryChanges: GeometryChangeRanges?,
 ) : PublicationCandidate<ReferenceLine> {
@@ -413,7 +442,7 @@ data class LocationTrackPublicationCandidate(
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
-    override val cancelled: Boolean,
+    override val designAssetState: DesignAssetState?,
     val boundingBox: BoundingBox?,
     val geometryChanges: GeometryChangeRanges?,
 ) : PublicationCandidate<LocationTrack> {
@@ -429,7 +458,7 @@ data class SwitchPublicationCandidate(
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
-    override val cancelled: Boolean,
+    override val designAssetState: DesignAssetState?,
     val location: Point?,
 ) : PublicationCandidate<LayoutSwitch> {
     override val type = DraftChangeType.SWITCH
@@ -444,7 +473,7 @@ data class KmPostPublicationCandidate(
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
-    override val cancelled: Boolean,
+    override val designAssetState: DesignAssetState?,
     val location: Point?,
 ) : PublicationCandidate<LayoutKmPost> {
     override val type = DraftChangeType.KM_POST
@@ -677,4 +706,7 @@ data class PreparedPublicationRequest(
     val cause: PublicationCause,
 )
 
-data class RatkoPlanItemId(val id: Int)
+data class PublicationResultVersions<T : LayoutAsset<T>>(
+    val published: LayoutRowVersion<T>,
+    val completed: Pair<DesignBranch, LayoutRowVersion<T>>?,
+)

@@ -51,6 +51,7 @@ export const LocationTrackTaskListContainer: React.FC = () => {
         }
 
         delegates.onSelect({ switches: [layoutSwitch.id] });
+        delegates.setToolPanelTab({ id: layoutSwitch.id, type: 'SWITCH' });
     };
 
     const onClose = () => {

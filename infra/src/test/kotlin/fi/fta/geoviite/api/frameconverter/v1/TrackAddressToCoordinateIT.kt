@@ -731,9 +731,9 @@ constructor(
 
         val properties = featureCollection.features[0].properties!!
 
-        assertEquals(400.0, properties.get("x"))
-        assertEquals(0.0, properties.get("y"))
-        assertEquals(0.0, properties.get("valimatka"))
+        assertEquals(400.0, properties["x"])
+        assertEquals(0.0, properties["y"])
+        assertEquals(0.0, properties["valimatka"])
 
         assertNullDetailedProperties(properties)
     }

@@ -223,7 +223,7 @@ class ValidationTest {
     private fun createSwitch(structure: SwitchStructure, locationOffset: Point, angle: Double) =
         GeometrySwitch(
             name = SwitchName("T001"),
-            switchStructureId = structure.id as IntId,
+            switchStructureId = structure.id,
             typeName = GeometrySwitchTypeName(structure.type.typeName),
             state = PlanState.PROPOSED,
             joints =

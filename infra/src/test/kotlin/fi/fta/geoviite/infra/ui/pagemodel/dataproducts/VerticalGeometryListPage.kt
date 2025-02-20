@@ -109,12 +109,8 @@ abstract class E2EDataProductVerticalGeometryListItem(
     )
 }
 
-class E2EDataProductLayoutVerticalGeometryListItem(
-    private val columns: List<WebElement>,
-    private val headers: List<WebElement>,
-) : E2EDataProductVerticalGeometryListItem(columns, headers)
+class E2EDataProductLayoutVerticalGeometryListItem(columns: List<WebElement>, headers: List<WebElement>) :
+    E2EDataProductVerticalGeometryListItem(columns, headers)
 
-class E2EDataProductPlanVerticalGeometryListItem(
-    private val columns: List<WebElement>,
-    private val headers: List<WebElement>,
-) : E2EDataProductVerticalGeometryListItem(columns, headers)
+class E2EDataProductPlanVerticalGeometryListItem(columns: List<WebElement>, headers: List<WebElement>) :
+    E2EDataProductVerticalGeometryListItem(columns, headers)

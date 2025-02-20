@@ -181,7 +181,7 @@ constructor(
         val (updatedLocationTrack, updatedGeometry) =
             removeTopologySwitchesFromLocationTrackAndUpdate(locationTrack1, geometry1, locationTrackService).let {
                 version ->
-                val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
+                val publishedVersion = locationTrackService.publish(LayoutBranch.main, version).published
                 locationTrackService.getWithGeometry(publishedVersion)
             }
 
@@ -249,7 +249,7 @@ constructor(
         val (updatedLocationTrack, updatedGeometry) =
             removeTopologySwitchesFromLocationTrackAndUpdate(locationTrack1, alignment1, locationTrackService).let {
                 version ->
-                val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
+                val publishedVersion = locationTrackService.publish(LayoutBranch.main, version).published
                 locationTrackService.getWithGeometry(publishedVersion)
             }
 
@@ -389,7 +389,7 @@ constructor(
                     locationTrackService = locationTrackService,
                 )
                 .let { version ->
-                    val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
+                    val publishedVersion = locationTrackService.publish(LayoutBranch.main, version).published
                     locationTrackService.getWithGeometry(publishedVersion)
                 }
 
@@ -1452,7 +1452,7 @@ constructor(
                 val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
                 val (edited, editedGeometry) = locationTrackService.getWithGeometry(rowVersion)
                 if (edited.isDraft) {
-                    val publicationResponse = locationTrackService.publish(LayoutBranch.main, rowVersion)
+                    val publicationResponse = locationTrackService.publish(LayoutBranch.main, rowVersion).published
                     locationTrackService.getWithGeometry(publicationResponse)
                 } else {
                     edited to editedGeometry
@@ -1464,7 +1464,7 @@ constructor(
                 val rowVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
                 val edited = switchDao.fetch(rowVersion)
                 if (edited.isDraft) {
-                    val publicationResponse = switchService.publish(LayoutBranch.main, rowVersion)
+                    val publicationResponse = switchService.publish(LayoutBranch.main, rowVersion).published
                     switchDao.fetch(publicationResponse)
                 } else {
                     edited

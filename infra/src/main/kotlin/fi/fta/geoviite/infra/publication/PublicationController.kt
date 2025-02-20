@@ -97,7 +97,7 @@ constructor(
     fun revertPublicationCandidates(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody toDelete: PublicationRequestIds,
-    ): PublicationResult {
+    ): PublicationResultSummary {
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.revertPublicationCandidates(branch, toDelete)
         }
@@ -136,7 +136,7 @@ constructor(
     fun mergeChangesToMain(
         @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
         @RequestBody request: PublicationRequestIds,
-    ): PublicationResult {
+    ): PublicationResultSummary {
         return publicationService.mergeChangesToMain(branch, request)
     }
 
