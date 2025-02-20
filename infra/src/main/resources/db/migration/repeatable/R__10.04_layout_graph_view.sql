@@ -17,15 +17,61 @@ drop view if exists layout.location_track_version_node_view;
 --   ) tmp
 --   where node_id is not null;
 
+-- create view layout.location_track_version_switch_view_orig as
+-- select
+--   distinct on (
+--     location_track_id,
+--     location_track_layout_context_id,
+--     location_track_version,
+--     switch_id,
+--     switch_joint_number
+--     )
+--   ltve.location_track_id,
+--   ltve.location_track_layout_context_id,
+--   ltve.location_track_version,
+--   np.switch_id,
+--   np.switch_joint_number,
+--   np.switch_joint_role,
+--   -- Generate a sortable ordering for the links, based on how they connect to the edge
+--   -- Note: the following edge will likely have share a node (and hence 2 links) so the distinct above is required
+--   -- However, it does not matter which edge's version of the ordering number gets picked, it's still in the same place
+--   case
+--     when np.node_id = edge.start_node_id and np.port <> edge.start_node_port then 4 * ltve.edge_index
+--     when np.node_id = edge.start_node_id and np.port = edge.start_node_port then 4 * ltve.edge_index + 1
+--     when np.node_id = edge.end_node_id and np.port = edge.end_node_port then 4 * ltve.edge_index + 2
+--     when np.node_id = edge.end_node_id and np.port <> edge.end_node_port then 4 * ltve.edge_index + 3
+--   end as switch_sort
+--   from layout.location_track_version_edge ltve
+--     inner join layout.edge edge on ltve.edge_id = edge.id
+--     inner join layout.node_port np on np.node_id in (edge.start_node_id, edge.end_node_id)
+--   where switch_id is not null;
+-- --     and location_track_id = 1923
+-- --     and location_track_layout_context_id = 'main_draft'
+-- --     and location_track_version = 21;
+--
+--
+-- create view layout.location_track_version_switch_view_rev as
+-- with
+--   switch_edge as (
+--     select node_port.switch_id, edge.id as edge_id
+--       from layout.node_port
+--         inner join layout.edge on node_port.node_id = edge.end_node_id or node_port.port = edge.end_node_port
+--       where node_port.switch_id is not null
+--   )
+-- select distinct
+--   ltve.location_track_id,
+--   ltve.location_track_layout_context_id,
+--   ltve.location_track_version,
+--   np.switch_id
+-- from layout.location_track_version_edge ltve
+--   inner join layout.edge on ltve.edge_id = edge.id
+--   inner join layout.node_port np on np.node_id = edge.end_node_id or np.port = edge.end_node_port
+-- where np.switch_id is not null;
+-- ;
+
 create view layout.location_track_version_switch_view as
 select
-  distinct on (
-    location_track_id,
-    location_track_layout_context_id,
-    location_track_version,
-    switch_id,
-    switch_joint_number
-    )
+  distinct
   ltve.location_track_id,
   ltve.location_track_layout_context_id,
   ltve.location_track_version,
@@ -41,13 +87,64 @@ select
     when np.node_id = edge.end_node_id and np.port = edge.end_node_port then 4 * ltve.edge_index + 2
     when np.node_id = edge.end_node_id and np.port <> edge.end_node_port then 4 * ltve.edge_index + 3
   end as switch_sort
-  from layout.location_track_version_edge ltve
-    inner join layout.edge edge on ltve.edge_id = edge.id
-    inner join layout.node_port np on np.node_id in (edge.start_node_id, edge.end_node_id)
-  where switch_id is not null
-    and location_track_id = 1923
-    and location_track_layout_context_id = 'main_draft'
-    and location_track_version = 21;
+  from layout.node_port np
+    inner join layout.edge edge on np.node_id in (edge.start_node_id, edge.end_node_id)
+    inner join layout.location_track_version_edge ltve on ltve.edge_id = edge.id
+  where np.switch_id is not null
+    and (np.node_id = edge.end_node_id or ltve.edge_index = 0)
+  ;
+-- --
+-- --     and location_track_layout_context_id = 'main_draft'
+-- --     and location_track_version = 21;
+--
+-- create view layout.location_track_version_switch_view as
+-- select
+-- --   distinct on (
+-- --     location_track_id,
+-- --     location_track_layout_context_id,
+-- --     location_track_version,
+-- --     switch_id,
+-- --     switch_joint_number
+-- --     )
+--   ltve.location_track_id,
+--   ltve.location_track_layout_context_id,
+--   ltve.location_track_version,
+--   np.switch_id,
+--   np.switch_joint_number,
+--   np.switch_joint_role,
+--   -- Generate a sortable ordering for the links, based on how they connect to the edge
+--   -- Note: the following edge will likely have share a node (and hence 2 links) so the distinct above is required
+--   -- However, it does not matter which edge's version of the ordering number gets picked, it's still in the same place
+--   case
+--     when np.node_id = edge.start_node_id and np.port <> edge.start_node_port then 4 * ltve.edge_index
+--     when np.node_id = edge.start_node_id and np.port = edge.start_node_port then 4 * ltve.edge_index + 1
+--     when np.node_id = edge.end_node_id and np.port = edge.end_node_port then 4 * ltve.edge_index + 2
+--     when np.node_id = edge.end_node_id and np.port <> edge.end_node_port then 4 * ltve.edge_index + 3
+--   end as switch_sort
+--   from layout.location_track_version_edge ltve
+--     inner join layout.edge edge on ltve.edge_id = edge.id
+--     inner join layout.node_port np on np.node_id in (edge.start_node_id, edge.end_node_id)
+--   where switch_id is not null;
+-- --     and location_track_id = 1923
+-- --     and location_track_layout_context_id = 'main_draft'
+-- --     and location_track_version = 21;
+--
+-- select count(*) from layout.location_track_version_switch_view_orig;
+-- select count(*) from layout.location_track_version_switch_view;
+--
+-- select distinct on (ltv_s.location_track_id, ltv_s.switch_id)
+--   ltv_s.location_track_id,
+--   ltv_s.location_track_layout_context_id,
+--   ltv_s.location_track_version,
+--   ltv_s.switch_id,
+--   lt.id
+-- --   from layout.location_track_version_switch_view ltv_s
+--   from layout.location_track_version_switch_view_orig ltv_s
+--     inner join layout.location_track lt
+-- --   left join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+--                on ltv_s.location_track_id = lt.id
+--                  and ltv_s.location_track_layout_context_id = lt.layout_context_id
+--                  and ltv_s.location_track_version = lt.version;
 
 -- create view layout.location_track_version_switch_view as
 -- select distinct on (location_track_id, location_track_layout_context_id, location_track_version, switch_id)

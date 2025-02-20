@@ -471,35 +471,21 @@ class LayoutSwitchDao(
         // TODO: GVT-2932 Especially since there is a group of new joins to get the metadata
         val sql =
             """
-                with 
-                  track_nodes as (
-                    select node.switch_1_id, node.switch_2_id, location_track
-                      from layout.location_track
-                        join layout.location_track_version_edge lt_edge
-                            on lt_edge.location_track_id = location_track.id
-                           and lt_edge.location_track_version = location_track.version
-                        join layout.edge on lt_edge.edge_id = edge.id
-                        join layout.node on node.id = edge.start_node_id or node.id = edge.end_node_id
-                      where node.switch_1_id = any (array [:switch_ids])
-                         or node.switch_2_id = any (array [:switch_ids])
-                  )
-                  select distinct on (switch_id, (location_track).id)
-                    switch_id,
-                    (location_track).id,
-                    (location_track).design_id,
-                    (location_track).draft,
-                    (location_track).version,
-                    external_id
-                    from (
-                      select switch_1_id as switch_id, location_track from track_nodes where switch_1_id = any (array [:switch_ids])
-                      union all 
-                      select switch_2_id as switch_id, location_track from track_nodes where switch_2_id = any (array [:switch_ids])
-                    ) track
-                    cross join lateral layout.location_track_is_in_layout_context(:publication_state::layout.publication_state,
-                                                                                  :design_id, location_track)
-                    left join layout.location_track_external_id ext_id
-                      on (location_track).id = ext_id.id
-                        and ext_id.layout_context_id = layout.layout_context_id(:design_id, false);
+            select distinct on (ltv_s.location_track_id, ltv_s.switch_id)
+              lt.id,
+              lt.layout_context_id,
+              lt.version,
+              ltv_s.switch_id,
+              ext_id.external_id
+              from layout.location_track_version_switch_view ltv_s
+                inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+                           on ltv_s.location_track_id = lt.id
+                             and ltv_s.location_track_layout_context_id = lt.layout_context_id
+                             and ltv_s.location_track_version = lt.version
+                left join layout.location_track_external_id ext_id
+                          on (ltv_s).location_track_id = ext_id.id
+                            and ext_id.layout_context_id = ltv_s.location_track_layout_context_id
+              where ltv_s.switch_id in (:switch_ids);
             """
                 .trimIndent()
         val params =
@@ -512,7 +498,7 @@ class LayoutSwitchDao(
             .query(sql, params) { rs, _ ->
                 rs.getIntId<LayoutSwitch>("switch_id") to
                     LocationTrackIdentifiers(
-                        rowVersion = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+                        rowVersion = rs.getLayoutRowVersion("id", "layout_context_id", "version"),
                         externalId = rs.getOidOrNull("external_id"),
                     )
             }

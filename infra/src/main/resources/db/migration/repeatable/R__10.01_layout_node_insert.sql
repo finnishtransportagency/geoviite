@@ -23,7 +23,7 @@ begin
       'Node type is inconclusive due to conflicting content: switch_ids=% boundary_track_ids=% type=%', switch_ids, boundary_track_ids, node_type;
   end if;
   -- Node contents must be in a consistent order for correct port resolution
-  if array [switch_ids[1], switch_joint_numbers[1], boundary_track_ids[1]] >=
+  if array [switch_ids[1], switch_joint_numbers[1], boundary_track_ids[1]] >
      array [switch_ids[2], switch_joint_numbers[2], boundary_track_ids[2]]
   then
     raise exception
@@ -51,7 +51,8 @@ begin
         unnest(boundary_track_ids) as boundary_location_track_id,
         unnest(boundary_types)::layout.boundary_type as boundary_type
     ) tmp
-    where switch_id is not null or boundary_location_track_id is not null;
+    -- For switches, both ports must be linkable, even if B has no switch-joint
+    where node_type = 'SWITCH' or boundary_location_track_id is not null;
   alter table port_tmp
     add primary key (port),
     alter column port set not null,

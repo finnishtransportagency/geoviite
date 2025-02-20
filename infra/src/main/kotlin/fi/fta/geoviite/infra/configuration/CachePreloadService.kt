@@ -17,11 +17,15 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 
 @GeoviiteService
 class CachePreloadService(
+    @Value("\${geoviite.cache.tasks.preload.geocoding-contexts}") private val preloadGeocodingContexts: Boolean,
+    @Value("\${geoviite.cache.tasks.preload.plan-headers}") private val preloadPlanHeaders: Boolean,
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val layoutKmPostDao: LayoutKmPostDao,
     private val switchDao: LayoutSwitchDao,
@@ -34,6 +38,31 @@ class CachePreloadService(
     private val locationTrackSpatialCache: LocationTrackSpatialCache,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+    private val preloadInProgressInternal: AtomicBoolean = AtomicBoolean(false)
+
+    fun preload() {
+        val startTime = System.currentTimeMillis()
+        preloadInProgressInternal.set(true)
+        try {
+            logger.info(
+                "Preloading caches: geocodingContexts=$preloadGeocodingContexts planHeaders=$preloadPlanHeaders"
+            )
+            // First stage caches that can be loaded in parallel
+            listOf({ loadAlignmentCache() }, { loadLayoutCache() }, { if (preloadPlanHeaders) loadPlanHeaderCache() })
+                .parallelStream()
+                .forEach { preload -> preload() }
+            // Second stage caches that use the first stage and need to be loaded after them
+            listOf({ loadLocationTrackSpatialCache() }, { if (preloadGeocodingContexts) loadGeocodingContextCache() })
+                .parallelStream()
+                .forEach { preload -> preload() }
+            logger.info("Preloading caches done: duration=${System.currentTimeMillis() - startTime}ms")
+        } finally {
+            preloadInProgressInternal.set(false)
+        }
+    }
+
+    val preloadInProgress: Boolean
+        get() = preloadInProgressInternal.get()
 
     fun loadLayoutCache() {
         listOf(layoutTrackNumberDao, referenceLineDao, locationTrackDao, switchDao, layoutKmPostDao)

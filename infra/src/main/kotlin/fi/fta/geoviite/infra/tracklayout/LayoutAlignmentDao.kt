@@ -80,9 +80,9 @@ class LayoutAlignmentDao(
     private fun fetchNodes(id: IntId<LayoutNode>?): List<DbLayoutNode> {
         val sql =
             """
-            select 
-              node.id,
-              node.type,
+            select
+              port_a.node_id,
+              port_a.node_type,
               port_a.switch_id as a_switch_id,
               port_a.switch_joint_number as a_switch_joint_number,
               port_a.switch_joint_role as a_switch_joint_role,
@@ -93,10 +93,10 @@ class LayoutAlignmentDao(
               port_b.switch_joint_role as b_switch_joint_role,
               port_b.boundary_location_track_id as b_boundary_location_track_id,
               port_b.boundary_type as b_boundary_type
-            from layout.node 
-              left join layout.node_port port_a on node.id = port_a.node_id and port_a.port = 'A'
-              left join layout.node_port port_b on node.id = port_a.node_id and port_a.port = 'B'
-            where (:id::int is null or node.id = :id)
+              from layout.node_port port_a
+                left join layout.node_port port_b on port_a.node_id = port_b.node_id and port_b.port = 'B'
+            where port_a.port = 'A'
+              and (:id::int is null or port_a.node_id = :id)
         """
                 .trimIndent()
         val params = mapOf("id" to id?.intValue)
@@ -116,8 +116,8 @@ class LayoutAlignmentDao(
             }
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            val dbId = rs.getIntId<LayoutNode>("id")
-            val type = rs.getEnum<LayoutNodeType>("type")
+            val dbId = rs.getIntId<LayoutNode>("node_id")
+            val type = rs.getEnum<LayoutNodeType>("node_type")
             when (type) {
                 LayoutNodeType.TRACK_BOUNDARY ->
                     DbTrackBoundaryNode(
@@ -518,7 +518,7 @@ class LayoutAlignmentDao(
         val alignmentAndSegment =
             jdbcTemplate.query(sql) { rs, _ ->
                 val alignmentData = AlignmentData(version = rs.getRowVersion("id", "version"))
-                val segmentId = rs.getIndexedIdOrNull<LayoutSegment>("alignment_id", "segment_index")
+                val segmentId = rs.getIndexedIdOrNull<LayoutSegment>("id", "segment_index")
                 val segment =
                     segmentId?.let { sId ->
                         SegmentData(

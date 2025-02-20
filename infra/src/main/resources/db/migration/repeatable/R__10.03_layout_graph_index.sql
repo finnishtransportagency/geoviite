@@ -15,3 +15,6 @@ create index edge_end_node_ix on layout.edge (end_node_id, end_node_port);
 
 drop index if exists layout.node_port_switch_ix;
 create index node_port_switch_ix on layout.node_port (switch_id, switch_joint_number);
+
+drop index if exists layout.node_port_node_type_ix;
+create index node_port_node_type_ix on layout.node_port (node_id, node_type);

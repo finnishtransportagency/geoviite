@@ -28,12 +28,12 @@ import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersionOrNull
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -147,12 +147,13 @@ class LocationTrackDao(
               ltv.topology_end_switch_joint_number,
               ltv.owner_id,
               (
-                select
-                  array_agg(lt_s_view.switch_id order by lt_s_view.switch_sort)
+              select array_agg(switch_id order by switch_sort) from (
+                select distinct on (lt_s_view.switch_id) lt_s_view.switch_id, lt_s_view.switch_sort
                   from layout.location_track_version_switch_view lt_s_view
                   where lt_s_view.location_track_id = ltv.id
                     and lt_s_view.location_track_layout_context_id = ltv.layout_context_id
                     and lt_s_view.location_track_version = ltv.version
+                ) as switch_ids_unnest
               ) as switch_ids,
               exists(select * from layout.location_track official_lt
                      where official_lt.id = ltv.id
@@ -206,12 +207,13 @@ class LocationTrackDao(
               lt.topology_end_switch_joint_number,
               lt.owner_id,
               (
-                select
-                  array_agg(lt_s_view.switch_id order by lt_s_view.switch_sort)
+              select array_agg(switch_id order by switch_sort) from (
+                select distinct on (lt_s_view.switch_id) lt_s_view.switch_id, lt_s_view.switch_sort
                   from layout.location_track_version_switch_view lt_s_view
                   where lt_s_view.location_track_id = lt.id
                     and lt_s_view.location_track_layout_context_id = lt.layout_context_id
                     and lt_s_view.location_track_version = lt.version
+                ) as switch_ids_unnest
               ) as switch_ids,
               exists(select * from layout.location_track official_lt
                      where official_lt.id = lt.id
