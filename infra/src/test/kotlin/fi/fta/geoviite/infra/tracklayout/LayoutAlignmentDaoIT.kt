@@ -19,13 +19,10 @@ import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_END
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_START
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MATH
 import fi.fta.geoviite.infra.util.getIntId
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -36,6 +33,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -345,14 +343,14 @@ constructor(
             trackGeometry(
                 edgesBetweenNodes(
                     listOf(
-                        LayoutNodeTemp(TRACK_START),
-                        LayoutNodeSwitch(null, SwitchLink(switch1Id, MAIN, JointNumber(1))),
-                        LayoutNodeSwitch(
+                        EdgeNode.placeHolder,
+                        EdgeNode.switch(null, SwitchLink(switch1Id, MAIN, JointNumber(1))),
+                        EdgeNode.switch(
                             SwitchLink(switch1Id, CONNECTION, JointNumber(2)),
                             SwitchLink(switch2Id, MAIN, JointNumber(1)),
                         ),
-                        LayoutNodeSwitch(SwitchLink(switch2Id, CONNECTION, JointNumber(2)), null),
-                        LayoutNodeTemp(TRACK_END),
+                        EdgeNode.switch(SwitchLink(switch2Id, CONNECTION, JointNumber(2)), null),
+                        EdgeNode.placeHolder,
                     ),
                     edgeLength = 100.0,
                     edgeSegments = 3,
@@ -367,15 +365,15 @@ constructor(
             trackGeometry(
                 edgesBetweenNodes(
                     listOf(
-                        LayoutNodeSwitch(
+                        EdgeNode.switch(
                             SwitchLink(switch2Id, MAIN, JointNumber(1)),
                             SwitchLink(switch1Id, MAIN, JointNumber(1)),
                         ),
-                        LayoutNodeSwitch(
+                        EdgeNode.switch(
                             SwitchLink(switch1Id, MATH, JointNumber(5)),
                             SwitchLink(switch1Id, MATH, JointNumber(5)),
                         ),
-                        LayoutNodeSwitch(
+                        EdgeNode.switch(
                             SwitchLink(switch1Id, CONNECTION, JointNumber(2)),
                             SwitchLink(switch3Id, CONNECTION, JointNumber(2)),
                         ),
@@ -391,10 +389,10 @@ constructor(
     }
 
     fun edgesBetweenNodes(
-        nodes: List<LayoutNodeContent> = listOf(LayoutNodeTemp(TRACK_START), LayoutNodeTemp(TRACK_END)),
+        nodes: List<EdgeNode> = listOf(EdgeNode.placeHolder, EdgeNode.placeHolder),
         edgeLength: Double = 10.0,
         edgeSegments: Int = 1,
-    ): List<LayoutEdgeContent> =
+    ): List<TmpLayoutEdge> =
         nodes.zipWithNext().mapIndexed { edgeIndex, (startNode, endNode) ->
             val segmentLength = edgeLength / edgeSegments
             val segments =
@@ -406,7 +404,7 @@ constructor(
                     val endPoint = startPoint + Point(segmentLength, 0.0)
                     segment(startPoint, endPoint)
                 }
-            LayoutEdgeContent(startNode, endNode, segments)
+            TmpLayoutEdge(startNode, endNode, segments)
         }
 
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20): LayoutAlignment =

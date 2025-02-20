@@ -21,11 +21,11 @@ import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getTrackNumber
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
@@ -35,7 +35,7 @@ class LayoutTrackNumberDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<LayoutTrackNumber, Unit>(
+    LayoutAssetDao<LayoutTrackNumber, NoParams>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER,
         cacheEnabled,
@@ -47,7 +47,7 @@ class LayoutTrackNumberDao(
         "layout.track_number_external_id",
     ) {
 
-    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>) = Unit
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>) = NoParams.instance
 
     override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
         fetchVersions(layoutContext, includeDeleted, null)
@@ -174,10 +174,11 @@ class LayoutTrackNumberDao(
                 ),
         )
 
-    @Transactional fun save(item: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> = save(item, Unit)
+    @Transactional
+    fun save(item: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> = save(item, NoParams.instance)
 
     @Transactional
-    override fun save(item: LayoutTrackNumber, saveParams: Unit): LayoutRowVersion<LayoutTrackNumber> {
+    override fun save(item: LayoutTrackNumber, params: NoParams): LayoutRowVersion<LayoutTrackNumber> {
         val id = item.id as? IntId ?: createId()
 
         // language=sql

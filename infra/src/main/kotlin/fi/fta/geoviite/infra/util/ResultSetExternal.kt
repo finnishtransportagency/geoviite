@@ -163,7 +163,7 @@ fun ResultSet.getPointOrNull(nameX: String, nameY: String): Point? {
 }
 
 inline fun <reified T : Enum<T>> ResultSet.getEnum(name: String): T {
-    return getEnumOrNull<T>(name) ?: error("Enum value does not exist in result set")
+    return getEnumOrNull<T>(name) ?: error("Enum value does not exist in result set: name=$name")
 }
 
 inline fun <reified T : Enum<T>> ResultSet.getEnumOrNull(name: String): T? {

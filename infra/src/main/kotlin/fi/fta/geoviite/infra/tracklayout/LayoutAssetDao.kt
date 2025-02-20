@@ -33,6 +33,14 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
+// The Kotlin thing to do would be to just use Unit, but for some reason, the overriden functions returning Unit end up
+// giving null to the caller. Not sure why, but perhaps due to reflection shenanigans done by Spring.
+class NoParams private constructor() {
+    companion object {
+        val instance = NoParams()
+    }
+}
+
 interface LayoutAssetWriter<T : LayoutAsset<T>, SaveParams> {
     fun createId(): IntId<T>
 

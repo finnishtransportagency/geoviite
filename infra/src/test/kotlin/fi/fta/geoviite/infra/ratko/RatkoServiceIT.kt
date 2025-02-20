@@ -49,17 +49,15 @@ import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.tracklayout.DesignState
+import fi.fta.geoviite.infra.tracklayout.EdgeNode
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignName
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignSaveRequest
-import fi.fta.geoviite.infra.tracklayout.LayoutEdgeContent
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeEndTrack
-import fi.fta.geoviite.infra.tracklayout.LayoutNodeStartTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
@@ -77,7 +75,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -1571,9 +1572,9 @@ constructor(
         val deSwitchedGeometry =
             TmpLocationTrackGeometry(
                 listOf(
-                    LayoutEdgeContent(
-                        startNode = LayoutNodeStartTrack(locationTrackVersion.id),
-                        endNode = LayoutNodeEndTrack(locationTrackVersion.id),
+                    TmpLayoutEdge(
+                        startNode = EdgeNode.trackBoundary(locationTrackVersion.id, START),
+                        endNode = EdgeNode.trackBoundary(locationTrackVersion.id, END),
                         segments = geometry.segments,
                     )
                 )

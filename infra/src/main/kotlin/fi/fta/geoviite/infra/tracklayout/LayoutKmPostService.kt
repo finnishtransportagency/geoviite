@@ -18,7 +18,7 @@ class LayoutKmPostService(
     dao: LayoutKmPostDao,
     private val referenceLineService: ReferenceLineService,
     private val geometryDao: GeometryDao,
-) : LayoutAssetService<LayoutKmPost, Unit, LayoutKmPostDao>(dao) {
+) : LayoutAssetService<LayoutKmPost, NoParams, LayoutKmPostDao>(dao) {
 
     @Transactional
     fun insertKmPost(branch: LayoutBranch, request: LayoutKmPostSaveRequest): IntId<LayoutKmPost> {
@@ -126,7 +126,7 @@ class LayoutKmPostService(
 
     @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutKmPost): LayoutRowVersion<LayoutKmPost> =
-        saveDraftInternal(branch, draftAsset, Unit)
+        saveDraftInternal(branch, draftAsset, NoParams.instance)
 }
 
 fun associateByDistance(kmPost: LayoutKmPost, comparisonPoint: Point): Pair<LayoutKmPost, Double?> =

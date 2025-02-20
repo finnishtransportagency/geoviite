@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -31,6 +30,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -56,7 +56,7 @@ constructor(
     }
 
     @Test
-    fun creatingAndDeletingUnpublishedTrackWithAlignmentWorks() {
+    fun `Creating and deleting unpublished track with geometry works`() {
         val (track, geometry) =
             locationTrackAndGeometry(mainDraftContext.createLayoutTrackNumber().id, someSegment(), draft = true)
         val version = locationTrackService.saveDraft(LayoutBranch.main, track, geometry)
@@ -66,7 +66,6 @@ constructor(
         assertFalse(savedGeometry.isEmpty)
         val deletedVersion = locationTrackService.deleteDraft(LayoutBranch.main, id)
         assertEquals(version, deletedVersion)
-        assertTrue(alignmentDao.fetch(deletedVersion).isEmpty)
     }
 
     @Test
@@ -132,7 +131,7 @@ constructor(
     }
 
     @Test
-    fun savingCreatesDraft() {
+    fun `Saving creates draft`() {
         val (publicationResponse, published) = createPublishedLocationTrack(1)
 
         val editedVersion =
@@ -146,8 +145,6 @@ constructor(
 
         val editedDraft = getAndVerifyDraft(publicationResponse.id)
         assertEquals(AlignmentName("EDITED1"), editedDraft.name)
-        // Creating a draft should duplicate the alignment
-        assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
         val editedVersion2 =
             locationTrackService.saveDraft(
@@ -160,13 +157,10 @@ constructor(
 
         val editedDraft2 = getAndVerifyDraft(publicationResponse.id)
         assertEquals(AlignmentName("EDITED2"), editedDraft2.name)
-        assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
-        // Second edit to same draft should not duplicate alignment again
-        assertEquals(editedDraft.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
     }
 
     @Test
-    fun savingWithAlignmentCreatesDraft() {
+    fun `Saving with geometry creates draft`() {
         val (publicationResponse, published) = createPublishedLocationTrack(2)
 
         val geometryTmp = trackGeometryOfSegments(segment(2, 10.0, 20.0, 10.0, 20.0))
@@ -174,29 +168,16 @@ constructor(
         assertEquals(publicationResponse.id, editedVersion.id)
         assertNotEquals(publicationResponse.rowId, editedVersion.rowId)
 
-        val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publicationResponse.id)
-        assertEquals(
-            geometryTmp.segments.flatMap(LayoutSegment::segmentPoints),
-            editedAlignment.segments.flatMap(LayoutSegment::segmentPoints),
-        )
-
-        // Creating a draft should duplicate the alignment
-        assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
+        val (editedDraft, editedGeometry) = getAndVerifyDraftWithGeometry(publicationResponse.id)
+        assertMatches(geometryTmp, editedGeometry)
 
         val geometryTmp2 = trackGeometryOfSegments(segment(4, 10.0, 20.0, 10.0, 20.0))
         val editedVersion2 = locationTrackService.saveDraft(LayoutBranch.main, editedDraft, geometryTmp2)
         assertEquals(publicationResponse.id, editedVersion2.id)
         assertNotEquals(publicationResponse.rowId, editedVersion2.rowId)
 
-        val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publicationResponse.id)
-        assertEquals(
-            geometryTmp2.segments.flatMap(LayoutSegment::segmentPoints),
-            editedAlignment2.segments.flatMap(LayoutSegment::segmentPoints),
-        )
-        assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
-        // Second edit to same draft should not duplicate alignment again
-        assertEquals(editedDraft.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
-        assertNotEquals(editedDraft.alignmentVersion!!.version, editedDraft2.alignmentVersion!!.version)
+        val (editedDraft2, editedGeometry2) = getAndVerifyDraftWithGeometry(publicationResponse.id)
+        assertMatches(geometryTmp2, editedGeometry2)
     }
 
     @Test
@@ -765,7 +746,7 @@ constructor(
         assertEquals(draft.id, published.id)
         assertEquals(published.id, publicationResponse.id)
         assertEquals(draft.alignmentVersion, published.alignmentVersion)
-        assertEquals(draftAlignment, publishedAlignment)
+        assertEquals(draftAlignment.edges, publishedAlignment.edges)
 
         return publicationResponse to published
     }
@@ -777,7 +758,7 @@ constructor(
         return draft
     }
 
-    private fun getAndVerifyDraftWithAlignment(id: IntId<LocationTrack>): Pair<LocationTrack, LocationTrackGeometry> {
+    private fun getAndVerifyDraftWithGeometry(id: IntId<LocationTrack>): Pair<LocationTrack, LocationTrackGeometry> {
         val (draft, geometry) = locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, id)
         assertEquals(id, draft.id)
         assertTrue(draft.isDraft)

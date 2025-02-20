@@ -8,13 +8,13 @@ drop index if exists layout.edge_segment_segment_geometry_ix;
 create index edge_segment_segment_geometry_ix on layout.edge_segment (geometry_id);
 
 drop index if exists layout.edge_start_node_ix;
-create index edge_start_node_ix on layout.edge (start_node_id);
+create index edge_start_node_ix on layout.edge (start_node_id, start_node_port);
 
 drop index if exists layout.edge_end_node_ix;
-create index edge_end_node_ix on layout.edge (end_node_id);
+create index edge_end_node_ix on layout.edge (end_node_id, end_node_port);
 
-drop index if exists layout.node_switch_in_ix;
-create index node_switch_in_ix on layout.node (switch_in_id, switch_in_joint_number);
+drop index if exists layout.node_port_switch_ix;
+create index node_port_switch_ix on layout.node_port (switch_id, switch_joint_number);
 
-drop index if exists layout.node_switch_out_ix;
-create index node_switch_out_ix on layout.node (switch_out_id, switch_out_joint_number);
+drop index if exists layout.node_port_node_type_ix;
+create index node_port_node_type_ix on layout.node_port (node_id, node_type);

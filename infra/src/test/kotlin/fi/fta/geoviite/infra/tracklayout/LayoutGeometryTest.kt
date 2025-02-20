@@ -7,11 +7,11 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.publication.getMaxDirectionDeltaRads
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import kotlin.math.hypot
-import kotlin.test.assertEquals
 
 class LayoutGeometryTest {
 
