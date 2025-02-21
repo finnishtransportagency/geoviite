@@ -465,6 +465,7 @@ fun plan(
     kmPosts: List<GeometryKmPost> = kmPosts(srid),
     project: Project = project(),
     units: GeometryUnits = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
+    planApplicability: PlanApplicability? = null,
 ): GeometryPlan {
     return GeometryPlan(
         source = source,
@@ -487,7 +488,7 @@ fun plan(
         message = FreeTextWithNewLines.of("test text \n description"),
         uploadTime = Instant.now(),
         name = getPlanNameByFileName(fileName),
-        planApplicability = null,
+        planApplicability = planApplicability,
     )
 }
 

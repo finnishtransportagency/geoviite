@@ -72,6 +72,21 @@ constructor(
     }
 
     @Test
+    fun `Setting Applicability works`() {
+        deletePlans()
+
+        val file = testFile()
+        val plan = plan(testDBService.getUnusedTrackNumber(), fileName = file.name, planApplicability = null)
+        val polygon = someBoundingPolygon()
+        val planId =
+            geometryDao.insertPlan(plan, file, polygon).id.let { id ->
+                geometryService.setPlanApplicability(id, PlanApplicability.PLANNING)
+            }
+
+        assertEquals(PlanApplicability.PLANNING, geometryService.getPlanHeader(planId.id).planApplicability)
+    }
+
+    @Test
     fun getLocationTrackHeightsCoversTrackStartsAndEnds() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
         val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
