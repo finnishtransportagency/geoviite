@@ -1,10 +1,11 @@
 import * as React from 'react';
 import styles from './geometry-plan-infobox.scss';
+import infoboxStyles from './infobox/infobox.module.scss';
 
 import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-import { GeometryPlanHeader } from 'geometry/geometry-model';
+import { GeometryPlanHeader, PlanApplicability } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 import { formatDateShort, toDateOrUndefined } from 'utils/date-utils';
 import PlanPhase from 'geoviite-design-lib/geometry-plan/plan-phase';
@@ -25,6 +26,13 @@ import { ChangeTimes } from 'common/common-slice';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { InfraModelDownloadButton } from 'geoviite-design-lib/infra-model-download/infra-model-download-button';
+import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { planApplicabilities } from 'utils/enum-localization-utils';
+import { updatePlanApplicability } from 'infra-model/infra-model-api';
+import { createClassName } from 'vayla-design-lib/utils';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { GeometryPlanApplicability } from 'tool-panel/geometry-plan/geometry-plan-applicability';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
@@ -214,6 +222,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                             />
                         }
                     />
+                    <GeometryPlanApplicability planHeader={planHeader} />
                     <InfoboxButtons verticalLayout>
                         <Button
                             size={ButtonSize.SMALL}

@@ -308,6 +308,12 @@
             "MAIN_OFFICIAL": "Nykytila",
             "MAIN_DRAFT": "Luonnostila",
             "DESIGN": "Suunnitelmatila"
+        },
+        "PlanApplicability": {
+            "PLANNING": "Suunnitelma",
+            "MAINTENANCE": "Kunnossapito",
+            "STATISTICS": "Tilastointi",
+            "UNKNOWN": "Ei tiedossa"
         }
     },
     "environment": {
@@ -470,6 +476,7 @@
             "vertical-coordinate-system": "Korkeusjärjestelmä",
             "has-vertical-geometry": "Pystygeometria",
             "has-cant": "Kallistus",
+            "applicability": "Soveltuvuus",
             "open-inframodel": "Avaa lomakkeella",
             "download-file": "Lataa tiedosto"
         },

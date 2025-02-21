@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.PlanApplicability
 import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
 import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.geometry.PlanPhase
@@ -100,6 +101,7 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_RAIL,
                 message = FreeTextWithNewLines.of("test message 1"),
                 name = PlanName("test name 1"),
+                planApplicability = PlanApplicability.PLANNING,
             )
 
         val overrides2 =
@@ -121,6 +123,7 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = FreeTextWithNewLines.of("test message 2"),
                 name = PlanName("test name 2"),
+                planApplicability = PlanApplicability.MAINTENANCE,
             )
 
         val planId = infraModelService.saveInfraModel(file, overrides1, extraInfo1).id

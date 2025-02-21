@@ -487,6 +487,7 @@ fun plan(
         message = FreeTextWithNewLines.of("test text \n description"),
         uploadTime = Instant.now(),
         name = getPlanNameByFileName(fileName),
+        planApplicability = null,
     )
 }
 
@@ -523,6 +524,7 @@ fun planHeader(
         author = "Test Company",
         isHidden = false,
         name = getPlanNameByFileName(fileName),
+        planApplicability = null,
     )
 
 fun minimalPlan(fileName: FileName = FileName("TEST_FILE.xml")) =
@@ -552,6 +554,7 @@ fun minimalPlan(fileName: FileName = FileName("TEST_FILE.xml")) =
         trackNumber = null,
         uploadTime = null,
         name = getPlanNameByFileName(fileName),
+        planApplicability = null,
     )
 
 fun geometryLine(

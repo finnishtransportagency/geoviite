@@ -686,6 +686,10 @@ constructor(
         }
     }
 
+    @Transactional
+    fun setPlanApplicability(planId: IntId<GeometryPlan>, applicability: PlanApplicability?): RowVersion<GeometryPlan> =
+        geometryDao.setPlanApplicability(planId, applicability)
+
     fun getPlanLinkedItems(planId: IntId<GeometryPlan>): GeometryPlanLinkedItems {
         return geometryDao.getPlanLinking(planId)
     }
