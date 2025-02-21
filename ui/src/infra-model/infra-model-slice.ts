@@ -251,6 +251,7 @@ const infraModelSlice = createSlice({
                 elevationMeasurementMethod: plan?.elevationMeasurementMethod ?? undefined,
                 message: plan?.message ?? undefined,
                 name: plan?.name ?? undefined,
+                planApplicability: plan?.planApplicability ?? undefined,
             };
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;

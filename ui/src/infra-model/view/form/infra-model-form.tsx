@@ -59,6 +59,7 @@ import { formatWithSrid } from 'utils/geography-utils';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { InfraModelDownloadButton } from 'geoviite-design-lib/infra-model-download/infra-model-download-button';
+import { InfraModelPlanApplicabilityField } from 'infra-model/view/form/fields/infra-model-plan-applicability';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -94,7 +95,8 @@ export type EditablePlanField =
     | 'heightSystem'
     | 'author'
     | 'createdTime'
-    | 'source';
+    | 'source'
+    | 'planApplicability';
 
 function getKmRangePresentation(kmPosts: GeometryKmPost[]): string {
     const sorted = kmPosts
@@ -599,6 +601,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             />
                         )}
                     </FormgroupField>
+                    <InfraModelPlanApplicabilityField
+                        fieldInEdit={fieldInEdit}
+                        setFieldInEdit={setFieldInEdit}
+                        extraInframodelParameters={extraInframodelParameters}
+                        changeInExtraParametersField={changeInExtraParametersField}
+                    />
                 </FormgroupContent>
             </Formgroup>
 

@@ -1106,6 +1106,7 @@
         "phase-measurement-method-formgroup-title": "Tilanne- ja laatutiedot",
         "plan-phase-field": "Suunnitteluvaihe",
         "decision-phase-field": "Vaiheen tarkennus",
+        "plan-applicability-field": "Soveltuvuus",
         "measurement-method-field": "Laatu",
         "elevation-measurement-method-field": "Korkeusasema",
         "log-formgroup-title": "Loki- ja linkitystiedot",
