@@ -154,7 +154,6 @@ export type IconComponent = React.ComponentType<IconProps>;
 
 export type SvgIconProps = IconProps & {
     svg: string;
-    pointerEvents?: 'NONE' | 'AUTO';
 };
 
 export type SvgIconComponent = React.FC<SvgIconProps>;
@@ -164,7 +163,6 @@ const SvgIcon: SvgIconComponent = ({
     size = IconSize.MEDIUM,
     color,
     extraClassName,
-    pointerEvents = 'NONE',
     ...props
 }: SvgIconProps) => {
     let svgContent = svg
@@ -181,7 +179,7 @@ const SvgIcon: SvgIconComponent = ({
         size && styles[size],
         props.rotation && styles[props.rotation],
         color && styles[color],
-        pointerEvents === 'NONE' && styles['icon--disable-pointer-events'],
+        props.onClick === undefined && styles['icon--disable-pointer-events'],
         extraClassName,
     );
 
