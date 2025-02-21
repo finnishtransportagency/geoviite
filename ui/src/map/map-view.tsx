@@ -737,18 +737,24 @@ const MapView: React.FC<MapViewProps> = ({
         setActiveTool(customActiveMapTool);
     }, [customActiveMapTool]);
 
+    const visibleLayerNamesKey = visibleLayers.map((l) => l.name).join();
+
     React.useEffect(() => {
         if (activeTool && olMap) {
             return activeTool.activate(olMap, visibleLayers, toolActivateOptions);
         } else {
             return () => undefined;
         }
-    }, [olMap, activeTool, visibleLayers]);
+    }, [olMap, activeTool, visibleLayerNamesKey]);
 
-    const mapClassNames = createClassName(
-        styles.map,
-        //activeTool?.hideDefaultCursor && styles['map--hide-cursor'],
-    );
+    React.useEffect(() => {
+        if (mapTools && activeTool) {
+            const newVersionOfTool = mapTools.find((tool) => tool.id === activeTool.id);
+            setActiveTool(newVersionOfTool);
+        }
+    }, [mapTools]);
+
+    const mapClassNames = createClassName(styles.map);
 
     const cssProperties = {
         ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),

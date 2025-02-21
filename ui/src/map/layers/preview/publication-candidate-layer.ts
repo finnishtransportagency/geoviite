@@ -108,7 +108,6 @@ export function createPublicationCandidateLayer(
         return { candidateTrackNumbers: tnCandidates, candidateReferenceLines: rlCandidates };
     });
 
-    console.log('track count input', locationTrackIds.length);
     const candidateLocationTrackAlignmentPromise = getLocationTrackMapAlignmentsByTiles(
         changeTimes,
         mapTiles,
@@ -116,7 +115,6 @@ export function createPublicationCandidateLayer(
         true,
         locationTrackIds,
     ).then((locationTrackAlignments) => {
-        console.log('track count', locationTrackAlignments.length);
         return locationTrackAlignments
             .map((alignment) => {
                 const candidate = locationTrackCandidates.find((c) => c.id === alignment.header.id);

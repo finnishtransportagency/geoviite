@@ -134,7 +134,6 @@ export function createLocationTrackAlignmentLayer(
     );
 
     const createFeatures = (locationTracks: LocationTrackAlignmentDataHolder[]) => {
-        console.log('track count, location track layer', locationTracks.length);
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
         return createAlignmentFeatures(locationTracks, selection, showEndPointTicks);
     };
