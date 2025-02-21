@@ -343,14 +343,14 @@ fun fitSwitch(
             .filter { it.value.isNotEmpty() }
 
     val endJoints = getEndJoints(matchesByLocationTrack)
-    val matchByJoint = getBestMatchByJoint(matchesByLocationTrack, endJoints)
+    val matchesByJoint = getBestMatchesByJoint(matchesByLocationTrack, endJoints)
     val jointsWithoutMatches =
         jointsInLayoutSpace
-            .filterNot { matchByJoint.containsKey(it) }
+            .filterNot { matchesByJoint.containsKey(it) }
             .associateWith { emptyList<FittedSwitchJointMatch>() }
 
     val suggestedJoints =
-        (matchByJoint + jointsWithoutMatches).map { (joint, matches) ->
+        (matchesByJoint + jointsWithoutMatches).map { (joint, matches) ->
             FittedSwitchJoint(
                 number = joint.number,
                 location = joint.location,
@@ -362,10 +362,10 @@ fun fitSwitch(
     return FittedSwitch(switchStructure = switchStructure, joints = suggestedJoints)
 }
 
-private fun getBestMatchByJoint(
+private fun getBestMatchesByJoint(
     matchesByLocationTrack: Map<LocationTrack, List<FittedSwitchJointMatch>>,
     endJoints: Map<LocationTrack, Pair<SwitchStructureJoint, SwitchStructureJoint>>,
-) =
+): Map<SwitchStructureJoint, List<FittedSwitchJointMatch>> =
     matchesByLocationTrack
         .flatMap { (lt, matches) ->
             matches
@@ -377,9 +377,34 @@ private fun getBestMatchByJoint(
                         isLastJoint = endJoints[lt]?.second == joint,
                     )
                 }
-                .mapNotNull { filteredMatches -> filteredMatches.minByOrNull { it.distance } }
+                .flatMap { filteredMatches ->
+                    findSegmentBoundaryMatch(filteredMatches)
+                        ?: listOfNotNull(filteredMatches.minByOrNull { it.distance })
+                }
         }
         .groupBy { it.switchJoint }
+
+private fun findSegmentBoundaryMatch(filteredMatches: List<FittedSwitchJointMatch>): List<FittedSwitchJointMatch>? {
+    // extremely short segments might cause any number of weird matches, so disambiguate
+    val nearestEndMatch =
+        filteredMatches.filter { it.matchType == SuggestedSwitchJointMatchType.END }.minByOrNull { it.distance }
+
+    val startMatchAfterNearestEndMatch =
+        if (nearestEndMatch == null) null
+        else
+            filteredMatches.find {
+                it.matchType == SuggestedSwitchJointMatchType.START &&
+                    it.segmentIndex == nearestEndMatch.segmentIndex + 1
+            }
+    return if (startMatchAfterNearestEndMatch == null || nearestEndMatch == null) null
+    else
+        listOf(
+            // force same m-value on both sides, to avoid misplaced segment ends causing the
+            // matches' m-value orders and segment index orders to contradict
+            nearestEndMatch.copy(m = startMatchAfterNearestEndMatch.m),
+            startMatchAfterNearestEndMatch,
+        )
+}
 
 private fun getBestMatchesForJoint(
     jointMatches: List<FittedSwitchJointMatch>,
