@@ -208,7 +208,9 @@ const MapView: React.FC<MapViewProps> = ({
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
-    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(customActiveMapTool);
+    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(
+        customActiveMapTool || (mapTools && first(mapTools)),
+    );
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
@@ -770,7 +772,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return (
                             <ToolComponent
                                 key={tool.id}
-                                isActive={activeTool === tool}
+                                isActive={activeTool?.id === tool.id}
                                 setActiveTool={setActiveTool}
                             />
                         );

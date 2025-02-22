@@ -189,8 +189,13 @@
         margin: 0;
         padding: 2px;
         border-radius: 4px;
-
         background-color: rgba(vayla-design.$color-white-default, 0.6);
+        display: flex;
+        flex-direction: column;
+    }
+
+    &__map-tools > *:not(:last-child) {
+        margin-bottom: 4px;
     }
 
     &__map-tool {
@@ -288,4 +293,18 @@
     background-color: rgba(vayla-design.$color-black-default, 0.6);
     padding: 2px 6px;
     border-radius: 4px;
+}
+
+.map-tool-button-content {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-tool-button-content__icon {
+    fill: vayla-design.$color-blue-dark;
+    width: 18px;
+    height: 18px;
 }
