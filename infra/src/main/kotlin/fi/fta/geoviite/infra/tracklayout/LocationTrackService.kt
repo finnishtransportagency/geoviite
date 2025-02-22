@@ -36,7 +36,6 @@ import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import fi.fta.geoviite.infra.util.measureAndCollect
 import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
@@ -286,17 +285,15 @@ class LocationTrackService(
         return if (boundingBox == null) {
                 dao.list(layoutContext, includeDeleted, trackNumberId)
             } else {
-                measureAndCollect("XXXX fetchVersionsNear") {
-                    dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId, minLength)
-                        .map(dao::fetch)
-                }
+                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId, minLength)
+                    .map(dao::fetch)
             }
             .let { list ->
                 if (locationTrackIds == null) list
                 else
                     list.filter { locationTrack -> locationTrackIds.contains(locationTrack.id as IntId<LocationTrack>) }
             }
-            .let { list -> measureAndCollect("XXXX filterByBoundingBox") { filterByBoundingBox(list, boundingBox) } }
+            .let { list -> filterByBoundingBox(list, boundingBox) }
             .let(::associateWithAlignments)
     }
 

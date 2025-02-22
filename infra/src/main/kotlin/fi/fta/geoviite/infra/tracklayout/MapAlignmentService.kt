@@ -15,7 +15,6 @@ import fi.fta.geoviite.infra.map.toAlignmentPolyLine
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.combineContinuous
-import fi.fta.geoviite.infra.util.measureAndCollect
 import org.springframework.transaction.annotation.Transactional
 
 enum class AlignmentFetchType {
@@ -186,21 +185,8 @@ class MapAlignmentService(
                 minLength = minLength,
                 locationTrackIds = locationTrackIds,
             )
-            .let { list ->
-                val sSum = list.sumOf { (_, a) -> a.segments.size }
-                val pSum = list.sumOf { (_, a) -> a.segments.sumOf { s -> s.segmentPoints.size } }
-                println("XXXX input counts $sSum $pSum")
-                list
-            }
             .map { (track, alignment) ->
-                measureAndCollect("XXXX toAlignmentPolyLine") {
-                    toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints)
-                }
-            }
-            .let { list ->
-                val pSum = list.sumOf { l -> l.points.size }
-                println("XXXX output counts $pSum")
-                list
+                toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints)
             }
 
     private fun getReferenceLinePolyLines(

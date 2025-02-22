@@ -83,7 +83,7 @@ const STAGED_POINT_FEATURE_RADIUS = 20;
 
 const HIGHEST_HIGHLIGHT_Z_INDEX = 15;
 
-const MINIMUM_ALIGNMENT_LENGTH_IN_PIXELS = 15;
+const HIGHLIGHT_ALIGNMENT_MIN_LENGTH_IN_PIXELS = 15;
 
 // Lines for deleted alignments should go above highlights. Reference lines go under location tracks.
 const DELETED_REFERENCE_LINE_Z_INDEX = HIGHEST_HIGHLIGHT_Z_INDEX + 1;
@@ -255,7 +255,8 @@ export const createAlignmentLineStringFeature = (
                 candidate.stage === PublicationStage.UNSTAGED
                     ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
                     : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH,
-            lineCap: rangeLengthInPixels < MINIMUM_ALIGNMENT_LENGTH_IN_PIXELS ? 'square' : 'butt',
+            lineCap:
+                rangeLengthInPixels < HIGHLIGHT_ALIGNMENT_MIN_LENGTH_IN_PIXELS ? 'square' : 'butt',
         }),
         zIndex: getHighlightZIndex(
             candidate.operation,
@@ -351,7 +352,8 @@ const createBaseAlignmentHighlightFeatures = (
                     publishCandidate.stage === PublicationStage.UNSTAGED
                         ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
                         : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH,
-                lineCap: lengthInPixels < MINIMUM_ALIGNMENT_LENGTH_IN_PIXELS ? 'square' : 'butt',
+                lineCap:
+                    lengthInPixels < HIGHLIGHT_ALIGNMENT_MIN_LENGTH_IN_PIXELS ? 'square' : 'butt',
             }),
             zIndex: getHighlightZIndex(
                 'DELETE',
@@ -376,7 +378,7 @@ export const createBaseLocationTrackFeatures = (
         showEndPointTicks,
         new Style({
             stroke: new Stroke({
-                color: '#de3618', //mapStyles.alignmentPreviewOfficialLine,
+                color: mapStyles.alignmentPreviewBaseLine,
                 width: LOCATION_TRACK_ALIGNMENT_WIDTH,
             }),
             zIndex: DELETED_LOCATION_TRACK_Z_INDEX,
@@ -404,7 +406,7 @@ export const createBaseReferenceLineFeatures = (
         showEndPointTicks,
         new Style({
             stroke: new Stroke({
-                color: mapStyles.alignmentPreviewOfficialLine,
+                color: mapStyles.alignmentPreviewBaseLine,
                 width: REFERENCE_LINE_ALIGNMENT_WIDTH,
             }),
             zIndex: DELETED_REFERENCE_LINE_Z_INDEX,
