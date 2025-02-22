@@ -83,6 +83,8 @@ const STAGED_POINT_FEATURE_RADIUS = 20;
 
 const HIGHEST_HIGHLIGHT_Z_INDEX = 15;
 
+const MINIMUM_ALIGNMENT_LENGTH_IN_PIXELS = 15;
+
 // Lines for deleted alignments should go above highlights. Reference lines go under location tracks.
 const DELETED_REFERENCE_LINE_Z_INDEX = HIGHEST_HIGHLIGHT_Z_INDEX + 1;
 const DELETED_LOCATION_TRACK_Z_INDEX = DELETED_REFERENCE_LINE_Z_INDEX + 1;
@@ -253,7 +255,7 @@ export const createAlignmentLineStringFeature = (
                 candidate.stage === PublicationStage.UNSTAGED
                     ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
                     : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH,
-            lineCap: rangeLengthInPixels < 15 ? 'square' : 'butt',
+            lineCap: rangeLengthInPixels < MINIMUM_ALIGNMENT_LENGTH_IN_PIXELS ? 'square' : 'butt',
         }),
         zIndex: getHighlightZIndex(
             candidate.operation,
@@ -327,8 +329,13 @@ export const createCandidateTrackNumberFeatures = (
 const createBaseAlignmentHighlightFeatures = (
     alignment: AlignmentDataHolder,
     publishCandidate: PublicationCandidate,
-) =>
-    createAlignmentFeature(
+    metersPerPixel: number,
+) => {
+    const lengthInMeters =
+        expectDefined(last(alignment.points)).m - expectDefined(first(alignment.points)).m;
+    const lengthInPixels = lengthInMeters / metersPerPixel;
+
+    return createAlignmentFeature(
         alignment,
         false,
         new Style({
@@ -344,7 +351,7 @@ const createBaseAlignmentHighlightFeatures = (
                     publishCandidate.stage === PublicationStage.UNSTAGED
                         ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
                         : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH,
-                lineCap: 'butt',
+                lineCap: lengthInPixels < MINIMUM_ALIGNMENT_LENGTH_IN_PIXELS ? 'square' : 'butt',
             }),
             zIndex: getHighlightZIndex(
                 'DELETE',
@@ -356,11 +363,13 @@ const createBaseAlignmentHighlightFeatures = (
             ),
         }),
     );
+};
 
 export const createBaseLocationTrackFeatures = (
     publishCandidate: LocationTrackPublicationCandidate,
     alignment: LocationTrackAlignmentDataHolder,
     showEndPointTicks: boolean,
+    metersPerPixel: number,
 ): Feature<LineString | OlPoint>[] => {
     const lineFeatures = createAlignmentFeature(
         alignment,
@@ -373,7 +382,11 @@ export const createBaseLocationTrackFeatures = (
             zIndex: DELETED_LOCATION_TRACK_Z_INDEX,
         }),
     );
-    const highlightFeatures = createBaseAlignmentHighlightFeatures(alignment, publishCandidate);
+    const highlightFeatures = createBaseAlignmentHighlightFeatures(
+        alignment,
+        publishCandidate,
+        metersPerPixel,
+    );
 
     highlightFeatures.map((f) => f.set(CandidateDataProperties.LOCATION_TRACK, publishCandidate));
     return [...lineFeatures, ...highlightFeatures];
@@ -384,6 +397,7 @@ export const createBaseReferenceLineFeatures = (
     alignment: ReferenceLineAlignmentDataHolder,
     trackNumberCandidate: TrackNumberPublicationCandidate | undefined,
     showEndPointTicks: boolean,
+    metersPerPixel: number,
 ): Feature<LineString | OlPoint>[] => {
     const lineFeatures = createAlignmentFeature(
         alignment,
@@ -396,7 +410,11 @@ export const createBaseReferenceLineFeatures = (
             zIndex: DELETED_REFERENCE_LINE_Z_INDEX,
         }),
     );
-    const highlightFeatures = createBaseAlignmentHighlightFeatures(alignment, publishCandidate);
+    const highlightFeatures = createBaseAlignmentHighlightFeatures(
+        alignment,
+        publishCandidate,
+        metersPerPixel,
+    );
 
     highlightFeatures.forEach((f) => {
         f.set(CandidateDataProperties.REFERENCE_LINE, publishCandidate);

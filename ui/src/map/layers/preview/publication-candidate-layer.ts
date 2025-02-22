@@ -130,22 +130,27 @@ export function createPublicationCandidateLayer(
 
     const baseLocationTrackAlignmentsPromise =
         locationTrackCandidates.length > 0
-            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, targetLayoutContext).then(
-                  (alignments) =>
-                      alignments
-                          .map((alignment) => {
-                              const publishCandidate = locationTrackCandidates.find(
-                                  (c) => c.id === alignment.header.id,
-                              );
+            ? getLocationTrackMapAlignmentsByTiles(
+                  changeTimes,
+                  mapTiles,
+                  targetLayoutContext,
+                  true,
+                  locationTrackIds,
+              ).then((alignments) =>
+                  alignments
+                      .map((alignment) => {
+                          const publishCandidate = locationTrackCandidates.find(
+                              (c) => c.id === alignment.header.id,
+                          );
 
-                              return publishCandidate
-                                  ? {
-                                        alignment,
-                                        publishCandidate,
-                                    }
-                                  : undefined;
-                          })
-                          .filter(filterNotEmpty),
+                          return publishCandidate
+                              ? {
+                                    alignment,
+                                    publishCandidate,
+                                }
+                              : undefined;
+                      })
+                      .filter(filterNotEmpty),
               )
             : Promise.resolve([]);
 
@@ -218,7 +223,12 @@ export function createPublicationCandidateLayer(
 
         const baseLocationTrackFeatures = data.baseLocationTracks
             .flatMap(({ alignment, publishCandidate }) =>
-                createBaseLocationTrackFeatures(publishCandidate, alignment, showEndPointTicks),
+                createBaseLocationTrackFeatures(
+                    publishCandidate,
+                    alignment,
+                    showEndPointTicks,
+                    metersPerPixel,
+                ),
             )
             .filter(filterNotEmpty);
         const baseReferenceLineFeatures: Feature<LineString | OlPoint>[] = data.baseReferenceLines
@@ -232,6 +242,7 @@ export function createPublicationCandidateLayer(
                     alignment,
                     tnCandidate,
                     showEndPointTicks,
+                    metersPerPixel,
                 );
             })
             .filter(filterNotEmpty);
