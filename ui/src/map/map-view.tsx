@@ -53,7 +53,10 @@ import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { filterNotEmpty, first, objectEntries } from 'utils/array-utils';
-import { ALL_ALIGNMENTS, mapLayerZIndexes } from 'map/layers/utils/layer-visibility-limits';
+import {
+    mapLayerZIndexes,
+    REFERENCE_LINE_AUTO_HIDE_MAX_RESOLUTION,
+} from 'map/layers/utils/layer-visibility-limits';
 import { createLocationTrackAlignmentLayer } from 'map/layers/alignment/location-track-alignment-layer';
 import { createReferenceLineAlignmentLayer } from 'map/layers/alignment/reference-line-alignment-layer';
 import { createLocationTrackBackgroundLayer } from 'map/layers/alignment/location-track-background-layer';
@@ -206,7 +209,9 @@ const MapView: React.FC<MapViewProps> = ({
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
-    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(customActiveMapTool);
+    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(
+        customActiveMapTool || (mapTools && first(mapTools)),
+    );
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
@@ -340,7 +345,7 @@ const MapView: React.FC<MapViewProps> = ({
 
         const hideReferenceLinesWhenZoomedClose =
             referenceLineHideWhenZoomedCloseSetting(mapLayerMenuGroups) &&
-            resolution <= ALL_ALIGNMENTS;
+            resolution <= REFERENCE_LINE_AUTO_HIDE_MAX_RESOLUTION;
 
         // Create OpenLayers objects by domain layers
         const updatedLayers = map.visibleLayers
@@ -364,7 +369,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as GeoviiteMapLayer<LineString>,
                             changeTimes,
                             layoutContext,
-                            resolution,
                             map.layerSettings['track-number-diagram-layer'],
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -460,8 +464,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as GeoviiteMapLayer<LineString>,
                             layoutContext,
                             changeTimes,
-                            resolution,
-                            selection,
                             !!splittingState,
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -746,18 +748,24 @@ const MapView: React.FC<MapViewProps> = ({
         setActiveTool(customActiveMapTool);
     }, [customActiveMapTool]);
 
+    const visibleLayerNamesKey = visibleLayers.map((l) => l.name).join();
+
     React.useEffect(() => {
         if (activeTool && olMap) {
             return activeTool.activate(olMap, visibleLayers, toolActivateOptions);
         } else {
             return () => undefined;
         }
-    }, [olMap, activeTool, visibleLayers]);
+    }, [olMap, activeTool, visibleLayerNamesKey]);
 
-    const mapClassNames = createClassName(
-        styles.map,
-        //activeTool?.hideDefaultCursor && styles['map--hide-cursor'],
-    );
+    React.useEffect(() => {
+        if (mapTools && activeTool) {
+            const newVersionOfTool = mapTools.find((tool) => tool.id === activeTool.id);
+            setActiveTool(newVersionOfTool);
+        }
+    }, [mapTools]);
+
+    const mapClassNames = createClassName(styles.map);
 
     const cssProperties = {
         ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
@@ -773,7 +781,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return (
                             <ToolComponent
                                 key={tool.id}
-                                isActive={activeTool === tool}
+                                isActive={activeTool?.id === tool.id}
                                 setActiveTool={setActiveTool}
                             />
                         );

@@ -145,6 +145,8 @@ interface IAlignment : Loggable {
     fun filterSegmentsByBbox(bbox: BoundingBox): List<Pair<ISegment, Range<Double>>> {
         return if (!bbox.intersects(boundingBox)) {
             listOf() // Shortcut: if it doesn't hit the alignment, it won't hit segments either
+        } else if (boundingBox != null && bbox.contains(boundingBox!!)) {
+            segments // Shortcut 2: if bbox includes the whole alignment bbox, return all segments
         } else {
             segmentsWithM.filter { (s, _) -> s.boundingBox.intersects(bbox) }
         }

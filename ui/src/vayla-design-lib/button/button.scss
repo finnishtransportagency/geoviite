@@ -218,10 +218,10 @@ $button-animation-size-small: 12px;
     }
 
     // pressed state
-    &:active {
+    &:active,
+    &.button--pressed {
         @include button-text-color(colors.$color-blue-dark);
         background: colors.$color-blue-lighter;
-        border-color: colors.$color-blue-dark;
     }
 
     &[disabled],
