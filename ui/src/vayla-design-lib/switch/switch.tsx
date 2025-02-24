@@ -2,10 +2,13 @@ import * as React from 'react';
 import styles from './switch.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
+export type SwitchContentOrder = 'SWITCH_FIRST' | 'CONTENT_FIRST';
+
 export type SwitchProps = {
     checked: boolean;
     disabled?: boolean;
     onCheckedChange?: (checked: boolean) => void;
+    contentOrder?: SwitchContentOrder;
 
     /**
      * If true, switch is shown in hover state
@@ -25,6 +28,7 @@ export type SwitchProps = {
 export const Switch: React.FC<SwitchProps> = ({
     disabled = false,
     hover,
+    contentOrder = 'SWITCH_FIRST',
     ...props
 }: SwitchProps) => {
     function setChecked(checked: boolean) {
@@ -34,12 +38,14 @@ export const Switch: React.FC<SwitchProps> = ({
     const className = createClassName(
         styles.switch,
         disabled && styles['switch--disabled'],
-        !!props.children && styles['switch--has-label'],
         hover && styles['switch--hover'],
     );
 
+    const switchComesFirst = contentOrder === 'SWITCH_FIRST';
+
     return (
         <label className={className} qa-id={props.qaId}>
+            {!switchComesFirst && props.children}
             <input
                 className={styles.switch__checkbox}
                 type="checkbox"
@@ -50,7 +56,7 @@ export const Switch: React.FC<SwitchProps> = ({
             <div className={styles.switch__track}>
                 <div className={styles.switch__thumb} />
             </div>
-            <div className={styles.switch__label}>{props.children}</div>
+            {switchComesFirst && props.children}
         </label>
     );
 };

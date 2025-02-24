@@ -122,7 +122,7 @@ export const SwitchEditDialog = ({
     const [switchOwners, setSwitchOwners] = React.useState<SwitchOwner[]>([]);
     const [switchOwnerId, setSwitchOwnerId] = React.useState<SwitchOwnerId>();
     const [existingSwitch, setExistingSwitch] = React.useState<LayoutSwitch>();
-    const [draftOidFieldOpen, setDraftOidFieldOpen] = React.useState(false);
+    const [editingOid, setEditingOid] = React.useState(false);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const isExistingSwitch = !!switchId;
 
@@ -154,7 +154,7 @@ export const SwitchEditDialog = ({
                     setTrapPoint(booleanToTrapPoint(s.trapPoint));
                     if (s.draftOid) {
                         setSwitchDraftOid(s.draftOid);
-                        setDraftOidFieldOpen(true);
+                        setEditingOid(true);
                     }
                     firstInputRef.current?.focus();
                 }
@@ -237,7 +237,7 @@ export const SwitchEditDialog = ({
                 stateCategory: switchStateCategory,
                 ownerId: switchOwnerId,
                 trapPoint: trapPointToBoolean(trapPoint),
-                draftOid: switchDraftOid === '' ? undefined : switchDraftOid,
+                draftOid: editingOid ? switchDraftOid : undefined,
             };
             if (existingSwitch) saveUpdatedSwitch(existingSwitch, newSwitch);
             else saveNewSwitch(newSwitch);
@@ -276,7 +276,7 @@ export const SwitchEditDialog = ({
     }
 
     const validationIssues = [
-        ...validateDraftOid(switchDraftOid),
+        ...(editingOid ? validateDraftOid(switchDraftOid) : []),
         ...validateSwitchName(switchName),
         ...validateSwitchStateCategory(switchStateCategory),
         ...validateSwitchStructureId(switchStructureId),
@@ -302,9 +302,7 @@ export const SwitchEditDialog = ({
     }
 
     const canSave =
-        validationIssues.length === 0 &&
-        !isSaving &&
-        (switchDraftOid === '' || switchDraftOidExistsInRatko);
+        validationIssues.length === 0 && !isSaving && (!editingOid || switchDraftOidExistsInRatko);
 
     return (
         <React.Fragment>
@@ -363,8 +361,8 @@ export const SwitchEditDialog = ({
                                 errors={getVisibleErrorsByProp('draftOid')}
                                 visitField={() => visitField('draftOid')}
                                 isVisited={visitedFields.includes('draftOid')}
-                                draftOidFieldOpen={draftOidFieldOpen}
-                                setDraftOidFieldOpen={setDraftOidFieldOpen}
+                                editingOid={editingOid}
+                                setEditingOid={setEditingOid}
                                 onEdit={onEdit}
                             />
                         )}
