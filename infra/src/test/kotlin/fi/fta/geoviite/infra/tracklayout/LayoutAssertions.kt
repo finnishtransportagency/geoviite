@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
+import kotlin.test.assertNull
 
 private const val COORDINATE_DELTA: Double = 0.000000001
 private const val LENGTH_DELTA: Double = 0.00001
@@ -69,7 +69,7 @@ fun assertMatches(expected: EdgeNode, actual: EdgeNode, idMatch: Boolean = false
     if (idMatch) {
         assertEquals(expected, actual)
     } else {
-        if (expected.type != LayoutNodeType.PLACEHOLDER) assertEquals(expected.type, actual.type)
+        assertEquals(expected.type, actual.type)
         if (expected.type == LayoutNodeType.SWITCH) {
             assertEquals(expected.switchIn, actual.switchIn)
             assertEquals(expected.switchOut, actual.switchOut)

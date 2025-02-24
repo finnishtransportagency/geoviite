@@ -17,12 +17,17 @@ import org.springframework.web.bind.annotation.RequestParam
 class LayoutGraphController(val graphService: LayoutGraphService) {
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["bbox"])
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}")
     fun getGraph(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
+        @RequestParam("detailLevel", required = false) detailLevel: DetailLevel?,
     ): LayoutGraph {
-        return graphService.getGraph(LayoutContext.of(layoutBranch, publicationState), bbox)
+        return graphService.getGraph(
+            context = LayoutContext.of(layoutBranch, publicationState),
+            detailLevel = detailLevel ?: DetailLevel.NANO,
+            bbox = bbox,
+        )
     }
 }

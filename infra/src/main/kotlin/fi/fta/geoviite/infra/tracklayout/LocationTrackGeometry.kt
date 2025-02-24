@@ -272,8 +272,8 @@ sealed class LayoutEdge : IAlignment {
     }
 
     fun reifyNodeTrackId(id: IntId<LocationTrack>): LayoutEdge {
-        val newStart = startNode.takeIf { it !is PlaceHolderEdgeNode } ?: EdgeNode.trackBoundary(id, START)
-        val newEnd = endNode.takeIf { it !is PlaceHolderEdgeNode } ?: EdgeNode.trackBoundary(id, END)
+        val newStart = startNode.takeIf { it.node !is PlaceholderNode } ?: EdgeNode.trackBoundary(id, START)
+        val newEnd = endNode.takeIf { it.node !is PlaceholderNode } ?: EdgeNode.trackBoundary(id, END)
         return if (newStart == startNode && newEnd == endNode) this else TmpLayoutEdge(newStart, newEnd, segments)
     }
 }
@@ -344,14 +344,9 @@ data class DbLayoutEdge(
     }
 }
 
-enum class EdgeNodeDirection {
-    INCREASING,
-    DECREASING,
-}
-
 sealed class EdgeNode {
     companion object {
-        val placeHolder = PlaceHolderEdgeNode()
+        val placeHolder = TmpEdgeNode(A, PlaceholderNode)
 
         fun trackBoundary(id: IntId<LocationTrack>, type: TrackBoundaryType) = trackBoundary(TrackBoundary(id, type))
 
@@ -369,16 +364,16 @@ sealed class EdgeNode {
     }
 
     @get:JsonIgnore abstract val portConnection: NodePortType
-    @get:JsonIgnore abstract val node: LayoutNode?
+    @get:JsonIgnore abstract val node: LayoutNode
 
     val innerPort
-        get() = node?.get(portConnection)
+        get() = node.get(portConnection)
 
     val outerPort
-        get() = node?.get(portConnection.opposite)
+        get() = node.get(portConnection.opposite)
 
     val type: LayoutNodeType
-        get() = node?.type ?: LayoutNodeType.PLACEHOLDER
+        get() = node.type
 
     val switchIn: SwitchLink?
         get() = innerPort?.let { it as? SwitchLink }
@@ -386,7 +381,8 @@ sealed class EdgeNode {
     val switchOut: SwitchLink?
         get() = outerPort?.let { it as? SwitchLink }
 
-    val switches: List<SwitchLink> = listOfNotNull(switchIn, switchOut)
+    val switches: List<SwitchLink>
+        get() = listOfNotNull(switchIn, switchOut)
 
     val trackBoundaryIn: TrackBoundary?
         get() = innerPort?.let { it as? TrackBoundary }
@@ -394,12 +390,22 @@ sealed class EdgeNode {
     val trackBoundaryOut: TrackBoundary?
         get() = outerPort?.let { it as? TrackBoundary }
 
+    val detailLevel: DetailLevel
+        get() =
+            when (type) {
+                TRACK_BOUNDARY -> DetailLevel.MICRO
+                SWITCH -> {
+                    if (switches.any { s -> s.jointRole == SwitchJointRole.MAIN }) DetailLevel.MICRO
+                    else DetailLevel.NANO
+                }
+            }
+
     fun containsSwitch(switchId: IntId<LayoutSwitch>) = switches.any { s -> s.id == switchId }
 
     fun containsJoint(switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
         switches.any { s -> s.matches(switchId, jointNumber) }
 
-    @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(portConnection, node?.contentHash) }
+    @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(portConnection, node.contentHash) }
 
     fun withoutSwitch(switchId: IntId<LayoutSwitch>): EdgeNode =
         if (containsSwitch(switchId)) {
@@ -416,21 +422,19 @@ sealed class EdgeNode {
 data class DbEdgeNode(override val portConnection: NodePortType, override val node: DbLayoutNode) : EdgeNode() {
     val id: IntId<LayoutNode>
         get() = node.id
-
-    init {
-        require(node.type != LayoutNodeType.PLACEHOLDER) { "DbEdgeNode must have a real node" }
-    }
 }
 
 data class TmpEdgeNode(override val portConnection: NodePortType, override val node: LayoutNode) : EdgeNode()
 
-data class PlaceHolderEdgeNode(override val portConnection: NodePortType = A, override val node: LayoutNode? = null) :
-    EdgeNode()
+//
+// data class PlaceHolderEdgeNode(
+//    override val portConnection: NodePortType = A,
+//    override val node: PlaceholderNode = PlaceholderNode,
+// ) : EdgeNode()
 
 enum class LayoutNodeType {
     SWITCH,
     TRACK_BOUNDARY,
-    PLACEHOLDER,
 }
 
 enum class TrackBoundaryType {
@@ -493,8 +497,21 @@ data class TmpTrackBoundaryNode(override val portA: TrackBoundary, override val 
     override val type: LayoutNodeType = TRACK_BOUNDARY
 }
 
+data object PlaceholderNode : TmpLayoutNode() {
+    override val type: LayoutNodeType = TRACK_BOUNDARY
+    override val portA: EmptyPort = EmptyPort
+    override val portB: EmptyPort? = null
+}
+
 sealed class NodePort {
     abstract fun isLessThanOrEqual(other: NodePort): Boolean
+}
+
+data object EmptyPort : NodePort() {
+    override fun isLessThanOrEqual(other: NodePort): Boolean {
+        require(other is EmptyPort) { "Cannot compare ${EmptyPort::class.simpleName} with $other" }
+        return true
+    }
 }
 
 data class TrackBoundary(val id: IntId<LocationTrack>, val type: TrackBoundaryType) : NodePort() {

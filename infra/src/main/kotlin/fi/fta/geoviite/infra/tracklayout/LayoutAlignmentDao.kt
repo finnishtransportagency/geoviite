@@ -37,6 +37,8 @@ data class MapSegmentProfileInfo<T>(
     val hasProfile: Boolean,
 )
 
+data class GraphEdgeData(val edge: DbLayoutEdge, val tracks: List<IntId<LocationTrack>>)
+
 @Transactional(readOnly = true)
 @Component
 class LayoutAlignmentDao(
@@ -133,7 +135,6 @@ class LayoutAlignmentDao(
                         portB = getSwitchLink(rs, "b"),
                     )
                 }
-                LayoutNodeType.PLACEHOLDER -> error("Placeholder nodes cannot exist in DB")
             }
         }
     }
@@ -1208,10 +1209,7 @@ class LayoutAlignmentDao(
         return rowResults.size
     }
 
-    fun getActiveContextEdges(
-        context: LayoutContext,
-        bbox: BoundingBox,
-    ): List<Pair<DbLayoutEdge, List<IntId<LocationTrack>>>> {
+    fun getActiveContextEdges(context: LayoutContext, bbox: BoundingBox): List<GraphEdgeData> {
         val sql =
             """
             select
@@ -1249,7 +1247,10 @@ class LayoutAlignmentDao(
             .let { result ->
                 val edges = getEdges(result.map { it.first })
                 result.map { (edgeId, trackIds) ->
-                    requireNotNull(edges[edgeId]) { "Failed to fetch edge $edgeId" } to trackIds
+                    GraphEdgeData(
+                        edge = requireNotNull(edges[edgeId]) { "Failed to fetch edge $edgeId" },
+                        tracks = trackIds,
+                    )
                 }
             }
     }

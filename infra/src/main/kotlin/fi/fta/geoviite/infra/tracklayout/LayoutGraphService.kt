@@ -6,7 +6,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 
 @GeoviiteService
 class LayoutGraphService(private val dao: LayoutAlignmentDao) {
-    fun getGraph(context: LayoutContext, bbox: BoundingBox): LayoutGraph {
-        return LayoutGraph(context, dao.getActiveContextEdges(context, bbox))
+    fun getGraph(context: LayoutContext, detailLevel: DetailLevel, bbox: BoundingBox): LayoutGraph {
+        return LayoutGraph.of(context, detailLevel, dao.getActiveContextEdges(context, bbox))
     }
 }
