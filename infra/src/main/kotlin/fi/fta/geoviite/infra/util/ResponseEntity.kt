@@ -23,3 +23,14 @@ fun toFileDownloadResponse(fileName: FileName, content: ByteArray): ResponseEnti
     )
     return ResponseEntity.ok().headers(headers).body(content)
 }
+
+fun getCsvResponseEntity(content: String, fileName: FileName): ResponseEntity<ByteArray> {
+    val headers = HttpHeaders()
+    headers.contentType = MediaType.APPLICATION_OCTET_STREAM
+    headers.set(
+        HttpHeaders.CONTENT_DISPOSITION,
+        ContentDisposition.attachment().filename(fileName.toString()).build().toString(),
+    )
+
+    return ResponseEntity.ok().headers(headers).body(content.toByteArray())
+}
