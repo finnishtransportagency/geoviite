@@ -140,26 +140,36 @@ fun simplify(
     val isOverResolution = { mValue: Double -> resolution?.let { r -> (mValue - previousM).roundToInt() >= r } ?: true }
     return segments
         .flatMapIndexed { sIndex, s ->
-            val isEndPoint = { pIndex: Int ->
-                val isTrackEndPoint =
-                    (sIndex == 0 && pIndex == 0) ||
-                        (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
-                val isSegmentStartPoint = pIndex == 0
-                isTrackEndPoint || includeSegmentEndPoints && isSegmentStartPoint
-            }
-            val isSegmentEndPoint = { pIndex: Int -> pIndex == 0 || pIndex == s.segmentPoints.lastIndex }
-            val bboxContains = { pIndex: Int ->
-                bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
-            }
-            s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-                if (isPointIncluded(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
-                    if (!isSegmentEndPoint(pIndex)) {
-                        // segment end points should be additional points,
-                        // so increase m-counter only when handling middle points
-                        previousM = s.startM + p.m
-                    }
-                    p.toAlignmentPoint(s.startM)
-                } else null
+            if (sIndex == 0 || sIndex == segments.lastIndex || isOverResolution(s.endM)) {
+                val isEndPoint = { pIndex: Int ->
+                    val isTrackEndPoint =
+                        (sIndex == 0 && pIndex == 0) ||
+                            (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
+                    val isSegmentStartPoint = pIndex == 0
+                    isTrackEndPoint || includeSegmentEndPoints && isSegmentStartPoint
+                }
+                val isSegmentEndPoint = { pIndex: Int -> pIndex == 0 || pIndex == s.segmentPoints.lastIndex }
+                val bboxContains = { pIndex: Int ->
+                    bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
+                }
+
+                s.segmentPoints.mapIndexedNotNull { pIndex, p ->
+                    if (isPointIncluded(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
+                        if (!isSegmentEndPoint(pIndex)) {
+                            // segment end points should be additional points,
+                            // so increase m-counter only when handling middle points
+                            previousM = s.startM + p.m
+                        }
+                        p.toAlignmentPoint(s.startM)
+                    } else null
+                }
+            } else {
+                if (includeSegmentEndPoints)
+                    listOf(
+                        s.segmentPoints.first().toAlignmentPoint(s.startM),
+                        s.segmentPoints.last().toAlignmentPoint(s.endM),
+                    )
+                else emptyList()
             }
         }
         .let { points -> if (points.size >= 2) points else listOf() }

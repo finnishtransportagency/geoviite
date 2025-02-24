@@ -277,11 +277,19 @@ class LocationTrackService(
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         includeDeleted: Boolean = false,
         boundingBox: BoundingBox? = null,
+        minLength: Double? = null,
+        locationTrackIds: Set<IntId<LocationTrack>>? = null,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         return if (boundingBox == null) {
                 dao.list(layoutContext, includeDeleted, trackNumberId)
             } else {
-                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId).map(dao::fetch)
+                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId, minLength)
+                    .map(dao::fetch)
+            }
+            .let { list ->
+                if (locationTrackIds == null) list
+                else
+                    list.filter { locationTrack -> locationTrackIds.contains(locationTrack.id as IntId<LocationTrack>) }
             }
             .let { list -> filterByBoundingBox(list, boundingBox) }
             .let(::associateWithAlignments)

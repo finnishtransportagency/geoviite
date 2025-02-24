@@ -1,15 +1,10 @@
 import { LineString } from 'ol/geom';
 import { MapLayerName, MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
-import {
-    AlignmentDataHolder,
-    getMapAlignmentsByTiles,
-    getReferenceLineMapAlignmentsByTiles,
-} from 'track-layout/layout-map-api';
+import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { groupBy, objectEntries } from 'utils/array-utils';
-import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import Feature from 'ol/Feature';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
@@ -74,16 +69,16 @@ export function createTrackNumberDiagramLayer(
     existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     changeTimes: ChangeTimes,
     layoutContext: LayoutContext,
-    resolution: number,
     layerSettings: TrackNumberDiagramLayerSetting,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const alignmentPromise: Promise<AlignmentDataHolder[]> =
-        resolution > Limits.ALL_ALIGNMENTS
-            ? getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext)
-            : getMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext);
+    const alignmentPromise: Promise<AlignmentDataHolder[]> = getMapAlignmentsByTiles(
+        changeTimes,
+        mapTiles,
+        layoutContext,
+    );
 
     const createFeatures = (alignments: AlignmentDataHolder[]) => {
         const showAll = Object.values(layerSettings).every((s) => !s.selected);

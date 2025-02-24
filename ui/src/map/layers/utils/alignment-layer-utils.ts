@@ -18,6 +18,10 @@ import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
 import { exhaustiveMatchingGuard, expectCoordinate } from 'utils/type-utils';
+import {
+    getLocationTrackHighlightStyle,
+    getLocationTrackStyle,
+} from 'map/layers/alignment/location-track-alignment-layer';
 
 const tickImageCache = cache<string, RegularShape>();
 
@@ -130,16 +134,16 @@ export function createAlignmentFeatures(
     alignments: LayoutAlignmentDataHolder[],
     selection: Selection,
     showEndTicks: boolean,
-    style: Style,
-    hightlightStyle?: Style,
+    styleOverride?: Style,
+    highlightStyleOverride?: Style,
 ): Feature<LineString | OlPoint>[] {
-    return alignments.flatMap((alignment) =>
-        createAlignmentFeature(
-            alignment,
-            showEndTicks,
-            isHighlighted(selection, alignment.header) && hightlightStyle ? hightlightStyle : style,
-        ),
-    );
+    return alignments.flatMap((alignment) => {
+        const style = isHighlighted(selection, alignment.header)
+            ? highlightStyleOverride || getLocationTrackHighlightStyle(alignment.header.state)
+            : styleOverride || getLocationTrackStyle(alignment.header.state);
+
+        return createAlignmentFeature(alignment, showEndTicks, style);
+    });
 }
 
 function includes(selection: ItemCollections, alignment: LayoutAlignmentHeader): boolean {
