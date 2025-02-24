@@ -102,26 +102,33 @@ constructor(
 
     @Test
     fun `New bulk transfer can be started`() {
-        val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
+        splitTestDataService.insertSplit().let(splitDao::getOrThrow)
 
-        val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
+        val expectedBulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
-        val (receivedBulkTransferId, receivedBulkTransferState) = ratkoClient.startNewBulkTransfer(split)
+        val (receivedBulkTransferId, receivedBulkTransferState) =
+            ratkoClient.sendBulkTransferCreateRequest(bulkTransferStartRequest(), defaultBlockTimeout)
 
         assertEquals(expectedBulkTransferId, receivedBulkTransferId)
-        assertEquals(BulkTransferState.IN_PROGRESS, receivedBulkTransferState)
+        assertEquals(BulkTransferState.CREATED, receivedBulkTransferState)
     }
 
     @Test
     fun `Bulk transfer state can be polled`() {
-        val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
-
-        val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
+        splitTestDataService.insertSplit().let(splitDao::getOrThrow)
+        val expectedBulkTransferId = testDBService.getUnusedRatkoBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
-        val (receivedBulkTransferId, _) = ratkoClient.startNewBulkTransfer(split)
+        val (receivedBulkTransferId, _) =
+            ratkoClient.sendBulkTransferCreateRequest(bulkTransferStartRequest(), defaultBlockTimeout)
 
-        assertEquals(BulkTransferState.DONE, ratkoClient.pollBulkTransferState(receivedBulkTransferId))
+        fakeRatko.allowsBulkTransferStatePollingAndAnswersWithState(
+            bulkTransferId = receivedBulkTransferId,
+            BulkTransferState.DONE,
+        )
+
+        val (polledState, _) = ratkoClient.pollBulkTransferState(receivedBulkTransferId, defaultBlockTimeout)
+        assertEquals(BulkTransferState.DONE, polledState)
     }
 }

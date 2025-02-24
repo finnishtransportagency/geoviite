@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitTargetOperation
@@ -563,6 +564,7 @@ data class LocationTrackPublicationSwitchLinkChanges(
 data class SplitInPublication(
     val id: IntId<Publication>,
     val splitId: IntId<Split>,
+    val bulkTransfer: BulkTransfer,
     val locationTrack: LocationTrack,
     val locationTrackOid: Oid<LocationTrack>,
     val targetLocationTracks: List<SplitTargetInPublication>,
