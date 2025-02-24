@@ -49,6 +49,10 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
         return x.contains(point.x) && y.contains(point.y)
     }
 
+    fun contains(other: BoundingBox): Boolean {
+        return x.contains(other.x) && y.contains(other.y)
+    }
+
     fun intersects(other: BoundingBox?): Boolean {
         return other != null && this.x.overlaps(other.x) && this.y.overlaps(other.y)
     }
