@@ -1,18 +1,21 @@
 @use 'vayla-design-lib' as vayla-design;
 
-.eye {
+.eye-container {
     cursor: pointer;
     margin-left: auto;
+    padding-left: 4px;
+}
+
+.eye-icon {
     transition: fill 150ms;
     fill: vayla-design.$color-white-darker;
-    padding-left: 4px;
+}
 
-    &--visible {
-        fill: vayla-design.$color-blue-default;
-    }
+.eye--visible {
+    fill: vayla-design.$color-blue-default;
+}
 
-    &--disabled {
-        cursor: default;
-        fill: vayla-design.$color-white-darker;
-    }
+.eye--disabled {
+    cursor: default;
+    fill: vayla-design.$color-white-darker;
 }
