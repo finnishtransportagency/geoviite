@@ -35,6 +35,11 @@ export const builtAlignmentLineDash: {
     lineCap: 'butt',
 };
 
+export const builtAlignmentBackgroundLineStroke = new Stroke({
+    color: mapStyles.alignmentLineBuiltBackground,
+    width: 2,
+});
+
 const highlightedLocationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
@@ -49,6 +54,10 @@ const highlightedBuiltLocationTrackStyle = new Style({
         width: 1,
         ...builtAlignmentLineDash,
     }),
+    zIndex: 3,
+});
+export const highlightedBuiltLocationTrackBackgroundStyle = new Style({
+    stroke: builtAlignmentBackgroundLineStroke,
     zIndex: 2,
 });
 
@@ -74,10 +83,37 @@ const locationTrackBuiltStyle = new Style({
         width: 1,
         ...builtAlignmentLineDash,
     }),
-    zIndex: 0,
+    zIndex: 2,
+});
+export const locationTrackBuiltBackgroundStyle = new Style({
+    stroke: builtAlignmentBackgroundLineStroke,
+    zIndex: 1,
 });
 
-export function getLocationTrackStyle(state: LocationTrackState): Style {
+export function getLocationTrackStyles(state: LocationTrackState): Style[] {
+    switch (state) {
+        case 'NOT_IN_USE':
+            return [locationTrackNotInUseStyle];
+        case 'BUILT':
+            return [locationTrackBuiltStyle, locationTrackBuiltBackgroundStyle];
+        default:
+            return [locationTrackStyle];
+    }
+}
+
+export function getLocationTrackHighlightStyles(state: LocationTrackState): Style[] {
+    switch (state) {
+        case 'BUILT':
+            return [
+                highlightedBuiltLocationTrackStyle,
+                highlightedBuiltLocationTrackBackgroundStyle,
+            ];
+        default:
+            return [highlightedLocationTrackStyle];
+    }
+}
+
+export function getLocationTrackEndTickStyle(state: LocationTrackState): Style {
     switch (state) {
         case 'NOT_IN_USE':
             return locationTrackNotInUseStyle;
@@ -88,7 +124,7 @@ export function getLocationTrackStyle(state: LocationTrackState): Style {
     }
 }
 
-export function getLocationTrackHighlightStyle(state: LocationTrackState): Style {
+export function getLocationTrackHighlightEndTickStyle(state: LocationTrackState): Style {
     switch (state) {
         case 'BUILT':
             return highlightedBuiltLocationTrackStyle;

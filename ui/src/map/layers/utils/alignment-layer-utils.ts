@@ -19,8 +19,10 @@ import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
 import { exhaustiveMatchingGuard, expectCoordinate } from 'utils/type-utils';
 import {
-    getLocationTrackHighlightStyle,
-    getLocationTrackStyle,
+    getLocationTrackEndTickStyle,
+    getLocationTrackHighlightEndTickStyle,
+    getLocationTrackHighlightStyles,
+    getLocationTrackStyles,
 } from 'map/layers/alignment/location-track-alignment-layer';
 
 const tickImageCache = cache<string, RegularShape>();
@@ -110,8 +112,8 @@ function getCoordinate(points: AlignmentPoint[], m: number): number[] | undefine
 
 export function createAlignmentFeature(
     alignment: AlignmentDataHolder,
-    showEndTicks: boolean,
-    style: Style,
+    alignmentStyles: Style[],
+    endpointTickStyle: Style | undefined,
 ): Feature<LineString | OlPoint>[] {
     const features: Feature<LineString | OlPoint>[] = [];
     const alignmentFeature = new Feature({
@@ -119,10 +121,10 @@ export function createAlignmentFeature(
     });
     features.push(alignmentFeature);
 
-    alignmentFeature.setStyle(style);
+    alignmentFeature.setStyle(alignmentStyles);
 
-    if (showEndTicks) {
-        features.push(...createEndPointTicks(alignment, style));
+    if (endpointTickStyle) {
+        features.push(...createEndPointTicks(alignment, endpointTickStyle));
     }
 
     setAlignmentFeatureProperty(alignmentFeature, alignment);
@@ -138,11 +140,19 @@ export function createAlignmentFeatures(
     highlightStyleOverride?: Style,
 ): Feature<LineString | OlPoint>[] {
     return alignments.flatMap((alignment) => {
-        const style = isHighlighted(selection, alignment.header)
-            ? highlightStyleOverride || getLocationTrackHighlightStyle(alignment.header.state)
-            : styleOverride || getLocationTrackStyle(alignment.header.state);
+        const highlighted = isHighlighted(selection, alignment.header);
+        const style = highlighted
+            ? highlightStyleOverride
+                ? [highlightStyleOverride]
+                : getLocationTrackHighlightStyles(alignment.header.state)
+            : styleOverride
+              ? [styleOverride]
+              : getLocationTrackStyles(alignment.header.state);
+        const endTickStyle = highlighted
+            ? getLocationTrackHighlightEndTickStyle(alignment.header.state)
+            : getLocationTrackEndTickStyle(alignment.header.state);
 
-        return createAlignmentFeature(alignment, showEndTicks, style);
+        return createAlignmentFeature(alignment, style, showEndTicks ? endTickStyle : undefined);
     });
 }
 

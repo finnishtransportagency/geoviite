@@ -89,8 +89,8 @@ function splitToParts(
 
         return createAlignmentFeature(
             alignmentPart,
-            false,
-            alignmentStyle(splittingEnabled, splitIsFocused),
+            [alignmentStyle(splittingEnabled, splitIsFocused)],
+            undefined,
         );
     });
 }
@@ -153,7 +153,7 @@ export function createLocationTrackSplitAlignmentLayer(
             return [];
         }
 
-        createAlignmentFeature(splitTrack, false, alignmentStyle(splittingEnabled, true));
+        createAlignmentFeature(splitTrack, [alignmentStyle(splittingEnabled, true)], undefined);
 
         return splitToParts(
             splitTrack,
