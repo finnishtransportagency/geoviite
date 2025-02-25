@@ -26,7 +26,7 @@ class ExternalIdDaoIT @Autowired constructor(private val trackNumberDao: LayoutT
 
         testOids
             .map { (oid, _) -> oid }
-            .let { oidList -> getByExternalIds(trackNumberDao, mainOfficialContext.context, oidList) }
+            .let { oidList -> trackNumberDao.getByExternalIds(mainOfficialContext.context, oidList) }
             .let { oidMapping -> testOids.forEach { (oid, id) -> assertEquals(id, oidMapping[oid]?.id) } }
     }
 
@@ -39,16 +39,16 @@ class ExternalIdDaoIT @Autowired constructor(private val trackNumberDao: LayoutT
                 }
             }
 
-        testOids.forEach { (oid, id) -> assertEquals(id, getByExternalId(trackNumberDao, oid)?.id) }
+        testOids.forEach { (oid, id) -> assertEquals(id, trackNumberDao.getByExternalId(oid)?.id) }
     }
 
     @Test
-    fun `External ids which are not found are returned as nulls`() {
+    fun `External ids which are not found are returned as nulls when searching for multiple oids`() {
         val testOids = listOf<Oid<LayoutTrackNumber>>(someOid(), someOid())
         val notExistingOid = Oid<LayoutTrackNumber>("999.888.777")
         testOids.forEach { oid -> mainOfficialContext.createLayoutTrackNumberWithOid(oid) }
 
-        val oidResult = getByExternalIds(trackNumberDao, mainOfficialContext.context, testOids + listOf(notExistingOid))
+        val oidResult = trackNumberDao.getByExternalIds(mainOfficialContext.context, testOids + listOf(notExistingOid))
         assertEquals(3, oidResult.size)
         assertEquals(null, oidResult[notExistingOid])
     }

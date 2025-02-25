@@ -3,12 +3,10 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
-import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getIntId
@@ -175,22 +173,4 @@ class ExternalIdDao<T : LayoutAsset<T>>(
 
         return oids.associateWith { oid -> result[oid] }
     }
-}
-
-fun <DAO, T> getByExternalId(dao: DAO, oid: Oid<T>): T? where
-T : LayoutAsset<T>,
-DAO : LayoutAssetDao<T>,
-DAO : IExternalIdDao<T> {
-    return dao.lookupByExternalId(oid)?.let { rowByOid -> dao.get(rowByOid.context, rowByOid.id) }
-}
-
-fun <DAO, T> getByExternalIds(dao: DAO, context: LayoutContext, oids: List<Oid<T>>): Map<Oid<T>, T?> where
-T : LayoutAsset<T>,
-DAO : LayoutAssetDao<T>,
-DAO : IExternalIdDao<T> {
-    val oidMapping = dao.lookupByExternalIds(oids)
-    val oidToNonNullId = oidMapping.mapNotNull { (oid, rowId) -> rowId?.let { oid to rowId.id } }.toMap()
-    val assets = dao.getMany(context, oidToNonNullId.values.toList())
-
-    return oids.associateWith { oid -> oidToNonNullId[oid]?.let { id -> assets.find { asset -> asset.id == id } } }
 }

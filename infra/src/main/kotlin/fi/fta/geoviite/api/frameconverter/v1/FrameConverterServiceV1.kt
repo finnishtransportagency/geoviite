@@ -22,7 +22,6 @@ import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.ratko.getByExternalIds
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -321,7 +320,7 @@ constructor(
             requests
                 .mapNotNull { request -> request.locationTrackOid }
                 .distinct()
-                .let { distinctOids -> getByExternalIds(locationTrackDao, MainLayoutContext.official, distinctOids) }
+                .let { distinctOids -> locationTrackDao.getByExternalIds(MainLayoutContext.official, distinctOids) }
                 .entries
                 .mapNotNull { (oid, locationTrack) -> locationTrack?.id?.let { id -> id as IntId to oid } }
                 .toMap()
@@ -437,7 +436,7 @@ constructor(
         val trackNumberOidLookup =
             requests
                 .mapNotNull { request -> createValidTrackNumberOidOrNull(request.trackNumberOid).first }
-                .let { oids -> getByExternalIds(trackNumberDao, MainLayoutContext.official, oids) }
+                .let { oids -> trackNumberDao.getByExternalIds(MainLayoutContext.official, oids) }
                 .mapValues { (_, layoutTrackNumber) -> layoutTrackNumber?.number }
 
         val trackNumberNames =
