@@ -1,4 +1,4 @@
-import { RegularShape, Style } from 'ol/style';
+import { RegularShape, Stroke, Style } from 'ol/style';
 import {
     AlignmentDataHolder,
     LayoutAlignmentDataHolder,
@@ -18,12 +18,7 @@ import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
 import { exhaustiveMatchingGuard, expectCoordinate } from 'utils/type-utils';
-import {
-    getLocationTrackEndTickStyle,
-    getLocationTrackHighlightEndTickStyle,
-    getLocationTrackHighlightStyles,
-    getLocationTrackStyles,
-} from 'map/layers/alignment/location-track-alignment-layer';
+import mapStyles from 'map/map.module.scss';
 
 const tickImageCache = cache<string, RegularShape>();
 
@@ -32,6 +27,29 @@ export const NORMAL_ALIGNMENT_OPACITY = 1;
 
 export const REFERENCE_LINE_ALIGNMENT_WIDTH = 3;
 export const LOCATION_TRACK_ALIGNMENT_WIDTH = 1;
+
+type AlignmentStyleType = 'IN_USE' | 'NOT_IN_USE' | 'BUILT_BACKGROUND' | 'BUILT';
+export const ALIGNMENT_DRAW_ORDER = ['IN_USE', 'NOT_IN_USE', 'BUILT_BACKGROUND', 'BUILT'];
+
+export const getAlignmentZIndex = (state: AlignmentStyleType, isHighlighted: boolean): number => {
+    const zIndex = ALIGNMENT_DRAW_ORDER.indexOf(state);
+    return isHighlighted ? zIndex + ALIGNMENT_DRAW_ORDER.length : zIndex;
+};
+
+export const builtAlignmentLineDash: {
+    lineDash: number[];
+    lineDashOffset: number;
+    lineCap: CanvasLineCap;
+} = {
+    lineDash: [4, 2],
+    lineDashOffset: 0,
+    lineCap: 'butt',
+};
+
+export const builtAlignmentBackgroundLineStroke = new Stroke({
+    color: mapStyles.alignmentLineBuiltBackground,
+    width: 2,
+});
 
 export function getTickStyle(
     point1: Coordinate,
@@ -130,30 +148,6 @@ export function createAlignmentFeature(
     setAlignmentFeatureProperty(alignmentFeature, alignment);
 
     return features;
-}
-
-export function createAlignmentFeatures(
-    alignments: LayoutAlignmentDataHolder[],
-    selection: Selection,
-    showEndTicks: boolean,
-    styleOverride?: Style,
-    highlightStyleOverride?: Style,
-): Feature<LineString | OlPoint>[] {
-    return alignments.flatMap((alignment) => {
-        const highlighted = isHighlighted(selection, alignment.header);
-        const style = highlighted
-            ? highlightStyleOverride
-                ? [highlightStyleOverride]
-                : getLocationTrackHighlightStyles(alignment.header.state)
-            : styleOverride
-              ? [styleOverride]
-              : getLocationTrackStyles(alignment.header.state);
-        const endTickStyle = highlighted
-            ? getLocationTrackHighlightEndTickStyle(alignment.header.state)
-            : getLocationTrackEndTickStyle(alignment.header.state);
-
-        return createAlignmentFeature(alignment, style, showEndTicks ? endTickStyle : undefined);
-    });
 }
 
 function includes(selection: ItemCollections, alignment: LayoutAlignmentHeader): boolean {

@@ -10,22 +10,23 @@ import {
     AlignmentDataHolder,
     getSelectedLocationTrackMapAlignmentByTiles,
 } from 'track-layout/layout-map-api';
-import { createAlignmentFeature } from '../utils/alignment-layer-utils';
+import {
+    builtAlignmentBackgroundLineStroke,
+    builtAlignmentLineDash,
+    createAlignmentFeature,
+    getAlignmentZIndex,
+} from '../utils/alignment-layer-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import { first } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
-import {
-    builtAlignmentBackgroundLineStroke,
-    builtAlignmentLineDash,
-} from 'map/layers/alignment/location-track-alignment-layer';
 
 const selectedLocationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 2,
     }),
-    zIndex: 2,
+    zIndex: getAlignmentZIndex('IN_USE', false),
 });
 
 const selectedLocationTrackBuildStyle = new Style({
@@ -34,11 +35,11 @@ const selectedLocationTrackBuildStyle = new Style({
         width: 2,
         ...builtAlignmentLineDash,
     }),
-    zIndex: 4,
+    zIndex: getAlignmentZIndex('BUILT', false),
 });
 const selectedLocationTrackBuildBackgroundStyle = new Style({
     stroke: builtAlignmentBackgroundLineStroke,
-    zIndex: 3,
+    zIndex: getAlignmentZIndex('BUILT_BACKGROUND', false),
 });
 
 const layerName: MapLayerName = 'location-track-selected-alignment-layer';
