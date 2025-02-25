@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.radsToDegrees
-import fi.fta.geoviite.infra.tracklayout.EdgeNode
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.ISegment
@@ -19,6 +18,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.PlaceHolderEdgeNode
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
@@ -189,11 +189,7 @@ private fun toLayoutSegment(segment: ISegment): LayoutSegment =
 
 private fun tryCreateLinkedTrackGeometry(newSegments: List<LayoutSegment>): LocationTrackGeometry =
     try {
-        TmpLocationTrackGeometry(
-            listOf(
-                TmpLayoutEdge(startNode = EdgeNode.placeHolder, endNode = EdgeNode.placeHolder, segments = newSegments)
-            )
-        )
+        TmpLocationTrackGeometry(listOf(TmpLayoutEdge.of(newSegments)))
     } catch (e: IllegalArgumentException) {
         throw LinkingFailureException(
             message = "Linking selection produces invalid location track geometry",
@@ -295,8 +291,8 @@ fun slice(
 
 fun slice(edge: LayoutEdge, mRange: Range<Double>, snapDistance: Double = ALIGNMENT_LINKING_SNAP): LayoutEdge =
     TmpLayoutEdge(
-        startNode = edge.startNode.takeIf { mRange.min - snapDistance <= 0.0 } ?: EdgeNode.placeHolder,
-        endNode = edge.endNode.takeIf { mRange.max + snapDistance >= edge.length } ?: EdgeNode.placeHolder,
+        startNode = edge.startNode.takeIf { mRange.min - snapDistance <= 0.0 } ?: PlaceHolderEdgeNode,
+        endNode = edge.endNode.takeIf { mRange.max + snapDistance >= edge.length } ?: PlaceHolderEdgeNode,
         segments = slice(edge.segmentsWithM, mRange, snapDistance),
     )
 

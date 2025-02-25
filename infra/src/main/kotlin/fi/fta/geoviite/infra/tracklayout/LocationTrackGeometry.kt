@@ -272,8 +272,8 @@ sealed class LayoutEdge : IAlignment {
     }
 
     fun reifyNodeTrackId(id: IntId<LocationTrack>): LayoutEdge {
-        val newStart = startNode.takeIf { it.node !is PlaceholderNode } ?: EdgeNode.trackBoundary(id, START)
-        val newEnd = endNode.takeIf { it.node !is PlaceholderNode } ?: EdgeNode.trackBoundary(id, END)
+        val newStart = startNode.takeIf { it !is PlaceHolderEdgeNode } ?: EdgeNode.trackBoundary(id, START)
+        val newEnd = endNode.takeIf { it !is PlaceHolderEdgeNode } ?: EdgeNode.trackBoundary(id, END)
         return if (newStart == startNode && newEnd == endNode) this else TmpLayoutEdge(newStart, newEnd, segments)
     }
 }
@@ -288,14 +288,14 @@ fun verifyEdgeContent(edge: LayoutEdge) {
         require(range.min.isFinite() && range.min >= 0.0) { "Invalid start m: ${range.min}" }
         require(range.max.isFinite() && range.max >= range.min) { "Invalid end m: ${range.max}" }
     }
-    edge.segmentMValues.zipWithNext().map { (prev, next) ->
+    edge.segmentMValues.zipWithNext().mapIndexed { i, (prev, next) ->
         require(abs(prev.max - next.min) < 0.001) {
-            "Edge segment m-values should be continuous: prev=$prev next=$next"
+            "Edge segment m-values should be continuous: index=$i prev=$prev next=$next"
         }
     }
-    edge.segments.zipWithNext().map { (prev, next) ->
+    edge.segments.zipWithNext().mapIndexed { i, (prev, next) ->
         require(prev.segmentEnd.isSame(next.segmentStart, 0.001)) {
-            "Edge segments should begin where the previous one ends: prev=${prev.segmentEnd} next=${next.segmentStart}"
+            "Edge segments should begin where the previous one ends: index=$i prev=${prev.segmentEnd} next=${next.segmentStart}"
         }
     }
     edge.startNode.trackBoundaryIn?.let { innerBoundary ->
@@ -325,7 +325,7 @@ data class TmpLayoutEdge(
     @get:JsonIgnore override val segments: List<LayoutSegment>,
 ) : LayoutEdge() {
     companion object {
-        fun of(segments: List<LayoutSegment>) = TmpLayoutEdge(EdgeNode.placeHolder, EdgeNode.placeHolder, segments)
+        fun of(segments: List<LayoutSegment>) = TmpLayoutEdge(PlaceHolderEdgeNode, PlaceHolderEdgeNode, segments)
     }
 
     init {
@@ -346,8 +346,6 @@ data class DbLayoutEdge(
 
 sealed class EdgeNode {
     companion object {
-        val placeHolder = TmpEdgeNode(A, PlaceholderNode)
-
         fun trackBoundary(id: IntId<LocationTrack>, type: TrackBoundaryType) = trackBoundary(TrackBoundary(id, type))
 
         fun trackBoundary(inner: TrackBoundary, outer: TrackBoundary? = null): TmpEdgeNode {
@@ -413,7 +411,7 @@ sealed class EdgeNode {
             remainingSwitch?.let { switch ->
                 val newConnection = if (switch == node?.portA) portConnection else portConnection.opposite
                 TmpEdgeNode(newConnection, TmpSwitchNode(switch, null))
-            } ?: placeHolder
+            } ?: PlaceHolderEdgeNode
         } else {
             this
         }
@@ -425,6 +423,11 @@ data class DbEdgeNode(override val portConnection: NodePortType, override val no
 }
 
 data class TmpEdgeNode(override val portConnection: NodePortType, override val node: LayoutNode) : EdgeNode()
+
+data object PlaceHolderEdgeNode : EdgeNode() {
+    override val portConnection: NodePortType = A
+    override val node: PlaceholderNode = PlaceholderNode
+}
 
 //
 // data class PlaceHolderEdgeNode(

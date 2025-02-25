@@ -37,8 +37,6 @@ data class MapSegmentProfileInfo<T>(
     val hasProfile: Boolean,
 )
 
-data class GraphEdgeData(val edge: DbLayoutEdge, val tracks: List<IntId<LocationTrack>>)
-
 @Transactional(readOnly = true)
 @Component
 class LayoutAlignmentDao(
@@ -1209,7 +1207,7 @@ class LayoutAlignmentDao(
         return rowResults.size
     }
 
-    fun getActiveContextEdges(context: LayoutContext, bbox: BoundingBox): List<GraphEdgeData> {
+    fun getActiveContextEdges(context: LayoutContext, bbox: BoundingBox): List<DbEdgeData> {
         val sql =
             """
             select
@@ -1247,7 +1245,7 @@ class LayoutAlignmentDao(
             .let { result ->
                 val edges = getEdges(result.map { it.first })
                 result.map { (edgeId, trackIds) ->
-                    GraphEdgeData(
+                    DbEdgeData(
                         edge = requireNotNull(edges[edgeId]) { "Failed to fetch edge $edgeId" },
                         tracks = trackIds,
                     )
