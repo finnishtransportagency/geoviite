@@ -1,6 +1,5 @@
 import * as React from 'react';
 import styles from './geometry-plan-infobox.scss';
-
 import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -25,6 +24,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { InfraModelDownloadButton } from 'geoviite-design-lib/infra-model-download/infra-model-download-button';
+import { GeometryPlanApplicability } from 'tool-panel/geometry-plan/geometry-plan-applicability';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
@@ -214,6 +214,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                             />
                         }
                     />
+                    <GeometryPlanApplicability planHeader={planHeader} />
                     <InfoboxButtons verticalLayout>
                         <Button
                             size={ButtonSize.SMALL}

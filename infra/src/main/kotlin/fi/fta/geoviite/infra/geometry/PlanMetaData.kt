@@ -32,6 +32,12 @@ enum class PlanDecisionPhase {
     IN_USE,
 }
 
+enum class PlanApplicability {
+    PLANNING,
+    MAINTENANCE,
+    STATISTICS,
+}
+
 data class Project(val name: ProjectName, val description: FreeText?, val id: DomainId<Project> = StringId())
 
 data class Application(

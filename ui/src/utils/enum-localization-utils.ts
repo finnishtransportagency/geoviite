@@ -1,4 +1,9 @@
-import { PlanDecisionPhase, PlanPhase, PlanSource } from 'geometry/geometry-model';
+import {
+    PlanApplicability,
+    PlanDecisionPhase,
+    PlanPhase,
+    PlanSource,
+} from 'geometry/geometry-model';
 import {
     LayoutState,
     LayoutStateCategory,
@@ -120,6 +125,12 @@ export const elevationMeasurementMethods: LocalizedEnum<ElevationMeasurementMeth
     'ElevationMeasurementMethod',
     ['TOP_OF_SLEEPER', 'TOP_OF_RAIL'],
 );
+
+export const planApplicabilities: LocalizedEnum<PlanApplicability>[] = values('PlanApplicability', [
+    'PLANNING',
+    'MAINTENANCE',
+    'STATISTICS',
+]);
 
 export const verticalCoordinateSystems: {
     value: VerticalCoordinateSystem;

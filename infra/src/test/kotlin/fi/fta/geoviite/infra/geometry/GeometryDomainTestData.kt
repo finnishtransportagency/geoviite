@@ -465,6 +465,7 @@ fun plan(
     kmPosts: List<GeometryKmPost> = kmPosts(srid),
     project: Project = project(),
     units: GeometryUnits = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
+    planApplicability: PlanApplicability? = null,
 ): GeometryPlan {
     return GeometryPlan(
         source = source,
@@ -487,6 +488,7 @@ fun plan(
         message = FreeTextWithNewLines.of("test text \n description"),
         uploadTime = Instant.now(),
         name = getPlanNameByFileName(fileName),
+        planApplicability = planApplicability,
     )
 }
 
@@ -523,6 +525,7 @@ fun planHeader(
         author = "Test Company",
         isHidden = false,
         name = getPlanNameByFileName(fileName),
+        planApplicability = null,
     )
 
 fun minimalPlan(fileName: FileName = FileName("TEST_FILE.xml")) =
@@ -552,6 +555,7 @@ fun minimalPlan(fileName: FileName = FileName("TEST_FILE.xml")) =
         trackNumber = null,
         uploadTime = null,
         name = getPlanNameByFileName(fileName),
+        planApplicability = null,
     )
 
 fun geometryLine(

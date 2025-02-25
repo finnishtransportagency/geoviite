@@ -102,7 +102,8 @@ constructor(
               elevation_measurement_method,
               message,
               hidden,
-              name
+              name,
+              plan_applicability
             )
             values(
               :track_number,
@@ -126,7 +127,8 @@ constructor(
               :elevation_measurement_method::common.elevation_measurement_method,
               :message,
               :hidden,
-              :name
+              :name,
+              :plan_applicability::geometry.plan_applicability
             )
             returning id, version
         """
@@ -159,6 +161,7 @@ constructor(
                 "message" to plan.message,
                 "hidden" to plan.isHidden,
                 "name" to plan.name,
+                "plan_applicability" to plan.planApplicability?.name,
             )
 
         val planId: RowVersion<GeometryPlan> =
@@ -303,6 +306,25 @@ constructor(
     }
 
     @Transactional
+    fun setPlanApplicability(id: IntId<GeometryPlan>, applicability: PlanApplicability?): RowVersion<GeometryPlan> {
+        // language=SQL
+        val sql =
+            """
+            update geometry.plan
+            set plan_applicability = :plan_applicability::geometry.plan_applicability
+            where id = :id
+            returning id, version
+        """
+                .trimIndent()
+        val params = mapOf("id" to id.intValue, "plan_applicability" to applicability?.name)
+
+        jdbcTemplate.setUser()
+        return jdbcTemplate
+            .queryOne<RowVersion<GeometryPlan>>(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+            .also { v -> logger.daoAccess(UPDATE, GeometryPlan::class, id) }
+    }
+
+    @Transactional
     fun updatePlan(planId: IntId<GeometryPlan>, geometryPlan: GeometryPlan): RowVersion<GeometryPlan> {
         jdbcTemplate.setUser()
         val sql =
@@ -325,7 +347,8 @@ constructor(
               message = :message,
               source = :source::geometry.plan_source,
               hidden = :hidden,
-              name = :name
+              name = :name,
+              plan_applicability = :plan_applicability::geometry.plan_applicability
             where id = :id
             returning id, version
         """
@@ -351,6 +374,7 @@ constructor(
                 "source" to geometryPlan.source.name,
                 "hidden" to geometryPlan.isHidden,
                 "name" to geometryPlan.name,
+                "plan_applicability" to geometryPlan.planApplicability?.name,
             )
 
         return getOne(
@@ -712,7 +736,8 @@ constructor(
             has_profile,
             has_cant,
             plan.hidden,
-            plan.name
+            plan.name,
+            plan.plan_applicability
           from geometry.plan
             left join geometry.plan_file on plan_file.plan_id = plan.id
             left join geometry.plan_project project on project.id = plan.plan_project_id
@@ -774,7 +799,8 @@ constructor(
             has_profile,
             has_cant,
             plan.hidden,
-            plan.name
+            plan.name,
+            plan.plan_applicability
           from geometry.plan_version plan
             left join geometry.plan_file on plan_file.plan_id = plan.id
             left join geometry.plan_project project on project.id = plan.plan_project_id
@@ -835,6 +861,7 @@ constructor(
             hasCant = rs.getBoolean("has_cant"),
             isHidden = rs.getBoolean("hidden"),
             name = rs.getPlanName("name"),
+            planApplicability = rs.getEnumOrNull<PlanApplicability>("plan_applicability"),
         )
     }
 
@@ -949,7 +976,8 @@ constructor(
               plan.elevation_measurement_method,
               plan.message,
               plan.hidden,
-              plan.name
+              plan.name,
+              plan.plan_applicability
             from geometry.plan 
               left join geometry.plan_file on plan_file.plan_id = plan.id
               left join geometry.plan_author on plan.plan_author_id = plan_author.id
@@ -1007,6 +1035,7 @@ constructor(
                             uploadTime = rs.getInstant("upload_time"),
                             isHidden = rs.getBoolean("hidden"),
                             name = rs.getPlanName("name"),
+                            planApplicability = rs.getEnumOrNull<PlanApplicability>("plan_applicability"),
                         )
                     geometryPlan
                 }

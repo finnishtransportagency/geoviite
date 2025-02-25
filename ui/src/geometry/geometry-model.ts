@@ -60,6 +60,8 @@ export type KmNumberRange = {
 
 export type PlanDecisionPhase = 'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE';
 
+export type PlanApplicability = 'PLANNING' | 'MAINTENANCE' | 'STATISTICS';
+
 export type PlanPhase =
     | 'RAILWAY_PLAN'
     | 'RAILWAY_CONSTRUCTION_PLAN'
@@ -90,6 +92,7 @@ export type GeometryPlanHeader = {
     hasCant: boolean;
     isHidden: boolean;
     name: string;
+    planApplicability?: PlanApplicability;
 };
 
 export type GeometryPlan = {
@@ -116,6 +119,7 @@ export type GeometryPlan = {
     uploadTime?: Date;
     isHidden: boolean;
     name: string;
+    planApplicability?: PlanApplicability;
 };
 
 export enum GeometrySortBy {

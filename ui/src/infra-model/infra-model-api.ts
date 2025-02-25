@@ -6,7 +6,7 @@ import {
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { getChangeTimes, updatePlanChangeTime } from 'common/change-time-api';
 import {
@@ -100,6 +100,15 @@ export async function hidePlan(planId: GeometryPlanId): Promise<GeometryPlanId |
         (id) => updatePlanChangeTime().then((_) => id),
     );
 }
+
+export const updatePlanApplicability = async (
+    planId: GeometryPlanId,
+    planApplicability: PlanApplicability | undefined,
+): Promise<GeometryPlanId | undefined> =>
+    putNonNull<PlanApplicability | undefined, GeometryPlanId>(
+        `${INFRAMODEL_URI}/${planId}/applicability`,
+        planApplicability,
+    ).then((id) => updatePlanChangeTime().then((_) => id));
 
 export async function getPVDocuments(
     changeTime: TimeStamp,

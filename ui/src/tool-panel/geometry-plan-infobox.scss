@@ -1,3 +1,9 @@
 .geometry-plan-tool-panel__long {
     overflow-wrap: anywhere;
 }
+
+.geometry-plan-tool-panel__applicability-value {
+    display: flex;
+    flex-grow: 1;
+    justify-content: space-between;
+}

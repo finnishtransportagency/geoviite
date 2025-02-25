@@ -94,8 +94,13 @@
     &__buttons {
         padding: 8px 0;
 
-        .button {
+        .button:not(:last-child) {
             margin-right: 12px;
+        }
+
+        &--right {
+            display: flex;
+            justify-content: flex-end;
         }
 
         &--vertical {

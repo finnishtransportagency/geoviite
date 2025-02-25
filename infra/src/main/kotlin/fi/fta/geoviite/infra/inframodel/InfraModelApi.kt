@@ -23,6 +23,7 @@ data class ExtraInfoParameters(
     val elevationMeasurementMethod: ElevationMeasurementMethod?,
     val message: FreeTextWithNewLines?,
     val name: PlanName,
+    val planApplicability: PlanApplicability?,
 )
 
 data class OverrideParameters(

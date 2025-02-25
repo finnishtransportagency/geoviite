@@ -1,34 +1,20 @@
 import React from 'react';
-import { EditablePlanField } from 'infra-model/view/form/infra-model-form';
-import { ExtraInfraModelParameters } from 'infra-model/infra-model-slice';
 import { useTranslation } from 'react-i18next';
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { elevationMeasurementMethods } from 'utils/enum-localization-utils';
-
-export type InfraModelElevationMeasurementMethodFieldProps = {
-    fieldInEdit: EditablePlanField;
-    setFieldInEdit: (editablePlanField: EditablePlanField | undefined) => void;
-    extraInframodelParameters: ExtraInfraModelParameters;
-    changeInExtraParametersField: <
-        TKey extends keyof ExtraInfraModelParameters,
-        TValue extends ExtraInfraModelParameters[TKey],
-    >(
-        value: TValue,
-        fieldName: TKey,
-    ) => void;
-};
+import { InfraModelExtraParameterFieldProps } from 'infra-model/view/form/fields/infra-model-field-model';
 
 export const InfraModelElevationMeasurementMethodField: React.FC<
-    InfraModelElevationMeasurementMethodFieldProps
+    InfraModelExtraParameterFieldProps
 > = ({
     fieldInEdit,
     setFieldInEdit,
     extraInframodelParameters,
     changeInExtraParametersField,
-}: InfraModelElevationMeasurementMethodFieldProps) => {
+}: InfraModelExtraParameterFieldProps) => {
     const { t } = useTranslation();
 
     return (
