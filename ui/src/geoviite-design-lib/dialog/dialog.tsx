@@ -2,7 +2,8 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import styles from './dialog.scss';
 import { createClassName } from 'vayla-design-lib/utils';
-import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
+import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 
 export enum DialogVariant {
     DARK = 'dialog__popup--dark',
@@ -101,9 +102,13 @@ export const Dialog: React.FC<DialogProps> = ({
                     }}>
                     <span className={styles['dialog__title']}>{props.title}</span>
                     {allowClose && (
-                        <div className={styles['dialog__close']} onClick={close}>
-                            <Icons.Close color={IconColor.INHERIT} />
-                        </div>
+                        <Button
+                            className={styles['dialog__close']}
+                            onClick={close}
+                            icon={Icons.Close}
+                            iconProps={{ size: IconSize.MEDIUM }}
+                            variant={ButtonVariant.GHOST}
+                        />
                     )}
                 </div>
                 <div className={styles['dialog__content']}>{props.children}</div>
