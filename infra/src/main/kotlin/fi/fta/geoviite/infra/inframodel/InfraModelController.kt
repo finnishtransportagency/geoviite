@@ -82,7 +82,7 @@ constructor(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
         @RequestBody applicability: PlanApplicability?,
     ): IntId<GeometryPlan> {
-        return geometryService.setPlanApplicability(planId, applicability).id
+        return infraModelService.setPlanApplicability(planId, applicability).id
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
