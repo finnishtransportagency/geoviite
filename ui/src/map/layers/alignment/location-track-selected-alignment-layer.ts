@@ -21,25 +21,25 @@ import mapStyles from 'map/map.module.scss';
 import { first } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 
-const selectedLocationTrackStyle = new Style({
+const selectedExistingOrNotInUseLocationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 2,
     }),
-    zIndex: getAlignmentZIndex('IN_USE', false),
+    zIndex: getAlignmentZIndex('IN_USE', 'NOT_HIGHLIGHTED'),
 });
 
-const selectedLocationTrackBuildStyle = new Style({
+const selectedLocationTrackBuiltStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 2,
         ...builtAlignmentLineDash,
     }),
-    zIndex: getAlignmentZIndex('BUILT', false),
+    zIndex: getAlignmentZIndex('BUILT', 'NOT_HIGHLIGHTED'),
 });
-const selectedLocationTrackBuildBackgroundStyle = new Style({
+const selectedLocationTrackBuiltBackgroundStyle = new Style({
     stroke: builtAlignmentBackgroundLineStroke,
-    zIndex: getAlignmentZIndex('BUILT_BACKGROUND', false),
+    zIndex: getAlignmentZIndex('BUILT_BACKGROUND', 'NOT_HIGHLIGHTED'),
 });
 
 const layerName: MapLayerName = 'location-track-selected-alignment-layer';
@@ -78,14 +78,14 @@ export function createLocationTrackSelectedAlignmentLayer(
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
         const endpointTickStyle =
             selectedTrack.header.state === 'BUILT'
-                ? selectedLocationTrackBuildStyle
-                : selectedLocationTrackStyle;
+                ? selectedLocationTrackBuiltStyle
+                : selectedExistingOrNotInUseLocationTrackStyle;
 
         return createAlignmentFeature(
             selectedTrack,
             selectedTrack.header.state === 'BUILT'
-                ? [selectedLocationTrackBuildStyle, selectedLocationTrackBuildBackgroundStyle]
-                : [selectedLocationTrackStyle],
+                ? [selectedLocationTrackBuiltStyle, selectedLocationTrackBuiltBackgroundStyle]
+                : [selectedExistingOrNotInUseLocationTrackStyle],
             showEndPointTicks ? endpointTickStyle : undefined,
         );
     };

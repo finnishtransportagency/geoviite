@@ -42,17 +42,17 @@ const referenceLineStyle = new Style({
     zIndex: 0,
 });
 
-export function createAlignmentFeatures(
+export function createReferenceLineFeatures(
     alignments: LayoutAlignmentDataHolder[],
     selection: Selection,
     showEndTicks: boolean,
 ): Feature<LineString | OlPoint>[] {
     return alignments.flatMap((alignment) => {
         const highlighted = isHighlighted(selection, alignment.header);
-        const style = highlighted ? [highlightedReferenceLineStyle] : [referenceLineStyle];
+        const styles = highlighted ? [highlightedReferenceLineStyle] : [referenceLineStyle];
         const endTickStyle = highlighted ? highlightedReferenceLineStyle : referenceLineStyle;
 
-        return createAlignmentFeature(alignment, style, showEndTicks ? endTickStyle : undefined);
+        return createAlignmentFeature(alignment, styles, showEndTicks ? endTickStyle : undefined);
     });
 }
 
@@ -87,7 +87,7 @@ export function createReferenceLineAlignmentLayer(
         getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext);
 
     const createFeatures = (referenceLines: ReferenceLineAlignmentDataHolder[]) =>
-        createAlignmentFeatures(referenceLines, selection, false);
+        createReferenceLineFeatures(referenceLines, selection, false);
 
     const onLoadingChange = (
         loading: boolean,

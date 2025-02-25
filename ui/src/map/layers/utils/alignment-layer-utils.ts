@@ -29,11 +29,15 @@ export const REFERENCE_LINE_ALIGNMENT_WIDTH = 3;
 export const LOCATION_TRACK_ALIGNMENT_WIDTH = 1;
 
 type AlignmentStyleType = 'IN_USE' | 'NOT_IN_USE' | 'BUILT_BACKGROUND' | 'BUILT';
+type AlignmentHighlightedness = 'HIGHLIGHTED' | 'NOT_HIGHLIGHTED';
 export const ALIGNMENT_DRAW_ORDER = ['IN_USE', 'NOT_IN_USE', 'BUILT_BACKGROUND', 'BUILT'];
 
-export const getAlignmentZIndex = (state: AlignmentStyleType, isHighlighted: boolean): number => {
+export const getAlignmentZIndex = (
+    state: AlignmentStyleType,
+    highlightedness: AlignmentHighlightedness,
+): number => {
     const zIndex = ALIGNMENT_DRAW_ORDER.indexOf(state);
-    return isHighlighted ? zIndex + ALIGNMENT_DRAW_ORDER.length : zIndex;
+    return highlightedness === 'HIGHLIGHTED' ? zIndex + ALIGNMENT_DRAW_ORDER.length : zIndex;
 };
 
 export const builtAlignmentLineDash: {
