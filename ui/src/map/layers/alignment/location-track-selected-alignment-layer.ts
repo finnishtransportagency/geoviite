@@ -10,28 +10,36 @@ import {
     AlignmentDataHolder,
     getSelectedLocationTrackMapAlignmentByTiles,
 } from 'track-layout/layout-map-api';
-import { createAlignmentFeature } from '../utils/alignment-layer-utils';
+import {
+    builtAlignmentBackgroundLineStroke,
+    builtAlignmentLineDash,
+    createAlignmentFeature,
+    getAlignmentZIndex,
+} from '../utils/alignment-layer-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import { first } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
-import { builtAlignmentLineDash } from 'map/layers/alignment/location-track-alignment-layer';
 
-const selectedLocationTrackStyle = new Style({
+const selectedExistingOrNotInUseLocationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 2,
     }),
-    zIndex: 2,
+    zIndex: getAlignmentZIndex('IN_USE', 'NOT_HIGHLIGHTED'),
 });
 
-const selectedLocationTrackBuildStyle = new Style({
+const selectedLocationTrackBuiltStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 2,
         ...builtAlignmentLineDash,
     }),
-    zIndex: 2,
+    zIndex: getAlignmentZIndex('BUILT', 'NOT_HIGHLIGHTED'),
+});
+const selectedLocationTrackBuiltBackgroundStyle = new Style({
+    stroke: builtAlignmentBackgroundLineStroke,
+    zIndex: getAlignmentZIndex('BUILT_BACKGROUND', 'NOT_HIGHLIGHTED'),
 });
 
 const layerName: MapLayerName = 'location-track-selected-alignment-layer';
@@ -68,12 +76,17 @@ export function createLocationTrackSelectedAlignmentLayer(
         }
 
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
+        const endpointTickStyle =
+            selectedTrack.header.state === 'BUILT'
+                ? selectedLocationTrackBuiltStyle
+                : selectedExistingOrNotInUseLocationTrackStyle;
+
         return createAlignmentFeature(
             selectedTrack,
-            showEndPointTicks,
             selectedTrack.header.state === 'BUILT'
-                ? selectedLocationTrackBuildStyle
-                : selectedLocationTrackStyle,
+                ? [selectedLocationTrackBuiltStyle, selectedLocationTrackBuiltBackgroundStyle]
+                : [selectedExistingOrNotInUseLocationTrackStyle],
+            showEndPointTicks ? endpointTickStyle : undefined,
         );
     };
 
