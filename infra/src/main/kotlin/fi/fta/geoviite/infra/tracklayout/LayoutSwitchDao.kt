@@ -59,7 +59,8 @@ class LayoutSwitchDao(
         jdbcTemplateParam,
         "layout.switch_external_id",
         "layout.switch_external_id_version",
-    ) {
+    ),
+    IExternallyIdentifiedLayoutAssetDao<LayoutSwitch> {
 
     override fun fetchVersions(
         layoutContext: LayoutContext,

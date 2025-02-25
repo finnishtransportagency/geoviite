@@ -45,7 +45,8 @@ class LayoutTrackNumberDao(
         jdbcTemplateParam,
         "layout.track_number_external_id",
         "layout.track_number_external_id",
-    ) {
+    ),
+    IExternallyIdentifiedLayoutAssetDao<LayoutTrackNumber> {
 
     override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
         fetchVersions(layoutContext, includeDeleted, null)

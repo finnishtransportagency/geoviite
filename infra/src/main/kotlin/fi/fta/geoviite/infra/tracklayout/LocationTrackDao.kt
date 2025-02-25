@@ -52,7 +52,8 @@ class LocationTrackDao(
         jdbcTemplateParam,
         "layout.location_track_external_id",
         "layout.location_track_external_id_version",
-    ) {
+    ),
+    IExternallyIdentifiedLayoutAssetDao<LocationTrack> {
 
     fun fetchDuplicateVersions(
         layoutContext: LayoutContext,
