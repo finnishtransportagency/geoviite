@@ -6,6 +6,10 @@
     padding-left: 4px;
 }
 
+.eye-container button:disabled {
+    cursor: not-allowed;
+}
+
 .eye-icon {
     transition: fill 150ms;
     fill: vayla-design.$color-white-darker;
