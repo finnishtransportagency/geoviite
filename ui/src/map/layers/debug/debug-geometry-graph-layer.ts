@@ -156,14 +156,9 @@ export function createDebugGeometryGraphLayer(
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             const nodes = findMatchingEntities<LayoutNode>(hitArea, source, 'node', options);
             const edges = findMatchingEntities<LayoutEdge>(hitArea, source, 'edge', options);
-            // console.log(nodes, edges);
             return {
                 locationTracks: edges.flatMap((e) => e.tracks),
                 switches: nodes.flatMap((n) => n.switches.map((s) => s.id)),
-                // locationTracks: findMatchingAlignments(hitArea, source, options).map(({ header }) =>
-                //     brand(header.id),
-                // ),
-                // switches:
             };
         },
     };

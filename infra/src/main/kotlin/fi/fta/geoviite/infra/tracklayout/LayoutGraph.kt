@@ -19,13 +19,13 @@ sealed class GraphEdgeData {
     abstract val id: DomainId<LayoutEdge>
     abstract val startNode: DbEdgeNode
     abstract val endNode: DbEdgeNode
-    abstract val tracks: List<IntId<LocationTrack>>
+    abstract val tracks: Set<IntId<LocationTrack>>
     abstract val length: Double
     abstract val start: Point
     abstract val end: Point
 }
 
-data class DbEdgeData(val edge: DbLayoutEdge, override val tracks: List<IntId<LocationTrack>>) : GraphEdgeData() {
+data class DbEdgeData(val edge: DbLayoutEdge, override val tracks: Set<IntId<LocationTrack>>) : GraphEdgeData() {
     override val id: DomainId<LayoutEdge>
         get() = edge.id
 
@@ -51,8 +51,8 @@ data class SimplifiedEdgeData(val edges: List<DbEdgeData>) : GraphEdgeData() {
     override val endNode: DbEdgeNode
         get() = edges.last().endNode
 
-    override val tracks: List<IntId<LocationTrack>>
-        get() = edges.first().tracks
+    override val tracks: Set<IntId<LocationTrack>>
+        get() = edges.flatMap { e -> e.tracks }.toSet()
 
     override val length: Double by lazy { edges.sumOf { e -> e.length } }
 
@@ -64,7 +64,6 @@ data class SimplifiedEdgeData(val edges: List<DbEdgeData>) : GraphEdgeData() {
 
     init {
         require(edges.isNotEmpty())
-        require(edges.all { e -> e.tracks == tracks })
         require(edges.zipWithNext().all { (prev, next) -> next.startNode.node == prev.endNode.node })
     }
 }
@@ -104,7 +103,7 @@ data class LayoutGraphEdge(
     val startNode: IntId<LayoutNode>,
     val endNode: IntId<LayoutNode>,
     val length: Double,
-    val tracks: List<IntId<LocationTrack>>,
+    val tracks: Set<IntId<LocationTrack>>,
 ) {
     constructor(edge: GraphEdgeData) : this(edge.id, edge.startNode.id, edge.endNode.id, edge.length, edge.tracks)
 }
@@ -146,18 +145,18 @@ private fun collectLeadingEdgesToCombine(
     nanoEdge: DbEdgeData,
 ): List<DbEdgeData> =
     generateSequence(nanoEdge) { e ->
-            // If the node type makes it a micro-level node, we cant simplify over it
             if (e.edge.startNode.detailLevel == MICRO) {
                 null
             } else {
                 val starting = startingEdges[e.edge.startNode.id]
                 val ending = endingEdges[e.edge.startNode.id]
-                ending
-                    ?.firstOrNull()
-                    // It only makes sense to combine edges if the node does not branch in either direction
-                    ?.takeUnless { starting != listOf(e) || ending.size != 1 }
-                    // Don't combine edges if they're not covered by the same tracks
-                    ?.takeIf { prev -> prev.tracks == e.tracks }
+                // It only makes sense to combine edges if the node does not branch in either direction
+                ending?.firstOrNull()?.takeUnless { starting != listOf(e) || ending.size != 1 }
+                // It would be possible here to prevent edge combining if the tracks are not the same.
+                // This results a partial nano/micro mix, but the resulting edges always link fully to the tracks.
+                // This version creates a more pure micro-level graph, but the edge tracks may not actually be
+                // end-to-end
+                // ?.takeIf { prev -> prev.tracks == e.tracks }
             }
         }
         .drop(1)
@@ -170,18 +169,18 @@ private fun collectTrailingEdgesToCombine(
     nanoEdge: DbEdgeData,
 ): List<DbEdgeData> =
     generateSequence(nanoEdge) { e ->
-            // If the node type makes it a micro-level node, we cant simplify over it
             if (e.edge.endNode.detailLevel == MICRO) {
                 null
             } else {
                 val starting = startingEdges[e.edge.endNode.id]
                 val ending = endingEdges[e.edge.endNode.id]
-                starting
-                    ?.firstOrNull()
-                    // It only makes sense to combine edges if the node does not branch in either direction
-                    ?.takeUnless { ending != listOf(e) || starting.size != 1 }
-                    // Don't combine edges if they're not covered by the same tracks
-                    ?.takeIf { next -> next.tracks == e.tracks }
+                // It only makes sense to combine edges if the node does not branch in either direction
+                starting?.firstOrNull()?.takeUnless { ending != listOf(e) || starting.size != 1 }
+                // It would be possible here to prevent edge combining if the tracks are not the same.
+                // This results a partial nano/micro mix, but the resulting edges always link fully to the tracks.
+                // This version creates a more pure micro-level graph, but the edge tracks may not actually be
+                // end-to-end
+                // ?.takeIf { next -> next.tracks == e.tracks }
             }
         }
         .drop(1)
