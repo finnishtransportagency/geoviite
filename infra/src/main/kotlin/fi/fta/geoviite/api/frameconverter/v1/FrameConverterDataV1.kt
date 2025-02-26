@@ -37,6 +37,7 @@ const val LOCATION_TRACK_NAME_PARAM = "sijaintiraide"
 const val LOCATION_TRACK_TYPE_PARAM = "sijaintiraide_tyyppi"
 const val TRACK_KILOMETER_PARAM = "ratakilometri"
 const val TRACK_METER_PARAM = "ratametri"
+const val TRACK_METER_DECIMALS_PARAM = "ratametri_desimaalit"
 
 data class FrameConverterStringV1 @JsonCreator(mode = DELEGATING) constructor(val value: String) {
 
@@ -236,6 +237,7 @@ data class FeatureMatchDetailsV1(
  * @property trackNumberOid User provided track number oid, one of "trackNumberName, trackNumberOid" is required.
  * @property trackKilometer User provided track kilometer, required for valid requests.
  * @property trackMeter User provided track meter on the specified track kilometer, required for valid requests.
+ * @property trackMeterDecimals User provided track decimals on the specified trackMeter, optional.
  * @property locationTrackName User provided location track name filter, optional.
  * @property locationTrackOid User provided location track name filter, optional.
  * @property locationTrackType User provided location track type filter, optional.
@@ -246,6 +248,7 @@ data class TrackAddressToCoordinateRequestV1(
     @JsonProperty(TRACK_NUMBER_NAME_PARAM) val trackNumberName: FrameConverterStringV1? = null,
     @JsonProperty(TRACK_KILOMETER_PARAM) val trackKilometer: Int? = null,
     @JsonProperty(TRACK_METER_PARAM) val trackMeter: Int? = null,
+    @JsonProperty(TRACK_METER_DECIMALS_PARAM) val trackMeterDecimals: Int? = null,
     @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: FrameConverterStringV1? = null,
     @JsonProperty(LOCATION_TRACK_NAME_PARAM) val locationTrackName: FrameConverterStringV1? = null,
     @JsonProperty(LOCATION_TRACK_TYPE_PARAM) val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
