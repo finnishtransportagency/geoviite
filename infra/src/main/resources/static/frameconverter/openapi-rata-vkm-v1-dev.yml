@@ -1,7 +1,12 @@
 openapi: 3.1.0
 info:
   title: Rata-VKM
-  description: Rataverkon viitekehysmuunnin
+  description: |
+    Rataverkon viitekehysmuuntimella voi muuntaa koordinaatiston sijainteja rataosoitejärjestelmän sijainneiksi sekä toisin päin. Sijaintien muuntamiseen käytetään Geoviite-järjestelmän rataverkon tietoja. 
+
+    Geoviitteen yhtenäisen rataverkon vastaavuutta maastoon rakennettuun rataverkkoon ei voida taata, joten viitekehysmuuntimen palauttamia tietoa ei tule käyttää suurta tarkkuutta vaativiin tehtäviin, esim. uusien suunnitelmien pohjatiedoksi.
+
+    Ongelmatilanteessa ota yhteys ylläpitoon: geoviite.support@solita.fi
   version: 1.0.0
 
 servers:
@@ -11,14 +16,19 @@ paths:
   /v1/rataosoitteet:
     get:
       summary: Yksittäismuunnos koordinaatista rataosoitteeseen
+      description: >
+        Palauttaa hakuehtoihin täsmäävän ja annettua koordinaattisijaintia lähinnä olevan raiteen ja rataosoitteen 
+        raiteella. Mikäli annetuilla syötteillä ei löydy sijaintia, palautetaan virhe.
       parameters:
+        - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/x-koordinaatti-param'
         - $ref: '#/components/parameters/y-koordinaatti-param'
         - $ref: '#/components/parameters/sade-param'
         - $ref: '#/components/parameters/ratanumero-param'
+        - $ref: '#/components/parameters/ratanumero_oid-param'
         - $ref: '#/components/parameters/sijaintiraide-param'
+        - $ref: '#/components/parameters/sijaintiraide_oid-param'
         - $ref: '#/components/parameters/sijaintiraide_tyyppi-param'
-        - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/geometriatiedot-param'
         - $ref: '#/components/parameters/perustiedot-param'
         - $ref: '#/components/parameters/lisatiedot-param'
@@ -36,7 +46,12 @@ paths:
                   externalValue: '../static/examples/example-error-coordinate-to-track-address.json'
     post:
       summary: Erämuunnos koordinaateista rataosoitteisiin
-      description: Erämuunnos hyväksyy korkeintaan 1000 muunnospyyntöä kerrallaan.
+      description: >
+        Tämä toiminnallisuus on muutoin sama kuin yhden koordinaattisijainnin muuntaminen rataosoitteeksi, 
+        mutta tässä toiminnossa voi yhdessä HTTP-pyynnössä välittää useampia muunnospyyntöjä kerrallaan. 
+        Usean muunnospynnön suorittaminen kerralla on tehokkaampaa, kuin pyyntöjen suorittaminen erikseen. 
+        Erämuunnos hyväksyy korkeintaan 1000 muunnospyyntöä kerrallaan. Erämuunnoksessa yleiset syötteet annetaan 
+        URL-kyselyparametreina ja muunnospyyntökohtaiset syötteet HTTP-pyynnön sisältönä, JSON-muotoisena taulukkona.
       parameters:
         - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/geometriatiedot-param'
@@ -70,11 +85,17 @@ paths:
   /v1/koordinaatit:
     get:
       summary: Yksittäismuunnos rataosoitteesta koordinaatteihin
+      description: >
+        Palauttaa rataosoitetta vastaavat koordinaattisijainnit kaikille niille raiteille, joilla kyseinen 
+        rataosoite on olemassa ja jotka täsmäävät muihin annettuihin hakuehtoihin. Mikäli yhtään sijaintia ei löydy, 
+        palautetaan virhe.
       parameters:
+        - $ref: '#/components/parameters/ratanumero-param-exactly-one-required'
+        - $ref: '#/components/parameters/ratanumero_oid-param-exactly-required'
         - $ref: '#/components/parameters/ratakilometri-param'
         - $ref: '#/components/parameters/ratametri-param'
-        - $ref: '#/components/parameters/ratanumero-param-required'
         - $ref: '#/components/parameters/sijaintiraide-param'
+        - $ref: '#/components/parameters/sijaintiraide_oid-param'
         - $ref: '#/components/parameters/sijaintiraide_tyyppi-param'
         - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/geometriatiedot-param'
@@ -94,7 +115,13 @@ paths:
                   externalValue: '../static/examples/example-error-track-address-to-coordinate.json'
     post:
       summary: Erämuunnos rataosoitteista koordinaatteihin
-      description: Erämuunnos hyväksyy korkeintaan 1000 muunnospyyntöä kerrallaan.
+      description: >
+        Tämä toiminnallisuus on muutoin sama kuin yhden rataosoitesijainnin muuntaminen koordinaattisijainneiksi, 
+        mutta tässä toiminnossa voi yhdessä HTTP-pyynnössä välittää useampia muunnospyyntöjä kerrallaan. 
+        Usean muunnospynnön suorittaminen kerralla on tehokkaampaa, kuin pyyntöjen suorittaminen erikseen. 
+        Erämuunnos hyväksyy korkeintaan 1000 muunnospyyntöä kerrallaan. Erämuunnoksessa yleiset syötteet 
+        annetaan URL-kyselyparametreina ja muunnospyyntökohtaiset syötteet HTTP-pyynnön sisältönä, 
+        JSON-muotoisena taulukkona.
       parameters:
         - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/geometriatiedot-param'
@@ -146,9 +173,15 @@ components:
     ratanumero:
       type: string
       description: 'Rajaa haun ratanumeron nimen perusteella.'
+    ratanumero_oid:
+      type: string
+      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.'
     sijaintiraide:
       type: string
       description: 'Rajaa haun sijaintiraiteen nimen perusteella.'
+    sijaintiraide_oid:
+      type: string
+      description: 'Rajaa haun sijaintiraiteen OID-tunnuksen perusteella.'
     sijaintiraide_tyyppi:
       type: string
       description: 'Rajaa haun sijaintiraidetyypin perusteella. Sallitut arvot: "pääraide", "sivuraide", "turvaraide", "kujaraide".'
@@ -170,12 +203,16 @@ components:
           $ref: '#/components/schemas/tunniste'
         ratanumero:
           $ref: '#/components/schemas/ratanumero'
+        ratanumero_oid:
+          $ref: '#/components/schemas/ratanumero_oid'
         ratakilometri:
           $ref: '#/components/schemas/ratakilometri'
         ratametri:
           $ref: '#/components/schemas/ratametri'
         sijaintiraide:
           $ref: '#/components/schemas/sijaintiraide'
+        sijaintiraide_oid:
+          $ref: '#/components/schemas/sijaintiraide_oid'
         sijaintiraide_tyyppi:
           $ref: '#/components/schemas/sijaintiraide_tyyppi'
 
@@ -195,8 +232,12 @@ components:
           $ref: '#/components/schemas/sade'
         ratanumero:
           $ref: '#/components/schemas/ratanumero'
+        ratanumero_oid:
+          $ref: '#/components/schemas/ratanumero_oid'
         sijaintiraide:
           $ref: '#/components/schemas/sijaintiraide'
+        sijaintiraide_oid:
+          $ref: '#/components/schemas/sijaintiraide_oid'
         sijaintiraide_tyyppi:
           $ref: '#/components/schemas/sijaintiraide_tyyppi'
   parameters:
@@ -218,14 +259,14 @@ components:
       name: koordinaatisto
       in: query
       required: false
-      description: 'Asettaa koordinaatiston, jossa syöte- ja tuloskoordinaatit käsitellään (oletus ETRS-TM35FIN). Sallitut arvot ovat EPSG-tunnuksia.'
+      description: 'Koordinaatisto, jossa syöte- ja tuloskoordinaatit käsitellään (oletus EPSG:3067, eli ETRS-TM35FIN). Sallitut arvot ovat EPSG-tunnuksia, esim: EPSG:4326'
       schema:
         $ref: '#/components/schemas/koordinaatisto'
     sade-param:
       name: sade
       in: query
       required: false
-      description: 'Hakusäde metreissä annetusta koordinaatista.'
+      description: 'Hakusäde metreissä annetusta koordinaattisijainnista.'
       schema:
         $ref: '#/components/schemas/sade'
     ratanumero-param:
@@ -235,20 +276,41 @@ components:
       description: 'Rajaa haun ratanumeron nimen perusteella.'
       schema:
         $ref: '#/components/schemas/ratanumero'
-    ratanumero-param-required:
+    ratanumero_oid-param:
+      name: ratanumero_oid
+      in: query
+      required: false
+      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.'
+      schema:
+        $ref: '#/components/schemas/ratanumero_oid'
+    ratanumero-param-exactly-one-required:
       name: ratanumero
       in: query
-      required: true
-      description: 'Rajaa haun ratanumeron nimen perusteella.'
+      required: false
+      description: 'Rajaa haun ratanumeron nimen perusteella.<br />*Huom*: Hakua tulee rajata yhdellä kentistä "ratanumero", "ratanumero_oid".'
       schema:
         $ref: '#/components/schemas/ratanumero'
+    ratanumero_oid-param-exactly-required:
+      name: ratanumero_oid
+      in: query
+      required: false
+      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.<br />*Huom*: Hakua tulee rajata yhdellä kentistä "ratanumero", "ratanumero_oid".'
+      schema:
+        $ref: '#/components/schemas/ratanumero_oid'
     sijaintiraide-param:
       name: sijaintiraide
       in: query
       required: false
-      description: 'Rajaa haun sijaintiraiteen nimen perusteella.'
+      description: 'Rajaa haun sijaintiraiteen tunnuksen perusteella.'
       schema:
         $ref: '#/components/schemas/sijaintiraide'
+    sijaintiraide_oid-param:
+      name: sijaintiraide_oid
+      in: query
+      required: false
+      description: 'Rajaa haun sijaintiraiteen OID-tunnuksen perusteella.'
+      schema:
+        $ref: '#/components/schemas/sijaintiraide_oid'
     sijaintiraide_tyyppi-param:
       name: sijaintiraide_tyyppi
       in: query
@@ -274,23 +336,23 @@ components:
       name: geometriatiedot
       in: query
       required: false
+      description: 'GeoJSON-tulos sisältää geometry-kentässä hakutuloksen geometriatiedot.'
       schema:
         type: boolean
-        description: 'GeoJSON-tulos sisältää geometry-kentässä hakutuloksen geometriatiedot.'
         default: false
     perustiedot-param:
       name: perustiedot
       in: query
       required: false
+      description: 'GeoJSON-tulos sisältää properties-kentässä x- ja y-koordinaatit sekä valimatka-kentän.'
       schema:
         type: boolean
-        description: 'GeoJSON-tulos sisältää properties-kentässä x- ja y-koordinaatit sekä valimatka-kentän.'
         default: true
     lisatiedot-param:
       name: lisatiedot
       in: query
       required: false
+      description: "GeoJSON-tulos sisältää properties-kentässä kentät: ratanumero, ratanumero_oid, sijaintiraide, sijaintiraide_oid, sijaintiraide_kuvaus, sijaintiraide_tyyppi, ratakilometri, ratametri, ratametri_desimaalit."
       schema:
         type: boolean
-        description: "GeoJSON-tulos sisältää properties-kentässä kentät: ratanumero, sijaintiraide, sijaintiraide_kuvaus, sijaintiraide_tyyppi, ratakilometri, ratametri, ratametri_desimaalit."
         default: true
