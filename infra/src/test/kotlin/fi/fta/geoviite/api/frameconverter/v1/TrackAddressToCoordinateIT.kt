@@ -133,7 +133,7 @@ constructor(
 
         assertSimpleFeatureCollection(featureCollection)
         assertEquals(
-            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen).",
             featureCollection.features[0].properties?.get("virheet"),
         )
     } */
@@ -158,7 +158,7 @@ constructor(
 
         assertSimpleFeatureCollection(featureCollection)
         assertEquals(
-            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen)",
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen)",
             featureCollection.features[0].properties?.get("virheet"),
         )
     } */
@@ -205,7 +205,7 @@ constructor(
 
         assertSimpleFeatureCollection(featureCollection)
         assertContainsErrorMessage(
-            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen).",
             featureCollection.features[0].properties?.get("virheet"),
         )
     }
@@ -229,7 +229,7 @@ constructor(
 
         assertSimpleFeatureCollection(featureCollection)
         assertContainsErrorMessage(
-            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen).",
             featureCollection.features[0].properties?.get("virheet"),
         )
     }
