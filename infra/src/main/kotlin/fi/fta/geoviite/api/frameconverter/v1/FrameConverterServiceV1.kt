@@ -82,11 +82,11 @@ constructor(
         val nearbyTracks =
             requestsWithPoints.map { (request, point) -> spatialCache.getClosest(point, request.searchRadius) }
 
-        val distinctTrackNumberIds = distinctTrackNumberIds(nearbyTracks)
+        val distinctTrackNumberIds = distinctTrackNumberIdsFromCacheHits(nearbyTracks)
 
         val trackNumbers = trackNumberService.getMany(layoutContext, distinctTrackNumberIds).associateBy { it.id }
         val trackNumberOids = getTrackNumberOids(distinctTrackNumberIds, layoutContext)
-        val locationTrackOids = getLocationTrackOids(distinctLocationTrackIds(nearbyTracks), layoutContext)
+        val locationTrackOids = getLocationTrackOids(distinctLocationTrackIdsFromCacheHits(nearbyTracks), layoutContext)
 
         val closestTracks =
             requestsWithPoints.zip(nearbyTracks) { (request), nearby ->
@@ -150,16 +150,6 @@ constructor(
         return locationTrackDao.fetchExternalIds(layoutContext.branch, locationTrackIds).mapValues { (_, externalId) ->
             externalId.oid
         }
-    }
-
-    private fun distinctTrackNumberIds(
-        nearbyTracks: List<List<LocationTrackCacheHit>>
-    ): List<IntId<LayoutTrackNumber>> {
-        return nearbyTracks.asSequence().flatten().map { it.track.trackNumberId }.distinct().toList()
-    }
-
-    private fun distinctLocationTrackIds(nearbyTracks: List<List<LocationTrackCacheHit>>): List<IntId<LocationTrack>> {
-        return nearbyTracks.asSequence().flatten().map { it.track.id as IntId }.distinct().toList()
     }
 
     private fun filterByRequest(
@@ -865,4 +855,16 @@ private fun pointToFrameConverterCoordinate(
                 )
             }
     }
+}
+
+private fun distinctTrackNumberIdsFromCacheHits(
+    nearbyTracks: List<List<LocationTrackCacheHit>>
+): List<IntId<LayoutTrackNumber>> {
+    return nearbyTracks.flatten().map { cacheHit -> cacheHit.track.trackNumberId }.distinct()
+}
+
+private fun distinctLocationTrackIdsFromCacheHits(
+    nearbyTracks: List<List<LocationTrackCacheHit>>
+): List<IntId<LocationTrack>> {
+    return nearbyTracks.flatten().map { cacheHit -> cacheHit.track.id as IntId }.distinct()
 }
