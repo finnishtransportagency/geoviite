@@ -38,6 +38,7 @@ export const Eye: React.FC<EyeProps> = ({
                         extraClassName: iconClassName,
                     }}
                     variant={ButtonVariant.GHOST}
+                    disabled={disabled}
                 />
             )}
         </span>

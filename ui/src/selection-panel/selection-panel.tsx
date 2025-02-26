@@ -209,6 +209,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
 
     const filteredKmPosts = kmPosts.filter((km) => filterByTrackNumberId(km.trackNumberId));
 
+    console.log(!!splittingState);
+
     return (
         <div className={styles['selection-panel']}>
             <section>
