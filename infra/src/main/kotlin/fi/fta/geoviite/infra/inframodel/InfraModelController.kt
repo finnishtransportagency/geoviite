@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkedItems
 import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.PlanApplicability
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.projektivelho.*
@@ -73,6 +74,15 @@ constructor(
         @RequestBody hidden: Boolean,
     ): IntId<GeometryPlan> {
         return geometryService.setPlanHidden(planId, hidden).id
+    }
+
+    @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
+    @PutMapping("/{planId}/applicability")
+    fun setInfraModelApplicability(
+        @PathVariable("planId") planId: IntId<GeometryPlan>,
+        @RequestBody applicability: PlanApplicability?,
+    ): IntId<GeometryPlan> {
+        return infraModelService.setPlanApplicability(planId, applicability).id
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
