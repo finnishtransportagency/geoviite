@@ -11,6 +11,7 @@ import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
 import {
+    getLayerSetting,
     HELSINKI_RAILWAY_STATION_COORDS,
     Map,
     MapLayerMenuChange,
@@ -28,7 +29,7 @@ import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { GeometryPlanLayout, LAYOUT_SRID } from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LAYOUT_SRID, LayoutGraphLevel } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
@@ -71,7 +72,7 @@ import { Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/location-track-split-location-layer';
 import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
@@ -167,15 +168,21 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
 }
 
 function referenceLineHideWhenZoomedCloseSetting(mapLayerMenuGroups: MapLayerMenuGroups): boolean {
-    const referenceLineLayerMenu = mapLayerMenuGroups.layout.find(
-        (layerMenuItem) => layerMenuItem.name === 'reference-line',
+    return getLayerSetting(
+        mapLayerMenuGroups.layout,
+        'reference-line',
+        'reference-line-hide-when-zoomed-close',
     );
+}
 
-    const referenceLineHideWhenZoomedCloseMenu = referenceLineLayerMenu?.subMenu?.find(
-        (layerSubMenuItem) => layerSubMenuItem.name === 'reference-line-hide-when-zoomed-close',
-    );
-
-    return expectDefined(referenceLineHideWhenZoomedCloseMenu?.visible);
+function getLayoutGraphLevel(mapLayerMenuGroups: MapLayerMenuGroups): LayoutGraphLevel {
+    return getLayerSetting(
+        mapLayerMenuGroups.debug,
+        'debug-layout-graph',
+        'debug-layout-graph-nano',
+    )
+        ? 'NANO'
+        : 'MICRO';
 }
 
 const MapView: React.FC<MapViewProps> = ({
@@ -687,6 +694,7 @@ const MapView: React.FC<MapViewProps> = ({
                             layoutContext,
                             mapTiles,
                             resolution,
+                            getLayoutGraphLevel(mapLayerMenuGroups),
                         );
                     case 'virtual-km-post-linking-layer': // Virtual map layers
                     case 'virtual-hide-geometry-layer':

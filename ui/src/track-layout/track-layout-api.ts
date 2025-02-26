@@ -2,7 +2,7 @@ import { LayoutBranch, LayoutContext } from 'common/common-model';
 import { API_URI, getNonNull } from 'api/api-fetch';
 import { BoundingBox } from 'model/geometry';
 import { bboxString } from 'common/common-api';
-import { LayoutGraph } from 'track-layout/track-layout-model';
+import { LayoutGraph, LayoutGraphLevel } from 'track-layout/track-layout-model';
 
 type LayoutDataType =
     | 'track-numbers'
@@ -48,7 +48,11 @@ export function contextInUri(layoutContext: LayoutContext): string {
     return `${layoutContext.branch.toLowerCase()}/${layoutContext.publicationState.toLowerCase()}`;
 }
 
-export const getLayoutGraph = (context: LayoutContext, bbox: BoundingBox): Promise<LayoutGraph> =>
+export const getLayoutGraph = (
+    context: LayoutContext,
+    bbox: BoundingBox,
+    detailLevel: LayoutGraphLevel,
+): Promise<LayoutGraph> =>
     getNonNull<LayoutGraph>(
-        `${TRACK_LAYOUT_URI}/layout-graph/${contextInUri(context)}?bbox=${bboxString(bbox)}`,
+        `${TRACK_LAYOUT_URI}/layout-graph/${contextInUri(context)}?bbox=${bboxString(bbox)}&detailLevel=${detailLevel}`,
     );

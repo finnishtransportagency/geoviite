@@ -2,20 +2,28 @@ import Feature from 'ol/Feature';
 import { LineString, Point as OlPoint } from 'ol/geom';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { Circle, Stroke, Style } from 'ol/style';
-import { MapLayer } from 'map/layers/utils/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import {
     createLayer,
+    findMatchingEntities,
     GeoviiteMapLayer,
     loadLayerData,
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
 import { MapLayerName, MapTile } from 'map/map-model';
-import { LayoutEdge, LayoutGraph, LayoutNode, LayoutNodeId } from 'track-layout/track-layout-model';
+import {
+    LayoutEdge,
+    LayoutGraph,
+    LayoutGraphLevel,
+    LayoutNode,
+    LayoutNodeId,
+} from 'track-layout/track-layout-model';
 import { getLayoutGraph } from 'track-layout/track-layout-api';
 import { LayoutContext } from 'common/common-model';
-import { ALL_ALIGNMENTS, SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
+import { GEOMETRY_GRAPH, SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { clamp } from 'utils/math-utils';
 import { brand } from 'common/brand';
+import { Rectangle } from 'model/geometry';
 
 const colors = [
     'rgb(0, 0, 0)', // hsl(0, 0%, 0%)
@@ -34,6 +42,7 @@ function createNodeFeatures(
     const features: Feature<OlPoint>[] = [];
     points.forEach((node) => {
         const feature = new Feature({
+            node: node,
             geometry: new OlPoint(pointToCoords(node.location)),
         });
         const mainNode =
@@ -74,6 +83,7 @@ function createEdgeFeatures(
 
             if (startNode && endNode) {
                 const feature = new Feature({
+                    edge: edge,
                     geometry: new LineString([
                         pointToCoords(startNode.location),
                         pointToCoords(endNode.location),
@@ -105,6 +115,7 @@ export function createDebugGeometryGraphLayer(
     layoutContext: LayoutContext,
     mapTiles: MapTile[],
     resolution: number,
+    detailLevel: LayoutGraphLevel,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
@@ -126,11 +137,34 @@ export function createDebugGeometryGraphLayer(
     };
 
     const tiledPromises =
-        resolution <= ALL_ALIGNMENTS
-            ? mapTiles.map((tile) => getLayoutGraph(layoutContext, tile.area))
-            : [Promise.resolve<LayoutGraph>({ nodes: {}, edges: {}, context: layoutContext })];
+        resolution <= GEOMETRY_GRAPH
+            ? mapTiles.map((tile) => getLayoutGraph(layoutContext, tile.area, detailLevel))
+            : [
+                  Promise.resolve<LayoutGraph>({
+                      nodes: {},
+                      edges: {},
+                      context: layoutContext,
+                      detailLevel: detailLevel,
+                  }),
+              ];
 
     loadLayerData(source, isLatest, onLoadingData, Promise.all(tiledPromises), updateLayerFunc);
 
-    return { name: layerName, layer: layer };
+    return {
+        name: layerName,
+        layer: layer,
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
+            const nodes = findMatchingEntities<LayoutNode>(hitArea, source, 'node', options);
+            const edges = findMatchingEntities<LayoutEdge>(hitArea, source, 'edge', options);
+            // console.log(nodes, edges);
+            return {
+                locationTracks: edges.flatMap((e) => e.tracks),
+                switches: nodes.flatMap((n) => n.switches.map((s) => s.id)),
+                // locationTracks: findMatchingAlignments(hitArea, source, options).map(({ header }) =>
+                //     brand(header.id),
+                // ),
+                // switches:
+            };
+        },
+    };
 }

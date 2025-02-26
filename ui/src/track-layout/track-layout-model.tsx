@@ -422,9 +422,8 @@ export function combineAlignmentPoints(points: AlignmentPoint[][]): AlignmentPoi
     return deduplicateById(points.flat(), (p) => p.m).sort((p1, p2) => p1.m - p2.m);
 }
 
-export type SwitchLinkId = Brand<string, 'SwitchLinkId'>;
 export type SwitchLink = {
-    id: SwitchLinkId;
+    id: LayoutSwitchId;
     jointNumber: JointNumber;
     jointRole: SwitchJointRole;
 };
@@ -447,8 +446,11 @@ export type LayoutEdge = {
     tracks: LocationTrackId[];
 };
 
+export type LayoutGraphLevel = 'NANO' | 'MICRO';
+
 export type LayoutGraph = {
     nodes: { [key in LayoutNodeId]: LayoutNode };
     edges: { [key in LayoutEdgeId]: LayoutEdge };
     context: LayoutContext;
+    detailLevel: LayoutGraphLevel;
 };

@@ -111,6 +111,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'debug-1m': ['debug-1m-points-layer'],
     'debug': ['debug-layer'],
     'debug-layout-graph': ['debug-geometry-graph-layer'],
+    'debug-layout-graph-nano': [], // This is technically a setting, not a map layer by itself.
 };
 
 export const initialMapState: Map = {
@@ -189,7 +190,18 @@ export const initialMapState: Map = {
         debug: [
             { name: 'debug-1m', visible: false },
             { name: 'debug', visible: false },
-            { name: 'debug-layout-graph', visible: false },
+            {
+                name: 'debug-layout-graph',
+                visible: false,
+                qaId: 'debug-layout-graph-layer',
+                subMenu: [
+                    {
+                        name: 'debug-layout-graph-nano',
+                        visible: false,
+                        qaId: 'debug-layout-graph-nano',
+                    },
+                ],
+            },
         ],
     },
     layerSettings: {
