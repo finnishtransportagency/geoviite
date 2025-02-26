@@ -306,25 +306,6 @@ constructor(
     }
 
     @Transactional
-    fun setPlanApplicability(id: IntId<GeometryPlan>, applicability: PlanApplicability?): RowVersion<GeometryPlan> {
-        // language=SQL
-        val sql =
-            """
-            update geometry.plan
-            set plan_applicability = :plan_applicability::geometry.plan_applicability
-            where id = :id
-            returning id, version
-        """
-                .trimIndent()
-        val params = mapOf("id" to id.intValue, "plan_applicability" to applicability?.name)
-
-        jdbcTemplate.setUser()
-        return jdbcTemplate
-            .queryOne<RowVersion<GeometryPlan>>(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-            .also { v -> logger.daoAccess(UPDATE, GeometryPlan::class, id) }
-    }
-
-    @Transactional
     fun updatePlan(planId: IntId<GeometryPlan>, geometryPlan: GeometryPlan): RowVersion<GeometryPlan> {
         jdbcTemplate.setUser()
         val sql =

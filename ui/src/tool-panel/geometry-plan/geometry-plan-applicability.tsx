@@ -12,22 +12,18 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import styles from 'tool-panel/geometry-plan-infobox.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 
+const PLAN_APPLICABIILITY_TRANSLATION_BASE = 'enum.PlanApplicability';
 const getTranslationKey = (applicability: PlanApplicability | undefined) => {
-    let key = 'UNKNOWN';
     switch (applicability) {
         case 'MAINTENANCE':
         case 'PLANNING':
         case 'STATISTICS':
-            key = applicability;
-            break;
+            return `${PLAN_APPLICABIILITY_TRANSLATION_BASE}.${applicability}`;
         case undefined:
-            key = 'UNKNOWN';
-            break;
+            return `${PLAN_APPLICABIILITY_TRANSLATION_BASE}.UNKNOWN`;
         default:
             return exhaustiveMatchingGuard(applicability);
     }
-
-    return `enum.PlanApplicability.${key}`;
 };
 
 type GeometryPlanApplicabilityProps = {
@@ -42,7 +38,14 @@ export const GeometryPlanApplicability: React.FC<GeometryPlanApplicabilityProps>
         planHeader.planApplicability,
     );
     const [saving, setSaving] = React.useState(false);
-    const shave = () => {
+
+    React.useEffect(() => {
+        setEditing(false);
+        setSaving(false);
+        setApplicability(planHeader.planApplicability);
+    }, [planHeader.id]);
+
+    const save = () => {
         setSaving(true);
         updatePlanApplicability(planHeader.id, applicability).finally(() => {
             setSaving(false);
@@ -72,11 +75,14 @@ export const GeometryPlanApplicability: React.FC<GeometryPlanApplicabilityProps>
                                 onChange={(val) => setApplicability(val)}
                             />
                             <div className={buttonContainerClasses}>
-                                <Button size={ButtonSize.SMALL} variant={ButtonVariant.SECONDARY}>
+                                <Button
+                                    size={ButtonSize.SMALL}
+                                    variant={ButtonVariant.SECONDARY}
+                                    onClick={() => setEditing(false)}>
                                     {t('button.cancel')}
                                 </Button>
                                 <Button
-                                    onClick={shave}
+                                    onClick={save}
                                     variant={ButtonVariant.PRIMARY}
                                     size={ButtonSize.SMALL}
                                     disabled={saving}
