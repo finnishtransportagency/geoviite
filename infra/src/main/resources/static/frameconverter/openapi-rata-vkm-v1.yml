@@ -18,7 +18,7 @@ paths:
       summary: Yksittäismuunnos koordinaatista rataosoitteeseen
       description: >
         Palauttaa hakuehtoihin täsmäävän ja annettua koordinaattisijaintia lähinnä olevan raiteen ja rataosoitteen 
-        raiteella. Mikäli annetuilla syötteillä ei löydy sijaintia, palauttaa virheen.
+        raiteella. Mikäli annetuilla syötteillä ei löydy sijaintia, palautetaan virhe.
       parameters:
         - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/x-koordinaatti-param'
@@ -88,7 +88,7 @@ paths:
       description: >
         Palauttaa rataosoitetta vastaavat koordinaattisijainnit kaikille niille raiteille, joilla kyseinen 
         rataosoite on olemassa ja jotka täsmäävät muihin annettuihin hakuehtoihin. Mikäli yhtään sijaintia ei löydy, 
-        palauttaa virheen.
+        palautetaan virhe.
       parameters:
         - $ref: '#/components/parameters/ratanumero-param-exactly-one-required'
         - $ref: '#/components/parameters/ratanumero_oid-param-exactly-required'
