@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.geocoding.AddressAndM
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -40,7 +39,6 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.Left
 import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.all
-import fi.fta.geoviite.infra.util.alsoIfNull
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.produceIf
 import java.math.BigDecimal
@@ -350,8 +348,8 @@ constructor(
     ): Either<List<GeoJsonFeatureErrorResponseV1>, ValidCoordinateToTrackAddressRequestV1> {
         val allowedSearchRadiusRange = 1.0..1000.0
 
-        val errors =
-            mutableListOf(
+        val basicErrors =
+            listOfNotNull(
                 produceIf(request.x == null) { FrameConverterErrorV1.MissingXCoordinate },
                 produceIf(request.y == null) { FrameConverterErrorV1.MissingYCoordinate },
                 produceIf(request.searchRadius == null) { FrameConverterErrorV1.SearchRadiusUndefined },
@@ -365,38 +363,31 @@ constructor(
                 },
             )
 
-        val mappedLocationTrackTypeOrNull =
-            mapLocationTrackTypeToDomainTypeOrNull(request.locationTrackType).let { (mappedType, errorOrNull) ->
-                errorOrNull?.also(errors::add)
-                mappedType
-            }
+        val (mappedLocationTrackTypeOrNull, trackTypeErrors) =
+            mapLocationTrackTypeToDomainTypeOrNull(request.locationTrackType)
 
-        val trackNumberNameOrNull =
-            createValidTrackNumberNameOrNull(request.trackNumberName).let { (trackNumberOrNull, errorOrNull) ->
-                errorOrNull?.also(errors::add)
-                trackNumberOrNull
-            }
+        val (trackNumberNameOrNull, trackNumberNameErrors) = createValidTrackNumberNameOrNull(request.trackNumberName)
 
-        val trackNumberOidOrNull =
-            createValidTrackNumberOidOrNull(request.trackNumberOid).let { (trackNumberOidOrNull, errorOrNull) ->
-                errorOrNull?.also(errors::add)
-                trackNumberOidOrNull
-            }
+        val (trackNumberOidOrNull, trackNumberOidErrors) = createValidTrackNumberOidOrNull(request.trackNumberOid)
 
-        val locationTrackNameOrNull =
-            createValidAlignmentNameOrNull(request.locationTrackName).let { (trackNameOrNull, errorOrNull) ->
-                errorOrNull?.also(errors::add)
-                trackNameOrNull
-            }
+        val (locationTrackNameOrNull, locationTrackNameErrors) =
+            createValidAlignmentNameOrNull(request.locationTrackName)
 
-        val locationTrackOidOrNull =
-            createValidLocationTrackOidOrNull(request.locationTrackOid).let { (locationTrackOid, errorOrNull) ->
-                errorOrNull?.also(errors::add)
-                locationTrackOid
-            }
+        val (locationTrackOidOrNull, locationTrackOidErrors) =
+            createValidLocationTrackOidOrNull(request.locationTrackOid)
 
-        val nonNullErrors = errors.filterNotNull()
-        return if (nonNullErrors.isEmpty())
+        val errors =
+            listOf(
+                    basicErrors,
+                    trackTypeErrors,
+                    trackNumberNameErrors,
+                    trackNumberOidErrors,
+                    locationTrackNameErrors,
+                    locationTrackOidErrors,
+                )
+                .flatten()
+
+        return if (errors.isEmpty())
             Right(
                 ValidCoordinateToTrackAddressRequestV1(
                     identifier = request.identifier,
@@ -416,7 +407,7 @@ constructor(
                     locationTrackType = mappedLocationTrackTypeOrNull,
                 )
             )
-        else Left(createErrorResponse(identifier = request.identifier, errors = nonNullErrors))
+        else Left(createErrorResponse(identifier = request.identifier, errors = errors))
     }
 
     fun validateTrackAddressToCoordinateRequests(
@@ -454,8 +445,8 @@ constructor(
         trackNumberLookup: Map<TrackNumber, LayoutTrackNumber?>,
         trackNumberOidLookup: Map<Oid<LayoutTrackNumber>, TrackNumber?>,
     ): Either<List<GeoJsonFeatureErrorResponseV1>, ValidTrackAddressToCoordinateRequestV1> {
-        val errors =
-            mutableListOf(
+        val basicErrors =
+            listOfNotNull(
                 produceIf(request.trackNumberName != null && request.trackNumberOid != null) {
                     FrameConverterErrorV1.BothNameAndOidForTrackNumber
                 },
@@ -463,78 +454,38 @@ constructor(
                 produceIf(request.trackMeter == null) { FrameConverterErrorV1.MissingTrackMeter },
             )
 
-        val validTrackMeterOrNull =
-            when {
-                request.trackKilometer != null && request.trackMeter != null ->
-                    try {
-                        TrackMeter(requireNotNull(request.trackKilometer), requireNotNull(request.trackMeter))
-                    } catch (e: IllegalArgumentException) {
-                        errors.add(FrameConverterErrorV1.InvalidTrackAddress)
-                        null
-                    }
+        val (validTrackMeterOrNull, trackMeterErrors) =
+            createValidTrackMeterOrNull(request.trackKilometer, request.trackMeter)
 
-                else -> null
-            }
+        val (mappedLocationTrackTypeOrNull, locationTrackTypeErrors) =
+            mapLocationTrackTypeToDomainTypeOrNull(request.locationTrackType)
 
-        val mappedLocationTrackTypeOrNull =
-            mapLocationTrackTypeToDomainTypeOrNull(request.locationTrackType).let { (mappedTrackType, errorOrNull) ->
-                errorOrNull?.also(errors::add)
-                mappedTrackType
-            }
+        val (layoutTrackNumberOrNull, trackNumberErrors) =
+            createValidTrackNumberOrNull(
+                request.trackNumberName,
+                request.trackNumberOid,
+                trackNumberLookup,
+                trackNumberOidLookup,
+            )
 
-        val layoutTrackNumberOrNull =
-            when {
-                request.trackNumberName == null && request.trackNumberOid != null -> {
-                    createValidTrackNumberOidOrNull(request.trackNumberOid)
-                        .let { (trackNumberOidOrNull, errorOrNull) ->
-                            errorOrNull?.also(errors::add)
-                            trackNumberOidOrNull
-                        }
-                        ?.let { trackNumberOid ->
-                            trackNumberLookup[trackNumberOidLookup[trackNumberOid]].alsoIfNull {
-                                errors.add(FrameConverterErrorV1.TrackNumberNotFound)
-                            }
-                        }
-                }
+        val (locationTrackOidOrNull, locationTrackOidErrors) =
+            createValidLocationTrackOidOrNull(request.locationTrackOid)
 
-                request.trackNumberName != null && request.trackNumberOid == null -> {
-                    createValidTrackNumberNameOrNull(request.trackNumberName)
-                        .let { (trackNumberNameOrNull, errorOrNull) ->
-                            errorOrNull?.also(errors::add)
-                            trackNumberNameOrNull
-                        }
-                        ?.let { trackNumberName ->
-                            trackNumberLookup[trackNumberName].alsoIfNull {
-                                errors.add(FrameConverterErrorV1.TrackNumberNotFound)
-                            }
-                        }
-                }
+        val (locationTrackNameOrNull, locationTrackNameErrors) =
+            createValidAlignmentNameOrNull(request.locationTrackName)
 
-                request.trackNumberName != null && request.trackNumberOid != null -> {
-                    errors.add(FrameConverterErrorV1.BothNameAndOidForTrackNumber)
-                    null
-                }
+        val errors =
+            listOf(
+                    basicErrors,
+                    trackMeterErrors,
+                    locationTrackTypeErrors,
+                    trackNumberErrors,
+                    locationTrackOidErrors,
+                    locationTrackNameErrors,
+                )
+                .flatten()
 
-                else -> {
-                    errors.add(FrameConverterErrorV1.NoTrackNumberSearchCondition)
-                    null
-                }
-            }
-
-        val locationTrackOidOrNull =
-            createValidLocationTrackOidOrNull(request.locationTrackOid).let { (oidOrNull, errorOrNull) ->
-                errorOrNull?.also(errors::add)
-                oidOrNull
-            }
-
-        val locationTrackNameOrNull =
-            createValidAlignmentNameOrNull(request.locationTrackName).let { (trackNameOrNull, errorOrNull) ->
-                errorOrNull?.also(errors::add)
-                trackNameOrNull
-            }
-
-        val nonNullErrors = errors.filterNotNull()
-        return if (nonNullErrors.isEmpty()) {
+        return if (errors.isEmpty()) {
             Right(
                 ValidTrackAddressToCoordinateRequestV1(
                     identifier = request.identifier,
@@ -546,7 +497,7 @@ constructor(
                 )
             )
         } else {
-            Left(createErrorResponse(identifier = request.identifier, errors = nonNullErrors))
+            Left(createErrorResponse(identifier = request.identifier, errors = errors))
         }
     }
 
@@ -768,74 +719,18 @@ private fun splitBigDecimal(number: BigDecimal, decimalPlaces: Int = 3): Pair<In
 
 private fun mapLocationTrackTypeToDomainTypeOrNull(
     locationTrackType: FrameConverterLocationTrackTypeV1?
-): Pair<LocationTrackType?, FrameConverterErrorV1?> {
+): Pair<LocationTrackType?, List<FrameConverterErrorV1>> {
     return when (locationTrackType) {
-        null -> null to null
+        null -> null to emptyList()
 
-        FrameConverterLocationTrackTypeV1.MAIN -> LocationTrackType.MAIN to null
-        FrameConverterLocationTrackTypeV1.SIDE -> LocationTrackType.SIDE to null
-        FrameConverterLocationTrackTypeV1.CHORD -> LocationTrackType.CHORD to null
-        FrameConverterLocationTrackTypeV1.TRAP -> LocationTrackType.TRAP to null
+        FrameConverterLocationTrackTypeV1.MAIN -> LocationTrackType.MAIN to emptyList()
+        FrameConverterLocationTrackTypeV1.SIDE -> LocationTrackType.SIDE to emptyList()
+        FrameConverterLocationTrackTypeV1.CHORD -> LocationTrackType.CHORD to emptyList()
+        FrameConverterLocationTrackTypeV1.TRAP -> LocationTrackType.TRAP to emptyList()
 
         else -> {
-            null to FrameConverterErrorV1.InvalidLocationTrackType
+            null to listOf(FrameConverterErrorV1.InvalidLocationTrackType)
         }
-    }
-}
-
-private fun createValidTrackNumberNameOrNull(
-    unvalidatedTrackNumberName: FrameConverterStringV1?
-): Pair<TrackNumber?, FrameConverterErrorV1?> {
-    return when (unvalidatedTrackNumberName) {
-        null -> null to null
-        else ->
-            try {
-                TrackNumber(unvalidatedTrackNumberName.toString()) to null
-            } catch (e: InputValidationException) {
-                null to FrameConverterErrorV1.InvalidTrackNumberName
-            }
-    }
-}
-
-private fun createValidTrackNumberOidOrNull(
-    unvalidatedTrackNumberOid: FrameConverterStringV1?
-): Pair<Oid<LayoutTrackNumber>?, FrameConverterErrorV1?> {
-    return when (unvalidatedTrackNumberOid) {
-        null -> null to null
-        else ->
-            try {
-                Oid<LayoutTrackNumber>(unvalidatedTrackNumberOid.toString()) to null
-            } catch (e: InputValidationException) {
-                null to FrameConverterErrorV1.InvalidTrackNumberOid
-            }
-    }
-}
-
-private fun createValidLocationTrackOidOrNull(
-    unvalidatedLocationTrackOid: FrameConverterStringV1?
-): Pair<Oid<LocationTrack>?, FrameConverterErrorV1?> {
-    return when (unvalidatedLocationTrackOid) {
-        null -> null to null
-        else ->
-            try {
-                Oid<LocationTrack>(unvalidatedLocationTrackOid.toString()) to null
-            } catch (e: InputValidationException) {
-                null to FrameConverterErrorV1.InvalidLocationTrackOid
-            }
-    }
-}
-
-private fun createValidAlignmentNameOrNull(
-    unvalidatedLocationTrackName: FrameConverterStringV1?
-): Pair<AlignmentName?, FrameConverterErrorV1?> {
-    return when (unvalidatedLocationTrackName) {
-        null -> null to null
-        else ->
-            try {
-                AlignmentName(unvalidatedLocationTrackName.toString()) to null
-            } catch (e: InputValidationException) {
-                null to FrameConverterErrorV1.InvalidLocationTrackName
-            }
     }
 }
 
