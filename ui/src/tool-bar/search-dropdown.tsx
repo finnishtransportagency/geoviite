@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useTranslation } from 'react-i18next';
 import { Dropdown, dropdownOption, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
 import {
     LayoutLocationTrack,
@@ -161,8 +160,6 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     splittingState,
     searchTypes,
 }) => {
-    const { t } = useTranslation();
-
     // Use memoized function to make debouncing functionality to work when re-rendering
     const memoizedDebouncedGetOptions = React.useCallback(
         (searchTerm: string) =>

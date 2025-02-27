@@ -6,17 +6,6 @@ import {
     ButtonSize,
     ButtonVariant,
 } from 'vayla-design-lib/button/button';
-import { Dropdown, dropdownOption, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
-import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
-import {
-    LayoutLocationTrack,
-    LayoutSwitch,
-    LayoutTrackNumber,
-    LocationTrackId,
-    OperatingPoint,
-} from 'track-layout/track-layout-model';
-import { debounceAsync } from 'utils/async-utils';
-import { isNilOrBlank } from 'utils/string-utils';
 import {
     BoundingBox,
     boundingBoxAroundPoints,
@@ -40,7 +29,6 @@ import {
     refreshSwitchSelection,
     refreshTrackNumberSelection,
 } from 'track-layout/track-layout-react-utils';
-import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
@@ -65,7 +53,6 @@ import { getLayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-
 import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
-import { ALIGNMENT_DESCRIPTION_REGEX } from 'tool-panel/location-track/dialog/location-track-validation';
 import { SearchDropdown, SearchItemValue, SearchType } from 'tool-bar/search-dropdown';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
