@@ -33,16 +33,18 @@ import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.printCsv
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
+import org.springframework.http.ContentDisposition
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.hypot
-import org.springframework.http.ContentDisposition
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
+import kotlin.math.max
+import kotlin.math.min
 
 data class GeometryChangeRanges(val added: List<Range<Double>>, val removed: List<Range<Double>>)
 
@@ -539,19 +541,63 @@ fun findJointPoint(
     }
 }
 
-fun getChangedGeometryRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>): GeometryChangeRanges {
-    // TODO If some kind of segment filtering remains after GVT-2967, segments should be grouped for better performance
-    val added =
-        newSegments
-            .filter { s -> oldSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
-            .map { s -> Range(s.startM, s.endM) }
-    val removed =
-        oldSegments
-            .filter { s -> newSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
-            .map { s -> Range(s.startM, s.endM) }
+fun getChangedGeometryRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>) =
+    GeometryChangeRanges(
+        added = getAddedSegmentMRanges(newSegments, oldSegments),
+        removed = getAddedSegmentMRanges(oldSegments, newSegments),
+    )
 
-    return GeometryChangeRanges(added = combineOverlappingRanges(added), removed = combineOverlappingRanges(removed))
+fun getAddedSegmentMRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>): List<Range<Double>> {
+    val addedSegmentIndices = getAddedIndexRanges(newSegments, oldSegments) { s -> s.geometry.id }
+    return addedSegmentIndices.flatMap { (newRange, oldRange) ->
+        val newPoints = getPointsWithM(newSegments, newRange)
+        val oldPoints = getPointsWithM(oldSegments, oldRange)
+        getAddedIndexRanges(newPoints, oldPoints) { it.first }
+            .map { (newPointRange, _) ->
+                // Extend the range by one: the changed geometry should include the line from changed to unchanged point
+                // If that would cross into another (unchanged) segment, the segment end-points are equal anyhow
+                val start = newPoints[max(0, newPointRange.min - 1)]
+                val end = newPoints[min(newPoints.lastIndex, newPointRange.max + 1)]
+                Range(start.second, end.second)
+            }
+    }
 }
+
+fun getPointsWithM(segments: List<LayoutSegment>, indexRange: Range<Int>): List<Pair<Point, Double>> =
+    (indexRange.min..indexRange.max).flatMap { i ->
+        val segmentPoints =
+            segments.getOrNull(i)?.segmentPoints?.let { if (i == indexRange.min) it else it.subList(0, it.lastIndex) }
+        segmentPoints?.map { p -> p.toPoint() to (p.m + segments[i].startM) } ?: emptyList()
+    }
+
+fun <T, S> getAddedIndexRanges(
+    newObjects: List<T>,
+    oldObjects: List<T>,
+    compareBy: (T) -> S,
+): List<Pair<Range<Int>, Range<Int>>> {
+    val oldCompareObjects = oldObjects.mapIndexed { i, o -> compareBy(o) to i }.toMap()
+    val matchIndices = newObjects.map { o -> oldCompareObjects[compareBy(o)] }
+    val addedIndexRanges = mutableListOf<Pair<Range<Int>, Range<Int>>>()
+    var prevMatchedIndex: Pair<Int, Int>? = null
+    newObjects.forEachIndexed { i, _ ->
+        val match = matchIndices[i]
+        if (match != null || i == newObjects.lastIndex) {
+            val startIndex = nullableNext(prevMatchedIndex?.first) ?: 0
+            val endIndex = if (match != null) i - 1 else i
+            if (startIndex <= endIndex) {
+                val oldStartIndex =
+                    if (prevMatchedIndex == null && match == null) 0
+                    else nullableNext(prevMatchedIndex?.second) ?: match?.let { it - 1 } ?: 0
+                val oldEndIndex = match?.let { it - 1 } ?: oldStartIndex
+                addedIndexRanges.add(Range(startIndex, endIndex) to Range(oldStartIndex, oldEndIndex))
+            }
+        }
+        if (match != null) prevMatchedIndex = i to match
+    }
+    return addedIndexRanges
+}
+
+fun nullableNext(value: Int?): Int? = value?.let { it + 1 }
 
 fun <T : Comparable<T>> combineOverlappingRanges(ranges: List<Range<T>>) =
     ranges.fold(emptyList<Range<T>>()) { list, r ->

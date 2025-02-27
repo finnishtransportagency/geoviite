@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.geocodingContext
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -131,6 +132,50 @@ class PublicationUtilsTest {
     }
 
     private fun xAxisGeocodingContext() = geocodingContext((0..60).map { x -> Point(x.toDouble(), 0.0) })
+
+    @Test
+    fun `getAddedIndexRanges works`() {
+        // Nothing found when lists are the same
+        assertEquals(
+            emptyList<Pair<Range<Int>, Range<Int>>>(),
+            getAddedIndexRanges(listOf(1, 2, 3, 4, 5), listOf(1, 2, 3, 4, 5)) { it },
+        )
+        // Swap 1 old for 2 new
+        assertEquals(
+            listOf(Range(2, 3) to Range(2, 2)),
+            getAddedIndexRanges(listOf(1, 2, 3, 4, 5), listOf(1, 2, 0, 5)) { it },
+        )
+        // Swap 2 old for 1 new
+        assertEquals(
+            listOf(Range(2, 2) to Range(2, 3)),
+            getAddedIndexRanges(listOf(1, 2, 0, 5), listOf(1, 2, 3, 4, 5)) { it },
+        )
+        // Add one to the end: the old index is over-indexing to indicate past the end of the list
+        assertEquals(
+            listOf(Range(4, 4) to Range(4, 4)),
+            getAddedIndexRanges(listOf(1, 2, 3, 4, 5), listOf(1, 2, 3, 4)) { it },
+        )
+        // Add one to the start: the old index is under-indexing to indicate before the start of the list
+        assertEquals(
+            listOf(Range(0, 0) to Range(-1, -1)),
+            getAddedIndexRanges(listOf(1, 2, 3, 4, 5), listOf(2, 3, 4, 5)) { it },
+        )
+        // The function only seeks adds: nothing returned for removals
+        assertEquals(
+            emptyList<Pair<Range<Int>, Range<Int>>>(),
+            getAddedIndexRanges(listOf(1, 2, 4, 5), listOf(1, 2, 3, 4, 5)) { it },
+        )
+        // Alter and add to end
+        assertEquals(
+            listOf(Range(3, 4) to Range(3, 3)),
+            getAddedIndexRanges(listOf(1, 2, 3, 6, 7), listOf(1, 2, 3, 4)) { it },
+        )
+        // Alter and add to beginning
+        assertEquals(
+            listOf(Range(0, 1) to Range(0, 0)),
+            getAddedIndexRanges(listOf(-1, -2, 2, 3, 4, 5), listOf(1, 2, 3, 4, 5)) { it },
+        )
+    }
 
     @Test
     fun `getChangedGeometryRanges() finds nothing from identical segments`() {
