@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Link } from 'vayla-design-lib/link/link';
 import styles from 'infra-model/projektivelho/pv-file-list.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Oid } from 'common/common-model';
 import { getPVFilesRedirectUrl } from 'infra-model/infra-model-api';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 interface PVDocumentRedirectLinkProps {
     documentOid: Oid;
@@ -50,13 +50,16 @@ export const PVRedirectLink: React.FC<PVRedirectLinkProps> = ({
     const url = getPVFilesRedirectUrl(projectGroupOid, projectOid, assignmentOid, documentOid);
 
     return (
-        <Link className={styles['projektivelho-file-list__link']} href={url} target={'_blank'}>
+        <AnchorLink
+            className={styles['projektivelho-file-list__link']}
+            href={url}
+            target={'_blank'}>
             <span>
                 {children}{' '}
                 <span className={styles['projektivelho-file-list__link-icon']}>
                     <Icons.ExternalLink color={IconColor.INHERIT} size={IconSize.SMALL} />
                 </span>
             </span>
-        </Link>
+        </AnchorLink>
     );
 };
