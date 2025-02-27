@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'vayla-design-lib/link/link';
 import {
     DatePicker,
     DatePickerDateSource,
@@ -37,6 +36,7 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { debounceAsync } from 'utils/async-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SortDirection } from 'utils/table-utils';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 const MAX_SEARCH_DAYS = 180;
 
@@ -239,13 +239,13 @@ const PublicationLog: React.FC = () => {
     return (
         <div className={styles['publication-log']}>
             <div className={styles['publication-log__title']}>
-                <Link
+                <AnchorLink
                     onClick={() => {
                         trackLayoutActionDelegates.setSelectedPublicationSearch(undefined);
                         navigate('frontpage');
                     }}>
                     {t('frontpage.frontpage-link')}
-                </Link>
+                </AnchorLink>
                 <span className={styles['publication-log__breadcrumbs']}>
                     {' > ' + t('publication-log.breadcrumbs-text')}
                 </span>

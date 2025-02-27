@@ -34,13 +34,13 @@ import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { roundToPrecision } from 'utils/rounding';
 import { ChangeTimes } from 'common/common-slice';
-import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
 import { getGeometryPlan } from 'geometry/geometry-api';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import styles from './km-post-infobox.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { GK_FIN_COORDINATE_SYSTEMS } from 'tool-panel/km-post/dialog/km-post-edit-store';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type KmPostInfoboxProps = {
     layoutContext: LayoutContext;
@@ -156,8 +156,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         infoboxExtras?.kmLength === undefined
             ? t('tool-panel.km-post.layout.no-kilometer-length')
             : infoboxExtras.kmLength < 0
-              ? t('tool-panel.km-post.layout.negative-kilometer-length')
-              : `${roundToPrecision(infoboxExtras.kmLength, 3)} m`;
+            ? t('tool-panel.km-post.layout.negative-kilometer-length')
+            : `${roundToPrecision(infoboxExtras.kmLength, 3)} m`;
 
     return (
         <React.Fragment>
@@ -251,7 +251,9 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                         qaId="km-post-gk-coordinates-confirmed"
                         label={t(`tool-panel.km-post.layout.gk-coordinates.confirmed-title`)}
                         value={t(
-                            `tool-panel.km-post.layout.gk-coordinates.${updatedKmPost?.gkLocation?.confirmed ? '' : 'not-'}confirmed`,
+                            `tool-panel.km-post.layout.gk-coordinates.${
+                                updatedKmPost?.gkLocation?.confirmed ? '' : 'not-'
+                            }confirmed`,
                         )}
                     />
                     <InfoboxField
@@ -263,7 +265,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                     {t(
                                         'tool-panel.km-post.layout.gk-coordinates.source-from-geometry',
                                     )}{' '}
-                                    <Link
+                                    <AnchorLink
                                         className={styles['km-post-infobox__plan-link']}
                                         onClick={() => {
                                             if (infoboxExtras?.sourceGeometryPlanId) {
@@ -279,7 +281,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                             }
                                         }}>
                                         {geometryPlan?.fileName}
-                                    </Link>
+                                    </AnchorLink>
                                 </span>
                             ) : updatedKmPost?.gkLocation?.source === 'FROM_LAYOUT' ? (
                                 t('tool-panel.km-post.layout.gk-coordinates.source-from-layout')

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
-import { Link } from 'vayla-design-lib/link/link';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export const LocationTrackSplittingErrorNotice: React.FC<{
     msg: string;
@@ -65,9 +65,9 @@ export const NoticeWithNavigationLink: React.FC<NoticeWithNavigationLinkParams> 
         <InfoboxContentSpread>
             <MessageBox>
                 {t(noticeLocalizationKey)},{' '}
-                <Link onClick={onClickLink}>
+                <AnchorLink onClick={onClickLink}>
                     {t('tool-panel.location-track.splitting.validation.show')}
-                </Link>
+                </AnchorLink>
             </MessageBox>
         </InfoboxContentSpread>
     );

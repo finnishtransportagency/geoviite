@@ -1,6 +1,5 @@
 import * as React from 'react';
 import styles from 'tool-panel/track-number/alignment-plan-section-infobox.scss';
-import { Link } from 'vayla-design-lib/link/link';
 import { AlignmentPlanSection, PlanSectionPoint } from 'track-layout/layout-location-track-api';
 import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
@@ -13,6 +12,7 @@ import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track
 import { Eye } from 'geoviite-design-lib/eye/eye';
 import { createClassName } from 'vayla-design-lib/utils';
 import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 const ErrorFragment: React.FC<{ message?: string }> = ({ message = '' }) => (
     <span title={message} className={styles['alignment-plan-section-infobox__no-plan-icon']}>
@@ -63,12 +63,12 @@ const GeometryPlanLabel: React.FC<GeometryPlanLabelProps> = ({
         <div className={styles['alignment-plan-section-infobox__plan-name']}>
             {planName ? (
                 planId ? (
-                    <Link
+                    <AnchorLink
                         title={`${planName}, ${alignmentName}`}
                         className={styles['alignment-plan-section-infobox__plan-link-content']}
                         onClick={onGeometryClick}>
                         {planName}
-                    </Link>
+                    </AnchorLink>
                 ) : (
                     <span title={`${planName}, ${alignmentName}`}>{planName}</span>
                 )

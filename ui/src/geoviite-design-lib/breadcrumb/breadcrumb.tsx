@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styles from './breadcrumb.scss';
 import { createClassName } from 'vayla-design-lib/utils';
-import { Link } from 'vayla-design-lib/link/link';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export type BreadcrumbProps = {
     some?: string;
@@ -26,7 +26,11 @@ export const BreadcrumbItem: React.FC<BreadcrumbItemProps> = (props: BreadcrumbI
     );
     return (
         <div className={className} onClick={props.onClick}>
-            {props.href ? <Link href={props.href}>{props.children}</Link> : props.children}
+            {props.href ? (
+                <AnchorLink href={props.href}>{props.children}</AnchorLink>
+            ) : (
+                props.children
+            )}
         </div>
     );
 };

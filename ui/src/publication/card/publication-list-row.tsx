@@ -15,7 +15,7 @@ import { putBulkTransferState } from 'publication/split/split-api';
 import { success } from 'geoviite-design-lib/snackbar/snackbar';
 import { getChangeTimes, updateSplitChangeTime } from 'common/change-time-api';
 import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
-import { Link } from 'react-router-dom';
+import { RouterLink } from 'geoviite-design-lib/link/router-link';
 
 type PublicationListRowProps = {
     publication: PublicationDetails;
@@ -127,7 +127,9 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
                         {(() => {
                             const text = formatDateFull(publication.publicationTime);
                             return publication.layoutBranch.branch === 'MAIN' ? (
-                                <Link to={`/publications/${publication.id}`}>{text}</Link>
+                                <RouterLink to={`/publications/${publication.id}`}>
+                                    {text}
+                                </RouterLink>
                             ) : (
                                 text
                             );

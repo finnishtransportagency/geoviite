@@ -30,7 +30,6 @@ import { LayoutKmPost, LayoutKmPostId, LayoutTrackNumberId } from 'track-layout/
 import { useDebouncedState } from 'utils/react-utils';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import KmPostRevertConfirmationDialog from 'tool-panel/km-post/dialog/km-post-revert-confirmation-dialog';
-import { Link } from 'vayla-design-lib/link/link';
 import {
     getSaveDisabledReasons,
     useKmPost,
@@ -46,6 +45,7 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { KmPostEditDialogGkLocationSection } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
 import { GeometryPoint } from 'model/geometry';
 import { UnknownAction } from 'redux';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export type KmPostEditDialogType = 'MODIFY' | 'CREATE' | 'LINKING';
 
@@ -327,13 +327,13 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             errors={getVisibleErrorsByProp('kmNumber')}>
                             {state.trackNumberKmPost &&
                                 state.trackNumberKmPost.id !== state.existingKmPost?.id && (
-                                    <Link
+                                    <AnchorLink
                                         className={dialogStyles['dialog__alert']}
                                         onClick={() =>
                                             props.onEditKmPost(state.trackNumberKmPost?.id)
                                         }>
                                         {moveToEditLinkText(state.trackNumberKmPost)}
-                                    </Link>
+                                    </AnchorLink>
                                 )}
                         </FieldLayout>
                         <FieldLayout

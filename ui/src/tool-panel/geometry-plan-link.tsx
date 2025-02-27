@@ -5,6 +5,7 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import { GeometryPlanId } from 'geometry/geometry-model';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export type GeometryPlanLinkProps = {
     planId?: GeometryPlanId;
@@ -23,5 +24,9 @@ function createSelectAction() {
 export const GeometryPlanLink: React.FC<GeometryPlanLinkProps> = (props: GeometryPlanLinkProps) => {
     const header = usePlanHeader(props.planId);
     const clickAction = props.onClick || createSelectAction();
-    return <Link onClick={() => header && clickAction(header.id)}>{header?.fileName || ''}</Link>;
+    return (
+        <AnchorLink onClick={() => header && clickAction(header.id)}>
+            {header?.fileName || ''}
+        </AnchorLink>
+    );
 };

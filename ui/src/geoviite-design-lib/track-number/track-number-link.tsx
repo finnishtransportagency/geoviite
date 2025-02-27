@@ -1,7 +1,6 @@
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { useTrackNumberWithStatus } from 'track-layout/track-layout-react-utils';
 import { LayoutContext, TimeStamp } from 'common/common-model';
-import { Link } from 'vayla-design-lib/link/link';
 import React from 'react';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
@@ -10,6 +9,7 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { LoaderStatus } from 'utils/react-utils';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { useTranslation } from 'react-i18next';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export type TrackNumberLinkContainerProps = {
     trackNumberId?: LayoutTrackNumberId;
@@ -63,7 +63,9 @@ export const TrackNumberLink: React.FC<TrackNumberLinkProps> = ({
 
     return status === LoaderStatus.Ready && trackNumber ? (
         <React.Fragment>
-            <Link onClick={() => clickAction(trackNumber.id)}>{trackNumber.number}</Link>
+            <AnchorLink onClick={() => clickAction(trackNumber.id)}>
+                {trackNumber.number}
+            </AnchorLink>
             {trackNumber.state === 'DELETED' ? (
                 <span>&nbsp;({t('enum.LayoutState.DELETED')})</span>
             ) : (

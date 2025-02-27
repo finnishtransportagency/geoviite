@@ -2,13 +2,13 @@ import React from 'react';
 import { LayoutSwitchId } from 'track-layout/track-layout-model';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { LayoutContext, TimeStamp } from 'common/common-model';
-import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { getSwitch } from 'track-layout/layout-switch-api';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export type SwitchLinkContainerProps = {
     switchId?: LayoutSwitchId;
@@ -59,9 +59,9 @@ export const SwitchLink: React.FC<SwitchLinkProps> = (props: SwitchLinkProps) =>
     );
     const clickAction = props.onClick || createSelectAction();
     return status === LoaderStatus.Ready ? (
-        <Link onClick={() => layoutSwitch && clickAction(layoutSwitch.id)}>
+        <AnchorLink onClick={() => layoutSwitch && clickAction(layoutSwitch.id)}>
             {layoutSwitch?.name || ''}
-        </Link>
+        </AnchorLink>
     ) : (
         <Spinner />
     );

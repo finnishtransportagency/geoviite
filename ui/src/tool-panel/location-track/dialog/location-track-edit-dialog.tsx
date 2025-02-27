@@ -56,13 +56,13 @@ import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import { getLocationTrackOwners } from 'common/common-api';
 import { useLoader } from 'utils/react-utils';
-import { Link } from 'vayla-design-lib/link/link';
 import { ChangeTimes } from 'common/common-slice';
 import { getChangeTimes } from 'common/change-time-api';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { first } from 'utils/array-utils';
 import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
 import { UnknownAction } from 'redux';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type LocationTrackDialogContainerProps = {
     locationTrackId?: LocationTrackId;
@@ -456,11 +456,11 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                             ? t('location-track-dialog.name-in-use-deleted')
                                             : t('location-track-dialog.name-in-use')}
                                     </div>
-                                    <Link
+                                    <AnchorLink
                                         className={styles['location-track-edit-dialog__alert']}
                                         onClick={() => props.onEditTrack(trackWithSameName.id)}>
                                         {moveToEditLinkText(trackWithSameName)}
-                                    </Link>
+                                    </AnchorLink>
                                 </>
                             )}
                         </FieldLayout>
