@@ -91,7 +91,7 @@ const TrackMeterRange: React.FC<TrackMeterRangeProps> = ({ start, end }) => {
         point: PlanSectionPoint | undefined;
     }> = ({ point }) => {
         return (
-            <span>
+            <React.Fragment>
                 {point ? (
                     <NavigableTrackMeter
                         trackMeter={point.address}
@@ -103,7 +103,7 @@ const TrackMeterRange: React.FC<TrackMeterRangeProps> = ({ start, end }) => {
                         message={t('tool-panel.alignment-plan-sections.geocoding-failed')}
                     />
                 )}
-            </span>
+            </React.Fragment>
         );
     };
 
@@ -161,17 +161,26 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
     };
 
     const PlanVisibilityToggle: React.FC<{
-        planId: GeometryPlanId;
-        alignmentId: GeometryAlignmentId | undefined;
-    }> = ({ planId, alignmentId }) => (
-        <Eye
-            extraClassName={styles['alignment-plan-section-infobox__navigation-eye']}
-            visibility={isVisible(planId)}
-            onVisibilityToggle={() => {
-                togglePlanVisibility(planId, alignmentId);
-            }}
-        />
-    );
+        section: AlignmentPlanSection;
+    }> = ({ section }) => {
+        const planId = section.planId;
+
+        return (
+            <div
+                className={
+                    styles['alignment-plan-section-infobox__navigation-plan-visibility-toggle']
+                }>
+                {planId && section.isLinked && (
+                    <Eye
+                        visibility={isVisible(planId)}
+                        onVisibilityToggle={() => {
+                            togglePlanVisibility(planId, section.alignmentId);
+                        }}
+                    />
+                )}
+            </div>
+        );
+    };
 
     return (
         <React.Fragment>
@@ -182,33 +191,24 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                         onMouseOver={() => startSectionHighlight(section)}
                         onMouseOut={() => endSectionHighlight()}
                         label={
-                            <React.Fragment>
-                                {section.planName && !section.isLinked && (
-                                    <div className="infobox__list-cell">
-                                        <ErrorFragment />
-                                    </div>
-                                )}
+                            <div className="infobox__list-cell">
+                                {section.planName && !section.isLinked && <ErrorFragment />}
                                 <GeometryPlanLabel
                                     planId={section.planId}
                                     planName={section.planName}
                                     alignmentName={section.alignmentName}
                                     onGeometryClick={() => selectGeometry(section.planId)}
                                 />
-                            </React.Fragment>
+                            </div>
                         }
                         content={
                             <div
                                 className={createClassName(
                                     'infobox__list-cell',
+                                    'infobox__list-cell--strong',
                                     styles['alignment-plan-section-infobox__navigation'],
                                 )}>
-                                {section.planId && section.isLinked && (
-                                    <PlanVisibilityToggle
-                                        planId={section.planId}
-                                        alignmentId={section.alignmentId}
-                                    />
-                                )}
-
+                                <PlanVisibilityToggle section={section} />
                                 <TrackMeterRange start={section.start} end={section.end} />
                             </div>
                         }

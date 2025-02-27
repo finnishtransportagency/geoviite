@@ -13,6 +13,7 @@
     fill: vayla-design.$color-red-dark;
     display: block;
     transform: translate(0, 1px);
+    margin-right: 8px;
 }
 
 .alignment-plan-section-infobox__show-plan-icon {
@@ -28,16 +29,21 @@
     flex: 1;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     flex-direction: row;
 }
 
 .alignment-plan-section-infobox__navigation-checkbox {
-    padding-left: 4px;
+    margin-left: 2px;
+}
+
+.alignment-plan-section-infobox__navigation-plan-visibility-toggle {
+    width: 32px;
 }
 
 .alignment-plan-section-infobox__navigation-eye {
-    padding-right: 8px;
+    margin-right: 8px;
+    margin-left: 0;
 }
 
 .alignment-plan-section-infobox__meters {
