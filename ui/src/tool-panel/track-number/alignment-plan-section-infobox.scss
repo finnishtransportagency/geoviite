@@ -24,9 +24,24 @@
     line-height: 0;
 }
 
+.alignment-plan-section-infobox__navigation {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-direction: row;
+}
+
+.alignment-plan-section-infobox__navigation-checkbox {
+    padding-left: 4px;
+}
+
+.alignment-plan-section-infobox__navigation-eye {
+    padding-right: 8px;
+}
+
 .alignment-plan-section-infobox__meters {
     display: inline-grid;
     grid-template-columns: repeat(2, 50%);
     grid-column-gap: 6px;
-    width: 100%;
 }

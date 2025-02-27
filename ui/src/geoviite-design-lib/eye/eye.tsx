@@ -9,13 +9,17 @@ type EyeProps = {
     fetchingContent?: boolean;
     onVisibilityToggle: React.MouseEventHandler;
     disabled?: boolean;
+    extraClassName?: string;
 };
 export const Eye: React.FC<EyeProps> = ({
     visibility,
     fetchingContent,
     onVisibilityToggle,
     disabled = false,
+    extraClassName,
 }) => {
+    const containerClassName = createClassName(styles['eye-container'], extraClassName);
+
     const iconClassName = createClassName(
         styles['eye-icon'],
         visibility && styles['eye--visible'],
@@ -23,7 +27,7 @@ export const Eye: React.FC<EyeProps> = ({
     );
 
     return (
-        <span className={styles['eye-container']}>
+        <span className={containerClassName}>
             <Button
                 size={ButtonSize.SMALL}
                 onClick={onVisibilityToggle}

@@ -136,6 +136,8 @@
 }
 
 .infobox__list-cell {
+    display: flex;
+
     @include vayla-design.typography-caption-strong;
 
     &:not(:last-child) {
@@ -144,6 +146,7 @@
 }
 
 .infobox__list-cell--label {
+    width: 120px;
     font-weight: 400;
     @include vayla-design.typography-caption;
     color: vayla-design.$color-black-light;

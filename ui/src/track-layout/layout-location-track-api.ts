@@ -57,7 +57,7 @@ const locationTrackOidsCache = asyncCache<
     { [key in LayoutBranch]?: Oid } | undefined
 >();
 
-type PlanSectionPoint = {
+export type PlanSectionPoint = {
     address: TrackMeter;
     location: AlignmentPoint;
     m: number;
