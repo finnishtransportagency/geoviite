@@ -137,19 +137,20 @@
 
 .infobox__list-cell {
     display: flex;
+}
 
+.infobox__list-cell--strong {
     @include vayla-design.typography-caption-strong;
-
-    &:not(:last-child) {
-        margin-right: 8px;
-    }
 }
 
 .infobox__list-cell--label {
     width: 120px;
+    max-width: 120px;
+    min-width: 120px;
     font-weight: 400;
     @include vayla-design.typography-caption;
     color: vayla-design.$color-black-light;
+    margin-right: 8px;
 }
 
 .infobox__list-cell--stretch {
