@@ -63,11 +63,11 @@ const GeometryPlanLabel: React.FC<GeometryPlanLabelProps> = ({
         <div className={styles['alignment-plan-section-infobox__plan-name']}>
             {planName ? (
                 planId ? (
-                    <Link onClick={onGeometryClick} title={`${planName}, ${alignmentName}`}>
-                        <span
-                            className={styles['alignment-plan-section-infobox__plan-link-content']}>
-                            {planName}
-                        </span>
+                    <Link
+                        title={`${planName}, ${alignmentName}`}
+                        className={styles['alignment-plan-section-infobox__plan-link-content']}
+                        onClick={onGeometryClick}>
+                        {planName}
                     </Link>
                 ) : (
                     <span title={`${planName}, ${alignmentName}`}>{planName}</span>
