@@ -201,14 +201,15 @@ class PublicationUtilsTest {
         val oldDivergingSegment =
             segment(
                 Point(30.0, 0.0),
-                Point(40.0, 1.0),
+                Point(40.0, 0.0),
                 Point(50.0, 1.0),
                 startM = commonSegmentOfOld.startM + commonSegmentOfOld.length,
             )
         val oldSegments = listOf(oldFirstSegment, oldConvergingSegment, commonSegmentOfOld, oldDivergingSegment)
 
         val newFirstSegment = segment(Point(0.0, 0.0), Point(10.0, 0.0), startM = 0.0)
-        val newConvergingSegment = segment(Point(10.0, 0.0), Point(20.0, 0.0), startM = newFirstSegment.length)
+        val newConvergingSegment =
+            segment(Point(10.0, 0.0), Point(15.0, 0.0), Point(20.0, 0.0), startM = newFirstSegment.length)
         val newCommonSegment = commonSegment.copy(startM = newConvergingSegment.startM + newConvergingSegment.length)
         val newDivergingSegment =
             segment(
@@ -221,18 +222,21 @@ class PublicationUtilsTest {
 
         val result = getChangedGeometryRanges(newSegments, oldSegments)
         assertEquals(2, result.added.size)
-        assertEquals(newFirstSegment.startM, result.added[0].min, 0.1)
-        // NOTE: The following assertion will break after GVT-2967 because the current implementation is wrong
-        assertEquals(newConvergingSegment.startM + newConvergingSegment.length, result.added[0].max, 0.1)
-        assertEquals(newDivergingSegment.startM, result.added[1].min, 0.1)
-        assertEquals(newDivergingSegment.startM + newDivergingSegment.length, result.added[1].max, 0.1)
+        assertDoubleRange(Range(newFirstSegment.startM, newConvergingSegment.startM + 5.0), result.added[0])
+        assertDoubleRange(Range(newDivergingSegment.startM + 10.0, newDivergingSegment.endM), result.added[1])
 
         assertEquals(2, result.removed.size)
-        assertEquals(oldFirstSegment.startM, result.removed[0].min, 0.1)
-        // NOTE: The following assertion will break after GVT-2967 because the current implementation is wrong
-        assertEquals(oldConvergingSegment.startM + oldConvergingSegment.length, result.removed[0].max, 0.1)
-        assertEquals(oldDivergingSegment.startM, result.removed[1].min, 0.1)
-        assertEquals(oldDivergingSegment.startM + oldDivergingSegment.length, result.removed[1].max, 0.1)
+        assertDoubleRange(Range(oldFirstSegment.startM, oldConvergingSegment.startM + 5.0), result.removed[0])
+        assertDoubleRange(Range(oldDivergingSegment.startM + 10.0, oldDivergingSegment.endM), result.removed[1])
+    }
+
+    private fun assertDoubleRange(expected: Range<Double>, actual: Range<Double>, delta: Double = 0.1) {
+        assertEquals(expected.min, actual.min, delta) {
+            "Double range mismatch (min different): expected=${expected} actual=${actual.min}"
+        }
+        assertEquals(expected.max, actual.max, delta) {
+            "Double range mismatch (max different): expected=${expected} actual=${actual.min}"
+        }
     }
 
     @Test
