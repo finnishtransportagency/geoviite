@@ -134,46 +134,53 @@ class PublicationUtilsTest {
     private fun xAxisGeocodingContext() = geocodingContext((0..60).map { x -> Point(x.toDouble(), 0.0) })
 
     @Test
-    fun `getAddedIndexRanges works`() {
+    fun `getAddedIndexRangesExclusive gives the correct ranges`() {
         // Nothing found when lists are the same
         assertEquals(
             emptyList<Pair<Range<Int>, Range<Int>>>(),
-            getAddedIndexRanges(listOf(1, 2, 3, 4, 5), listOf(1, 2, 3, 4, 5)) { it },
+            getAddedIndexRangesExclusive(listOf(1, 2, 3, 4, 5), listOf(1, 2, 3, 4, 5)) { it },
         )
+        // Add 1
+        assertEquals(listOf(Range(0, 2) to Range(0, 1)), getAddedIndexRangesExclusive(listOf(1, 2), listOf(1)) { it })
         // Swap 1 old for 2 new
         assertEquals(
-            listOf(Range(2, 3) to Range(2, 2)),
-            getAddedIndexRanges(listOf(1, 2, 3, 4, 5), listOf(1, 2, 0, 5)) { it },
+            listOf(Range(1, 4) to Range(1, 3)),
+            getAddedIndexRangesExclusive(listOf(1, 2, 3, 4, 5), listOf(1, 2, 0, 5)) { it },
         )
         // Swap 2 old for 1 new
         assertEquals(
-            listOf(Range(2, 2) to Range(2, 3)),
-            getAddedIndexRanges(listOf(1, 2, 0, 5), listOf(1, 2, 3, 4, 5)) { it },
+            listOf(Range(1, 3) to Range(1, 4)),
+            getAddedIndexRangesExclusive(listOf(1, 2, 0, 5), listOf(1, 2, 3, 4, 5)) { it },
         )
-        // Add one to the end: the old index is over-indexing to indicate past the end of the list
+        // Add one to the end
         assertEquals(
-            listOf(Range(4, 4) to Range(4, 4)),
-            getAddedIndexRanges(listOf(1, 2, 3, 4, 5), listOf(1, 2, 3, 4)) { it },
+            listOf(Range(3, 5) to Range(3, 4)),
+            getAddedIndexRangesExclusive(listOf(1, 2, 3, 4, 5), listOf(1, 2, 3, 4)) { it },
         )
-        // Add one to the start: the old index is under-indexing to indicate before the start of the list
+        // Add one to the start
         assertEquals(
-            listOf(Range(0, 0) to Range(-1, -1)),
-            getAddedIndexRanges(listOf(1, 2, 3, 4, 5), listOf(2, 3, 4, 5)) { it },
+            listOf(Range(-1, 1) to Range(-1, 0)),
+            getAddedIndexRangesExclusive(listOf(1, 2, 3, 4, 5), listOf(2, 3, 4, 5)) { it },
         )
         // The function only seeks adds: nothing returned for removals
         assertEquals(
             emptyList<Pair<Range<Int>, Range<Int>>>(),
-            getAddedIndexRanges(listOf(1, 2, 4, 5), listOf(1, 2, 3, 4, 5)) { it },
+            getAddedIndexRangesExclusive(listOf(1, 2, 4, 5), listOf(1, 2, 3, 4, 5)) { it },
         )
         // Alter and add to end
         assertEquals(
-            listOf(Range(3, 4) to Range(3, 3)),
-            getAddedIndexRanges(listOf(1, 2, 3, 6, 7), listOf(1, 2, 3, 4)) { it },
+            listOf(Range(2, 5) to Range(2, 4)),
+            getAddedIndexRangesExclusive(listOf(1, 2, 3, 6, 7), listOf(1, 2, 3, 4)) { it },
         )
         // Alter and add to beginning
         assertEquals(
-            listOf(Range(0, 1) to Range(0, 0)),
-            getAddedIndexRanges(listOf(-1, -2, 2, 3, 4, 5), listOf(1, 2, 3, 4, 5)) { it },
+            listOf(Range(-1, 2) to Range(-1, 1)),
+            getAddedIndexRangesExclusive(listOf(-1, -2, 2, 3, 4, 5), listOf(1, 2, 3, 4, 5)) { it },
+        )
+        // Swap everyghing
+        assertEquals(
+            listOf(Range(-1, 4) to Range(-1, 3)),
+            getAddedIndexRangesExclusive(listOf(-1, -2, -3, -4), listOf(1, 2, 3)) { it },
         )
     }
 
@@ -230,15 +237,6 @@ class PublicationUtilsTest {
         assertDoubleRange(Range(oldDivergingSegment.startM + 10.0, oldDivergingSegment.endM), result.removed[1])
     }
 
-    private fun assertDoubleRange(expected: Range<Double>, actual: Range<Double>, delta: Double = 0.1) {
-        assertEquals(expected.min, actual.min, delta) {
-            "Double range mismatch (min different): expected=${expected} actual=${actual.min}"
-        }
-        assertEquals(expected.max, actual.max, delta) {
-            "Double range mismatch (max different): expected=${expected} actual=${actual.min}"
-        }
-    }
-
     @Test
     fun `getChangedGeometryRanges() finds added ranges`() {
         val commonSegment = segment(Point(0.0, 0.0), Point(1.0, 0.0))
@@ -247,8 +245,7 @@ class PublicationUtilsTest {
 
         val result = getChangedGeometryRanges(newSegments, oldSegments)
         assertEquals(1, result.added.size)
-        assertEquals(1.0, result.added[0].min, 0.1)
-        assertEquals(2.0, result.added[0].max, 0.1)
+        assertDoubleRange(Range(1.0, 2.0), result.added[0])
         assertEquals(0, result.removed.size)
     }
 
@@ -261,7 +258,15 @@ class PublicationUtilsTest {
         val result = getChangedGeometryRanges(oldSegments, newSegments)
         assertEquals(0, result.added.size)
         assertEquals(1, result.removed.size)
-        assertEquals(1.0, result.removed[0].min, 0.1)
-        assertEquals(2.0, result.removed[0].max, 0.1)
+        assertDoubleRange(Range(1.0, 2.0), result.removed[0])
+    }
+
+    private fun assertDoubleRange(expected: Range<Double>, actual: Range<Double>, delta: Double = 0.1) {
+        assertEquals(expected.min, actual.min, delta) {
+            "Double range mismatch (min different): expected=${expected} actual=${actual.min}"
+        }
+        assertEquals(expected.max, actual.max, delta) {
+            "Double range mismatch (max different): expected=${expected} actual=${actual.min}"
+        }
     }
 }

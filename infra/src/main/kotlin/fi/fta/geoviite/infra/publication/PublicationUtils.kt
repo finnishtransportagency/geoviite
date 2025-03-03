@@ -33,10 +33,6 @@ import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.printCsv
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
-import org.springframework.http.ContentDisposition
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneId
@@ -45,6 +41,10 @@ import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import org.springframework.http.ContentDisposition
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 
 data class GeometryChangeRanges(val added: List<Range<Double>>, val removed: List<Range<Double>>)
 
@@ -548,29 +548,36 @@ fun getChangedGeometryRanges(newSegments: List<LayoutSegment>, oldSegments: List
     )
 
 fun getAddedSegmentMRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>): List<Range<Double>> {
-    val addedSegmentIndices = getAddedIndexRanges(newSegments, oldSegments) { s -> s.geometry.id }
+    val addedSegmentIndices = getAddedIndexRangesExclusive(newSegments, oldSegments) { s -> s.geometry.id }
     return addedSegmentIndices.flatMap { (newRange, oldRange) ->
-        val newPoints = getPointsWithM(newSegments, newRange)
-        val oldPoints = getPointsWithM(oldSegments, oldRange)
-        getAddedIndexRanges(newPoints, oldPoints) { it.first }
+        val newPoints = getPointsWithMExclusive(newSegments, newRange)
+        val oldPoints = getPointsWithMExclusive(oldSegments, oldRange)
+        getAddedIndexRangesExclusive(newPoints, oldPoints) { it.first }
             .map { (newPointRange, _) ->
-                // Extend the range by one: the changed geometry should include the line from changed to unchanged point
-                // If that would cross into another (unchanged) segment, the segment end-points are equal anyhow
-                val start = newPoints[max(0, newPointRange.min - 1)]
-                val end = newPoints[min(newPoints.lastIndex, newPointRange.max + 1)]
+                // The exclusive range over-indexes if the last point is inside the interval
+                // However, we can then just use the last point itself for m-value as it will be a segment end
+                val start = newPoints[max(0, newPointRange.min)]
+                val end = newPoints[min(newPoints.lastIndex, newPointRange.max)]
                 Range(start.second, end.second)
             }
     }
 }
 
-fun getPointsWithM(segments: List<LayoutSegment>, indexRange: Range<Int>): List<Pair<Point, Double>> =
-    (indexRange.min..indexRange.max).flatMap { i ->
-        val segmentPoints =
-            segments.getOrNull(i)?.segmentPoints?.let { if (i == indexRange.min) it else it.subList(0, it.lastIndex) }
-        segmentPoints?.map { p -> p.toPoint() to (p.m + segments[i].startM) } ?: emptyList()
-    }
+fun getPointsWithMExclusive(segments: List<LayoutSegment>, indexRange: Range<Int>): List<Pair<Point, Double>> =
+    indexRange
+        .takeIf { r -> r.max - r.min >= 2 }
+        ?.let { exclusive -> Range(exclusive.min + 1, exclusive.max - 1) }
+        ?.let { inclusive ->
+            (inclusive.min..inclusive.max).flatMap { i ->
+                segments.getOrNull(i)?.let { segment ->
+                    segment.segmentPoints
+                        .let { if (i == inclusive.min) it else it.subList(0, it.lastIndex) }
+                        .map { p -> p.toPoint() to (p.m + segment.startM) }
+                } ?: emptyList()
+            }
+        } ?: emptyList()
 
-fun <T, S> getAddedIndexRanges(
+fun <T, S> getAddedIndexRangesExclusive(
     newObjects: List<T>,
     oldObjects: List<T>,
     compareBy: (T) -> S,
@@ -582,13 +589,12 @@ fun <T, S> getAddedIndexRanges(
     newObjects.forEachIndexed { i, _ ->
         val match = matchIndices[i]
         if (match != null || i == newObjects.lastIndex) {
-            val startIndex = nullableNext(prevMatchedIndex?.first) ?: 0
-            val endIndex = if (match != null) i - 1 else i
-            if (startIndex <= endIndex) {
-                val oldStartIndex =
-                    if (prevMatchedIndex == null && match == null) 0
-                    else nullableNext(prevMatchedIndex?.second) ?: match?.let { it - 1 } ?: 0
-                val oldEndIndex = match?.let { it - 1 } ?: oldStartIndex
+            val startIndex = prevMatchedIndex?.first ?: -1
+            val endIndex = if (match != null) i else i + 1
+            // Something was only added if the exclusive range has at least one point between the ends
+            if (endIndex - startIndex > 1) {
+                val oldStartIndex = prevMatchedIndex?.second ?: -1
+                val oldEndIndex = match ?: (oldObjects.lastIndex + 1)
                 addedIndexRanges.add(Range(startIndex, endIndex) to Range(oldStartIndex, oldEndIndex))
             }
         }
@@ -596,18 +602,6 @@ fun <T, S> getAddedIndexRanges(
     }
     return addedIndexRanges
 }
-
-fun nullableNext(value: Int?): Int? = value?.let { it + 1 }
-
-fun <T : Comparable<T>> combineOverlappingRanges(ranges: List<Range<T>>) =
-    ranges.fold(emptyList<Range<T>>()) { list, r ->
-        val previous = list.lastOrNull()
-        if (previous?.overlaps(r) == true) {
-            list.take(list.size - 1) + previous.copy(max = r.max)
-        } else {
-            list + r
-        }
-    }
 
 fun <T : LayoutAsset<T>> getObjectFromValidationVersions(
     versions: List<LayoutRowVersion<T>>,
