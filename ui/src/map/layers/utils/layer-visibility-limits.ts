@@ -1,6 +1,6 @@
 import { MapLayerName } from 'map/map-model';
 // Alignments
-export const GEOMETRY_GRAPH = 10.0;
+export const GEOMETRY_GRAPH = 50.0;
 export const LINKING_DOTS = 0.19;
 export const DEBUG_1M_POINTS = 0.06;
 
