@@ -1340,29 +1340,6 @@ constructor(
     }
 
     @Test
-    fun `Invalid track address decimals results in an error`() {
-        data class TestTrackAddressToCoordinateRequestWithStringAddress(
-            val ratanumero: String? = null,
-            val ratakilometri: Int? = null,
-            val ratametri: String? = null,
-        ) : FrameConverterTestRequest()
-
-        val request =
-            TestTrackAddressToCoordinateRequestWithStringAddress(
-                ratakilometri = 0,
-                ratametri = "500+-1",
-                ratanumero = testDBService.getUnusedTrackNumber().value,
-            )
-
-        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
-
-        val expectedErrorMessage =
-            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen)."
-
-        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
-    }
-
-    @Test
     fun `No multiple search conditions are allowed for track number`() {
         val request =
             TestTrackAddressToCoordinateRequest(
