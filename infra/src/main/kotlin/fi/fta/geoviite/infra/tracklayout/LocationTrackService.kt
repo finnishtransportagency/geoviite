@@ -301,6 +301,7 @@ class LocationTrackService(
         dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
             return { term, item -> externalIds[item.id]?.oid?.toString() == term || item.id.toString() == term }
         }
+    fun getExtIds() = dao.fetchExternalIds(LayoutBranch.main, null)
 
     override fun contentMatches(term: String, item: LocationTrack) =
         item.exists && (item.name.contains(term, true) || item.descriptionBase.contains(term, true))

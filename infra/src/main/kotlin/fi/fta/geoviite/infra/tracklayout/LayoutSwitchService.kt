@@ -113,6 +113,8 @@ constructor(
         return dao.list(layoutContext, includeDeleted).map(::withStructure)
     }
 
+    fun getExtIds() = dao.fetchExternalIds(LayoutBranch.main, null)
+
     fun checkOidPresence(oid: Oid<LayoutSwitch>) =
         SwitchOidPresence(
             existsInRatko = checkRatkoOidPresence(oid),

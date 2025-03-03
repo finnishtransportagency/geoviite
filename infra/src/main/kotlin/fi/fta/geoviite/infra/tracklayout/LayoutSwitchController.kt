@@ -8,8 +8,10 @@ import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
@@ -20,6 +22,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -31,11 +34,34 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
+data class TmpSwitchJointData(val number: JointNumber, val location: Point)
+
+data class TmpSwitchData(
+    val id: IntId<LayoutSwitch>,
+    val externalId: Oid<LayoutSwitch>,
+    val name: SwitchName,
+    val type: SwitchType,
+    val joints: List<TmpSwitchJointData>,
+)
+
 @GeoviiteController("/track-layout/switches")
 class LayoutSwitchController(
     private val switchService: LayoutSwitchService,
     private val publicationValidationService: PublicationValidationService,
 ) {
+    @GetMapping("/all")
+    fun getAllLocationTracks(): List<TmpSwitchData> {
+        val extIds = switchService.getExtIds()
+        return switchService.listWithStructure(MainLayoutContext.official, false).map { (s, t) ->
+            TmpSwitchData(
+                id = s.id as IntId,
+                externalId = extIds[s.id]!!.oid,
+                name = s.name,
+                type = t.type,
+                joints = s.joints.map { j -> TmpSwitchJointData(j.number, j.location) },
+            )
+        }
+    }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}")

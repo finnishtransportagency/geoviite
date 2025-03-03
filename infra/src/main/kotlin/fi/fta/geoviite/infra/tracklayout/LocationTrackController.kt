@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
@@ -44,6 +45,16 @@ data class SwitchValidationWithSuggestedSwitch(
     val switchSuggestion: SuggestedSwitch?,
 )
 
+data class TmpLocationTrackData(
+    val id: IntId<LocationTrack>,
+    val externalId: Oid<LocationTrack>,
+    val name: AlignmentName,
+    val type: LocationTrackType,
+    val state: LocationTrackState,
+    val length: Double,
+    val duplicateOf: IntId<LocationTrack>?,
+)
+
 @GeoviiteController("/track-layout")
 class LocationTrackController(
     private val locationTrackService: LocationTrackService,
@@ -51,6 +62,21 @@ class LocationTrackController(
     private val publicationValidationService: PublicationValidationService,
     private val switchLinkingService: SwitchLinkingService,
 ) {
+    @GetMapping("/location-tracks-all")
+    fun getAllLocationTracks(): List<TmpLocationTrackData> {
+        val extIds = locationTrackService.getExtIds()
+        return locationTrackService.list(MainLayoutContext.official, false).map { t ->
+            TmpLocationTrackData(
+                id = t.id as IntId,
+                name = t.name,
+                externalId = extIds[t.id]!!.oid,
+                type = t.type,
+                state = t.state,
+                length = t.length,
+                duplicateOf = t.duplicateOf,
+            )
+        }
+    }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["bbox"])
