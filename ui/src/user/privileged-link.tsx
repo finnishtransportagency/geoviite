@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { PrivilegeCode } from './user-model';
-import { Link } from 'vayla-design-lib/link/link';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type PrivilegedLinkProps = {
     privilege: PrivilegeCode;
@@ -14,7 +14,7 @@ export const PrivilegedLink: React.FC<PrivilegedLinkProps> = (props: PrivilegedL
     );
 
     if (userHasPrivilege) {
-        return <Link {...props}>{props.children}</Link>;
+        return <AnchorLink {...props}>{props.children}</AnchorLink>;
     } else {
         return <React.Fragment>{props.children}</React.Fragment>;
     }

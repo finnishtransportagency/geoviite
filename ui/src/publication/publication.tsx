@@ -8,7 +8,6 @@ import {
 import styles from './publication.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { getPublicationAsTableItems } from 'publication/publication-api';
@@ -19,6 +18,7 @@ import {
     InitiallyUnsorted,
     PublicationDetailsTableSortInformation,
 } from 'publication/table/publication-table-utils';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export type PublicationDetailsViewProps = {
     publication: PublicationDetails;
@@ -53,13 +53,13 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     return (
         <div className={styles['publication-details']}>
             <div className={styles['publication-details__title']}>
-                <Link
+                <AnchorLink
                     onClick={() => {
                         setSelectedPublicationId(undefined);
                         navigate('frontpage');
                     }}>
                     {t('frontpage.frontpage-link')}
-                </Link>
+                </AnchorLink>
                 <span className={styles['publication-details__publication-time']}>
                     {' > ' + formatDateFull(publication.publicationTime)}
                 </span>
