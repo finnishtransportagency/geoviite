@@ -35,3 +35,19 @@ export function isPropEditFieldCommitted<T, TKey extends keyof T>(
 
 export const validate = <T>(isValid: boolean, issue: FieldValidationIssue<T>) =>
     isValid ? undefined : issue;
+
+export function getVisibleErrorsByProp<T>(
+    committedFields: (keyof T)[],
+    validationIssues: FieldValidationIssue<T>[],
+    prop: keyof T,
+): string[] {
+    return committedFields.includes(prop)
+        ? validationIssues.filter((error) => error.field === prop).map((error) => error.reason)
+        : [];
+}
+
+export const hasErrors = <T>(
+    committedFields: (keyof T)[],
+    validationIssues: FieldValidationIssue<T>[],
+    prop: keyof T,
+) => getVisibleErrorsByProp(committedFields, validationIssues, prop).length > 0;

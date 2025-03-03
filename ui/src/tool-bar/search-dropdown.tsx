@@ -15,7 +15,7 @@ import { LayoutContext } from 'common/common-model';
 import { debounceAsync } from 'utils/async-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 
-type LocationTrackItemValue = {
+export type LocationTrackItemValue = {
     locationTrack: LayoutLocationTrack;
     type: 'locationTrackSearchItem';
 };
@@ -50,7 +50,7 @@ function createSwitchOptionItem(layoutSwitch: LayoutSwitch): Item<SwitchItemValu
     );
 }
 
-type TrackNumberItemValue = {
+export type TrackNumberItemValue = {
     trackNumber: LayoutTrackNumber;
     type: 'trackNumberSearchItem';
 };
@@ -143,6 +143,10 @@ type SearchDropdownProps = {
     disabled?: boolean;
     onItemSelected: (item: SearchItemValue | undefined) => void;
     searchTypes: SearchType[];
+    onBlur?: () => void;
+    hasError?: boolean;
+    value?: SearchItemValue;
+    getName?: (item: SearchItemValue) => string;
 };
 
 export enum SearchType {
@@ -159,6 +163,10 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     onItemSelected,
     splittingState,
     searchTypes,
+    onBlur,
+    hasError,
+    value,
+    getName,
 }) => {
     // Use memoized function to make debouncing functionality to work when re-rendering
     const memoizedDebouncedGetOptions = React.useCallback(
@@ -180,6 +188,10 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
             searchable
             onChange={onItemSelected}
             size={DropdownSize.STRETCH}
+            onBlur={onBlur}
+            hasError={hasError}
+            value={value}
+            getName={getName}
             wideList
             wide
             qa-id="search-box"

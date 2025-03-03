@@ -88,6 +88,9 @@ import { PublicationCandidate } from 'publication/publication-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
 import { useResizeObserver } from 'utils/use-resize-observer';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
 
 declare global {
     interface Window {
@@ -212,6 +215,7 @@ const MapView: React.FC<MapViewProps> = ({
         customActiveMapTool || (mapTools && first(mapTools)),
     );
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
+    const [showingPlanDownloadPopup, setShowingPlanDownloadPopup] = React.useState(true);
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
 
@@ -777,6 +781,18 @@ const MapView: React.FC<MapViewProps> = ({
                             />
                         );
                     })}
+                    <div className={styles['map__map-tool-divider']} />
+                    <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.BY_CONTENT}
+                        isPressed={showingPlanDownloadPopup}
+                        onClick={() => setShowingPlanDownloadPopup(!showingPlanDownloadPopup)}>
+                        <div className={styles['map-tool-button-content']}>
+                            <div className={styles['map-tool-button-content__icon']}>
+                                <Icons.Download color={IconColor.INHERIT} size={IconSize.INHERIT} />
+                            </div>
+                        </div>
+                    </Button>
                 </ol>
             )}
             <div
@@ -827,6 +843,14 @@ const MapView: React.FC<MapViewProps> = ({
                 <div className={styles['map__loading-spinner']} qa-id="map-loading-spinner">
                     <Spinner />
                 </div>
+            )}
+            {showingPlanDownloadPopup && (
+                <PlanDownloadPopup
+                    onClose={() => setShowingPlanDownloadPopup(false)}
+                    layoutContext={layoutContext}
+                    selectedLocationTrackId={first(selection.selectedItems.locationTracks)}
+                    selectedTrackNumberId={first(selection.selectedItems.trackNumbers)}
+                />
             )}
         </div>
     );

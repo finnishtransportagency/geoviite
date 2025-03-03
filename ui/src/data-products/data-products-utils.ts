@@ -2,7 +2,6 @@ import { GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
 import { isNilOrBlank } from 'utils/string-utils';
 import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { debounceAsync } from 'utils/async-utils';
-import { FieldValidationIssue } from 'utils/validation-utils';
 import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
 import { LayoutLocationTrack, LocationTrackDescription } from 'track-layout/track-layout-model';
 import { CoordinateSystem, Srid } from 'common/common-model';
@@ -60,22 +59,6 @@ export const getLocationTrackOptions = (
             value: lt,
             qaId: `location-track-${lt.id}`,
         }));
-
-export function getVisibleErrorsByProp<T>(
-    committedFields: (keyof T)[],
-    validationIssues: FieldValidationIssue<T>[],
-    prop: keyof T,
-): string[] {
-    return committedFields.includes(prop)
-        ? validationIssues.filter((error) => error.field === prop).map((error) => error.reason)
-        : [];
-}
-
-export const hasErrors = <T>(
-    committedFields: (keyof T)[],
-    validationIssues: FieldValidationIssue<T>[],
-    prop: keyof T,
-) => getVisibleErrorsByProp(committedFields, validationIssues, prop).length > 0;
 
 export type ElementHeading = {
     name: string;

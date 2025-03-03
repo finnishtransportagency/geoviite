@@ -220,6 +220,11 @@
         }
     }
 
+    &__map-tool-divider {
+        height: 1px;
+        background-color: vayla-design.$color-white-default;
+    }
+
     &__layer-menu {
         position: absolute;
         top: 60px;
