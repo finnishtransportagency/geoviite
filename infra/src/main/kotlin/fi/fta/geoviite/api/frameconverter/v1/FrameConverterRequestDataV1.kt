@@ -11,24 +11,15 @@ import java.math.BigDecimal
 
 fun createValidTrackMeterOrNull(
     trackKilometer: Int?,
-    trackMeter: Int?,
-    trackDecimals: Int?,
+    trackMeter: BigDecimal?,
 ): Pair<TrackMeter?, List<FrameConverterErrorV1>> {
     return if (trackKilometer == null || trackMeter == null) {
         null to emptyList()
     } else {
-        if (trackDecimals == null) {
-            try {
-                TrackMeter(trackKilometer, trackMeter) to emptyList()
-            } catch (e: IllegalArgumentException) {
-                null to listOf(FrameConverterErrorV1.InvalidTrackAddress)
-            }
-        } else {
-            try {
-                TrackMeter(trackKilometer, BigDecimal("$trackMeter.$trackDecimals")) to emptyList()
-            } catch (e: IllegalArgumentException) {
-                null to listOf(FrameConverterErrorV1.InvalidTrackAddressWithDecimals)
-            }
+        try {
+            TrackMeter(trackKilometer, trackMeter) to emptyList()
+        } catch (e: IllegalArgumentException) {
+            null to listOf(FrameConverterErrorV1.InvalidTrackAddress)
         }
     }
 }
