@@ -33,6 +33,10 @@ import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.printCsv
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
+import org.springframework.http.ContentDisposition
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneId
@@ -41,10 +45,6 @@ import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
-import org.springframework.http.ContentDisposition
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
 
 data class GeometryChangeRanges(val added: List<Range<Double>>, val removed: List<Range<Double>>)
 
@@ -583,11 +583,10 @@ fun <T, S> getAddedIndexRangesExclusive(
     compareBy: (T) -> S,
 ): List<Pair<Range<Int>, Range<Int>>> {
     val oldCompareObjects = oldObjects.mapIndexed { i, o -> compareBy(o) to i }.toMap()
-    val matchIndices = newObjects.map { o -> oldCompareObjects[compareBy(o)] }
     val addedIndexRanges = mutableListOf<Pair<Range<Int>, Range<Int>>>()
     var prevMatchedIndex: Pair<Int, Int>? = null
-    newObjects.forEachIndexed { i, _ ->
-        val match = matchIndices[i]
+    newObjects.forEachIndexed { i, o ->
+        val match = oldCompareObjects[compareBy(o)]
         if (match != null || i == newObjects.lastIndex) {
             val startIndex = prevMatchedIndex?.first ?: -1
             val endIndex = if (match != null) i else i + 1
