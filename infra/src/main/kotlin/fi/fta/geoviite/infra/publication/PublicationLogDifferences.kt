@@ -7,15 +7,12 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import java.math.BigDecimal
 import kotlin.math.abs
-
-data class GeometryChangeRanges(val added: List<Range<Double>>, val removed: List<Range<Double>>)
 
 data class GeometryChangeSummary(
     val changedLengthM: Double,
@@ -30,31 +27,6 @@ fun lengthDifference(len1: BigDecimal, len2: BigDecimal) = abs(abs(len1.toDouble
 
 fun pointsAreSame(point1: IPoint?, point2: IPoint?) =
     point1 == point2 || point1 != null && point2 != null && point1.isSame(point2, DISTANCE_CHANGE_THRESHOLD)
-
-fun getChangedGeometryRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>): GeometryChangeRanges {
-    // TODO If some kind of segment filtering remains after GVT-2967, segments should be grouped for
-    // better performance
-    val added =
-        newSegments
-            .filter { s -> oldSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
-            .map { s -> Range(s.startM, s.endM) }
-    val removed =
-        oldSegments
-            .filter { s -> newSegments.none { s2 -> s.geometry.id == s2.geometry.id } }
-            .map { s -> Range(s.startM, s.endM) }
-
-    return GeometryChangeRanges(added = combineOverlappingRanges(added), removed = combineOverlappingRanges(removed))
-}
-
-fun <T : Comparable<T>> combineOverlappingRanges(ranges: List<Range<T>>) =
-    ranges.fold(emptyList<Range<T>>()) { list, r ->
-        val previous = list.lastOrNull()
-        if (previous?.overlaps(r) == true) {
-            list.take(list.size - 1) + previous.copy(max = r.max)
-        } else {
-            list + r
-        }
-    }
 
 fun findJointPoint(
     locationTrack: LocationTrack,
