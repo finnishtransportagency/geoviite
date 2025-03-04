@@ -94,7 +94,6 @@ paths:
         - $ref: '#/components/parameters/ratanumero_oid-param-exactly-required'
         - $ref: '#/components/parameters/ratakilometri-param'
         - $ref: '#/components/parameters/ratametri-param'
-        - $ref: '#/components/parameters/ratametri_desimaalit-param'
         - $ref: '#/components/parameters/sijaintiraide-param'
         - $ref: '#/components/parameters/sijaintiraide_oid-param'
         - $ref: '#/components/parameters/sijaintiraide_tyyppi-param'
@@ -190,11 +189,10 @@ components:
       type: integer
       description: 'Rataosoitteen ratakilometri'
     ratametri:
-      type: integer
+      oneOf:
+        - type: number
+        - type: integer
       description: 'Rataosoitteen ratametri'
-    ratametri_desimaalit:
-      type: integer
-      description: 'Rataosoitteen ratametrin desimaaliosa'
 
     track-address-to-coordinate:
       type: object
@@ -213,8 +211,6 @@ components:
           $ref: '#/components/schemas/ratakilometri'
         ratametri:
           $ref: '#/components/schemas/ratametri'
-        ratametri_desimaalit:
-          $ref: '#/components/schemas/ratametri_desimaalit'
         sijaintiraide:
           $ref: '#/components/schemas/sijaintiraide'
         sijaintiraide_oid:
@@ -338,13 +334,6 @@ components:
       description: 'Rataosoitteen ratametri'
       schema:
         $ref: '#/components/schemas/ratametri'
-    ratametri_desimaalit-param:
-      name: ratametri_desimaalit
-      in: query
-      required: false
-      description: 'Rataosoitteen ratametrin desimaaliosa'
-      schema:
-        $ref: '#/components/schemas/ratametri_desimaalit'
     geometriatiedot-param:
       name: geometriatiedot
       in: query

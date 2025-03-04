@@ -455,7 +455,7 @@ constructor(
             )
 
         val (validTrackMeterOrNull, trackMeterErrors) =
-            createValidTrackMeterOrNull(request.trackKilometer, request.trackMeter, request.trackMeterDecimals)
+            createValidTrackMeterOrNull(request.trackKilometer, request.trackMeter)
 
         val (mappedLocationTrackTypeOrNull, locationTrackTypeErrors) =
             mapLocationTrackTypeToDomainTypeOrNull(request.locationTrackType)
