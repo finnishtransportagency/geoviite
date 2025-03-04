@@ -6,6 +6,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import kotlin.math.max
 import kotlin.math.min
 
+data class GeometryChangeRanges(val added: List<Range<Double>>, val removed: List<Range<Double>>)
+
 fun getChangedGeometryRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>) =
     GeometryChangeRanges(
         added = getAddedSegmentMRanges(newSegments, oldSegments),

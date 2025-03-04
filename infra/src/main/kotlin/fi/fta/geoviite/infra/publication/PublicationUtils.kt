@@ -33,18 +33,16 @@ import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.printCsv
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
+import org.springframework.http.ContentDisposition
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.hypot
-import org.springframework.http.ContentDisposition
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
-
-data class GeometryChangeRanges(val added: List<Range<Double>>, val removed: List<Range<Double>>)
 
 fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId): String? {
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(timeZone)
