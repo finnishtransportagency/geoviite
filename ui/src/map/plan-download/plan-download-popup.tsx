@@ -22,8 +22,10 @@ import {
 import { UnknownAction } from 'redux';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Menu, menuDivider, menuOption } from 'vayla-design-lib/menu/menu';
-import { PlanApplicability } from 'geometry/geometry-model';
+import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
 import { PlanDownloadAreaSection } from 'map/plan-download/plan-download-area-section';
+import { PlanDownloadPlanSection } from 'map/plan-download/plan-download-plan-section';
+import { comparePlans, filterPlans } from 'map/plan-download/plan-download-utils';
 
 type PlanDownloadPopupSectionProps = {
     selectedType: PlanSelectionType | undefined;
@@ -177,6 +179,11 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({
         styles['plan-download-popup__title-content'],
     );
 
+    const setPlanSelected = (id: GeometryPlanId, selected: boolean) => {
+        stateActions.setPlanSelected({ id, selected });
+    };
+    const plans = filterPlans(state.plans, state.selectedApplicabilities).toSorted(comparePlans);
+
     return (
         <div className={styles['plan-download-popup']}>
             <h1 className={titleClasses}>
@@ -224,7 +231,11 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({
                 selectedType={state.selectionType}
                 title={
                     <React.Fragment>
-                        <span>{t('plan-download.plans', { amount: 'N' })}</span>
+                        <span>
+                            {t('plan-download.plans', {
+                                amount: plans.length,
+                            })}
+                        </span>
                         <div ref={menuAnchorRef}>
                             <Button
                                 size={ButtonSize.X_SMALL}
@@ -244,7 +255,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({
                         </div>
                     </React.Fragment>
                 }>
-                HOJOOOOOOOOOOOOOOOOO
+                <PlanDownloadPlanSection plans={plans} setPlanSelected={setPlanSelected} />
             </PlanDownloadPopupSection>
         </div>
     );

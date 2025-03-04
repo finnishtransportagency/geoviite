@@ -9,7 +9,7 @@ import {
 } from 'utils/validation-utils';
 import { compareTrackMeterStrings, trackMeterIsValid } from 'common/common-model';
 import { filterNotEmpty } from 'utils/array-utils';
-import { PlanApplicability } from 'geometry/geometry-model';
+import { GeometryPlanId, KmNumberRange, PlanApplicability } from 'geometry/geometry-model';
 
 export type AreaSelection = {
     trackNumber: LayoutTrackNumberId | undefined;
@@ -23,24 +23,60 @@ export type PlanDownloadState = {
     selectionType: PlanSelectionType;
     areaSelection: AreaSelection;
     validationIssues: FieldValidationIssue<AreaSelection>[];
+    plans: DownloadablePlan[];
     selectedApplicabilities: PlanApplicability[];
     committedFields: (keyof AreaSelection)[];
 };
+
+export type DownloadablePlan = {
+    id: GeometryPlanId;
+    name: string;
+    selected: boolean;
+    applicability?: PlanApplicability;
+    kmNumberRange: KmNumberRange;
+};
+
+const DUMMY_PLANS: DownloadablePlan[] = [
+    {
+        id: 'INT_1',
+        name: 'HOJOOOOOO',
+        selected: true,
+        applicability: 'STATISTICS',
+        kmNumberRange: { min: '0004', max: '0100' },
+    },
+    {
+        id: 'INT_2',
+        name: 'HOJOOOOOOOO',
+        selected: false,
+        applicability: 'MAINTENANCE',
+        kmNumberRange: { min: '0002', max: '0100' },
+    },
+    {
+        id: 'INT_3',
+        name: 'HOJOOOOOOOOOO',
+        selected: true,
+        applicability: 'PLANNING',
+        kmNumberRange: { min: '0003', max: '0100' },
+    },
+    {
+        id: 'INT_4',
+        name: 'HOJOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO',
+        selected: false,
+        applicability: undefined,
+        kmNumberRange: { min: '0005', max: '0100' },
+    },
+];
 
 export const initialPlanDownloadStateFromSelection = (
     locationTrackId: LocationTrackId | undefined,
     trackNumberId: LayoutTrackNumberId | undefined,
 ): PlanDownloadState => ({
-    selectionType: 'AREA',
+    ...initialPlanDownloadState,
     areaSelection: {
-        trackNumber: trackNumberId,
+        ...initialPlanDownloadState.areaSelection,
         locationTrack: locationTrackId,
-        startTrackMeter: '',
-        endTrackMeter: '',
+        trackNumber: trackNumberId,
     },
-    selectedApplicabilities: ['PLANNING'],
-    validationIssues: [],
-    committedFields: [],
 });
 
 export const initialPlanDownloadState: PlanDownloadState = {
@@ -51,7 +87,8 @@ export const initialPlanDownloadState: PlanDownloadState = {
         startTrackMeter: '',
         endTrackMeter: '',
     },
-    selectedApplicabilities: ['PLANNING'],
+    plans: DUMMY_PLANS,
+    selectedApplicabilities: ['PLANNING', 'MAINTENANCE', 'STATISTICS'],
     validationIssues: [],
     committedFields: [],
 };
@@ -135,6 +172,14 @@ const planDownloadSlice = createSlice({
             { payload: applicabilities }: PayloadAction<PlanApplicability[]>,
         ) {
             state.selectedApplicabilities = applicabilities;
+        },
+        setPlanSelected: function (
+            state: PlanDownloadState,
+            { payload: planId }: PayloadAction<{ id: GeometryPlanId; selected: boolean }>,
+        ) {
+            state.plans = state.plans.map((plan) =>
+                plan.id === planId.id ? { ...plan, selected: planId.selected } : plan,
+            );
         },
     },
 });

@@ -104,7 +104,8 @@ export type AssetId =
     | LayoutSwitchId
     | LayoutKmPostId;
 
-const TRACK_METER_REGEX = /([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4}(?:.[0-9]{1,4})?)$/;
+const TRACK_METER_REGEX = /^([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4}(?:.[0-9]{1,4})?)$/;
+const KM_NUMBER_REGEX = /^([0-9]{1,4})([a-zA-Z]{0,2})$/;
 
 export const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(trackMeter);
 
@@ -127,6 +128,16 @@ export const compareTrackMeterStrings = (a: string, b: string) => {
     const meterDiff = compare(aComponents.meters, bComponents.meters);
 
     return kmDiff !== 0 ? kmDiff : letterDiff !== 0 ? letterDiff : meterDiff;
+};
+
+export const compareKmNumberStrings = (a: string, b: string) => {
+    const aComponents = a.match(KM_NUMBER_REGEX);
+    const bComponents = b.match(KM_NUMBER_REGEX);
+
+    const kmDiff = compare(aComponents?.[1]?.padStart(4, '0'), bComponents?.[1]?.padStart(4, '0'));
+    const letterDiff = compare(aComponents?.[2], bComponents?.[2]);
+
+    return kmDiff !== 0 ? kmDiff : letterDiff;
 };
 
 export const compareNamed = (a: { name: string | undefined }, b: { name: string | undefined }) =>

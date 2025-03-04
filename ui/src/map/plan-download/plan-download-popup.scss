@@ -79,4 +79,41 @@
 
         padding: 8px 16px;
     }
+
+    &__plans-container {
+        border: 1px solid vayla-design.$color-white-darker;
+        border-radius: 4px;
+        padding: 10px;
+
+        height: 200px;
+        overflow: auto;
+        list-style: none;
+        margin-top: 0;
+        margin-bottom: 8px;
+    }
+
+    &__plan-row {
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        margin-bottom: 8px;
+        gap: 8px;
+    }
+
+    &__plan-name {
+        flex-grow: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__plan-icon {
+        min-width: 12px;
+        text-align: center;
+    }
+
+    &__buttons {
+        > .button:not(:last-child) {
+            margin-right: 8px;
+        }
+    }
 }

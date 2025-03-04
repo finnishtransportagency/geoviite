@@ -111,7 +111,7 @@ export const PlanDownloadAreaSection: React.FC<{
                                 <SearchDropdown
                                     searchTypes={ASSET_SEARCH_TYPES}
                                     layoutContext={layoutContext}
-                                    placeholder={'Hae tunnuksella'}
+                                    placeholder={t('plan-download.search')}
                                     onItemSelected={onItemSelected}
                                     onBlur={() => onCommitField('trackNumber')}
                                     hasError={hasErrors(
