@@ -34,13 +34,14 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.RoutingDao
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 @GeoviiteService
 class PublicationService
@@ -65,6 +66,7 @@ constructor(
     private val splitService: SplitService,
     private val publicationValidationService: PublicationValidationService,
     private val layoutDesignDao: LayoutDesignDao,
+    private val routingDao: RoutingDao,
 ) {
     @Transactional(readOnly = true)
     fun collectPublicationCandidates(transition: LayoutContextTransition): PublicationCandidates {
@@ -275,6 +277,7 @@ constructor(
         val calculatedChanges = calculatedChangesService.getCalculatedChanges(versions)
         val mainPublication =
             PreparedPublicationRequest(branch, versions, calculatedChanges, request.message, PublicationCause.MANUAL)
+        if (branch == LayoutBranch.main) routingDao.updateRoutes()
         // publication results already only include direct changes, and all inherited changes are
         // indirect, so all but the first publication result are empty -> can be thrown out
         return publishPublicationRequests(mainPublication, inheritedChanges).first()

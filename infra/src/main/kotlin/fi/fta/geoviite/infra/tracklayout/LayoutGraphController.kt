@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -29,5 +30,11 @@ class LayoutGraphController(val graphService: LayoutGraphService) {
             detailLevel = detailLevel ?: DetailLevel.NANO,
             bbox = bbox,
         )
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
+    @GetMapping("/route", params = ["start", "end"])
+    fun getRoute(@RequestParam("start") start: Point, @RequestParam("end") end: Point): Route {
+        return graphService.getRoute(start, end)
     }
 }

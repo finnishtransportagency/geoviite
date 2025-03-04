@@ -33,6 +33,10 @@ inline fun <reified T> NamedParameterJdbcTemplate.queryOne(
 
 fun NamedParameterJdbcTemplate.setUser() = setUser(currentUser.get())
 
+fun NamedParameterJdbcTemplate.setPgroutingPath() {
+    update("set local search_path to pgrouting", mapOf<String, Any>())
+}
+
 fun NamedParameterJdbcTemplate.setUser(userName: UserName) {
     // set doesn't work with parameters, but it's validated in UserName constructor
     update("set local geoviite.edit_user = '$userName';", mapOf<String, Any>())
