@@ -37,7 +37,6 @@ import org.springframework.web.bind.annotation.RequestParam
 data class TmpSwitchJointData(val number: JointNumber, val location: Point)
 
 data class TmpSwitchData(
-    val id: IntId<LayoutSwitch>,
     val externalId: Oid<LayoutSwitch>,
     val name: SwitchName,
     val type: SwitchType,
@@ -54,7 +53,6 @@ class LayoutSwitchController(
         val extIds = switchService.getExtIds()
         return switchService.listWithStructure(MainLayoutContext.official, false).map { (s, t) ->
             TmpSwitchData(
-                id = s.id as IntId,
                 externalId = extIds[s.id]!!.oid,
                 name = s.name,
                 type = t.type,

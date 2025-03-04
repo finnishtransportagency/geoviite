@@ -46,7 +46,6 @@ data class SwitchValidationWithSuggestedSwitch(
 )
 
 data class TmpLocationTrackData(
-    val id: IntId<LocationTrack>,
     val externalId: Oid<LocationTrack>,
     val name: AlignmentName,
     val type: LocationTrackType,
@@ -67,7 +66,6 @@ class LocationTrackController(
         val extIds = locationTrackService.getExtIds()
         return locationTrackService.list(MainLayoutContext.official, false).map { t ->
             TmpLocationTrackData(
-                id = t.id as IntId,
                 name = t.name,
                 externalId = extIds[t.id]!!.oid,
                 type = t.type,
