@@ -6,9 +6,11 @@ FROM postgres:16.3-alpine
 # Also check that Postgres and PostGIS versions are compatible with Aurora, so that dev uses the same version as prod
 # https://docs.aws.amazon.com/AmazonRDS/latest/AuroraPostgreSQLReleaseNotes/AuroraPostgreSQL.Extensions.html
 ENV POSTGIS_VERSION=3.4.2
+ENV PGROUTING_VERSION=3.6.2
 
 # Check SHA to ensure the downloaded file is not corrupted. To get this, run `sha256sum postgis.tar.gz` on the correct file on your own computer
 ENV POSTGIS_SHA256=17aa8760a5c4fcb9a1fdc750c1c9aca0198a35dd1e320628064c43f178eefed2
+ENV PGROUTING_SHA256=f4a1ed79d6f714e52548eca3bb8e5593c6745f1bde92eb5fb858efd8984dffa2
 
 RUN addgroup -g 1000 -S pg-user && adduser -G pg-user -u 1000 -S pg-user
 
@@ -18,14 +20,25 @@ RUN set -eux \
         tar \
     \
     && wget -O postgis.tar.gz "https://github.com/postgis/postgis/archive/${POSTGIS_VERSION}.tar.gz" \
+    && sha256sum postgis.tar.gz \
     && echo "${POSTGIS_SHA256} *postgis.tar.gz" | sha256sum -c - \
+    && wget -O pgrouting.tar.gz "https://github.com/pgRouting/pgrouting/archive/v${PGROUTING_VERSION}.tar.gz" \
+    && sha256sum pgrouting.tar.gz \
+    && echo "${PGROUTING_SHA256} *pgrouting.tar.gz" | sha256sum -c - \
     && mkdir -p /usr/src/postgis \
     && tar \
         --extract \
         --file postgis.tar.gz \
         --directory /usr/src/postgis \
         --strip-components 1 \
+    && mkdir -p /usr/src/pgrouting \
+    && tar \
+        --extract \
+        --file pgrouting.tar.gz \
+        --directory /usr/src/pgrouting \
+        --strip-components 1 \
     && rm postgis.tar.gz \
+    && rm pgrouting.tar.gz \
     \
     && apk add --no-cache --virtual .build-deps \
         geos-dev \
@@ -45,8 +58,9 @@ RUN set -eux \
         pcre2-dev \
         perl \
         protobuf-c-dev \
+        cmake \
+        boost-dev \
     \
-    # build PostGIS
     && cd /usr/src/postgis \
     && gettextize \
     && ./autogen.sh \
@@ -56,7 +70,13 @@ RUN set -eux \
     && make -j$(nproc) \
     && make install \
     \
-    # add .postgis-rundeps
+    && cd /usr/src/pgrouting \
+    && mkdir build \
+    && cd build \
+    && cmake -DCMAKE_CXX_FLAGS="-include cstdint" .. \
+    && make \
+    && make install \
+    \
     && apk add --no-cache --virtual .postgis-rundeps \
         geos \
         proj \
@@ -65,7 +85,6 @@ RUN set -eux \
         pcre2 \
         protobuf-c \
     \
-    # clean
     && cd / \
     && rm -rf /usr/src/postgis \
     && apk del .fetch-deps .build-deps

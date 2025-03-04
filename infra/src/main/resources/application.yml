@@ -35,7 +35,7 @@ spring:
     url: "${spring.datasource.url}"
     user: "${spring.datasource.username}"
     password: "${spring.datasource.password}"
-    schemas: flyway,postgis,common,geometry,layout,publication,integrations,projektivelho
+    schemas: flyway,postgis,common,geometry,layout,publication,integrations,projektivelho,pgrouting
     lock-retry-count: 900
 
 geoviite:
