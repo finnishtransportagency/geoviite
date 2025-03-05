@@ -1321,7 +1321,8 @@
         "debug-1m": "Tasametripisteet",
         "debug": "Debug",
         "debug-layout-graph": "Raidegraafi",
-        "debug-layout-graph-nano": "Nano-tason graafi"
+        "debug-layout-graph-nano": "Nano-tason graafi",
+        "debug-layout-graph-routing": "Reititys"
     },
     "map-view": {
         "cluster-overlay-title": "Klusteripiste",

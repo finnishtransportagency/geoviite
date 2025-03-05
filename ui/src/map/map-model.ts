@@ -114,7 +114,8 @@ export type MapLayerMenuItemName =
     | 'debug-1m'
     | 'debug'
     | 'debug-layout-graph'
-    | 'debug-layout-graph-nano';
+    | 'debug-layout-graph-nano'
+    | 'debug-layout-graph-routing';
 
 export type TrackNumberDiagramLayerSetting = {
     [key: LayoutTrackNumberId]: {

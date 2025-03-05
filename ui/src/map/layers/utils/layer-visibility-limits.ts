@@ -1,6 +1,6 @@
 import { MapLayerName } from 'map/map-model';
 // Alignments
-export const GEOMETRY_GRAPH = 50.0;
+export const GEOMETRY_GRAPH = 250.0;
 export const LINKING_DOTS = 0.19;
 export const DEBUG_1M_POINTS = 0.06;
 
@@ -43,14 +43,11 @@ const mapLayerOrder: MapLayerName[] = [
     'debug-geometry-graph-layer',
 ];
 
-export const mapLayerZIndexes = mapLayerOrder.reduce(
-    (acc, layer, idx) => {
-        acc[layer as MapLayerName] = idx;
+export const mapLayerZIndexes = mapLayerOrder.reduce((acc, layer, idx) => {
+    acc[layer as MapLayerName] = idx;
 
-        return acc;
-    },
-    {} as Record<MapLayerName, number>,
-);
+    return acc;
+}, {} as Record<MapLayerName, number>);
 
 // Geometry
 export const GEOMETRY_TICKS = 5.0;

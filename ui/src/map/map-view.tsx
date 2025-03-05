@@ -29,7 +29,12 @@ import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { GeometryPlanLayout, LAYOUT_SRID, LayoutGraphLevel } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout,
+    LAYOUT_SRID,
+    LayoutGraphLevel,
+    LayoutGraphRoutingState,
+} from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
@@ -90,6 +95,8 @@ import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
 import { useResizeObserver } from 'utils/use-resize-observer';
 import { createDebugGeometryGraphLayer } from 'map/layers/debug/debug-geometry-graph-layer';
+import { getShortestRouteBetweenCoordinates } from 'track-layout/track-layout-api';
+import { debounceAsync } from 'utils/async-utils';
 
 declare global {
     interface Window {
@@ -185,6 +192,20 @@ function getLayoutGraphLevel(mapLayerMenuGroups: MapLayerMenuGroups): LayoutGrap
         : 'MICRO';
 }
 
+// function getLayoutGraphRoutingMethod(
+//     mapLayerMenuGroups: MapLayerMenuGroups,
+// ): LayoutGraphRoutingType | undefined {
+//     return getLayerSetting(
+//         mapLayerMenuGroups.debug,
+//         'debug-layout-graph',
+//         'debug-layout-graph-routing',
+//     )
+//         ? 'SHORTEST'
+//         : undefined;
+// }
+
+const debouncedGetShortestRoute = debounceAsync(getShortestRouteBetweenCoordinates, 250);
+
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -268,6 +289,42 @@ const MapView: React.FC<MapViewProps> = ({
         ref: olMapContainer,
         onResize: () => olMap?.updateSize(),
     });
+
+    const [graphRoute, setGraphRoute] = React.useState<LayoutGraphRoutingState | undefined>(
+        undefined,
+    );
+
+    React.useEffect(() => {
+        const clickLocation = map.clickLocation;
+
+        if (activeTool?.id === 'route' && clickLocation && hoveredLocation) {
+            debouncedGetShortestRoute(layoutContext, clickLocation, hoveredLocation)
+                .then((result) => {
+                    setGraphRoute({
+                        type: 'SHORTEST',
+                        clickLocation,
+                        hoveredLocation,
+                        route: result,
+                    });
+                })
+                .catch((_err) => {
+                    console.log('Routing failed');
+
+                    // Use previous route for now
+                    if (graphRoute) {
+                        setGraphRoute(undefined);
+                    }
+                });
+        } else {
+            setGraphRoute(undefined);
+        }
+    }, [activeTool?.id, map.clickLocation, hoveredLocation]);
+
+    React.useEffect(() => {
+        if (graphRoute) {
+            console.log(graphRoute);
+        }
+    }, [graphRoute]);
 
     // Initialize OpenLayers map. Do this only once, in subsequent
     // renders we just want to update OpenLayers layers. In this way map
@@ -695,6 +752,8 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             resolution,
                             getLayoutGraphLevel(mapLayerMenuGroups),
+                            graphRoute,
+                            activeTool?.id !== 'route',
                         );
                     case 'virtual-km-post-linking-layer': // Virtual map layers
                     case 'virtual-hide-geometry-layer':
@@ -730,6 +789,8 @@ const MapView: React.FC<MapViewProps> = ({
         manuallySetPlan,
         mapLayerMenuGroups,
         publicationCandidates,
+        graphRoute,
+        activeTool,
     ]);
 
     const toolActivateOptions: MapToolActivateOptions = {

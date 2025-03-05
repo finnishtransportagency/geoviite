@@ -84,6 +84,7 @@ export type LocationTrackDescriptionSuffixMode =
     | 'SWITCH_TO_SWITCH'
     | 'SWITCH_TO_BUFFER'
     | 'SWITCH_TO_OWNERSHIP_BOUNDARY';
+
 export enum MapAlignmentType {
     LocationTrack = 'LOCATION_TRACK',
     ReferenceLine = 'REFERENCE_LINE',
@@ -447,6 +448,33 @@ export type LayoutEdge = {
 };
 
 export type LayoutGraphLevel = 'NANO' | 'MICRO';
+
+export type LayoutGraphRoutingType = 'SHORTEST';
+
+export type LayoutGraphRouteNode = {
+    id: LayoutNodeId;
+    location: Point;
+};
+
+export type LayoutGraphRoutingResult = {
+    start: Point;
+    end: Point;
+    startNode: LayoutGraphRouteNode;
+    endNode: LayoutGraphRouteNode;
+    legs: {
+        edgeId: LayoutEdgeId;
+        startNode: LayoutGraphRouteNode;
+        endNode: LayoutGraphRouteNode;
+        trackIds: LocationTrackId[];
+    }[];
+};
+
+export type LayoutGraphRoutingState = {
+    type: LayoutGraphRoutingType;
+    clickLocation: Point;
+    hoveredLocation: Point;
+    route: LayoutGraphRoutingResult;
+};
 
 export type LayoutGraph = {
     nodes: { [key in LayoutNodeId]: LayoutNode };

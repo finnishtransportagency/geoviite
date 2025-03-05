@@ -13,8 +13,10 @@ import {
 import { MapLayerName, MapTile } from 'map/map-model';
 import {
     LayoutEdge,
+    LayoutEdgeId,
     LayoutGraph,
     LayoutGraphLevel,
+    LayoutGraphRoutingState,
     LayoutNode,
     LayoutNodeId,
 } from 'track-layout/track-layout-model';
@@ -22,7 +24,7 @@ import { getLayoutGraph } from 'track-layout/track-layout-api';
 import { LayoutContext } from 'common/common-model';
 import { GEOMETRY_GRAPH, SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { clamp } from 'utils/math-utils';
-import { brand } from 'common/brand';
+import { Brand, brand } from 'common/brand';
 import { Rectangle } from 'model/geometry';
 
 const colors = [
@@ -49,14 +51,14 @@ function createNodeFeatures(
             node.type !== 'SWITCH' || node.switches.some((nsw) => nsw.jointRole === 'MAIN');
 
         const color = mainNode ? 'red' : colors[1];
-        const width = mainNode ? 4 : 2;
+        const width = mainNode ? 2 : 1;
         const size = mainNode
             ? resolution <= SWITCH_SHOW
                 ? 10
                 : 5
             : resolution <= SWITCH_SHOW
-              ? 6
-              : 3;
+            ? 6
+            : 3;
 
         feature.setStyle(
             new Style({
@@ -116,23 +118,62 @@ export function createDebugGeometryGraphLayer(
     mapTiles: MapTile[],
     resolution: number,
     detailLevel: LayoutGraphLevel,
+    layoutGraphRoutingState: LayoutGraphRoutingState | undefined,
+    displayAllEdges: boolean | undefined,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const updateLayerFunc = (graphTiles: LayoutGraph[]) => {
         const nodes = new Map<LayoutNodeId, LayoutNode>();
 
+        const _routeNodes = layoutGraphRoutingState
+            ? new Set<Brand<string, LayoutNodeId>>(
+                  [
+                      layoutGraphRoutingState.route.startNode.id,
+                      layoutGraphRoutingState.route.endNode.id,
+                      ...layoutGraphRoutingState.route.legs.map((leg) => leg.startNode.id),
+                      ...layoutGraphRoutingState.route.legs.map((leg) => leg.endNode.id),
+                  ].map((thing) => brand(thing)),
+              )
+            : undefined;
+
+        const routeEdges = layoutGraphRoutingState
+            ? new Set<Brand<string, LayoutEdgeId>>(
+                  [...layoutGraphRoutingState.route.legs.map((leg) => leg.edgeId)].map((thing) =>
+                      brand(thing),
+                  ),
+              )
+            : undefined;
+
         graphTiles.forEach((tile) => {
             Object.entries(tile.nodes).forEach(([id, node]) => {
+                const _nodeId = brand<LayoutNodeId>(id);
+
+                // if (routeNodes) {
+                //     if (routeNodes.has(nodeId)) {
+                //         nodes.set(brand(id), node);
+                //     }
+                // } else {
+                //     nodes.set(brand(id), node);
+                // }
+
                 nodes.set(brand(id), node);
             });
         });
+
         const flattenedEdges = graphTiles
             .flatMap((graph) => Object.values(graph.edges))
             .filter(filterUniqueById((e: LayoutEdge) => e.id));
+
+        const displayedEdges = routeEdges
+            ? flattenedEdges.filter((edge) => routeEdges.has(brand(edge.id)))
+            : displayAllEdges
+            ? flattenedEdges
+            : [];
+
         return [
             ...createNodeFeatures(nodes, resolution),
-            ...createEdgeFeatures(flattenedEdges, nodes),
+            ...createEdgeFeatures(displayedEdges, nodes),
         ];
     };
 

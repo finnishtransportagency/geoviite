@@ -16,6 +16,7 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
+import { routingTool } from 'map/tools/routing-tool';
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
@@ -60,7 +61,11 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                             <MapContext.Provider value="track-layout">
                                 <MapViewContainer
                                     hoveredOverPlanSection={hoveredOverPlanSection}
-                                    mapTools={[selectOrHighlightComboTool, measurementTool]}
+                                    mapTools={[
+                                        selectOrHighlightComboTool,
+                                        measurementTool,
+                                        routingTool,
+                                    ]}
                                     customActiveMapTool={selectOrHighlightComboTool}
                                 />
                             </MapContext.Provider>

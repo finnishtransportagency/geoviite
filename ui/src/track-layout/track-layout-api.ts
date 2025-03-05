@@ -1,8 +1,12 @@
 import { LayoutBranch, LayoutContext } from 'common/common-model';
 import { API_URI, getNonNull } from 'api/api-fetch';
-import { BoundingBox } from 'model/geometry';
-import { bboxString } from 'common/common-api';
-import { LayoutGraph, LayoutGraphLevel } from 'track-layout/track-layout-model';
+import { BoundingBox, Point } from 'model/geometry';
+import { bboxString, pointString } from 'common/common-api';
+import {
+    LayoutGraph,
+    LayoutGraphLevel,
+    LayoutGraphRoutingResult,
+} from 'track-layout/track-layout-model';
 
 type LayoutDataType =
     | 'track-numbers'
@@ -54,5 +58,22 @@ export const getLayoutGraph = (
     detailLevel: LayoutGraphLevel,
 ): Promise<LayoutGraph> =>
     getNonNull<LayoutGraph>(
-        `${TRACK_LAYOUT_URI}/layout-graph/${contextInUri(context)}?bbox=${bboxString(bbox)}&detailLevel=${detailLevel}`,
+        `${TRACK_LAYOUT_URI}/layout-graph/${contextInUri(context)}?bbox=${bboxString(
+            bbox,
+        )}&detailLevel=${detailLevel}`,
     );
+
+export const getShortestRouteBetweenCoordinates = (
+    _context: LayoutContext, // TODO?
+    coord1: Point,
+    coord2: Point,
+): Promise<LayoutGraphRoutingResult> => {
+    console.log('getShortestRouteBetweenCoordinates');
+
+    return getNonNull<LayoutGraphRoutingResult>(
+        `${TRACK_LAYOUT_URI}/layout-graph/route?start=${pointString(coord1)}&end=${pointString(
+            coord2,
+        )}`,
+        false,
+    );
+};

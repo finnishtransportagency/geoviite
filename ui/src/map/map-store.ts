@@ -112,6 +112,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'debug': ['debug-layer'],
     'debug-layout-graph': ['debug-geometry-graph-layer'],
     'debug-layout-graph-nano': [], // This is technically a setting, not a map layer by itself.
+    'debug-layout-graph-routing': [], // This is technically a setting, not a map layer by itself.
 };
 
 export const initialMapState: Map = {
@@ -199,6 +200,11 @@ export const initialMapState: Map = {
                         name: 'debug-layout-graph-nano',
                         visible: false,
                         qaId: 'debug-layout-graph-nano',
+                    },
+                    {
+                        name: 'debug-layout-graph-routing',
+                        visible: false,
+                        qaId: 'debug-layout-graph-routing',
                     },
                 ],
             },
