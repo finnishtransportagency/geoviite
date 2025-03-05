@@ -74,6 +74,9 @@ sealed class LocationTrackGeometry : IAlignment {
         }
     }
 
+    fun getSwitchLocation(switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
+        nodesWithLocation.firstOrNull { (node, _) -> node.containsJoint(switchId, jointNumber) }?.second
+
     @get:JsonIgnore
     open val startNode: EdgeNode?
         get() = edges.firstOrNull()?.startNode

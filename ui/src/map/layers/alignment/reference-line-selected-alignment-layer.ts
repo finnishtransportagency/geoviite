@@ -50,7 +50,11 @@ export function createSelectedReferenceLineAlignmentLayer(
         const selectedReferenceLine = first(referenceLines);
         if (!selectedReferenceLine) return [];
 
-        return createAlignmentFeature(selectedReferenceLine, false, selectedReferenceLineStyle);
+        return createAlignmentFeature(
+            selectedReferenceLine,
+            [selectedReferenceLineStyle],
+            undefined,
+        );
     };
 
     loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);

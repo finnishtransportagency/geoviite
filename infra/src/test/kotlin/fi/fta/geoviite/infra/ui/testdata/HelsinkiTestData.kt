@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.PlanApplicability
 import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
 import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.geometry.PlanPhase
@@ -76,6 +77,7 @@ class HelsinkiTestData private constructor() {
                 message = null,
                 uploadTime = Instant.now(),
                 name = PlanName("ratapiha"),
+                planApplicability = PlanApplicability.PLANNING,
             )
         }
 

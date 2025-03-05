@@ -37,13 +37,13 @@ import { layoutStates } from 'utils/enum-localization-utils';
 import styles from 'geoviite-design-lib/dialog/dialog.scss';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import TrackNumberRevertConfirmationDialog from 'tool-panel/track-number/dialog/track-number-revert-confirmation-dialog';
-import { Link } from 'vayla-design-lib/link/link';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
 import { UnknownAction } from 'redux';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -258,11 +258,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             }
                             errors={numberErrors.map(({ reason }) => t(mapError(reason)))}>
                             {otherTrackNumber && (
-                                <Link
+                                <AnchorLink
                                     className={dialogStyles['dialog__alert']}
                                     onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
                                     {moveToEditLinkText(otherTrackNumber)}
-                                </Link>
+                                </AnchorLink>
                             )}
                         </FieldLayout>
                         <FieldLayout

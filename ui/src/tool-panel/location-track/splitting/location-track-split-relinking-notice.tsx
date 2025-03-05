@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { LoaderStatus } from 'utils/react-utils';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
-import { Link } from 'vayla-design-lib/link/link';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 import { hasUnrelinkableSwitches } from 'tool-panel/location-track/splitting/split-utils';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type LocationTrackSplitRelinkingNoticeProps = {
     splittingState: SplittingState;
@@ -33,11 +33,11 @@ export const LocationTrackSplitRelinkingNotice: React.FC<
                             ? t('tool-panel.location-track.splitting.relink-critical-errors')
                             : t('tool-panel.location-track.splitting.relink-message')}
                         <div className={styles['location-track-infobox__relink-link']}>
-                            <Link onClick={() => onClickRelink()}>
+                            <AnchorLink onClick={() => onClickRelink()}>
                                 {t('tool-panel.location-track.splitting.cancel-and-relink', {
                                     count: switchRelinkingErrors.length,
                                 })}
-                            </Link>
+                            </AnchorLink>
                         </div>
                     </MessageBox>
                 )}

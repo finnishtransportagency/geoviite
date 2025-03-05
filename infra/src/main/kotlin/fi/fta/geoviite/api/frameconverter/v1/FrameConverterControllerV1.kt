@@ -38,6 +38,7 @@ constructor(
         @RequestParam(TRACK_NUMBER_NAME_PARAM, required = false) trackNumberName: FrameConverterStringV1?,
         @RequestParam(TRACK_KILOMETER_PARAM, required = false) trackKilometer: Int?,
         @RequestParam(TRACK_METER_PARAM, required = false) trackMeter: Int?,
+        @RequestParam(TRACK_METER_DECIMALS_PARAM, required = false) trackMeterDecimals: Int?,
         @RequestParam(LOCATION_TRACK_NAME_PARAM, required = false) locationTrackName: FrameConverterStringV1?,
         @RequestParam(LOCATION_TRACK_TYPE_PARAM, required = false)
         locationTrackType: FrameConverterLocationTrackTypeV1?,
@@ -51,6 +52,7 @@ constructor(
                 trackNumberName = trackNumberName,
                 trackKilometer = trackKilometer,
                 trackMeter = trackMeter,
+                trackMeterDecimals = trackMeterDecimals,
                 locationTrackName = locationTrackName,
                 locationTrackType = locationTrackType,
             )
@@ -86,7 +88,9 @@ constructor(
         @RequestParam("x") xCoordinate: Double?,
         @RequestParam("y") yCoordinate: Double?,
         @RequestParam(SEARCH_RADIUS_PARAM, required = false) searchRadius: Double?,
+        @RequestParam(TRACK_NUMBER_OID_PARAM, required = false) trackNumberOid: FrameConverterStringV1?,
         @RequestParam(TRACK_NUMBER_NAME_PARAM, required = false) trackNumberName: FrameConverterStringV1?,
+        @RequestParam(LOCATION_TRACK_OID_PARAM, required = false) locationTrackOid: FrameConverterStringV1?,
         @RequestParam(LOCATION_TRACK_NAME_PARAM, required = false) locationTrackName: FrameConverterStringV1?,
         @RequestParam(LOCATION_TRACK_TYPE_PARAM, required = false)
         locationTrackType: FrameConverterLocationTrackTypeV1?,
@@ -101,6 +105,8 @@ constructor(
                 y = yCoordinate,
                 searchRadius = searchRadius,
                 trackNumberName = trackNumberName,
+                trackNumberOid = trackNumberOid,
+                locationTrackOid = locationTrackOid,
                 locationTrackName = locationTrackName,
                 locationTrackType = locationTrackType,
             )

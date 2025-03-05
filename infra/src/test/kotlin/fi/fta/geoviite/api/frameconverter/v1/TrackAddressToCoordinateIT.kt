@@ -3,22 +3,26 @@ package fi.fta.geoviite.api.frameconverter.v1
 import TestGeoJsonFeatureCollection
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
+import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -27,6 +31,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaatit"
 
@@ -34,9 +42,12 @@ private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaati
 private data class TestTrackAddressToCoordinateRequest(
     val tunniste: String? = null,
     val ratanumero: String? = null,
+    val ratanumero_oid: String? = null,
     val ratakilometri: Int? = null,
     val ratametri: Int? = null,
+    val ratametri_desimaalit: Int? = null,
     val sijaintiraide: String? = null,
+    val sijaintiraide_oid: String? = null,
     val sijaintiraide_tyyppi: String? = null,
 ) : FrameConverterTestRequest()
 
@@ -49,6 +60,7 @@ constructor(
     mockMvc: MockMvc,
     val frameConverterTestDataService: FrameConverterTestDataServiceV1,
     val layoutTrackNumberDao: LayoutTrackNumberDao,
+    val locationTrackDao: LocationTrackDao,
     val locationTrackService: LocationTrackService,
 ) : DBTestBase() {
 
@@ -121,7 +133,7 @@ constructor(
 
         assertSimpleFeatureCollection(featureCollection)
         assertEquals(
-            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen).",
             featureCollection.features[0].properties?.get("virheet"),
         )
     } */
@@ -146,7 +158,7 @@ constructor(
 
         assertSimpleFeatureCollection(featureCollection)
         assertEquals(
-            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen)",
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen)",
             featureCollection.features[0].properties?.get("virheet"),
         )
     } */
@@ -193,7 +205,7 @@ constructor(
 
         assertSimpleFeatureCollection(featureCollection)
         assertContainsErrorMessage(
-            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen).",
             featureCollection.features[0].properties?.get("virheet"),
         )
     }
@@ -217,7 +229,7 @@ constructor(
 
         assertSimpleFeatureCollection(featureCollection)
         assertContainsErrorMessage(
-            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen).",
             featureCollection.features[0].properties?.get("virheet"),
         )
     }
@@ -1131,5 +1143,297 @@ constructor(
                 responses.map { it["sijaintiraide"] }.toSet(),
             )
         }
+    }
+
+    @Test
+    fun `Location track OID filter does not find any results when the location track OID does not match`() {
+        val testOid = Oid<LocationTrack>("000.000.000")
+        val searchOid = Oid<LocationTrack>("111.111.111")
+
+        val layoutContext = mainOfficialContext
+        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+
+        val trackNumberName = testDBService.getUnusedTrackNumber().value
+        val (trackNumberId, referenceLineId) =
+            insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments)
+
+        frameConverterTestDataService
+            .insertGeocodableTrack(
+                layoutContext = layoutContext,
+                trackNumberId = trackNumberId,
+                referenceLineId = referenceLineId,
+                segments = segments,
+            )
+            .let { geocodableTrack ->
+                locationTrackDao.insertExternalId(
+                    geocodableTrack.locationTrack.id as IntId,
+                    geocodableTrack.layoutContext.branch,
+                    testOid,
+                )
+            }
+
+        val request =
+            TestTrackAddressToCoordinateRequest(
+                ratakilometri = 0,
+                ratametri = 500,
+                ratanumero = trackNumberName,
+                sijaintiraide_oid = searchOid.toString(),
+            )
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        val featuresNotFoundErrorMessage = "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
+        assertContainsErrorMessage(
+            featuresNotFoundErrorMessage,
+            featureCollection.features[0].properties?.get("virheet"),
+        )
+    }
+
+    @Test
+    fun `Location track OID filter only finds tracks with the given location track OID`() {
+        val testOids = listOf<Oid<LocationTrack>>(someOid(), someOid())
+
+        val layoutContext = mainOfficialContext
+        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+
+        val trackNumberName = testDBService.getUnusedTrackNumber().value
+        val (trackNumberId, referenceLineId) =
+            insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments)
+
+        testOids.forEach { oid ->
+            frameConverterTestDataService
+                .insertGeocodableTrack(
+                    layoutContext = layoutContext,
+                    trackNumberId = trackNumberId,
+                    referenceLineId = referenceLineId,
+                    segments = segments,
+                )
+                .let { geocodableTrack ->
+                    locationTrackDao.insertExternalId(
+                        geocodableTrack.locationTrack.id as IntId,
+                        geocodableTrack.layoutContext.branch,
+                        oid,
+                    )
+                }
+        }
+
+        testOids.forEach { oid ->
+            val request =
+                TestTrackAddressToCoordinateRequest(
+                    ratakilometri = 0,
+                    ratametri = 500,
+                    ratanumero = trackNumberName,
+                    sijaintiraide_oid = oid.toString(),
+                )
+
+            val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+            assertEquals(1, featureCollection.features.size)
+            assertEquals(oid.toString(), featureCollection.features[0].properties?.get("sijaintiraide_oid"))
+        }
+    }
+
+    @Test
+    fun `Track number OID filter does not find any results when the track number OID does not match`() {
+        val trackNumberOid = Oid<LayoutTrackNumber>("000.000.000")
+        val searchOid = Oid<LayoutTrackNumber>("111.111.111")
+
+        val layoutContext = mainOfficialContext
+        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+
+        mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).also { trackNumber ->
+            val referenceLine =
+                mainOfficialContext.saveReferenceLine(
+                    referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
+                )
+
+            frameConverterTestDataService.insertGeocodableTrack(
+                layoutContext = layoutContext,
+                trackNumberId = trackNumber.id,
+                referenceLineId = referenceLine.id,
+                segments = segments,
+            )
+        }
+
+        val request =
+            TestTrackAddressToCoordinateRequest(
+                ratakilometri = 0,
+                ratametri = 500,
+                ratanumero_oid = searchOid.toString(),
+            )
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        val featuresNotFoundErrorMessage = "Pyynnön ratanumeroa ei löydetty."
+        assertContainsErrorMessage(
+            featuresNotFoundErrorMessage,
+            featureCollection.features[0].properties?.get("virheet"),
+        )
+    }
+
+    @Test
+    fun `Track number OID filter only finds tracks with the given track number OID`() {
+        val testOids = listOf<Oid<LayoutTrackNumber>>(someOid(), someOid())
+
+        val layoutContext = mainOfficialContext
+        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+
+        testOids.forEach { oid ->
+            val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
+            val referenceLine =
+                mainOfficialContext.saveReferenceLine(
+                    referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
+                )
+
+            frameConverterTestDataService.insertGeocodableTrack(
+                layoutContext = layoutContext,
+                trackNumberId = trackNumber.id,
+                referenceLineId = referenceLine.id,
+                segments = segments,
+            )
+        }
+
+        testOids.forEach { oid ->
+            val request =
+                TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500, ratanumero_oid = oid.toString())
+
+            val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+            assertEquals(1, featureCollection.features.size)
+            assertEquals(oid.toString(), featureCollection.features[0].properties?.get("ratanumero_oid"))
+        }
+    }
+
+    @Test
+    fun `Track address to coordinate transformation allows decimals in search`() {
+        val layoutContext = mainOfficialContext
+        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+
+        val trackNumberName = testDBService.getUnusedTrackNumber().value
+        val trackNumber =
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+            }
+
+        frameConverterTestDataService.insertGeocodableTrack(
+            trackNumberId = trackNumber.id as IntId,
+            segments = segments,
+        )
+
+        val decimalSearchTests = listOf(0, 123, 400, 999)
+
+        decimalSearchTests.forEach { testDecimals ->
+            val request =
+                TestTrackAddressToCoordinateRequest(
+                    ratakilometri = 0,
+                    ratametri = 500,
+                    ratametri_desimaalit = testDecimals,
+                    ratanumero = trackNumberName,
+                )
+
+            val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+            assertEquals(1, featureCollection.features.size)
+            assertEquals(0, featureCollection.features[0].properties?.get("ratakilometri"))
+            assertEquals(500, featureCollection.features[0].properties?.get("ratametri"))
+            assertEquals(testDecimals, featureCollection.features[0].properties?.get("ratametri_desimaalit"))
+        }
+    }
+
+    @Test
+    fun `Invalid track address decimals results in an error`() {
+        val request =
+            TestTrackAddressToCoordinateRequest(
+                ratakilometri = 0,
+                ratametri = 500,
+                ratametri_desimaalit = -1,
+                ratanumero = testDBService.getUnusedTrackNumber().value,
+            )
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        val expectedErrorMessage =
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri.ratametri_desimaalit yhdistelmä oli virheellinen)."
+
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `No multiple search conditions are allowed for track number`() {
+        val request =
+            TestTrackAddressToCoordinateRequest(
+                ratakilometri = 0,
+                ratametri = 500,
+                ratanumero = "001",
+                ratanumero_oid = someOid<LayoutTrackNumber>().toString(),
+            )
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        val expectedErrorMessage =
+            "Pyyntö sisälsi useamman kuin yhden hakuehdon ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `At least one search condition is required for track number`() {
+        val request = TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500)
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        val expectedErrorMessage =
+            "Pyyntö ei sisältänyt hakuehtoa ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Invalid location track OID returns an error`() {
+        val request =
+            TestTrackAddressToCoordinateRequest(
+                ratakilometri = 0,
+                ratametri = 500,
+                ratanumero = "001",
+                sijaintiraide_oid = "invalid",
+            )
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+        val expectedErrorMessage = "Pyyntö sisälsi virheellisen sijaintiraide_oid-asetuksen."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Invalid track number OID returns an error`() {
+        val request =
+            TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500, ratanumero_oid = "invalid")
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+        val expectedErrorMessage = "Pyyntö sisälsi virheellisen ratanumero_oid-asetuksen."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    fun insertTrackNumberAndReferenceLine(
+        layoutContext: TestLayoutContext,
+        trackNumberName: String,
+        segments: List<LayoutSegment>,
+    ): Pair<IntId<LayoutTrackNumber>, IntId<ReferenceLine>> {
+        val trackNumber =
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+            }
+
+        val referenceLine =
+            layoutContext.saveReferenceLine(
+                referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+            )
+
+        return trackNumber.id as IntId to referenceLine.id
     }
 }

@@ -54,7 +54,8 @@ class LocationTrackDao(
         jdbcTemplateParam,
         "layout.location_track_external_id",
         "layout.location_track_external_id_version",
-    ) {
+    ),
+    IExternallyIdentifiedLayoutAssetDao<LocationTrack> {
 
     override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LocationTrack>): LocationTrackGeometry =
         alignmentDao.fetch(rowVersion)

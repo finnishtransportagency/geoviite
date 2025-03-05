@@ -2,31 +2,17 @@ import React from 'react';
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { ExtraInfraModelParameters } from 'infra-model/infra-model-slice';
-import { EditablePlanField } from 'infra-model/view/form/infra-model-form';
 import { useTranslation } from 'react-i18next';
 import { planPhases } from 'utils/enum-localization-utils';
 import PlanPhase from 'geoviite-design-lib/geometry-plan/plan-phase';
+import { InfraModelExtraParameterFieldProps } from 'infra-model/view/form/fields/infra-model-field-model';
 
-export type InfraModelPhaseFieldProps = {
-    fieldInEdit: EditablePlanField;
-    setFieldInEdit: (editablePlanField: EditablePlanField | undefined) => void;
-    extraInframodelParameters: ExtraInfraModelParameters;
-    changeInExtraParametersField: <
-        TKey extends keyof ExtraInfraModelParameters,
-        TValue extends ExtraInfraModelParameters[TKey],
-    >(
-        value: TValue,
-        fieldName: TKey,
-    ) => void;
-};
-
-export const InfraModelPhaseField: React.FC<InfraModelPhaseFieldProps> = ({
+export const InfraModelPhaseField: React.FC<InfraModelExtraParameterFieldProps> = ({
     fieldInEdit,
     setFieldInEdit,
     extraInframodelParameters,
     changeInExtraParametersField,
-}: InfraModelPhaseFieldProps) => {
+}: InfraModelExtraParameterFieldProps) => {
     const { t } = useTranslation();
 
     return (

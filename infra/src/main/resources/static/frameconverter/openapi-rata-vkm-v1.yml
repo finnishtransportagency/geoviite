@@ -18,14 +18,16 @@ paths:
       summary: Yksittäismuunnos koordinaatista rataosoitteeseen
       description: >
         Palauttaa hakuehtoihin täsmäävän ja annettua koordinaattisijaintia lähinnä olevan raiteen ja rataosoitteen 
-        raiteella. Mikäli annetuilla syötteillä ei löydy sijaintia, palauttaa virheen.
+        raiteella. Mikäli annetuilla syötteillä ei löydy sijaintia, palautetaan virhe.
       parameters:
         - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/x-koordinaatti-param'
         - $ref: '#/components/parameters/y-koordinaatti-param'
         - $ref: '#/components/parameters/sade-param'
         - $ref: '#/components/parameters/ratanumero-param'
+        - $ref: '#/components/parameters/ratanumero_oid-param'
         - $ref: '#/components/parameters/sijaintiraide-param'
+        - $ref: '#/components/parameters/sijaintiraide_oid-param'
         - $ref: '#/components/parameters/sijaintiraide_tyyppi-param'
         - $ref: '#/components/parameters/geometriatiedot-param'
         - $ref: '#/components/parameters/perustiedot-param'
@@ -86,12 +88,15 @@ paths:
       description: >
         Palauttaa rataosoitetta vastaavat koordinaattisijainnit kaikille niille raiteille, joilla kyseinen 
         rataosoite on olemassa ja jotka täsmäävät muihin annettuihin hakuehtoihin. Mikäli yhtään sijaintia ei löydy, 
-        palauttaa virheen.
+        palautetaan virhe.
       parameters:
+        - $ref: '#/components/parameters/ratanumero-param-exactly-one-required'
+        - $ref: '#/components/parameters/ratanumero_oid-param-exactly-required'
         - $ref: '#/components/parameters/ratakilometri-param'
         - $ref: '#/components/parameters/ratametri-param'
-        - $ref: '#/components/parameters/ratanumero-param-required'
+        - $ref: '#/components/parameters/ratametri_desimaalit-param'
         - $ref: '#/components/parameters/sijaintiraide-param'
+        - $ref: '#/components/parameters/sijaintiraide_oid-param'
         - $ref: '#/components/parameters/sijaintiraide_tyyppi-param'
         - $ref: '#/components/parameters/koordinaatisto-param'
         - $ref: '#/components/parameters/geometriatiedot-param'
@@ -169,9 +174,15 @@ components:
     ratanumero:
       type: string
       description: 'Rajaa haun ratanumeron nimen perusteella.'
+    ratanumero_oid:
+      type: string
+      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.'
     sijaintiraide:
       type: string
       description: 'Rajaa haun sijaintiraiteen nimen perusteella.'
+    sijaintiraide_oid:
+      type: string
+      description: 'Rajaa haun sijaintiraiteen OID-tunnuksen perusteella.'
     sijaintiraide_tyyppi:
       type: string
       description: 'Rajaa haun sijaintiraidetyypin perusteella. Sallitut arvot: "pääraide", "sivuraide", "turvaraide", "kujaraide".'
@@ -181,6 +192,9 @@ components:
     ratametri:
       type: integer
       description: 'Rataosoitteen ratametri'
+    ratametri_desimaalit:
+      type: integer
+      description: 'Rataosoitteen ratametrin desimaaliosa'
 
     track-address-to-coordinate:
       type: object
@@ -193,12 +207,18 @@ components:
           $ref: '#/components/schemas/tunniste'
         ratanumero:
           $ref: '#/components/schemas/ratanumero'
+        ratanumero_oid:
+          $ref: '#/components/schemas/ratanumero_oid'
         ratakilometri:
           $ref: '#/components/schemas/ratakilometri'
         ratametri:
           $ref: '#/components/schemas/ratametri'
+        ratametri_desimaalit:
+          $ref: '#/components/schemas/ratametri_desimaalit'
         sijaintiraide:
           $ref: '#/components/schemas/sijaintiraide'
+        sijaintiraide_oid:
+          $ref: '#/components/schemas/sijaintiraide_oid'
         sijaintiraide_tyyppi:
           $ref: '#/components/schemas/sijaintiraide_tyyppi'
 
@@ -218,8 +238,12 @@ components:
           $ref: '#/components/schemas/sade'
         ratanumero:
           $ref: '#/components/schemas/ratanumero'
+        ratanumero_oid:
+          $ref: '#/components/schemas/ratanumero_oid'
         sijaintiraide:
           $ref: '#/components/schemas/sijaintiraide'
+        sijaintiraide_oid:
+          $ref: '#/components/schemas/sijaintiraide_oid'
         sijaintiraide_tyyppi:
           $ref: '#/components/schemas/sijaintiraide_tyyppi'
   parameters:
@@ -258,13 +282,27 @@ components:
       description: 'Rajaa haun ratanumeron nimen perusteella.'
       schema:
         $ref: '#/components/schemas/ratanumero'
-    ratanumero-param-required:
+    ratanumero_oid-param:
+      name: ratanumero_oid
+      in: query
+      required: false
+      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.'
+      schema:
+        $ref: '#/components/schemas/ratanumero_oid'
+    ratanumero-param-exactly-one-required:
       name: ratanumero
       in: query
-      required: true
-      description: 'Rajaa haun ratanumeron nimen perusteella.'
+      required: false
+      description: 'Rajaa haun ratanumeron nimen perusteella.<br />*Huom*: Hakua tulee rajata yhdellä kentistä "ratanumero", "ratanumero_oid".'
       schema:
         $ref: '#/components/schemas/ratanumero'
+    ratanumero_oid-param-exactly-required:
+      name: ratanumero_oid
+      in: query
+      required: false
+      description: 'Rajaa haun ratanumeron OID-tunnuksen perusteella.<br />*Huom*: Hakua tulee rajata yhdellä kentistä "ratanumero", "ratanumero_oid".'
+      schema:
+        $ref: '#/components/schemas/ratanumero_oid'
     sijaintiraide-param:
       name: sijaintiraide
       in: query
@@ -272,6 +310,13 @@ components:
       description: 'Rajaa haun sijaintiraiteen tunnuksen perusteella.'
       schema:
         $ref: '#/components/schemas/sijaintiraide'
+    sijaintiraide_oid-param:
+      name: sijaintiraide_oid
+      in: query
+      required: false
+      description: 'Rajaa haun sijaintiraiteen OID-tunnuksen perusteella.'
+      schema:
+        $ref: '#/components/schemas/sijaintiraide_oid'
     sijaintiraide_tyyppi-param:
       name: sijaintiraide_tyyppi
       in: query
@@ -293,6 +338,13 @@ components:
       description: 'Rataosoitteen ratametri'
       schema:
         $ref: '#/components/schemas/ratametri'
+    ratametri_desimaalit-param:
+      name: ratametri_desimaalit
+      in: query
+      required: false
+      description: 'Rataosoitteen ratametrin desimaaliosa'
+      schema:
+        $ref: '#/components/schemas/ratametri_desimaalit'
     geometriatiedot-param:
       name: geometriatiedot
       in: query
@@ -313,7 +365,7 @@ components:
       name: lisatiedot
       in: query
       required: false
-      description: "GeoJSON-tulos sisältää properties-kentässä kentät: ratanumero, sijaintiraide, sijaintiraide_kuvaus, sijaintiraide_tyyppi, ratakilometri, ratametri, ratametri_desimaalit."
+      description: "GeoJSON-tulos sisältää properties-kentässä kentät: ratanumero, ratanumero_oid, sijaintiraide, sijaintiraide_oid, sijaintiraide_kuvaus, sijaintiraide_tyyppi, ratakilometri, ratametri, ratametri_desimaalit."
       schema:
         type: boolean
         default: true

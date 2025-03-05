@@ -204,6 +204,7 @@ constructor(
         val selectionPanel = trackLayoutPage.selectionPanel
         val toolPanel = trackLayoutPage.toolPanel
 
+        trackLayoutPage.zoomToScale(E2ETrackLayoutPage.MapScale.M_200)
         selectionPanel.selectLocationTrack("lt-A")
         toolPanel.locationTrackGeneralInfo.zoomTo()
         val locationInfoBox = toolPanel.locationTrackLocation
@@ -443,6 +444,7 @@ constructor(
 
         val geometryAlignment = getGeometryAlignmentFromPlan("extending track", plan)
 
+        trackLayoutPage.zoomToScale(E2ETrackLayoutPage.MapScale.M_200)
         trackLayoutPage.selectionPanel.selectLocationTrack("lt-track to extend")
         val locationTrackLocationInfobox = toolPanel.locationTrackLocation
         val locationTrackLengthBeforeLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
@@ -516,6 +518,7 @@ constructor(
         val geometryAlignmentStart = geometryAlignment.elements.first().start
         val geometryAlignmentEnd = geometryAlignment.elements.last().end
 
+        trackLayoutPage.zoomToScale(E2ETrackLayoutPage.MapScale.M_200)
         trackLayoutPage.selectionPanel.selectLocationTrack("lt-track to extend")
         val locationTrackLocationInfobox = toolPanel.locationTrackLocation
         val locationTrackLengthBeforeLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
@@ -636,6 +639,7 @@ constructor(
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
 
+        trackLayoutPage.zoomToScale(E2ETrackLayoutPage.MapScale.M_200)
         trackLayoutPage.selectionPanel.selectLocationTrack("lt-track to delete")
         trackLayoutPage.toolPanel.locationTrackGeneralInfo.zoomTo()
         trackLayoutPage.toolPanel.locationTrackGeneralInfo

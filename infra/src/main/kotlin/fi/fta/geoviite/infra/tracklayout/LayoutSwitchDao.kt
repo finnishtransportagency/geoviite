@@ -58,7 +58,8 @@ class LayoutSwitchDao(
         jdbcTemplateParam,
         "layout.switch_external_id",
         "layout.switch_external_id_version",
-    ) {
+    ),
+    IExternallyIdentifiedLayoutAssetDao<LayoutSwitch> {
 
     override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutSwitch>) = NoParams.instance
 

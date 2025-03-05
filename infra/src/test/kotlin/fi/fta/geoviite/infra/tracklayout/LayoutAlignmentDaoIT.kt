@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MATH
 import fi.fta.geoviite.infra.util.getIntId
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -33,7 +34,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -343,14 +343,14 @@ constructor(
             trackGeometry(
                 edgesBetweenNodes(
                     listOf(
-                        EdgeNode.placeHolder,
+                        PlaceHolderEdgeNode,
                         EdgeNode.switch(null, SwitchLink(switch1Id, MAIN, JointNumber(1))),
                         EdgeNode.switch(
                             SwitchLink(switch1Id, CONNECTION, JointNumber(2)),
                             SwitchLink(switch2Id, MAIN, JointNumber(1)),
                         ),
                         EdgeNode.switch(SwitchLink(switch2Id, CONNECTION, JointNumber(2)), null),
-                        EdgeNode.placeHolder,
+                        PlaceHolderEdgeNode,
                     ),
                     edgeLength = 100.0,
                     edgeSegments = 3,
@@ -389,7 +389,7 @@ constructor(
     }
 
     fun edgesBetweenNodes(
-        nodes: List<EdgeNode> = listOf(EdgeNode.placeHolder, EdgeNode.placeHolder),
+        nodes: List<EdgeNode> = listOf(PlaceHolderEdgeNode, PlaceHolderEdgeNode),
         edgeLength: Double = 10.0,
         edgeSegments: Int = 1,
     ): List<TmpLayoutEdge> =
@@ -397,9 +397,6 @@ constructor(
             val segmentLength = edgeLength / edgeSegments
             val segments =
                 (0 until edgeSegments).map { segmentIndex ->
-                    //                    val interpolated = edgeIndex * edgeLength + segmentIndex * segmentLength
-                    //                    val startPoint = Point(interpolated, interpolated)
-                    //                    val endPoint = startPoint + Point(segmentLength, segmentLength)
                     val startPoint = Point(edgeIndex * edgeLength + segmentIndex * segmentLength, 0.0)
                     val endPoint = startPoint + Point(segmentLength, 0.0)
                     segment(startPoint, endPoint)

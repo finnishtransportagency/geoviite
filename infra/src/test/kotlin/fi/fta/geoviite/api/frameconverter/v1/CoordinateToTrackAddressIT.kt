@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
@@ -14,20 +15,19 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
-import java.math.BigDecimal
-import java.util.*
-import kotlin.math.hypot
-import kotlin.test.assertEquals
+import fi.fta.geoviite.infra.tracklayout.someOid
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -37,6 +37,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
+import java.util.*
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 
 private const val API_TRACK_ADDRESSES: FrameConverterUrl = "/rata-vkm/v1/rataosoitteet"
 
@@ -47,7 +51,9 @@ private data class TestCoordinateToTrackAddressRequest(
     val y: Double? = null,
     val sade: Double? = null,
     val ratanumero: String? = null,
+    val ratanumero_oid: String? = null,
     val sijaintiraide: String? = null,
+    val sijaintiraide_oid: String? = null,
     val sijaintiraide_tyyppi: String? = null,
 ) : FrameConverterTestRequest()
 
@@ -731,18 +737,146 @@ constructor(
         )
     }
 
+    @Test
+    fun `Location track OID filter does not find any results when the location track OID does not match`() {
+        val trackOid = Oid<LocationTrack>("000.000.000")
+        val searchOid = Oid<LocationTrack>("111.111.111")
+        val geocodableTrack = insertGeocodableTrack()
+
+        locationTrackDao.insertExternalId(
+            geocodableTrack.locationTrack.id as IntId,
+            geocodableTrack.layoutContext.branch,
+            trackOid,
+        )
+
+        val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide_oid = searchOid.toString())
+        val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+
+        val expectedErrorMessage = "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Location track OID filter only finds tracks with the given location track OID`() {
+        val testOids = listOf<Oid<LocationTrack>>(someOid(), someOid())
+
+        testOids.forEach { oid ->
+            val geocodableTrack = insertGeocodableTrack()
+
+            locationTrackDao.insertExternalId(
+                geocodableTrack.locationTrack.id as IntId,
+                geocodableTrack.layoutContext.branch,
+                oid,
+            )
+        }
+
+        testOids.forEach { oid ->
+            val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide_oid = oid.toString())
+            val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+
+            assertEquals(1, featureCollection.features.size)
+            assertEquals(oid.toString(), featureCollection.features[0].properties?.get("sijaintiraide_oid"))
+        }
+    }
+
+    @Test
+    fun `Location track OID filter returns an error when an invalid OID is given`() {
+        val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide_oid = "invalid_oid")
+        val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+
+        val expectedErrorMessage = "Pyyntö sisälsi virheellisen sijaintiraide_oid-asetuksen."
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Track number OID filter does not find any results when the track number OID does not match`() {
+        val trackNumberOid = Oid<LayoutTrackNumber>("000.000.000")
+        val searchOid = Oid<LayoutTrackNumber>("111.111.111")
+
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+
+        mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).let { trackNumber ->
+            val referenceLine =
+                mainOfficialContext.saveReferenceLine(
+                    referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
+                )
+
+            insertGeocodableTrack(
+                trackNumberId = trackNumber.id,
+                segments = segments,
+                referenceLineId = referenceLine.id,
+            )
+        }
+
+        val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, ratanumero_oid = searchOid.toString())
+        val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+
+        val featuresNotFoundErrorMessage = "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
+        assertContainsErrorMessage(
+            featuresNotFoundErrorMessage,
+            featureCollection.features[0].properties?.get("virheet"),
+        )
+    }
+
+    @Test
+    fun `Track number OID filter only finds tracks with the given track number OID`() {
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        val testOids = listOf<Oid<LayoutTrackNumber>>(someOid(), someOid())
+
+        testOids.forEach { oid ->
+            val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
+            val referenceLine =
+                mainOfficialContext.saveReferenceLine(
+                    referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
+                )
+
+            insertGeocodableTrack(
+                trackNumberId = trackNumber.id,
+                segments = segments,
+                referenceLineId = referenceLine.id,
+            )
+        }
+
+        testOids.forEach { oid ->
+            val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, ratanumero_oid = oid.toString())
+            val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+
+            assertEquals(1, featureCollection.features.size)
+            assertEquals(oid.toString(), featureCollection.features[0].properties?.get("ratanumero_oid"))
+        }
+    }
+
+    @Test
+    fun `Invalid location track OID returns an error`() {
+        val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide_oid = "invalid")
+        val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+        val expectedErrorMessage = "Pyyntö sisälsi virheellisen sijaintiraide_oid-asetuksen."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Invalid track number OID returns an error`() {
+        val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, ratanumero_oid = "invalid")
+        val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
+        val expectedErrorMessage = "Pyyntö sisälsi virheellisen ratanumero_oid-asetuksen."
+
+        assertEquals(1, featureCollection.features.size)
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
     private fun insertGeocodableTrack(
         layoutContext: TestLayoutContext = mainOfficialContext,
         trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
         locationTrackName: String = "Test location track",
         locationTrackType: LocationTrackType = LocationTrackType.MAIN,
         segments: List<LayoutSegment> = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
-    ): GeocodableTrack {
-        val referenceLineId =
+        referenceLineId: IntId<ReferenceLine> =
             layoutContext
                 .saveReferenceLine(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
-                .id
-
+                .id,
+    ): GeocodableTrack {
         val locationTrackId =
             layoutContext
                 .saveLocationTrack(
