@@ -197,6 +197,10 @@ data class TmpLocationTrackGeometry(@get:JsonIgnore override val edges: List<Lay
         val newEdges = edges.map { it.reifyNodeTrackId(id) }
         return if (newEdges == edges) this else return TmpLocationTrackGeometry(newEdges)
     }
+
+    companion object {
+        fun ofSegments(segments: List<LayoutSegment>) = TmpLocationTrackGeometry(listOf(TmpLayoutEdge.of(segments)))
+    }
 }
 
 data class DbLocationTrackGeometry(

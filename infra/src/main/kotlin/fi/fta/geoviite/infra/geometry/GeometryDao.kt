@@ -26,15 +26,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.*
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 
 enum class VerticalIntersectionType {
     POINT,
@@ -1770,7 +1770,6 @@ constructor(
         return mapOf("${name}_x" to point?.x, "${name}_y" to point?.y)
     }
 
-    // TODO: GVT-2932 fetch track links through edge geometry
     /** If planIds is null, returns all plans' linking summaries */
     fun getLinkingSummaries(
         planIds: List<IntId<GeometryPlan>>? = null
@@ -1791,79 +1790,76 @@ constructor(
         val sql =
             """
             with
-              segment_links as (
-                select plan_id, segment.change_user, segment.change_time
-                  from geometry.alignment
-                    join lateral
-                    (select track_object.change_time, track_object.change_user
-                       from layout.alignment_version
-                         inner join layout.segment_version on alignment_version.id = segment_version.alignment_id
-                         and alignment_version.version = segment_version.alignment_version
-                         join lateral (
-                         select change_time, change_user
-                           from layout.location_track_version
-                           where location_track_version.alignment_id = alignment_version.id
-                             and location_track_version.alignment_version = alignment_version.version
-                             and not draft
-                         union all
-                         select change_time, change_user
-                           from layout.reference_line_version
-                           where reference_line_version.alignment_id = alignment_version.id
-                             and reference_line_version.alignment_version = alignment_version.version
-                             and not draft
-                         ) track_object on (true)
-                       where segment_version.geometry_alignment_id = alignment.id
-                       order by alignment_version asc
-                       limit 1
-                    ) segment on (true)
+              linked_edge as (
+                select distinct edge_id, alignment.plan_id
+                  from layout.edge_segment
+                    inner join geometry.alignment on alignment.id = edge_segment.geometry_alignment_id
+              ),
+              linked_track as (
+                select
+                  linked_edge.plan_id,
+                  ltv.change_user,
+                  ltv.change_time,
+                  (current.id is not null) as is_current
+                  from linked_edge
+                    inner join layout.location_track_version_edge ltve on ltve.edge_id = linked_edge.edge_id
+                    inner join layout.location_track_version ltv
+                               on ltv.id = ltve.location_track_id and ltv.layout_context_id = ltve.location_track_layout_context_id and ltv.version = ltve.location_track_version
+                    left join layout.location_track current
+                              on current.id = ltv.id and current.layout_context_id = ltv.layout_context_id and current.version = ltv.version
+                  where ltv.draft = false
+              ),
+              linked_reference_line as (
+                select
+                  alignment.plan_id,
+                  rlv.change_user,
+                  rlv.change_time,
+                  (current.id is not null) as is_current
+                  from layout.reference_line_version rlv
+                    inner join layout.segment_version sv
+                               on sv.alignment_id = rlv.alignment_id and sv.alignment_version = rlv.alignment_version
+                    inner join geometry.alignment on alignment.id = sv.geometry_alignment_id
+                    left join layout.reference_line current
+                              on current.id = rlv.id and current.alignment_id = rlv.alignment_id and current.alignment_version = rlv.alignment_version
+                  where rlv.draft = false
               ),
               switch_links as (
-                select geometry_switch.plan_id, layout_switch.change_user, layout_switch.change_time
+                select geometry_switch.plan_id, layout_switch.change_user, layout_switch.change_time, layout_switch.is_current
                   from geometry.switch geometry_switch
                     join lateral
-                    (select change_time, change_user
-                       from layout.switch_version
-                       where switch_version.geometry_switch_id = geometry_switch.id
-                         and not draft
-                       order by version asc
+                    (select sv.change_time, sv.change_user, (current.id is not null) as is_current
+                       from layout.switch_version sv
+                         left join layout.switch current
+                                   on current.id = sv.id and current.layout_context_id = sv.layout_context_id and current.version = sv.version
+                       where sv.geometry_switch_id = geometry_switch.id
+                         and not sv.draft
+                       order by sv.version asc
                        limit 1) layout_switch on (true)
               ),
               km_post_links as (
-                select geometry_km_post.plan_id, layout_km_post.change_user, layout_km_post.change_time
+                select geometry_km_post.plan_id, layout_km_post.change_user, layout_km_post.change_time, layout_km_post.is_current
                   from geometry.km_post geometry_km_post
                     join lateral
-                    (select change_time, change_user
-                       from layout.km_post_version
-                       where km_post_version.geometry_km_post_id = geometry_km_post.id
-                         and not draft
-                       order by version asc
+                    (select kmpv.change_time, kmpv.change_user, (current.id is not null) as is_current
+                       from layout.km_post_version kmpv
+                         left join layout.km_post current
+                                   on current.id = kmpv.id and current.layout_context_id = kmpv.layout_context_id and current.version = kmpv.version
+                       where kmpv.geometry_km_post_id = geometry_km_post.id
+                         and not kmpv.draft
+                       order by kmpv.version asc
                        limit 1) layout_km_post on (true)
               )
             select
               linked_layout_object.plan_id,
               min(change_time) as linked_at,
-              array_agg(distinct change_user order by change_user) filter (where change_user is not null) as linked_by_users ,
-              exists(
-                  select 1
-                    from layout.alignment a
-                      left join layout.segment_version sv on a.id = sv.alignment_id and a.version = sv.alignment_version
-                      left join geometry.alignment ga on sv.geometry_alignment_id = ga.id
-                    where ga.plan_id = linked_layout_object.plan_id
-                ) or exists(
-                  select 1
-                    from layout.switch
-                      left join geometry.switch gs on gs.id = switch.geometry_switch_id
-                    where gs.plan_id = linked_layout_object.plan_id
-                ) or exists(
-                  select 1
-                    from layout.km_post
-                      left join geometry.km_post gp on gp.id = km_post.geometry_km_post_id
-                    where gp.plan_id = linked_layout_object.plan_id
-                ) as is_currently_linked
+              array_agg(distinct change_user order by change_user) filter (where change_user is not null) as linked_by_users,
+              bool_or(is_current) is_currently_linked
               from (
-                select id as plan_id, null as change_user, null as change_time from geometry.plan
+                select id as plan_id, null as change_user, null as change_time, false as is_current from geometry.plan
                 union all
-                select * from segment_links
+                select * from linked_track
+                union all
+                select * from linked_reference_line
                 union all
                 select * from switch_links
                 union all

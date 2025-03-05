@@ -43,7 +43,9 @@ fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): Layout
 fun replaceLocationTrackGeometry(
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<Double>,
-): LocationTrackGeometry = tryCreateLinkedTrackGeometry(createAlignmentGeometry(geometryAlignment, geometryMRange))
+): LocationTrackGeometry = tryCreateLinkedTrackGeometry {
+    TmpLocationTrackGeometry.ofSegments(createAlignmentGeometry(geometryAlignment, geometryMRange))
+}
 
 fun replaceLayoutGeometry(
     layoutAlignment: LayoutAlignment,
@@ -164,16 +166,6 @@ private fun createLinkingSegment(start: IPoint?, end: IPoint?, tolerance: Double
     else null
 }
 
-// private fun toLayoutEdgeSegment(segment: ISegment): LayoutEdgeSegment =
-//    if (segment is LayoutEdgeSegment) segment
-//    else
-//        LayoutEdgeSegment(
-//            geometry = segment.geometry,
-//            sourceId = segment.sourceId as? IndexedId,
-//            sourceStart = segment.sourceStart,
-//            source = segment.source,
-//        )
-//
 private fun toLayoutSegment(segment: ISegment): LayoutSegment =
     if (segment is LayoutSegment) segment
     else
@@ -187,9 +179,9 @@ private fun toLayoutSegment(segment: ISegment): LayoutSegment =
             source = segment.source,
         )
 
-private fun tryCreateLinkedTrackGeometry(newSegments: List<LayoutSegment>): LocationTrackGeometry =
+private fun tryCreateLinkedTrackGeometry(creator: () -> TmpLocationTrackGeometry): LocationTrackGeometry =
     try {
-        TmpLocationTrackGeometry(listOf(TmpLayoutEdge.of(newSegments)))
+        creator()
     } catch (e: IllegalArgumentException) {
         throw LinkingFailureException(
             message = "Linking selection produces invalid location track geometry",
@@ -247,8 +239,7 @@ fun splice(
     val endEdges = slice(geometry, Range(mRange.max, geometry.length), snapDistance)
     val endGap = listOfNotNull(createGapIfNeeded(added, endEdges.firstOrNull()?.segments ?: listOf()))
     val midEdge = TmpLayoutEdge.of(startGap + added + endGap)
-    // TODO: GVT-2915 validations, like on LayoutAlignment?
-    return TmpLocationTrackGeometry(combineEdges(startEdges + midEdge + endEdges))
+    return tryCreateLinkedTrackGeometry { TmpLocationTrackGeometry(combineEdges(startEdges + midEdge + endEdges)) }
 }
 
 fun slice(
