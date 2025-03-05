@@ -23,10 +23,6 @@ import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,6 +31,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaatit"
 
@@ -1243,7 +1243,7 @@ constructor(
 
         mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).also { trackNumber ->
             val referenceLine =
-                mainOfficialContext.insert(
+                mainOfficialContext.saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
                 )
 
@@ -1281,7 +1281,7 @@ constructor(
         testOids.forEach { oid ->
             val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
             val referenceLine =
-                mainOfficialContext.insert(
+                mainOfficialContext.saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
                 )
 
@@ -1430,7 +1430,7 @@ constructor(
             }
 
         val referenceLine =
-            layoutContext.insert(
+            layoutContext.saveReferenceLine(
                 referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
             )
 

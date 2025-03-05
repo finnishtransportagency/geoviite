@@ -524,7 +524,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         save(trackNumber(testService.getUnusedTrackNumber()))
 
     fun createLayoutTrackNumberWithOid(oid: Oid<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber> {
-        return insert(trackNumber(testService.getUnusedTrackNumber())).also { trackNumber ->
+        return save(trackNumber(testService.getUnusedTrackNumber())).also { trackNumber ->
             trackNumberDao.insertExternalId(trackNumber.id, context.branch, oid)
         }
     }

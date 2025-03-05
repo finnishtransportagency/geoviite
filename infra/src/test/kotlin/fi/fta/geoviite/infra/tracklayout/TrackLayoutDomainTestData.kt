@@ -512,7 +512,7 @@ fun trackGeometryOfSegments(segments: List<LayoutSegment>): TmpLocationTrackGeom
     if (segments.isEmpty()) LocationTrackGeometry.empty
     else
         trackGeometry(
-            listOf(TmpLayoutEdge(startNode = EdgeNode.placeHolder, endNode = EdgeNode.placeHolder, segments = segments))
+            listOf(TmpLayoutEdge(startNode = PlaceHolderEdgeNode, endNode = PlaceHolderEdgeNode, segments = segments))
         )
 
 fun trackGeometry(edges: List<LayoutEdge>): TmpLocationTrackGeometry = TmpLocationTrackGeometry(edges)

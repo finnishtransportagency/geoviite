@@ -28,10 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
-import java.math.BigDecimal
-import java.util.*
-import kotlin.math.hypot
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -41,6 +37,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
+import java.util.*
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 
 private const val API_TRACK_ADDRESSES: FrameConverterUrl = "/rata-vkm/v1/rataosoitteet"
 
@@ -797,7 +797,7 @@ constructor(
 
         mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).let { trackNumber ->
             val referenceLine =
-                mainOfficialContext.insert(
+                mainOfficialContext.saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
                 )
 
@@ -826,7 +826,7 @@ constructor(
         testOids.forEach { oid ->
             val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
             val referenceLine =
-                mainOfficialContext.insert(
+                mainOfficialContext.saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
                 )
 
@@ -875,7 +875,7 @@ constructor(
         referenceLineId: IntId<ReferenceLine> =
             layoutContext
                 .saveReferenceLine(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
-                .id
+                .id,
     ): GeocodableTrack {
         val locationTrackId =
             layoutContext

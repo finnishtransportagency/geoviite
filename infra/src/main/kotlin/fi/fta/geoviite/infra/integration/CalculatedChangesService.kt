@@ -904,7 +904,7 @@ private fun mergeInheritedChangeVersionsWithCompletedMergeVersions(
 
 private fun <T : LayoutAsset<T>> getObjectFromValidationVersions(
     versions: List<LayoutRowVersion<T>>,
-    dao: LayoutAssetDao<T>,
+    dao: LayoutAssetDao<T, *>,
     target: ValidationTarget,
     id: IntId<T>,
 ): T? = (versions.find { it.id == id } ?: dao.fetchVersion(target.baseContext, id))?.let(dao::fetch)

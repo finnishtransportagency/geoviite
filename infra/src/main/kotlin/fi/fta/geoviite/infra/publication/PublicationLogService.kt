@@ -38,12 +38,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -643,7 +643,7 @@ constructor(
                 .flatMap { joint ->
                     val oldLocation =
                         oldLinkedLocationTracks[joint.locationTrackId]
-                            ?.let { (_, geometry) -> findJointPoint(geometry, changes.id, joint.jointNumber) }
+                            ?.let { (_, geometry) -> geometry.getSwitchLocation(changes.id, joint.jointNumber) }
                             ?.toPoint()
                     val distance =
                         if (oldLocation != null && !pointsAreSame(joint.point, oldLocation)) {
