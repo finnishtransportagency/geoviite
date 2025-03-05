@@ -739,15 +739,13 @@ const MapView: React.FC<MapViewProps> = ({
         setActiveTool(customActiveMapTool);
     }, [customActiveMapTool]);
 
-    const visibleLayerNamesKey = visibleLayers.map((l) => l.name).join();
-
     React.useEffect(() => {
         if (activeTool && olMap) {
             return activeTool.activate(olMap, visibleLayers, toolActivateOptions);
         } else {
             return () => undefined;
         }
-    }, [olMap, activeTool, visibleLayerNamesKey]);
+    }, [olMap, activeTool, visibleLayers]);
 
     React.useEffect(() => {
         if (mapTools && activeTool) {
