@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -521,6 +522,12 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
 
     fun createLayoutTrackNumber(): LayoutRowVersion<LayoutTrackNumber> =
         save(trackNumber(testService.getUnusedTrackNumber()))
+
+    fun createLayoutTrackNumberWithOid(oid: Oid<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber> {
+        return insert(trackNumber(testService.getUnusedTrackNumber())).also { trackNumber ->
+            trackNumberDao.insertExternalId(trackNumber.id, context.branch, oid)
+        }
+    }
 
     fun createAndFetchLayoutTrackNumber(): LayoutTrackNumber = trackNumberDao.fetch(createLayoutTrackNumber())
 

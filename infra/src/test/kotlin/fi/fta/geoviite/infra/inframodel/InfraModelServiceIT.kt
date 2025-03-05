@@ -9,10 +9,15 @@ import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.PlanApplicability
 import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
 import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.geometry.PlanPhase
 import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.geometry.someBoundingPolygon
+import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.time.Duration
 import java.time.Instant
@@ -32,6 +37,8 @@ import org.springframework.test.context.ActiveProfiles
 class InfraModelServiceIT
 @Autowired
 constructor(val infraModelService: InfraModelService, val geometryDao: GeometryDao) : DBTestBase() {
+
+    @Autowired private lateinit var geometryService: GeometryService
 
     @BeforeEach
     fun clearPlanFiles() {
@@ -100,6 +107,7 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_RAIL,
                 message = FreeTextWithNewLines.of("test message 1"),
                 name = PlanName("test name 1"),
+                planApplicability = PlanApplicability.PLANNING,
             )
 
         val overrides2 =
@@ -121,12 +129,33 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = FreeTextWithNewLines.of("test message 2"),
                 name = PlanName("test name 2"),
+                planApplicability = PlanApplicability.MAINTENANCE,
             )
 
         val planId = infraModelService.saveInfraModel(file, overrides1, extraInfo1).id
         assertOverrides(planId, overrides1, extraInfo1)
         infraModelService.updateInfraModel(planId, overrides2, extraInfo2)
         assertOverrides(planId, overrides2, extraInfo2)
+    }
+
+    @Test
+    fun `Setting Applicability only sets plan applicability`() {
+        val file = testFile()
+        val plan = plan(testDBService.getUnusedTrackNumber(), fileName = file.name, planApplicability = null)
+        val polygon = someBoundingPolygon()
+        val planId = geometryDao.insertPlan(plan, file, polygon).id
+        val headerBeforeUpdate = geometryService.getPlanHeader(planId)
+
+        infraModelService.setPlanApplicability(planId, PlanApplicability.PLANNING)
+        val headerAfterUpdate = geometryService.getPlanHeader(planId)
+
+        assertEquals(
+            headerBeforeUpdate.copy(
+                planApplicability = PlanApplicability.PLANNING,
+                version = headerAfterUpdate.version,
+            ),
+            headerAfterUpdate,
+        )
     }
 
     fun getMockedMultipartFile(fileLocation: String): MockMultipartFile =

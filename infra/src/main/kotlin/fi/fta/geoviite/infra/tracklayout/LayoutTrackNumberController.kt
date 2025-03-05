@@ -23,7 +23,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
-import fi.fta.geoviite.infra.publication.getCsvResponseEntity
+import fi.fta.geoviite.infra.util.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.toResponse
 import java.time.Instant
 import java.time.ZoneId

@@ -45,6 +45,8 @@ import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
+const val DISTANCE_CHANGE_THRESHOLD = 0.0005
+
 @GeoviiteService
 class PublicationLogService
 @Autowired

@@ -16,7 +16,7 @@ export const searchGeometryPlanHeaders = async (
     }
 
     const t = await getGeometryPlanHeadersBySearchTerms(
-        10,
+        100,
         undefined,
         undefined,
         [source],

@@ -16,9 +16,14 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     SearchRadiusOverRange("search-radius-over-range"),
     AddressGeocodingFailed("address-geocoding-failed"),
     InvalidTrackNumberName("invalid-track-number-name"),
+    InvalidTrackNumberOid("invalid-track-number-oid"),
     InvalidLocationTrackName("invalid-location-track-name"),
+    InvalidLocationTrackOid("invalid-location-track-oid"),
     InvalidLocationTrackType("invalid-location-track-type"),
     InvalidTrackAddress("invalid-track-address"),
+    InvalidTrackAddressWithDecimals("invalid-track-address-with-decimals"),
+    NoTrackNumberSearchCondition("no-track-number-search-condition"),
+    BothNameAndOidForTrackNumber("both-name-and-oid-for-track-number"),
     TrackNumberNotFound("track-number-not-found"),
     InputCoordinateTransformationFailed("input-coordinate-transformation-failed");
 

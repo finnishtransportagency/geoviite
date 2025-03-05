@@ -22,7 +22,6 @@ import {
     LocationTrackInfoboxVisibilities,
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
-import { Link } from 'vayla-design-lib/link/link';
 import { getLocationTrackOwners } from 'common/common-api';
 import { createDelegates } from 'store/store-utils';
 import { OnSelectOptions } from 'selection/selection-model';
@@ -33,6 +32,7 @@ import { useLocationTrackInfoboxExtras } from 'track-layout/track-layout-react-u
 import { first } from 'utils/array-utils';
 import { LocationTrackState } from 'geoviite-design-lib/location-track-state/location-track-state';
 import { LocationTrackOid } from 'track-layout/oid';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type LocationTrackBasicInfoInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -92,14 +92,14 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
         if (sw) {
             const switchId = sw.id;
             return (
-                <Link
+                <AnchorLink
                     onClick={() =>
                         onSelect({
                             switches: [switchId],
                         })
                     }>
                     {sw.name}
-                </Link>
+                </AnchorLink>
             );
         } else {
             return t('tool-panel.location-track.no-start-or-end-switch');
@@ -179,8 +179,8 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                         locationTrack.duplicateOf
                             ? t('tool-panel.location-track.duplicate-of')
                             : extraInfo?.duplicates?.length ?? 0 > 0
-                              ? t('tool-panel.location-track.has-duplicates')
-                              : t('tool-panel.location-track.not-a-duplicate')
+                            ? t('tool-panel.location-track.has-duplicates')
+                            : t('tool-panel.location-track.not-a-duplicate')
                     }
                     value={
                         <LocationTrackInfoboxDuplicateOf

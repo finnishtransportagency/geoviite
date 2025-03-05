@@ -45,7 +45,8 @@ class LayoutTrackNumberDao(
         jdbcTemplateParam,
         "layout.track_number_external_id",
         "layout.track_number_external_id",
-    ) {
+    ),
+    IExternallyIdentifiedLayoutAssetDao<LayoutTrackNumber> {
 
     override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>) = NoParams.instance
 

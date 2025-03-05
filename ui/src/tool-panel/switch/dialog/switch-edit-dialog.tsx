@@ -40,7 +40,6 @@ import {
 } from 'track-layout/layout-switch-api';
 import styles from './switch-edit-dialog.scss';
 import { useLoader } from 'utils/react-utils';
-import { Link } from 'vayla-design-lib/link/link';
 import { getSaveDisabledReasons, useSwitch } from 'track-layout/track-layout-react-utils';
 import SwitchRevertConfirmationDialog from './switch-revert-confirmation-dialog';
 import { first } from 'utils/array-utils';
@@ -50,6 +49,7 @@ import {
     validateDraftOid,
 } from 'tool-panel/switch/dialog/switch-draft-oid-field';
 import { TFunction } from 'i18next';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -391,11 +391,11 @@ export const SwitchEditDialog = ({
                                             ? t('switch-dialog.name-in-use-deleted')
                                             : t('switch-dialog.name-in-use')}
                                     </div>
-                                    <Link
+                                    <AnchorLink
                                         className={styles['switch-edit-dialog__alert']}
                                         onClick={() => onEdit(conflictingSwitch.id)}>
                                         {moveToEditLinkText(t, conflictingSwitch)}
-                                    </Link>
+                                    </AnchorLink>
                                 </>
                             )}
                         </FieldLayout>

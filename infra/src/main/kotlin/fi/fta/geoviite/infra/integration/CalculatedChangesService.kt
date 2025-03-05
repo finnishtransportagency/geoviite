@@ -23,8 +23,8 @@ import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidateTransition
+import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.publication.getObjectFromValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
@@ -901,3 +901,10 @@ private fun mergeInheritedChangeVersionsWithCompletedMergeVersions(
         splits = listOf(),
     )
 }
+
+private fun <T : LayoutAsset<T>> getObjectFromValidationVersions(
+    versions: List<LayoutRowVersion<T>>,
+    dao: LayoutAssetDao<T>,
+    target: ValidationTarget,
+    id: IntId<T>,
+): T? = (versions.find { it.id == id } ?: dao.fetchVersion(target.baseContext, id))?.let(dao::fetch)

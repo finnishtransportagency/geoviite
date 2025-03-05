@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Table, Td, TdVariant } from 'vayla-design-lib/table/table';
 import examplePersonsData from 'vayla-design-lib/demo/example-persons.json';
-import { Link } from 'vayla-design-lib/link/link';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type ExamplePerson = {
     id: number;
@@ -53,7 +53,9 @@ export const TableExamples: React.FC = () => {
                                 <td>{person.address}</td>
                                 <td>{person.email}</td>
                                 <td>
-                                    <Link href={person.website || undefined}>{person.website}</Link>
+                                    <AnchorLink href={person.website || undefined}>
+                                        {person.website}
+                                    </AnchorLink>
                                 </td>
                                 <td>{person.company}</td>
                                 <td>{person.iban}</td>

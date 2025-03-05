@@ -7,8 +7,12 @@ import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { ChangeTimes } from 'common/common-slice';
 import {
-    createAlignmentFeatures,
+    builtAlignmentBackgroundLineStroke,
+    builtAlignmentLineDash,
+    createAlignmentFeature,
     findMatchingAlignments,
+    getAlignmentZIndex,
+    isHighlighted,
     NORMAL_ALIGNMENT_OPACITY,
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
@@ -16,31 +20,23 @@ import { LocationTrackId, LocationTrackState } from 'track-layout/track-layout-m
 import { Rectangle } from 'model/geometry';
 import {
     getLocationTrackMapAlignmentsByTiles,
+    LayoutAlignmentDataHolder,
     LocationTrackAlignmentDataHolder,
 } from 'track-layout/layout-map-api';
-import { Stroke, Style } from 'ol/style';
-import mapStyles from 'map/map.module.scss';
 import { LayoutContext } from 'common/common-model';
 import { brand } from 'common/brand';
+import mapStyles from 'map/map.module.scss';
+import { Stroke, Style } from 'ol/style';
+import Feature from 'ol/Feature';
 
 let shownLocationTracksCompare = '';
 
-export const builtAlignmentLineDash: {
-    lineDash: number[];
-    lineDashOffset: number;
-    lineCap: CanvasLineCap;
-} = {
-    lineDash: [4, 2],
-    lineDashOffset: 0,
-    lineCap: 'butt',
-};
-
-const highlightedLocationTrackStyle = new Style({
+const highlightedExistingOrNotInUseLocationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 1,
     }),
-    zIndex: 2,
+    zIndex: getAlignmentZIndex('IN_USE', 'HIGHLIGHTED'),
 });
 
 const highlightedBuiltLocationTrackStyle = new Style({
@@ -49,15 +45,20 @@ const highlightedBuiltLocationTrackStyle = new Style({
         width: 1,
         ...builtAlignmentLineDash,
     }),
-    zIndex: 2,
+    zIndex: getAlignmentZIndex('BUILT', 'HIGHLIGHTED'),
 });
 
-const locationTrackStyle = new Style({
+const highlightedBuiltLocationTrackBackgroundStyle = new Style({
+    stroke: builtAlignmentBackgroundLineStroke,
+    zIndex: getAlignmentZIndex('BUILT_BACKGROUND', 'HIGHLIGHTED'),
+});
+
+const locationTrackExistingStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.alignmentLine,
         width: 1,
     }),
-    zIndex: 0,
+    zIndex: getAlignmentZIndex('IN_USE', 'NOT_HIGHLIGHTED'),
 });
 
 const locationTrackNotInUseStyle = new Style({
@@ -65,7 +66,7 @@ const locationTrackNotInUseStyle = new Style({
         color: mapStyles.alignmentLineNotInUse,
         width: 1,
     }),
-    zIndex: 0,
+    zIndex: getAlignmentZIndex('NOT_IN_USE', 'NOT_HIGHLIGHTED'),
 });
 
 const locationTrackBuiltStyle = new Style({
@@ -74,27 +75,72 @@ const locationTrackBuiltStyle = new Style({
         width: 1,
         ...builtAlignmentLineDash,
     }),
-    zIndex: 0,
+    zIndex: getAlignmentZIndex('BUILT', 'NOT_HIGHLIGHTED'),
+});
+const locationTrackBuiltBackgroundStyle = new Style({
+    stroke: builtAlignmentBackgroundLineStroke,
+    zIndex: getAlignmentZIndex('BUILT_BACKGROUND', 'NOT_HIGHLIGHTED'),
 });
 
-export function getLocationTrackStyle(state: LocationTrackState): Style {
+export function getLocationTrackStyles(state: LocationTrackState): Style[] {
+    switch (state) {
+        case 'NOT_IN_USE':
+            return [locationTrackNotInUseStyle];
+        case 'BUILT':
+            return [locationTrackBuiltStyle, locationTrackBuiltBackgroundStyle];
+        default:
+            return [locationTrackExistingStyle];
+    }
+}
+
+export function getLocationTrackHighlightStyles(state: LocationTrackState): Style[] {
+    switch (state) {
+        case 'BUILT':
+            return [
+                highlightedBuiltLocationTrackStyle,
+                highlightedBuiltLocationTrackBackgroundStyle,
+            ];
+        default:
+            return [highlightedExistingOrNotInUseLocationTrackStyle];
+    }
+}
+
+export function getLocationTrackEndTickStyle(state: LocationTrackState): Style {
     switch (state) {
         case 'NOT_IN_USE':
             return locationTrackNotInUseStyle;
         case 'BUILT':
             return locationTrackBuiltStyle;
         default:
-            return locationTrackStyle;
+            return locationTrackExistingStyle;
     }
 }
 
-export function getLocationTrackHighlightStyle(state: LocationTrackState): Style {
+export function getLocationTrackHighlightEndTickStyle(state: LocationTrackState): Style {
     switch (state) {
         case 'BUILT':
             return highlightedBuiltLocationTrackStyle;
         default:
-            return highlightedLocationTrackStyle;
+            return highlightedExistingOrNotInUseLocationTrackStyle;
     }
+}
+
+export function createLocationTrackFeatures(
+    alignments: LayoutAlignmentDataHolder[],
+    selection: Selection,
+    showEndTicks: boolean,
+): Feature<LineString | OlPoint>[] {
+    return alignments.flatMap((alignment) => {
+        const highlighted = isHighlighted(selection, alignment.header);
+        const styles = highlighted
+            ? getLocationTrackHighlightStyles(alignment.header.state)
+            : getLocationTrackStyles(alignment.header.state);
+        const endTickStyle = highlighted
+            ? getLocationTrackHighlightEndTickStyle(alignment.header.state)
+            : getLocationTrackEndTickStyle(alignment.header.state);
+
+        return createAlignmentFeature(alignment, styles, showEndTicks ? endTickStyle : undefined);
+    });
 }
 
 const layerName: MapLayerName = 'location-track-alignment-layer';
@@ -135,7 +181,7 @@ export function createLocationTrackAlignmentLayer(
 
     const createFeatures = (locationTracks: LocationTrackAlignmentDataHolder[]) => {
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
-        return createAlignmentFeatures(locationTracks, selection, showEndPointTicks);
+        return createLocationTrackFeatures(locationTracks, selection, showEndPointTicks);
     };
 
     const onLoadingChange = (

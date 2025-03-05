@@ -1,7 +1,6 @@
 import styles from './switch-edit-dialog.scss';
 import React, { useState } from 'react';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
-import { Link } from 'vayla-design-lib/link/link';
 import { Oid, TimeStamp } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LoaderStatus, useLoaderWithStatus, useRateLimitedTwoPartEffect } from 'utils/react-utils';
@@ -20,6 +19,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { filterNotEmpty } from 'utils/array-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Switch } from 'vayla-design-lib/switch/switch';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 const SWITCH_OID_REQUIRED_PREFIX = '1.2.246.578.3.117.';
 
@@ -38,7 +38,7 @@ const ExistingSwitchEditLink: React.FC<ExistingSwitchEditLinkProps> = ({
 }: ExistingSwitchEditLinkProps) => {
     const { t } = useTranslation();
     return (
-        <Link
+        <AnchorLink
             className={styles['switch-edit-dialog__alert']}
             onClick={() => {
                 setDraftOid('');
@@ -46,7 +46,7 @@ const ExistingSwitchEditLink: React.FC<ExistingSwitchEditLinkProps> = ({
                 onEdit(existingInGeoviite.id);
             }}>
             {moveToEditLinkText(t, existingInGeoviite)}
-        </Link>
+        </AnchorLink>
     );
 };
 
