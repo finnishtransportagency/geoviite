@@ -1334,14 +1334,18 @@
         "search": "Hae",
         "track-number": "Ratanumero",
         "location-track": "Raide",
+        "start-km": "Alkuratakilometri",
+        "end-km": "Loppuratakilometri",
         "applicable-for-plans": "Suunnitteluun soveltuvat",
         "applicable-for-maintenance": "Kunnossapitoon soveltuvat",
         "applicable-for-statistics": "Tilastointiin soveltuvat",
         "select-all": "Valitse kaikki",
         "download-selected": "Lataa valitut ({{amount}} kpl)",
         "mandatory-field": "Pakollinen kenttä",
-        "invalid-track-meter": "Tarkista osoitteen muoto",
-        "end-before-start": "Rataosoitteen loppu on ennen alkua"
+        "invalid-track-meter": "Tarkista ratakilometrin muoto",
+        "end-before-start": "Ratakilometrin loppu on ennen alkua",
+        "outside-track-number-range": "Ratakilometri ei osu ratanumeron alueelle ({{start}}-{{end}})",
+        "outside-location-track-range": "Ratakilometri ei osu raiteen alueelle ({{start}}-{{end}})"
     },
     "preview-view": {
         "unstaged-changes-title": "Muutokset ({{amount}} kpl)",

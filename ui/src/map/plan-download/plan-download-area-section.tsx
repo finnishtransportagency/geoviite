@@ -9,13 +9,21 @@ import {
 } from 'tool-bar/search-dropdown';
 import { LayoutContext } from 'common/common-model';
 import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
-import { AreaSelection, PlanDownloadState } from 'map/plan-download/plan-download-slice';
-import { getVisibleErrorsByProp, hasErrors, PropEdit } from 'utils/validation-utils';
+import { AreaSelection, PlanDownloadState } from 'map/plan-download/plan-download-store';
+import {
+    filterErrors,
+    filterWarnings,
+    getVisibleErrorsByProp,
+    getVisibleIssuesAndParamsByProp,
+    hasErrors,
+    PropEdit,
+} from 'utils/validation-utils';
 import { createClassName } from 'vayla-design-lib/utils';
 import styles from 'map/plan-download/plan-download-popup.scss';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type AreaSelectionType = 'TRACK_METERS' | 'MAINTENANCE_AREA' | 'MAP_AREA';
 const ASSET_SEARCH_TYPES = [SearchType.TRACK_NUMBER, SearchType.LOCATION_TRACK];
@@ -29,18 +37,30 @@ export const PlanDownloadAreaSection: React.FC<{
         propEdit: PropEdit<AreaSelection, TKey>,
     ) => void;
     onCommitField: (field: keyof AreaSelection) => void;
-}> = ({ layoutContext, locationTrack, trackNumber, state, onUpdateProp, onCommitField }) => {
+    loading: boolean;
+}> = ({
+    layoutContext,
+    locationTrack,
+    trackNumber,
+    state,
+    onUpdateProp,
+    onCommitField,
+    loading,
+}) => {
     const { t } = useTranslation();
     const [areaSelectionType, setAreaSelectionType] =
         React.useState<AreaSelectionType>('TRACK_METERS');
 
-    function updateProp<TKey extends keyof AreaSelection>(key: TKey, value: AreaSelection[TKey]) {
+    const updateProp = <TKey extends keyof AreaSelection>(
+        key: TKey,
+        value: AreaSelection[TKey],
+    ) => {
         onUpdateProp({
             key: key,
             value: value,
             editingExistingValue: false,
         });
-    }
+    };
 
     const onItemSelected = (item: SearchItemValue) => {
         if (item) {
@@ -60,10 +80,7 @@ export const PlanDownloadAreaSection: React.FC<{
     ).includes('end-before-start');
 
     const labelClasses = (hasErrors: boolean) =>
-        createClassName(
-            styles['plan-download-popup__field-label'],
-            hasErrors && styles['plan-download-popup__field-label--error'],
-        );
+        createClassName(hasErrors && styles['plan-download-popup__field-label--error']);
 
     const selectedLocationTrackValue: LocationTrackItemValue | undefined = locationTrack && {
         locationTrack,
@@ -78,14 +95,17 @@ export const PlanDownloadAreaSection: React.FC<{
         : trackNumber
           ? selectedTrackNumberValue
           : undefined;
+
     const getName = (item: SearchItemValue) => {
         if (item.type === 'locationTrackSearchItem') return item.locationTrack.name;
         else if (item.type === 'trackNumberSearchItem') return item.trackNumber.number;
         else return '';
     };
+    const errors = state.validationIssues.filter(filterErrors);
+    const warnings = state.validationIssues.filter(filterWarnings);
 
     return (
-        <div>
+        <React.Fragment>
             <div>
                 <div className={styles['plan-download-popup__radio-container']}>
                     <Radio
@@ -95,107 +115,124 @@ export const PlanDownloadAreaSection: React.FC<{
                     </Radio>
                 </div>
                 {areaSelectionType === 'TRACK_METERS' && (
-                    <div className={styles['plan-download-popup__area-grid']}>
-                        <label
-                            className={labelClasses(
-                                hasErrors(
-                                    state.committedFields,
-                                    state.validationIssues,
-                                    'trackNumber',
-                                ),
-                            )}>
-                            {t('plan-download.track-number-or-location-track')}
-                        </label>
+                    <React.Fragment>
                         <FieldLayout
                             value={
-                                <SearchDropdown
-                                    searchTypes={ASSET_SEARCH_TYPES}
-                                    layoutContext={layoutContext}
-                                    placeholder={t('plan-download.search')}
-                                    onItemSelected={onItemSelected}
-                                    onBlur={() => onCommitField('trackNumber')}
-                                    hasError={hasErrors(
-                                        state.committedFields,
-                                        state.validationIssues,
-                                        'trackNumber',
-                                    )}
-                                    value={value}
-                                    getName={getName}
-                                />
+                                <div className={styles['plan-download-popup__area-grid']}>
+                                    <label
+                                        className={labelClasses(
+                                            hasErrors(state.committedFields, errors, 'trackNumber'),
+                                        )}>
+                                        {t('plan-download.track-number-or-location-track')}
+                                    </label>
+                                    <SearchDropdown
+                                        searchTypes={ASSET_SEARCH_TYPES}
+                                        layoutContext={layoutContext}
+                                        placeholder={t('plan-download.search')}
+                                        onItemSelected={onItemSelected}
+                                        onBlur={() => onCommitField('trackNumber')}
+                                        hasError={hasErrors(
+                                            state.committedFields,
+                                            errors,
+                                            'trackNumber',
+                                        )}
+                                        value={value}
+                                        getName={getName}
+                                    />
+                                </div>
                             }
                             errors={getVisibleErrorsByProp(
                                 state.committedFields,
-                                state.validationIssues,
+                                errors,
                                 'trackNumber',
                             ).map((error) => t(`plan-download.${error}`))}
+                            help={loading && <Spinner />}
                         />
-                        <label
-                            className={labelClasses(
-                                hasEndBeforeStartError ||
-                                    hasErrors(
-                                        state.committedFields,
-                                        state.validationIssues,
-                                        'startTrackMeter',
-                                    ),
-                            )}>
-                            {t('data-products.search.track-address-start')}
-                        </label>
                         <FieldLayout
                             value={
-                                <TextField
-                                    qa-id="data-products-search-start-km"
-                                    value={state.areaSelection.startTrackMeter}
-                                    onChange={(e) => updateProp('startTrackMeter', e.target.value)}
-                                    onBlur={() => onCommitField('startTrackMeter')}
-                                    hasError={
-                                        hasEndBeforeStartError ||
-                                        hasErrors(
-                                            state.committedFields,
-                                            state.validationIssues,
-                                            'startTrackMeter',
-                                        )
-                                    }
-                                    wide
-                                />
+                                <div className={styles['plan-download-popup__area-grid']}>
+                                    <label
+                                        className={labelClasses(
+                                            hasEndBeforeStartError ||
+                                                hasErrors(
+                                                    state.committedFields,
+                                                    errors,
+                                                    'startTrackMeter',
+                                                ),
+                                        )}>
+                                        {t('plan-download.start-km')}
+                                    </label>
+                                    <TextField
+                                        qa-id="plan-download-start-km"
+                                        value={state.areaSelection.startTrackMeter}
+                                        onChange={(e) =>
+                                            updateProp('startTrackMeter', e.target.value)
+                                        }
+                                        onBlur={() => onCommitField('startTrackMeter')}
+                                        hasError={
+                                            hasEndBeforeStartError ||
+                                            hasErrors(
+                                                state.committedFields,
+                                                errors,
+                                                'startTrackMeter',
+                                            )
+                                        }
+                                        wide
+                                    />
+                                </div>
                             }
                             errors={getVisibleErrorsByProp(
                                 state.committedFields,
-                                state.validationIssues,
+                                errors,
                                 'startTrackMeter',
                             ).map((error) => t(`plan-download.${error}`))}
+                            warnings={getVisibleIssuesAndParamsByProp(
+                                state.committedFields,
+                                warnings,
+                                'startTrackMeter',
+                            ).map((error) => t(`plan-download.${error.reason}`, error.params))}
                         />
-                        <label
-                            className={labelClasses(
-                                hasErrors(
-                                    state.committedFields,
-                                    state.validationIssues,
-                                    'endTrackMeter',
-                                ),
-                            )}>
-                            {t('data-products.search.track-address-end')}
-                        </label>
                         <FieldLayout
                             value={
-                                <TextField
-                                    qa-id="data-products-search-end-km"
-                                    value={state.areaSelection.endTrackMeter}
-                                    onChange={(e) => updateProp('endTrackMeter', e.target.value)}
-                                    onBlur={() => onCommitField('endTrackMeter')}
-                                    hasError={hasErrors(
-                                        state.committedFields,
-                                        state.validationIssues,
-                                        'endTrackMeter',
-                                    )}
-                                    wide
-                                />
+                                <div className={styles['plan-download-popup__area-grid']}>
+                                    <label
+                                        className={labelClasses(
+                                            hasErrors(
+                                                state.committedFields,
+                                                errors,
+                                                'endTrackMeter',
+                                            ),
+                                        )}>
+                                        {t('plan-download.end-km')}
+                                    </label>
+                                    <TextField
+                                        qa-id="plan-download-end-km"
+                                        value={state.areaSelection.endTrackMeter}
+                                        onChange={(e) =>
+                                            updateProp('endTrackMeter', e.target.value)
+                                        }
+                                        onBlur={() => onCommitField('endTrackMeter')}
+                                        hasError={hasErrors(
+                                            state.committedFields,
+                                            errors,
+                                            'endTrackMeter',
+                                        )}
+                                        wide
+                                    />
+                                </div>
                             }
                             errors={getVisibleErrorsByProp(
                                 state.committedFields,
-                                state.validationIssues,
+                                errors,
                                 'endTrackMeter',
                             ).map((error) => t(`plan-download.${error}`))}
+                            warnings={getVisibleIssuesAndParamsByProp(
+                                state.committedFields,
+                                warnings,
+                                'endTrackMeter',
+                            ).map((error) => t(`plan-download.${error.reason}`, error.params))}
                         />
-                    </div>
+                    </React.Fragment>
                 )}
             </div>
             <div className={styles['plan-download-popup__radio-container']}>
@@ -214,6 +251,6 @@ export const PlanDownloadAreaSection: React.FC<{
                     {t('plan-download.choose-from-map')}
                 </Radio>
             </div>
-        </div>
+        </React.Fragment>
     );
 };

@@ -105,9 +105,10 @@ export type AssetId =
     | LayoutKmPostId;
 
 const TRACK_METER_REGEX = /^([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4}(?:.[0-9]{1,4})?)$/;
-const KM_NUMBER_REGEX = /^([0-9]{1,4})([a-zA-Z]{0,2})$/;
+const KM_NUMBER_REGEX = /^([0-9]{4})([a-zA-Z]{0,2})$/;
 
 export const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(trackMeter);
+export const kmNumberIsValid = (kmNumber: string) => KM_NUMBER_REGEX.test(kmNumber);
 
 const splitTrackMeterIntoComponents = (trackMeterString: string) => {
     const components = trackMeterString.match(TRACK_METER_REGEX);

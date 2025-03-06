@@ -25,17 +25,14 @@
         flex-grow: 1;
     }
 
-    &__field-label {
-        margin-top: 15px;
-
-        &--error {
-            color: vayla-design.$color-red-dark;
-        }
+    &__field-label--error {
+        color: vayla-design.$color-red-dark;
     }
 
     &__area-grid {
         display: grid;
         grid-template-columns: 2fr 3fr;
+        align-items: center;
     }
 
     &-accordion {

@@ -46,8 +46,26 @@ export function getVisibleErrorsByProp<T>(
         : [];
 }
 
+export const getVisibleIssuesAndParamsByProp = <T>(
+    committedFields: (keyof T)[],
+    validationIssues: FieldValidationIssue<T>[],
+    prop: keyof T,
+): { reason: string; params: TOptions }[] => {
+    return committedFields.includes(prop)
+        ? validationIssues
+              .filter((error) => error.field === prop)
+              .map((error) => ({ reason: error.reason, params: error.params ?? {} }))
+        : [];
+};
+
 export const hasErrors = <T>(
     committedFields: (keyof T)[],
     validationIssues: FieldValidationIssue<T>[],
     prop: keyof T,
 ) => getVisibleErrorsByProp(committedFields, validationIssues, prop).length > 0;
+
+export const filterErrors = <T>(issue: FieldValidationIssue<T>) =>
+    issue.type === FieldValidationIssueType.ERROR;
+
+export const filterWarnings = <T>(issue: FieldValidationIssue<T>) =>
+    issue.type === FieldValidationIssueType.WARNING;

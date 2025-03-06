@@ -10,22 +10,28 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { LayoutContext, trackMeterIsValid } from 'common/common-model';
-import { useLocationTrack, useTrackNumber } from 'track-layout/track-layout-react-utils';
-import {
-    initialPlanDownloadStateFromSelection,
-    planDownloadActions,
-    planDownloadReducer,
-    PlanDownloadState,
-    PlanSelectionType,
-} from 'map/plan-download/plan-download-slice';
-import { UnknownAction } from 'redux';
-import { createDelegatesWithDispatcher } from 'store/store-utils';
+import { kmNumberIsValid, LayoutContext } from 'common/common-model';
+import { PlanSelectionType } from 'map/plan-download/plan-download-store';
+import { createDelegates } from 'store/store-utils';
 import { Menu, menuDivider, menuOption } from 'vayla-design-lib/menu/menu';
 import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
 import { PlanDownloadAreaSection } from 'map/plan-download/plan-download-area-section';
 import { PlanDownloadPlanSection } from 'map/plan-download/plan-download-plan-section';
 import { comparePlans, filterPlans } from 'map/plan-download/plan-download-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { getTrackNumberById } from 'track-layout/layout-track-number-api';
+import {
+    getReferenceLineStartAndEnd,
+    getTrackNumberReferenceLine,
+} from 'track-layout/layout-reference-line-api';
+import { getChangeTimes } from 'common/change-time-api';
+import {
+    getLocationTrack,
+    getLocationTrackStartAndEnd,
+} from 'track-layout/layout-location-track-api';
+import { useTrackLayoutAppSelector } from 'store/hooks';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { expectDefined } from 'utils/type-utils';
 
 type PlanDownloadPopupSectionProps = {
     selectedType: PlanSelectionType | undefined;
@@ -68,8 +74,8 @@ const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> = ({
 };
 
 const trackMeterRange = (start: string, end: string) => {
-    const startOrUndefined = trackMeterIsValid(start) ? start : undefined;
-    const endOrUndefined = trackMeterIsValid(end) ? end : undefined;
+    const startOrUndefined = kmNumberIsValid(start) ? start : undefined;
+    const endOrUndefined = kmNumberIsValid(end) ? end : undefined;
 
     if (startOrUndefined && endOrUndefined) return `${start}-${end}`;
     if (startOrUndefined) return `${start}-`;
@@ -124,14 +130,68 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({
     selectedTrackNumberId,
     selectedLocationTrackId,
 }) => {
-    const [state, dispatcher] = React.useReducer<PlanDownloadState, [action: UnknownAction]>(
-        planDownloadReducer,
-        initialPlanDownloadStateFromSelection(selectedLocationTrackId, selectedTrackNumberId),
-    );
+    const state = useTrackLayoutAppSelector((state) => state);
+    const delegates = createDelegates(TrackLayoutActions);
+    const planDownloadState = expectDefined(state.planDownloadState);
 
-    const stateActions = createDelegatesWithDispatcher(dispatcher, planDownloadActions);
-    const trackNumber = useTrackNumber(state.areaSelection?.trackNumber, layoutContext);
-    const locationTrack = useLocationTrack(state.areaSelection?.locationTrack, layoutContext);
+    React.useEffect(() => {
+        if (
+            !planDownloadState.areaSelection.locationTrack &&
+            !planDownloadState.areaSelection.trackNumber
+        ) {
+            if (selectedLocationTrackId) {
+                delegates.onUpdatePlanDownloadAreaSelectionProp({
+                    key: 'locationTrack',
+                    value: selectedLocationTrackId,
+                    editingExistingValue: false,
+                });
+            } else if (selectedTrackNumberId) {
+                delegates.onUpdatePlanDownloadAreaSelectionProp({
+                    key: 'trackNumber',
+                    value: selectedTrackNumberId,
+                    editingExistingValue: false,
+                });
+            }
+        }
+    }, [selectedTrackNumberId, selectedLocationTrackId]);
+
+    const [trackNumberAndStartAndEnd, trackNumberFetchStatus] = useLoaderWithStatus(async () => {
+        const trackNumber = planDownloadState.areaSelection.trackNumber
+            ? await getTrackNumberById(planDownloadState.areaSelection.trackNumber, layoutContext)
+            : undefined;
+        const referenceLine = trackNumber
+            ? await getTrackNumberReferenceLine(trackNumber.id, layoutContext)
+            : undefined;
+        const startAndEnd = referenceLine
+            ? await getReferenceLineStartAndEnd(referenceLine.id, layoutContext)
+            : undefined;
+        return { trackNumber, startAndEnd };
+    }, [planDownloadState.areaSelection.trackNumber]);
+    const [locationTrackAndStartAndEnd, locationTrackFetchStatus] =
+        useLoaderWithStatus(async () => {
+            const locationTrack = planDownloadState.areaSelection.locationTrack
+                ? await getLocationTrack(
+                      planDownloadState.areaSelection?.locationTrack,
+                      layoutContext,
+                  )
+                : undefined;
+            const startAndEnd = locationTrack
+                ? await getLocationTrackStartAndEnd(
+                      locationTrack.id,
+                      layoutContext,
+                      getChangeTimes().layoutLocationTrack,
+                  )
+                : undefined;
+            return { locationTrack, startAndEnd };
+        }, [planDownloadState.areaSelection.locationTrack]);
+
+    React.useEffect(() => {
+        if (planDownloadState.areaSelection.locationTrack)
+            delegates.setPlanDownloadAlignmentStartAndEnd(locationTrackAndStartAndEnd?.startAndEnd);
+        else if (planDownloadState.areaSelection.trackNumber)
+            delegates.setPlanDownloadAlignmentStartAndEnd(trackNumberAndStartAndEnd?.startAndEnd);
+    }, [locationTrackAndStartAndEnd, trackNumberAndStartAndEnd]);
+
     const menuAnchorRef = React.useRef<HTMLDivElement>(null);
     const [showFilterMenu, setShowFilterMenu] = React.useState(false);
 
@@ -140,37 +200,41 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({
     const filterMenuItems = [
         menuOption(
             () =>
-                stateActions.setApplicabilities(
-                    toggleApplicability('PLANNING', state.selectedApplicabilities),
+                delegates.setPlanDownloadApplicabilities(
+                    toggleApplicability('PLANNING', planDownloadState.selectedApplicabilities),
                 ),
             t('plan-download.applicable-for-plans'),
             'applicability-planning-filter',
             false,
             'CLOSE_MANUALLY',
-            state.selectedApplicabilities.includes('PLANNING') ? Icons.Tick : undefined,
+            planDownloadState.selectedApplicabilities.includes('PLANNING') ? Icons.Tick : undefined,
         ),
         menuDivider(),
         menuOption(
             () =>
-                stateActions.setApplicabilities(
-                    toggleApplicability('MAINTENANCE', state.selectedApplicabilities),
+                delegates.setPlanDownloadApplicabilities(
+                    toggleApplicability('MAINTENANCE', planDownloadState.selectedApplicabilities),
                 ),
             t('plan-download.applicable-for-maintenance'),
             'applicability-planning-filter',
             false,
             'CLOSE_MANUALLY',
-            state.selectedApplicabilities.includes('MAINTENANCE') ? Icons.Tick : undefined,
+            planDownloadState.selectedApplicabilities.includes('MAINTENANCE')
+                ? Icons.Tick
+                : undefined,
         ),
         menuOption(
             () =>
-                stateActions.setApplicabilities(
-                    toggleApplicability('STATISTICS', state.selectedApplicabilities),
+                delegates.setPlanDownloadApplicabilities(
+                    toggleApplicability('STATISTICS', planDownloadState.selectedApplicabilities),
                 ),
             t('plan-download.applicable-for-statistics'),
             'applicability-planning-filter',
             false,
             'CLOSE_MANUALLY',
-            state.selectedApplicabilities.includes('STATISTICS') ? Icons.Tick : undefined,
+            planDownloadState.selectedApplicabilities.includes('STATISTICS')
+                ? Icons.Tick
+                : undefined,
         ),
     ];
 
@@ -180,9 +244,12 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({
     );
 
     const setPlanSelected = (id: GeometryPlanId, selected: boolean) => {
-        stateActions.setPlanSelected({ id, selected });
+        delegates.setPlanDownloadPlanSelected({ id, selected });
     };
-    const plans = filterPlans(state.plans, state.selectedApplicabilities).toSorted(comparePlans);
+    const plans = filterPlans(
+        planDownloadState.plans,
+        planDownloadState.selectedApplicabilities,
+    ).toSorted(comparePlans);
 
     return (
         <div className={styles['plan-download-popup']}>
@@ -199,36 +266,43 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({
             </h1>
             <PlanDownloadPopupSection
                 planSelectionType={'AREA'}
-                setPlanSelectionType={stateActions.setSelectionType}
-                selectedType={state.selectionType}
+                setPlanSelectionType={delegates.setPlanDownloadSelectionType}
+                selectedType={planDownloadState.selectionType}
                 title={
                     <React.Fragment>
                         <span>{t('plan-download.area')}</span>
                         <span>
                             <LocationSpecifier
-                                trackNumber={trackNumber}
-                                locationTrack={locationTrack}
-                                startTrackMeter={state.areaSelection?.startTrackMeter}
-                                endTrackMeter={state.areaSelection?.endTrackMeter}
+                                trackNumber={trackNumberAndStartAndEnd?.trackNumber}
+                                locationTrack={locationTrackAndStartAndEnd?.locationTrack}
+                                startTrackMeter={planDownloadState.areaSelection.startTrackMeter}
+                                endTrackMeter={planDownloadState.areaSelection.endTrackMeter}
                             />
                         </span>
                     </React.Fragment>
                 }>
-                {state.areaSelection && (
+                {planDownloadState.areaSelection && (
                     <PlanDownloadAreaSection
                         layoutContext={layoutContext}
-                        trackNumber={trackNumber}
-                        locationTrack={locationTrack}
-                        state={state}
-                        onCommitField={stateActions.onCommitField}
-                        onUpdateProp={stateActions.onUpdateProp}
+                        trackNumber={trackNumberAndStartAndEnd?.trackNumber}
+                        locationTrack={locationTrackAndStartAndEnd?.locationTrack}
+                        state={planDownloadState}
+                        onCommitField={delegates.onCommitPlanDownloadAreaSelectionField}
+                        onUpdateProp={delegates.onUpdatePlanDownloadAreaSelectionProp}
+                        loading={
+                            planDownloadState.areaSelection.locationTrack
+                                ? locationTrackFetchStatus !== LoaderStatus.Ready
+                                : planDownloadState.areaSelection.trackNumber
+                                  ? trackNumberFetchStatus !== LoaderStatus.Ready
+                                  : false
+                        }
                     />
                 )}
             </PlanDownloadPopupSection>
             <PlanDownloadPopupSection
                 planSelectionType={'PLAN'}
-                setPlanSelectionType={stateActions.setSelectionType}
-                selectedType={state.selectionType}
+                setPlanSelectionType={delegates.setPlanDownloadSelectionType}
+                selectedType={planDownloadState.selectionType}
                 title={
                     <React.Fragment>
                         <span>

@@ -5,7 +5,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
-import { DownloadablePlan } from 'map/plan-download/plan-download-slice';
+import { DownloadablePlan } from 'map/plan-download/plan-download-store';
 
 type PlanItemProps = {
     id: GeometryPlanId;

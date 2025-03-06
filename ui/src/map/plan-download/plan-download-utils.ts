@@ -1,5 +1,5 @@
-import { DownloadablePlan } from 'map/plan-download/plan-download-slice';
-import { PlanApplicability } from 'geometry/geometry-model';
+import { DownloadablePlan } from 'map/plan-download/plan-download-store';
+import { KmNumberRange, PlanApplicability } from 'geometry/geometry-model';
 import { compareKmNumberStrings } from 'common/common-model';
 
 export const filterPlans = (
@@ -17,3 +17,10 @@ export const comparePlans = (a: DownloadablePlan, b: DownloadablePlan): number =
         return compareKmNumberStrings(a.kmNumberRange.min, b.kmNumberRange.min);
     }
 };
+
+export const isKmNumberWithinAlignment = (
+    kmNumber: string,
+    kmNumberRange: KmNumberRange,
+): boolean =>
+    compareKmNumberStrings(kmNumber, kmNumberRange.min) >= 0 &&
+    compareKmNumberStrings(kmNumber, kmNumberRange.max) <= 0;

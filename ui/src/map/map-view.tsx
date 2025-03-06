@@ -91,6 +91,7 @@ import { useResizeObserver } from 'utils/use-resize-observer';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
+import { PlanDownloadState } from 'map/plan-download/plan-download-store';
 
 declare global {
     interface Window {
@@ -104,6 +105,7 @@ export type MapViewProps = {
     layoutContext: LayoutContext;
     linkingState: LinkingState | undefined;
     splittingState: SplittingState | undefined;
+    planDownloadState: PlanDownloadState | undefined;
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
@@ -116,6 +118,8 @@ export type MapViewProps = {
     onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
+    onStartPlanDownload: () => void;
+    onStopPlanDownload: () => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
@@ -186,6 +190,7 @@ const MapView: React.FC<MapViewProps> = ({
     layoutContext,
     linkingState,
     splittingState,
+    planDownloadState,
     changeTimes,
     onSelect,
     onViewportUpdate,
@@ -197,6 +202,8 @@ const MapView: React.FC<MapViewProps> = ({
     onRemoveGeometryLinkPoint,
     onShownLayerItemsChange,
     onHighlightItems,
+    onStartPlanDownload,
+    onStopPlanDownload,
     onClickLocation,
     onMapLayerChange,
     mapLayerMenuGroups,
@@ -215,8 +222,6 @@ const MapView: React.FC<MapViewProps> = ({
         customActiveMapTool || (mapTools && first(mapTools)),
     );
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
-    const [showingPlanDownloadPopup, setShowingPlanDownloadPopup] = React.useState(true);
-
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
 
     const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
@@ -765,6 +770,8 @@ const MapView: React.FC<MapViewProps> = ({
     const cssProperties = {
         ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
     };
+    const togglePlanDownload = () =>
+        planDownloadState ? onStopPlanDownload() : onStartPlanDownload();
 
     return (
         <div className={mapClassNames} style={cssProperties}>
@@ -785,8 +792,8 @@ const MapView: React.FC<MapViewProps> = ({
                     <Button
                         variant={ButtonVariant.GHOST}
                         size={ButtonSize.BY_CONTENT}
-                        isPressed={showingPlanDownloadPopup}
-                        onClick={() => setShowingPlanDownloadPopup(!showingPlanDownloadPopup)}>
+                        isPressed={!!planDownloadState}
+                        onClick={togglePlanDownload}>
                         <div className={styles['map-tool-button-content']}>
                             <div className={styles['map-tool-button-content__icon']}>
                                 <Icons.Download color={IconColor.INHERIT} size={IconSize.INHERIT} />
@@ -844,9 +851,9 @@ const MapView: React.FC<MapViewProps> = ({
                     <Spinner />
                 </div>
             )}
-            {showingPlanDownloadPopup && (
+            {planDownloadState && (
                 <PlanDownloadPopup
-                    onClose={() => setShowingPlanDownloadPopup(false)}
+                    onClose={() => onStopPlanDownload()}
                     layoutContext={layoutContext}
                     selectedLocationTrackId={first(selection.selectedItems.locationTracks)}
                     selectedTrackNumberId={first(selection.selectedItems.trackNumbers)}

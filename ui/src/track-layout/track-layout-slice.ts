@@ -50,6 +50,11 @@ import { filterByPublicationStage } from 'preview/preview-view-filters';
 import { asPublicationCandidateReferences } from 'publication/publication-utils';
 import { PlanSource } from 'geometry/geometry-model';
 import { brand } from 'common/brand';
+import {
+    initialPlanDownloadStateFromSelection,
+    planDownloadReducers,
+    PlanDownloadState,
+} from 'map/plan-download/plan-download-store';
 
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
@@ -220,6 +225,7 @@ export type TrackLayoutState = {
     locationTrackTaskList?: SwitchRelinkingValidationTaskList;
     previewState: PreviewState;
     geometryPlanViewSettings: GeometryPlanViewSettings;
+    planDownloadState?: PlanDownloadState;
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
@@ -242,6 +248,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
         grouping: GeometryPlanGrouping.ByProject,
         visibleSources: ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
     },
+    planDownloadState: undefined,
 };
 
 export function getSelectableItemTypes(
@@ -311,6 +318,7 @@ const trackLayoutSlice = createSlice({
         ...wrapReducers((state: TrackLayoutState) => state, linkingReducers),
         ...wrapReducers((state: TrackLayoutState) => state, splitReducers),
         ...wrapReducers((state: TrackLayoutState) => state.previewState, previewReducers),
+        ...wrapReducers((state: TrackLayoutState) => state.planDownloadState, planDownloadReducers),
 
         onInfoboxVisibilityChange: (
             state: TrackLayoutState,
@@ -593,6 +601,15 @@ const trackLayoutSlice = createSlice({
             { payload: sources }: PayloadAction<PlanSource[]>,
         ) => {
             state.geometryPlanViewSettings.visibleSources = sources;
+        },
+        onStartPlanDownload: (state: TrackLayoutState): void => {
+            state.planDownloadState = initialPlanDownloadStateFromSelection(
+                first(state.selection.selectedItems.locationTracks),
+                first(state.selection.selectedItems.trackNumbers),
+            );
+        },
+        onStopPlanDownload: (state: TrackLayoutState): void => {
+            state.planDownloadState = undefined;
         },
     },
 });
