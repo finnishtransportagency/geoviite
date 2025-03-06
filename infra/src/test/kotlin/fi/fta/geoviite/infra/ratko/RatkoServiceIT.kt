@@ -97,10 +97,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.queryOne
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -109,6 +105,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -544,7 +544,7 @@ constructor(
                     draft = true,
                 ),
                 trackGeometryOfSegments(
-                    segment(Point(2.0, 0.0), Point(8.0, 0.0), sourceId = plan.alignments[0].elements[0])
+                    segment(Point(2.0, 0.0), Point(8.0, 0.0), sourceId = plan.alignments[0].elements[0].id)
                 ),
             )
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
@@ -1158,8 +1158,8 @@ constructor(
                 LayoutBranch.main,
                 locationTrack(trackNumber.id, draft = true),
                 trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(5.0, 0.0), sourceId = planAlignments[0].elements[0]),
-                    segment(Point(5.0, 0.0), Point(5.6, 0.0), sourceId = planAlignments[1].elements[0]),
+                    segment(Point(0.0, 0.0), Point(5.0, 0.0), sourceId = planAlignments[0].elements[0].id),
+                    segment(Point(5.0, 0.0), Point(5.6, 0.0), sourceId = planAlignments[1].elements[0].id),
                 ),
             )
 

@@ -32,6 +32,8 @@ import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
+import fi.fta.geoviite.infra.tracklayout.EdgeNode
+import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
@@ -41,14 +43,20 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.PlaceHolderEdgeNode
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
+import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
@@ -374,8 +382,11 @@ constructor(
                 .saveLocationTrack(
                     locationTrackAndGeometry(
                         trackNumberId,
-                        segment(Point(0.0, 0.0), Point(10.0, 0.0))
-                            .copy(sourceId = linkingLocationTrack.alignments[0].elements[0].id as IndexedId),
+                        segment(
+                            Point(0.0, 0.0),
+                            Point(10.0, 0.0),
+                            sourceId = linkingLocationTrack.alignments[0].elements[0].id,
+                        ),
                     )
                 )
                 .id
@@ -384,23 +395,34 @@ constructor(
                 .saveReferenceLine(
                     referenceLineAndAlignment(
                         trackNumberId,
-                        segment(Point(0.0, 0.0), Point(10.0, 0.0))
-                            .copy(sourceId = linkingReferenceLine.alignments[0].elements[0].id as IndexedId),
+                        segment(
+                            Point(0.0, 0.0),
+                            Point(10.0, 0.0),
+                            sourceId = linkingReferenceLine.alignments[0].elements[0].id,
+                        ),
                     )
                 )
                 .id
         val linkedSwitch = mainDraftContext.save(switch(stateCategory = LayoutStateCategory.EXISTING)).id
         val linkedLocationTrackAlongSwitch =
             mainDraftContext
-                .saveLocationTrack(
-                    locationTrackAndGeometry(
-                        trackNumberId,
-                        segment(Point(0.0, 0.0), Point(10.0, 0.0))
-                            .copy(
-                                sourceId = linkingSwitchAndLocationTrack.alignments[0].elements[0].id as IndexedId,
-                                switchId = linkedSwitch,
-                            ),
-                    )
+                .save(
+                    locationTrack(trackNumberId),
+                    trackGeometry(
+                        TmpLayoutEdge(
+                            startNode = EdgeNode.switch(inner = switchLinkYV(linkedSwitch, 1), outer = null),
+                            endNode = PlaceHolderEdgeNode,
+                            segments =
+                                listOf(
+                                    segment(
+                                        points = toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0)),
+                                        source = GeometrySource.PLAN,
+                                        sourceId = linkingSwitchAndLocationTrack.alignments[0].elements[0].id,
+                                        resolution = 1,
+                                    )
+                                ),
+                        )
+                    ),
                 )
                 .id
         val linkedKmPost =

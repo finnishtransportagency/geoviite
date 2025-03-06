@@ -19,6 +19,9 @@ import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
+import fi.fta.geoviite.infra.tracklayout.GeometrySource.IMPORTED
+import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MATH
@@ -193,11 +196,11 @@ constructor(
         val geometryElement = geometryAlignment.elements.first()
         val alignment =
             alignment(
-                segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement),
-                segment(points = points2, source = GeometrySource.PLAN, sourceId = geometryElement),
-                segment(points = points3, source = GeometrySource.GENERATED),
-                segment(points = points4, source = GeometrySource.GENERATED),
-                segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement),
+                segment(points = points, source = PLAN, sourceId = geometryElement.id),
+                segment(points = points2, source = PLAN, sourceId = geometryElement.id),
+                segment(points = points3, source = GENERATED),
+                segment(points = points4, source = GENERATED),
+                segment(points = points5, source = PLAN, sourceId = geometryElement.id),
             )
         val version = alignmentDao.insert(alignment)
 
@@ -296,38 +299,25 @@ constructor(
 
         val geometry =
             trackGeometryOfSegments(
-                segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement),
-                segment(points = points2, source = GeometrySource.IMPORTED),
-                segment(points = points3, source = GeometrySource.GENERATED),
-                segment(points = points4, source = GeometrySource.PLAN, sourceId = geometryElementWithoutCrs),
-                segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement),
-                segment(points = points6, source = GeometrySource.PLAN, sourceId = geometryElementWithCrsButNoProfile),
+                segment(points = points, source = PLAN, sourceId = geometryElement.id),
+                segment(points = points2, source = IMPORTED),
+                segment(points = points3, source = GENERATED),
+                segment(points = points4, source = PLAN, sourceId = geometryElementWithoutCrs.id),
+                segment(points = points5, source = PLAN, sourceId = geometryElement.id),
+                segment(points = points6, source = PLAN, sourceId = geometryElementWithCrsButNoProfile.id),
             )
         locationTrackDao.save(locationTrack(trackNumberId, draft = false), geometry)
 
         val boundingBox = boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
-        val profileInfo =
-            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
-                MainLayoutContext.official,
-                boundingBox,
-            )
+        val profileInfo = alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, boundingBox)
         assertEquals(6, profileInfo.size)
         assertEquals(listOf(true, false, false, false, true, false), profileInfo.map { it.hasProfile })
 
         val onlyProfileless =
-            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
-                MainLayoutContext.official,
-                boundingBox,
-                false,
-            )
+            alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, boundingBox, false)
         assertEquals(profileInfo.slice(1..3) + profileInfo[5], onlyProfileless)
 
-        val onlyProfileful =
-            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
-                MainLayoutContext.official,
-                boundingBox,
-                true,
-            )
+        val onlyProfileful = alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, boundingBox, true)
 
         assertEquals(2, onlyProfileful.size)
         assertEquals(listOf(profileInfo[0], profileInfo[4]), onlyProfileful)
@@ -423,7 +413,7 @@ constructor(
                 x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
                 y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
             ),
-            source = GeometrySource.PLAN,
+            source = PLAN,
         )
 
     private fun segmentWithZAndCant(segmentSeed: Int) =
@@ -435,7 +425,7 @@ constructor(
                 z = segmentSeed.toDouble()..segmentSeed + 20.0,
                 cant = segmentSeed.toDouble()..segmentSeed + 20.0,
             ),
-            source = GeometrySource.PLAN,
+            source = PLAN,
         )
 
     fun insertAndVerify(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {

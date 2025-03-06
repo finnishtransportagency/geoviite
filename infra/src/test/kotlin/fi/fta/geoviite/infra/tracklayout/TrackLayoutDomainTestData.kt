@@ -515,7 +515,22 @@ fun trackGeometryOfSegments(segments: List<LayoutSegment>): TmpLocationTrackGeom
             listOf(TmpLayoutEdge(startNode = PlaceHolderEdgeNode, endNode = PlaceHolderEdgeNode, segments = segments))
         )
 
+fun trackGeometry(vararg edges: LayoutEdge): TmpLocationTrackGeometry = trackGeometry(edges.toList())
+
 fun trackGeometry(edges: List<LayoutEdge>): TmpLocationTrackGeometry = TmpLocationTrackGeometry(edges)
+
+fun switchLinkYV(switchId: IntId<LayoutSwitch>, jointNumber: Int) =
+    SwitchLink(
+        switchId,
+        when (jointNumber) {
+            1 -> SwitchJointRole.MAIN
+            2 -> SwitchJointRole.CONNECTION
+            3 -> SwitchJointRole.CONNECTION
+            5 -> SwitchJointRole.MATH
+            else -> throw IllegalArgumentException("Invalid joint number for YV: $jointNumber")
+        },
+        JointNumber(jointNumber),
+    )
 
 fun mapAlignment(vararg segments: PlanLayoutSegment) = mapAlignment(segments.toList())
 
@@ -722,7 +737,7 @@ fun attachSwitches(
 fun segment(
     vararg points: IPoint,
     source: GeometrySource = PLAN,
-    sourceId: GeometryElement? = null,
+    sourceId: DomainId<GeometryElement>? = null,
     switchId: IntId<LayoutSwitch>? = null,
     startJointNumber: JointNumber? = null,
     endJointNumber: JointNumber? = null,
@@ -738,16 +753,10 @@ fun segment(
         endJointNumber = endJointNumber,
     )
 
-fun segment(vararg points: Point3DZ, source: GeometrySource = PLAN, sourceId: GeometryElement? = null) =
-    segment(toSegmentPoints(to3DMPoints(points.asList())), source, sourceId)
-
-fun segment(vararg points: IPoint3DM, source: GeometrySource = PLAN, sourceId: GeometryElement? = null) =
-    segment(toSegmentPoints(points.asList()), source, sourceId)
-
 fun segment(
     points: List<SegmentPoint>,
     source: GeometrySource = PLAN,
-    sourceId: GeometryElement? = null,
+    sourceId: DomainId<GeometryElement>? = null,
     sourceStart: Double? = null,
     resolution: Int = 1,
     switchId: IntId<LayoutSwitch>? = null,
@@ -756,7 +765,7 @@ fun segment(
 ) =
     LayoutSegment(
         geometry = SegmentGeometry(segmentPoints = points, resolution = resolution),
-        sourceId = sourceId?.id as IndexedId?,
+        sourceId = sourceId as IndexedId?,
         sourceStart = sourceStart,
         switchId = switchId,
         startJointNumber = startJointNumber,

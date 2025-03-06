@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryElement
-import fi.fta.geoviite.infra.geometry.minimalLine
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.Range
@@ -397,11 +396,10 @@ class LinkingTest {
     @Test
     fun `Source length values are correct after splitting`() {
         val sourceId = IndexedId<GeometryElement>(1, 2)
-        val sourceElement = minimalLine(Point(0.0, 0.0), Point(0.0, 1.0), id = sourceId)
         val alignment =
             alignment(
                 segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0), sourceId = sourceElement, sourceStart = 10.0),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0), sourceId = sourceId, sourceStart = 10.0),
                 segment(Point(0.0, 2.0), Point(0.0, 3.0)),
             )
         // Cutting other segments doesn't affect source start

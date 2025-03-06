@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -30,7 +31,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -505,35 +505,43 @@ constructor(
     }
 
     @Test
-    fun `getLocationTrackSwitches finds both topology and segment switches`() {
+    fun `getLocationTrackSwitches finds all connected switches`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val topologyStartSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
-        val topologyEndSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
-        val segmentSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
+        val outerStartSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
+        val innerStartSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
+        val outerEndSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
+        val innerEndSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
+        val innerMidSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
 
         val (track, _) =
             insertAndFetchDraft(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
-                    topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
-                    draft = true,
-                ),
-                trackGeometryOfSegments(
-                    segment(
-                        Point(0.0, 0.0),
-                        Point(10.0, 0.0),
-                        switchId = segmentSwitchId,
-                        startJointNumber = JointNumber(1),
-                        endJointNumber = JointNumber(2),
-                    )
+                locationTrack(trackNumberId = trackNumberId, draft = true),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode =
+                            EdgeNode.switch(
+                                inner = switchLinkYV(innerStartSwitchId, 2),
+                                outer = switchLinkYV(outerStartSwitchId, 3),
+                            ),
+                        endNode = EdgeNode.switch(inner = switchLinkYV(innerMidSwitchId, 1), outer = null),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                    ),
+                    TmpLayoutEdge(
+                        startNode = EdgeNode.switch(inner = null, outer = switchLinkYV(innerMidSwitchId, 1)),
+                        endNode =
+                            EdgeNode.switch(
+                                inner = switchLinkYV(innerEndSwitchId, 1),
+                                outer = switchLinkYV(outerEndSwitchId, 5),
+                            ),
+                        segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                    ),
                 ),
             )
 
-        val switches = locationTrackService.getSwitchesForLocationTrack(MainLayoutContext.draft, track.id as IntId)
-        assertContains(switches, topologyEndSwitchId)
-        assertContains(switches, topologyStartSwitchId)
-        assertContains(switches, segmentSwitchId)
+        assertEquals(
+            listOf(outerStartSwitchId, innerStartSwitchId, innerMidSwitchId, innerEndSwitchId, outerEndSwitchId),
+            locationTrackService.getSwitchesForLocationTrack(MainLayoutContext.draft, track.id as IntId),
+        )
     }
 
     @Test
@@ -661,18 +669,15 @@ constructor(
                 .save(
                     locationTrack(
                         trackNumberId,
-                        topologyStartSwitch = TopologyLocationTrackSwitch(switch1.id, JointNumber(1)),
                         description = "track 1",
                         descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
                     ),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(1.0, 1.0)),
-                        segment(
-                            Point(1.0, 1.0),
-                            Point(2.0, 2.0),
-                            switchId = switch2.id,
-                            endJointNumber = JointNumber(1),
-                        ),
+                    trackGeometry(
+                        TmpLayoutEdge(
+                            startNode = EdgeNode.switch(inner = null, outer = switchLinkYV(switch1.id, 1)),
+                            endNode = EdgeNode.switch(inner = switchLinkYV(switch2.id, 1), outer = null),
+                            segments = listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0))),
+                        )
                     ),
                 )
                 .id
@@ -684,12 +689,11 @@ constructor(
                         description = "track 2",
                         descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
                     ),
-                    trackGeometryOfSegments(
-                        segment(
-                            Point(2.0, 2.0),
-                            Point(3.0, 3.0),
-                            switchId = switch2.id,
-                            startJointNumber = JointNumber(1),
+                    trackGeometry(
+                        TmpLayoutEdge(
+                            startNode = EdgeNode.switch(inner = switchLinkYV(switch2.id, 1), outer = null),
+                            endNode = PlaceHolderEdgeNode,
+                            segments = listOf(segment(Point(2.0, 2.0), Point(3.0, 3.0))),
                         )
                     ),
                 )

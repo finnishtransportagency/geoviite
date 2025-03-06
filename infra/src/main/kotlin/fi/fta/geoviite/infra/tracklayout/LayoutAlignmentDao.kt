@@ -29,13 +29,7 @@ const val EDGE_CACHE_SIZE = 100000L
 const val ALIGNMENT_CACHE_SIZE = 10000L
 const val GEOMETRY_CACHE_SIZE = 500000L
 
-data class MapSegmentProfileInfo<T>(
-    val id: IntId<T>,
-    val alignmentId: IndexedId<LayoutSegment>,
-    val segmentStartM: Double,
-    val segmentEndM: Double,
-    val hasProfile: Boolean,
-)
+data class MapSegmentProfileInfo<T>(val id: IntId<T>, val mRange: Range<Double>, val hasProfile: Boolean)
 
 @Transactional(readOnly = true)
 @Component
@@ -949,12 +943,11 @@ class LayoutAlignmentDao(
         }
     }
 
-    // TODO: GVT-2932 fetch track profiles through edge geometry
-    fun <T> fetchProfileInfoForSegmentsInBoundingBox(
+    fun fetchLocationTrackProfileInfos(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
         hasProfileInfo: Boolean? = null,
-    ): List<MapSegmentProfileInfo<T>> {
+    ): List<MapSegmentProfileInfo<LocationTrack>> {
         // language=SQL
         val sql =
             """
@@ -962,10 +955,8 @@ class LayoutAlignmentDao(
               from (
                 select
                   location_track.id,
-                  alignment_id,
-                  segment_index,
-                  start,
-                  postgis.st_m(postgis.st_endpoint(segment_geometry.geometry)) as max_m,
+                  ltve.start_m+edge_segment.start as start_m,
+                  postgis.st_m(postgis.st_endpoint(segment_geometry.geometry)) as length,
                   (plan.vertical_coordinate_system is not null)
                     and exists(
                     select *
@@ -975,23 +966,31 @@ class LayoutAlignmentDao(
                   from layout.location_track_in_layout_context(
                       :publication_state::layout.publication_state,
                       :design_id) location_track
-                    join layout.segment_version using (alignment_id, alignment_version)
-                    join layout.alignment layout_alignment on alignment_id = layout_alignment.id
-                    join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                    left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
+                    join layout.location_track_version_edge ltve
+                         on location_track.id = ltve.location_track_id
+                           and location_track.layout_context_id = ltve.location_track_layout_context_id
+                           and location_track.version = ltve.location_track_version
+                    join layout.edge on edge.id = ltve.edge_id
+                    join layout.edge_segment on edge.id = edge_segment.edge_id
+                    join layout.segment_geometry on edge_segment.geometry_id = segment_geometry.id
+                    left join geometry.alignment on alignment.id = edge_segment.geometry_alignment_id
                     left join geometry.plan on alignment.plan_id = plan.id
                   where postgis.st_intersects(
                       postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                      layout_alignment.bounding_box
-                        )
+                      location_track.bounding_box
+                    )
+                    and postgis.st_intersects(
+                      postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                      edge.bounding_box
+                    )
                     and postgis.st_intersects(
                       postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
                       segment_geometry.bounding_box
-                        )
+                    )
                     and location_track.state != 'DELETED'
               ) s
               where ((:has_profile_info::boolean is null) or :has_profile_info = has_profile_info)
-              order by id, segment_index
+              order by id, start_m
         """
                 .trimIndent()
 
@@ -1008,12 +1007,10 @@ class LayoutAlignmentDao(
             )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            val startM = rs.getDouble("start")
+            val mRange = rs.getDouble("start_m").let { start -> Range(start, start + rs.getDouble("length")) }
             MapSegmentProfileInfo(
                 id = rs.getIntId("id"),
-                alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
-                segmentStartM = startM,
-                segmentEndM = startM + rs.getDouble("max_m"),
+                mRange = mRange,
                 hasProfile = rs.getBoolean("has_profile_info"),
             )
         }

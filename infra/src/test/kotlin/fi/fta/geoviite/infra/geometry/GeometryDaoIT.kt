@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.geometry
 import assertPlansMatch
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.ProjectName
@@ -205,7 +204,7 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
         val track =
             locationTrackAndGeometry(
                 trackNumberId,
-                segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id as IndexedId),
+                segment(Point(0.0, 0.0), Point(1.0, 1.0), sourceId = element.id),
                 draft = true,
             )
         val trackVersion = locationTrackService.saveDraft(LayoutBranch.main, track.first, track.second)

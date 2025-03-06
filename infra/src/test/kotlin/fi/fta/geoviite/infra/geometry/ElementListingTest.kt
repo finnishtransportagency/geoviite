@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
@@ -274,13 +275,15 @@ class ElementListingTest {
                         minimalLine(id = IndexedId(2, 3)),
                     ),
             )
+        val elementIds1 = alignment1.elements.map { e -> e.id }
+        val elementIds2 = alignment2.elements.map { e -> e.id }
         val (track, layoutAlignment) =
             locationTrackAndGeometry(
                 IntId(1),
-                segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment1.elements[1]),
-                segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = alignment1.elements[2]),
-                segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = alignment2.elements[0]),
-                segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = alignment2.elements[1]),
+                segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = elementIds1[1]),
+                segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = elementIds1[2]),
+                segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = elementIds2[0]),
+                segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = elementIds2[1]),
                 draft = false,
             )
         val planHeader = planHeader(trackNumber = trackNumber, srid = LAYOUT_SRID)
@@ -322,12 +325,12 @@ class ElementListingTest {
         val (track, layoutAlignment) =
             locationTrackAndGeometry(
                 IntId(1),
-                segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0]),
+                segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0].id),
                 segment(
                     Point(20.0, 2.0),
                     Point(25.0, 2.5),
                     source = PLAN,
-                    sourceId = alignment.elements[1],
+                    sourceId = alignment.elements[1].id,
                     switchId = IntId(1),
                 ),
                 draft = false,
@@ -372,14 +375,15 @@ class ElementListingTest {
                         minimalLine(id = IndexedId(1, 3)),
                     ),
             )
+        val elementIds = alignment.elements.map { e -> e.id }
         val (track, layoutAlignment) =
             locationTrackAndGeometry(
                 IntId(1),
-                segment(Point(0.0, 0.0), Point(10.0, 1.0), source = PLAN, sourceId = alignment.elements[2]),
-                segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0]),
-                segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = alignment.elements[0]),
-                segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = alignment.elements[1]),
-                segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = alignment.elements[0]),
+                segment(Point(0.0, 0.0), Point(10.0, 1.0), source = PLAN, sourceId = elementIds[2]),
+                segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = elementIds[0]),
+                segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = elementIds[0]),
+                segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = elementIds[1]),
+                segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = elementIds[0]),
                 draft = false,
             )
 
@@ -408,12 +412,12 @@ class ElementListingTest {
         assertEquals(listOf(3, 1, 2), listing.map { l -> (l.elementId as IndexedId).index })
     }
 
-    private fun createSegments(alignment: GeometryAlignment) =
+    private fun createSegments(alignment: GeometryAlignment): List<LayoutSegment> =
         if (alignment.id !is IntId)
             throw IllegalStateException("Alignment must have int-id for element seeking to work")
         else if (alignment.elements.isEmpty())
             throw IllegalStateException("Must have elements to generate the segments for")
-        else alignment.elements.map { e -> segment(e.start, e.end, sourceId = e) }
+        else alignment.elements.map { e -> segment(e.start, e.end, sourceId = e.id) }
 
     private fun getElementListingTypes(
         plan: GeometryPlan,

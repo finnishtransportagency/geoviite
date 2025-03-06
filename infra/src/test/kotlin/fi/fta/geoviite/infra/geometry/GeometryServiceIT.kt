@@ -167,24 +167,24 @@ constructor(
                     trackGeometryOfSegments(
                         segment(
                             yRangeToSegmentPoints(0..6),
-                            sourceId = p1.alignments[0].elements[0],
+                            sourceId = p1.alignments[0].elements[0].id,
                             sourceStart = 0.0,
                         ),
                         segment(yRangeToSegmentPoints(6..10)),
                         segment(
                             yRangeToSegmentPoints(10..12),
-                            sourceId = p2.alignments[0].elements[0],
+                            sourceId = p2.alignments[0].elements[0].id,
                             sourceStart = 0.0,
                         ),
                         segment(yRangeToSegmentPoints(12..13)),
                         segment(
                             yRangeToSegmentPoints(13..15),
-                            sourceId = p3.alignments[0].elements[0],
+                            sourceId = p3.alignments[0].elements[0].id,
                             sourceStart = 0.0,
                         ),
                         segment(
                             yRangeToSegmentPoints(15..17),
-                            sourceId = p1.alignments[0].elements[0],
+                            sourceId = p1.alignments[0].elements[0].id,
                             sourceStart = 0.0,
                         ),
                     ),
@@ -245,9 +245,9 @@ constructor(
                     locationTrack(trackNumberId, draft = true),
                     trackGeometryOfSegments(
                         segment(yRangeToSegmentPoints(0..2)),
-                        segment(yRangeToSegmentPoints(2..9), sourceId = sourceElement, sourceStart = 0.0),
+                        segment(yRangeToSegmentPoints(2..9), sourceId = sourceElement.id, sourceStart = 0.0),
                         segment(yRangeToSegmentPoints(9..10)),
-                        segment(yRangeToSegmentPoints(10..20), sourceId = sourceElement, sourceStart = 0.0),
+                        segment(yRangeToSegmentPoints(10..20), sourceId = sourceElement.id, sourceStart = 0.0),
                     ),
                 )
                 .id

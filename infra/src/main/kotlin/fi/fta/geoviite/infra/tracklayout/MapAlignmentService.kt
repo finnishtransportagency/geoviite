@@ -102,22 +102,10 @@ class MapAlignmentService(
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<LocationTrack>> {
         return alignmentDao
-            .fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(layoutContext, bbox, false)
+            .fetchLocationTrackProfileInfos(layoutContext, bbox, false)
             .groupBy { it.id }
             .map { (id, profileInfos) ->
-                MapAlignmentHighlight(
-                    id = id,
-                    type = LOCATION_TRACK,
-                    ranges =
-                        profileInfos
-                            .fold(mutableMapOf<Int, Range<Double>>()) { acc, info ->
-                                val prev = acc.remove(info.alignmentId.index - 1)
-                                acc[info.alignmentId.index] = Range(prev?.min ?: info.segmentStartM, info.segmentEndM)
-                                acc
-                            }
-                            .values
-                            .toList(),
-                )
+                MapAlignmentHighlight(id = id, type = LOCATION_TRACK, ranges = profileInfos.map { i -> i.mRange })
             }
     }
 
