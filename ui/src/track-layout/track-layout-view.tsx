@@ -62,6 +62,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                                     hoveredOverPlanSection={hoveredOverPlanSection}
                                     mapTools={[selectOrHighlightComboTool, measurementTool]}
                                     customActiveMapTool={selectOrHighlightComboTool}
+                                    allowPlanDownloads={true}
                                 />
                             </MapContext.Provider>
                         </div>

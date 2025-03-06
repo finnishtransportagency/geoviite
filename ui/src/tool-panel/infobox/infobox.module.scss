@@ -94,7 +94,7 @@
     &__buttons {
         padding: 8px 0;
 
-        .button:not(:last-child) {
+        > .button:not(:last-child) {
             margin-right: 12px;
         }
 

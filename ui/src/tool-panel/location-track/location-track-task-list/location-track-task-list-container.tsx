@@ -139,7 +139,12 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
             <h1 className={styles['switch-relinking-validation-task-list__title']}>
                 {t('tool-panel.location-track.task-list.switch-relinking.title')}
                 <span className={styles['switch-relinking-validation-task-list__close']}>
-                    <Icons.Close size={IconSize.SMALL} onClick={onClose} />
+                    <Button
+                        onClick={onClose}
+                        icon={Icons.Close}
+                        size={ButtonSize.X_SMALL}
+                        variant={ButtonVariant.GHOST}
+                    />
                 </span>
             </h1>
             <section className={styles['switch-relinking-validation-task-list__content']}>

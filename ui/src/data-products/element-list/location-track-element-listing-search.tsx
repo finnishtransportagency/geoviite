@@ -6,18 +6,13 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { debounceAsync } from 'utils/async-utils';
-import { PropEdit } from 'utils/validation-utils';
+import { getVisibleErrorsByProp, hasErrors, PropEdit } from 'utils/validation-utils';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getLocationTrackElements, getLocationTrackElementsCsv } from 'geometry/geometry-api';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { ElementItem } from 'geometry/geometry-model';
-import {
-    debouncedSearchTracks,
-    getLocationTrackOptions,
-    getVisibleErrorsByProp,
-    hasErrors,
-} from 'data-products/data-products-utils';
+import { debouncedSearchTracks, getLocationTrackOptions } from 'data-products/data-products-utils';
 import {
     ContinuousSearchParameters,
     ElementListContinuousGeometrySearchState,

@@ -32,6 +32,7 @@
     &__content {
         @include vayla-design.typography-caption;
 
+        backdrop-filter: blur(3px);
         padding: 8px 16px 16px 16px;
     }
 

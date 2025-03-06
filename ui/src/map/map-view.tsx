@@ -88,6 +88,14 @@ import { PublicationCandidate } from 'publication/publication-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
 import { useResizeObserver } from 'utils/use-resize-observer';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
+import {
+    PlanDownloadState,
+    SelectedPlanDownloadAsset,
+} from 'map/plan-download/plan-download-store';
+import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
 
 declare global {
     interface Window {
@@ -101,6 +109,7 @@ export type MapViewProps = {
     layoutContext: LayoutContext;
     linkingState: LinkingState | undefined;
     splittingState: SplittingState | undefined;
+    planDownloadState: PlanDownloadState | undefined;
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
@@ -113,6 +122,8 @@ export type MapViewProps = {
     onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
+    onStartPlanDownload: (initiallySelectedAsset: SelectedPlanDownloadAsset | undefined) => void;
+    onStopPlanDownload: () => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
@@ -122,6 +133,7 @@ export type MapViewProps = {
     customActiveMapTool?: MapTool;
     designPublicationMode?: DesignPublicationMode;
     mapTools?: MapToolWithButton[];
+    allowPlanDownloads?: boolean;
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -183,6 +195,7 @@ const MapView: React.FC<MapViewProps> = ({
     layoutContext,
     linkingState,
     splittingState,
+    planDownloadState,
     changeTimes,
     onSelect,
     onViewportUpdate,
@@ -194,6 +207,8 @@ const MapView: React.FC<MapViewProps> = ({
     onRemoveGeometryLinkPoint,
     onShownLayerItemsChange,
     onHighlightItems,
+    onStartPlanDownload,
+    onStopPlanDownload,
     onClickLocation,
     onMapLayerChange,
     mapLayerMenuGroups,
@@ -202,6 +217,7 @@ const MapView: React.FC<MapViewProps> = ({
     customActiveMapTool,
     designPublicationMode,
     mapTools,
+    allowPlanDownloads,
 }: MapViewProps) => {
     const { t } = useTranslation();
     // State to store OpenLayers map object between renders
@@ -212,8 +228,8 @@ const MapView: React.FC<MapViewProps> = ({
         customActiveMapTool || (mapTools && first(mapTools)),
     );
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
-
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
+    const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
 
     const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
         setLayersLoadingData((prevLoadingLayers) => {
@@ -761,6 +777,28 @@ const MapView: React.FC<MapViewProps> = ({
     const cssProperties = {
         ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
     };
+    const initialSelectionForPlanDownload: () => SelectedPlanDownloadAsset | undefined = () => {
+        const selectedLocationTrack = first(selection.selectedItems.locationTracks);
+        const selectedTrackNumber = first(selection.selectedItems.trackNumbers);
+
+        if (selectedLocationTrack) {
+            return { id: selectedLocationTrack, type: 'LOCATION_TRACK' };
+        } else if (selectedTrackNumber) {
+            return { id: selectedTrackNumber, type: 'TRACK_NUMBER' };
+        } else {
+            return undefined;
+        }
+    };
+
+    const togglePlanDownload = () => {
+        if (planDownloadState) {
+            onStopPlanDownload();
+        } else if (layoutContext.publicationState === 'DRAFT') {
+            setSwitchToOfficialDialogOpen(true);
+        } else {
+            onStartPlanDownload(initialSelectionForPlanDownload());
+        }
+    };
 
     return (
         <div className={mapClassNames} style={cssProperties}>
@@ -777,6 +815,25 @@ const MapView: React.FC<MapViewProps> = ({
                             />
                         );
                     })}
+                    {allowPlanDownloads && (
+                        <React.Fragment>
+                            <div className={styles['map__map-tool-divider']} />
+                            <Button
+                                variant={ButtonVariant.GHOST}
+                                size={ButtonSize.BY_CONTENT}
+                                isPressed={!!planDownloadState}
+                                onClick={togglePlanDownload}>
+                                <div className={styles['map-tool-button-content']}>
+                                    <div className={styles['map-tool-button-content__icon']}>
+                                        <Icons.Download
+                                            color={IconColor.INHERIT}
+                                            size={IconSize.INHERIT}
+                                        />
+                                    </div>
+                                </div>
+                            </Button>
+                        </React.Fragment>
+                    )}
                 </ol>
             )}
             <div
@@ -827,6 +884,17 @@ const MapView: React.FC<MapViewProps> = ({
                 <div className={styles['map__loading-spinner']} qa-id="map-loading-spinner">
                     <Spinner />
                 </div>
+            )}
+            {planDownloadState && (
+                <PlanDownloadPopup
+                    onClose={() => onStopPlanDownload()}
+                    layoutContext={layoutContext}
+                />
+            )}
+            {switchToOfficialDialogOpen && (
+                <ConfirmMoveToMainOfficialDialogContainer
+                    onClose={() => setSwitchToOfficialDialogOpen(false)}
+                />
             )}
         </div>
     );

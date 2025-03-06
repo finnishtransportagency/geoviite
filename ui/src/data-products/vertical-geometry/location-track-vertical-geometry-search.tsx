@@ -5,7 +5,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { debounceAsync } from 'utils/async-utils';
-import { PropEdit } from 'utils/validation-utils';
+import { getVisibleErrorsByProp, hasErrors, PropEdit } from 'utils/validation-utils';
 import {
     getLocationTrackVerticalGeometry,
     getLocationTrackVerticalGeometryCsv,
@@ -13,12 +13,7 @@ import {
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import {
-    debouncedSearchTracks,
-    getLocationTrackOptions,
-    getVisibleErrorsByProp,
-    hasErrors,
-} from 'data-products/data-products-utils';
+import { debouncedSearchTracks, getLocationTrackOptions } from 'data-products/data-products-utils';
 import { VerticalGeometryItem } from 'geometry/geometry-model';
 import {
     LocationTrackVerticalGeometrySearchParameters,
