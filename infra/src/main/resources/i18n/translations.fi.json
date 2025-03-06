@@ -1324,6 +1324,9 @@
         "cluster-overlay-choose-layout": "Valitse paikannuspohjan piste"
     },
     "plan-download": {
+        "move-to-official-confirm-title": "Siirtyminen nykytilaan",
+        "move-to-official-confirm-content": "Suunnitelmia voi ladata ainoastaan nykytilasta. Siirrytäänkö nykytilaan?",
+        "move-to-official": "Siirry nykytilaan",
         "title": "Suunnitelmien lataus",
         "area": "Alue",
         "plans": "Suunnitelmat ({{amount}} kpl)",

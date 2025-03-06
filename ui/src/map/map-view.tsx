@@ -92,6 +92,7 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
 import { PlanDownloadState } from 'map/plan-download/plan-download-store';
+import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
 
 declare global {
     interface Window {
@@ -223,6 +224,7 @@ const MapView: React.FC<MapViewProps> = ({
     );
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
+    const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
 
     const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
         setLayersLoadingData((prevLoadingLayers) => {
@@ -771,7 +773,11 @@ const MapView: React.FC<MapViewProps> = ({
         ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
     };
     const togglePlanDownload = () =>
-        planDownloadState ? onStopPlanDownload() : onStartPlanDownload();
+        planDownloadState
+            ? onStopPlanDownload()
+            : layoutContext.publicationState === 'DRAFT'
+              ? setSwitchToOfficialDialogOpen(true)
+              : onStartPlanDownload();
 
     return (
         <div className={mapClassNames} style={cssProperties}>
@@ -857,6 +863,11 @@ const MapView: React.FC<MapViewProps> = ({
                     layoutContext={layoutContext}
                     selectedLocationTrackId={first(selection.selectedItems.locationTracks)}
                     selectedTrackNumberId={first(selection.selectedItems.trackNumbers)}
+                />
+            )}
+            {switchToOfficialDialogOpen && (
+                <ConfirmMoveToMainOfficialDialogContainer
+                    onClose={() => setSwitchToOfficialDialogOpen(false)}
                 />
             )}
         </div>
