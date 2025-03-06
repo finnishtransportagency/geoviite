@@ -86,13 +86,19 @@ select
     when np.node_id = edge.start_node_id and np.port = edge.start_node_port then 4 * ltve.edge_index + 1
     when np.node_id = edge.end_node_id and np.port = edge.end_node_port then 4 * ltve.edge_index + 2
     when np.node_id = edge.end_node_id and np.port <> edge.end_node_port then 4 * ltve.edge_index + 3
-  end as switch_sort
+  end as switch_sort,
+  (ltve.edge_index = 0 and np.node_id = edge.start_node_id and np.port <> edge.start_node_port)
+    or (ltve.edge_index = (ltv.edge_count-1) and np.node_id = edge.end_node_id and np.port <> edge.end_node_port
+    ) as is_outer_link
   from layout.node_port np
     inner join layout.edge edge on np.node_id in (edge.start_node_id, edge.end_node_id)
     inner join layout.location_track_version_edge ltve on ltve.edge_id = edge.id
+    inner join layout.location_track_version ltv
+               on ltve.location_track_id = ltv.id
+                 and ltve.location_track_layout_context_id = ltv.layout_context_id
+                 and ltve.location_track_version = ltv.version
   where np.switch_id is not null
-    and (np.node_id = edge.end_node_id or ltve.edge_index = 0)
-  ;
+    and (np.node_id = edge.end_node_id or ltve.edge_index = 0);
 -- --
 -- --     and location_track_layout_context_id = 'main_draft'
 -- --     and location_track_version = 21;

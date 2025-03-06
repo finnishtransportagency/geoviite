@@ -305,27 +305,36 @@ constructor(
             )
         val (_, withStartLink) =
             insertDraft(
-                locationTrack(tnId, draft = true)
-                    .copy(topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1))),
-                trackGeometryOfSegments(someSegment()),
+                locationTrack(tnId, draft = true),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = EdgeNode.switch(inner = null, outer = switchLinkYV(switch.id as IntId, 1)),
+                        endNode = PlaceHolderEdgeNode,
+                        segments = listOf(someSegment()),
+                    )
+                ),
                 someOid(),
             )
         val (_, withEndLink) =
             insertDraft(
-                locationTrack(tnId, draft = true)
-                    .copy(topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2))),
-                trackGeometryOfSegments(someSegment()),
+                locationTrack(tnId, draft = true),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = PlaceHolderEdgeNode,
+                        endNode = EdgeNode.switch(inner = null, outer = switchLinkYV(switch.id as IntId, 2)),
+                        segments = listOf(someSegment()),
+                    )
+                ),
             )
         val (_, withSegmentLink) =
             insertDraft(
                 locationTrack(tnId, draft = true),
-                trackGeometryOfSegments(
-                    someSegment()
-                        .copy(
-                            switchId = switch.id as IntId,
-                            startJointNumber = JointNumber(1),
-                            endJointNumber = JointNumber(2),
-                        )
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = EdgeNode.switch(inner = switchLinkYV(switch.id as IntId, 1), outer = null),
+                        endNode = EdgeNode.switch(inner = switchLinkYV(switch.id as IntId, 2), outer = null),
+                        segments = listOf(someSegment()),
+                    )
                 ),
                 someOid(),
             )
@@ -333,6 +342,7 @@ constructor(
             listOf<LocationTrackIdentifiers>(),
             switchDao.findLocationTracksLinkedToSwitch(MainLayoutContext.official, switch.id as IntId),
         )
+        println(switch.id)
         val result = switchDao.findLocationTracksLinkedToSwitch(MainLayoutContext.draft, switch.id as IntId)
         assertEquals(listOf(withStartLink, withEndLink, withSegmentLink), result.sortedBy { ids -> ids.id.intValue })
     }
@@ -343,43 +353,46 @@ constructor(
     }
 
     @Test
-    fun shouldReturnLocationTracksThatAreLinkedToSwitchAtMoment() {
+    fun `findLocationTracksLinkedToSwitchAtMoment works`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val switchId = mainOfficialContext.save(switch()).id
 
         val locationTrack1Oid = someOid<LocationTrack>()
         val locationTrack1 =
             mainOfficialContext.save(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    name = "LT 1",
-                    topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
+                locationTrack(trackNumberId = trackNumberId, name = "LT 1"),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = EdgeNode.switch(inner = null, outer = switchLinkYV(switchId, 1)),
+                        endNode = PlaceHolderEdgeNode,
+                        segments = listOf(someSegment()),
+                    )
                 ),
-                trackGeometryOfSegments(someSegment()),
             )
         locationTrackService.insertExternalId(LayoutBranch.main, locationTrack1.id, locationTrack1Oid)
 
         val locationTrack2 =
             mainOfficialContext.save(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    name = "LT 2",
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
+                locationTrack(trackNumberId = trackNumberId, name = "LT 2"),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = PlaceHolderEdgeNode,
+                        endNode = EdgeNode.switch(inner = null, outer = switchLinkYV(switchId, 2)),
+                        segments = listOf(someSegment()),
+                    )
                 ),
-                trackGeometryOfSegments(someSegment()),
             )
 
         val locationTrack3Oid = someOid<LocationTrack>()
         val locationTrack3 =
             mainOfficialContext.save(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    name = "LT 3",
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
-                ),
-                trackGeometryOfSegments(
-                    someSegment()
-                        .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(2))
+                locationTrack(trackNumberId = trackNumberId, name = "LT 3"),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = EdgeNode.switch(inner = switchLinkYV(switchId, 1), outer = null),
+                        endNode = EdgeNode.switch(inner = switchLinkYV(switchId, 2), outer = null),
+                        segments = listOf(someSegment()),
+                    )
                 ),
             )
         locationTrackService.insertExternalId(LayoutBranch.main, locationTrack3.id, locationTrack3Oid)
@@ -388,12 +401,7 @@ constructor(
         mainDraftContext.save(mainOfficialContext.fetch(locationTrack1.id)!!)
 
         val linkedLocationTracks =
-            switchDao.findLocationTracksLinkedToSwitchAtMoment(
-                LayoutBranch.main,
-                switchId,
-                JointNumber(1),
-                Instant.now(),
-            )
+            switchDao.findLocationTracksLinkedToSwitchAtMoment(LayoutBranch.main, switchId, Instant.now())
         assertEquals(2, linkedLocationTracks.size)
 
         assertTrue(

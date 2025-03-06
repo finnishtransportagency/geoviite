@@ -288,6 +288,7 @@ class LocationTrackDao(
               owner_id,
               origin_design_id,
               length,
+              edge_count,
               segment_count,
               bounding_box
             ) 
@@ -314,6 +315,7 @@ class LocationTrackDao(
               :owner_id,
               :origin_design_id,
               :length,
+              :edge_count,
               :segment_count,
               postgis.st_polygonfromtext(:polygon_string, 3067)
             ) on conflict (id, layout_context_id) do update set
@@ -335,6 +337,7 @@ class LocationTrackDao(
               owner_id = excluded.owner_id,
               origin_design_id = excluded.origin_design_id,
               length = excluded.length,
+              edge_count = excluded.edge_count,
               segment_count = excluded.segment_count,
               bounding_box = excluded.bounding_box
             returning id, design_id, draft, version
@@ -366,6 +369,7 @@ class LocationTrackDao(
                 "owner_id" to item.ownerId.intValue,
                 "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
                 "length" to geometry.length,
+                "edge_count" to geometry.edges.size,
                 "segment_count" to geometry.segments.size,
                 "polygon_string" to geometry.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
             )

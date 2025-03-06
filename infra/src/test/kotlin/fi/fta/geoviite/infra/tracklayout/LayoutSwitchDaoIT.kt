@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -210,8 +209,12 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
         val officialTrack =
             mainOfficialContext.save(
                 locationTrack(trackNumber),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch, startJointNumber = JointNumber(1))
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = EdgeNode.switch(inner = switchLinkYV(switch, 1), outer = null),
+                        endNode = PlaceHolderEdgeNode,
+                        segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                    )
                 ),
             )
         locationTrackDao.insertExternalId(officialTrack.id, LayoutBranch.main, oid)
@@ -234,8 +237,12 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val switch = mainOfficialContext.save(switch()).id
         val connectedAlignment =
-            trackGeometryOfSegments(
-                segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
+            trackGeometry(
+                TmpLayoutEdge(
+                    startNode = EdgeNode.switch(inner = switchLinkYV(switch, 1), outer = null),
+                    endNode = PlaceHolderEdgeNode,
+                    segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                )
             )
         val disconnectedAlignment = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
 
@@ -251,7 +258,6 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
                 .findLocationTracksLinkedToSwitchAtMoment(
                     LayoutBranch.main,
                     switch,
-                    JointNumber(123),
                     locationTrackVersionChangeTime(version),
                 )
                 .map { it.id }
@@ -270,20 +276,19 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val switch = mainOfficialContext.save(switch()).id
         val connectedAlignment =
-            trackGeometryOfSegments(
-                segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(switchId = switch, startJointNumber = JointNumber(1))
+            trackGeometry(
+                TmpLayoutEdge(
+                    startNode = EdgeNode.switch(inner = switchLinkYV(switch, 1), outer = null),
+                    endNode = PlaceHolderEdgeNode,
+                    segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                )
             )
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
 
         fun tracksLinkedAtVersionSaveTime(version: LayoutRowVersion<LocationTrack>) =
             switchDao
-                .findLocationTracksLinkedToSwitchAtMoment(
-                    designBranch,
-                    switch,
-                    JointNumber(123),
-                    locationTrackVersionChangeTime(version),
-                )
+                .findLocationTracksLinkedToSwitchAtMoment(designBranch, switch, locationTrackVersionChangeTime(version))
                 .map { it.rowVersion }
                 .toSet()
 
