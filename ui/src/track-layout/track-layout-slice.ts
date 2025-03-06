@@ -51,7 +51,9 @@ import { asPublicationCandidateReferences } from 'publication/publication-utils'
 import { PlanSource } from 'geometry/geometry-model';
 import { brand } from 'common/brand';
 import {
+    initialPlanDownloadState,
     initialPlanDownloadStateFromSelection,
+    SelectedPlanDownloadAsset,
     planDownloadReducers,
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
@@ -602,11 +604,23 @@ const trackLayoutSlice = createSlice({
         ) => {
             state.geometryPlanViewSettings.visibleSources = sources;
         },
-        onStartPlanDownload: (state: TrackLayoutState): void => {
-            state.planDownloadState = initialPlanDownloadStateFromSelection(
-                first(state.selection.selectedItems.locationTracks),
-                first(state.selection.selectedItems.trackNumbers),
-            );
+        onStartPlanDownload: (
+            state: TrackLayoutState,
+            { payload: idAndType }: PayloadAction<SelectedPlanDownloadAsset | undefined>,
+        ): void => {
+            if (!idAndType) {
+                state.planDownloadState = initialPlanDownloadState;
+            } else if (idAndType.type === 'TRACK_NUMBER') {
+                state.planDownloadState = initialPlanDownloadStateFromSelection(
+                    undefined,
+                    idAndType.id,
+                );
+            } else {
+                state.planDownloadState = initialPlanDownloadStateFromSelection(
+                    idAndType.id,
+                    undefined,
+                );
+            }
         },
         onStopPlanDownload: (state: TrackLayoutState): void => {
             state.planDownloadState = undefined;

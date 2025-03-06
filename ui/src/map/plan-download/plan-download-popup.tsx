@@ -4,12 +4,7 @@ import styles from './plan-download-popup.scss';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
-import {
-    LayoutLocationTrack,
-    LayoutTrackNumber,
-    LayoutTrackNumberId,
-    LocationTrackId,
-} from 'track-layout/track-layout-model';
+import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { kmNumberIsValid, LayoutContext } from 'common/common-model';
 import { PlanSelectionType } from 'map/plan-download/plan-download-store';
 import { createDelegates } from 'store/store-utils';
@@ -112,8 +107,6 @@ export const LocationSpecifier: React.FC<LocationSpecifierProps> = ({
 type PlanDownloadPopupProps = {
     layoutContext: LayoutContext;
     onClose: () => void;
-    selectedLocationTrackId: LocationTrackId | undefined;
-    selectedTrackNumberId: LayoutTrackNumberId | undefined;
 };
 
 const toggleApplicability = (
@@ -124,36 +117,10 @@ const toggleApplicability = (
         ? applicabilities.filter((a) => a !== applicability)
         : [...applicabilities, applicability];
 
-export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({
-    onClose,
-    layoutContext,
-    selectedTrackNumberId,
-    selectedLocationTrackId,
-}) => {
+export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, layoutContext }) => {
     const state = useTrackLayoutAppSelector((state) => state);
     const delegates = createDelegates(TrackLayoutActions);
     const planDownloadState = expectDefined(state.planDownloadState);
-
-    React.useEffect(() => {
-        if (
-            !planDownloadState.areaSelection.locationTrack &&
-            !planDownloadState.areaSelection.trackNumber
-        ) {
-            if (selectedLocationTrackId) {
-                delegates.onUpdatePlanDownloadAreaSelectionProp({
-                    key: 'locationTrack',
-                    value: selectedLocationTrackId,
-                    editingExistingValue: false,
-                });
-            } else if (selectedTrackNumberId) {
-                delegates.onUpdatePlanDownloadAreaSelectionProp({
-                    key: 'trackNumber',
-                    value: selectedTrackNumberId,
-                    editingExistingValue: false,
-                });
-            }
-        }
-    }, [selectedTrackNumberId, selectedLocationTrackId]);
 
     const [trackNumberAndStartAndEnd, trackNumberFetchStatus] = useLoaderWithStatus(async () => {
         const trackNumber = planDownloadState.areaSelection.trackNumber

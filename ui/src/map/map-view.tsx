@@ -91,7 +91,10 @@ import { useResizeObserver } from 'utils/use-resize-observer';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
-import { PlanDownloadState } from 'map/plan-download/plan-download-store';
+import {
+    PlanDownloadState,
+    SelectedPlanDownloadAsset,
+} from 'map/plan-download/plan-download-store';
 import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
 
 declare global {
@@ -119,7 +122,7 @@ export type MapViewProps = {
     onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
-    onStartPlanDownload: () => void;
+    onStartPlanDownload: (initiallySelectedAsset: SelectedPlanDownloadAsset | undefined) => void;
     onStopPlanDownload: () => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
@@ -772,12 +775,25 @@ const MapView: React.FC<MapViewProps> = ({
     const cssProperties = {
         ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
     };
+    const initialSelectionForPlanDownload: () => SelectedPlanDownloadAsset | undefined = () => {
+        const selectedLocationTrack = first(selection.selectedItems.locationTracks);
+        const selectedTrackNumber = first(selection.selectedItems.trackNumbers);
+
+        if (selectedLocationTrack) {
+            return { id: selectedLocationTrack, type: 'LOCATION_TRACK' };
+        } else if (selectedTrackNumber) {
+            return { id: selectedTrackNumber, type: 'TRACK_NUMBER' };
+        } else {
+            return undefined;
+        }
+    };
+
     const togglePlanDownload = () =>
         planDownloadState
             ? onStopPlanDownload()
             : layoutContext.publicationState === 'DRAFT'
               ? setSwitchToOfficialDialogOpen(true)
-              : onStartPlanDownload();
+              : onStartPlanDownload(initialSelectionForPlanDownload());
 
     return (
         <div className={mapClassNames} style={cssProperties}>
@@ -861,8 +877,6 @@ const MapView: React.FC<MapViewProps> = ({
                 <PlanDownloadPopup
                     onClose={() => onStopPlanDownload()}
                     layoutContext={layoutContext}
-                    selectedLocationTrackId={first(selection.selectedItems.locationTracks)}
-                    selectedTrackNumberId={first(selection.selectedItems.trackNumbers)}
                 />
             )}
             {switchToOfficialDialogOpen && (

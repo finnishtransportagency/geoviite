@@ -43,6 +43,13 @@ export type DownloadablePlan = {
     kmNumberRange: KmNumberRange;
 };
 
+export type SelectedPlanDownloadAsset =
+    | {
+          id: LayoutTrackNumberId;
+          type: 'TRACK_NUMBER';
+      }
+    | { id: LocationTrackId; type: 'LOCATION_TRACK' };
+
 const DUMMY_PLANS: DownloadablePlan[] = [
     {
         id: 'INT_1',
