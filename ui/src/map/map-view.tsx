@@ -133,6 +133,7 @@ export type MapViewProps = {
     customActiveMapTool?: MapTool;
     designPublicationMode?: DesignPublicationMode;
     mapTools?: MapToolWithButton[];
+    allowPlanDownloads?: boolean;
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -216,6 +217,7 @@ const MapView: React.FC<MapViewProps> = ({
     customActiveMapTool,
     designPublicationMode,
     mapTools,
+    allowPlanDownloads,
 }: MapViewProps) => {
     const { t } = useTranslation();
     // State to store OpenLayers map object between renders
@@ -813,18 +815,25 @@ const MapView: React.FC<MapViewProps> = ({
                             />
                         );
                     })}
-                    <div className={styles['map__map-tool-divider']} />
-                    <Button
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.BY_CONTENT}
-                        isPressed={!!planDownloadState}
-                        onClick={togglePlanDownload}>
-                        <div className={styles['map-tool-button-content']}>
-                            <div className={styles['map-tool-button-content__icon']}>
-                                <Icons.Download color={IconColor.INHERIT} size={IconSize.INHERIT} />
-                            </div>
-                        </div>
-                    </Button>
+                    {allowPlanDownloads && (
+                        <React.Fragment>
+                            <div className={styles['map__map-tool-divider']} />
+                            <Button
+                                variant={ButtonVariant.GHOST}
+                                size={ButtonSize.BY_CONTENT}
+                                isPressed={!!planDownloadState}
+                                onClick={togglePlanDownload}>
+                                <div className={styles['map-tool-button-content']}>
+                                    <div className={styles['map-tool-button-content__icon']}>
+                                        <Icons.Download
+                                            color={IconColor.INHERIT}
+                                            size={IconSize.INHERIT}
+                                        />
+                                    </div>
+                                </div>
+                            </Button>
+                        </React.Fragment>
+                    )}
                 </ol>
             )}
             <div

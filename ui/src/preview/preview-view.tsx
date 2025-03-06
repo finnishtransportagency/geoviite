@@ -625,6 +625,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         publicationCandidates={diplayedOnMapPublicationCandidates}
                         mapTools={mapTools}
                         designPublicationMode={designPublicationMode}
+                        allowPlanDownloads={false}
                     />
                 </MapContext.Provider>
                 <PreviewFooter

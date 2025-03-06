@@ -92,6 +92,7 @@ type MapViewContainerProps = {
     customActiveMapTool?: MapTool;
     designPublicationMode?: DesignPublicationMode;
     mapTools: MapToolWithButton[];
+    allowPlanDownloads: boolean;
 };
 export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     layoutContext,
@@ -101,6 +102,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     customActiveMapTool,
     designPublicationMode,
     mapTools,
+    allowPlanDownloads,
 }) => {
     const mapContext = React.useContext(MapContext);
 
@@ -113,6 +115,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     mapProps.customActiveMapTool = customActiveMapTool;
     mapProps.designPublicationMode = designPublicationMode;
     mapProps.mapTools = mapTools;
+    mapProps.allowPlanDownloads = allowPlanDownloads;
 
     return <MapView {...mapProps} />;
 };

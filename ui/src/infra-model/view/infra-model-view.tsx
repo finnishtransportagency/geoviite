@@ -183,6 +183,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             manuallySetPlan={planLayout ?? undefined}
                             mapTools={[selectOrHighlightComboTool, measurementTool]}
                             customActiveMapTool={selectOrHighlightComboTool}
+                            allowPlanDownloads={false}
                         />
                     </MapContext.Provider>
                 )}
