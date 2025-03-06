@@ -788,12 +788,15 @@ const MapView: React.FC<MapViewProps> = ({
         }
     };
 
-    const togglePlanDownload = () =>
-        planDownloadState
-            ? onStopPlanDownload()
-            : layoutContext.publicationState === 'DRAFT'
-              ? setSwitchToOfficialDialogOpen(true)
-              : onStartPlanDownload(initialSelectionForPlanDownload());
+    const togglePlanDownload = () => {
+        if (planDownloadState) {
+            onStopPlanDownload();
+        } else if (layoutContext.publicationState === 'DRAFT') {
+            setSwitchToOfficialDialogOpen(true);
+        } else {
+            onStartPlanDownload(initialSelectionForPlanDownload());
+        }
+    };
 
     return (
         <div className={mapClassNames} style={cssProperties}>
