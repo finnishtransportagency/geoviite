@@ -3,6 +3,7 @@ import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layou
 import {
     DesignBranch,
     draftLayoutContext,
+    KmNumber,
     LayoutAssetChangeInfo,
     LayoutBranch,
     LayoutContext,
@@ -33,6 +34,7 @@ import { ValidatedTrackNumber } from 'publication/publication-model';
 import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 import { bboxString } from 'common/common-api';
 import { BoundingBox } from 'model/geometry';
+import { GeometryPlanHeader } from 'geometry/geometry-model';
 
 const trackNumbersCache = asyncCache<string, LayoutTrackNumber[]>();
 const trackNumberOidsCache = asyncCache<
@@ -114,6 +116,18 @@ export const getTrackNumberReferenceLineSectionsByPlan = async (
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
     return getNonNull<AlignmentPlanSection[]>(
         `${layoutUri('track-numbers', layoutContext, id)}/plan-geometry${params}`,
+    );
+};
+
+export const getPlansLinkedToTrackNumber = async (
+    layoutContext: LayoutContext,
+    id: LayoutTrackNumberId,
+    startKm: KmNumber | undefined,
+    endKm: KmNumber | undefined,
+) => {
+    const params = queryParams({ startKm: startKm ?? undefined, endKm: endKm ?? undefined });
+    return getNonNull<GeometryPlanHeader[]>(
+        `${layoutUri('track-numbers', layoutContext, id)}/linked-plans${params}`,
     );
 };
 

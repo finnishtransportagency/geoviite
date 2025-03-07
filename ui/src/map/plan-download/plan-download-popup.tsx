@@ -6,7 +6,7 @@ import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { kmNumberIsValid, LayoutContext } from 'common/common-model';
-import { PlanSelectionType } from 'map/plan-download/plan-download-store';
+import { DownloadablePlan, PlanSelectionType } from 'map/plan-download/plan-download-store';
 import { createDelegates } from 'store/store-utils';
 import { Menu, menuDivider, menuOption } from 'vayla-design-lib/menu/menu';
 import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
@@ -14,7 +14,10 @@ import { PlanDownloadAreaSection } from 'map/plan-download/plan-download-area-se
 import { PlanDownloadPlanSection } from 'map/plan-download/plan-download-plan-section';
 import { comparePlans, filterPlans } from 'map/plan-download/plan-download-utils';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import { getTrackNumberById } from 'track-layout/layout-track-number-api';
+import {
+    getPlansLinkedToTrackNumber,
+    getTrackNumberById,
+} from 'track-layout/layout-track-number-api';
 import {
     getReferenceLineStartAndEnd,
     getTrackNumberReferenceLine,
@@ -23,6 +26,7 @@ import { getChangeTimes } from 'common/change-time-api';
 import {
     getLocationTrack,
     getLocationTrackStartAndEnd,
+    getPlansLinkedToLocationTrack,
 } from 'track-layout/layout-location-track-api';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
@@ -159,6 +163,45 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
             delegates.setPlanDownloadAlignmentStartAndEnd(trackNumberAndStartAndEnd?.startAndEnd);
     }, [locationTrackAndStartAndEnd, trackNumberAndStartAndEnd]);
 
+    const [linkedPlans, _loader] = useLoaderWithStatus<DownloadablePlan[]>(async () => {
+        if (planDownloadState.areaSelection.locationTrack)
+            return await getPlansLinkedToLocationTrack(
+                layoutContext,
+                planDownloadState.areaSelection.locationTrack,
+                planDownloadState.areaSelection.startTrackMeter || undefined,
+                planDownloadState.areaSelection.endTrackMeter || undefined,
+            ).then((plans) =>
+                plans.map((p) => ({
+                    id: p.id,
+                    name: p.name,
+                    applicability: p.planApplicability,
+                    kmNumberRange: p.kmNumberRange,
+                    selected: planDownloadState.plans.some((sp) => sp.id === p.id),
+                })),
+            );
+        else if (planDownloadState.areaSelection.trackNumber)
+            return await getPlansLinkedToTrackNumber(
+                layoutContext,
+                planDownloadState.areaSelection.trackNumber,
+                planDownloadState.areaSelection.startTrackMeter || undefined,
+                planDownloadState.areaSelection.endTrackMeter || undefined,
+            ).then((plans) =>
+                plans.map((p) => ({
+                    id: p.id,
+                    name: p.name,
+                    applicability: p.planApplicability,
+                    kmNumberRange: p.kmNumberRange,
+                    selected: planDownloadState.plans.some((sp) => sp.id === p.id),
+                })),
+            );
+        else return [];
+    }, [
+        planDownloadState.areaSelection.locationTrack,
+        planDownloadState.areaSelection.trackNumber,
+        planDownloadState.areaSelection.startTrackMeter,
+        planDownloadState.areaSelection.endTrackMeter,
+    ]);
+
     const menuAnchorRef = React.useRef<HTMLDivElement>(null);
     const [showFilterMenu, setShowFilterMenu] = React.useState(false);
 
@@ -214,7 +257,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
         delegates.setPlanDownloadPlanSelected({ id, selected });
     };
     const plans = filterPlans(
-        planDownloadState.plans,
+        linkedPlans ?? [],
         planDownloadState.selectedApplicabilities,
     ).toSorted(comparePlans);
 

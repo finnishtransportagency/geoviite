@@ -40,7 +40,7 @@ export type DownloadablePlan = {
     name: string;
     selected: boolean;
     applicability?: PlanApplicability;
-    kmNumberRange: KmNumberRange;
+    kmNumberRange: KmNumberRange | undefined;
 };
 
 export type SelectedPlanDownloadAsset =
@@ -50,7 +50,7 @@ export type SelectedPlanDownloadAsset =
       }
     | { id: LocationTrackId; type: 'LOCATION_TRACK' };
 
-const DUMMY_PLANS: DownloadablePlan[] = [
+const _DUMMY_PLANS: DownloadablePlan[] = [
     {
         id: 'INT_1',
         name: 'HOJOOOOOO',
@@ -102,7 +102,7 @@ export const initialPlanDownloadState: PlanDownloadState = {
         endTrackMeter: '',
         alignmentStartAndEnd: undefined,
     },
-    plans: DUMMY_PLANS,
+    plans: [],
     selectedApplicabilities: ['PLANNING', 'MAINTENANCE', 'STATISTICS'],
     validationIssues: [],
     committedFields: [],

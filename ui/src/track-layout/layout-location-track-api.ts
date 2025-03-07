@@ -11,6 +11,7 @@ import {
 import {
     DesignBranch,
     draftLayoutContext,
+    KmNumber,
     LayoutAssetChangeInfo,
     LayoutBranch,
     LayoutContext,
@@ -40,7 +41,7 @@ import { getChangeTimes, updateLocationTrackChangeTime } from 'common/change-tim
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedLocationTrack } from 'publication/publication-model';
-import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryAlignmentId, GeometryPlanHeader, GeometryPlanId } from 'geometry/geometry-model';
 import i18next from 'i18next';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
@@ -305,6 +306,18 @@ export const getLocationTrackSectionsByPlan = async (
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
     return getNullable<AlignmentPlanSection[]>(
         `${layoutUri('location-tracks', layoutContext, id)}/plan-geometry${params}`,
+    );
+};
+
+export const getPlansLinkedToLocationTrack = async (
+    layoutContext: LayoutContext,
+    id: LocationTrackId,
+    startKm: KmNumber | undefined,
+    endKm: KmNumber | undefined,
+) => {
+    const params = queryParams({ startKm, endKm });
+    return getNonNull<GeometryPlanHeader[]>(
+        `${layoutUri('location-tracks', layoutContext, id)}/linked-plans${params}`,
     );
 };
 
