@@ -29,6 +29,6 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     val localizationKey: LocalizationKey by lazy { LocalizationKey("$BASE.$localizationSuffix") }
 
     companion object {
-        private const val BASE: String = "ext-api.error"
+        private const val BASE: String = "ext-api.frame-converter.v1.error"
     }
 }
