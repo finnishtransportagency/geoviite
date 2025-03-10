@@ -1,12 +1,13 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import fi.fta.geoviite.api.formatting.splitBigDecimal
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -96,22 +97,34 @@ data class CenterLineGeometryResponseOkV1(
     @JsonProperty("tyyppi") val locationTrackType: ApiLocationTrackType,
     @JsonProperty("kuvaus") val locationTrackDescription: FreeText,
     @JsonProperty("omistaja") val locationTrackOwner: MetaDataName,
-    //    @JsonProperty("alkusijainti") val startLocation: CenterLineGeometryPointV1,
-    //    @JsonProperty("loppusijainti") val endLocation: CenterLineGeometryPointV1,
+    @JsonProperty("alkusijainti") val startLocation: CenterLineGeometryPointV1,
+    @JsonProperty("loppusijainti") val endLocation: CenterLineGeometryPointV1,
     @JsonProperty("koordinaatisto") val coordinateSystem: Srid,
     @JsonProperty("osoitepistevali") val addressPointIntervalMeters: Double, // TODO Should this be a string
     // instead?
-    //    @JsonProperty("muuttuneet_kilometrit") val trackKilometerGeometry: Map<KmNumber,
-    // List<CenterLineGeometryPointV1>>,
+    @JsonProperty("muuttuneet_kilometrit") val trackKilometerGeometry: Map<KmNumber, List<CenterLineGeometryPointV1>>,
 ) : CenterLineGeometryResponseV1()
 
 data class CenterLineGeometryPointV1(
     val x: Double,
     val y: Double,
     @JsonProperty("ratakilometri") val kmNumber: KmNumber,
-    @JsonProperty("ratametri") val trackMeter: TrackMeter, // TODO should not include decimals, might require a new type
+    @JsonProperty("ratametri") val trackMeter: Int, // TODO Should this include prefix-zeroes as in the ticket?
     @JsonProperty("ratametri_desimaalit") val trackMeterDecimals: Int,
-)
+) {
+    companion object {
+        fun of(addressPoint: AddressPoint): CenterLineGeometryPointV1 {
+            val (trackMeterIntegers, trackMeterDecimals) = splitBigDecimal(addressPoint.address.meters)
+            return CenterLineGeometryPointV1(
+                addressPoint.point.x,
+                addressPoint.point.y,
+                addressPoint.address.kmNumber,
+                trackMeterIntegers,
+                trackMeterDecimals,
+            )
+        }
+    }
+}
 
 enum class CenterLineGeometryErrorV1(private val errorCode: Int, private val localizationSuffix: String) {
     InvalidLocationTrackOid(1, "invalid-location-track-oid"),
