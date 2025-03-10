@@ -42,6 +42,7 @@ geoviite:
     url-path-prefixes:
       - /geoviite
       - /rata-vkm
+      - /geoviite
 
 springdoc:
   enable-default-api-docs: false
