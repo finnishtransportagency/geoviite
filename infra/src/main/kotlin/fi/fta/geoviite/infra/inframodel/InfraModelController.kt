@@ -11,7 +11,9 @@ import fi.fta.geoviite.infra.geometry.PlanApplicability
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.projektivelho.*
+import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.toFileDownloadResponse
+import fi.fta.geoviite.infra.util.zip
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -100,6 +102,25 @@ constructor(
         val translation = localizationService.getLocalization(lang)
 
         return geometryService.getPlanFile(id, translation).let(::toFileDownloadResponse)
+    }
+
+    @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
+    @GetMapping("/batch", MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    fun downloadFiles(
+        @RequestParam("ids") ids: List<IntId<GeometryPlan>>,
+        @RequestParam(name = "lang", defaultValue = "fi") lang: LocalizationLanguage,
+    ): ResponseEntity<ByteArray> {
+        val translation = localizationService.getLocalization(lang)
+        return geometryService
+            .getPlanHeaders { header -> ids.contains(header.id) }
+            .map { header -> Pair(header, geometryService.getPlanFile(header.id, translation)) }
+            .let { pairs ->
+                val csv = infraModelService.getInfraModelBatchSummaryCsv(pairs.map { it.first }, translation)
+                listOf(Pair(FileName("${translation.t("plan-download.csv.summary")}.csv"), csv))
+                    .plus(pairs.map { Pair(it.second.name, it.second.content) })
+            }
+            .let { files -> zip(files) }
+            .let { zipped -> toFileDownloadResponse(FileName("geoviite.zip"), zipped) }
     }
 
     @PreAuthorize(AUTH_VIEW_PV_DOCUMENTS)

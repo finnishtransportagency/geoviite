@@ -234,6 +234,12 @@ export const planDownloadReducers = {
     ) {
         state.committedFields = [...state.committedFields, key];
     },
+    setPlans: function (
+        state: PlanDownloadState,
+        { payload: plans }: PayloadAction<DownloadablePlan[]>,
+    ) {
+        state.plans = plans;
+    },
     setPlanDownloadApplicabilities: function (
         state: PlanDownloadState,
         { payload: applicabilities }: PayloadAction<PlanApplicability[]>,
@@ -247,6 +253,12 @@ export const planDownloadReducers = {
         state.plans = state.plans.map((plan) =>
             plan.id === planId.id ? { ...plan, selected: planId.selected } : plan,
         );
+    },
+    setAllPlansSelected: function (
+        state: PlanDownloadState,
+        { payload: selected }: PayloadAction<boolean>,
+    ) {
+        state.plans = state.plans.map((plan) => ({ ...plan, selected }));
     },
     setPlanDownloadAlignmentStartAndEnd: function (
         state: PlanDownloadState,

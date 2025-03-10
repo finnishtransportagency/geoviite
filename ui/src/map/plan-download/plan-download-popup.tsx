@@ -12,7 +12,6 @@ import { Menu, menuDivider, menuOption } from 'vayla-design-lib/menu/menu';
 import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
 import { PlanDownloadAreaSection } from 'map/plan-download/plan-download-area-section';
 import { PlanDownloadPlanSection } from 'map/plan-download/plan-download-plan-section';
-import { comparePlans, filterPlans } from 'map/plan-download/plan-download-utils';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import {
     getPlansLinkedToTrackNumber,
@@ -31,6 +30,8 @@ import {
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { expectDefined } from 'utils/type-utils';
+import { comparePlans, filterPlans } from 'map/plan-download/plan-download-utils';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type PlanDownloadPopupSectionProps = {
     selectedType: PlanSelectionType | undefined;
@@ -163,7 +164,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
             delegates.setPlanDownloadAlignmentStartAndEnd(trackNumberAndStartAndEnd?.startAndEnd);
     }, [locationTrackAndStartAndEnd, trackNumberAndStartAndEnd]);
 
-    const [linkedPlans, _loader] = useLoaderWithStatus<DownloadablePlan[]>(async () => {
+    const [linkedPlans, planFetchStatus] = useLoaderWithStatus<DownloadablePlan[]>(async () => {
         if (planDownloadState.areaSelection.locationTrack)
             return await getPlansLinkedToLocationTrack(
                 layoutContext,
@@ -176,7 +177,8 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                     name: p.name,
                     applicability: p.planApplicability,
                     kmNumberRange: p.kmNumberRange,
-                    selected: planDownloadState.plans.some((sp) => sp.id === p.id),
+                    selected:
+                        planDownloadState.plans.find((sp) => sp.id === p.id)?.selected ?? false,
                 })),
             );
         else if (planDownloadState.areaSelection.trackNumber)
@@ -191,7 +193,8 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                     name: p.name,
                     applicability: p.planApplicability,
                     kmNumberRange: p.kmNumberRange,
-                    selected: planDownloadState.plans.some((sp) => sp.id === p.id),
+                    selected:
+                        planDownloadState.plans.find((sp) => sp.id === p.id)?.selected ?? false,
                 })),
             );
         else return [];
@@ -200,7 +203,11 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
         planDownloadState.areaSelection.trackNumber,
         planDownloadState.areaSelection.startTrackMeter,
         planDownloadState.areaSelection.endTrackMeter,
+        getChangeTimes().geometryPlan,
     ]);
+    React.useEffect(() => {
+        if (linkedPlans) delegates.setPlans(linkedPlans);
+    }, [linkedPlans]);
 
     const menuAnchorRef = React.useRef<HTMLDivElement>(null);
     const [showFilterMenu, setShowFilterMenu] = React.useState(false);
@@ -256,8 +263,10 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
     const setPlanSelected = (id: GeometryPlanId, selected: boolean) => {
         delegates.setPlanDownloadPlanSelected({ id, selected });
     };
+    const selectPlan = (id: GeometryPlanId) => delegates.onSelect({ geometryPlans: [id] });
+
     const plans = filterPlans(
-        linkedPlans ?? [],
+        planDownloadState.plans,
         planDownloadState.selectedApplicabilities,
     ).toSorted(comparePlans);
 
@@ -315,11 +324,15 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 selectedType={planDownloadState.selectionType}
                 title={
                     <React.Fragment>
-                        <span>
-                            {t('plan-download.plans', {
-                                amount: plans.length,
-                            })}
-                        </span>
+                        {planFetchStatus === LoaderStatus.Ready ? (
+                            <span>
+                                {t('plan-download.plans', {
+                                    amount: plans.length,
+                                })}
+                            </span>
+                        ) : (
+                            <Spinner />
+                        )}
                         <div ref={menuAnchorRef}>
                             <Button
                                 size={ButtonSize.X_SMALL}
@@ -339,7 +352,12 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                         </div>
                     </React.Fragment>
                 }>
-                <PlanDownloadPlanSection plans={plans} setPlanSelected={setPlanSelected} />
+                <PlanDownloadPlanSection
+                    plans={plans}
+                    setPlanSelected={setPlanSelected}
+                    setAllPlansSelected={delegates.setAllPlansSelected}
+                    selectPlan={selectPlan}
+                />
             </PlanDownloadPopupSection>
         </div>
     );

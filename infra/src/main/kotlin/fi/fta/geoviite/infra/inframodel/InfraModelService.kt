@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.PlanApplicability
@@ -22,11 +23,14 @@ import fi.fta.geoviite.infra.geometry.TransformationError
 import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
 import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.util.CsvEntry
+import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
@@ -165,6 +169,22 @@ constructor(
         geometryService.getGeometryPlan(planId).let { plan ->
             geometryDao.updatePlan(planId, plan.copy(planApplicability = applicability))
         }
+
+    fun getInfraModelBatchSummaryCsv(headers: List<GeometryPlanHeader>, translation: Translation): String {
+        return printCsv(
+            mapOf<String, (item: GeometryPlanHeader) -> Any?>(
+                    "file-name" to { it.fileName.toString() },
+                    "start-km" to { it.kmNumberRange?.min },
+                    "end-km" to { it.kmNumberRange?.max },
+                    "crs" to { it.units.coordinateSystemName },
+                    "vertical-crs" to { it.units.verticalCoordinateSystem },
+                    "plan-time" to { it.planTime },
+                    "message" to { it.message },
+                )
+                .map { (key, fn) -> CsvEntry(translation.t("plan-download.csv.$key"), fn) },
+            headers,
+        )
+    }
 
     private fun overrideGeometryPlanWithParameters(
         plan: GeometryPlan,

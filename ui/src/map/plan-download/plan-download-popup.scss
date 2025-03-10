@@ -101,6 +101,7 @@
         flex-grow: 1;
         overflow: hidden;
         text-overflow: ellipsis;
+        cursor: pointer;
     }
 
     &__plan-icon {

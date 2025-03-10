@@ -37,6 +37,8 @@ const pvDocumentHeaderCache = asyncCache<PVDocumentId, PVDocumentHeader | undefi
 const pvDocumentHeadersByStateCache = asyncCache<PVDocumentStatus, PVDocumentHeader[]>();
 
 export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_URI}/${planId}/file`;
+export const inframodelBatchDownloadUri = (planIds: GeometryPlanId[]) =>
+    `${INFRAMODEL_URI}/batch${queryParams({ ids: planIds })}`;
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
     `${PROJEKTIVELHO_URI}/${docId}`;
 
