@@ -18,3 +18,4 @@ const val AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE =
     "(#$PUBLICATION_STATE.name() == 'DRAFT' && $AUTH_VIEW_LAYOUT_DRAFT) || (#$PUBLICATION_STATE.name() == 'OFFICIAL' && $AUTH_VIEW_LAYOUT)"
 
 const val AUTH_API_FRAME_CONVERTER = "hasAuthority('api-frame-converter')"
+const val AUTH_API_GEOMETRY = "hasAuthority('api-geometry')"

@@ -41,6 +41,7 @@ geoviite:
     static-resources: 'classpath:/static/frameconverter/'
     url-path-prefixes:
       - /rata-vkm
+      - /geoviite
 
 springdoc:
   api-docs:
