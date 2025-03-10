@@ -8,6 +8,7 @@ import { useImmediateLoader } from 'utils/react-utils';
 import { first } from 'utils/array-utils';
 import { useTranslation } from 'react-i18next';
 import { OptionBase } from 'vayla-design-lib/menu/menu';
+import { isEmpty } from 'utils/string-utils';
 
 const MARGIN_BETWEEN_INPUT_AND_POPUP = 2;
 
@@ -125,7 +126,13 @@ export const Dropdown = function <TItemValue>({
     const [open, setOpen] = React.useState(false);
     const [hasFocus, _setHasFocus] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState('');
-    const [searchCommitted, setSearchTermCommitted] = React.useState(false);
+    const [searchCommitted, setSearchTermCommitted2] = React.useState(false);
+
+    function setSearchTermCommitted(val: boolean) {
+        console.log('setSearchTermCommitted', val);
+        setSearchTermCommitted2(val);
+    }
+
     const [optionFocusIndex, setOptionFocusIndex] = React.useState(0);
     const showEmptyOption = props.canUnselect && !searchTerm && (props.value || optionsIsFunc);
     const inputRef = props.inputRef ?? inputRefInternal;
@@ -158,6 +165,9 @@ export const Dropdown = function <TItemValue>({
             : undefined) ??
         options?.find((item) => item.value === props.value)?.name ??
         '';
+
+    console.log(new Date().getTime() % 10000, searchCommitted);
+    const valueShownInInput = searchCommitted || !displaySelectedName ? searchTerm : selectedName;
 
     function setHasFocus(value: boolean) {
         if (hasFocus && !value) {
@@ -228,6 +238,7 @@ export const Dropdown = function <TItemValue>({
     }
 
     function handleInputChange(value: string) {
+        console.log('handleinputchange');
         if (searchable) {
             setSearchTermCommitted(true);
             searchFor(value);
@@ -279,9 +290,13 @@ export const Dropdown = function <TItemValue>({
                     if (optionsIsFunc && isLoading) {
                         earlySelect.current = true;
                     } else {
-                        const item = filteredOptions[optionFocusIndex];
-                        if (!item?.disabled) {
-                            select(item?.value || undefined);
+                        if (searchable && isEmpty(searchTerm)) {
+                            select(undefined);
+                        } else {
+                            const item = filteredOptions[optionFocusIndex];
+                            if (!item?.disabled) {
+                                select(item?.value || undefined);
+                            }
                         }
                     }
                 }
@@ -292,6 +307,12 @@ export const Dropdown = function <TItemValue>({
                     openListAndFocusSelectedItem();
                     e.preventDefault();
                     break;
+                case 'Tab':
+                case 'Enter': {
+                    if (isEmpty(valueShownInInput)) {
+                        select(undefined);
+                    }
+                }
             }
         }
     }
@@ -311,6 +332,11 @@ export const Dropdown = function <TItemValue>({
         }
         setSearchTerm(term);
     };
+
+    function _handlePopupOutsideClick() {
+        setOpen(false);
+        setSearchTermCommitted(false);
+    }
 
     // Set initial "hasFocus"
     React.useEffect(() => {
@@ -448,7 +474,7 @@ export const Dropdown = function <TItemValue>({
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
                         disabled={props.disabled}
-                        value={searchCommitted || !displaySelectedName ? searchTerm : selectedName}
+                        value={valueShownInInput}
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder={props.placeholder}
                     />
@@ -476,7 +502,7 @@ export const Dropdown = function <TItemValue>({
                 (popupMode === DropdownPopupMode.Modal ? (
                     <CloseableModal
                         useAnchorElementWidth
-                        onClickOutside={() => setOpen(false)}
+                        onClickOutside={_handlePopupOutsideClick}
                         className={createClassName(
                             styles['dropdown__list-container'],
                             styles['dropdown__list-container--modal'],
