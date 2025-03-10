@@ -1,12 +1,18 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.util.FreeText
+import java.time.Instant
 
 const val LOCATION_TRACK_OID_PARAM = "location_track_oid"
 const val TRACK_KILOMETER_START_PARAM = "ratakilometri_alku"
@@ -34,24 +40,25 @@ const val INCLUDE_GEOMETRY_PARAM = "geometriatiedot"
  *   geometry data. Default: false.
  */
 data class CenterLineGeometryRequestV1(
-    val locationTrackOid: Oid<LocationTrack>,
+    val locationTrackOid: ApiRequestStringV1,
     val changesAfterTimestamp: ApiRequestStringV1?,
     val trackKilometerStart: ApiRequestStringV1?,
     val trackKilometerInclusiveEnd: ApiRequestStringV1?,
     val coordinateSystem: ApiRequestStringV1?,
-    val addressPointIntervalMeters: ApiRequestStringV1?,
+    val addressPointIntervalMeters: Double?,
     val includeGeometry: Boolean?,
 )
 
 data class TrackKilometerIntervalV1(val start: KmNumber?, val inclusiveEnd: KmNumber?)
 
 data class ValidCenterLineGeometryRequestV1(
-    val locationTrackOid: Oid<LocationTrack>
-    //    val changesAfterTimestamp: Instant?,
-    //    val trackInterval: TrackKilometerIntervalV1,
-    //    val coordinateSystem: Srid,
-    //    val addressPointIntervalMeters: Double, // TODO Double or something else?
-    //    val includeGeometry: Boolean,
+    val locationTrackOid: Oid<LocationTrack>,
+    val locationTrack: LocationTrack,
+    val changesAfterTimestamp: Instant?,
+    val trackInterval: TrackKilometerIntervalV1,
+    val coordinateSystem: Srid,
+    val addressPointIntervalMeters: Double,
+    val includeGeometry: Boolean,
 ) {
     companion object {
         val DEFAULT_COORDINATE_SYSTEM = Srid(3067)
@@ -59,37 +66,40 @@ data class ValidCenterLineGeometryRequestV1(
         const val DEFAULT_INCLUDE_GEOMETRY = false
     }
 
-    //    constructor(
-    //        locationTrackOid: Oid<LocationTrack>
-    //        //        changesAfterTimestamp: Instant?,
-    //        //        trackInterval: TrackKilometerIntervalV1,
-    //        //        coordinateSystem: Srid?,
-    //        //        addressPointIntervalMeters: Double?,
-    //        //        includeGeometry: Boolean?,
-    //    ) : this(
-    //        locationTrackOid = locationTrackOid
-    //        changesAfterTimestamp = changesAfterTimestamp,
-    //        trackInterval = trackInterval,
-    //        coordinateSystem = coordinateSystem ?: DEFAULT_COORDINATE_SYSTEM,
-    //        addressPointIntervalMeters ?: DEFAULT_ADDRESS_POINT_INTERVAL_METERS,
-    //        includeGeometry = includeGeometry ?: DEFAULT_INCLUDE_GEOMETRY,
-    //    )
+    constructor(
+        locationTrackOid: Oid<LocationTrack>,
+        locationTrack: LocationTrack,
+        changesAfterTimestamp: Instant?,
+        trackInterval: TrackKilometerIntervalV1,
+        coordinateSystem: Srid?,
+        addressPointIntervalMeters: Double?,
+        includeGeometry: Boolean?,
+    ) : this(
+        locationTrackOid = locationTrackOid,
+        locationTrack = locationTrack,
+        changesAfterTimestamp = changesAfterTimestamp,
+        trackInterval = trackInterval,
+        coordinateSystem = coordinateSystem ?: DEFAULT_COORDINATE_SYSTEM,
+        addressPointIntervalMeters = addressPointIntervalMeters ?: DEFAULT_ADDRESS_POINT_INTERVAL_METERS,
+        includeGeometry = includeGeometry ?: DEFAULT_INCLUDE_GEOMETRY,
+    )
 }
 
 abstract class CenterLineGeometryResponseV1
 
 // TODO
 data class CenterLineGeometryResponseOkV1(
-    //    @JsonProperty("ratanumero") val trackNumber: LayoutTrackNumber,
-    //    @JsonProperty("ratanumero_oid") val trackNumberOid: Oid<LayoutTrackNumber>,
-    @JsonProperty("oid") val locationTrackOid: Oid<LocationTrack>
-    //    @JsonProperty("sijaintiraidetunnus") val locationTrackName: AlignmentName,
-    //    @JsonProperty("kuvaus") val locationTrackDescription: FreeText,
-    //    @JsonProperty("tyyppi") val locationTrackType: ApiLocationTrackType,
-    //    @JsonProperty("omistaja") val locationTrackOwner: MetaDataName,
+    @JsonProperty("ratanumero") val trackNumberName: TrackNumber,
+    @JsonProperty("ratanumero_oid") val trackNumberOid: Oid<LayoutTrackNumber>,
+    @JsonProperty("oid") val locationTrackOid: Oid<LocationTrack>,
+    @JsonProperty("sijaintiraidetunnus") val locationTrackName: AlignmentName,
+    @JsonProperty("tyyppi") val locationTrackType: ApiLocationTrackType,
+    @JsonProperty("kuvaus") val locationTrackDescription: FreeText,
+    @JsonProperty("omistaja") val locationTrackOwner: MetaDataName,
     //    @JsonProperty("alkusijainti") val startLocation: CenterLineGeometryPointV1,
     //    @JsonProperty("loppusijainti") val endLocation: CenterLineGeometryPointV1,
-    //    @JsonProperty("osoitepistevali") val addressPointIntervalMeters: Double, // TODO Should this be a string
+    @JsonProperty("koordinaatisto") val coordinateSystem: Srid,
+    @JsonProperty("osoitepistevali") val addressPointIntervalMeters: Double, // TODO Should this be a string
     // instead?
     //    @JsonProperty("muuttuneet_kilometrit") val trackKilometerGeometry: Map<KmNumber,
     // List<CenterLineGeometryPointV1>>,
@@ -104,8 +114,12 @@ data class CenterLineGeometryPointV1(
 )
 
 enum class CenterLineGeometryErrorV1(private val errorCode: Int, private val localizationSuffix: String) {
-    Something(1, "todo"),
-    Something2(2, "todo-2");
+    InvalidLocationTrackOid(1, "invalid-location-track-oid"),
+    LocationTrackOidNotFound(2, "location-track-oid-not-found"),
+    InvalidSrid(3, "invalid-coordinate-system-srid"),
+    InvalidTrackKilometerStart(4, "invalid-track-kilometer-start"),
+    InvalidTrackKilometerEnd(5, "invalid-track-kilometer-end"),
+    InvalidChangeTime(6, "invalid-change-time");
 
     val localizationKey: LocalizationKey by lazy { LocalizationKey("$BASE.$localizationSuffix") }
 
