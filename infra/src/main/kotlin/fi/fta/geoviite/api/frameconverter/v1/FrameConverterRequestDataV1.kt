@@ -32,27 +32,11 @@ fun createValidTrackNumberOrNull(
 ): Pair<LayoutTrackNumber?, List<FrameConverterErrorV1>> {
     return when {
         requestTrackNumberName == null && requestTrackNumberOid != null -> {
-            val (trackNumberOidOrNull, oidErrors) = createValidTrackNumberOidOrNull(requestTrackNumberOid)
-
-            if (trackNumberOidOrNull == null) {
-                null to oidErrors
-            } else {
-                trackNumberOidLookup[trackNumberOidOrNull]
-                    ?.let { tn -> trackNumberLookup[tn] }
-                    ?.let { layoutTrackNumber -> layoutTrackNumber to emptyList() }
-                    ?: (null to listOf(FrameConverterErrorV1.TrackNumberNotFound))
-            }
+            findTrackNumberByOid(requestTrackNumberOid, trackNumberLookup, trackNumberOidLookup)
         }
 
         requestTrackNumberName != null && requestTrackNumberOid == null -> {
-            val (trackNumberNameOrNull, nameErrors) = createValidTrackNumberNameOrNull(requestTrackNumberName)
-
-            if (trackNumberNameOrNull == null) {
-                null to nameErrors
-            } else {
-                trackNumberLookup[trackNumberNameOrNull]?.let { layoutTrackNumber -> layoutTrackNumber to emptyList() }
-                    ?: (null to listOf(FrameConverterErrorV1.TrackNumberNotFound))
-            }
+            findTrackNumberByName(requestTrackNumberName, trackNumberLookup)
         }
 
         requestTrackNumberName != null && requestTrackNumberOid != null -> {
@@ -66,57 +50,72 @@ fun createValidTrackNumberOrNull(
 }
 
 fun createValidTrackNumberOidOrNull(
-    unvalidatedTrackNumberOid: FrameConverterStringV1?
+    unvalidatedTrackNumberOid: FrameConverterStringV1
 ): Pair<Oid<LayoutTrackNumber>?, List<FrameConverterErrorV1>> {
-    return when (unvalidatedTrackNumberOid) {
-        null -> null to emptyList()
-        else ->
-            try {
-                Oid<LayoutTrackNumber>(unvalidatedTrackNumberOid.toString()) to emptyList()
-            } catch (e: InputValidationException) {
-                null to listOf(FrameConverterErrorV1.InvalidTrackNumberOid)
-            }
+    return try {
+        Oid<LayoutTrackNumber>(unvalidatedTrackNumberOid.toString()) to emptyList()
+    } catch (e: InputValidationException) {
+        null to listOf(FrameConverterErrorV1.InvalidTrackNumberOid)
     }
 }
 
 fun createValidTrackNumberNameOrNull(
-    unvalidatedTrackNumberName: FrameConverterStringV1?
+    unvalidatedTrackNumberName: FrameConverterStringV1
 ): Pair<TrackNumber?, List<FrameConverterErrorV1>> {
-    return when (unvalidatedTrackNumberName) {
-        null -> null to emptyList()
-        else ->
-            try {
-                TrackNumber(unvalidatedTrackNumberName.toString()) to emptyList()
-            } catch (e: InputValidationException) {
-                null to listOf(FrameConverterErrorV1.InvalidTrackNumberName)
-            }
+    return try {
+        TrackNumber(unvalidatedTrackNumberName.toString()) to emptyList()
+    } catch (e: InputValidationException) {
+        null to listOf(FrameConverterErrorV1.InvalidTrackNumberName)
     }
 }
 
 fun createValidAlignmentNameOrNull(
-    unvalidatedLocationTrackName: FrameConverterStringV1?
+    unvalidatedLocationTrackName: FrameConverterStringV1
 ): Pair<AlignmentName?, List<FrameConverterErrorV1>> {
-    return when (unvalidatedLocationTrackName) {
-        null -> null to emptyList()
-        else ->
-            try {
-                AlignmentName(unvalidatedLocationTrackName.toString()) to emptyList()
-            } catch (e: InputValidationException) {
-                null to listOf(FrameConverterErrorV1.InvalidLocationTrackName)
-            }
+    return try {
+        AlignmentName(unvalidatedLocationTrackName.toString()) to emptyList()
+    } catch (e: InputValidationException) {
+        null to listOf(FrameConverterErrorV1.InvalidLocationTrackName)
     }
 }
 
 fun createValidLocationTrackOidOrNull(
-    unvalidatedLocationTrackOid: FrameConverterStringV1?
+    unvalidatedLocationTrackOid: FrameConverterStringV1
 ): Pair<Oid<LocationTrack>?, List<FrameConverterErrorV1>> {
-    return when (unvalidatedLocationTrackOid) {
-        null -> null to emptyList()
-        else ->
-            try {
-                Oid<LocationTrack>(unvalidatedLocationTrackOid.toString()) to emptyList()
-            } catch (e: InputValidationException) {
-                null to listOf(FrameConverterErrorV1.InvalidLocationTrackOid)
-            }
+    return try {
+        Oid<LocationTrack>(unvalidatedLocationTrackOid.toString()) to emptyList()
+    } catch (e: InputValidationException) {
+        null to listOf(FrameConverterErrorV1.InvalidLocationTrackOid)
+    }
+}
+
+fun findTrackNumberByName(
+    requestTrackNumberName: FrameConverterStringV1,
+    trackNumberLookup: Map<TrackNumber, LayoutTrackNumber?>,
+): Pair<LayoutTrackNumber?, List<FrameConverterErrorV1>> {
+    val (trackNumberNameOrNull, nameErrors) = createValidTrackNumberNameOrNull(requestTrackNumberName)
+
+    return if (trackNumberNameOrNull == null) {
+        null to nameErrors
+    } else {
+        trackNumberLookup[trackNumberNameOrNull]?.let { layoutTrackNumber -> layoutTrackNumber to emptyList() }
+            ?: (null to listOf(FrameConverterErrorV1.TrackNumberNotFound))
+    }
+}
+
+fun findTrackNumberByOid(
+    requestTrackNumberOid: FrameConverterStringV1,
+    trackNumberLookup: Map<TrackNumber, LayoutTrackNumber?>,
+    trackNumberOidLookup: Map<Oid<LayoutTrackNumber>, TrackNumber?>,
+): Pair<LayoutTrackNumber?, List<FrameConverterErrorV1>> {
+    val (trackNumberOidOrNull, oidErrors) = createValidTrackNumberOidOrNull(requestTrackNumberOid)
+
+    return if (trackNumberOidOrNull == null) {
+        null to oidErrors
+    } else {
+        trackNumberOidLookup[trackNumberOidOrNull]
+            ?.let { tn -> trackNumberLookup[tn] }
+            ?.let { layoutTrackNumber -> layoutTrackNumber to emptyList() }
+            ?: (null to listOf(FrameConverterErrorV1.TrackNumberNotFound))
     }
 }

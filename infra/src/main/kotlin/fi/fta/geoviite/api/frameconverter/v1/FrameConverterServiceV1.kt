@@ -366,15 +366,17 @@ constructor(
         val (mappedLocationTrackTypeOrNull, trackTypeErrors) =
             mapLocationTrackTypeToDomainTypeOrNull(request.locationTrackType)
 
-        val (trackNumberNameOrNull, trackNumberNameErrors) = createValidTrackNumberNameOrNull(request.trackNumberName)
+        val (trackNumberNameOrNull, trackNumberNameErrors) =
+            request.trackNumberName?.let(::createValidTrackNumberNameOrNull) ?: (null to emptyList())
 
-        val (trackNumberOidOrNull, trackNumberOidErrors) = createValidTrackNumberOidOrNull(request.trackNumberOid)
+        val (trackNumberOidOrNull, trackNumberOidErrors) =
+            request.trackNumberOid?.let(::createValidTrackNumberOidOrNull) ?: (null to emptyList())
 
         val (locationTrackNameOrNull, locationTrackNameErrors) =
-            createValidAlignmentNameOrNull(request.locationTrackName)
+            request.locationTrackName?.let(::createValidAlignmentNameOrNull) ?: (null to emptyList())
 
         val (locationTrackOidOrNull, locationTrackOidErrors) =
-            createValidLocationTrackOidOrNull(request.locationTrackOid)
+            request.locationTrackOid?.let(::createValidLocationTrackOidOrNull) ?: (null to emptyList())
 
         val errors =
             listOf(
@@ -416,13 +418,13 @@ constructor(
     ): List<Either<List<GeoJsonFeatureErrorResponseV1>, ValidTrackAddressToCoordinateRequestV1>> {
         val trackNumberOidLookup =
             requests
-                .mapNotNull { request -> createValidTrackNumberOidOrNull(request.trackNumberOid).first }
+                .mapNotNull { request -> request.trackNumberOid?.let(::createValidTrackNumberOidOrNull)?.first }
                 .let { oids -> trackNumberDao.getByExternalIds(MainLayoutContext.official, oids) }
                 .mapValues { (_, layoutTrackNumber) -> layoutTrackNumber?.number }
 
         val trackNumberNames =
             requests.flatMap { request ->
-                listOfNotNull(createValidTrackNumberNameOrNull(request.trackNumberName).first)
+                listOfNotNull(request.trackNumberName?.let(::createValidTrackNumberNameOrNull)?.first)
             }
 
         val trackNumberLookup =
@@ -469,10 +471,10 @@ constructor(
             )
 
         val (locationTrackOidOrNull, locationTrackOidErrors) =
-            createValidLocationTrackOidOrNull(request.locationTrackOid)
+            request.locationTrackOid?.let(::createValidLocationTrackOidOrNull) ?: (null to emptyList())
 
         val (locationTrackNameOrNull, locationTrackNameErrors) =
-            createValidAlignmentNameOrNull(request.locationTrackName)
+            request.locationTrackName?.let(::createValidAlignmentNameOrNull) ?: (null to emptyList())
 
         val errors =
             listOf(
