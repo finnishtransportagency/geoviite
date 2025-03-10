@@ -4,21 +4,22 @@ import { Selection } from 'selection/selection-model';
 import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 import {
     getReferenceLineMapAlignmentsByTiles,
+    LayoutAlignmentDataHolder,
     ReferenceLineAlignmentDataHolder,
 } from 'track-layout/layout-map-api';
 import {
-    createAlignmentFeatures,
+    createAlignmentFeature,
     findMatchingAlignments,
+    isHighlighted,
     NORMAL_ALIGNMENT_OPACITY,
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
 import { ReferenceLineId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import Feature from 'ol/Feature';
@@ -41,11 +42,25 @@ const referenceLineStyle = new Style({
     zIndex: 0,
 });
 
+export function createReferenceLineFeatures(
+    alignments: LayoutAlignmentDataHolder[],
+    selection: Selection,
+    showEndTicks: boolean,
+): Feature<LineString | OlPoint>[] {
+    return alignments.flatMap((alignment) => {
+        const highlighted = isHighlighted(selection, alignment.header);
+        const styles = highlighted ? [highlightedReferenceLineStyle] : [referenceLineStyle];
+        const endTickStyle = highlighted ? highlightedReferenceLineStyle : referenceLineStyle;
+
+        return createAlignmentFeature(alignment, styles, showEndTicks ? endTickStyle : undefined);
+    });
+}
+
 const layerName: MapLayerName = 'reference-line-alignment-layer';
 
 export function createReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString | OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString | OlPoint> | undefined,
     selection: Selection,
     isSplitting: boolean,
     layoutContext: LayoutContext,
@@ -72,13 +87,7 @@ export function createReferenceLineAlignmentLayer(
         getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext);
 
     const createFeatures = (referenceLines: ReferenceLineAlignmentDataHolder[]) =>
-        createAlignmentFeatures(
-            referenceLines,
-            selection,
-            false,
-            referenceLineStyle,
-            highlightedReferenceLineStyle,
-        );
+        createReferenceLineFeatures(referenceLines, selection, false);
 
     const onLoadingChange = (
         loading: boolean,

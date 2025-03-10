@@ -62,7 +62,7 @@ import {
     ValidatedSplit,
     validateSplit,
 } from 'tool-panel/location-track/splitting/split-utils';
-import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
 import { BoundingBox, boundingBoxAroundPoints, multiplyBoundingBox, Point } from 'model/geometry';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
@@ -167,15 +167,23 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         [changeTimes.layoutLocationTrack, changeTimes.layoutSwitch],
     );
 
+    const hasOfficialLocationTrack =
+        useLocationTrack(
+            splittingState?.originLocationTrack.id,
+            officialLayoutContext(layoutContext),
+            changeTimes.layoutLocationTrack,
+        ) !== undefined;
+
     React.useEffect(() => {
         locationTrack &&
             delegates.setDisabled(
                 !locationTrack ||
-                    (locationTrack.isDraft && !locationTrack.hasOfficial) ||
+                    (locationTrack.isDraft && !hasOfficialLocationTrack) ||
                     hasUnrelinkableSwitches(switchRelinkingErrors || []),
             );
     }, [
         locationTrack,
+        hasOfficialLocationTrack,
         switchRelinkingErrors,
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,

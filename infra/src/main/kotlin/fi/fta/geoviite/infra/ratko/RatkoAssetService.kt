@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.ratko.model.mapJointNumberToGeometryType
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -63,9 +64,10 @@ constructor(
             .forEach { (layoutSwitch, changedJoints) ->
                 try {
                     val externalId =
-                        getOrCreateFullExternalId(
+                        getFullExtIdAndManagePlanItem(
                             layoutBranch,
                             layoutSwitch.id as IntId,
+                            layoutSwitch.designAssetState,
                             ratkoClient,
                             switchDao::fetchExternalId,
                             switchDao::savePlanItemId,
@@ -82,7 +84,10 @@ constructor(
                             moment = publicationTime,
                         )
                     }
-                        ?: if (layoutSwitch.stateCategory == LayoutStateCategory.EXISTING) {
+                        ?: if (
+                            layoutSwitch.stateCategory == LayoutStateCategory.EXISTING &&
+                                layoutSwitch.designAssetState != DesignAssetState.CANCELLED
+                        ) {
                             createSwitch(layoutSwitch, externalId, changedJoints)
                         } else {
                             null

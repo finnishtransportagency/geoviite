@@ -27,12 +27,15 @@ enum class LayoutStateCategory {
     fun isRemoved() = this == NOT_EXISTING
 }
 
+enum class DesignAssetState {
+    OPEN,
+    COMPLETED,
+    CANCELLED,
+}
+
 sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) :
     LayoutContextAware<T> by contextData, Loggable {
     @get:JsonIgnore abstract val contextData: LayoutContextData<T>
-
-    val hasOfficial: Boolean
-        get() = contextData.hasOfficial
 
     abstract fun withContext(contextData: LayoutContextData<T>): T
 }

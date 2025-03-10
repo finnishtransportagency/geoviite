@@ -164,7 +164,7 @@ class LayoutKmPostDao(
               version,
               design_id,
               draft,
-              cancelled,
+              design_asset_state,
               track_number_id,
               geometry_km_post_id,
               km_number,
@@ -174,11 +174,7 @@ class LayoutKmPostDao(
               gk_location_source,
               gk_location_confirmed,
               state,
-              origin_design_id,
-              exists(select * from layout.km_post official_kp
-                     where kpv.id = official_kp.id
-                       and (official_kp.design_id is null or official_kp.design_id = kpv.design_id)
-                       and not official_kp.draft) as has_official
+              origin_design_id
             from layout.km_post_version kpv
             where id = :id 
               and version = :version
@@ -215,7 +211,7 @@ class LayoutKmPostDao(
               kp.design_id,
               kp.draft,
               kp.version,
-              kp.cancelled,
+              kp.design_asset_state,
               kp.track_number_id,
               kp.geometry_km_post_id,
               kp.km_number,
@@ -225,19 +221,20 @@ class LayoutKmPostDao(
               kp.gk_location_source,
               kp.gk_location_confirmed,
               kp.state,
-              exists(select * from layout.km_post official_kp
-                     where kp.id = official_kp.id
-                       and (official_kp.design_id is null or official_kp.design_id = kp.design_id)
-                       and not official_kp.draft) as has_official,
               kp.origin_design_id
             from layout.km_post kp
         """
                 .trimIndent()
 
-        val posts = jdbcTemplate.query(sql) { rs, _ -> getLayoutKmPost(rs) }.associateBy(LayoutKmPost::version)
-        logger.daoAccess(AccessType.FETCH, LayoutKmPost::class, posts.keys)
-        cache.putAll(posts)
-        return posts.size
+        val kmPosts =
+            jdbcTemplate
+                .query(sql) { rs, _ -> getLayoutKmPost(rs) }
+                .associateBy { kmPost -> requireNotNull(kmPost.version) }
+
+        logger.daoAccess(AccessType.FETCH, LayoutKmPost::class, kmPosts.keys)
+        cache.putAll(kmPosts)
+
+        return kmPosts.size
     }
 
     private fun getLayoutKmPost(rs: ResultSet): LayoutKmPost {
@@ -249,15 +246,7 @@ class LayoutKmPostDao(
             state = rs.getEnum("state"),
             sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "cancelled",
-                    "has_official",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
     }
 
@@ -280,7 +269,7 @@ class LayoutKmPostDao(
               gk_location_source,
               state,
               draft,
-              cancelled,
+              design_asset_state,
               design_id,
               origin_design_id
             )
@@ -296,7 +285,7 @@ class LayoutKmPostDao(
               :gk_location_source::layout.gk_location_source,
               :state::layout.state,
               :draft,
-              :cancelled,
+              :design_asset_state::layout.design_asset_state,
               :design_id,
               :origin_design_id
             )
@@ -309,7 +298,7 @@ class LayoutKmPostDao(
                   gk_location_confirmed = excluded.gk_location_confirmed,
                   gk_location_source = excluded.gk_location_source,
                   state = excluded.state,
-                  cancelled = excluded.cancelled,
+                  design_asset_state = excluded.design_asset_state,
                   origin_design_id = excluded.origin_design_id
             returning version 
         """
@@ -331,7 +320,7 @@ class LayoutKmPostDao(
                 "gk_location_source" to item.gkLocation?.source?.name,
                 "state" to item.state.name,
                 "draft" to item.contextData.isDraft,
-                "cancelled" to item.isCancelled,
+                "design_asset_state" to item.designAssetState?.name,
                 "design_id" to item.contextData.designId?.intValue,
                 "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
             )

@@ -12,6 +12,7 @@ import { initialSelectionState, selectionReducers } from 'selection/selection-st
 import {
     AuthorId,
     GeometryPlan,
+    PlanApplicability,
     PlanDecisionPhase,
     PlanPhase,
     PlanSource,
@@ -65,6 +66,7 @@ export type ExtraInfraModelParameters = {
     elevationMeasurementMethod?: ElevationMeasurementMethod;
     message?: Message;
     name?: string;
+    planApplicability?: PlanApplicability;
 };
 
 export type XmlCharset = 'US_ASCII' | 'UTF_16LE' | 'UTF_16' | 'UTF_16BE' | 'UTF_8' | 'ISO_8859_1';
@@ -249,6 +251,7 @@ const infraModelSlice = createSlice({
                 elevationMeasurementMethod: plan?.elevationMeasurementMethod ?? undefined,
                 message: plan?.message ?? undefined,
                 name: plan?.name ?? undefined,
+                planApplicability: plan?.planApplicability ?? undefined,
             };
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;

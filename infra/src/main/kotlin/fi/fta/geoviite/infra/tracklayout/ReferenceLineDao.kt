@@ -43,7 +43,7 @@ class ReferenceLineDao(
               rlv.version,
               rlv.design_id,
               rlv.draft,
-              rlv.cancelled,
+              rlv.design_asset_state,
               rlv.alignment_id,
               rlv.alignment_version,
               rlv.track_number_id, 
@@ -51,10 +51,6 @@ class ReferenceLineDao(
               av.length,
               av.segment_count,
               rlv.start_address,
-              exists(select * from layout.reference_line official_rl
-                     where rlv.id = official_rl.id
-                       and (official_rl.design_id is null or official_rl.design_id = rlv.design_id)
-                       and not official_rl.draft) as has_official,
               origin_design_id
             from layout.reference_line_version rlv
               left join layout.alignment_version av on rlv.alignment_id = av.id and rlv.alignment_version = av.version
@@ -83,7 +79,7 @@ class ReferenceLineDao(
               rl.version,
               rl.design_id,
               rl.draft,
-              rl.cancelled,
+              rl.design_asset_state,
               rl.alignment_id,
               rl.alignment_version,
               rl.track_number_id, 
@@ -91,10 +87,6 @@ class ReferenceLineDao(
               av.length,
               av.segment_count,
               rl.start_address,
-              exists(select * from layout.reference_line official_rl
-                     where rl.id = official_rl.id
-                       and (official_rl.design_id is null or official_rl.design_id = rl.design_id)
-                       and not official_rl.draft) as has_official,
               rl.origin_design_id
             from layout.reference_line rl
               left join layout.alignment_version av on rl.alignment_id = av.id and rl.alignment_version = av.version
@@ -102,9 +94,13 @@ class ReferenceLineDao(
                 .trimIndent()
 
         val referenceLines =
-            jdbcTemplate.query(sql) { rs, _ -> getReferenceLine(rs) }.associateBy(ReferenceLine::version)
+            jdbcTemplate
+                .query(sql) { rs, _ -> getReferenceLine(rs) }
+                .associateBy { referenceLine -> requireNotNull(referenceLine.version) }
+
         logger.daoAccess(AccessType.FETCH, ReferenceLine::class, referenceLines.keys)
         cache.putAll(referenceLines)
+
         return referenceLines.size
     }
 
@@ -118,15 +114,7 @@ class ReferenceLineDao(
             length = rs.getDouble("length"),
             segmentCount = rs.getInt("segment_count"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "cancelled",
-                    "has_official",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
 
     @Transactional
@@ -143,7 +131,7 @@ class ReferenceLineDao(
               alignment_version,
               start_address,
               draft, 
-              cancelled,
+              design_asset_state,
               design_id,
               origin_design_id
             ) 
@@ -155,7 +143,7 @@ class ReferenceLineDao(
               :alignment_version,
               :start_address, 
               :draft, 
-              :cancelled,
+              :design_asset_state::layout.design_asset_state,
               :design_id,
               :origin_design_id
             ) on conflict (id, layout_context_id) do update set
@@ -163,7 +151,7 @@ class ReferenceLineDao(
               alignment_id = excluded.alignment_id,
               alignment_version = excluded.alignment_version,
               start_address = excluded.start_address,
-              cancelled = excluded.cancelled,
+              design_asset_state = excluded.design_asset_state,
               origin_design_id = excluded.origin_design_id
             returning id, design_id, draft, version
         """
@@ -178,7 +166,7 @@ class ReferenceLineDao(
                 "alignment_version" to item.alignmentVersion.version,
                 "start_address" to item.startAddress.toString(),
                 "draft" to item.isDraft,
-                "cancelled" to item.isCancelled,
+                "design_asset_state" to item.designAssetState?.name,
                 "design_id" to item.contextData.designId?.intValue,
                 "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
             )

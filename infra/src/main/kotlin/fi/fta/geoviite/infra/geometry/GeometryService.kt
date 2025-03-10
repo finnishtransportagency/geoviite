@@ -665,9 +665,10 @@ constructor(
         val heightTriangles = heightTriangleDao.fetchTriangles(boundingBox.polygonFromCorners)
         val verticalCoordinateSystem = plan.units.verticalCoordinateSystem ?: return null
 
+        val startStation = geometryAlignment.staStart.toDouble()
         return collectTrackMeterHeights(startDistance, endDistance, geocodingContext, alignment, tickLength) { point, _
             ->
-            profile?.getHeightAt(point.m)?.let { height ->
+            profile?.getHeightAt(point.m + startStation)?.let { height ->
                 transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
             }
         }

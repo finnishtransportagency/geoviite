@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 import org.slf4j.Logger
@@ -16,7 +17,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected open val dao: DaoType
 ) {
 
-    protected open val logger: Logger = LoggerFactory.getLogger(this::class.java)
+    protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun list(context: LayoutContext, includeDeleted: Boolean = false): List<ObjectType> {
         return dao.list(context, includeDeleted)
@@ -64,10 +65,10 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected fun cancelInternal(asset: ObjectType, designBranch: DesignBranch) =
         cancelled(asset, designBranch.designId)
 
-    protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
+    protected fun contentMatches(term: String, item: ObjectType): Boolean = false
 
     @Transactional
-    open fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): LayoutRowVersion<ObjectType> {
+    fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): LayoutRowVersion<ObjectType> {
         return saveDraftInternal(branch, draftAsset)
     }
 
@@ -78,19 +79,19 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     }
 
     @Transactional
-    open fun deleteDraft(branch: LayoutBranch, id: IntId<ObjectType>): LayoutRowVersion<ObjectType> {
+    fun deleteDraft(branch: LayoutBranch, id: IntId<ObjectType>): LayoutRowVersion<ObjectType> {
         return dao.deleteDraft(branch, id)
     }
 
     @Transactional
-    open fun publish(branch: LayoutBranch, version: LayoutRowVersion<ObjectType>): LayoutRowVersion<ObjectType> {
+    fun publish(branch: LayoutBranch, version: LayoutRowVersion<ObjectType>): PublicationResultVersions<ObjectType> {
         return publishInternal(branch, version)
     }
 
     protected fun publishInternal(
         branch: LayoutBranch,
         draftVersion: LayoutRowVersion<ObjectType>,
-    ): LayoutRowVersion<ObjectType> {
+    ): PublicationResultVersions<ObjectType> {
         val draft = dao.fetch(draftVersion)
         require(branch == draft.branch) {
             "Draft branch does not match the publishing operation: branch=$branch draft=$draft"
@@ -107,17 +108,30 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             }
         dao.deleteRow(draftVersion.rowId)
 
-        if (draft.isCancelled) {
+        if (
+            draft.designAssetState == DesignAssetState.COMPLETED || draft.designAssetState == DesignAssetState.CANCELLED
+        ) {
             dao.deleteRow(publicationVersion.rowId)
         }
 
-        (draft.contextData as? MainDraftContextData)?.originBranch?.let { originBranch ->
-            if (originBranch is DesignBranch) {
-                dao.deleteRow(LayoutRowId(draftVersion.id, originBranch.official))
+        val completedVersion =
+            (draft.contextData as? MainDraftContextData)?.originBranch?.let { originBranch ->
+                if (originBranch is DesignBranch) {
+                    val designOfficial = dao.fetchVersion(originBranch.official, draftVersion.id)
+                    // TODO these are not currently actually guaranteed! User could merge and then
+                    // cancel an object.
+                    requireNotNull(designOfficial) {
+                        "Expected published object $draftVersion's to find an object looking for its origin in $originBranch"
+                    }
+                    require(designOfficial.context == originBranch.official) {
+                        "Expected published object $draftVersion's origin object to be in $originBranch"
+                    }
+                    val completedVersion = dao.save(completed(dao.fetch(designOfficial)))
+                    originBranch to completedVersion
+                } else null
             }
-        }
 
-        return publicationVersion
+        return PublicationResultVersions(published = publicationVersion, completed = completedVersion)
     }
 
     protected fun fetchAndCheckForMerging(fromBranch: DesignBranch, id: IntId<ObjectType>): ObjectType {

@@ -50,6 +50,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -59,7 +60,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -267,7 +267,7 @@ constructor(
             locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, draft = true)
         val locationTrackResponse =
             locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { rowVersion ->
-                locationTrackService.publish(LayoutBranch.main, rowVersion)
+                locationTrackService.publish(LayoutBranch.main, rowVersion).published
             }
 
         val geometryInterval = GeometryInterval(alignmentId = IntId(0), mRange = Range(0.0, 0.0))
@@ -320,7 +320,7 @@ constructor(
             locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, segment1, draft = true)
         val locationTrackResponse =
             locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { rowVersion ->
-                locationTrackService.publish(LayoutBranch.main, rowVersion)
+                locationTrackService.publish(LayoutBranch.main, rowVersion).published
             }
 
         val (_, officialAlignment) = locationTrackService.getWithAlignment(locationTrackResponse)

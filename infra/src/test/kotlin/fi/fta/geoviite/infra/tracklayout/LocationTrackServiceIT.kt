@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -30,7 +31,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -110,8 +110,7 @@ constructor(
     fun locationTrackInsertAndUpdateWorks() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
 
-        val (response, insertedTrack) = createAndVerifyTrack(trackNumberId, 1)
-        val insertedTrackVersion = response
+        val (insertedTrackVersion, insertedTrack) = createAndVerifyTrack(trackNumberId, 1)
         val id = insertedTrackVersion.id
         val changeTimeAfterInsert = locationTrackService.getChangeTime()
 
@@ -715,6 +714,25 @@ constructor(
         assertEquals(listOf("track 1 V123 - V456", "track 2 V456 - Puskin"), descriptions)
     }
 
+    @Test
+    fun `deleteDraft deletes duplicate references if track is only draft, but not if official exists`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val onlyDraftReal = mainDraftContext.insert(locationTrack(trackNumber), alignment).id
+        val onlyDraftDuplicate =
+            mainDraftContext.insert(locationTrack(trackNumber, duplicateOf = onlyDraftReal), alignment).id
+        val officialReal = mainOfficialContext.insert(locationTrack(trackNumber), alignment)
+        mainDraftContext.copyFrom(officialReal)
+        val officialDuplicate =
+            mainDraftContext.insert(locationTrack(trackNumber, duplicateOf = officialReal.id), alignment).id
+
+        locationTrackService.deleteDraft(LayoutBranch.main, onlyDraftReal)
+        locationTrackService.deleteDraft(LayoutBranch.main, officialReal.id)
+
+        assertNull(mainDraftContext.fetch(onlyDraftDuplicate)!!.duplicateOf)
+        assertEquals(officialReal.id, mainDraftContext.fetch(officialDuplicate)!!.duplicateOf)
+    }
+
     private fun insertAndFetchDraft(switch: LayoutSwitch): LayoutSwitch =
         switchDao.fetch(switchService.saveDraft(LayoutBranch.main, switch))
 
@@ -808,6 +826,6 @@ constructor(
 
     private fun publish(id: IntId<LocationTrack>): LayoutRowVersion<LocationTrack> =
         locationTrackDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
-            locationTrackService.publish(LayoutBranch.main, version)
+            locationTrackService.publish(LayoutBranch.main, version).published
         }
 }

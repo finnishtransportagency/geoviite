@@ -2,10 +2,9 @@ import { LineString, Point as OlPoint } from 'ol/geom';
 import mapStyles from 'map/map.module.scss';
 import Feature from 'ol/Feature';
 import { MapLayerName, MapTile } from 'map/map-model';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { ChangeTimes } from 'common/common-slice';
-import VectorLayer from 'ol/layer/Vector';
 import {
     AlignmentDataHolder,
     getSelectedLocationTrackMapAlignmentByTiles,
@@ -90,8 +89,8 @@ function splitToParts(
 
         return createAlignmentFeature(
             alignmentPart,
-            false,
-            alignmentStyle(splittingEnabled, splitIsFocused),
+            [alignmentStyle(splittingEnabled, splitIsFocused)],
+            undefined,
         );
     });
 }
@@ -129,7 +128,7 @@ function linearlyInterpolateAlignmentPoint(
 
 export function createLocationTrackSplitAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString | OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString | OlPoint> | undefined,
     layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,
@@ -154,7 +153,7 @@ export function createLocationTrackSplitAlignmentLayer(
             return [];
         }
 
-        createAlignmentFeature(splitTrack, false, alignmentStyle(splittingEnabled, true));
+        createAlignmentFeature(splitTrack, [alignmentStyle(splittingEnabled, true)], undefined);
 
         return splitToParts(
             splitTrack,

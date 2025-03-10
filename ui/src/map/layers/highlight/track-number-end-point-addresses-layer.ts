@@ -12,7 +12,12 @@ import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import Feature from 'ol/Feature';
 import { Style } from 'ol/style';
 import { AlignmentPoint, LayoutTrackNumberId } from 'track-layout/track-layout-model';
-import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    createLayer,
+    GeoviiteMapLayer,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import {
     getColor,
     getDefaultColorKey,
@@ -22,7 +27,6 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Coordinate } from 'ol/coordinate';
 import mapStyles from 'map/map.module.scss';
 import { State } from 'ol/render';
-import VectorLayer from 'ol/layer/Vector';
 import {
     DASHED_LINE_INDICATOR_FONT_SIZE,
     getRotation,
@@ -155,7 +159,7 @@ const layerName: MapLayerName = 'track-number-addresses-layer';
 
 export function createTrackNumberEndPointAddressesLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     changeTimes: ChangeTimes,
     layoutContext: LayoutContext,
     resolution: number,

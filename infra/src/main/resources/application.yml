@@ -31,7 +31,6 @@ spring:
     default-timeout: 60
   flyway:
     clean-disabled: true
-    clean-on-validation-error: false
     locations: classpath:db/migration/**/*.sql,classpath:fi/fta/geoviite/infra/dataImport,classpath:fi/fta/geoviite/infra/migration
     url: "${spring.datasource.url}"
     user: "${spring.datasource.username}"

@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.logging.integrationCall
-import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.ratko.model.GEOVIITE_NAME
 import fi.fta.geoviite.infra.ratko.model.RatkoAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometry
@@ -28,6 +27,9 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItem
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
+import fi.fta.geoviite.infra.ratko.model.RatkoPlanResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanState
 import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoPointStates
@@ -396,14 +398,20 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         logger.integrationCall("createPlanItem")
 
         val rv =
-            postWithResponseBody<RatkoPlanItemId>(
-                "/api/plan/v1.0/plans/${ratkoPlanId.id}/plan_items",
-                mapOf("state" to RatkoPlanState.OPEN.name) + (realOid?.let { mapOf("realOid" to it) } ?: mapOf()),
+            postWithResponseBody<RatkoPlanItem>(
+                "/api/plan/v1.0/plans/${ratkoPlanId.intValue}/plan_items",
+                RatkoPlanItem(id = null, state = RatkoPlanState.OPEN, planId = ratkoPlanId, realOid = realOid),
             )
-        return requireNotNull(rv) {
+        return requireNotNull(rv?.id) {
             "Expected plan item ID from Ratko when creating plan item in Ratko plan " +
-                "${ratkoPlanId.id} with real OID $realOid"
+                "${ratkoPlanId.intValue} with real OID $realOid"
         }
+    }
+
+    fun updatePlanItem(item: RatkoPlanItem) {
+        logger.integrationCall("updatePlanItem")
+        val id = requireNotNull(item.id).intValue
+        putWithoutResponseBody("/api/plan/v1.0/plan_items/$id", item)
     }
 
     fun getNewLocationTrackOid(): RatkoOid<RatkoLocationTrack> {
@@ -536,12 +544,13 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     fun createPlan(plan: RatkoPlan): RatkoPlanId? {
         logger.integrationCall("createPlan", "plan" to plan)
-        return postWithResponseBody<RatkoPlanId>(url = PLAN_PATH, plan)
+        val rv = postWithResponseBody<RatkoPlanResponse>(url = PLAN_PATH, plan)
+        return rv?.id
     }
 
     fun updatePlan(plan: RatkoPlan) {
         logger.integrationCall("updatePlan", "plan" to plan)
-        val ratkoId = requireNotNull(plan.id)
+        val ratkoId = requireNotNull(plan.id).intValue
         return putWithoutResponseBody(url = "$PLAN_PATH/$ratkoId", plan)
     }
 

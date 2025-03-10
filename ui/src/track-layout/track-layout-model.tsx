@@ -92,7 +92,6 @@ export type LayoutAssetFields = {
     version?: RowVersion;
     dataType: DataType;
     isDraft: boolean;
-    hasOfficial: boolean;
 };
 
 export type LayoutAsset =
@@ -368,6 +367,7 @@ export type AlignmentStartAndEnd = {
     id: AlignmentId;
     start?: AlignmentEndPoint;
     end?: AlignmentEndPoint;
+    staStart?: number;
 };
 
 export function getSwitchPresentationJoint(

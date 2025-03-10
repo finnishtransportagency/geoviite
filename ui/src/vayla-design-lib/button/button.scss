@@ -69,6 +69,11 @@ $button-animation-size-small: 12px;
     padding: 8px 12px 8px 8px;
 }
 
+.button--has-icon svg {
+    /* We want JS click events to go the button instead of the SVG element inside the button */
+    pointer-events: none;
+}
+
 .button--primary {
     @include button-text-color(colors.$color-blue-lighter);
     background: colors.$color-blue-default;
@@ -213,10 +218,10 @@ $button-animation-size-small: 12px;
     }
 
     // pressed state
-    &:active {
+    &:active,
+    &.button--pressed {
         @include button-text-color(colors.$color-blue-dark);
         background: colors.$color-blue-lighter;
-        border-color: colors.$color-blue-dark;
     }
 
     &[disabled],

@@ -3,7 +3,6 @@ import Infobox from 'tool-panel/infobox/infobox';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { LoaderStatus, useRateLimitedLoaderWithStatus } from 'utils/react-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
-import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { LayoutContext, TimeStamp } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
@@ -18,6 +17,7 @@ import {
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { getTrackNumberReferenceLineSectionsByPlan } from 'track-layout/layout-track-number-api';
+import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
 
 type TrackNumberGeometryInfoboxProps = {
     layoutContext: LayoutContext;
@@ -73,15 +73,18 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
             contentVisible={contentVisible}
             onContentVisibilityChange={onContentVisibilityChange}>
             <InfoboxContent>
-                <InfoboxField
-                    label={t('tool-panel.alignment-plan-sections.bounding-box-geometries')}
-                    value={
-                        <Checkbox
-                            checked={useBoundingBox}
-                            onChange={(e) => setUseBoundingBox(e.target.checked)}
-                        />
-                    }
-                />
+                <InfoboxList>
+                    <InfoboxListRow
+                        label={t('tool-panel.alignment-plan-sections.bounding-box-geometries')}
+                        content={
+                            <Checkbox
+                                extraClassName="alignment-plan-section-infobox__navigation-checkbox"
+                                checked={useBoundingBox}
+                                onChange={(e) => setUseBoundingBox(e.target.checked)}
+                            />
+                        }
+                    />
+                </InfoboxList>
                 <ProgressIndicatorWrapper
                     indicator={ProgressIndicatorType.Area}
                     inProgress={elementFetchStatus !== LoaderStatus.Ready}

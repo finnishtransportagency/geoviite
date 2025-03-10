@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BulkTransferState, PublicationDetails } from 'publication/publication-model';
 import { ratkoPushFailed, ratkoPushInProgress, ratkoPushSucceeded } from 'ratko/ratko-model';
@@ -15,14 +15,14 @@ import { putBulkTransferState } from 'publication/split/split-api';
 import { success } from 'geoviite-design-lib/snackbar/snackbar';
 import { getChangeTimes, updateSplitChangeTime } from 'common/change-time-api';
 import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
-import { Link } from 'react-router-dom';
+import { RouterLink } from 'geoviite-design-lib/link/router-link';
 
 type PublicationListRowProps = {
     publication: PublicationDetails;
     setSelectedPublicationId: (id: string) => void;
 };
 
-const publicationStateIcon: React.FC<PublicationDetails> = (publication) => {
+const publicationStateIcon = (publication: PublicationDetails): ReactNode => {
     if (ratkoPushSucceeded(publication.ratkoPushStatus)) {
         return (
             <span className={styles['publication-list-item--success']}>
@@ -127,7 +127,9 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
                         {(() => {
                             const text = formatDateFull(publication.publicationTime);
                             return publication.layoutBranch.branch === 'MAIN' ? (
-                                <Link to={`/publications/${publication.id}`}>{text}</Link>
+                                <RouterLink to={`/publications/${publication.id}`}>
+                                    {text}
+                                </RouterLink>
                             ) : (
                                 text
                             );

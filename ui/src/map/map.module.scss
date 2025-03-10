@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use 'vayla-design-lib' as vayla-design;
 @use 'geoviite-design-lib' as geoviite-design;
 @use 'vayla-design-lib/menu/menu';
@@ -41,9 +42,10 @@
     alignmentLine: rgba(vayla-design.$color-black-default, 0.8);
     alignmentLineBuilt: rgba(vayla-design.$color-black-default, 1);
     alignmentLineNotInUse: rgba(vayla-design.$color-red-default, 1);
-    alignmentPreviewOfficialLine: vayla-design.$color-white-darker;
+    alignmentPreviewBaseLine: vayla-design.$color-red-default;
     selectedAlignmentLine: geoviite-design.$color-geoviite-blue;
     selectedAlignmentLineDisabled: geoviite-design.$color-geoviite-map-red;
+    alignmentLineBuiltBackground: vayla-design.$color-white-default;
 
     alignmentRedHighlight: rgba(geoviite-design.$color-geoviite-map-red, 0.2);
     alignmentBlueHighlight: rgba(geoviite-design.$color-geoviite-map-blue, 0.2);
@@ -107,7 +109,7 @@
     switchJointTextColor: vayla-design.$color-black-default;
 
     switchMainJoint: geoviite-design.$color-geoviite-blue;
-    switchMainJointBorder: scale-color(geoviite-design.$color-geoviite-blue, $lightness: -40%);
+    switchMainJointBorder: color.scale(geoviite-design.$color-geoviite-blue, $lightness: -40%);
     switchMainJointTextColor: vayla-design.$color-white-default;
 
     linkedSwitchJoint: vayla-design.$color-green-default;
@@ -134,10 +136,10 @@
 
 // Preview highlight styling
 :export {
-    previewHighlightDeletedExplicit: #ff6903;
+    previewHighlightDeletedExplicit: #fd6b51;
     previewHighlightDeletedImplicit: #f0b6b3;
     previewHighlightModifiedExplicit: #ffc300;
-    previewHighlightModifiedImplicit: #cdc8b9;
+    previewHighlightModifiedImplicit: #ead9a1;
     previewHighlightStagedExplicit: #0066cc;
     previewHighlightStagedImplicit: #99c2ea;
 }
@@ -188,8 +190,13 @@
         margin: 0;
         padding: 2px;
         border-radius: 4px;
-
         background-color: rgba(vayla-design.$color-white-default, 0.6);
+        display: flex;
+        flex-direction: column;
+    }
+
+    &__map-tools > *:not(:last-child) {
+        margin-bottom: 4px;
     }
 
     &__map-tool {
@@ -287,4 +294,18 @@
     background-color: rgba(vayla-design.$color-black-default, 0.6);
     padding: 2px 6px;
     border-radius: 4px;
+}
+
+.map-tool-button-content {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-tool-button-content__icon {
+    fill: vayla-design.$color-blue-dark;
+    width: 18px;
+    height: 18px;
 }

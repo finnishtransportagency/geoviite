@@ -29,7 +29,7 @@ export type ChangeTableEntry = {
     id: PublicationId;
     name: string;
     uiName: string;
-    trackNumber: string;
+    trackNumbers: string[];
     changeTime: string;
     userName: string;
     operation: Operation;
@@ -75,7 +75,7 @@ export const trackNumberToChangeTableEntry = (trackNumber: TrackNumberPublicatio
     ...changeTableEntryCommonFields(trackNumber),
     uiName: getTrackNumberUiName(trackNumber.number),
     name: trackNumber.number,
-    trackNumber: trackNumber.number,
+    trackNumbers: [trackNumber.number],
 });
 
 export const referenceLineToChangeTableEntry = (
@@ -87,7 +87,7 @@ export const referenceLineToChangeTableEntry = (
         ...changeTableEntryCommonFields(referenceLine),
         uiName: getReferenceLineUiName(referenceLine.name),
         name: referenceLine.name,
-        trackNumber: trackNumber ? trackNumber.number : '',
+        trackNumbers: [trackNumber ? trackNumber.number : ''],
     };
 };
 
@@ -100,7 +100,7 @@ export const locationTrackToChangeTableEntry = (
         ...changeTableEntryCommonFields(locationTrack),
         uiName: getLocationTrackUiName(locationTrack.name),
         name: locationTrack.name,
-        trackNumber: trackNumber ? trackNumber.number : '',
+        trackNumbers: [trackNumber ? trackNumber.number : ''],
     };
 };
 
@@ -108,16 +108,16 @@ export const switchToChangeTableEntry = (
     layoutSwitch: SwitchPublicationCandidate,
     trackNumbers: LayoutTrackNumber[],
 ) => {
-    const trackNumber = trackNumbers
+    const displayedTrackNumbers = trackNumbers
         .filter((tn) => layoutSwitch.trackNumberIds.some((lstn) => lstn === tn.id))
         .sort()
-        .map((tn) => tn.number)
-        .join(', ');
+        .map((tn) => tn.number);
+
     return {
         ...changeTableEntryCommonFields(layoutSwitch),
         uiName: getSwitchUiName(layoutSwitch.name),
         name: layoutSwitch.name,
-        trackNumber,
+        trackNumbers: displayedTrackNumbers,
     };
 };
 
@@ -130,6 +130,6 @@ export const kmPostChangeTableEntry = (
         ...changeTableEntryCommonFields(kmPost),
         uiName: getKmPostUiName(kmPost.kmNumber),
         name: kmPost.kmNumber,
-        trackNumber: trackNumber ? trackNumber.number : '',
+        trackNumbers: [trackNumber ? trackNumber.number : ''],
     };
 };

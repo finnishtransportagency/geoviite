@@ -140,7 +140,7 @@ fun toLayoutSwitches(
     planToLayout: Transformation,
 ): Map<DomainId<GeometrySwitch>, LayoutSwitch> =
     geometrySwitches
-        .mapNotNull { (switch, structure) -> toLayoutSwitch(switch, structure, planToLayout).let { switch.id to it } }
+        .map { (switch, structure) -> toLayoutSwitch(switch, structure, planToLayout).let { switch.id to it } }
         .associate { it }
 
 fun toMapAlignments(
@@ -171,6 +171,7 @@ fun toMapAlignments(
 
         PlanLayoutAlignment(
             header = toAlignmentHeader(trackNumberId, alignment, boundingBoxInLayoutSpace),
+            staStart = alignment.staStart.toDouble(),
             segments = mapSegments,
         )
     }

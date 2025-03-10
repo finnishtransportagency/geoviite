@@ -259,6 +259,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                                 )
                                             }
                                             visibility={projectIsVisible}
+                                            disabled={disabled}
                                         />
                                     </div>
                                 )}

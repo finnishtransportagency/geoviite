@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -33,7 +33,7 @@ class PublicationDao(
     ): List<TrackNumberPublicationCandidate> {
         val sql =
             """
-            select id, design_id, draft, version, number, change_time, change_user, cancelled,
+            select id, design_id, draft, version, number, change_time, change_user, design_asset_state,
               layout.infer_operation_from_state_transition(
                 (select state
                  from layout.track_number_in_layout_context('OFFICIAL', null) tilc
@@ -42,11 +42,12 @@ class PublicationDao(
               ) as operation
             from layout.track_number candidate_track_number
             where draft = (:candidate_state = 'DRAFT') and design_id is not distinct from :candidate_design_id
-              and not (design_id is not null and not draft and (cancelled or exists (
+              and not (design_id is not null and not draft and (design_asset_state = 'CANCELLED' or exists (
                 select * from layout.track_number drafted_cancellation
                 where drafted_cancellation.draft
                   and drafted_cancellation.design_id = candidate_track_number.design_id
-                  and drafted_cancellation.id = candidate_track_number.id)))
+                  and drafted_cancellation.id = candidate_track_number.id
+                  and drafted_cancellation.design_asset_state = 'CANCELLED')))
         """
                 .trimIndent()
         val candidates =
@@ -57,7 +58,7 @@ class PublicationDao(
                     draftChangeTime = rs.getInstant("change_time"),
                     operation = rs.getEnum("operation"),
                     userName = UserName.of(rs.getString("change_user")),
-                    cancelled = rs.getBoolean("cancelled"),
+                    designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
                     boundingBox =
                         referenceLineDao
                             .fetchVersionByTrackNumberId(transition.baseContext, rs.getIntId("id"))
@@ -87,7 +88,7 @@ class PublicationDao(
               candidate_reference_line.change_time,
               candidate_reference_line.change_user,
               candidate_track_number.number as name,
-              candidate_reference_line.cancelled,
+              candidate_reference_line.design_asset_state,
               layout.infer_operation_from_state_transition(
                 (select state
                  from layout.track_number_in_layout_context('OFFICIAL', null)
@@ -117,11 +118,12 @@ class PublicationDao(
             where candidate_reference_line.draft = (:candidate_state = 'DRAFT')
               and candidate_reference_line.design_id is not distinct from :candidate_design_id
               and not (candidate_reference_line.design_id is not null and not candidate_reference_line.draft
-                         and (candidate_reference_line.cancelled or exists (
+                         and (candidate_reference_line.design_asset_state = 'CANCELLED' or exists (
                            select * from layout.reference_line drafted_cancellation
                            where drafted_cancellation.draft
                              and drafted_cancellation.design_id = candidate_reference_line.design_id
-                             and drafted_cancellation.id = candidate_reference_line.id)))
+                             and drafted_cancellation.id = candidate_reference_line.id
+                             and drafted_cancellation.design_asset_state = 'CANCELLED')))
         """
                 .trimIndent()
         val candidates =
@@ -133,7 +135,7 @@ class PublicationDao(
                     draftChangeTime = rs.getInstant("change_time"),
                     userName = UserName.of(rs.getString("change_user")),
                     operation = rs.getEnum<Operation>("operation"),
-                    cancelled = rs.getBoolean("cancelled"),
+                    designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
                     boundingBox = rs.getBboxOrNull("bounding_box"),
                     geometryChanges = null,
                 )
@@ -178,7 +180,7 @@ class PublicationDao(
               candidate_location_track.change_time,
               candidate_location_track.duplicate_of_location_track_id,
               candidate_location_track.change_user,
-              candidate_location_track.cancelled,
+              candidate_location_track.design_asset_state,
               layout.infer_operation_from_location_track_state_transition(
                 (select state
                  from layout.location_track_in_layout_context('OFFICIAL', null) base_lt
@@ -198,11 +200,12 @@ class PublicationDao(
             where candidate_location_track.draft = (:candidate_state = 'DRAFT')
               and candidate_location_track.design_id is not distinct from :candidate_design_id and
               not (candidate_location_track.design_id is not null and not candidate_location_track.draft
-                   and (cancelled or exists (
+                   and (design_asset_state = 'CANCELLED' or exists (
                      select * from layout.location_track drafted_cancellation
                      where drafted_cancellation.draft
                        and drafted_cancellation.design_id = candidate_location_track.design_id
-                       and drafted_cancellation.id = candidate_location_track.id)))
+                       and drafted_cancellation.id = candidate_location_track.id
+                       and drafted_cancellation.design_asset_state = 'CANCELLED')))
         """
                 .trimIndent()
         val candidates =
@@ -216,7 +219,7 @@ class PublicationDao(
                     userName = UserName.of(rs.getString("change_user")),
                     operation = rs.getEnum("operation"),
                     boundingBox = rs.getBboxOrNull("bounding_box"),
-                    cancelled = rs.getBoolean("cancelled"),
+                    designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
                     publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
                     geometryChanges = null,
                 )
@@ -264,7 +267,7 @@ class PublicationDao(
               ) as operation,
               postgis.st_x(joint_version.location) as point_x, 
               postgis.st_y(joint_version.location) as point_y,
-              candidate_switch.cancelled,
+              candidate_switch.design_asset_state,
               splits.split_id
             from layout.switch candidate_switch
               left join common.switch_structure on candidate_switch.switch_structure_id = switch_structure.id
@@ -277,11 +280,12 @@ class PublicationDao(
             where candidate_switch.draft = (:candidate_state = 'DRAFT')
               and candidate_switch.design_id is not distinct from :candidate_design_id
               and not (candidate_switch.design_id is not null and not candidate_switch.draft
-                       and (cancelled or exists (
-                         select * from layout.track_number drafted_cancellation
+                       and (design_asset_state = 'CANCELLED' or exists (
+                         select * from layout.switch drafted_cancellation
                          where drafted_cancellation.draft
                            and drafted_cancellation.design_id = design_id
-                           and drafted_cancellation.id = candidate_switch.id)))
+                           and drafted_cancellation.id = candidate_switch.id
+                           and drafted_cancellation.design_asset_state = 'CANCELLED')))
         """
                 .trimIndent()
         val candidates =
@@ -294,7 +298,7 @@ class PublicationDao(
                     operation = rs.getEnum("operation"),
                     trackNumberIds = rs.getIntIdArray("track_numbers"),
                     location = rs.getPointOrNull("point_x", "point_y"),
-                    cancelled = rs.getBoolean("cancelled"),
+                    designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
                     publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
                 )
             }
@@ -321,17 +325,18 @@ class PublicationDao(
                  where id = candidate_km_post.id),
                 candidate_km_post.state
               ) as operation,
-              candidate_km_post.cancelled,
+              candidate_km_post.design_asset_state,
               postgis.st_x(candidate_km_post.layout_location) as point_x,
               postgis.st_y(candidate_km_post.layout_location) as point_y
             from layout.km_post candidate_km_post
             where draft = (:candidate_state = 'DRAFT')
               and design_id is not distinct from :candidate_design_id
-              and not (design_id is not null and not draft and (cancelled or exists (
+              and not (design_id is not null and not draft and (design_asset_state = 'CANCELLED' or exists (
                 select * from layout.km_post drafted_cancellation
                 where drafted_cancellation.draft
                   and drafted_cancellation.design_id = design_id
-                  and drafted_cancellation.id = candidate_km_post.id)))
+                  and drafted_cancellation.id = candidate_km_post.id
+                  and drafted_cancellation.design_asset_state = 'CANCELLED')))
             order by km_number
         """
                 .trimIndent()
@@ -344,7 +349,7 @@ class PublicationDao(
                     draftChangeTime = rs.getInstant("change_time"),
                     userName = UserName.of(rs.getString("change_user")),
                     operation = rs.getEnum("operation"),
-                    cancelled = rs.getBoolean("cancelled"),
+                    designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
                     location = rs.getPointOrNull("point_x", "point_y"),
                 )
             }
@@ -974,7 +979,7 @@ class PublicationDao(
                         duplicateOf = rs.getChange("duplicate_of_location_track_id", rs::getIntIdOrNull),
                         type = rs.getChange("type") { rs.getEnumOrNull<LocationTrackType>(it) },
                         length = rs.getChange("length", rs::getDoubleOrNull),
-                        alignmentVersion = rs.getChangeRowVersion<LayoutAlignment>("alignment_id", "alignment_version"),
+                        alignmentVersion = rs.getChangeRowVersion("alignment_id", "alignment_version"),
                         geometryChangeSummaries =
                             if (!rs.getBoolean("geometry_change_summary_computed")) null
                             else fetchGeometryChangeSummaries(publicationId, rs.getIntId("location_track_id")),

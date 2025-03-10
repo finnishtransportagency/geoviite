@@ -163,7 +163,7 @@ fun layoutSwitch(name: String, jointPoints: List<Point>, switchStructure: Switch
         sourceId = null,
         name = SwitchName(name),
         stateCategory = LayoutStateCategory.EXISTING,
-        switchStructureId = switchStructure.id as IntId,
+        switchStructureId = switchStructure.id,
         joints = jointPoints.map { point -> switchJoint(point) },
         trapPoint = false,
         ownerId = switchOwnerVayla().id,
@@ -239,7 +239,7 @@ fun createSwitchAndAlignments(
     val geometrySwitch =
         GeometrySwitch(
             name = SwitchName(switchName),
-            switchStructureId = switchStructure.id as IntId,
+            switchStructureId = switchStructure.id,
             typeName = GeometrySwitchTypeName(switchStructure.type.typeName),
             state = PlanState.EXISTING,
             joints =

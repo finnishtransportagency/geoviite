@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
+import fi.fta.geoviite.infra.util.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.toResponse
 import java.time.Duration
 import java.time.Instant
@@ -97,7 +98,7 @@ constructor(
     fun revertPublicationCandidates(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody toDelete: PublicationRequestIds,
-    ): PublicationResult {
+    ): PublicationResultSummary {
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.revertPublicationCandidates(branch, toDelete)
         }
@@ -136,7 +137,7 @@ constructor(
     fun mergeChangesToMain(
         @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
         @RequestBody request: PublicationRequestIds,
-    ): PublicationResult {
+    ): PublicationResultSummary {
         return publicationService.mergeChangesToMain(branch, request)
     }
 

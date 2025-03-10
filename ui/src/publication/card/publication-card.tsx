@@ -10,7 +10,6 @@ import Card from 'geoviite-design-lib/card/card';
 import styles from './publication-card.scss';
 import { RatkoStatus } from 'ratko/ratko-api';
 import i18n from 'i18next';
-import { Link } from 'vayla-design-lib/link/link';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
@@ -24,6 +23,7 @@ import {
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { LayoutBranchType, PublicationDetails } from 'publication/publication-model';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type PublishListProps = {
     publicationChangeTime: TimeStamp;
@@ -53,7 +53,7 @@ const parseRatkoConnectionError = (
     );
 };
 
-const parseRatkoOfflineStatus = (ratkoStatus: number | undefined): JSX.Element => {
+const parseRatkoOfflineStatus = (ratkoStatus: number | undefined): React.JSX.Element => {
     if (ratkoStatus === undefined) {
         return parseRatkoConnectionError(
             'connection-error-without-status-code',
@@ -244,19 +244,19 @@ const PublicationCard: React.FC<PublishListProps> = ({
                             )}
                         {!reachedLastPublication && (
                             <div className={styles['publication-card__show-more']}>
-                                <Link onClick={() => setPageCount(pageCount + 1)}>
+                                <AnchorLink onClick={() => setPageCount(pageCount + 1)}>
                                     {t('publication-card.show-more')}
-                                </Link>
+                                </AnchorLink>
                             </div>
                         )}
                         <br />
                         {branchType === 'MAIN' && (
                             <div>
-                                <Link
+                                <AnchorLink
                                     onClick={() => navigateToPublicationLog()}
                                     qa-id={'open-publication-log'}>
                                     {t('publication-card.log-link')}
-                                </Link>
+                                </AnchorLink>
                             </div>
                         )}
                     </ProgressIndicatorWrapper>

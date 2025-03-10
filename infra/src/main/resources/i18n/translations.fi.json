@@ -13,9 +13,13 @@
             "search-radius-over-range": "Pyyntö sisälsi suuremman hakusäteen kuin sallittu maksimiarvo (1000.0).",
             "address-geocoding-failed": "Rataosoitteen geokoodaus epäonnistui.",
             "invalid-track-number-name": "Pyyntö sisälsi virheellisen ratanumero-asetuksen.",
+            "invalid-track-number-oid": "Pyyntö sisälsi virheellisen ratanumero_oid-asetuksen.",
             "invalid-location-track-name": "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
+            "invalid-location-track-oid": "Pyyntö sisälsi virheellisen sijaintiraide_oid-asetuksen.",
             "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
-            "invalid-track-address": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+            "invalid-track-address": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen).",
+            "no-track-number-search-condition": "Pyyntö ei sisältänyt hakuehtoa ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid.",
+            "both-name-and-oid-for-track-number": "Pyyntö sisälsi useamman kuin yhden hakuehdon ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid.",
             "too-many-requests": "Kutsu sisälsi liian monta muunnospyyntöä. Yhdessä kutsussa saa olla korkeintaan 1000 muunnosta.",
             "track-number-not-found": "Pyynnön ratanumeroa ei löydetty.",
             "input-coordinate-transformation-failed": "Koordinaattimuunnos ei onnistunut. Onko koordinaatisto järkevä syötekoordinaatille?"
@@ -308,6 +312,12 @@
             "MAIN_OFFICIAL": "Nykytila",
             "MAIN_DRAFT": "Luonnostila",
             "DESIGN": "Suunnitelmatila"
+        },
+        "PlanApplicability": {
+            "PLANNING": "Suunnitelma",
+            "MAINTENANCE": "Kunnossapito",
+            "STATISTICS": "Tilastointi",
+            "UNKNOWN": "Ei tiedossa"
         }
     },
     "environment": {
@@ -470,6 +480,7 @@
             "vertical-coordinate-system": "Korkeusjärjestelmä",
             "has-vertical-geometry": "Pystygeometria",
             "has-cant": "Kallistus",
+            "applicability": "Soveltuvuus",
             "open-inframodel": "Avaa lomakkeella",
             "download-file": "Lataa tiedosto"
         },
@@ -751,6 +762,7 @@
             "splitting": {
                 "title": "Raiteen jakaminen osiin",
                 "confirm-split": "Suorita jako",
+                "confirm-split-point-removal": "Poista katkaisukohta",
                 "splitting-success": "Sijaintiraide {{locationTrackName}} jaettu {{count}} osaan",
                 "splitting-guide": "Valitse kartalta vaihteet, joiden kohdalta raide katkaistaan.",
                 "start-address": "Alkusijainti (km + m)",
@@ -809,7 +821,6 @@
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
             "cannot-shorten-deleted-track": "Poistettua raidetta ei voi lyhentää",
             "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa",
-            "no-geometry": "Raiteella ei ole geometriaa",
             "cant-edit-while-splitting": "Raiteen tietoja ei voi muokata koska sen jakaminen on kesken",
             "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa"
         },
@@ -1099,6 +1110,7 @@
         "phase-measurement-method-formgroup-title": "Tilanne- ja laatutiedot",
         "plan-phase-field": "Suunnitteluvaihe",
         "decision-phase-field": "Vaiheen tarkennus",
+        "plan-applicability-field": "Soveltuvuus",
         "measurement-method-field": "Laatu",
         "elevation-measurement-method-field": "Korkeusasema",
         "log-formgroup-title": "Loki- ja linkitystiedot",
@@ -1868,8 +1880,8 @@
         "title-new": "Uusi vaihde",
         "basic-info-heading": "Perustiedot",
         "switch-draft-oid": "OID",
-        "switch-draft-oid-unset": "Asetetaan julkaistaessa",
-        "open-switch-draft-field": "Aseta nyt",
+        "switch-draft-oid-unset": "Asetetaan automaattisesti julkaistaessa",
+        "open-switch-draft-field": "Aseta käsin",
         "switch-name": "Vaihdetunnus",
         "state-category": "Tilakategoria",
         "switch-type": "Vaihdetyyppi",
@@ -1890,8 +1902,9 @@
         "mandatory-field": "Pakollinen kenttä",
         "invalid-name": "Virheellinen vaihdetunnus",
         "invalid-draft-oid": "Tieto ei ole muodoltaan vaihteen OID",
-        "ratko-connection-is-down": "Ratkoon ei saada yhteyttä OIDin olemassaolon tarkistamiseen",
-        "oid-doesnt-exist-in-ratko": "OIDia ei löyty Ratkosta",
+        "ratko-connection-is-down": "Ratkoon ei saada yhteyttä OIDin olemassaolon tarkistamiseksi",
+        "oid-doesnt-exist-in-ratko": "OIDia ei löytynyt Ratkosta",
+        "oid-was-found-from-ratko": "OID löytyi Ratkosta",
         "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
         "save-in-progress": "Tallennetaan",
         "title-edit": "Muokkaa vaihteen tietoja",

@@ -23,6 +23,7 @@ import {
     canSaveLocationTrack,
     initialLocationTrackEditState,
     isProcessing,
+    LocationTrackEditState,
     reducer,
     setVaylavirastoOwnerIdFrom,
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
@@ -55,12 +56,13 @@ import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import { getLocationTrackOwners } from 'common/common-api';
 import { useLoader } from 'utils/react-utils';
-import { Link } from 'vayla-design-lib/link/link';
 import { ChangeTimes } from 'common/common-slice';
 import { getChangeTimes } from 'common/change-time-api';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { first } from 'utils/array-utils';
-import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
+import { UnknownAction } from 'redux';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type LocationTrackDialogContainerProps = {
     locationTrackId?: LocationTrackId;
@@ -111,7 +113,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const { t } = useTranslation();
 
     const firstInputRef = React.useRef<HTMLInputElement>(null);
-    const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
+    const [state, dispatcher] = React.useReducer<LocationTrackEditState, [action: UnknownAction]>(
+        reducer,
+        initialLocationTrackEditState,
+    );
     const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
         LayoutLocationTrack | undefined
     >(undefined);
@@ -139,7 +144,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.changeTimes,
     );
 
-    const canSetDeleted = !state.isNewLocationTrack && state.existingLocationTrack?.hasOfficial;
+    const hasOfficialLocationTrack =
+        useLocationTrack(
+            state.existingLocationTrack?.id,
+            officialLayoutContext(props.layoutContext),
+            props.changeTimes.layoutLocationTrack,
+        ) !== undefined;
+
+    const canSetDeleted = !state.isNewLocationTrack && hasOfficialLocationTrack;
     const stateOptions = locationTrackStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
@@ -444,11 +456,11 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                             ? t('location-track-dialog.name-in-use-deleted')
                                             : t('location-track-dialog.name-in-use')}
                                     </div>
-                                    <Link
+                                    <AnchorLink
                                         className={styles['location-track-edit-dialog__alert']}
                                         onClick={() => props.onEditTrack(trackWithSameName.id)}>
                                         {moveToEditLinkText(trackWithSameName)}
-                                    </Link>
+                                    </AnchorLink>
                                 </>
                             )}
                         </FieldLayout>

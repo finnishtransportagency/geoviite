@@ -1,7 +1,7 @@
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { Trans, useTranslation } from 'react-i18next';
-import { Link } from 'vayla-design-lib/link/link';
 import * as React from 'react';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export type DesignDraftsExistErrorProps = { goToPublishChangesMode: () => void };
 
@@ -10,7 +10,7 @@ export const DesignDraftsExistError: React.FC<DesignDraftsExistErrorProps> = ({
 }) => {
     const { t } = useTranslation();
     const actionLink = (
-        <Link
+        <AnchorLink
             onClick={(e) => {
                 goToPublishChangesMode();
                 e.preventDefault();

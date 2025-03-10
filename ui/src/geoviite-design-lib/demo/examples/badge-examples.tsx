@@ -18,7 +18,6 @@ const layoutAssetFields: LayoutAssetFields = {
     version: 'version',
     dataType: 'TEMP',
     isDraft: true,
-    hasOfficial: false,
 };
 
 const layoutLocationTrack: LayoutLocationTrack = {

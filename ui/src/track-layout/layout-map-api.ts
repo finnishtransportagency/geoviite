@@ -253,10 +253,20 @@ export async function getLocationTrackMapAlignmentsByTiles(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     layoutContext: LayoutContext,
+    includeShortTracks: boolean = false,
+    locationTrackIds: LocationTrackId[] | undefined = undefined,
 ): Promise<LocationTrackAlignmentDataHolder[]> {
     const polyLines = await Promise.all(
         mapTiles.map((tile) =>
-            getPolyLines(tile, changeTimes.layoutLocationTrack, layoutContext, 'LOCATION_TRACKS'),
+            getPolyLines(
+                tile,
+                changeTimes.layoutLocationTrack,
+                layoutContext,
+                'LOCATION_TRACKS',
+                false,
+                includeShortTracks,
+                locationTrackIds,
+            ),
         ),
     ).then((lines) => lines.flat());
 
@@ -507,8 +517,11 @@ async function getPolyLines(
     layoutContext: LayoutContext,
     fetchType: AlignmentFetchType,
     includeSegmentEndPoints: boolean = false,
+    includeShortTracks: boolean = false,
+    locationTrackIds: LocationTrackId[] | undefined = undefined,
 ): Promise<AlignmentPolyLine[]> {
-    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}_${fetchType}_${includeSegmentEndPoints}`;
+    const locationTrackIdsStr = locationTrackIds?.join(',');
+    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}_${fetchType}_${includeSegmentEndPoints}_${includeShortTracks}_${locationTrackIdsStr}`;
     const tileResolution = mapTile.resolution;
     const alignmentResolution = toMapAlignmentResolution(tileResolution);
 
@@ -521,7 +534,8 @@ async function getPolyLines(
         bbox: bboxString(mapTile.area),
         type: fetchType.toUpperCase(),
         includeSegmentEndPoints: includeSegmentEndPoints,
-        minLength: alignmentMinLength,
+        minLength: includeShortTracks ? undefined : alignmentMinLength,
+        locationTrackIds: locationTrackIds,
     });
     return await alignmentPolyLinesCache.get(changeTime, tileKey, () =>
         getNonNull<AlignmentPolyLine[]>(`${mapUri(layoutContext)}/alignment-polylines${params}`),

@@ -60,3 +60,7 @@ $icon-size-large: 30px;
     margin-bottom: -2px;
     opacity: 0.4;
 }
+
+.icon--disable-pointer-events {
+    pointer-events: none;
+}

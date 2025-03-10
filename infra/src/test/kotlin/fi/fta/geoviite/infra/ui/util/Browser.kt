@@ -17,7 +17,7 @@ import org.openqa.selenium.TakesScreenshot
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.devtools.v129.emulation.Emulation
+import org.openqa.selenium.devtools.v130.emulation.Emulation
 import org.openqa.selenium.firefox.FirefoxDriver
 import org.openqa.selenium.firefox.FirefoxOptions
 import org.openqa.selenium.logging.LogEntries
@@ -251,7 +251,7 @@ private fun filter(logEntries: List<LogEntry>, regex: Regex): List<LogEntry> {
 }
 
 private fun hasEntryLevel(logEntries: List<LogEntry>, level: Level): Boolean {
-    val filtered = logEntries.filter { logEntry -> logEntry.level.equals(level) }
+    val filtered = logEntries.filter { logEntry -> logEntry.level == level }
     return filtered.isNotEmpty()
 }
 

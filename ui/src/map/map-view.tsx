@@ -37,14 +37,12 @@ import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
 import { createClassName } from 'vayla-design-lib/utils';
 import { ChangeTimes } from 'common/common-slice';
 import { createTrackNumberDiagramLayer } from 'map/layers/highlight/track-number-diagram-layer';
-import VectorLayer from 'ol/layer/Vector';
-import useResizeObserver from 'use-resize-observer';
 import { createGeometryAlignmentLayer } from 'map/layers/geometry/geometry-alignment-layer';
 import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-layer';
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
 import { createAlignmentLinkingLayer } from 'map/layers/alignment/alignment-linking-layer';
 import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
-import { pointToCoords } from 'map/layers/utils/layer-utils';
+import { GeoviiteMapLayer, pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
 import {
@@ -85,11 +83,11 @@ import { createOperatingPointLayer } from 'map/layers/operating-point/operating-
 import { layersCoveringLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
-import Feature from 'ol/Feature';
 import { createPublicationCandidateLayer } from 'map/layers/preview/publication-candidate-layer';
 import { PublicationCandidate } from 'publication/publication-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
+import { useResizeObserver } from 'utils/use-resize-observer';
 
 declare global {
     interface Window {
@@ -210,7 +208,9 @@ const MapView: React.FC<MapViewProps> = ({
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
-    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(customActiveMapTool);
+    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(
+        customActiveMapTool || (mapTools && first(mapTools)),
+    );
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
@@ -365,7 +365,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'track-number-diagram-layer':
                         return createTrackNumberDiagramLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             changeTimes,
                             layoutContext,
                             map.layerSettings['track-number-diagram-layer'],
@@ -375,7 +375,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return designPublicationMode
                             ? createDeletedPublicationCandidateIconLayer(
                                   mapTiles,
-                                  existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
+                                  existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
                                   publicationCandidates ?? [],
                                   designPublicationMode,
                                   layoutContext,
@@ -389,7 +389,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return designPublicationMode
                             ? createPublicationCandidateLayer(
                                   mapTiles,
-                                  existingOlLayer as VectorLayer<Feature<LineString>>,
+                                  existingOlLayer as GeoviiteMapLayer<LineString>,
                                   changeTimes,
                                   layoutContext,
                                   resolution,
@@ -401,7 +401,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'track-number-addresses-layer':
                         return createTrackNumberEndPointAddressesLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             changeTimes,
                             layoutContext,
                             resolution,
@@ -413,7 +413,7 @@ const MapView: React.FC<MapViewProps> = ({
                             ? undefined
                             : createReferenceLineAlignmentLayer(
                                   mapTiles,
-                                  existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
+                                  existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
                                   selection,
                                   !!splittingState,
                                   layoutContext,
@@ -426,7 +426,7 @@ const MapView: React.FC<MapViewProps> = ({
                             ? undefined
                             : createReferenceLineBackgroundLayer(
                                   mapTiles,
-                                  existingOlLayer as VectorLayer<Feature<LineString>>,
+                                  existingOlLayer as GeoviiteMapLayer<LineString>,
                                   !!splittingState,
                                   layoutContext,
                                   changeTimes,
@@ -437,7 +437,7 @@ const MapView: React.FC<MapViewProps> = ({
                             ? undefined
                             : createReferenceLineBadgeLayer(
                                   mapTiles,
-                                  existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                                  existingOlLayer as GeoviiteMapLayer<OlPoint>,
                                   selection,
                                   layoutContext,
                                   linkingState,
@@ -448,7 +448,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'location-track-alignment-layer':
                         return createLocationTrackAlignmentLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString | OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
                             selection,
                             !!splittingState,
                             layoutContext,
@@ -460,7 +460,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'location-track-background-layer':
                         return createLocationTrackBackgroundLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             layoutContext,
                             changeTimes,
                             !!splittingState,
@@ -469,7 +469,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'location-track-badge-layer':
                         return createLocationTrackBadgeLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             selection,
                             layoutContext,
                             linkingState,
@@ -480,7 +480,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'missing-linking-highlight-layer':
                         return createMissingLinkingHighlightLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             layoutContext,
                             changeTimes,
                             resolution,
@@ -489,7 +489,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'duplicate-tracks-highlight-layer':
                         return createDuplicateTracksHighlightLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             layoutContext,
                             changeTimes,
                             resolution,
@@ -498,7 +498,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'missing-profile-highlight-layer':
                         return createMissingProfileHighlightLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             layoutContext,
                             changeTimes,
                             resolution,
@@ -507,7 +507,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'plan-section-highlight-layer':
                         return createPlanSectionHighlightLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             layoutContext,
                             changeTimes,
                             resolution,
@@ -517,7 +517,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'km-post-layer':
                         return createKmPostLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<OlPoint | Rectangle>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint | Rectangle>,
                             selection,
                             layoutContext,
                             changeTimes,
@@ -528,7 +528,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'switch-layer':
                         return createSwitchLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             selection,
                             splittingState,
                             layoutContext,
@@ -540,7 +540,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'geometry-alignment-layer':
                         return createGeometryAlignmentLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             selection,
                             layoutContext,
                             changeTimes,
@@ -552,7 +552,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createGeometryKmPostLayer(
                             mapTiles,
                             resolution,
-                            existingOlLayer as VectorLayer<Feature<OlPoint | Rectangle>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint | Rectangle>,
                             selection,
                             layoutContext,
                             changeTimes,
@@ -562,7 +562,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'geometry-switch-layer':
                         return createGeometrySwitchLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             selection,
                             layoutContext,
                             changeTimes,
@@ -573,7 +573,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'alignment-linking-layer':
                         return createAlignmentLinkingLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<OlPoint | LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint | LineString>,
                             layoutContext,
                             selection,
                             linkingState,
@@ -583,14 +583,14 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'switch-linking-layer':
                         return createSwitchLinkingLayer(
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             selection,
                             linkingState as LinkingSwitch | undefined,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'location-track-split-location-layer':
                         return createLocationTrackSplitLocationLayer(
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             layoutContext,
                             splittingState,
                             (loading) => onLayerLoading(layerName, loading),
@@ -598,7 +598,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'duplicate-split-section-highlight-layer':
                         return createDuplicateSplitSectionHighlightLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             layoutContext,
                             changeTimes,
                             resolution,
@@ -608,7 +608,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'location-track-duplicate-endpoint-address-layer':
                         return createDuplicateTrackEndpointAddressLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             layoutContext,
                             changeTimes,
                             resolution,
@@ -618,7 +618,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'location-track-split-badge-layer':
                         return createLocationTrackSplitBadgeLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             layoutContext,
                             splittingState,
                             changeTimes,
@@ -628,7 +628,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'location-track-selected-alignment-layer':
                         return createLocationTrackSelectedAlignmentLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             selection,
                             layoutContext,
                             splittingState !== undefined,
@@ -639,7 +639,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'location-track-split-alignment-layer':
                         return createLocationTrackSplitAlignmentLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             layoutContext,
                             splittingState,
                             changeTimes,
@@ -648,7 +648,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'reference-line-selected-alignment-layer':
                         return createSelectedReferenceLineAlignmentLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<LineString>>,
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
                             selection,
                             layoutContext,
                             splittingState !== undefined,
@@ -658,27 +658,27 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'plan-area-layer':
                         return createPlanAreaLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<Polygon>>,
+                            existingOlLayer as GeoviiteMapLayer<Polygon>,
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'operating-points-layer':
                         return createOperatingPointLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             olView,
                             changeTimes,
                         );
                     case 'debug-1m-points-layer':
                         return createDebug1mPointsLayer(
-                            existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             selection,
                             layoutContext,
                             resolution,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'debug-layer':
-                        return createDebugLayer(existingOlLayer as VectorLayer<Feature<OlPoint>>);
+                        return createDebugLayer(existingOlLayer as GeoviiteMapLayer<OlPoint>);
                     case 'virtual-km-post-linking-layer': // Virtual map layers
                     case 'virtual-hide-geometry-layer':
                         return undefined;
@@ -747,10 +747,14 @@ const MapView: React.FC<MapViewProps> = ({
         }
     }, [olMap, activeTool, visibleLayers]);
 
-    const mapClassNames = createClassName(
-        styles.map,
-        //activeTool?.hideDefaultCursor && styles['map--hide-cursor'],
-    );
+    React.useEffect(() => {
+        if (mapTools && activeTool) {
+            const newVersionOfTool = mapTools.find((tool) => tool.id === activeTool.id);
+            setActiveTool(newVersionOfTool);
+        }
+    }, [mapTools]);
+
+    const mapClassNames = createClassName(styles.map);
 
     const cssProperties = {
         ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
@@ -760,14 +764,17 @@ const MapView: React.FC<MapViewProps> = ({
         <div className={mapClassNames} style={cssProperties}>
             {mapTools && (
                 <ol className="map__map-tools">
-                    {mapTools.map((tool) => (
-                        <React.Fragment key={tool.id}>
-                            {tool.component({
-                                isActive: activeTool === tool,
-                                setActiveTool: setActiveTool,
-                            })}
-                        </React.Fragment>
-                    ))}
+                    {mapTools.map((tool) => {
+                        const ToolComponent = tool.component;
+
+                        return (
+                            <ToolComponent
+                                key={tool.id}
+                                isActive={activeTool?.id === tool.id}
+                                setActiveTool={setActiveTool}
+                            />
+                        );
+                    })}
                 </ol>
             )}
             <div

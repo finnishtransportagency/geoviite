@@ -18,10 +18,14 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.InheritanceFromPublicationInMain
+import fi.fta.geoviite.infra.publication.PreparedPublicationRequest
+import fi.fta.geoviite.infra.publication.PublicationCause
+import fi.fta.geoviite.infra.publication.PublicationResult
+import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidateTransition
+import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.publication.getObjectFromValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -178,7 +182,7 @@ class CalculatedChangesService(
 ) {
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges {
         val changeContext = createChangeContext(versions)
-        val extIds = getAllOids(versions.target.baseBranch)
+        val extIds = getAllOidsWithInheritance(versions.target.baseBranch)
 
         val (trackNumberChanges, changedLocationTrackIdsByTrackNumbers) =
             calculateTrackNumberChanges(versions.trackNumbers.map { it.id }, changeContext)
@@ -271,6 +275,124 @@ class CalculatedChangesService(
             }
         }
     }
+
+    fun combineInheritedChangesAndFinishedMerges(
+        mainPublication: PreparedPublicationRequest,
+        inheritedChanges: Map<DesignBranch, IndirectChanges>,
+        mainPublicationResult: PublicationResult,
+    ): List<PreparedPublicationRequest> {
+        val completedTrackNumbers = getCompletedByBranch(mainPublicationResult.trackNumbers)
+        val completedReferenceLines = getCompletedByBranch(mainPublicationResult.referenceLines)
+        val completedLocationTracks = getCompletedByBranch(mainPublicationResult.locationTracks)
+        val completedSwitches = getCompletedByBranch(mainPublicationResult.switches)
+        val completedKmPosts = getCompletedByBranch(mainPublicationResult.kmPosts)
+
+        return (inheritedChanges.keys +
+                completedTrackNumbers.keys +
+                completedReferenceLines.keys +
+                completedLocationTracks.keys +
+                completedSwitches.keys +
+                completedKmPosts.keys)
+            .map { branch ->
+                combineInheritedChangesAndFinishedMergesInBranch(
+                    inheritedChanges[branch] ?: IndirectChanges.empty(),
+                    branch,
+                    completedTrackNumbers[branch] ?: listOf(),
+                    completedReferenceLines[branch] ?: listOf(),
+                    completedLocationTracks[branch] ?: listOf(),
+                    completedSwitches[branch] ?: listOf(),
+                    completedKmPosts[branch] ?: listOf(),
+                    mainPublication,
+                )
+            }
+    }
+
+    private fun combineInheritedChangesAndFinishedMergesInBranch(
+        inheritedChanges: IndirectChanges,
+        branch: DesignBranch,
+        completedTrackNumbers: List<LayoutRowVersion<LayoutTrackNumber>>,
+        completedReferenceLines: List<LayoutRowVersion<ReferenceLine>>,
+        completedLocationTracks: List<LayoutRowVersion<LocationTrack>>,
+        completedSwitches: List<LayoutRowVersion<LayoutSwitch>>,
+        completedKmPosts: List<LayoutRowVersion<LayoutKmPost>>,
+        mainPublication: PreparedPublicationRequest,
+    ): PreparedPublicationRequest {
+        val versions =
+            mergeInheritedChangeVersionsWithCompletedMergeVersions(
+                getInheritedChangeVersions(branch, inheritedChanges),
+                completedTrackNumbers = completedTrackNumbers,
+                completedReferenceLines = completedReferenceLines,
+                completedLocationTracks = completedLocationTracks,
+                completedSwitches = completedSwitches,
+                completedKmPosts = completedKmPosts,
+            )
+
+        val directChanges =
+            DirectChanges(
+                completedKmPosts.map { it.id },
+                completedReferenceLines.map { it.id },
+                mergeTrackNumberChanges(
+                    inheritedChanges.trackNumberChanges,
+                    completedTrackNumbers.map { v -> TrackNumberChange(v.id, setOf(), false, false) },
+                ),
+                mergeLocationTrackChanges(
+                    inheritedChanges.locationTrackChanges,
+                    completedLocationTracks.map { v -> LocationTrackChange(v.id, setOf(), false, false) },
+                ),
+                mergeSwitchChanges(
+                    inheritedChanges.switchChanges,
+                    completedSwitches.map { v -> SwitchChange(v.id, listOf()) },
+                ),
+            )
+        val indirectChanges =
+            IndirectChanges(
+                inheritedChanges.trackNumberChanges.filter { indirect ->
+                    completedTrackNumbers.none { indirect.trackNumberId == it.id }
+                },
+                inheritedChanges.locationTrackChanges.filter { indirect ->
+                    completedLocationTracks.none { indirect.locationTrackId == it.id }
+                },
+                inheritedChanges.switchChanges.filter { indirect ->
+                    completedSwitches.none { indirect.switchId == it.id }
+                },
+            )
+
+        return PreparedPublicationRequest(
+            branch,
+            versions,
+            CalculatedChanges(directChanges, indirectChanges),
+            mainPublication.message,
+            PublicationCause.CALCULATED_CHANGE,
+        )
+    }
+
+    private fun <T : LayoutAsset<T>> getCompletedByBranch(
+        versions: List<PublicationResultVersions<T>>
+    ): Map<DesignBranch, List<LayoutRowVersion<T>>> =
+        versions.mapNotNull { it.completed }.groupBy({ it.first }, { it.second })
+
+    private fun getInheritedChangeVersions(
+        inheritorBranch: DesignBranch,
+        changes: IndirectChanges,
+    ): ValidationVersions =
+        ValidationVersions(
+            ValidateTransition(InheritanceFromPublicationInMain(inheritorBranch)),
+            trackNumbers =
+                trackNumberDao
+                    .getMany(inheritorBranch.official, changes.trackNumberChanges.map { it.trackNumberId })
+                    .map { requireNotNull(it.version) },
+            referenceLines = listOf(),
+            locationTracks =
+                locationTrackDao
+                    .getMany(inheritorBranch.official, changes.locationTrackChanges.map { it.locationTrackId })
+                    .map { requireNotNull(it.version) },
+            switches =
+                switchDao.getMany(inheritorBranch.official, changes.switchChanges.map { it.switchId }).map {
+                    requireNotNull(it.version)
+                },
+            kmPosts = listOf(),
+            splits = listOf(),
+        )
 
     private fun processSwitchJointChangesByLocationTrackKmChange(
         switchJointChanges: List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>>,
@@ -611,11 +733,18 @@ class CalculatedChangesService(
             },
         )
 
-    fun getAllOids(layoutBranch: LayoutBranch) =
+    fun getAllOidsWithInheritance(layoutBranch: LayoutBranch) =
         AllOids(
             mapNonNullValues(trackNumberDao.fetchExternalIdsWithInheritance(layoutBranch)) { (_, v) -> v.oid },
             mapNonNullValues(locationTrackDao.fetchExternalIdsWithInheritance(layoutBranch)) { (_, v) -> v.oid },
             mapNonNullValues(switchDao.fetchExternalIdsWithInheritance(layoutBranch)) { (_, v) -> v.oid },
+        )
+
+    fun getAllOids(layoutBranch: LayoutBranch) =
+        AllOids(
+            mapNonNullValues(trackNumberDao.fetchExternalIds(layoutBranch)) { (_, v) -> v.oid },
+            mapNonNullValues(locationTrackDao.fetchExternalIds(layoutBranch)) { (_, v) -> v.oid },
+            mapNonNullValues(switchDao.fetchExternalIds(layoutBranch)) { (_, v) -> v.oid },
         )
 
     private fun <T : LayoutAsset<T>> getNonOverriddenVersions(
@@ -813,3 +942,29 @@ private fun filterIndirectChangesByOidPresence(indirectChanges: IndirectChanges,
             },
         switchChanges = indirectChanges.switchChanges.filter { change -> oids.switches.containsKey(change.switchId) },
     )
+
+private fun mergeInheritedChangeVersionsWithCompletedMergeVersions(
+    inheritedChangeVersions: ValidationVersions,
+    completedTrackNumbers: List<LayoutRowVersion<LayoutTrackNumber>>,
+    completedReferenceLines: List<LayoutRowVersion<ReferenceLine>>,
+    completedLocationTracks: List<LayoutRowVersion<LocationTrack>>,
+    completedSwitches: List<LayoutRowVersion<LayoutSwitch>>,
+    completedKmPosts: List<LayoutRowVersion<LayoutKmPost>>,
+): ValidationVersions {
+    return ValidationVersions(
+        inheritedChangeVersions.target,
+        trackNumbers = (completedTrackNumbers + inheritedChangeVersions.trackNumbers).distinctBy { it.id },
+        locationTracks = (completedLocationTracks + inheritedChangeVersions.locationTracks).distinctBy { it.id },
+        referenceLines = completedReferenceLines,
+        switches = (completedSwitches + inheritedChangeVersions.switches).distinctBy { it.id },
+        kmPosts = completedKmPosts,
+        splits = listOf(),
+    )
+}
+
+private fun <T : LayoutAsset<T>> getObjectFromValidationVersions(
+    versions: List<LayoutRowVersion<T>>,
+    dao: LayoutAssetDao<T>,
+    target: ValidationTarget,
+    id: IntId<T>,
+): T? = (versions.find { it.id == id } ?: dao.fetchVersion(target.baseContext, id))?.let(dao::fetch)

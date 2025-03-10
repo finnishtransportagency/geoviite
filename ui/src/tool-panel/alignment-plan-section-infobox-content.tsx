@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styles from 'tool-panel/track-number/alignment-plan-section-infobox.scss';
-import { Link } from 'vayla-design-lib/link/link';
-import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
+import { AlignmentPlanSection, PlanSectionPoint } from 'track-layout/layout-location-track-api';
 import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
@@ -10,6 +9,16 @@ import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
+import { Eye } from 'geoviite-design-lib/eye/eye';
+import { createClassName } from 'vayla-design-lib/utils';
+import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+
+const ErrorFragment: React.FC<{ message?: string }> = ({ message = '' }) => (
+    <span title={message} className={styles['alignment-plan-section-infobox__no-plan-icon']}>
+        <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />
+    </span>
+);
 
 type HighlightedItemBase = {
     startM: number;
@@ -35,11 +44,80 @@ type AlignmentPlanSectionInfoboxContentProps = {
     onHighlightSection: OnHighlightSection;
 };
 
+type GeometryPlanLabelProps = {
+    planId: GeometryPlanId | undefined;
+    planName: string | undefined;
+    alignmentName: string | undefined;
+    onGeometryClick: () => void;
+};
+
+const GeometryPlanLabel: React.FC<GeometryPlanLabelProps> = ({
+    planId,
+    planName,
+    alignmentName,
+    onGeometryClick,
+}) => {
+    const { t } = useTranslation();
+
+    return (
+        <div className={styles['alignment-plan-section-infobox__plan-name']}>
+            {planName ? (
+                planId ? (
+                    <AnchorLink
+                        title={`${planName}, ${alignmentName}`}
+                        className={styles['alignment-plan-section-infobox__plan-link-content']}
+                        onClick={onGeometryClick}>
+                        {planName}
+                    </AnchorLink>
+                ) : (
+                    <span title={`${planName}, ${alignmentName}`}>{planName}</span>
+                )
+            ) : (
+                t('tool-panel.alignment-plan-sections.no-plan')
+            )}
+        </div>
+    );
+};
+
+type TrackMeterRangeProps = {
+    start: PlanSectionPoint | undefined;
+    end: PlanSectionPoint | undefined;
+};
+
+const TrackMeterRange: React.FC<TrackMeterRangeProps> = ({ start, end }) => {
+    const { t } = useTranslation();
+
+    const TrackMeterOrError: React.FC<{
+        point: PlanSectionPoint | undefined;
+    }> = ({ point }) => {
+        return (
+            <React.Fragment>
+                {point ? (
+                    <NavigableTrackMeter
+                        trackMeter={point.address}
+                        location={point.location}
+                        displayDecimals={false}
+                    />
+                ) : (
+                    <ErrorFragment
+                        message={t('tool-panel.alignment-plan-sections.geocoding-failed')}
+                    />
+                )}
+            </React.Fragment>
+        );
+    };
+
+    return (
+        <div className={styles['alignment-plan-section-infobox__meters']}>
+            <TrackMeterOrError point={start} />
+            <TrackMeterOrError point={end} />
+        </div>
+    );
+};
+
 export const AlignmentPlanSectionInfoboxContent: React.FC<
     AlignmentPlanSectionInfoboxContentProps
 > = ({ sections, onHighlightSection }) => {
-    const { t } = useTranslation();
-
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const visiblePlans = useTrackLayoutAppSelector((state) => state.selection.visiblePlans);
 
@@ -59,128 +137,84 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
         });
     }
 
-    const errorFragment = (errorMessage = '') => (
-        <span
-            title={errorMessage}
-            className={styles['alignment-plan-section-infobox__no-plan-icon']}>
-            <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />
-        </span>
-    );
+    const startSectionHighlight = (section: AlignmentPlanSection) => {
+        section.start &&
+            section.end &&
+            onHighlightSection({
+                startM: section.start.m,
+                endM: section.end.m,
+            });
+    };
+
+    const endSectionHighlight = () => onHighlightSection(undefined);
+
+    const selectGeometry = (planId: GeometryPlanId | undefined) => {
+        if (planId) {
+            delegates.onSelect({
+                geometryPlans: [planId],
+            });
+            delegates.setToolPanelTab({
+                id: planId,
+                type: 'GEOMETRY_PLAN',
+            });
+        }
+    };
+
+    const PlanVisibilityToggle: React.FC<{
+        section: AlignmentPlanSection;
+    }> = ({ section }) => {
+        const planId = section.planId;
+
+        return (
+            <div
+                className={
+                    styles['alignment-plan-section-infobox__navigation-plan-visibility-toggle']
+                }>
+                {planId && section.isLinked && (
+                    <Eye
+                        visibility={isVisible(planId)}
+                        onVisibilityToggle={() => {
+                            togglePlanVisibility(planId, section.alignmentId);
+                        }}
+                    />
+                )}
+            </div>
+        );
+    };
 
     return (
         <React.Fragment>
-            <div className="infobox__list">
+            <InfoboxList>
                 {sections.map((section: AlignmentPlanSection) => (
-                    <div
-                        className="infobox__list-row"
+                    <InfoboxListRow
                         key={section.id}
-                        onMouseOver={() => {
-                            section.start &&
-                                section.end &&
-                                onHighlightSection({
-                                    startM: section.start.m,
-                                    endM: section.end.m,
-                                });
-                        }}
-                        onMouseOut={() => {
-                            onHighlightSection(undefined);
-                        }}>
-                        {section.planName && !section.isLinked && (
-                            <div className="infobox__list-cell">{errorFragment()}</div>
-                        )}
-                        <div className="infobox__list-cell infobox__list-cell--stretch infobox__list-cell--label">
-                            <div className={styles['alignment-plan-section-infobox__plan-name']}>
-                                {section.planName ? (
-                                    section.planId ? (
-                                        <React.Fragment>
-                                            <Link
-                                                onClick={() => {
-                                                    if (section.planId) {
-                                                        delegates.onSelect({
-                                                            geometryPlans: [section.planId],
-                                                        });
-                                                        delegates.setToolPanelTab({
-                                                            id: section.planId,
-                                                            type: 'GEOMETRY_PLAN',
-                                                        });
-                                                    }
-                                                }}
-                                                title={`${section.planName}, ${section.alignmentName}`}>
-                                                <span
-                                                    className={
-                                                        styles[
-                                                            'alignment-plan-section-infobox__plan-link-content'
-                                                        ]
-                                                    }>
-                                                    {section.planName}
-                                                </span>
-                                            </Link>
-                                        </React.Fragment>
-                                    ) : (
-                                        <span
-                                            title={`${section.planName}, ${section.alignmentName}`}>
-                                            {section.planName}
-                                        </span>
-                                    )
-                                ) : (
-                                    t('tool-panel.alignment-plan-sections.no-plan')
-                                )}
+                        onMouseOver={() => startSectionHighlight(section)}
+                        onMouseOut={() => endSectionHighlight()}
+                        label={
+                            <div className="infobox__list-cell">
+                                {section.planName && !section.isLinked && <ErrorFragment />}
+                                <GeometryPlanLabel
+                                    planId={section.planId}
+                                    planName={section.planName}
+                                    alignmentName={section.alignmentName}
+                                    onGeometryClick={() => selectGeometry(section.planId)}
+                                />
                             </div>
-                        </div>
-                        <div className="infobox__list-cell">
-                            {section.planId && section.isLinked && (
-                                <div
-                                    onClick={() =>
-                                        section.planId &&
-                                        togglePlanVisibility(section.planId, section.alignmentId)
-                                    }
-                                    className="alignment-plan-section-infobox__show-plan-icon"
-                                    title={`${section.planName}, ${section.alignmentName}`}>
-                                    {isVisible(section.planId) ? (
-                                        <Icons.Eye />
-                                    ) : (
-                                        <Icons.Eye color={IconColor.INHERIT} />
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                        <div className="infobox__list-cell">
-                            <div className={styles['alignment-plan-section-infobox__meters']}>
-                                <span>
-                                    {section.start ? (
-                                        <NavigableTrackMeter
-                                            trackMeter={section?.start?.address}
-                                            location={section?.start?.location}
-                                            displayDecimals={false}
-                                        />
-                                    ) : (
-                                        errorFragment(
-                                            t(
-                                                'tool-panel.alignment-plan-sections.geocoding-failed',
-                                            ),
-                                        )
-                                    )}
-                                </span>{' '}
-                                <span>
-                                    {section.end ? (
-                                        <NavigableTrackMeter
-                                            trackMeter={section?.end?.address}
-                                            location={section?.end?.location}
-                                            displayDecimals={false}
-                                        />
-                                    ) : (
-                                        errorFragment(
-                                            t(
-                                                'tool-panel.alignment-plan-sections.geocoding-failed',
-                                            ),
-                                        )
-                                    )}
-                                </span>
+                        }
+                        content={
+                            <div
+                                className={createClassName(
+                                    'infobox__list-cell',
+                                    'infobox__list-cell--strong',
+                                    styles['alignment-plan-section-infobox__navigation'],
+                                )}>
+                                <PlanVisibilityToggle section={section} />
+                                <TrackMeterRange start={section.start} end={section.end} />
                             </div>
-                        </div>
-                    </div>
+                        }
+                    />
                 ))}
-            </div>
+            </InfoboxList>
         </React.Fragment>
     );
 };

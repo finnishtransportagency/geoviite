@@ -77,7 +77,7 @@ export type DropdownProps<TItemValue> = {
     onAddClickIcon?: IconComponent;
     wideList?: boolean;
     qaId?: string;
-    inputRef?: React.RefObject<HTMLInputElement>;
+    inputRef?: React.RefObject<HTMLInputElement | null>;
     openOverride?: boolean;
     popupMode?: DropdownPopupMode;
     customIcon?: IconComponent;
@@ -105,7 +105,7 @@ export const Dropdown = function <TItemValue>({
     customIcon: CustomIcon = undefined,
     displaySelectedName = true,
     ...props
-}: DropdownProps<TItemValue>): JSX.Element {
+}: DropdownProps<TItemValue>): React.JSX.Element {
     const { t } = useTranslation();
     const menuRef = React.useRef<HTMLDivElement>(null);
     const inputRefInternal = React.useRef<HTMLInputElement>(null);

@@ -19,7 +19,8 @@ import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
-val maxFileSize: Int = 100 * 1024 * 1024
+
+const val MAX_FILE_SIZE: Int = 100 * 1024 * 1024
 
 class PVWebClient(val client: WebClient) : WebClient by client
 
@@ -66,7 +67,7 @@ constructor(
                 .filter(logRequest())
                 .filter(logResponse())
                 .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-                .codecs { codecs -> codecs.defaultCodecs().maxInMemorySize(maxFileSize) }
+                .codecs { codecs -> codecs.defaultCodecs().maxInMemorySize(MAX_FILE_SIZE) }
 
         return PVWebClient(webClientBuilder.build())
     }

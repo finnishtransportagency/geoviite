@@ -179,7 +179,7 @@ constructor(
         val (updatedLocationTrack, updatedAlignment) =
             removeTopologySwitchesFromLocationTrackAndUpdate(locationTrack1, alignment1, locationTrackService).let {
                 version ->
-                val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
+                val publishedVersion = locationTrackService.publish(LayoutBranch.main, version).published
                 locationTrackService.getWithAlignment(publishedVersion)
             }
 
@@ -247,7 +247,7 @@ constructor(
         val (updatedLocationTrack, updatedAlignment) =
             removeTopologySwitchesFromLocationTrackAndUpdate(locationTrack1, alignment1, locationTrackService).let {
                 version ->
-                val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
+                val publishedVersion = locationTrackService.publish(LayoutBranch.main, version).published
                 locationTrackService.getWithAlignment(publishedVersion)
             }
 
@@ -387,7 +387,7 @@ constructor(
                     locationTrackService = locationTrackService,
                 )
                 .let { version ->
-                    val publishedVersion = locationTrackService.publish(LayoutBranch.main, version)
+                    val publishedVersion = locationTrackService.publish(LayoutBranch.main, version).published
                     locationTrackService.getWithAlignment(publishedVersion)
                 }
 
@@ -1456,7 +1456,7 @@ constructor(
                 val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
                 val (edited, editedAlignment) = locationTrackService.getWithAlignment(rowVersion)
                 if (edited.isDraft) {
-                    val publicationResponse = locationTrackService.publish(LayoutBranch.main, rowVersion)
+                    val publicationResponse = locationTrackService.publish(LayoutBranch.main, rowVersion).published
                     locationTrackService.getWithAlignment(publicationResponse)
                 } else {
                     edited to editedAlignment
@@ -1468,7 +1468,7 @@ constructor(
                 val rowVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
                 val edited = switchDao.fetch(rowVersion)
                 if (edited.isDraft) {
-                    val publicationResponse = switchService.publish(LayoutBranch.main, rowVersion)
+                    val publicationResponse = switchService.publish(LayoutBranch.main, rowVersion).published
                     switchDao.fetch(publicationResponse)
                 } else {
                     edited

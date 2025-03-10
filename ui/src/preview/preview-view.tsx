@@ -335,22 +335,23 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             });
     };
 
-    const setStageForSpecificChanges = (
-        publishCandidatesToBeUpdated: PublicationCandidate[],
-        newStage: PublicationStage,
-    ) => {
-        const updatedCandidates = conditionallyUpdateCandidates(
-            publicationCandidates,
-            (candidate) =>
-                publishCandidatesToBeUpdated.some((candidateToBeUpdated) =>
-                    candidateIdAndTypeMatches(candidateToBeUpdated, candidate),
-                ),
-            stageTransform(newStage),
-        );
+    const setStageForSpecificChanges = React.useMemo(
+        () =>
+            (publishCandidatesToBeUpdated: PublicationCandidate[], newStage: PublicationStage) => {
+                const updatedCandidates = conditionallyUpdateCandidates(
+                    publicationCandidates,
+                    (candidate) =>
+                        publishCandidatesToBeUpdated.some((candidateToBeUpdated) =>
+                            candidateIdAndTypeMatches(candidateToBeUpdated, candidate),
+                        ),
+                    stageTransform(newStage),
+                );
 
-        setPublicationCandidates(updatedCandidates);
-        props.setStagedPublicationCandidateReferences(updatedCandidates);
-    };
+                setPublicationCandidates(updatedCandidates);
+                props.setStagedPublicationCandidateReferences(updatedCandidates);
+            },
+        [publicationCandidates],
+    );
 
     const setPublicationGroupStage = (
         publicationGroup: PublicationGroup,
@@ -482,7 +483,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
     const publishCandidateSelectTool = React.useMemo(
         () => previewViewAreaSelectTool(publicationCandidates, setStageForSpecificChanges, t),
-        [publicationCandidates],
+        [publicationCandidates, setStageForSpecificChanges],
+    );
+
+    const mapTools = React.useMemo(
+        () => [selectOrHighlightComboTool, measurementTool, publishCandidateSelectTool],
+        [publishCandidateSelectTool],
     );
 
     return (
@@ -613,16 +619,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     ? officialLayoutContext(props.layoutContext)
                                     : draftMainLayoutContext()
                                 : mapDisplayTransitionSide === 'WITH_CHANGES'
-                                ? draftLayoutContext(props.layoutContext)
-                                : officialLayoutContext(props.layoutContext)
+                                  ? draftLayoutContext(props.layoutContext)
+                                  : officialLayoutContext(props.layoutContext)
                         }
                         publicationCandidates={diplayedOnMapPublicationCandidates}
-                        mapTools={[
-                            selectOrHighlightComboTool,
-                            measurementTool,
-                            publishCandidateSelectTool,
-                        ]}
-                        customActiveMapTool={publishCandidateSelectTool}
+                        mapTools={mapTools}
                         designPublicationMode={designPublicationMode}
                     />
                 </MapContext.Provider>

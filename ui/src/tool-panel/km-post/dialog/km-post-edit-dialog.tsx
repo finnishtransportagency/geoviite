@@ -30,15 +30,22 @@ import { LayoutKmPost, LayoutKmPostId, LayoutTrackNumberId } from 'track-layout/
 import { useDebouncedState } from 'utils/react-utils';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import KmPostRevertConfirmationDialog from 'tool-panel/km-post/dialog/km-post-revert-confirmation-dialog';
-import { Link } from 'vayla-design-lib/link/link';
 import {
     getSaveDisabledReasons,
+    useKmPost,
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
-import { draftLayoutContext, LayoutContext, Srid } from 'common/common-model';
+import {
+    draftLayoutContext,
+    LayoutContext,
+    officialLayoutContext,
+    Srid,
+} from 'common/common-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { KmPostEditDialogGkLocationSection } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
 import { GeometryPoint } from 'model/geometry';
+import { UnknownAction } from 'redux';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export type KmPostEditDialogType = 'MODIFY' | 'CREATE' | 'LINKING';
 
@@ -89,12 +96,17 @@ export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps>
 
 export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostEditDialogProps) => {
     const { t } = useTranslation();
-    const [state, dispatcher] = React.useReducer(reducer, {
-        ...initialKmPostEditState,
-        gkLocationEnabled: !!props.geometryKmPostGkLocation,
-    });
+    const [state, dispatcher] = React.useReducer<KmPostEditState, [action: UnknownAction]>(
+        reducer,
+        {
+            ...initialKmPostEditState,
+            gkLocationEnabled: !!props.geometryKmPostGkLocation,
+        },
+    );
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
-    const canSetDeleted = state.existingKmPost?.hasOfficial;
+    const canSetDeleted =
+        useKmPost(state.existingKmPost?.id, officialLayoutContext(props.layoutContext)) !==
+        undefined;
     const kmPostStateOptions = layoutStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
@@ -315,13 +327,13 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             errors={getVisibleErrorsByProp('kmNumber')}>
                             {state.trackNumberKmPost &&
                                 state.trackNumberKmPost.id !== state.existingKmPost?.id && (
-                                    <Link
+                                    <AnchorLink
                                         className={dialogStyles['dialog__alert']}
                                         onClick={() =>
                                             props.onEditKmPost(state.trackNumberKmPost?.id)
                                         }>
                                         {moveToEditLinkText(state.trackNumberKmPost)}
-                                    </Link>
+                                    </AnchorLink>
                                 )}
                         </FieldLayout>
                         <FieldLayout

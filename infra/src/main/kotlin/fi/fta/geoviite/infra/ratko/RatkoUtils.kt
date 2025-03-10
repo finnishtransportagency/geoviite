@@ -10,37 +10,72 @@ import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
 import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.publication.RatkoPlanItemId
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.switchLibrary.SwitchNationality
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 
-fun <T : LayoutAsset<T>> getOrCreateFullExternalId(
+fun <T : LayoutAsset<T>> getFullExtIdAndManagePlanItem(
     branch: PushableLayoutBranch,
     id: IntId<T>,
+    designAssetState: DesignAssetState?,
     ratkoClient: RatkoClient,
     fetchSavedExternalId: (branch: LayoutBranch, id: IntId<T>) -> RatkoExternalId<T>?,
     insertPlanItemId: (id: IntId<T>, branch: DesignBranch, planItemId: RatkoPlanItemId) -> Unit,
-): FullRatkoExternalId<T>? =
-    fetchSavedExternalId(branch.branch, id)?.let { saved ->
-        when (branch) {
-            is PushableMainBranch -> MainBranchRatkoExternalId(saved.oid)
-            is PushableDesignBranch ->
-                DesignRatkoExternalId(
-                    saved.oid,
-                    saved.planItemId
-                        ?: ratkoClient
-                            .createPlanItem(branch.planId, fetchSavedExternalId(LayoutBranch.main, id)?.oid)
-                            .also { planItemId -> insertPlanItemId(id, branch.branch, planItemId) },
-                )
+): FullRatkoExternalId<T>? {
+    val branchExtId = requireNotNull(fetchSavedExternalId(branch.branch, id))
+
+    return when (branch) {
+        is PushableMainBranch -> MainBranchRatkoExternalId(branchExtId.oid)
+        is PushableDesignBranch -> {
+            managePlanItem(
+                branch,
+                id,
+                // TODO GVT-2984 handle inherited and same-km-switch changes' design asset states
+                designAssetState ?: DesignAssetState.OPEN,
+                branchExtId,
+                ratkoClient,
+                fetchSavedExternalId,
+                insertPlanItemId,
+            )
         }
     }
+}
+
+private fun <T : LayoutAsset<T>> managePlanItem(
+    branch: PushableDesignBranch,
+    id: IntId<T>,
+    designAssetState: DesignAssetState,
+    extId: RatkoExternalId<T>,
+    ratkoClient: RatkoClient,
+    fetchSavedExternalId: (branch: LayoutBranch, id: IntId<T>) -> RatkoExternalId<T>?,
+    insertPlanItemId: (id: IntId<T>, branch: DesignBranch, planItemId: RatkoPlanItemId) -> Unit,
+): DesignRatkoExternalId<T> {
+    val realOid = fetchSavedExternalId(LayoutBranch.main, id)?.oid
+    val planItemId =
+        if (extId.planItemId == null) {
+            ratkoClient.createPlanItem(branch.planId, realOid).also { planItemId ->
+                insertPlanItemId(id, branch.branch, planItemId)
+            }
+        } else {
+            ratkoClient.updatePlanItem(
+                RatkoPlanItem(
+                    extId.planItemId,
+                    branch.planId,
+                    realOid,
+                    mapDesignAssetStateToRatkoPlanState(designAssetState),
+                )
+            )
+            extId.planItemId
+        }
+    return DesignRatkoExternalId(extId.oid, planItemId)
+}
 
 fun getEndPointNodeCollection(
     alignmentAddresses: AlignmentAddresses,

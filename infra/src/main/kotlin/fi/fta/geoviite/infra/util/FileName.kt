@@ -20,7 +20,7 @@ data class FileName @JsonCreator(mode = DELEGATING) constructor(private val valu
          *
          * https://www.ibm.com/docs/en/cobol-zos/6.3?topic=functions-ulength
          */
-        const val umlautsCanonicalDecomposition = "aäöåÄÖÅ"
+        private const val umlautsCanonicalDecomposition = "aäöåÄÖÅ"
 
         val allowedLength = 1..100
         const val ALLOWED_CHARACTERS = "\\p{L}\\p{N}${umlautsCanonicalDecomposition}_\\-+~., /()$UNSAFE_REPLACEMENT"

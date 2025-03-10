@@ -121,7 +121,11 @@ constructor(
         val revertTrackNumberIds = trackNumbers.filter(LayoutTrackNumber::isDraft).map { it.id as IntId }
         // If revert breaks other draft row references, they should be reverted too
         val draftOnlyTrackNumberIds =
-            trackNumbers.filter { tn -> tn.isDraft && !tn.contextData.hasOfficial }.map { it.id as IntId }
+            trackNumbers
+                .filter { tn ->
+                    tn.isDraft && trackNumberDao.fetchVersion(tn.layoutContext.branch.official, tn.id as IntId) == null
+                }
+                .map { it.id as IntId }
 
         val revertLocationTrackIds =
             requestIds.locationTracks +
@@ -162,7 +166,7 @@ constructor(
     }
 
     @Transactional
-    fun revertPublicationCandidates(branch: LayoutBranch, toDelete: PublicationRequestIds): PublicationResult {
+    fun revertPublicationCandidates(branch: LayoutBranch, toDelete: PublicationRequestIds): PublicationResultSummary {
         splitService.fetchPublicationVersions(branch, toDelete.locationTracks, toDelete.switches).forEach { split ->
             splitService.deleteSplit(split.id)
         }
@@ -174,7 +178,7 @@ constructor(
         val kmPostCount = toDelete.kmPosts.map { id -> kmPostService.deleteDraft(branch, id) }.size
         val trackNumberCount = toDelete.trackNumbers.map { id -> trackNumberService.deleteDraft(branch, id) }.size
 
-        return PublicationResult(
+        return PublicationResultSummary(
             publicationId = null,
             trackNumbers = trackNumberCount,
             locationTracks = locationTrackCount,
@@ -245,7 +249,7 @@ constructor(
     private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<LayoutSwitch>) {
         val switchOid =
             switchDao.get(branch.draft, switchId)?.draftOid?.also(::ensureDraftIdExists)?.toString()
-                ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid()?.id) { "No OID received from RATKO" } }
+                ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid().id) { "No OID received from RATKO" } }
         switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(switchOid)) }
     }
 
@@ -261,11 +265,11 @@ constructor(
     fun publishManualPublication(branch: LayoutBranch, request: PublicationRequest): PublicationResult {
         val versions = requireNotNull(transactionTemplate.execute { getValidationVersions(branch, request.content) })
         publicationValidationService.validatePublicationRequest(versions)
-        val (inheritedPublications, inheritedChangeIds) =
+        val (inheritedChanges, inheritedChangeIds) =
             if (branch is MainBranch) {
-                getInheritedDesignPublicationsFromMainPublication(versions, request) to PublicationRequestIds.empty()
+                getInheritedChangesFromMainPublicationToDesigns(versions) to PublicationRequestIds.empty()
             } else {
-                listOf<PreparedPublicationRequest>() to getDesignToSelfInheritedChangeIds(versions)
+                mapOf<DesignBranch, IndirectChanges>() to getDesignToSelfInheritedChangeIds(versions)
             }
         updateExternalId(branch, request.content + inheritedChangeIds)
         val calculatedChanges = calculatedChangesService.getCalculatedChanges(versions)
@@ -273,7 +277,7 @@ constructor(
             PreparedPublicationRequest(branch, versions, calculatedChanges, request.message, PublicationCause.MANUAL)
         // publication results already only include direct changes, and all inherited changes are
         // indirect, so all but the first publication result are empty -> can be thrown out
-        return publishPublicationRequests(listOf(mainPublication) + inheritedPublications).first()
+        return publishPublicationRequests(mainPublication, inheritedChanges).first()
     }
 
     fun publishChanges(
@@ -282,30 +286,36 @@ constructor(
         calculatedChanges: CalculatedChanges,
         message: FreeTextWithNewLines,
         cause: PublicationCause,
-    ): PublicationResult =
+    ): PublicationResultSummary =
         publishPublicationRequests(
-                listOf(PreparedPublicationRequest(branch, versions, calculatedChanges, message, cause))
+                PreparedPublicationRequest(branch, versions, calculatedChanges, message, cause),
+                mapOf(),
             )
             .first()
+            .summarize()
 
-    fun publishPublicationRequests(publications: List<PreparedPublicationRequest>): List<PublicationResult> {
+    fun publishPublicationRequests(
+        mainPublication: PreparedPublicationRequest,
+        inheritedChanges: Map<DesignBranch, IndirectChanges>,
+    ): List<PublicationResult> {
         val results =
             try {
                 requireNotNull(
                     transactionTemplate.execute {
-                        publications.map { publication ->
-                            publishChangesTransaction(
-                                publication.branch,
-                                publication.versions,
-                                publication.calculatedChanges,
-                                publication.message,
-                                publication.cause,
-                            )
-                        }
+                        val mainResults = publishChangesTransaction(mainPublication)
+                        val inheritedResults =
+                            calculatedChangesService
+                                .combineInheritedChangesAndFinishedMerges(
+                                    mainPublication,
+                                    inheritedChanges,
+                                    mainResults,
+                                )
+                                .map(::publishChangesTransaction)
+                        listOf(mainResults) + inheritedResults
                     }
                 )
             } catch (exception: DataIntegrityViolationException) {
-                enrichDuplicateNameExceptionOrRethrow(publications.map { it.branch }.distinct(), exception)
+                enrichDuplicateNameExceptionOrRethrow(inheritedChanges.keys + mainPublication.branch, exception)
             }
         results.forEach { result ->
             result.publicationId?.let { publicationGeometryChangeRemarksUpdateService.processPublication(it) }
@@ -313,55 +323,26 @@ constructor(
         return results
     }
 
-    private fun getInheritedDesignPublicationsFromMainPublication(
-        versions: ValidationVersions,
-        request: PublicationRequest,
-    ): List<PreparedPublicationRequest> =
-        layoutDesignDao.list().mapNotNull { design ->
-            val inheritorBranch = DesignBranch.of(design.id as IntId)
-            val changesInheritedToDesign =
-                calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
-                    inheritorBranch,
-                    versions.trackNumbers,
-                    versions.referenceLines,
-                    versions.locationTracks,
-                    versions.switches,
-                    versions.kmPosts,
-                )
+    private fun getInheritedChangesFromMainPublicationToDesigns(
+        versions: ValidationVersions
+    ): Map<DesignBranch, IndirectChanges> =
+        layoutDesignDao
+            .list()
+            .mapNotNull { design ->
+                val inheritorBranch = DesignBranch.of(design.id as IntId)
+                val changesInheritedToDesign =
+                    calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
+                        inheritorBranch,
+                        versions.trackNumbers,
+                        versions.referenceLines,
+                        versions.locationTracks,
+                        versions.switches,
+                        versions.kmPosts,
+                    )
 
-            if (changesInheritedToDesign.isEmpty()) null
-            else
-                PreparedPublicationRequest(
-                    inheritorBranch,
-                    versions = getInheritedChangeVersions(inheritorBranch, changesInheritedToDesign),
-                    CalculatedChanges.onlyIndirect(changesInheritedToDesign),
-                    request.message,
-                    PublicationCause.CALCULATED_CHANGE,
-                )
-        }
-
-    private fun getInheritedChangeVersions(
-        inheritorBranch: DesignBranch,
-        changes: IndirectChanges,
-    ): ValidationVersions =
-        ValidationVersions(
-            ValidateTransition(InheritanceFromPublicationInMain(inheritorBranch)),
-            trackNumbers =
-                trackNumberDao
-                    .getMany(inheritorBranch.official, changes.trackNumberChanges.map { it.trackNumberId })
-                    .map { requireNotNull(it.version) },
-            referenceLines = listOf(),
-            locationTracks =
-                locationTrackDao
-                    .getMany(inheritorBranch.official, changes.locationTrackChanges.map { it.locationTrackId })
-                    .map { requireNotNull(it.version) },
-            switches =
-                switchDao.getMany(inheritorBranch.official, changes.switchChanges.map { it.switchId }).map {
-                    requireNotNull(it.version)
-                },
-            kmPosts = listOf(),
-            splits = listOf(),
-        )
+                if (changesInheritedToDesign.isEmpty()) null else inheritorBranch to changesInheritedToDesign
+            }
+            .associate { it }
 
     fun getDesignToSelfInheritedChangeIds(versions: ValidationVersions): PublicationRequestIds {
         val changes = calculatedChangesService.getCalculatedChanges(versions)
@@ -387,7 +368,7 @@ constructor(
     }
 
     @Transactional
-    fun mergeChangesToMain(fromBranch: DesignBranch, request: PublicationRequestIds): PublicationResult {
+    fun mergeChangesToMain(fromBranch: DesignBranch, request: PublicationRequestIds): PublicationResultSummary {
         try {
             transactionTemplate.execute {
                 request.trackNumbers.forEach { id -> trackNumberService.mergeToMainBranch(fromBranch, id) }
@@ -400,7 +381,7 @@ constructor(
             enrichDuplicateNameExceptionOrRethrow(listOf(fromBranch), exception)
         }
 
-        return PublicationResult(
+        return PublicationResultSummary(
             publicationId = null,
             trackNumbers = request.trackNumbers.size,
             referenceLines = request.referenceLines.size,
@@ -410,13 +391,13 @@ constructor(
         )
     }
 
-    private fun publishChangesTransaction(
-        branch: LayoutBranch,
-        versions: ValidationVersions,
-        calculatedChanges: CalculatedChanges,
-        message: FreeTextWithNewLines,
-        cause: PublicationCause,
-    ): PublicationResult {
+    private fun publishChangesTransaction(request: PreparedPublicationRequest): PublicationResult {
+        val versions = request.versions
+        val branch = request.branch
+        val message = request.message
+        val cause = request.cause
+        val calculatedChanges = request.calculatedChanges
+
         val trackNumbers = versions.trackNumbers.map { v -> trackNumberService.publish(branch, v) }
         val kmPosts = versions.kmPosts.map { v -> kmPostService.publish(branch, v) }
         val switches = versions.switches.map { v -> switchService.publish(branch, v) }
@@ -426,23 +407,29 @@ constructor(
         publicationDao.insertCalculatedChanges(
             publicationId,
             calculatedChanges,
-            PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts),
+            PublishedVersions(
+                trackNumbers.map { it.published },
+                referenceLines.map { it.published },
+                locationTracks.map { it.published },
+                switches.map { it.published },
+                kmPosts.map { it.published },
+            ),
         )
 
-        splitService.publishSplit(versions.splits, locationTracks, publicationId)
+        splitService.publishSplit(versions.splits, locationTracks.map { it.published }, publicationId)
 
         return PublicationResult(
             publicationId = publicationId,
-            trackNumbers = trackNumbers.size,
-            referenceLines = referenceLines.size,
-            locationTracks = locationTracks.size,
-            switches = switches.size,
-            kmPosts = kmPosts.size,
+            trackNumbers = trackNumbers,
+            referenceLines = referenceLines,
+            locationTracks = locationTracks,
+            switches = switches,
+            kmPosts = kmPosts,
         )
     }
 
     private fun enrichDuplicateNameExceptionOrRethrow(
-        possibleBranches: List<LayoutBranch>,
+        possibleBranches: Collection<LayoutBranch>,
         exception: DataIntegrityViolationException,
     ): Nothing {
         val cause = exception.cause
@@ -472,7 +459,7 @@ constructor(
         Regex("""Key \(name, layout_context_id\)=\(([^,]+), [^)]+\) conflicts with existing key""")
 
     private fun maybeThrowDuplicateLocationTrackNameException(
-        possibleBranches: List<LayoutBranch>,
+        possibleBranches: Collection<LayoutBranch>,
         detail: String,
         exception: DataIntegrityViolationException,
     ) {

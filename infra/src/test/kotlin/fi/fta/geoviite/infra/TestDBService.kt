@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -21,6 +22,7 @@ import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.BulkTransfer
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.EditedAssetId
@@ -61,12 +63,12 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.transaction.support.TransactionTemplate
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -460,6 +462,12 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     fun createLayoutTrackNumber(): LayoutRowVersion<LayoutTrackNumber> =
         insert(trackNumber(testService.getUnusedTrackNumber()))
 
+    fun createLayoutTrackNumberWithOid(oid: Oid<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber> {
+        return insert(trackNumber(testService.getUnusedTrackNumber())).also { trackNumber ->
+            trackNumberDao.insertExternalId(trackNumber.id, context.branch, oid)
+        }
+    }
+
     fun createAndFetchLayoutTrackNumber(): LayoutTrackNumber = trackNumberDao.fetch(createLayoutTrackNumber())
 
     fun createLayoutTrackNumberAndReferenceLine(
@@ -498,7 +506,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
             insert(
                     switch(
                         name = name,
-                        structureId = structure.id as IntId,
+                        structureId = structure.id,
                         joints =
                             alignmentJointPositions
                                 .flatMap { it }
@@ -541,12 +549,13 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                 OFFICIAL ->
                     when (branch) {
                         is MainBranch -> MainOfficialContextData(rowContextId)
-                        is DesignBranch -> DesignOfficialContextData(rowContextId, branch.designId, false)
+                        is DesignBranch ->
+                            DesignOfficialContextData(rowContextId, branch.designId, DesignAssetState.OPEN)
                     }
                 DRAFT ->
                     when (branch) {
-                        is MainBranch -> MainDraftContextData(rowContextId, false, LayoutBranch.main)
-                        is DesignBranch -> DesignDraftContextData(rowContextId, branch.designId, false, false)
+                        is MainBranch -> MainDraftContextData(rowContextId, LayoutBranch.main)
+                        is DesignBranch -> DesignDraftContextData(rowContextId, branch.designId, DesignAssetState.OPEN)
                     }
             }
         }

@@ -9,9 +9,7 @@ import {
     createAlignmentBadgeFeatures,
     getBadgeDrawDistance,
 } from 'map/layers/utils/badge-layer-utils';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import Feature from 'ol/Feature';
-import VectorLayer from 'ol/layer/Vector';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import {
     getLocationTrackMapAlignmentsByTiles,
     LocationTrackAlignmentDataHolder,
@@ -22,7 +20,7 @@ const layerName: MapLayerName = 'location-track-badge-layer';
 
 export function createLocationTrackBadgeLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     linkingState: LinkingState | undefined,

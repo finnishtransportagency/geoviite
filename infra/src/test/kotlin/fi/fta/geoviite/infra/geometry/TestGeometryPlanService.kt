@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
@@ -9,7 +8,6 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.ui.testdata.createGeometryAlignment
@@ -67,7 +65,7 @@ constructor(val switchStructureDao: SwitchStructureDao, val geometryDao: Geometr
                     id = StringId(name),
                     name = SwitchName(name),
                     typeName = GeometrySwitchTypeName(typeName),
-                    switchStructureId = switchStructure.id as IntId<SwitchStructure>,
+                    switchStructureId = switchStructure.id,
                     state = PlanState.EXISTING,
                     joints =
                         switchStructure.joints.map { ssj ->

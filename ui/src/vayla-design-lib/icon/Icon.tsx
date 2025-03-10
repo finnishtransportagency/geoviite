@@ -150,7 +150,7 @@ export type IconProps = {
     extraClassName?: string;
 } & Pick<React.HTMLProps<HTMLOrSVGElement>, 'onClick'>;
 
-export type IconComponent = React.FC<IconProps>;
+export type IconComponent = React.ComponentType<IconProps>;
 
 export type SvgIconProps = IconProps & {
     svg: string;
@@ -179,6 +179,7 @@ const SvgIcon: SvgIconComponent = ({
         size && styles[size],
         props.rotation && styles[props.rotation],
         color && styles[color],
+        props.onClick === undefined && styles['icon--disable-pointer-events'],
         extraClassName,
     );
 

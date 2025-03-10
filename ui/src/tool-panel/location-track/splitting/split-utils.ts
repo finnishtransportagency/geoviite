@@ -34,10 +34,10 @@ export type ValidatedSplit = {
 };
 
 export type SplitComponentAndRefs = {
-    component: JSX.Element;
+    component: React.JSX.Element;
     splitAndValidation: ValidatedSplit;
-    nameRef: React.RefObject<HTMLInputElement>;
-    descriptionBaseRef: React.RefObject<HTMLInputElement>;
+    nameRef: React.RefObject<HTMLInputElement | null>;
+    descriptionBaseRef: React.RefObject<HTMLInputElement | null>;
 };
 
 export const splitRequest = (
@@ -208,7 +208,7 @@ export const hasErrors = (errorsReasons: string[], predicate: (errorReason: stri
 export const findRefToFirstErroredField = (
     splitComponents: SplitComponentAndRefs[],
     predicate: (errorReason: string) => boolean,
-): React.RefObject<HTMLInputElement> | undefined => {
+): React.RefObject<HTMLInputElement | null> | undefined => {
     const invalidNameIndex = splitComponents.findIndex((s) =>
         hasErrors(
             s.splitAndValidation.nameIssues.map((err) => err.reason),

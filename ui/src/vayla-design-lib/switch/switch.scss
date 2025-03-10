@@ -17,9 +17,12 @@ $switch-thumb-pressed-width: 20px;
 .switch {
     @include utils.component-base;
     @include utils.no-visuals;
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
+
+    & {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+    }
 }
 
 .switch__checkbox {
@@ -149,12 +152,4 @@ $switch-thumb-pressed-width: 20px;
 
 .switch--disabled .switch__checkbox:checked + .switch__track {
     @include switch-track--disabled($checked: true);
-}
-
-// Embedding label content into switch might be unrecommended way to layout
-// labels, but as it could be handy in some situations, let it live for now.
-.switch--has-label .switch__label {
-    @include typography.typography-body;
-    display: inline-block;
-    margin-left: 10px;
 }

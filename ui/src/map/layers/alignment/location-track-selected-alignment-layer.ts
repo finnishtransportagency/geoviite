@@ -2,45 +2,51 @@ import { LineString, Point as OlPoint } from 'ol/geom';
 import OlView from 'ol/View';
 import { MapLayerName, MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { ChangeTimes } from 'common/common-slice';
-import VectorLayer from 'ol/layer/Vector';
-import Feature from 'ol/Feature';
 import {
     AlignmentDataHolder,
     getSelectedLocationTrackMapAlignmentByTiles,
 } from 'track-layout/layout-map-api';
-import { createAlignmentFeature } from '../utils/alignment-layer-utils';
+import {
+    builtAlignmentBackgroundLineStroke,
+    builtAlignmentLineDash,
+    createAlignmentFeature,
+    getAlignmentZIndex,
+} from '../utils/alignment-layer-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import { first } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
-import { builtAlignmentLineDash } from 'map/layers/alignment/location-track-alignment-layer';
 
-const selectedLocationTrackStyle = new Style({
+const selectedExistingOrNotInUseLocationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 2,
     }),
-    zIndex: 2,
+    zIndex: getAlignmentZIndex('IN_USE', 'NOT_HIGHLIGHTED'),
 });
 
-const selectedLocationTrackBuildStyle = new Style({
+const selectedLocationTrackBuiltStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 2,
         ...builtAlignmentLineDash,
     }),
-    zIndex: 2,
+    zIndex: getAlignmentZIndex('BUILT', 'NOT_HIGHLIGHTED'),
+});
+const selectedLocationTrackBuiltBackgroundStyle = new Style({
+    stroke: builtAlignmentBackgroundLineStroke,
+    zIndex: getAlignmentZIndex('BUILT_BACKGROUND', 'NOT_HIGHLIGHTED'),
 });
 
 const layerName: MapLayerName = 'location-track-selected-alignment-layer';
 
 export function createLocationTrackSelectedAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString | OlPoint>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString | OlPoint> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     splittingIsActive: boolean, // TODO: This will be removed when layer visibility logic is revised
@@ -70,12 +76,17 @@ export function createLocationTrackSelectedAlignmentLayer(
         }
 
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
+        const endpointTickStyle =
+            selectedTrack.header.state === 'BUILT'
+                ? selectedLocationTrackBuiltStyle
+                : selectedExistingOrNotInUseLocationTrackStyle;
+
         return createAlignmentFeature(
             selectedTrack,
-            showEndPointTicks,
             selectedTrack.header.state === 'BUILT'
-                ? selectedLocationTrackBuildStyle
-                : selectedLocationTrackStyle,
+                ? [selectedLocationTrackBuiltStyle, selectedLocationTrackBuiltBackgroundStyle]
+                : [selectedExistingOrNotInUseLocationTrackStyle],
+            showEndPointTicks ? endpointTickStyle : undefined,
         );
     };
 

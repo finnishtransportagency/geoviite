@@ -91,13 +91,13 @@ constructor(
     @Test
     fun shouldGetExternalIdForNewLayoutTrack() {
         fakeRatko.acceptsNewLocationTrackGivingItOid("1.2.3.4.5")
-        assertEquals("1.2.3.4.5", ratkoClient.getNewLocationTrackOid()!!.id)
+        assertEquals("1.2.3.4.5", ratkoClient.getNewLocationTrackOid().id)
     }
 
     @Test
     fun shouldGetExternalIdForNewTrackNumber() {
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("1.2.3.4.5"))
-        assertEquals("1.2.3.4.5", ratkoClient.getNewRouteNumberOid()!!.id)
+        assertEquals("1.2.3.4.5", ratkoClient.getNewRouteNumberOid().id)
     }
 
     @Test

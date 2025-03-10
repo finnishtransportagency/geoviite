@@ -58,6 +58,7 @@ data class GeometryPlanHeader(
     val hasCant: Boolean,
     val isHidden: Boolean,
     val name: PlanName,
+    val planApplicability: PlanApplicability?,
 ) : Loggable {
     @get:JsonIgnore
     val searchParams: List<String> by lazy {
@@ -97,6 +98,7 @@ data class GeometryPlan(
     val isHidden: Boolean = false,
     val id: DomainId<GeometryPlan> = StringId(),
     val dataType: DataType = DataType.TEMP,
+    val planApplicability: PlanApplicability?,
 ) : Loggable {
     @get:JsonIgnore val bounds by lazy { boundingBoxCombining(alignments.mapNotNull { a -> a.bounds }) }
 

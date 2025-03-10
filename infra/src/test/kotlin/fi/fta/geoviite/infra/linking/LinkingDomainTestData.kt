@@ -3,7 +3,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
-import fi.fta.geoviite.infra.publication.PublicationResult
+import fi.fta.geoviite.infra.publication.PublicationResultSummary
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.publication.ValidationVersions
@@ -68,7 +68,7 @@ fun publish(
     publicationService: PublicationService,
     request: PublicationRequestIds,
     branch: LayoutBranch = LayoutBranch.main,
-): PublicationResult {
+): PublicationResultSummary {
     val versions = publicationService.getValidationVersions(branch, request)
     val calculatedChanges = publicationService.getCalculatedChanges(versions)
     return publicationService.publishChanges(

@@ -76,12 +76,14 @@ export type PointRange = {
 };
 
 const UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH = 23;
-const STAGED_ALIGNMENT_HIGHLIGHT_WIDTH = 11;
+const STAGED_ALIGNMENT_HIGHLIGHT_WIDTH = 16;
 
 const UNSTAGED_POINT_FEATURE_RADIUS = 25;
-const STAGED_POINT_FEATURE_RADIUS = 18;
+const STAGED_POINT_FEATURE_RADIUS = 20;
 
 const HIGHEST_HIGHLIGHT_Z_INDEX = 15;
+
+const HIGHLIGHT_ALIGNMENT_MIN_LENGTH_IN_PIXELS = 15;
 
 // Lines for deleted alignments should go above highlights. Reference lines go under location tracks.
 const DELETED_REFERENCE_LINE_Z_INDEX = HIGHEST_HIGHLIGHT_Z_INDEX + 1;
@@ -253,7 +255,8 @@ export const createAlignmentLineStringFeature = (
                 candidate.stage === PublicationStage.UNSTAGED
                     ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
                     : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH,
-            lineCap: rangeLengthInPixels < 15 ? 'square' : 'butt',
+            lineCap:
+                rangeLengthInPixels < HIGHLIGHT_ALIGNMENT_MIN_LENGTH_IN_PIXELS ? 'square' : 'butt',
         }),
         zIndex: getHighlightZIndex(
             candidate.operation,
@@ -327,53 +330,70 @@ export const createCandidateTrackNumberFeatures = (
 const createBaseAlignmentHighlightFeatures = (
     alignment: AlignmentDataHolder,
     publishCandidate: PublicationCandidate,
-) =>
-    createAlignmentFeature(
+    metersPerPixel: number,
+) => {
+    const lengthInMeters =
+        expectDefined(last(alignment.points)).m - expectDefined(first(alignment.points)).m;
+    const lengthInPixels = lengthInMeters / metersPerPixel;
+
+    return createAlignmentFeature(
         alignment,
-        false,
-        new Style({
-            stroke: new Stroke({
-                color: getHighlightColor(
+        [
+            new Style({
+                stroke: new Stroke({
+                    color: getHighlightColor(
+                        publishCandidate.stage,
+                        publishCandidate.operation === 'DELETE'
+                            ? ChangeExplicitness.EXPLICIT
+                            : ChangeExplicitness.IMPLICIT,
+                        'DELETE',
+                    ),
+                    width:
+                        publishCandidate.stage === PublicationStage.UNSTAGED
+                            ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
+                            : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH,
+                    lineCap:
+                        lengthInPixels < HIGHLIGHT_ALIGNMENT_MIN_LENGTH_IN_PIXELS
+                            ? 'square'
+                            : 'butt',
+                }),
+                zIndex: getHighlightZIndex(
+                    'DELETE',
+                    publishCandidate.type,
                     publishCandidate.stage,
                     publishCandidate.operation === 'DELETE'
                         ? ChangeExplicitness.EXPLICIT
                         : ChangeExplicitness.IMPLICIT,
-                    'DELETE',
                 ),
-                width:
-                    publishCandidate.stage === PublicationStage.UNSTAGED
-                        ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
-                        : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH,
-                lineCap: 'butt',
             }),
-            zIndex: getHighlightZIndex(
-                'DELETE',
-                publishCandidate.type,
-                publishCandidate.stage,
-                publishCandidate.operation === 'DELETE'
-                    ? ChangeExplicitness.EXPLICIT
-                    : ChangeExplicitness.IMPLICIT,
-            ),
-        }),
+        ],
+        undefined,
     );
+};
 
 export const createBaseLocationTrackFeatures = (
     publishCandidate: LocationTrackPublicationCandidate,
     alignment: LocationTrackAlignmentDataHolder,
     showEndPointTicks: boolean,
+    metersPerPixel: number,
 ): Feature<LineString | OlPoint>[] => {
+    const style = new Style({
+        stroke: new Stroke({
+            color: mapStyles.alignmentPreviewBaseLine,
+            width: LOCATION_TRACK_ALIGNMENT_WIDTH,
+        }),
+        zIndex: DELETED_LOCATION_TRACK_Z_INDEX,
+    });
     const lineFeatures = createAlignmentFeature(
         alignment,
-        showEndPointTicks,
-        new Style({
-            stroke: new Stroke({
-                color: mapStyles.alignmentPreviewOfficialLine,
-                width: LOCATION_TRACK_ALIGNMENT_WIDTH,
-            }),
-            zIndex: DELETED_LOCATION_TRACK_Z_INDEX,
-        }),
+        [style],
+        showEndPointTicks ? style : undefined,
     );
-    const highlightFeatures = createBaseAlignmentHighlightFeatures(alignment, publishCandidate);
+    const highlightFeatures = createBaseAlignmentHighlightFeatures(
+        alignment,
+        publishCandidate,
+        metersPerPixel,
+    );
 
     highlightFeatures.map((f) => f.set(CandidateDataProperties.LOCATION_TRACK, publishCandidate));
     return [...lineFeatures, ...highlightFeatures];
@@ -384,19 +404,25 @@ export const createBaseReferenceLineFeatures = (
     alignment: ReferenceLineAlignmentDataHolder,
     trackNumberCandidate: TrackNumberPublicationCandidate | undefined,
     showEndPointTicks: boolean,
+    metersPerPixel: number,
 ): Feature<LineString | OlPoint>[] => {
+    const style = new Style({
+        stroke: new Stroke({
+            color: mapStyles.alignmentPreviewBaseLine,
+            width: REFERENCE_LINE_ALIGNMENT_WIDTH,
+        }),
+        zIndex: DELETED_REFERENCE_LINE_Z_INDEX,
+    });
     const lineFeatures = createAlignmentFeature(
         alignment,
-        showEndPointTicks,
-        new Style({
-            stroke: new Stroke({
-                color: mapStyles.alignmentPreviewOfficialLine,
-                width: REFERENCE_LINE_ALIGNMENT_WIDTH,
-            }),
-            zIndex: DELETED_REFERENCE_LINE_Z_INDEX,
-        }),
+        [style],
+        showEndPointTicks ? style : undefined,
     );
-    const highlightFeatures = createBaseAlignmentHighlightFeatures(alignment, publishCandidate);
+    const highlightFeatures = createBaseAlignmentHighlightFeatures(
+        alignment,
+        publishCandidate,
+        metersPerPixel,
+    );
 
     highlightFeatures.forEach((f) => {
         f.set(CandidateDataProperties.REFERENCE_LINE, publishCandidate);

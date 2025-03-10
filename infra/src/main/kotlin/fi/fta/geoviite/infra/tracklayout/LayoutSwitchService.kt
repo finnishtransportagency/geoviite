@@ -82,11 +82,8 @@ constructor(
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<LayoutSwitch>): LayoutRowVersion<LayoutSwitch> {
-        // cancellations are hidden, so if we're deleting a cancellation, this will return
-        // main-official or null
-        val draft = dao.get(branch.draft, id)
         // If removal also breaks references, clear them out first
-        if (draft?.contextData?.hasOfficial != true) {
+        if (dao.fetchVersion(branch.official, id) == null) {
             clearSwitchInformationFromSegments(branch, id)
         }
         return super.deleteDraft(branch, id)
@@ -127,11 +124,14 @@ constructor(
         )
 
     private fun checkRatkoOidPresence(oid: Oid<LayoutSwitch>): Boolean? {
-        return try {
-            ratkoClient?.getSwitchAsset(RatkoOid(oid.toString())) != null
-        } catch (_: Exception) {
-            null
-        }
+        if (ratkoClient != null)
+            return try {
+                ratkoClient.getSwitchAsset(RatkoOid(oid.toString())) != null
+            } catch (ex: Exception) {
+                logger.warn("checkRatkoOidPresence exception: $ex")
+                null
+            }
+        else return null
     }
 
     fun idMatches(

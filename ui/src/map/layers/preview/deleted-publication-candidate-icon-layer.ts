@@ -3,6 +3,7 @@ import { MapLayerName, MapTile, OptionalShownItems } from 'map/map-model';
 import {
     createLayer,
     findMatchingEntities,
+    GeoviiteMapLayer,
     loadLayerData,
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
@@ -15,7 +16,6 @@ import {
     LayoutSwitchId,
 } from 'track-layout/track-layout-model';
 import { Point, Rectangle } from 'model/geometry';
-import VectorLayer from 'ol/layer/Vector';
 import Feature from 'ol/Feature';
 import {
     draftMainLayoutContext,
@@ -166,7 +166,7 @@ const getSwitchesTiledPromise = (
 
 export function createDeletedPublicationCandidateIconLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString | OlPoint | Rectangle>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString | OlPoint | Rectangle> | undefined,
     publicationCandidates: PublicationCandidate[],
     designPublicationMode: DesignPublicationMode,
     layoutContext: LayoutContext,

@@ -10,6 +10,7 @@ import { createTrackNumber, updateTrackNumber } from 'track-layout/layout-track-
 import {
     getSaveDisabledReasons,
     useReferenceLineStartAndEnd,
+    useTrackNumber,
     useTrackNumberReferenceLine,
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
@@ -19,6 +20,7 @@ import {
     getErrors,
     initialTrackNumberEditState,
     reducer,
+    TrackNumberEditState,
     TrackNumberSaveRequest,
 } from './track-number-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
@@ -35,12 +37,13 @@ import { layoutStates } from 'utils/enum-localization-utils';
 import styles from 'geoviite-design-lib/dialog/dialog.scss';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import TrackNumberRevertConfirmationDialog from 'tool-panel/track-number/dialog/track-number-revert-confirmation-dialog';
-import { Link } from 'vayla-design-lib/link/link';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { useTrackLayoutAppSelector } from 'store/hooks';
-import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
+import { UnknownAction } from 'redux';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -72,7 +75,11 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
         editTrackNumberId,
     );
     const editReferenceLine = useTrackNumberReferenceLine(trackNumberId, layoutContext);
-    const isNewDraft = !!editReferenceLine && !editReferenceLine.hasOfficial;
+    const hasOfficialTrackNumber = useTrackNumber(
+        trackNumberId,
+        officialLayoutContext(layoutContext),
+    );
+    const isNewDraft = !!editReferenceLine && !hasOfficialTrackNumber;
 
     if (trackNumbers !== undefined && trackNumberId === editReferenceLine?.trackNumberId) {
         return (
@@ -106,7 +113,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
 }: TrackNumberEditDialogProps) => {
     const { t } = useTranslation();
 
-    const [state, dispatcher] = React.useReducer(
+    const [state, dispatcher] = React.useReducer<TrackNumberEditState, [action: UnknownAction]>(
         reducer,
         initialTrackNumberEditState(inEditTrackNumber, inEditReferenceLine, trackNumbers),
     );
@@ -251,11 +258,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             }
                             errors={numberErrors.map(({ reason }) => t(mapError(reason)))}>
                             {otherTrackNumber && (
-                                <Link
+                                <AnchorLink
                                     className={dialogStyles['dialog__alert']}
                                     onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
                                     {moveToEditLinkText(otherTrackNumber)}
-                                </Link>
+                                </AnchorLink>
                             )}
                         </FieldLayout>
                         <FieldLayout

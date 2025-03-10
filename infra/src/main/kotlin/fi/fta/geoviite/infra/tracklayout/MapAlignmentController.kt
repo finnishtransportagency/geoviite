@@ -32,6 +32,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @RequestParam("type") type: AlignmentFetchType? = null,
         @RequestParam("includeSegmentEndPoints") includeSegmentEndPoints: Boolean = false,
         @RequestParam("minLength") minLength: Double? = null,
+        @RequestParam("locationTrackIds") locationTrackIds: List<IntId<LocationTrack>>? = null,
     ): List<AlignmentPolyLine<*>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return mapAlignmentService.getAlignmentPolyLines(
@@ -41,6 +42,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
             type ?: ALL,
             includeSegmentEndPoints,
             minLength,
+            locationTrackIds?.toSet(),
         )
     }
 

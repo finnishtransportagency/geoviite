@@ -7,9 +7,7 @@ import {
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
-import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import VectorLayer from 'ol/layer/Vector';
-import Feature from 'ol/Feature';
+import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import {
     NORMAL_ALIGNMENT_OPACITY,
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
@@ -20,7 +18,7 @@ const layerName: MapLayerName = 'location-track-background-layer';
 
 export function createLocationTrackBackgroundLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
+    existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     isSplitting: boolean,
