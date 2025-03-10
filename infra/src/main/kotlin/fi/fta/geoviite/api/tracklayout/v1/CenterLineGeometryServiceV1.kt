@@ -1,11 +1,13 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.InputValidationException
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -23,7 +25,7 @@ class CenterLineGeometryServiceV1
 constructor(
     private val trackNumberService: LayoutTrackNumberService,
     private val trackNumberDao: LayoutTrackNumberDao,
-    //    private val geocodingService: GeocodingService,
+    private val geocodingService: GeocodingService,
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
     //    private val locationTrackSpatialCache: LocationTrackSpatialCache,
@@ -101,6 +103,28 @@ constructor(
                 .getFullDescriptions(layoutContext, listOf(request.locationTrack), LocalizationLanguage.FI)
                 .first()
 
+        val alignmentAddresses = geocodingService.getAddressPoints(layoutContext, request.locationTrack.id as IntId)
+        checkNotNull(alignmentAddresses) // TODO Better error
+
+        // TODO Supporting the custom interval in this will require a bunch of work due to address point interval being
+        // in 1 meter in the cache.
+        //
+        // TODO This will require even more work due to having to get the differing address points based on the specific
+        // alignment versions, specified by the optional change time submitted by the user. Also deleted kilometers
+        // should be displayed as empty arrays in the result map.
+        val midPoints =
+            if (request.includeGeometry) {
+                alignmentAddresses.midPoints.groupBy(
+                    keySelector = { addressPoint -> addressPoint.address.kmNumber },
+
+                    // TODO This call should probably include the coordinate system and/or convert coordinates during it
+                    // or as parameters.
+                    valueTransform = { addressPoint -> CenterLineGeometryPointV1.of(addressPoint) },
+                )
+            } else {
+                emptyMap()
+            }
+
         return CenterLineGeometryResponseOkV1(
             trackNumberName = trackNumberName,
             trackNumberOid = trackNumberOid,
@@ -111,9 +135,10 @@ constructor(
             locationTrackOwner = locationTrackService.getLocationTrackOwner(request.locationTrack.ownerId).name,
             addressPointIntervalMeters = request.addressPointIntervalMeters,
             coordinateSystem = request.coordinateSystem,
+            startLocation = CenterLineGeometryPointV1.of(alignmentAddresses.startPoint),
+            endLocation = CenterLineGeometryPointV1.of(alignmentAddresses.endPoint),
+            trackKilometerGeometry = midPoints,
         )
-        //
-        //        return CenterLineGeometryResponseErrorV1(errors = emptyList())
     }
 }
 
