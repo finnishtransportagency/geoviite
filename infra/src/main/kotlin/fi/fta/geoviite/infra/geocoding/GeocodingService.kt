@@ -27,18 +27,24 @@ class GeocodingService(
     private val geocodingDao: GeocodingDao,
     private val geocodingCacheService: GeocodingCacheService,
 ) {
-
-    fun getAddressPoints(layoutContext: LayoutContext, locationTrackId: IntId<LocationTrack>): AlignmentAddresses? {
-        return addressPointsCache
-            .getAddressPointCacheKey(layoutContext, locationTrackId)
-            ?.let(addressPointsCache::getAddressPoints)
+    fun getAddressPoints(
+        layoutContext: LayoutContext,
+        locationTrackId: IntId<LocationTrack>,
+        resolution: Resolution = Resolution.ONE_METER,
+    ): AlignmentAddresses? {
+        return addressPointsCache.getAddressPointCacheKey(layoutContext, locationTrackId, resolution)?.let { cacheKey ->
+            addressPointsCache.getAddressPoints(cacheKey)
+        }
     }
+
+    // TODO Tänneppä varmaan tarvitaan getAddressPoints(layoutContext, alignmentVresion)
 
     fun getAddressPoints(
         contextKey: GeocodingContextCacheKey,
         alignmentVersion: RowVersion<LayoutAlignment>,
+        resolution: Resolution = Resolution.ONE_METER,
     ): AlignmentAddresses? {
-        return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
+        return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey, resolution))
     }
 
     fun getAddress(
@@ -47,6 +53,10 @@ class GeocodingService(
         location: IPoint,
     ): Pair<TrackMeter, IntersectType>? {
         return getGeocodingContext(layoutContext, trackNumberId)?.getAddress(location)
+    }
+
+    fun getAddress(layoutContext: LayoutContext, trackNumberId: IntId<LayoutTrackNumber>, meter: Double): TrackMeter? {
+        return getGeocodingContext(layoutContext, trackNumberId)?.getAddress(meter)
     }
 
     fun getAddressIfWithin(
@@ -64,6 +74,20 @@ class GeocodingService(
         return { trackNumberId ->
             contexts
                 .computeIfAbsent(trackNumberId) { Optional.ofNullable(getGeocodingContext(layoutContext, it)) }
+                .getOrNull()
+        }
+    }
+
+    fun getLazyGeocodingContextsAtMoment(
+        layoutContext: LayoutContext,
+        moment: Instant,
+    ): (IntId<LayoutTrackNumber>) -> GeocodingContext? {
+        val contexts: MutableMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext>> = mutableMapOf()
+        return { trackNumberId ->
+            contexts
+                .computeIfAbsent(trackNumberId) {
+                    Optional.ofNullable(getGeocodingContextAtMoment(layoutContext.branch, it, moment))
+                }
                 .getOrNull()
         }
     }
