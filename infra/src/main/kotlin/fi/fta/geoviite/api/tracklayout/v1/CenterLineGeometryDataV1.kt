@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.FreeText
@@ -126,7 +127,16 @@ data class CenterLineGeometryPointV1(
     }
 }
 
-enum class CenterLineGeometryErrorV1(private val errorCode: Int, private val localizationSuffix: String) {
+data class CenterLineGeometryResponseErrorV1(
+    @JsonProperty("virheet") val errors: List<CenterLineGeometryErrorResponseV1>
+) : CenterLineGeometryResponseV1()
+
+data class CenterLineGeometryErrorResponseV1(
+    @JsonProperty("koodi") val code: Int,
+    @JsonProperty("viesti") val message: String,
+)
+
+enum class CenterLineGeometryErrorV1(val code: Int, private val localizationSuffix: String) {
     InvalidLocationTrackOid(1, "invalid-location-track-oid"),
     LocationTrackOidNotFound(2, "location-track-oid-not-found"),
     InvalidSrid(3, "invalid-coordinate-system-srid"),
@@ -134,12 +144,13 @@ enum class CenterLineGeometryErrorV1(private val errorCode: Int, private val loc
     InvalidTrackKilometerEnd(5, "invalid-track-kilometer-end"),
     InvalidChangeTime(6, "invalid-change-time");
 
-    val localizationKey: LocalizationKey by lazy { LocalizationKey("$BASE.$localizationSuffix") }
-
     companion object {
         private const val BASE: String = "ext-api.track-layout.v1.center-line.error"
     }
-}
 
-data class CenterLineGeometryResponseErrorV1(@JsonProperty("virheet") val errors: List<CenterLineGeometryErrorV1>) :
-    CenterLineGeometryResponseV1()
+    val localizationKey: LocalizationKey by lazy { LocalizationKey("$BASE.$localizationSuffix") }
+
+    fun toResponseError(translation: Translation): CenterLineGeometryErrorResponseV1 {
+        return CenterLineGeometryErrorResponseV1(code = this.code, message = translation.t(localizationKey))
+    }
+}
