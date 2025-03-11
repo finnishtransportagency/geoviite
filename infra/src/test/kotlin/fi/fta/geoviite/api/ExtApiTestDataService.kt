@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -73,6 +74,7 @@ constructor(
         locationTrackType: LocationTrackType = LocationTrackType.MAIN,
         segments: List<LayoutSegment> = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
         state: LocationTrackState = LocationTrackState.IN_USE,
+        owner: IntId<LocationTrackOwner> = IntId(1),
     ): GeocodableTrack {
         val usedReferenceLineId =
             referenceLineId
@@ -89,6 +91,7 @@ constructor(
                         type = locationTrackType,
                         segments = segments,
                         state = state,
+                        ownerId = owner,
                     )
                 )
                 .id

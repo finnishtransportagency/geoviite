@@ -37,7 +37,8 @@
                         "invalid-coordinate-system-srid": "Pyyntö sisälsi virheellisen koordinaatisto-tunnuksen. Sallitut arvot ovat EPSG-tunnuksia.",
                         "invalid-track-kilometer-start": "Pyyntö sisälsi virheellisen ratakilometri_alku-asetuksen.",
                         "invalid-track-kilometer-end": "Pyyntö sisälsi virheellisen ratakilometri_loppu-asetuksen.",
-                        "invalid-change-time": "Pyyntö sisälsi virheellisen muutosaika-asetuksen. Sallitut arvot ovat Zulu-aikaleimoja, ISO 8601-formaatissa."
+                        "invalid-change-time": "Pyyntö sisälsi virheellisen muutosaika-asetuksen. Sallitut arvot ovat Zulu-aikaleimoja, ISO 8601-formaatissa.",
+                        "invalid-address-point-interval": "Pyyntö sisälsi virheellisen osoitepistevali-asetuksen. Sallitut arvot ovat '0.25', '1.0'."
                     }
                 }
             }
