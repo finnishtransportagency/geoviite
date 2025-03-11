@@ -47,13 +47,13 @@ constructor(
             request.changesAfterTimestamp?.let(::validateChangesAfterTimestamp) ?: (null to emptyList())
 
         val (trackKmNumberStart, trackKmNumberStartErrors) =
-            request.trackKilometerStart?.let { km ->
-                validateTrackKilometer(km, CenterLineGeometryErrorV1.InvalidTrackKilometerStart)
+            request.trackKilometerStart?.let { startKm ->
+                validateTrackKilometer(startKm, CenterLineGeometryErrorV1.InvalidTrackKilometerStart)
             } ?: (null to emptyList())
 
         val (trackKmNumberEnd, trackKmNumberEndErrors) =
-            request.trackKilometerStart?.let { km ->
-                validateTrackKilometer(km, CenterLineGeometryErrorV1.InvalidTrackKilometerEnd)
+            request.trackKilometerInclusiveEnd?.let { endKm ->
+                validateTrackKilometer(endKm, CenterLineGeometryErrorV1.InvalidTrackKilometerEnd)
             } ?: (null to emptyList())
 
         val (coordinateSystem, coordinateSystemErrors) =
@@ -166,7 +166,7 @@ fun validateTrackKilometer(
 ): Pair<KmNumber?, List<CenterLineGeometryErrorV1>> {
     return try {
         KmNumber(maybeStartTrackKilometer.value) to emptyList()
-    } catch (ex: InputValidationException) {
+    } catch (ex: IllegalArgumentException) {
         null to listOf(error)
     }
 }
