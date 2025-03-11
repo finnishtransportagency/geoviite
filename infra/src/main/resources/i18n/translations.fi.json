@@ -1325,6 +1325,7 @@
     },
     "plan-download": {
         "csv": {
+            "geometry-plans": "Geometriasuunnitelmat",
             "summary": "Yhteenveto",
             "file-name": "Tiedostonimi",
             "start-km": "Alkuratakilometri",

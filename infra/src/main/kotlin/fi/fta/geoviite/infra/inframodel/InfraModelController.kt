@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.inframodel
 import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkedItems
@@ -11,6 +12,8 @@ import fi.fta.geoviite.infra.geometry.PlanApplicability
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.projektivelho.*
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.toFileDownloadResponse
 import fi.fta.geoviite.infra.util.zip
@@ -108,6 +111,11 @@ constructor(
     @GetMapping("/batch", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadFiles(
         @RequestParam("ids") ids: List<IntId<GeometryPlan>>,
+        @RequestParam("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>?,
+        @RequestParam("locationTrackId") locationTrackId: IntId<LocationTrack>?,
+        @RequestParam("startKm") startKmNumber: KmNumber?,
+        @RequestParam("endKm") endKmNumber: KmNumber?,
+        @RequestParam("applicability") applicability: PlanApplicability?,
         @RequestParam(name = "lang", defaultValue = "fi") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         val translation = localizationService.getLocalization(lang)
@@ -120,7 +128,19 @@ constructor(
                     .plus(pairs.map { Pair(it.second.name, it.second.content) })
             }
             .let { files -> zip(files) }
-            .let { zipped -> toFileDownloadResponse(FileName("geoviite.zip"), zipped) }
+            .let { zipped ->
+                toFileDownloadResponse(
+                    infraModelService.getNameForZipFile(
+                        applicability,
+                        locationTrackId,
+                        trackNumberId,
+                        startKmNumber,
+                        endKmNumber,
+                        translation,
+                    ),
+                    zipped,
+                )
+            }
     }
 
     @PreAuthorize(AUTH_VIEW_PV_DOCUMENTS)

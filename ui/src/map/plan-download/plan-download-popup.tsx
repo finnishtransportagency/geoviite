@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './plan-download-popup.scss';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { kmNumberIsValid, LayoutContext } from 'common/common-model';
@@ -39,6 +39,7 @@ type PlanDownloadPopupSectionProps = {
     setPlanSelectionType: (planSelectionType: PlanSelectionType | undefined) => void;
     title: React.ReactNode;
     children?: React.ReactNode;
+    disabled: boolean;
 };
 const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> = ({
     selectedType,
@@ -46,25 +47,35 @@ const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> = ({
     setPlanSelectionType,
     title,
     children,
+    disabled,
 }) => {
     const chevronClasses = createClassName(
         styles['plan-download-popup-chevron'],
         planSelectionType === selectedType && styles['plan-download-popup-chevron--visible'],
     );
 
+    const titleContentClasses = createClassName(
+        styles['plan-download-popup__title-content'],
+        disabled && styles['plan-download-popup__title-content--disabled'],
+    );
+
     return (
         <React.Fragment>
             <h2 className={styles['plan-download-popup__title']}>
-                <span
+                <Button
+                    size={ButtonSize.X_SMALL}
                     className={chevronClasses}
+                    variant={ButtonVariant.GHOST}
+                    icon={Icons.Chevron}
+                    disabled={disabled}
                     onClick={() =>
+                        !disabled &&
                         setPlanSelectionType(
                             planSelectionType === selectedType ? undefined : planSelectionType,
                         )
-                    }>
-                    <Icons.Chevron size={IconSize.SMALL} />
-                </span>
-                <span className={styles['plan-download-popup__title-content']}>{title}</span>
+                    }
+                />
+                <span className={titleContentClasses}>{title}</span>
             </h2>
             {planSelectionType === selectedType && (
                 <div className={styles['plan-download-popup__content']}>{children}</div>
@@ -270,6 +281,9 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
         planDownloadState.selectedApplicabilities,
     ).toSorted(comparePlans);
 
+    const disabled =
+        layoutContext.publicationState !== 'OFFICIAL' || layoutContext.branch !== 'MAIN';
+
     return (
         <div className={styles['plan-download-popup']}>
             <h1 className={titleClasses}>
@@ -287,6 +301,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 planSelectionType={'AREA'}
                 setPlanSelectionType={delegates.setPlanDownloadSelectionType}
                 selectedType={planDownloadState.selectionType}
+                disabled={disabled}
                 title={
                     <React.Fragment>
                         <span>{t('plan-download.area')}</span>
@@ -315,6 +330,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                                   ? trackNumberFetchStatus !== LoaderStatus.Ready
                                   : false
                         }
+                        disabled={disabled}
                     />
                 )}
             </PlanDownloadPopupSection>
@@ -322,6 +338,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 planSelectionType={'PLAN'}
                 setPlanSelectionType={delegates.setPlanDownloadSelectionType}
                 selectedType={planDownloadState.selectionType}
+                disabled={disabled}
                 title={
                     <React.Fragment>
                         {planFetchStatus === LoaderStatus.Ready ? (
@@ -338,6 +355,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                                 size={ButtonSize.X_SMALL}
                                 variant={ButtonVariant.GHOST}
                                 icon={Icons.Filter}
+                                disabled={disabled}
                                 onClick={() => setShowFilterMenu(!showFilterMenu)}
                             />
                             {showFilterMenu && (
@@ -357,6 +375,12 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                     setPlanSelected={setPlanSelected}
                     setAllPlansSelected={delegates.setAllPlansSelected}
                     selectPlan={selectPlan}
+                    disabled={disabled}
+                    trackNumberId={planDownloadState.areaSelection.trackNumber}
+                    locationTrackId={planDownloadState.areaSelection.locationTrack}
+                    startKm={planDownloadState.areaSelection.startTrackMeter}
+                    endKm={planDownloadState.areaSelection.endTrackMeter}
+                    selectedApplicabilities={planDownloadState.selectedApplicabilities}
                 />
             </PlanDownloadPopupSection>
         </div>
