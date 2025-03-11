@@ -59,6 +59,9 @@ constructor(
         val (coordinateSystem, coordinateSystemErrors) =
             request.coordinateSystem?.let(::validateCoordinateSystem) ?: (null to emptyList())
 
+        val (addressPointInterval, addressPointIntervalErrors) =
+            request.addressPointInterval?.let(::validateAddressPointInterval) ?: (null to emptyList())
+
         val allErrors =
             listOf(
                     locationTrackOidErrors,
@@ -67,6 +70,7 @@ constructor(
                     trackKmNumberStartErrors,
                     trackKmNumberEndErrors,
                     changesAfterTimestampErrors,
+                    addressPointIntervalErrors,
                 )
                 .flatten()
 
@@ -79,7 +83,7 @@ constructor(
                     locationTrack = requireNotNull(locationTrack),
                     changesAfterTimestamp = changesAfterTimestamp,
                     trackInterval = TrackKilometerIntervalV1(trackKmNumberStart, trackKmNumberEnd),
-                    addressPointIntervalMeters = request.addressPointIntervalMeters,
+                    addressPointInterval = addressPointInterval,
                     coordinateSystem = coordinateSystem,
                     includeGeometry = request.includeGeometry,
                 )
@@ -131,9 +135,10 @@ constructor(
             locationTrackOid = request.locationTrackOid,
             locationTrackName = request.locationTrack.name,
             locationTrackType = ApiLocationTrackType(request.locationTrack.type),
+            locationTrackState = ApiLocationTrackState(request.locationTrack.state),
             locationTrackDescription = locationTrackDescription,
             locationTrackOwner = locationTrackService.getLocationTrackOwner(request.locationTrack.ownerId).name,
-            addressPointIntervalMeters = request.addressPointIntervalMeters,
+            addressPointInterval = request.addressPointInterval,
             coordinateSystem = request.coordinateSystem,
             startLocation = CenterLineGeometryPointV1.of(alignmentAddresses.startPoint),
             endLocation = CenterLineGeometryPointV1.of(alignmentAddresses.endPoint),
@@ -178,5 +183,17 @@ fun validateChangesAfterTimestamp(
         Instant.parse(maybeChangesAfterTimestamp.value) to emptyList()
     } catch (ex: DateTimeParseException) {
         null to listOf(CenterLineGeometryErrorV1.InvalidChangeTime)
+    }
+}
+
+fun validateAddressPointInterval(
+    maybeAddressPointInterval: ApiRequestStringV1
+): Pair<AddressPointInterval?, List<CenterLineGeometryErrorV1>> {
+    val parsedAddressPointInterval = AddressPointInterval.of(maybeAddressPointInterval.toString())
+
+    return if (parsedAddressPointInterval == null) {
+        null to listOf(CenterLineGeometryErrorV1.InvalidAddressPointInterval)
+    } else {
+        parsedAddressPointInterval to emptyList()
     }
 }
