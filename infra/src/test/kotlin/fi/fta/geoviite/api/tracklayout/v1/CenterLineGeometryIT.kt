@@ -7,12 +7,19 @@ import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import java.util.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -41,12 +48,13 @@ private data class GeometryResponse(
     @JsonProperty("oid") val locationTrackOid: String,
     @JsonProperty("sijaintiraidetunnus") val locationTrackName: String,
     @JsonProperty("tyyppi") val locationTrackType: String,
+    @JsonProperty("tila") val locationTrackState: String,
     @JsonProperty("kuvaus") val locationTrackDescription: String,
     @JsonProperty("omistaja") val locationTrackOwner: String,
     @JsonProperty("alkusijainti") val locationTrackStart: ResponseGeometryPoint,
     @JsonProperty("loppusijainti") val locationTrackEnd: ResponseGeometryPoint,
     @JsonProperty("koordinaatisto") val coordinateSystem: String,
-    @JsonProperty("osoitepistevali") val addressPointIntervalMeters: Double,
+    @JsonProperty("osoitepistevali") val addressPointIntervalMeters: String,
     @JsonProperty("muuttuneet_kilometrit") val geometry: Map<String, List<ResponseGeometryPoint>>,
 )
 
@@ -79,6 +87,7 @@ constructor(
     //    val geocodingService: GeocodingService,
     private val extApiTestDataServiceV1: ExtApiTestDataServiceV1,
 ) : DBTestBase() {
+
     private val api = TrackLayoutTestApiService(mockMvc)
     private val invalidOidUrl = url("foo")
 
@@ -95,7 +104,7 @@ constructor(
     }
 
     @Test
-    fun `Missing location track oid causes an errors`() {
+    fun `Missing location track oid causes an error`() {
         api.get<ErrorResponse>(url(Oid("123.123.123")), emptyMap()).let { response ->
             assertTrue(containsErrorCode(response.errors, 2))
         }
@@ -158,35 +167,173 @@ constructor(
     }
 
     @Test
+    fun `Invalid address point interval value causes an error`() {
+        api.get<ErrorResponse>(invalidOidUrl, mapOf("osoitepistevali" to "foobar")).let { response ->
+            assertTrue(containsErrorCode(response.errors, 7))
+        }
+    }
+
+    @Test
     fun `Track number exists in a valid response`() {
         val trackNumberName = "some track number name"
         val trackNumberId = mainOfficialContext.insert(trackNumber(TrackNumber(trackNumberName))).id
 
         val oid = someOid<LocationTrack>()
-        insertLocationTrackWithOid(oid, trackNumberId)
+        insertLocationTrackWithOid(oid, trackNumberId = trackNumberId)
 
         assertEquals(trackNumberName, api.get<GeometryResponse>(url(oid)).trackNumberName)
     }
 
-    @Test fun `Track number oid exists in a valid response`() {}
+    @Test
+    fun `Track number oid exists in a valid response`() {
+        val trackNumberOid = someOid<LayoutTrackNumber>()
 
-    @Test fun `Location track type exists in a valid response`() {}
+        val oid = someOid<LocationTrack>()
+        insertLocationTrackWithOid(oid, trackNumberOid = trackNumberOid)
 
-    @Test fun `Location track name exists in a valid response`() {}
+        assertEquals(trackNumberOid.toString(), api.get<GeometryResponse>(url(oid)).trackNumberOid)
+    }
+
+    @Test
+    fun `Location track type exists in a valid response`() {
+        val tests =
+            mapOf(
+                    "pääraide" to LocationTrackType.MAIN,
+                    "sivuraide" to LocationTrackType.SIDE,
+                    "turvaraide" to LocationTrackType.TRAP,
+                    "kujaraide" to LocationTrackType.CHORD,
+                )
+                .mapValues { (_, trackType) ->
+                    someOid<LocationTrack>().also { oid ->
+                        insertLocationTrackWithOid(oid, locationTrackType = trackType)
+                    }
+                }
+
+        tests.forEach { (trackTypeTranslation, oid) ->
+            assertEquals(trackTypeTranslation, api.get<GeometryResponse>(url(oid)).locationTrackType)
+        }
+    }
+
+    @Test
+    fun `Location track state exists in a valid response`() {
+        val tests =
+            mapOf(
+                    "rakennettu" to LocationTrackState.BUILT,
+                    "käytössä" to LocationTrackState.IN_USE,
+                    "käytöstä poistettu" to LocationTrackState.NOT_IN_USE,
+                    "poistettu" to LocationTrackState.DELETED,
+                )
+                .mapValues { (_, trackState) ->
+                    someOid<LocationTrack>().also { oid ->
+                        insertLocationTrackWithOid(oid, locationTrackState = trackState)
+                    }
+                }
+
+        tests.forEach { (trackStateTranslation, oid) ->
+            assertEquals(trackStateTranslation, api.get<GeometryResponse>(url(oid)).locationTrackState)
+        }
+    }
+
+    @Test
+    fun `Location track name exists in a valid response`() {
+        val trackName = "some location track name"
+
+        val oid = someOid<LocationTrack>()
+        insertLocationTrackWithOid(oid, locationTrackName = trackName)
+
+        assertEquals(trackName, api.get<GeometryResponse>(url(oid)).locationTrackName)
+    }
 
     @Test fun `Location track description exists in a valid response`() {}
 
-    @Test fun `Location track owner exists in a valid response`() {}
+    @Test
+    fun `Location track owner exists in a valid response`() {
+        val tests =
+            mapOf(
+                    // Unfortunately these are not added dynamically in the business logic, and creating a new dao just
+                    // for this test seems a little unnecessary.
+                    "Väylävirasto" to IntId<LocationTrackOwner>(1),
+                    "Väylävirasto / yksityinen" to IntId(2),
+                    "Muu yksityinen" to IntId(3),
+                )
+                .mapValues { (_, ownerId) ->
+                    someOid<LocationTrack>().also { oid ->
+                        insertLocationTrackWithOid(oid, locationTrackOwnerId = ownerId)
+                    }
+                }
 
-    @Test fun `Location track start position exists in a valid response`() {}
+        tests.forEach { (ownerName, oid) ->
+            assertEquals(ownerName, api.get<GeometryResponse>(url(oid)).locationTrackOwner)
+        }
+    }
 
-    @Test fun `Location track end position exists in a valid response`() {}
+    @Test
+    fun `Location track start position exists in a valid response`() {
+        val startSegmentX = -5.0
+        val startSegmentY = 7.5
 
-    @Test fun `Coordinate system exists in a valid response`() {}
+        val segments = listOf(segment(Point(startSegmentX, startSegmentY), Point(5.0, 0.0)))
 
-    @Test fun `Address point interval exists in a valid response`() {}
+        val oid = someOid<LocationTrack>()
+        insertLocationTrackWithOid(oid, segments = segments)
 
-    @Test fun `Location track geometry points are not returned by default`() {}
+        val startPoint = api.get<GeometryResponse>(url(oid)).locationTrackStart
+        assertEquals(startSegmentX, startPoint.x)
+        assertEquals(startSegmentY, startPoint.y)
+    }
+
+    @Test
+    fun `Location track end position exists in a valid response`() {
+        val endSegmentX = 15.0
+        val endSegmentY = 25.0
+
+        val segments = listOf(segment(Point(0.0, 0.0), Point(endSegmentX, endSegmentY)))
+
+        val oid = someOid<LocationTrack>()
+        insertLocationTrackWithOid(oid, segments = segments)
+
+        val endPoint = api.get<GeometryResponse>(url(oid)).locationTrackEnd
+        assertEquals(endSegmentX, endPoint.x)
+        assertEquals(endSegmentY, endPoint.y)
+    }
+
+    @Test
+    fun `Coordinate system exists in a valid response`() {
+        val tests = listOf("EPSG:3500", "EPSG:4236", "EPSG:5111")
+
+        val oid = someOid<LocationTrack>()
+        insertLocationTrackWithOid(oid)
+
+        tests.forEach { epsgCode ->
+            assertEquals(
+                epsgCode,
+                api.get<GeometryResponse>(url(oid), mapOf("koordinaatisto" to epsgCode)).coordinateSystem,
+            )
+        }
+    }
+
+    @Test
+    fun `Address point interval exists in a valid response`() {
+        val addressPointIntervals = listOf("0.25", "1.0")
+
+        val oid = someOid<LocationTrack>()
+        insertLocationTrackWithOid(oid)
+
+        addressPointIntervals.forEach { interval ->
+            assertEquals(
+                interval,
+                api.get<GeometryResponse>(url(oid), mapOf("osoitepistevali" to interval)).addressPointIntervalMeters,
+            )
+        }
+    }
+
+    @Test
+    fun `Location track geometry points are not returned by default`() {
+        val oid = someOid<LocationTrack>()
+        insertLocationTrackWithOid(oid)
+
+        assertEquals(0, api.get<GeometryResponse>(url(oid)).geometry.size)
+    }
 
     @Test fun `Entire location track geometry is returned without other filters`() {}
 
@@ -194,7 +341,7 @@ constructor(
 
     @Test fun `User provided start track km filter works`() {}
 
-    @Test fun `User provided end track km filter works`() {}
+    @Test fun `User provided end track km filter works as inclusive`() {}
 
     @Test
     fun `Deleted kilometers of a location track are returned as empty lists`() {
@@ -209,9 +356,23 @@ constructor(
         oid: Oid<LocationTrack>,
         trackNumberId: IntId<LayoutTrackNumber> =
             mainOfficialContext.insert(trackNumber(TrackNumber(testDBService.getUnusedTrackNumber().value))).id,
+        trackNumberOid: Oid<LayoutTrackNumber> = someOid(),
+        locationTrackName: String = "Test track-${UUID.randomUUID()}",
+        locationTrackType: LocationTrackType = LocationTrackType.MAIN,
+        locationTrackState: LocationTrackState = LocationTrackState.IN_USE,
+        locationTrackOwnerId: IntId<LocationTrackOwner> = IntId(1),
+        segments: List<LayoutSegment> = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
     ): IntId<LocationTrack> {
         val geocodableTrack =
-            extApiTestDataServiceV1.insertGeocodableTrack(mainOfficialContext, trackNumberId = trackNumberId)
+            extApiTestDataServiceV1.insertGeocodableTrack(
+                mainOfficialContext,
+                trackNumberId = trackNumberId,
+                locationTrackName = locationTrackName,
+                locationTrackType = locationTrackType,
+                state = locationTrackState,
+                owner = locationTrackOwnerId,
+                segments = segments,
+            )
 
         locationTrackDao.insertExternalId(
             geocodableTrack.locationTrack.id as IntId,
@@ -223,7 +384,7 @@ constructor(
         trackNumberDao.insertExternalId(
             geocodableTrack.trackNumber.id as IntId,
             mainOfficialContext.context.branch,
-            someOid(),
+            trackNumberOid,
         )
 
         return geocodableTrack.locationTrack.id as IntId
