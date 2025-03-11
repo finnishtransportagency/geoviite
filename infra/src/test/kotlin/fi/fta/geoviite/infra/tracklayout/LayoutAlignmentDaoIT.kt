@@ -391,7 +391,7 @@ constructor(
                     val endPoint = startPoint + Point(segmentLength, 0.0)
                     segment(startPoint, endPoint)
                 }
-            TmpLayoutEdge(startNode, endNode, segments)
+            TmpLayoutEdge(startNode.flipPort(), endNode, segments)
         }
 
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20): LayoutAlignment =

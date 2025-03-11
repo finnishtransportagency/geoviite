@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -31,6 +30,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -613,8 +613,11 @@ constructor(
         val locationTrack =
             locationTrackDao.save(
                 locationTrack(trackNumberId = trackNumberId, draft = false),
-                trackGeometryOfSegments(
-                    segment(Point(50.0, 0.0), Point(100.0, 0.0), switchId = switch, startJointNumber = JointNumber(1))
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch, 1),
+                        segments = listOf(segment(Point(50.0, 0.0), Point(100.0, 0.0))),
+                    )
                 ),
             )
         val duplicateLocationTrack =

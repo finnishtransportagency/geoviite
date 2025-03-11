@@ -57,6 +57,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -66,10 +67,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.transaction.support.TransactionTemplate
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -108,32 +109,6 @@ interface TestDB {
             is LayoutKmPost -> kmPostDao
         }
             as LayoutAssetReader<T>
-
-    //    @Suppress("UNCHECKED_CAST")
-    //    fun <T : LayoutAsset<T>, SaveParamType> getDao(
-    //        clazz: KClass<T>,
-    //        paramClazz: KClass<SaveParamType>,
-    //    ): LayoutAssetDao<T, SaveParamType> =
-    //        when (clazz) {
-    //            LocationTrack::class -> locationTrackDao
-    //            LayoutSwitch::class -> switchDao
-    //            LayoutTrackNumber::class -> trackNumberDao
-    //            ReferenceLine::class -> referenceLineDao
-    //            LayoutKmPost::class -> kmPostDao
-    //            else -> error("Unsupported asset type: ${clazz.simpleName}")
-    //        }
-    //            as LayoutAssetDao<T, SaveParamType>
-    //
-    //    @Suppress("UNCHECKED_CAST")
-    //    fun <T : LayoutAsset<T>, SaveParamType> getDao(asset: LayoutAsset<T>): LayoutAssetDao<T, SaveParamType> =
-    //        when (asset) {
-    //            is LocationTrack -> locationTrackDao
-    //            is LayoutSwitch -> switchDao
-    //            is LayoutTrackNumber -> trackNumberDao
-    //            is ReferenceLine -> referenceLineDao
-    //            is LayoutKmPost -> kmPostDao
-    //        }
-    //            as LayoutAssetDao<T, SaveParamType>
 }
 
 @GeoviiteService
@@ -520,8 +495,9 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     ): Pair<LocationTrack, DbLocationTrackGeometry> =
         locationTrackDao.save(asset, geometry).let { v -> locationTrackDao.fetch(v) to alignmentDao.fetch(v) }
 
-    fun createLayoutTrackNumber(): LayoutRowVersion<LayoutTrackNumber> =
-        save(trackNumber(testService.getUnusedTrackNumber()))
+    fun createLayoutTrackNumber(
+        trackNumber: TrackNumber = testService.getUnusedTrackNumber()
+    ): LayoutRowVersion<LayoutTrackNumber> = save(trackNumber(trackNumber))
 
     fun createLayoutTrackNumberWithOid(oid: Oid<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber> {
         return save(trackNumber(testService.getUnusedTrackNumber())).also { trackNumber ->
@@ -531,10 +507,20 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
 
     fun createAndFetchLayoutTrackNumber(): LayoutTrackNumber = trackNumberDao.fetch(createLayoutTrackNumber())
 
+    fun createLocationTrack(geometry: LocationTrackGeometry): LayoutRowVersion<LocationTrack> {
+        return save(locationTrack(createLayoutTrackNumber().id), geometry)
+    }
+
+    fun createLocationTrackWithReferenceLine(geometry: LocationTrackGeometry): LayoutRowVersion<LocationTrack> {
+        val trackNumberId = createLayoutTrackNumberAndReferenceLine(alignment(geometry.segments)).id
+        return save(locationTrack(trackNumberId), geometry)
+    }
+
     fun createLayoutTrackNumberAndReferenceLine(
-        lineAlignment: LayoutAlignment = alignment()
+        lineAlignment: LayoutAlignment = alignment(),
+        trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
     ): LayoutRowVersion<LayoutTrackNumber> =
-        createLayoutTrackNumber().also { tnResponse ->
+        createLayoutTrackNumber(trackNumber).also { tnResponse ->
             save(referenceLine(trackNumberId = tnResponse.id), lineAlignment)
         }
 

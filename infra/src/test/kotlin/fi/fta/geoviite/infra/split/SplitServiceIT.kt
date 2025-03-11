@@ -4,14 +4,13 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.OVERWRITE
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.TRANSFER
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -20,10 +19,14 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.combineEdges
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.verticalEdge
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -64,29 +67,28 @@ constructor(
         // Main       |---------|
         // Splits     |--|--|---|
 
-        val preSegments = splitTestDataService.createSegments(Point(0.0, 0.0), 3)
+        val preEdge = verticalEdge(Point(0.0, 0.0), 3)
 
         // Segments that are a part of the first switch + the branching track for switch re-linking
         // to work
-        val (switch1, switchSegments1, turningSegments1) =
-            splitTestDataService.createSwitchAndGeometry(lastPoint(preSegments))
+        val (switch1, straightEdges1, turningEdges1) =
+            splitTestDataService.createSwitchAndGeometry(preEdge.lastSegmentEnd)
 
-        splitTestDataService.insertAsTrack(turningSegments1)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges1))
 
-        val segments1To2 = splitTestDataService.createSegments(lastPoint(switchSegments1), 2)
+        val edge1To2 = verticalEdge(straightEdges1.last().lastSegmentEnd, 2)
 
         // Segments that are a part of the second switch + the branching track for switch re-linking
         // to work
-        val (switch2, switchSegments2, turningSegments2) =
-            splitTestDataService.createSwitchAndGeometry(lastPoint(segments1To2))
+        val (switch2, straightEdges2, turningSegments2) =
+            splitTestDataService.createSwitchAndGeometry(edge1To2.lastSegmentEnd)
 
-        splitTestDataService.insertAsTrack(turningSegments2)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningSegments2))
 
-        val postSegments = splitTestDataService.createSegments(lastPoint(switchSegments2), 4)
-
+        val postEdge = verticalEdge(straightEdges2.last().lastSegmentEnd, 4)
         val track =
-            splitTestDataService.createAsMainTrack(
-                preSegments + switchSegments1 + segments1To2 + switchSegments2 + postSegments
+            mainOfficialContext.createLocationTrackWithReferenceLine(
+                trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1To2 + straightEdges2 + postEdge))
             )
 
         val request =
@@ -115,47 +117,47 @@ constructor(
         // Duplicates |--|--|
         // Splits     |--|--|---|
 
-        val preSegments = splitTestDataService.createSegments(Point(0.0, 0.0), 3)
+        val preEdge = verticalEdge(Point(0.0, 0.0), 3)
 
         // Segments that are a part of the first switch + the branching track for switch re-linking
         // to work
-        val (switch1, switchSegments1, turningSegments1) =
-            splitTestDataService.createSwitchAndGeometry(lastPoint(preSegments))
-        splitTestDataService.insertAsTrack(turningSegments1)
+        val (switch1, straightEdges1, turningEdges1) =
+            splitTestDataService.createSwitchAndGeometry(preEdge.lastSegmentEnd)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges1))
 
-        val segments1To2 = splitTestDataService.createSegments(lastPoint(switchSegments1), 2)
+        val edge1To2 = verticalEdge(straightEdges1.last().lastSegmentEnd, 2)
 
         // Segments that are a part of the second switch + the branching track for switch re-linking
         // to work
-        val (switch2, switchSegments2, turningSegments2) =
-            splitTestDataService.createSwitchAndGeometry(lastPoint(segments1To2))
-        splitTestDataService.insertAsTrack(turningSegments2)
+        val (switch2, straightEdges2, turningEdges2) =
+            splitTestDataService.createSwitchAndGeometry(edge1To2.lastSegmentEnd)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges2))
 
-        val postSegments = splitTestDataService.createSegments(lastPoint(switchSegments2), 4)
+        val postEdge = verticalEdge(straightEdges2.last().lastSegmentEnd, 4)
 
         val track =
-            splitTestDataService.createAsMainTrack(
-                preSegments + switchSegments1 + segments1To2 + switchSegments2 + postSegments
+            mainOfficialContext.createLocationTrackWithReferenceLine(
+                trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1To2 + straightEdges2 + postEdge))
             )
 
         // Create duplicates as completely separate of the original, as they're overwritten anyhow
         val duplicate1 =
-            splitTestDataService.insertAsTrack(
-                splitTestDataService.createSegments(Point(5.0, 5.0), 2),
-                duplicateOf = track.id,
+            mainOfficialContext.save(
+                locationTrack(mainOfficialContext.createLayoutTrackNumber().id, duplicateOf = track.id),
+                trackGeometry(listOf(verticalEdge(Point(5.0, 5.0), 2))),
             )
 
         val duplicate2 =
-            splitTestDataService.insertAsTrack(
-                splitTestDataService.createSegments(Point(15.0, 15.0), 5),
-                duplicateOf = track.id,
+            mainOfficialContext.save(
+                locationTrack(mainOfficialContext.createLayoutTrackNumber().id, duplicateOf = track.id),
+                trackGeometry(listOf(verticalEdge(Point(15.0, 15.0), 5))),
             )
 
         val request =
             splitRequest(
                 track.id,
-                targetRequest(null, "part1", duplicateTrackId = duplicate1, operation = OVERWRITE),
-                targetRequest(switch1.id, "part2", duplicateTrackId = duplicate2, operation = OVERWRITE),
+                targetRequest(null, "part1", duplicateTrackId = duplicate1.id, operation = OVERWRITE),
+                targetRequest(switch1.id, "part2", duplicateTrackId = duplicate2.id, operation = OVERWRITE),
                 targetRequest(switch2.id, "part3"),
             )
         val result = splitDao.getOrThrow(splitService.split(LayoutBranch.main, request))
@@ -177,53 +179,55 @@ constructor(
         // Duplicates |-----|-------|
         // Splits        |--|---|
 
-        val preSegments = splitTestDataService.createSegments(Point(0.0, 0.0), 3)
+        val preEdge = verticalEdge(Point(0.0, 0.0), 3)
 
         // Segments that are a part of the first switch + the branching track for switch re-linking
         // to work
-        val (switch1, switchSegments1, switchTurningSegments1) =
-            splitTestDataService.createSwitchAndGeometry(lastPoint(preSegments))
-        splitTestDataService.insertAsTrack(switchTurningSegments1)
+        val (switch1, straightEdges1, turningEdges1) =
+            splitTestDataService.createSwitchAndGeometry(preEdge.lastSegmentEnd)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges1))
 
-        val segments1To2 = splitTestDataService.createSegments(lastPoint(switchSegments1), 2)
-
-        // Segments that are a part of the second switch + the branching track for switch re-linking
-        // to work
-        val (switch2, switchSegments2, switchTurningSegments2) =
-            splitTestDataService.createSwitchAndGeometry(lastPoint(segments1To2))
-        splitTestDataService.insertAsTrack(switchTurningSegments2)
-
-        val segments2To3 = splitTestDataService.createSegments(lastPoint(switchSegments2), 3)
+        val edge1to2 = verticalEdge(straightEdges1.last().lastSegmentEnd, 2)
 
         // Segments that are a part of the second switch + the branching track for switch re-linking
         // to work
-        val (_, switchSegments3, switchTurningSegments3) =
-            splitTestDataService.createSwitchAndGeometry(lastPoint(segments2To3))
-        splitTestDataService.insertAsTrack(switchTurningSegments3)
+        val (switch2, straightEdges2, turningEdges2) =
+            splitTestDataService.createSwitchAndGeometry(edge1to2.lastSegmentEnd)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges2))
 
-        val postSegments = splitTestDataService.createSegments(lastPoint(switchSegments3), 4)
+        val edge2To3 = verticalEdge(straightEdges2.last().lastSegmentEnd, 3)
+
+        // Segments that are a part of the second switch + the branching track for switch re-linking
+        // to work
+        val (_, straightEdges3, turningEdges3) = splitTestDataService.createSwitchAndGeometry(edge2To3.lastSegmentEnd)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges3))
+
+        val postEdge = verticalEdge(straightEdges3.last().lastSegmentEnd, 4)
 
         // The main track goes from switch 1 to switch 3
         val track =
-            splitTestDataService.createAsMainTrack(switchSegments1 + segments1To2 + switchSegments2 + segments2To3)
+            mainOfficialContext.createLocationTrackWithReferenceLine(
+                trackGeometry(combineEdges(straightEdges1 + edge1to2 + straightEdges2 + edge2To3))
+            )
+
         // Duplicate 1 starts before the main track and continues after the first switch
         val duplicate1 =
-            splitTestDataService.insertAsTrack(
-                segments = preSegments + switchSegments1 + segments1To2,
-                duplicateOf = track.id,
+            mainOfficialContext.save(
+                locationTrack(mainOfficialContext.createLayoutTrackNumber().id, duplicateOf = track.id),
+                trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1to2)),
             )
         // Duplicate 2 starts from the second switch and continues beyond the main track
         val duplicate2 =
-            splitTestDataService.insertAsTrack(
-                segments = switchSegments2 + segments2To3 + switchSegments3 + postSegments,
-                duplicateOf = track.id,
+            mainOfficialContext.save(
+                locationTrack(mainOfficialContext.createLayoutTrackNumber().id, duplicateOf = track.id),
+                trackGeometry(combineEdges(straightEdges2 + edge2To3 + straightEdges3 + postEdge)),
             )
 
         val request =
             splitRequest(
                 track.id,
-                targetRequest(switch1.id, "part2", duplicateTrackId = duplicate1, operation = TRANSFER),
-                targetRequest(switch2.id, "part3", duplicateTrackId = duplicate2, operation = TRANSFER),
+                targetRequest(switch1.id, "part2", duplicateTrackId = duplicate1.id, operation = TRANSFER),
+                targetRequest(switch2.id, "part3", duplicateTrackId = duplicate2.id, operation = TRANSFER),
             )
         val result = splitDao.getOrThrow(splitService.split(LayoutBranch.main, request))
 
@@ -235,8 +239,6 @@ constructor(
 
         assertEquals(LocationTrackState.DELETED, locationTrackService.get(MainLayoutContext.draft, track.id)?.state)
     }
-
-    private fun lastPoint(segments: List<LayoutSegment>): IPoint = segments.last().segmentPoints.last()
 
     private fun assertSplitMatchesRequest(request: SplitRequest, split: Split) {
         assertEquals(request.sourceTrackId, split.sourceLocationTrackId)
@@ -281,7 +283,7 @@ constructor(
         assertNotEquals(SplitTargetOperation.TRANSFER, request.getOperation())
 
         val (_, source) = locationTrackService.getWithGeometry(sourceResponse)
-        val (track, alignment) =
+        val (track, geometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
 
         assertEquals(request.name, track.name)
@@ -290,10 +292,10 @@ constructor(
         assertNull(track.duplicateOf)
         request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
 
-        val sourceSegments = source.segments.subList(response.segmentIndices.first, response.segmentIndices.last + 1)
+        val sourceEdges = source.edges.subList(response.edgeIndices.first, response.edgeIndices.last + 1)
 
-        assertEquals(sourceSegments.size, alignment.segments.size)
-        assertEquals(sourceSegments.sumOf { s -> s.length }, alignment.length, 0.001)
+        assertEquals(sourceEdges.size, geometry.edges.size)
+        sourceEdges.forEachIndexed { i, sourceEdge -> assertMatches(sourceEdge, geometry.edges[i]) }
     }
 
     @Test
@@ -342,7 +344,7 @@ constructor(
         val switchStartPoints =
             listOf(Point(100.0, 0.0), Point(200.0, 0.0), Point(300.0, 0.0), Point(400.0, 0.0), Point(500.0, 0.0))
 
-        val (switchesAndSegments, geometry) = alignmentWithMultipleSwitches(switchStartPoints)
+        val (switchesAndSegments, geometry) = geometryWithMultipleSwitches(switchStartPoints)
 
         val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
 
@@ -461,16 +463,16 @@ constructor(
         )
     }
 
-    private data class SwitchesAndSegments(
+    private data class SwitchesAndEdges(
         val switchIds: List<IntId<LayoutSwitch>> = emptyList(),
         val switchStartPoints: List<Point> = emptyList(),
-        val segments: List<LayoutSegment> = emptyList(),
+        val edges: List<LayoutEdge> = emptyList(),
     )
 
-    private fun alignmentWithMultipleSwitches(
+    private fun geometryWithMultipleSwitches(
         startPoints: List<Point>,
         structure: SwitchStructure = getYvStructure(),
-    ): Pair<SwitchesAndSegments, LocationTrackGeometry> {
+    ): Pair<SwitchesAndEdges, LocationTrackGeometry> {
         val segmentsBeforeFirstSwitch =
             startPoints.first().toPoint().let { firstSwitchStart ->
                 listOf(
@@ -485,38 +487,35 @@ constructor(
                 )
             }
 
-        val initialSwitchesAndSegments = SwitchesAndSegments(segments = segmentsBeforeFirstSwitch)
+        val initialSwitchesAndEdges = SwitchesAndEdges(edges = listOf(edge(segmentsBeforeFirstSwitch)))
 
-        // TODO: GVT-2927
-        TODO()
-        //        return startPoints
-        //            .zip(startPoints.drop(1) + null)
-        //            .fold(initialSwitchesAndSegments) { switchesAndSegments, (startPoint, nextStartPoint) ->
-        //                val (switch, switchSegments, turningSegments) =
-        //                    splitTestDataService.createSwitchAndGeometry(startPoint, structure)
-        //                // For the switch relinking to have another track to find near the start of every
-        //                // switch.
-        //                splitTestDataService.insertAsTrack(turningSegments)
-        //
-        //                val switchEnd = switchSegments.last().segmentPoints.last()
-        //                val pointAfterSwitch = switchEnd + Point(10.0, startPoint.y)
-        //                val segmentAfterSwitch = segment(switchEnd, pointAfterSwitch)
-        //
-        //                val postSwitchSegments =
-        //                    nextStartPoint?.let { actualNextStartPoint ->
-        //                        listOf(segmentAfterSwitch, segment(pointAfterSwitch, actualNextStartPoint))
-        //                    }
-        //                        ?: listOf(
-        //                            segmentAfterSwitch,
-        //                            segment(pointAfterSwitch, Point(pointAfterSwitch.x + 10.0, pointAfterSwitch.y)),
-        //                        )
-        //
-        //                SwitchesAndSegments(
-        //                    switchIds = switchesAndSegments.switchIds + switch.id,
-        //                    switchStartPoints = switchesAndSegments.switchStartPoints + startPoint,
-        //                    segments = switchesAndSegments.segments + switchSegments + postSwitchSegments,
-        //                )
-        //            }
-        //            .let { switchesAndSegments -> switchesAndSegments to alignment(switchesAndSegments.segments) }
+        return startPoints
+            .zip(startPoints.drop(1) + null)
+            .fold(initialSwitchesAndEdges) { switchesAndEdges, (startPoint, nextStartPoint) ->
+                val (switch, straightEdges, turningEdges) =
+                    splitTestDataService.createSwitchAndGeometry(startPoint, structure)
+                // For the switch relinking to have another track to find near the start of every switch.
+                mainOfficialContext.createLocationTrack(trackGeometry(turningEdges))
+
+                val switchEnd = straightEdges.last().lastSegmentEnd
+                val pointAfterSwitch = switchEnd + Point(10.0, startPoint.y)
+                val segmentAfterSwitch = segment(switchEnd, pointAfterSwitch)
+
+                val postSwitchSegments =
+                    nextStartPoint?.let { actualNextStartPoint ->
+                        listOf(segmentAfterSwitch, segment(pointAfterSwitch, actualNextStartPoint))
+                    }
+                        ?: listOf(
+                            segmentAfterSwitch,
+                            segment(pointAfterSwitch, Point(pointAfterSwitch.x + 10.0, pointAfterSwitch.y)),
+                        )
+
+                SwitchesAndEdges(
+                    switchIds = switchesAndEdges.switchIds + switch.id,
+                    switchStartPoints = switchesAndEdges.switchStartPoints + startPoint,
+                    edges = combineEdges(switchesAndEdges.edges + straightEdges + edge(postSwitchSegments)),
+                )
+            }
+            .let { switchesAndSegments -> switchesAndSegments to trackGeometry(switchesAndSegments.edges) }
     }
 }

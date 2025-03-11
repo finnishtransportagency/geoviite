@@ -9,30 +9,24 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.edgesFromSwitchStructure
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
-import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import kotlin.test.assertEquals
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
-data class SwitchAndSegments(
+data class SwitchAndEdges(
     val switch: LayoutRowVersion<LayoutSwitch>,
-    val straightSwitchSegments: List<LayoutSegment>,
-    val turningSwitchSegments: List<LayoutSegment>,
+    val straightSwitchEdges: List<LayoutEdge>,
+    val turningSwitchEdges: List<LayoutEdge>,
 )
 
 @Service
@@ -40,7 +34,6 @@ class SplitTestDataService
 @Autowired
 constructor(
     private val switchStructureDao: SwitchStructureDao,
-    private val locationTrackService: LocationTrackService,
     private val splitDao: SplitDao,
     private val splitService: SplitService,
     private val switchDao: LayoutSwitchDao,
@@ -86,7 +79,7 @@ constructor(
         startPoint: IPoint,
         structure: SwitchStructure = getYvStructure(),
         externalId: Oid<LayoutSwitch>? = null,
-    ): SwitchAndSegments {
+    ): SwitchAndEdges {
         val switchInsertResponse =
             mainOfficialContext.save(
                 switchFromDbStructure(testDBService.getUnusedSwitchName().toString(), startPoint, structure)
@@ -94,44 +87,11 @@ constructor(
         if (externalId != null) {
             switchDao.insertExternalId(switchInsertResponse.id, LayoutBranch.main, externalId)
         }
-        return SwitchAndSegments(
+        return SwitchAndEdges(
             switchInsertResponse,
-            segmentsFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 5, 2)),
-            segmentsFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 3)),
+            edgesFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 5, 2)),
+            edgesFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 3)),
         )
-    }
-
-    fun createSegments(startPoint: IPoint, count: Int = 3, pointOffset: Double = 10.0): List<LayoutSegment> {
-        return (0..<count).map { idx ->
-            val start = startPoint + Point(idx * pointOffset, 0.0)
-            val end = start + Point(pointOffset, 0.0)
-            segment(start, end)
-        }
-    }
-
-    fun insertAsTrack(
-        segments: List<LayoutSegment>,
-        duplicateOf: IntId<LocationTrack>? = null,
-        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
-    ): IntId<LocationTrack> {
-        val geometry = trackGeometryOfSegments(segments)
-        return mainOfficialContext
-            .save(locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf), geometry)
-            .id
-    }
-
-    fun createAsMainTrack(
-        segments: List<LayoutSegment>,
-        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
-    ): LayoutRowVersion<LocationTrack> {
-        mainOfficialContext.save(referenceLine(trackNumberId), alignment(segments))
-        return mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segments)).also { r ->
-            val (dbTrack, dbAlignment) = locationTrackService.getWithGeometry(r)
-            assertEquals(trackNumberId, dbTrack.trackNumberId)
-            assertEquals(segments.size, dbAlignment.segments.size)
-            assertEquals(segments.sumOf { s -> s.length }, dbAlignment.length, 0.001)
-            locationTrackService.insertExternalId(LayoutBranch.main, dbTrack.id as IntId, someOid())
-        }
     }
 
     fun getYvStructure(): SwitchStructure =

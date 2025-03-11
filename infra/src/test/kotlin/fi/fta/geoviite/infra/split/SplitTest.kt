@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxCombining
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -12,8 +13,13 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_T
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switchLinkKV
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -23,10 +29,15 @@ class SplitTest {
     @Test
     fun `minimal location track split works`() {
         val track = locationTrack(trackNumberId = IntId(123), draft = false)
+        val switchId = IntId<LayoutSwitch>(1)
         val geometry =
-            trackGeometryOfSegments(
-                linearSegment(0..1, switchId = null, startJoint = null, endJoint = null),
-                linearSegment(1..2, switchId = IntId(1), startJoint = 1, endJoint = 2),
+            trackGeometry(
+                edge(listOf(linearSegment(0..1)), endOuterSwitch = switchLinkYV(switchId, 1)),
+                edge(
+                    listOf(linearSegment(1..2)),
+                    startInnerSwitch = switchLinkYV(switchId, 1),
+                    endInnerSwitch = switchLinkYV(switchId, 2),
+                ),
             )
         val targets =
             listOf(
@@ -36,21 +47,25 @@ class SplitTest {
         val resultTracks = splitLocationTrack(track, geometry, targets)
         assertEquals(targets.size, resultTracks.size)
         resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
-        assertSegmentsMatch(geometry.segments.subList(0, 1), resultTracks[0].alignment)
-        assertSegmentsMatch(geometry.segments.subList(1, 2), resultTracks[1].alignment)
+        assertEdgesMatch(geometry.edges.subList(0, 1), resultTracks[0].geometry)
+        assertEdgesMatch(geometry.edges.subList(1, 2), resultTracks[1].geometry)
     }
 
     @Test
     fun `location track split works when overriding existing duplicate`() {
         val track = locationTrack(trackNumberId = IntId(123), draft = false)
+        val switchId = IntId<LayoutSwitch>(1)
         val geometry =
-            trackGeometryOfSegments(
-                linearSegment(0..1, switchId = null, startJoint = null, endJoint = null),
-                linearSegment(1..2, switchId = IntId(1), startJoint = 1, endJoint = 2),
+            trackGeometry(
+                edge(listOf(linearSegment(0..1)), endOuterSwitch = switchLinkYV(switchId, 1)),
+                edge(
+                    listOf(linearSegment(1..2)),
+                    startInnerSwitch = switchLinkYV(switchId, 1),
+                    endInnerSwitch = switchLinkYV(switchId, 2),
+                ),
             )
         val dupTrack = locationTrack(trackNumberId = IntId(123), draft = false)
-        // over-large duplicate, but the geometry should be overridden anyhow, so just make it
-        // different
+        // over-large duplicate, but the geometry should be overridden anyhow, so just make it different
         val dupGeometry = trackGeometryOfSegments(linearSegment(-1..5))
         val targets =
             listOf(
@@ -61,27 +76,63 @@ class SplitTest {
         assertEquals(targets.size, resultTracks.size)
         resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
         assertEquals(dupTrack.id, resultTracks[0].locationTrack.id)
-        assertSegmentsMatch(geometry.segments.subList(0, 1), resultTracks[0].alignment)
-        assertSegmentsMatch(geometry.segments.subList(1, 2), resultTracks[1].alignment)
+        assertEdgesMatch(geometry.edges.subList(0, 1), resultTracks[0].geometry)
+        assertEdgesMatch(geometry.edges.subList(1, 2), resultTracks[1].geometry)
     }
 
     @Test
     fun `complex location track split works`() {
         val track = locationTrack(trackNumberId = IntId(123), draft = false)
+        val switch1 = IntId<LayoutSwitch>(1)
+        val switch2 = IntId<LayoutSwitch>(2)
+        val switch3 = IntId<LayoutSwitch>(3)
         val geometry =
-            trackGeometryOfSegments(
-                linearSegment(0..2, switchId = null, startJoint = null, endJoint = null),
-                linearSegment(2..5, switchId = IntId(1), startJoint = 5, endJoint = 4),
+            trackGeometry(
+                edge(listOf(linearSegment(0..2)), endOuterSwitch = switchLinkYV(switch1, 5)),
+                edge(
+                    listOf(linearSegment(2..5)),
+                    startInnerSwitch = switchLinkKV(switch1, 5),
+                    endInnerSwitch = switchLinkKV(switch1, 4),
+                    endOuterSwitch = switchLinkKV(switch1, 4),
+                ),
                 // Split point 1: id=1 & joint=4
-                linearSegment(5..6, switchId = IntId(1), startJoint = 4, endJoint = 3),
-                linearSegment(6..8, switchId = IntId(1), startJoint = 3, endJoint = 2),
-                linearSegment(8..9, switchId = IntId(1), startJoint = 2, endJoint = 1),
-                // Split point 2: id=2 & joint = 3
-                linearSegment(9..11, switchId = IntId(2), startJoint = 3, endJoint = 2),
-                linearSegment(11..12, switchId = IntId(3), startJoint = 5, endJoint = 2),
-                // Split point 3: id=3 & joint = 2 -- but it was mentioned only at the end of the
-                // previous
-                linearSegment(12..13, switchId = null, startJoint = null, endJoint = null),
+                edge(
+                    listOf(linearSegment(5..6)),
+                    startOuterSwitch = switchLinkKV(switch1, 4),
+                    startInnerSwitch = switchLinkKV(switch1, 4),
+                    endInnerSwitch = switchLinkKV(switch1, 3),
+                    endOuterSwitch = switchLinkKV(switch1, 3),
+                ),
+                edge(
+                    listOf(linearSegment(6..8)),
+                    startOuterSwitch = switchLinkKV(switch1, 3),
+                    startInnerSwitch = switchLinkKV(switch1, 3),
+                    endInnerSwitch = switchLinkKV(switch1, 2),
+                    endOuterSwitch = switchLinkKV(switch1, 2),
+                ),
+                edge(
+                    listOf(linearSegment(8..9)),
+                    startOuterSwitch = switchLinkKV(switch1, 2),
+                    startInnerSwitch = switchLinkKV(switch1, 2),
+                    endInnerSwitch = switchLinkKV(switch1, 1),
+                    endOuterSwitch = switchLinkYV(switch2, 3),
+                ),
+                edge(
+                    // Split point 2: id=2 & joint = 3
+                    listOf(linearSegment(9..11)),
+                    startOuterSwitch = switchLinkKV(switch1, 1),
+                    startInnerSwitch = switchLinkYV(switch2, 3),
+                    endInnerSwitch = switchLinkYV(switch2, 2),
+                    endOuterSwitch = switchLinkYV(switch3, 5),
+                ),
+                edge(
+                    listOf(linearSegment(11..12)),
+                    startOuterSwitch = switchLinkYV(switch2, 2),
+                    startInnerSwitch = switchLinkYV(switch3, 5),
+                    endInnerSwitch = switchLinkYV(switch3, 2),
+                ),
+                // Split point 3: id=3 & joint = 2 -- but it is not marked as continuing from the node
+                edge(listOf(linearSegment(12..13)), startOuterSwitch = switchLinkYV(switch3, 2)),
             )
         val targets =
             listOf(
@@ -93,10 +144,10 @@ class SplitTest {
         val resultTracks = splitLocationTrack(track, geometry, targets)
         assertEquals(targets.size, resultTracks.size)
         resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
-        assertSegmentsMatch(geometry.segments.subList(0, 2), resultTracks[0].alignment)
-        assertSegmentsMatch(geometry.segments.subList(2, 5), resultTracks[1].alignment)
-        assertSegmentsMatch(geometry.segments.subList(5, 7), resultTracks[2].alignment)
-        assertSegmentsMatch(geometry.segments.subList(7, 8), resultTracks[3].alignment)
+        assertEdgesMatch(geometry.edges.subList(0, 2), resultTracks[0].geometry)
+        assertEdgesMatch(geometry.edges.subList(2, 5), resultTracks[1].geometry)
+        assertEdgesMatch(geometry.edges.subList(5, 7), resultTracks[2].geometry)
+        assertEdgesMatch(geometry.edges.subList(7, 8), resultTracks[3].geometry)
     }
 }
 
@@ -113,16 +164,11 @@ fun linearSegment(
         endJointNumber = endJoint?.let(::JointNumber),
     )
 
-private fun assertSegmentsMatch(expectedSegments: List<LayoutSegment>, result: LocationTrackGeometry) {
-    assertEquals(expectedSegments.size, result.segments.size)
-    expectedSegments.forEachIndexed { index, expected ->
-        val actual = result.segments[index]
-        assertEquals(expected.segmentPoints, actual.segmentPoints)
-        // TODO: GVT-2915
-        TODO()
-        assertEquals(expected.switchId, actual.switchId)
-        assertEquals(expected.startJointNumber, actual.startJointNumber)
-        assertEquals(expected.endJointNumber, actual.endJointNumber)
+private fun assertEdgesMatch(expectedEdges: List<LayoutEdge>, result: LocationTrackGeometry) {
+    assertEquals(expectedEdges.size, result.edges.size)
+    expectedEdges.forEachIndexed { index, expected ->
+        val actual = result.edges[index]
+        assertMatches(expected, actual)
     }
 }
 
@@ -136,9 +182,9 @@ private fun assertSplitResultFields(track: LocationTrack, request: SplitRequestT
     assertEquals(request.descriptionSuffix, result.locationTrack.descriptionSuffix)
     assertEquals(null, result.locationTrack.duplicateOf)
     assertEquals(
-        boundingBoxCombining(result.alignment.segments.mapNotNull { s -> s.boundingBox }),
+        boundingBoxCombining(result.geometry.edges.map { edge -> edge.boundingBox }),
         result.locationTrack.boundingBox,
     )
-    assertEquals(result.alignment.segments.sumOf { s -> s.length }, result.locationTrack.length)
-    assertEquals(result.alignment.segments.size, result.locationTrack.segmentCount)
+    assertEquals(result.geometry.segments.sumOf { s -> s.length }, result.locationTrack.length)
+    assertEquals(result.geometry.segments.size, result.locationTrack.segmentCount)
 }

@@ -182,22 +182,15 @@ fun switchAndMatchingAlignments(
     return switch to alignments
 }
 
-fun segmentsFromSwitchStructure(
+fun edgesFromSwitchStructure(
     start: IPoint,
     switchId: IntId<LayoutSwitch>,
     structure: SwitchStructure,
     line: List<Int>,
-): List<LayoutSegment> {
+): List<LayoutEdge> {
     val expectedJoints = line.map(::JointNumber)
-    val switchAlignment = requireNotNull(structure.alignments.find { a -> a.jointNumbers == expectedJoints })
-    return segmentsFromSwitchAlignment(start, switchId, switchAlignment)
-}
+    val alignment = requireNotNull(structure.alignments.find { a -> a.jointNumbers == expectedJoints })
 
-fun segmentsFromSwitchAlignment(
-    start: IPoint,
-    switchId: IntId<LayoutSwitch>,
-    alignment: SwitchStructureAlignment,
-): List<LayoutSegment> {
     val jointNumbers = alignment.jointNumbers
     val elements = alignment.elements
 
@@ -211,45 +204,41 @@ fun segmentsFromSwitchAlignment(
     return when (alignment.jointNumbers.size to alignment.elements.size) {
         2 to 2 ->
             listOf(
-                segment(
-                    points = toSegmentPoints(start + elements[0].start, start + elements[0].end),
-                    switchId = switchId,
-                    startJointNumber = jointNumbers[0],
-                ),
-                segment(
-                    points = toSegmentPoints(start + elements[1].start, start + elements[1].end),
-                    switchId = switchId,
-                    endJointNumber = jointNumbers[1],
-                ),
+                edge(
+                    startInnerSwitch = SwitchLink(switchId, jointNumbers[0], structure),
+                    endInnerSwitch = SwitchLink(switchId, jointNumbers[1], structure),
+                    segments =
+                        listOf(
+                            segment(toSegmentPoints(start + elements[0].start, start + elements[0].end)),
+                            segment(toSegmentPoints(start + elements[1].start, start + elements[1].end)),
+                        ),
+                )
             )
 
         2 to 3 ->
             listOf(
-                segment(
-                    points = toSegmentPoints(start + elements[0].start, start + elements[0].end),
-                    switchId = switchId,
-                    startJointNumber = jointNumbers[0],
-                ),
-                segment(
-                    points = toSegmentPoints(start + elements[1].start, start + elements[1].end),
-                    switchId = switchId,
-                ),
-                segment(
-                    points = toSegmentPoints(start + elements[2].start, start + elements[2].end),
-                    switchId = switchId,
-                    endJointNumber = jointNumbers[1],
-                ),
+                edge(
+                    startInnerSwitch = SwitchLink(switchId, jointNumbers[0], structure),
+                    endInnerSwitch = SwitchLink(switchId, jointNumbers[1], structure),
+                    segments =
+                        listOf(
+                            segment(toSegmentPoints(start + elements[0].start, start + elements[0].end)),
+                            segment(toSegmentPoints(start + elements[1].start, start + elements[1].end)),
+                            segment(toSegmentPoints(start + elements[2].start, start + elements[2].end)),
+                        ),
+                )
             )
 
         else ->
-            alignment.elements.mapIndexed { i, e ->
-                segment(
-                    points = toSegmentPoints(start + e.start, start + e.end),
-                    switchId = switchId,
-                    startJointNumber = alignment.jointNumbers[i],
-                    endJointNumber = alignment.jointNumbers[i + 1],
-                )
-            }
+            combineEdges(
+                alignment.elements.mapIndexed { i, e ->
+                    edge(
+                        startInnerSwitch = SwitchLink(switchId, jointNumbers[i], structure),
+                        endInnerSwitch = SwitchLink(switchId, jointNumbers[i + 1], structure),
+                        segments = listOf(segment(toSegmentPoints(start + e.start, start + e.end))),
+                    )
+                }
+            )
     }
 }
 
@@ -519,6 +508,35 @@ fun trackGeometry(vararg edges: LayoutEdge): TmpLocationTrackGeometry = trackGeo
 
 fun trackGeometry(edges: List<LayoutEdge>): TmpLocationTrackGeometry = TmpLocationTrackGeometry(edges)
 
+fun edge(
+    segments: List<LayoutSegment>,
+    startInnerSwitch: SwitchLink? = null,
+    startOuterSwitch: SwitchLink? = null,
+    endInnerSwitch: SwitchLink? = null,
+    endOuterSwitch: SwitchLink? = null,
+) =
+    TmpLayoutEdge(
+        startNode =
+            if (startInnerSwitch != null || startOuterSwitch != null)
+                EdgeNode.switch(inner = startInnerSwitch, outer = startOuterSwitch)
+            else PlaceHolderEdgeNode,
+        endNode =
+            if (endInnerSwitch != null || endOuterSwitch != null)
+                EdgeNode.switch(inner = endInnerSwitch, outer = endOuterSwitch)
+            else PlaceHolderEdgeNode,
+        segments = segments,
+    )
+
+fun verticalEdge(startPoint: IPoint, segmentCount: Int = 3, pointOffset: Double = 10.0): LayoutEdge {
+    return edge(
+        (0..<segmentCount).map { idx ->
+            val start = startPoint + Point(idx * pointOffset, 0.0)
+            val end = start + Point(pointOffset, 0.0)
+            segment(start, end)
+        }
+    )
+}
+
 fun switchLinkYV(switchId: IntId<LayoutSwitch>, jointNumber: Int) =
     SwitchLink(
         switchId,
@@ -527,6 +545,21 @@ fun switchLinkYV(switchId: IntId<LayoutSwitch>, jointNumber: Int) =
             2 -> SwitchJointRole.CONNECTION
             3 -> SwitchJointRole.CONNECTION
             5 -> SwitchJointRole.MATH
+            else -> throw IllegalArgumentException("Invalid joint number for YV: $jointNumber")
+        },
+        JointNumber(jointNumber),
+    )
+
+fun switchLinkKV(switchId: IntId<LayoutSwitch>, jointNumber: Int) =
+    SwitchLink(
+        switchId,
+        when (jointNumber) {
+            1 -> SwitchJointRole.MAIN
+            2 -> SwitchJointRole.CONNECTION
+            3 -> SwitchJointRole.CONNECTION
+            4 -> SwitchJointRole.CONNECTION
+            5 -> SwitchJointRole.MATH
+            6 -> SwitchJointRole.MATH
             else -> throw IllegalArgumentException("Invalid joint number for YV: $jointNumber")
         },
         JointNumber(jointNumber),

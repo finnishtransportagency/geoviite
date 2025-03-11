@@ -21,12 +21,11 @@ import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.IAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -36,12 +35,13 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -330,10 +330,14 @@ class SplitService(
         target: SplitTarget,
         context: ValidationContext,
     ): Pair<List<AddressPoint>?, List<AddressPoint>?> {
+        val sourceGeometry = alignmentDao.fetch(sourceTrack.versionOrThrow)
+        val (sourceStartPoint, sourceEndPoint) = sourceGeometry.getEdgeStartAndEnd(target.edgeIndices)
         val sourceAddressPointRange =
-            context
-                .getGeocodingContext(sourceTrack.trackNumberId)
-                ?.getPartialAddressRange(alignmentDao.fetch(sourceTrack.versionOrThrow), target.segmentIndices)
+            context.getGeocodingContext(sourceTrack.trackNumberId)?.let { geocodingContext ->
+                val start = geocodingContext.toAddressPoint(sourceStartPoint)?.first
+                val end = geocodingContext.toAddressPoint(sourceEndPoint)?.first
+                if (start != null && end != null) start to end else null
+            }
         val sourceAddresses: List<AddressPoint>? =
             sourceAddressPointRange?.let { (start, end) ->
                 context
@@ -348,8 +352,8 @@ class SplitService(
             }
 
         val targetAddresses =
-            if (sourceAddressPointRange != null) {
-                val addressRange = sourceAddressPointRange.first.address..sourceAddressPointRange.second.address
+            sourceAddressPointRange?.let { (sourceStart, sourceEnd) ->
+                val addressRange = sourceStart.address..sourceEnd.address
                 context.getAddressPoints(target.locationTrackId)?.integerPrecisionPoints?.let { points ->
                     if (target.operation == SplitTargetOperation.TRANSFER) {
                         points.filter { p -> p.address in addressRange }
@@ -357,8 +361,6 @@ class SplitService(
                         points
                     }
                 }
-            } else {
-                null
             }
 
         return sourceAddresses to targetAddresses
@@ -399,7 +401,6 @@ class SplitService(
         }
     }
 
-    // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
     @Transactional
     fun split(branch: LayoutBranch, request: SplitRequest): IntId<Split> {
         // Original duplicate ids to be stored in split data before updating the location track
@@ -429,28 +430,23 @@ class SplitService(
         val targetResults =
             splitLocationTrack(
                 track = track,
-                alignment = geometry,
+                geometry = geometry,
                 targets = collectSplitTargetParams(branch, request.targetTracks, suggestions),
             )
 
         val savedSplitTargetLocationTracks =
             targetResults.map { result ->
                 val response = saveTargetTrack(branch, result)
-                val (resultTrack, resultGeometry) = locationTrackService.getWithGeometry(response)!!
-                result.copy(locationTrack = resultTrack, alignment = resultGeometry)
+                val (resultTrack, resultGeometry) = locationTrackService.getWithGeometry(response)
+                result.copy(locationTrack = resultTrack, geometry = resultGeometry)
             }
 
         geocodingService.getGeocodingContext(branch.draft, sourceTrack.trackNumberId)?.let { geocodingContext ->
-            val splitTargetTracksWithAlignments =
-                savedSplitTargetLocationTracks.map { splitTargetResult ->
-                    splitTargetResult.locationTrack to splitTargetResult.alignment
-                }
-
             updateUnusedDuplicateReferencesToSplitTargetTracks(
                 branch,
                 geocodingContext,
                 request,
-                splitTargetTracksWithAlignments,
+                savedSplitTargetLocationTracks,
             )
         }
             ?: throw SplitFailureException(
@@ -465,7 +461,7 @@ class SplitService(
             .map { splitTargetResult ->
                 SplitTarget(
                     locationTrackId = splitTargetResult.locationTrack.id as IntId,
-                    segmentIndices = splitTargetResult.indices,
+                    edgeIndices = splitTargetResult.edgeIndices,
                     operation = splitTargetResult.operation,
                 )
             }
@@ -478,7 +474,7 @@ class SplitService(
         branch: LayoutBranch,
         geocodingContext: GeocodingContext,
         splitRequest: SplitRequest,
-        splitTargetLocationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+        splitTargetResults: List<SplitTargetResult>,
     ) {
         val unusedDuplicates =
             locationTrackService
@@ -490,29 +486,27 @@ class SplitService(
                 }
                 .let { unusedDuplicateTracks -> locationTrackService.getAlignmentsForTracks(unusedDuplicateTracks) }
 
-        // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
-        TODO("Split not yet implemented in graph geometry model")
-        //        findNewLocationTracksForUnusedDuplicates(geocodingContext, unusedDuplicates,
-        // splitTargetLocationTracks)
-        //            .forEach { updatedDuplicate -> locationTrackService.saveDraft(branch, updatedDuplicate) }
+        findNewLocationTracksForUnusedDuplicates(geocodingContext, unusedDuplicates, splitTargetResults).forEach {
+            (track, geometry) ->
+            locationTrackService.saveDraft(branch, track, geometry)
+        }
     }
 
     private fun saveTargetTrack(branch: LayoutBranch, target: SplitTargetResult): LayoutRowVersion<LocationTrack> =
-        // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
-        TODO("Split not yet implemented in graph geometry model")
-
-    //        locationTrackService.saveDraft(
-    //            branch = branch,
-    //            draftAsset =
-    //                locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-    //                    layoutContext = branch.draft,
-    //                    track = target.locationTrack,
-    //                    alignment = target.alignment,
-    //                    startChanged = true,
-    //                    endChanged = true,
-    //                ),
-    //            alignment = target.alignment,
-    //        )
+        locationTrackService.saveDraft(
+            branch = branch,
+            track = target.locationTrack,
+            params = target.geometry,
+            // TODO: GVT-2928 Topology calculation in node-edge model
+            // TODO: GVT-2928 There should be no need for re-calcs as the edges already connect to correct nodes
+            //                    locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
+            //                        layoutContext = branch.draft,
+            //                        track = target.locationTrack,
+            //                        alignment = target.geometry,
+            //                        startChanged = true,
+            //                        endChanged = true,
+            //                    ),
+        )
 
     private fun collectSplitTargetParams(
         branch: LayoutBranch,
@@ -537,15 +531,12 @@ class SplitService(
                             )
                     SplitPointSwitch(switchId, jointNumber, name)
                 }
-            // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
-            TODO("TODO: GVT-2941 Split in node-edge model with locationtrackgeometry")
-            //            val duplicate =
-            //                target.duplicateTrack?.let { d ->
-            //                    val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft,
-            // d.id)
-            //                    SplitTargetDuplicate(d.operation, track, alignment)
-            //                }
-            //            SplitTargetParams(target, startSwitch, duplicate)
+            val duplicate =
+                target.duplicateTrack?.let { d ->
+                    val (track, alignment) = locationTrackService.getWithGeometryOrThrow(branch.draft, d.id)
+                    SplitTargetDuplicate(d.operation, track, alignment)
+                }
+            SplitTargetParams(target, startSwitch, duplicate)
         }
     }
 }
@@ -564,89 +555,81 @@ data class SplitTargetParams(
 data class SplitTargetDuplicate(
     val operation: SplitTargetDuplicateOperation,
     val track: LocationTrack,
-    val alignment: LocationTrackGeometry,
+    val geometry: LocationTrackGeometry,
 )
 
 data class SplitTargetResult(
     val locationTrack: LocationTrack,
-    val alignment: LocationTrackGeometry,
-    val indices: IntRange,
+    val geometry: LocationTrackGeometry,
+    val edgeIndices: IntRange,
     val operation: SplitTargetOperation,
 )
 
 fun splitLocationTrack(
     track: LocationTrack,
-    alignment: LocationTrackGeometry,
+    geometry: LocationTrackGeometry,
     targets: List<SplitTargetParams>,
 ): List<SplitTargetResult> {
-    // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
-    // TODO: GVT-2941 Splits are by-edge in the new model as only edge start/end can have a switch
-    TODO("TODO: GVT-2941 Split in node-edge model with locationtrackgeometry")
     return targets
         .mapIndexed { index, target ->
             val nextSwitch = targets.getOrNull(index + 1)?.startSwitch
-            val indexSearchStartSwitch =
-                if (index == 0 && track.topologyStartSwitch != null) null else target.startSwitch
-            val segmentIndices = 0..0 // findSplitIndices(alignment, indexSearchStartSwitch, nextSwitch)
-            val segments: List<LayoutSegment> = emptyList() // cutSegments(alignment, segmentIndices)
-            val connectivityType = calculateTopologicalConnectivity(track, alignment.segments.size, segmentIndices)
-            val (newTrack, newAlignment) =
+            val edgeIndices = findSplitEdgeIndices(geometry, target.startSwitch, nextSwitch)
+            val edges: List<LayoutEdge> = cutEdges(geometry, edgeIndices)
+            val connectivityType = calculateTopologicalConnectivity(track, geometry.segments.size, edgeIndices)
+            val (newTrack, newGeometry) =
                 target.duplicate?.let { d ->
                     when (d.operation) {
                         SplitTargetDuplicateOperation.TRANSFER ->
                             updateSplitTargetForTransferAssets(
                                 duplicateTrack = d.track,
                                 topologicalConnectivityType = connectivityType,
-                            ) to d.alignment
+                            ) to d.geometry
                         SplitTargetDuplicateOperation.OVERWRITE ->
                             updateSplitTargetForOverwriteDuplicate(
                                 sourceTrack = track,
                                 duplicateTrack = d.track,
-                                duplicateGeometry = d.alignment,
                                 request = target.request,
-                                segments = segments,
+                                edges = edges,
                                 topologicalConnectivityType = connectivityType,
                             )
                     }
-                } ?: createSplitTarget(track, target.request, segments, connectivityType)
+                } ?: createSplitTarget(track, target.request, edges, connectivityType)
             SplitTargetResult(
                 locationTrack = newTrack,
-                alignment = newAlignment,
-                indices = segmentIndices,
+                geometry = newGeometry,
+                edgeIndices = edgeIndices,
                 operation = target.getOperation(),
             )
         }
-        .also { result -> validateSplitResult(result, alignment) }
+        .also { result -> validateSplitResult(result, geometry) }
 }
 
-fun validateSplitResult(results: List<SplitTargetResult>, alignment: LocationTrackGeometry) {
-    // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
-    TODO("TODO: GVT-2941 Split in node-edge model with locationtrackgeometry")
+fun validateSplitResult(results: List<SplitTargetResult>, geometry: LocationTrackGeometry) {
     results.forEachIndexed { index, result ->
-        val previousIndices = results.getOrNull(index - 1)?.indices
+        val previousIndices = results.getOrNull(index - 1)?.edgeIndices
         val previousEndIndex = previousIndices?.last ?: -1
-        if (previousEndIndex + 1 != result.indices.first) {
+        if (previousEndIndex + 1 != result.edgeIndices.first) {
             throw SplitFailureException(
                 message =
-                    "Not all segments were allocated in the split: last=${previousIndices?.last} first=${result.indices.first}",
+                    "Not all edges were allocated in the split: last=${previousIndices?.last} first=${result.edgeIndices.first}",
                 localizedMessageKey = "segment-allocation-failed",
             )
         }
         if (
             result.operation != SplitTargetOperation.TRANSFER &&
-                result.alignment.segments.size != result.indices.count()
+                result.geometry.edges.size != result.edgeIndices.count()
         ) {
             throw SplitFailureException(
                 message =
-                    "Split target segments don't match calculated indices: segments=${result.alignment.segments.size} indices=${result.indices.count()}",
+                    "Split target edges don't match calculated indices: edges=${result.geometry.edges.size} indices=${result.edgeIndices.count()}",
                 localizedMessageKey = "segment-allocation-failed",
             )
         }
     }
-    if (results.last().indices.last != alignment.segments.lastIndex) {
+    if (results.last().edgeIndices.last != geometry.edges.lastIndex) {
         throw SplitFailureException(
             message =
-                "Not all segments were allocated in the split: lastIndex=${results.last().indices.last} lastAlignmentIndex=${alignment.segments.lastIndex}",
+                "Not all edges were allocated in the split: lastIndex=${results.last().edgeIndices.last} lastGeometryIndex=${geometry.edges.lastIndex}",
             localizedMessageKey = "segment-allocation-failed",
         )
     }
@@ -669,14 +652,11 @@ private fun updateSplitTargetForTransferAssets(
 private fun updateSplitTargetForOverwriteDuplicate(
     sourceTrack: LocationTrack,
     duplicateTrack: LocationTrack,
-    duplicateGeometry: LocationTrackGeometry,
     request: SplitRequestTarget,
-    segments: List<LayoutSegment>,
+    edges: List<LayoutEdge>,
     topologicalConnectivityType: TopologicalConnectivityType,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
-    TODO()
-    val newAlignment = LocationTrackGeometry.empty // duplicateGeometry.withSegments(segments)
+    val newGeometry = TmpLocationTrackGeometry(edges)
     val newTrack =
         duplicateTrack.copy(
             name = request.name,
@@ -696,22 +676,20 @@ private fun updateSplitTargetForOverwriteDuplicate(
             type = sourceTrack.type,
 
             // Geometry fields come from alignment
-            segmentCount = newAlignment.segments.size,
-            length = newAlignment.length,
-            boundingBox = newAlignment.boundingBox,
+            segmentCount = newGeometry.segments.size,
+            length = newGeometry.length,
+            boundingBox = newGeometry.boundingBox,
         )
-    return newTrack to newAlignment
+    return newTrack to newGeometry
 }
 
 private fun createSplitTarget(
     sourceTrack: LocationTrack,
     request: SplitRequestTarget,
-    segments: List<LayoutSegment>,
+    edges: List<LayoutEdge>,
     topologicalConnectivityType: TopologicalConnectivityType,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    // TODO: GVT-2941 Split in node-edge model with locationtrackgeometry
-    TODO()
-    val newAlignment = LocationTrackGeometry.empty // LayoutAlignment(segments)
+    val newGeometry = TmpLocationTrackGeometry(edges)
     val newTrack =
         LocationTrack(
             name = request.name,
@@ -731,28 +709,28 @@ private fun createSplitTarget(
             type = sourceTrack.type,
 
             // Geometry fields come from alignment
-            segmentCount = newAlignment.segments.size,
-            length = newAlignment.length,
-            boundingBox = newAlignment.boundingBox,
+            segmentCount = newGeometry.segments.size,
+            length = newGeometry.length,
+            boundingBox = newGeometry.boundingBox,
             // TODO: GVT-2399
             contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
         )
-    return newTrack to newAlignment
+    return newTrack to newGeometry
 }
 
 private fun calculateTopologicalConnectivity(
     sourceTrack: LocationTrack,
-    sourceSegments: Int,
-    segmentIndices: ClosedRange<Int>,
+    sourceEdges: Int,
+    edgeIndices: ClosedRange<Int>,
 ): TopologicalConnectivityType {
     val startConnected =
-        if (0 == segmentIndices.start) {
+        if (0 == edgeIndices.start) {
             sourceTrack.topologicalConnectivity.isStartConnected()
         } else {
             true
         }
     val endConnected =
-        if (sourceSegments == segmentIndices.endInclusive + 1) {
+        if (sourceEdges == edgeIndices.endInclusive + 1) {
             sourceTrack.topologicalConnectivity.isEndConnected()
         } else {
             true
@@ -760,43 +738,42 @@ private fun calculateTopologicalConnectivity(
     return topologicalConnectivityTypeOf(startConnected, endConnected)
 }
 
-private fun findSplitIndices(
-    alignment: LayoutAlignment,
+private fun findSplitEdgeIndices(
+    geometry: LocationTrackGeometry,
     startSwitch: SplitPointSwitch?,
     endSwitch: SplitPointSwitch?,
 ): IntRange {
-    val startIndex = startSwitch?.let { (s, j) -> findIndex(alignment, s, j) } ?: 0
-    val endIndex = endSwitch?.let { (s, j) -> findIndex(alignment, s, j) - 1 } ?: alignment.segments.lastIndex
+    val startIndex =
+        startSwitch?.let { (s, j) ->
+            findIndex(geometry, 0, s, j) ?: throwSwitchSegmentMappingFailure(geometry, startSwitch)
+        } ?: 0
+    val endIndex =
+        endSwitch?.let { (s, j) ->
+            findIndex(geometry, startIndex, s, j)?.let(Int::dec)
+                ?: throwSwitchSegmentMappingFailure(geometry, endSwitch)
+        } ?: geometry.edges.lastIndex
 
-    return if (startIndex < 0) {
-        throwSwitchSegmentMappingFailure(alignment, startSwitch)
-    } else if (endIndex < startIndex || endIndex > alignment.segments.lastIndex) {
-        throwSwitchSegmentMappingFailure(alignment, endSwitch)
-    } else {
-        (startIndex..endIndex)
-    }
+    return (startIndex..endIndex)
 }
 
-private fun throwSwitchSegmentMappingFailure(alignment: LayoutAlignment, switch: SplitPointSwitch?): Nothing {
-    val aligmentDesc = alignment.segments.map { s -> s.switchId to "${s.startJointNumber}..${s.endJointNumber}" }
+private fun throwSwitchSegmentMappingFailure(geometry: LocationTrackGeometry, switch: SplitPointSwitch?): Nothing {
+    val geometrySwitches = geometry.switchLinks.joinToString(", ") { s -> "${s.id}[${s.jointNumber}]" }
     throw SplitFailureException(
-        message = "Failed to map split switches to segment indices: switch=$switch alignment=$aligmentDesc",
+        message = "Failed to map split switches to segment indices: switch=$switch geometrySwitches=$geometrySwitches",
         localizedMessageKey = "switch-segment-mapping-failed",
         localizationParams = localizationParams("switchName" to switch?.name, "joint" to switch?.jointNumber),
     )
 }
 
-private fun findIndex(alignment: LayoutAlignment, switchId: IntId<LayoutSwitch>, joint: JointNumber): Int {
-    alignment.segments.forEachIndexed { index, segment ->
-        if (segment.switchId == switchId && segment.startJointNumber == joint) {
-            return index
-        } else if (segment.switchId == switchId && segment.endJointNumber == joint) return index + 1
-    }
-    return -1
-}
+private fun findIndex(
+    geometry: LocationTrackGeometry,
+    startIndex: Int,
+    switchId: IntId<LayoutSwitch>,
+    joint: JointNumber,
+): Int? = geometry.nodes.indexOfFirst { node -> node.containsJoint(switchId, joint) }.takeIf { it >= startIndex }
 
-private fun cutSegments(alignment: LayoutAlignment, segmentIndices: ClosedRange<Int>): List<LayoutSegment> =
-    alignment.segments.subList(segmentIndices.start, segmentIndices.endInclusive + 1)
+private fun cutEdges(geometry: LocationTrackGeometry, indices: ClosedRange<Int>): List<LayoutEdge> =
+    geometry.edges.subList(indices.start, indices.endInclusive + 1)
 
 private fun verifySwitchSuggestions(
     suggestions: List<Pair<IntId<LayoutSwitch>, SuggestedSwitch?>>
@@ -812,38 +789,52 @@ private fun verifySwitchSuggestions(
         }
     }
 
+private data class GeocodedLocationTrack(
+    val track: LocationTrack,
+    val geometry: LocationTrackGeometry,
+    val startAndEnd: AlignmentStartAndEndMeters,
+)
+
+private fun getGeocoded(
+    context: GeocodingContext,
+    track: LocationTrack,
+    geometry: LocationTrackGeometry,
+): GeocodedLocationTrack? =
+    getAlignmentStartAndEndM(context, geometry)?.let { startAndEnd ->
+        GeocodedLocationTrack(track, geometry, startAndEnd)
+    }
+
 private fun findNewLocationTracksForUnusedDuplicates(
     geocodingContext: GeocodingContext,
-    unusedDuplicates: List<Pair<LocationTrack, IAlignment>>,
-    splitTargetLocationTracks: List<Pair<LocationTrack, IAlignment>>,
-): List<LocationTrack> {
+    unusedDuplicates: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    splitTargetLocationTracks: List<SplitTargetResult>,
+): List<Pair<LocationTrack, LocationTrackGeometry>> {
     val geocodedUnusedDuplicates =
-        unusedDuplicates.mapNotNull { (unusedDuplicate, alignment) ->
-            getAlignmentStartAndEndM(geocodingContext, alignment)?.let { startAndEnd -> unusedDuplicate to startAndEnd }
-        }
+        unusedDuplicates.mapNotNull { (track, geometry) -> getGeocoded(geocodingContext, track, geometry) }
 
     val geocodedSplitTargets =
-        splitTargetLocationTracks.mapNotNull { (locationTrack, alignment) ->
-            getAlignmentStartAndEndM(geocodingContext, alignment)?.let { startEnd -> locationTrack to startEnd }
-        }
+        splitTargetLocationTracks.mapNotNull { (track, geometry) -> getGeocoded(geocodingContext, track, geometry) }
 
-    return geocodedUnusedDuplicates.map { (duplicate, duplicateStartAndEnd) ->
+    return geocodedUnusedDuplicates.map { duplicate ->
         geocodedSplitTargets
-            .fold(LocationTrackOverlapReference()) { currentHighestOverlap, (splitTarget, splitTargetStartEnd) ->
+            .fold(LocationTrackOverlapReference()) { currentHighestOverlap, target ->
                 if (currentHighestOverlap.percentage > 99.9) {
                     currentHighestOverlap
                 } else {
-                    calculateDuplicateLocationTrackOverlap(splitTarget, splitTargetStartEnd, duplicateStartAndEnd)
+                    calculateDuplicateLocationTrackOverlap(target.track, target.startAndEnd, duplicate.startAndEnd)
                         .takeIf { calculatedOverlap -> calculatedOverlap.percentage > currentHighestOverlap.percentage }
                         ?: currentHighestOverlap
                 }
             }
             .let { bestNewLocationTrackReference -> bestNewLocationTrackReference.locationTrack?.id as IntId? }
-            ?.let { newReferenceTrackId -> duplicate.copy(duplicateOf = newReferenceTrackId) }
+            ?.let { newReferenceTrackId ->
+                duplicate.track.copy(duplicateOf = newReferenceTrackId) to duplicate.geometry
+            }
             ?: throw SplitFailureException(
-                message = "Could not find a new reference for duplicate location track: duplicateId=${duplicate.id}",
+                message =
+                    "Could not find a new reference for duplicate location track: duplicateId=${duplicate.track.id}",
                 localizedMessageKey = "new-duplicate-reference-assignment-failed",
-                localizationParams = localizationParams("duplicate" to duplicate.name),
+                localizationParams = localizationParams("duplicate" to duplicate.track.name),
             )
     }
 }

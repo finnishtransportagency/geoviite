@@ -423,28 +423,7 @@ data class GeocodingContext(
 
     val referenceLineAddresses by lazy { getAddressPoints(referenceLineGeometry) }
 
-    fun getPartialAddressRange(
-        sourceAlignment: IAlignment,
-        segmentIndices: IntRange,
-    ): Pair<AddressPoint, AddressPoint>? {
-        assert(segmentIndices.first >= 0 && segmentIndices.last <= sourceAlignment.segments.lastIndex) {
-            "Segment indices out of bounds: indices=$segmentIndices segments=${sourceAlignment.segments.size}"
-        }
-        val startSegment = sourceAlignment.segments[segmentIndices.first]
-        val startSegmentM = sourceAlignment.segmentMValues[segmentIndices.first]
-        val endSegment = sourceAlignment.segments[segmentIndices.last]
-        val endSegmentM = sourceAlignment.segmentMValues[segmentIndices.last]
-        val sourceStart = startSegment.segmentStart.toAlignmentPoint(0.0).let(this::toAddressPoint)?.first
-        val endSegmentStart = endSegmentM.min - startSegmentM.max
-        val sourceEnd = endSegment.segmentEnd.toAlignmentPoint(endSegmentStart).let(this::toAddressPoint)?.first
-        return if (sourceStart != null && sourceEnd != null) {
-            sourceStart to sourceEnd
-        } else {
-            null
-        }
-    }
-
-    private fun toAddressPoint(point: AlignmentPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
+    fun toAddressPoint(point: AlignmentPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
         getAddress(point, decimals)?.let { (address, intersectType) -> AddressPoint(point, address) to intersectType }
 
     fun getAddressPoints(alignment: IAlignment): AlignmentAddresses? {

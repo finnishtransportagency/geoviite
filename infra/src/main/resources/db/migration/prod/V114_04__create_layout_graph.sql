@@ -218,23 +218,23 @@ create temporary table node_point_version_temp as (
         -- Pick the start/end ports for edges by whether the track goes through the node in natural or reversed order
         tmp.node_type,
         tmp.increasing as dir_increasing,
+        -- Switch nodes will always have both ports
+        -- Even when the other port content is null: only 1 switch joint at that point
+        -- When both ports are combined, everything connects to A. Otherwise, resolve correct port by direction
+        -- A track boundary would only have both ports if there are two tracks and we don't have that in base data
         (case
-          -- Switch nodes will always have both ports
-          -- Even when the other port content is null: only 1 switch at that point and it continues only in 1 direction
+           when node_type = 'SWITCH' and tmp.combine_ports then 'A'
            when node_type = 'SWITCH' and tmp.increasing then 'B'
            when node_type = 'SWITCH' and not tmp.increasing then 'A'
-           -- A track boundary would only have both ports if there are two tracks and we don't have that in base data
            when node_type = 'TRACK_BOUNDARY' and boundary_type = 'START' then 'A'
            else null -- There cannot be a starting edge from a track boundary end
          end)::layout.node_port_type as start_edge_port,
         (case
-           -- Switch nodes will always have both ports
-           -- Even when the other port content is null: only 1 switch at that point and it continues only in 1 direction
+           when node_type = 'SWITCH' and tmp.combine_ports then 'A'
            when node_type = 'SWITCH' and tmp.increasing then 'A'
            when node_type = 'SWITCH' and not tmp.increasing then 'B'
-           -- A track boundary would only have both ports if there are two tracks and we don't have that in base data
            when node_type = 'TRACK_BOUNDARY' and boundary_type = 'END' then 'A'
-           else null -- There cannot be a ending edge at a track boundary start
+           else null -- There cannot be an ending edge at a track boundary start
          end)::layout.node_port_type as end_edge_port,
         -- The A track boundary is the end of the track in question, if and only if there are no switches for the node
         (case
@@ -250,16 +250,18 @@ create temporary table node_point_version_temp as (
         case when tmp.increasing then switch_in_id else switch_out_id end as a_switch_id,
         case when tmp.increasing then switch_in_joint_number else switch_out_joint_number end as a_switch_joint_number,
         case when tmp.increasing then switch_in_joint_role else switch_out_joint_role end as a_switch_joint_role,
-        case when tmp.increasing then switch_out_id else switch_in_id end as b_switch_id,
-        case when tmp.increasing then switch_out_joint_number else switch_in_joint_number end as b_switch_joint_number,
-        case when tmp.increasing then switch_out_joint_role else switch_in_joint_role end as b_switch_joint_role
+        case when tmp.combine_ports then null when tmp.increasing then switch_out_id else switch_in_id end as b_switch_id,
+        case when tmp.combine_ports then null when tmp.increasing then switch_out_joint_number else switch_in_joint_number end as b_switch_joint_number,
+        case when tmp.combine_ports then null when tmp.increasing then switch_out_joint_role else switch_in_joint_role end as b_switch_joint_role
         from track_node_version_candidate,
           lateral (
             select
               (case when switch_in_id is not null or switch_out_id is not null then 'SWITCH' else 'TRACK_BOUNDARY' end)::layout.node_type as node_type,
               (array [switch_in_id, switch_in_joint_number, boundary_location_track_id]
                 <= array [switch_out_id, switch_out_joint_number, boundary_location_track_id]
-              ) as increasing
+              ) as increasing,
+              -- If both ports contain the same switch-joint, they get combined into A and the B port is null
+              (switch_in_id = switch_out_id and switch_in_joint_number = switch_out_joint_number) as combine_ports
             ) as tmp
     )
   select
@@ -292,7 +294,7 @@ alter table node_point_version_temp
     layout.calculate_node_hash(a_port_hash, b_port_hash)
   ) stored;
 -- select * from node_point_version_temp where switch_1_id is not null;
--- select * from node_point_version_temp where switch_2_id is not null;
+-- select * from node_point_version_temp where a_switch_id = b_switch_id and a_switch_joint_number = b_switch_joint_number;
 
 
 do $$
