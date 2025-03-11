@@ -2,6 +2,8 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.LocalizationService
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.prepost.PreAuthorize
@@ -11,7 +13,10 @@ import org.springframework.web.bind.annotation.RequestParam
 
 @PreAuthorize(AUTH_API_GEOMETRY)
 @GeoviiteExtApiController([])
-class CenterLineGeometryControllerV1(private val centerLineGeometryService: CenterLineGeometryServiceV1) {
+class CenterLineGeometryControllerV1(
+    private val centerLineGeometryService: CenterLineGeometryServiceV1,
+    private val localizationService: LocalizationService,
+) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping(
@@ -27,6 +32,8 @@ class CenterLineGeometryControllerV1(private val centerLineGeometryService: Cent
         @RequestParam(ADDRESS_POINT_INTERVAL_PARAM, required = false) addressPointIntervalMeters: Double?,
         @RequestParam(INCLUDE_GEOMETRY_PARAM, required = false) includeGeometry: Boolean = false,
     ): CenterLineGeometryResponseV1 {
+        val translation = localizationService.getLocalization(LocalizationLanguage.FI)
+
         val (validationErrors, validRequest) =
             CenterLineGeometryRequestV1(
                     locationTrackOid,
@@ -46,7 +53,7 @@ class CenterLineGeometryControllerV1(private val centerLineGeometryService: Cent
 
             else -> {
                 CenterLineGeometryResponseErrorV1(
-                    errors = requireNotNull(validationErrors) // TODO
+                    errors = validationErrors.map { error -> error.toResponseError(translation) } // TODO
                 )
             }
         }
