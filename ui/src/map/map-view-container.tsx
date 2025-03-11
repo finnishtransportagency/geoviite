@@ -45,7 +45,6 @@ const getTrackLayoutProps = (): MapViewProps => {
         visibleLayerNames: store.map.visibleLayers,
         mapLayerMenuGroups: store.map.layerMenu,
         onMapLayerChange: delegates.onLayerMenuItemChange,
-        onStartPlanDownload: delegates.onStartPlanDownload,
         onStopPlanDownload: delegates.onStopPlanDownload,
     };
 };
@@ -71,7 +70,6 @@ const getInfraModelProps = (): MapViewProps => {
         onSetLayoutClusterLinkPoint: emptyFn,
         onSetLayoutPoint: emptyFn,
         onShownLayerItemsChange: emptyFn,
-        onStartPlanDownload: emptyFn,
         onStopPlanDownload: emptyFn,
         onViewportUpdate: delegates.onViewportChange,
         layoutContext: officialMainLayoutContext(),
@@ -92,7 +90,6 @@ type MapViewContainerProps = {
     customActiveMapTool?: MapTool;
     designPublicationMode?: DesignPublicationMode;
     mapTools: MapToolWithButton[];
-    allowPlanDownloads: boolean;
 };
 export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     layoutContext,
@@ -102,7 +99,6 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     customActiveMapTool,
     designPublicationMode,
     mapTools,
-    allowPlanDownloads,
 }) => {
     const mapContext = React.useContext(MapContext);
 
@@ -115,7 +111,6 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     mapProps.customActiveMapTool = customActiveMapTool;
     mapProps.designPublicationMode = designPublicationMode;
     mapProps.mapTools = mapTools;
-    mapProps.allowPlanDownloads = allowPlanDownloads;
 
     return <MapView {...mapProps} />;
 };
