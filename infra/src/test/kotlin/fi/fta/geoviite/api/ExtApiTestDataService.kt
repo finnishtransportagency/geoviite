@@ -1,4 +1,4 @@
-package fi.fta.geoviite.api.frameconverter.v1
+package fi.fta.geoviite.api
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestLayoutContext
@@ -57,7 +57,7 @@ private fun assertNullProperties(properties: Map<String, Any>, vararg propertyNa
 }
 
 @Service
-class FrameConverterTestDataServiceV1
+class ExtApiTestDataServiceV1
 @Autowired
 constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
