@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.api.formatting.splitBigDecimal
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.KmNumber
@@ -36,7 +37,7 @@ const val INCLUDE_GEOMETRY_PARAM = "geometriatiedot"
  *   geometry should be returned. (Optional)
  * @property coordinateSystem EPSG Code describing the coordinate system which is used for the response geometry data
  *   coordinates. Default: ETRS-TM35FIN (EPSG:3067).
- * @property addressPointIntervalMeters Decimal number describing the interval in meters of the track address points on
+ * @property addressPointInterval Decimal number describing the interval in meters of the track address points on
  *   included in the response geometry. Default: 1 meter.
  * @property includeGeometry Boolean describing if the response should include granular, possibly large amount of
  *   geometry data. Default: false.
@@ -47,7 +48,7 @@ data class CenterLineGeometryRequestV1(
     val trackKilometerStart: ApiRequestStringV1?,
     val trackKilometerInclusiveEnd: ApiRequestStringV1?,
     val coordinateSystem: ApiRequestStringV1?,
-    val addressPointIntervalMeters: Double?,
+    val addressPointInterval: ApiRequestStringV1?,
     val includeGeometry: Boolean?,
 )
 
@@ -59,12 +60,12 @@ data class ValidCenterLineGeometryRequestV1(
     val changesAfterTimestamp: Instant?,
     val trackInterval: TrackKilometerIntervalV1,
     val coordinateSystem: Srid,
-    val addressPointIntervalMeters: Double,
+    val addressPointInterval: AddressPointInterval,
     val includeGeometry: Boolean,
 ) {
     companion object {
         val DEFAULT_COORDINATE_SYSTEM = Srid(3067)
-        const val DEFAULT_ADDRESS_POINT_INTERVAL_METERS = 1.0
+        val DEFAULT_ADDRESS_POINT_INTERVAL = AddressPointInterval.ONE_METER
         const val DEFAULT_INCLUDE_GEOMETRY = false
     }
 
@@ -74,7 +75,7 @@ data class ValidCenterLineGeometryRequestV1(
         changesAfterTimestamp: Instant?,
         trackInterval: TrackKilometerIntervalV1,
         coordinateSystem: Srid?,
-        addressPointIntervalMeters: Double?,
+        addressPointInterval: AddressPointInterval?,
         includeGeometry: Boolean?,
     ) : this(
         locationTrackOid = locationTrackOid,
@@ -82,27 +83,26 @@ data class ValidCenterLineGeometryRequestV1(
         changesAfterTimestamp = changesAfterTimestamp,
         trackInterval = trackInterval,
         coordinateSystem = coordinateSystem ?: DEFAULT_COORDINATE_SYSTEM,
-        addressPointIntervalMeters = addressPointIntervalMeters ?: DEFAULT_ADDRESS_POINT_INTERVAL_METERS,
+        addressPointInterval = addressPointInterval ?: DEFAULT_ADDRESS_POINT_INTERVAL,
         includeGeometry = includeGeometry ?: DEFAULT_INCLUDE_GEOMETRY,
     )
 }
 
 abstract class CenterLineGeometryResponseV1
 
-// TODO
 data class CenterLineGeometryResponseOkV1(
     @JsonProperty("ratanumero") val trackNumberName: TrackNumber,
     @JsonProperty("ratanumero_oid") val trackNumberOid: Oid<LayoutTrackNumber>,
     @JsonProperty("oid") val locationTrackOid: Oid<LocationTrack>,
     @JsonProperty("sijaintiraidetunnus") val locationTrackName: AlignmentName,
     @JsonProperty("tyyppi") val locationTrackType: ApiLocationTrackType,
+    @JsonProperty("tila") val locationTrackState: ApiLocationTrackState,
     @JsonProperty("kuvaus") val locationTrackDescription: FreeText,
     @JsonProperty("omistaja") val locationTrackOwner: MetaDataName,
     @JsonProperty("alkusijainti") val startLocation: CenterLineGeometryPointV1,
     @JsonProperty("loppusijainti") val endLocation: CenterLineGeometryPointV1,
     @JsonProperty("koordinaatisto") val coordinateSystem: Srid,
-    @JsonProperty("osoitepistevali") val addressPointIntervalMeters: Double, // TODO Should this be a string
-    // instead?
+    @JsonProperty("osoitepistevali") val addressPointInterval: AddressPointInterval,
     @JsonProperty("muuttuneet_kilometrit") val trackKilometerGeometry: Map<KmNumber, List<CenterLineGeometryPointV1>>,
 ) : CenterLineGeometryResponseV1()
 
@@ -142,7 +142,8 @@ enum class CenterLineGeometryErrorV1(val code: Int, private val localizationSuff
     InvalidSrid(3, "invalid-coordinate-system-srid"),
     InvalidTrackKilometerStart(4, "invalid-track-kilometer-start"),
     InvalidTrackKilometerEnd(5, "invalid-track-kilometer-end"),
-    InvalidChangeTime(6, "invalid-change-time");
+    InvalidChangeTime(6, "invalid-change-time"),
+    InvalidAddressPointInterval(7, "invalid-address-point-interval");
 
     companion object {
         private const val BASE: String = "ext-api.track-layout.v1.center-line.error"
@@ -152,5 +153,20 @@ enum class CenterLineGeometryErrorV1(val code: Int, private val localizationSuff
 
     fun toResponseError(translation: Translation): CenterLineGeometryErrorResponseV1 {
         return CenterLineGeometryErrorResponseV1(code = this.code, message = translation.t(localizationKey))
+    }
+}
+
+enum class AddressPointInterval(@JsonValue val value: String) {
+    QUARTER_METER("0.25"),
+    ONE_METER("1.0");
+
+    companion object {
+        fun of(value: String): AddressPointInterval? {
+            return entries.find { entry -> entry.value == value }
+        }
+    }
+
+    override fun toString(): String {
+        return this.value
     }
 }

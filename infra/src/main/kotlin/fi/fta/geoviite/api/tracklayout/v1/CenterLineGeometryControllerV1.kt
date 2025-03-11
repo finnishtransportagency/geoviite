@@ -29,7 +29,7 @@ class CenterLineGeometryControllerV1(
         @RequestParam(TRACK_KILOMETER_START_PARAM, required = false) trackKilometerStart: ApiRequestStringV1?,
         @RequestParam(TRACK_KILOMETER_END_PARAM, required = false) trackKilometerInclusiveEnd: ApiRequestStringV1?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: ApiRequestStringV1?,
-        @RequestParam(ADDRESS_POINT_INTERVAL_PARAM, required = false) addressPointIntervalMeters: Double?,
+        @RequestParam(ADDRESS_POINT_INTERVAL_PARAM, required = false) addressPointInterval: ApiRequestStringV1?,
         @RequestParam(INCLUDE_GEOMETRY_PARAM, required = false) includeGeometry: Boolean = false,
     ): CenterLineGeometryResponseV1 {
         val translation = localizationService.getLocalization(LocalizationLanguage.FI)
@@ -41,7 +41,7 @@ class CenterLineGeometryControllerV1(
                     trackKilometerStart,
                     trackKilometerInclusiveEnd,
                     coordinateSystem,
-                    addressPointIntervalMeters,
+                    addressPointInterval,
                     includeGeometry,
                 )
                 .let(centerLineGeometryService::validate)
