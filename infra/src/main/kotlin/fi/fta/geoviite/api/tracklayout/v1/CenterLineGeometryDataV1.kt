@@ -52,7 +52,14 @@ data class CenterLineGeometryRequestV1(
     val includeGeometry: Boolean?,
 )
 
-data class TrackKilometerIntervalV1(val start: KmNumber?, val inclusiveEnd: KmNumber?)
+data class TrackKilometerIntervalV1(val start: KmNumber?, val inclusiveEnd: KmNumber?) {
+    fun containsKmEndInclusive(kmNumber: KmNumber): Boolean {
+        val startsAfterStartKmFilter = start == null || kmNumber >= start
+        val endsBeforeEndKmFilter = inclusiveEnd == null || kmNumber <= inclusiveEnd
+
+        return startsAfterStartKmFilter && endsBeforeEndKmFilter
+    }
+}
 
 data class ValidCenterLineGeometryRequestV1(
     val locationTrackOid: Oid<LocationTrack>,
