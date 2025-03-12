@@ -4,6 +4,7 @@ import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.localization.Translation
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.prepost.PreAuthorize
@@ -48,14 +49,26 @@ class CenterLineGeometryControllerV1(
 
         return when {
             validRequest != null -> {
-                centerLineGeometryService.process(validRequest)
+                val (responseOk, processingErrors) = centerLineGeometryService.process(validRequest)
+                if (responseOk != null) {
+                    return responseOk
+                } else {
+                    createErrorResponse(translation, processingErrors)
+                }
             }
 
             else -> {
-                CenterLineGeometryResponseErrorV1(
-                    errors = validationErrors.map { error -> error.toResponseError(translation) } // TODO
-                )
+                createErrorResponse(translation, validationErrors)
             }
         }
     }
+}
+
+private fun createErrorResponse(
+    translation: Translation,
+    errors: List<CenterLineGeometryErrorV1>,
+): CenterLineGeometryResponseErrorV1 {
+    return CenterLineGeometryResponseErrorV1(
+        errors = errors.map { error -> error.toResponseError(translation) } // TODO
+    )
 }

@@ -7,9 +7,13 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.InputValidationException
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geography.CoordinateTransformationException
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -90,7 +94,9 @@ constructor(
         }
     }
 
-    fun process(request: ValidCenterLineGeometryRequestV1): CenterLineGeometryResponseV1 {
+    fun process(
+        request: ValidCenterLineGeometryRequestV1
+    ): Pair<CenterLineGeometryResponseV1?, List<CenterLineGeometryErrorV1>> {
         val layoutContext = MainLayoutContext.official
 
         val trackNumberName =
@@ -116,39 +122,57 @@ constructor(
         // TODO This will require even more work due to having to get the differing address points based on the specific
         // alignment versions, specified by the optional change time submitted by the user. Also deleted kilometers
         // should be displayed as empty arrays in the result map.
-        val midPoints =
+
+        val (midPoints, midPointErrors) =
             if (request.includeGeometry) {
                 alignmentAddresses.midPoints
                     .filter { addressPoint ->
                         request.trackInterval.containsKmEndInclusive(addressPoint.address.kmNumber)
                     }
-                    .groupBy(
-                        keySelector = { addressPoint -> addressPoint.address.kmNumber },
-
-                        // TODO This call should probably include the coordinate system and/or convert coordinates
-                        // during it
-                        // or as parameters.
-                        valueTransform = { addressPoint -> CenterLineGeometryPointV1.of(addressPoint) },
-                    )
+                    .let { addressPoints ->
+                        convertAddressPointsToRequestCoordinateSystem(request.coordinateSystem, addressPoints)
+                    }
             } else {
-                emptyMap()
+                emptyList<AddressPoint>() to emptyList()
             }
 
-        return CenterLineGeometryResponseOkV1(
-            trackNumberName = trackNumberName,
-            trackNumberOid = trackNumberOid,
-            locationTrackOid = request.locationTrackOid,
-            locationTrackName = request.locationTrack.name,
-            locationTrackType = ApiLocationTrackType(request.locationTrack.type),
-            locationTrackState = ApiLocationTrackState(request.locationTrack.state),
-            locationTrackDescription = locationTrackDescription,
-            locationTrackOwner = locationTrackService.getLocationTrackOwner(request.locationTrack.ownerId).name,
-            addressPointInterval = request.addressPointInterval,
-            coordinateSystem = request.coordinateSystem,
-            startLocation = CenterLineGeometryPointV1.of(alignmentAddresses.startPoint),
-            endLocation = CenterLineGeometryPointV1.of(alignmentAddresses.endPoint),
-            trackKilometerGeometry = midPoints,
-        )
+        val midPointsByKmNumber =
+            midPoints?.groupBy(
+                keySelector = { addressPoint -> addressPoint.address.kmNumber },
+
+                // TODO This call should probably include the coordinate system and/or convert coordinates
+                // during it
+                // or as parameters.
+                valueTransform = { addressPoint -> CenterLineGeometryPointV1.of(addressPoint) },
+            ) ?: emptyMap()
+
+        val (convertedStartLocation, startLocationConversionErrors) =
+            convertAddressPointToRequestCoordinateSystem(request.coordinateSystem, alignmentAddresses.startPoint)
+
+        val (convertedEndLocation, endLocationConversionErrors) =
+            convertAddressPointToRequestCoordinateSystem(request.coordinateSystem, alignmentAddresses.endPoint)
+
+        val errors = listOf(startLocationConversionErrors, endLocationConversionErrors, midPointErrors).flatten()
+
+        return if (errors.isNotEmpty()) {
+            null to errors
+        } else {
+            CenterLineGeometryResponseOkV1(
+                trackNumberName = trackNumberName,
+                trackNumberOid = trackNumberOid,
+                locationTrackOid = request.locationTrackOid,
+                locationTrackName = request.locationTrack.name,
+                locationTrackType = ApiLocationTrackType(request.locationTrack.type),
+                locationTrackState = ApiLocationTrackState(request.locationTrack.state),
+                locationTrackDescription = locationTrackDescription,
+                locationTrackOwner = locationTrackService.getLocationTrackOwner(request.locationTrack.ownerId).name,
+                addressPointInterval = request.addressPointInterval,
+                coordinateSystem = request.coordinateSystem,
+                startLocation = CenterLineGeometryPointV1.of(convertedStartLocation.let(::requireNotNull)),
+                endLocation = CenterLineGeometryPointV1.of(convertedEndLocation.let(::requireNotNull)),
+                trackKilometerGeometry = midPointsByKmNumber,
+            ) to emptyList()
+        }
     }
 }
 
@@ -200,5 +224,46 @@ fun validateAddressPointInterval(
         null to listOf(CenterLineGeometryErrorV1.InvalidAddressPointInterval)
     } else {
         parsedAddressPointInterval to emptyList()
+    }
+}
+
+fun convertAddressPointToRequestCoordinateSystem(
+    targetCoordinateSystem: Srid,
+    addressPoint: AddressPoint,
+): Pair<AddressPoint?, List<CenterLineGeometryErrorV1>> {
+    return when (targetCoordinateSystem) {
+        LAYOUT_SRID -> addressPoint to emptyList()
+        else -> {
+            try {
+                val convertedPoint = transformNonKKJCoordinate(LAYOUT_SRID, targetCoordinateSystem, addressPoint.point)
+                val convertedAddressPoint =
+                    addressPoint.copy(point = addressPoint.point.copy(x = convertedPoint.x, y = convertedPoint.y))
+
+                convertedAddressPoint to emptyList()
+            } catch (ex: CoordinateTransformationException) {
+                return null to listOf(CenterLineGeometryErrorV1.OutputCoordinateTransformationFailed)
+            }
+        }
+    }
+}
+
+fun convertAddressPointsToRequestCoordinateSystem(
+    targetCoordinateSystem: Srid,
+    addressPoints: List<AddressPoint>,
+): Pair<List<AddressPoint>?, List<CenterLineGeometryErrorV1>> {
+    return when (targetCoordinateSystem) {
+        LAYOUT_SRID -> addressPoints to emptyList()
+        else -> {
+            val convertedPointsAndErrors =
+                addressPoints.map { addressPoint ->
+                    convertAddressPointToRequestCoordinateSystem(targetCoordinateSystem, addressPoint)
+                }
+
+            if (convertedPointsAndErrors.any { (_, errors) -> errors.isNotEmpty() }) {
+                return null to listOf(CenterLineGeometryErrorV1.OutputCoordinateTransformationFailed)
+            } else {
+                convertedPointsAndErrors.map { (addressPoint, _) -> requireNotNull(addressPoint) } to emptyList()
+            }
+        }
     }
 }
