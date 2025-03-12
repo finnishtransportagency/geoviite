@@ -182,7 +182,7 @@ constructor(
         val trackNumberId = mainOfficialContext.insert(trackNumber(TrackNumber(trackNumberName))).id
 
         val oid = someOid<LocationTrack>()
-        insertLocationTrackWithOid(oid, trackNumberId = trackNumberId)
+        insertGeocodableLocationTrackWithOid(oid, trackNumberId = trackNumberId)
 
         assertEquals(trackNumberName, api.get<GeometryResponse>(url(oid)).trackNumberName)
     }
@@ -192,7 +192,7 @@ constructor(
         val trackNumberOid = someOid<LayoutTrackNumber>()
 
         val oid = someOid<LocationTrack>()
-        insertLocationTrackWithOid(oid, trackNumberOid = trackNumberOid)
+        insertGeocodableLocationTrackWithOid(oid, trackNumberOid = trackNumberOid)
 
         assertEquals(trackNumberOid.toString(), api.get<GeometryResponse>(url(oid)).trackNumberOid)
     }
@@ -208,7 +208,7 @@ constructor(
                 )
                 .mapValues { (_, trackType) ->
                     someOid<LocationTrack>().also { oid ->
-                        insertLocationTrackWithOid(oid, locationTrackType = trackType)
+                        insertGeocodableLocationTrackWithOid(oid, locationTrackType = trackType)
                     }
                 }
 
@@ -228,7 +228,7 @@ constructor(
                 )
                 .mapValues { (_, trackState) ->
                     someOid<LocationTrack>().also { oid ->
-                        insertLocationTrackWithOid(oid, locationTrackState = trackState)
+                        insertGeocodableLocationTrackWithOid(oid, locationTrackState = trackState)
                     }
                 }
 
@@ -242,7 +242,7 @@ constructor(
         val trackName = "some location track name"
 
         val oid = someOid<LocationTrack>()
-        insertLocationTrackWithOid(oid, locationTrackName = trackName)
+        insertGeocodableLocationTrackWithOid(oid, locationTrackName = trackName)
 
         assertEquals(trackName, api.get<GeometryResponse>(url(oid)).locationTrackName)
     }
@@ -261,7 +261,7 @@ constructor(
                 )
                 .mapValues { (_, ownerId) ->
                     someOid<LocationTrack>().also { oid ->
-                        insertLocationTrackWithOid(oid, locationTrackOwnerId = ownerId)
+                        insertGeocodableLocationTrackWithOid(oid, locationTrackOwnerId = ownerId)
                     }
                 }
 
@@ -278,7 +278,7 @@ constructor(
         val segments = listOf(segment(Point(startSegmentX, startSegmentY), Point(5.0, 0.0)))
 
         val oid = someOid<LocationTrack>()
-        insertLocationTrackWithOid(oid, segments = segments)
+        insertGeocodableLocationTrackWithOid(oid, segments = segments)
 
         val startPoint = api.get<GeometryResponse>(url(oid)).locationTrackStart
         assertEquals(startSegmentX, startPoint.x)
@@ -293,7 +293,7 @@ constructor(
         val segments = listOf(segment(Point(0.0, 0.0), Point(endSegmentX, endSegmentY)))
 
         val oid = someOid<LocationTrack>()
-        insertLocationTrackWithOid(oid, segments = segments)
+        insertGeocodableLocationTrackWithOid(oid, segments = segments)
 
         val endPoint = api.get<GeometryResponse>(url(oid)).locationTrackEnd
         assertEquals(endSegmentX, endPoint.x)
@@ -305,7 +305,7 @@ constructor(
         val tests = listOf("EPSG:3500", "EPSG:4236", "EPSG:5111")
 
         val oid = someOid<LocationTrack>()
-        insertLocationTrackWithOid(oid)
+        insertGeocodableLocationTrackWithOid(oid)
 
         tests.forEach { epsgCode ->
             assertEquals(
@@ -320,7 +320,7 @@ constructor(
         val addressPointIntervals = listOf("0.25", "1.0")
 
         val oid = someOid<LocationTrack>()
-        insertLocationTrackWithOid(oid)
+        insertGeocodableLocationTrackWithOid(oid)
 
         addressPointIntervals.forEach { interval ->
             assertEquals(
@@ -333,7 +333,7 @@ constructor(
     @Test
     fun `Location track geometry points are not returned by default`() {
         val oid = someOid<LocationTrack>()
-        insertLocationTrackWithOid(oid)
+        insertGeocodableLocationTrackWithOid(oid)
 
         assertEquals(0, api.get<GeometryResponse>(url(oid)).geometry.size)
     }
@@ -517,11 +517,81 @@ constructor(
         // TODO this requires a modified track and change time as an argument
     }
 
-    @Test fun `User provided coordinate system is used for returned geometry values`() {}
+    @Test
+    fun `User provided coordinate system is used for returned geometry values`() {
+        val basePoint = Point(x = 385782.89, y = 6672277.83) // Helsinki railway station in ETRS-TM35FIN (EPSG:3067)
+
+        val oid = someOid<LocationTrack>()
+        val geocodableTrack =
+            extApiTestDataServiceV1.insertGeocodableTrack(
+                layoutContext = mainOfficialContext,
+                segments = listOf(segment(basePoint, basePoint + Point(3000.0, 2000.0))),
+            )
+
+        locationTrackDao.insertExternalId(
+            geocodableTrack.locationTrack.id as IntId,
+            mainOfficialContext.context.branch,
+            oid,
+        )
+
+        trackNumberDao.insertExternalId(
+            geocodableTrack.trackNumber.id as IntId,
+            mainOfficialContext.context.branch,
+            someOid(),
+        )
+
+        listOf(
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(0),
+                    roughLayoutLocation = basePoint,
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(1),
+                    roughLayoutLocation = basePoint + Point(1000.0, 500.0),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(2),
+                    roughLayoutLocation = basePoint + Point(2000.0, 1000.0),
+                    draft = false,
+                ),
+            )
+            .forEach(layoutKmPostDao::save)
+
+        val response =
+            api.get<GeometryResponse>(url(oid), mapOf("geometriatiedot" to "true", "koordinaatisto" to EpsgWgs84))
+
+        // Expected values were calculated externally using https://epsg.io/transform
+        val requiredAccuracy = 0.0001
+
+        assertEquals(24.9414003, response.locationTrackStart.x, requiredAccuracy)
+        assertEquals(60.1713788, response.locationTrackStart.y, requiredAccuracy)
+
+        assertEquals(24.9943374, response.locationTrackEnd.x, requiredAccuracy)
+        assertEquals(60.1901543, response.locationTrackEnd.y, requiredAccuracy)
+
+        assertEquals(24.9414003, response.geometry["0000"]!!.first().x, requiredAccuracy)
+        assertEquals(60.1713788, response.geometry["0000"]!!.first().y, requiredAccuracy)
+
+        assertEquals(24.9576822, response.geometry["0001"]!!.first().x, requiredAccuracy)
+        assertEquals(60.1771581, response.geometry["0001"]!!.first().y, requiredAccuracy)
+
+        assertEquals(24.9739698, response.geometry["0002"]!!.first().x, requiredAccuracy)
+        assertEquals(60.1829354, response.geometry["0002"]!!.first().y, requiredAccuracy)
+    }
 
     @Test fun `User provided address point interval value is used for returned geometry values`() {}
 
-    private fun insertLocationTrackWithOid(
+    @Test
+    fun `Invalid coordinates should result in coordinate transformation error`() {
+        // TODO
+    }
+
+    private fun insertGeocodableLocationTrackWithOid(
         oid: Oid<LocationTrack>,
         trackNumberId: IntId<LayoutTrackNumber> =
             mainOfficialContext.insert(trackNumber(TrackNumber(testDBService.getUnusedTrackNumber().value))).id,
