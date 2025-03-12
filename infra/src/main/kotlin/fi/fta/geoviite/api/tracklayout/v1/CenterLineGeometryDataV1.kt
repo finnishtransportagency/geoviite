@@ -150,7 +150,8 @@ enum class CenterLineGeometryErrorV1(val code: Int, private val localizationSuff
     InvalidTrackKilometerStart(4, "invalid-track-kilometer-start"),
     InvalidTrackKilometerEnd(5, "invalid-track-kilometer-end"),
     InvalidChangeTime(6, "invalid-change-time"),
-    InvalidAddressPointInterval(7, "invalid-address-point-interval");
+    InvalidAddressPointInterval(7, "invalid-address-point-interval"),
+    OutputCoordinateTransformationFailed(8, "output-coordinate-transformation-failed");
 
     companion object {
         private const val BASE: String = "ext-api.track-layout.v1.center-line.error"
