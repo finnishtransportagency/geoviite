@@ -118,13 +118,18 @@ constructor(
         // should be displayed as empty arrays in the result map.
         val midPoints =
             if (request.includeGeometry) {
-                alignmentAddresses.midPoints.groupBy(
-                    keySelector = { addressPoint -> addressPoint.address.kmNumber },
+                alignmentAddresses.midPoints
+                    .filter { addressPoint ->
+                        request.trackInterval.containsKmEndInclusive(addressPoint.address.kmNumber)
+                    }
+                    .groupBy(
+                        keySelector = { addressPoint -> addressPoint.address.kmNumber },
 
-                    // TODO This call should probably include the coordinate system and/or convert coordinates during it
-                    // or as parameters.
-                    valueTransform = { addressPoint -> CenterLineGeometryPointV1.of(addressPoint) },
-                )
+                        // TODO This call should probably include the coordinate system and/or convert coordinates
+                        // during it
+                        // or as parameters.
+                        valueTransform = { addressPoint -> CenterLineGeometryPointV1.of(addressPoint) },
+                    )
             } else {
                 emptyMap()
             }
