@@ -485,6 +485,9 @@ constructor(
 
         val tests =
             listOf(
+                // Track km "above" any of the actually created track kms should still work, but return the entire track
+                "1234" to setOf("0000", "0001AB", "0001CD", "0002", "0002EF"),
+
                 // Using the last track km should result in the response containing every track km (including itself).
                 "0002EF" to setOf("0000", "0001AB", "0001CD", "0002", "0002EF"),
 
