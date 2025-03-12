@@ -27,18 +27,22 @@ class GeocodingService(
     private val geocodingDao: GeocodingDao,
     private val geocodingCacheService: GeocodingCacheService,
 ) {
-
-    fun getAddressPoints(layoutContext: LayoutContext, locationTrackId: IntId<LocationTrack>): AlignmentAddresses? {
-        return addressPointsCache
-            .getAddressPointCacheKey(layoutContext, locationTrackId)
-            ?.let(addressPointsCache::getAddressPoints)
+    fun getAddressPoints(
+        layoutContext: LayoutContext,
+        locationTrackId: IntId<LocationTrack>,
+        resolution: Resolution = Resolution.ONE_METER,
+    ): AlignmentAddresses? {
+        return addressPointsCache.getAddressPointCacheKey(layoutContext, locationTrackId, resolution)?.let { cacheKey ->
+            addressPointsCache.getAddressPoints(cacheKey)
+        }
     }
 
     fun getAddressPoints(
         contextKey: GeocodingContextCacheKey,
         alignmentVersion: RowVersion<LayoutAlignment>,
+        resolution: Resolution = Resolution.ONE_METER,
     ): AlignmentAddresses? {
-        return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
+        return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey, resolution))
     }
 
     fun getAddress(
