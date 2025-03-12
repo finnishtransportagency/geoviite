@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -113,7 +114,13 @@ constructor(
                 .getFullDescriptions(layoutContext, listOf(request.locationTrack), LocalizationLanguage.FI)
                 .first()
 
-        val alignmentAddresses = geocodingService.getAddressPoints(layoutContext, request.locationTrack.id as IntId)
+        val alignmentAddresses =
+            geocodingService.getAddressPoints(
+                layoutContext,
+                request.locationTrack.id as IntId,
+                Resolution.QUARTER_METER, // TODO Should be from the user or default to one meter
+            )
+
         checkNotNull(alignmentAddresses) // TODO Better error
 
         // TODO Supporting the custom interval in this will require a bunch of work due to address point interval being

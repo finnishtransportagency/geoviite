@@ -47,20 +47,16 @@ class CenterLineGeometryControllerV1(
                 )
                 .let(centerLineGeometryService::validate)
 
-        return when {
-            validRequest != null -> {
-                val (responseOk, processingErrors) = centerLineGeometryService.process(validRequest)
-                if (responseOk != null) {
-                    return responseOk
-                } else {
-                    createErrorResponse(translation, processingErrors)
-                }
-            }
+        return validRequest?.let { processValidatedRequest(translation, validRequest) }
+            ?: createErrorResponse(translation, validationErrors)
+    }
 
-            else -> {
-                createErrorResponse(translation, validationErrors)
-            }
-        }
+    private fun processValidatedRequest(
+        translation: Translation,
+        request: ValidCenterLineGeometryRequestV1,
+    ): CenterLineGeometryResponseV1 {
+        val (responseOk, processingErrors) = centerLineGeometryService.process(request)
+        return responseOk ?: createErrorResponse(translation, processingErrors)
     }
 }
 
@@ -68,7 +64,5 @@ private fun createErrorResponse(
     translation: Translation,
     errors: List<CenterLineGeometryErrorV1>,
 ): CenterLineGeometryResponseErrorV1 {
-    return CenterLineGeometryResponseErrorV1(
-        errors = errors.map { error -> error.toResponseError(translation) } // TODO
-    )
+    return CenterLineGeometryResponseErrorV1(errors = errors.map { error -> error.toResponseError(translation) })
 }
