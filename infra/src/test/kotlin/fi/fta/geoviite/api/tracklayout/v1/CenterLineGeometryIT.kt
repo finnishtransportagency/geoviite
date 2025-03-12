@@ -5,9 +5,11 @@ import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -16,6 +18,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -83,7 +86,7 @@ constructor(
     //    val referenceLineDao: ReferenceLineDao,
     //    val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
-    //    val layoutKmPostDao: LayoutKmPostDao,
+    private val layoutKmPostDao: LayoutKmPostDao,
     //    val geocodingService: GeocodingService,
     private val extApiTestDataServiceV1: ExtApiTestDataServiceV1,
 ) : DBTestBase() {
@@ -339,9 +342,175 @@ constructor(
 
     @Test fun `User provided change time is taken into account when returning geometry changes`() {}
 
-    @Test fun `User provided start track km filter works`() {}
+    @Test
+    fun `User provided start track km filters away preceding track kilometers`() {
+        val oid = someOid<LocationTrack>()
 
-    @Test fun `User provided end track km filter works as inclusive`() {}
+        val geocodableTrack =
+            extApiTestDataServiceV1.insertGeocodableTrack(
+                layoutContext = mainOfficialContext,
+                segments = listOf(segment(Point(0.0, 0.0), Point(3000.0, 0.0))),
+            )
+
+        locationTrackDao.insertExternalId(
+            geocodableTrack.locationTrack.id as IntId,
+            mainOfficialContext.context.branch,
+            oid,
+        )
+
+        trackNumberDao.insertExternalId(
+            geocodableTrack.trackNumber.id as IntId,
+            mainOfficialContext.context.branch,
+            someOid(),
+        )
+
+        listOf(
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(0),
+                    roughLayoutLocation = Point(1000.0, 0.0),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(1, "AB"),
+                    roughLayoutLocation = Point(1100.0, 0.0),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(1, "CD"),
+                    roughLayoutLocation = Point(1500.0, 0.0),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(2),
+                    roughLayoutLocation = Point(2000.0, 0.0),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(2, "EF"),
+                    roughLayoutLocation = Point(2100.0, 0.0),
+                    draft = false,
+                ),
+            )
+            .forEach(layoutKmPostDao::save)
+
+        val tests =
+            listOf(
+                // Using the first track km should result in the response containing every track km.
+                "0000" to setOf("0000", "0001AB", "0001CD", "0002", "0002EF"),
+
+                // Using the second track km should also include both of the track kms on the same track kilometer.
+                "0001AB" to setOf("0001AB", "0001CD", "0002", "0002EF"),
+
+                // Lexical filtering of track kms should work (0001AB is before 0001CD).
+                "0001CD" to setOf("0001CD", "0002", "0002EF"),
+
+                // Track km filter without extension should also work.
+                "0002" to setOf("0002", "0002EF"),
+
+                // Track km which does not exist should work as a filter.
+                "1234" to emptySet(),
+            )
+
+        tests.forEach { (trackKmFilter, expectedTrackKms) ->
+            val response =
+                api.get<GeometryResponse>(
+                    url(oid),
+                    mapOf("geometriatiedot" to "true", "ratakilometri_alku" to trackKmFilter),
+                )
+
+            assertEquals(expectedTrackKms, response.geometry.keys)
+        }
+    }
+
+    @Test
+    fun `User provided end track km filter works as inclusive, but filters away succeeding track kms`() {
+        val oid = someOid<LocationTrack>()
+
+        val geocodableTrack =
+            extApiTestDataServiceV1.insertGeocodableTrack(
+                layoutContext = mainOfficialContext,
+                segments = listOf(segment(Point(0.0, 0.0), Point(3000.0, 0.0))),
+            )
+
+        locationTrackDao.insertExternalId(
+            geocodableTrack.locationTrack.id as IntId,
+            mainOfficialContext.context.branch,
+            oid,
+        )
+
+        trackNumberDao.insertExternalId(
+            geocodableTrack.trackNumber.id as IntId,
+            mainOfficialContext.context.branch,
+            someOid(),
+        )
+
+        listOf(
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(0),
+                    roughLayoutLocation = Point(1000.0, 0.0),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(1, "AB"),
+                    roughLayoutLocation = Point(1100.0, 0.0),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(1, "CD"),
+                    roughLayoutLocation = Point(1500.0, 0.0),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(2),
+                    roughLayoutLocation = Point(2000.0, 0.0),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(2, "EF"),
+                    roughLayoutLocation = Point(2100.0, 0.0),
+                    draft = false,
+                ),
+            )
+            .forEach(layoutKmPostDao::save)
+
+        val tests =
+            listOf(
+                // Using the last track km should result in the response containing every track km (including itself).
+                "0002EF" to setOf("0000", "0001AB", "0001CD", "0002", "0002EF"),
+
+                // Using the second last track km should lexically filter away the last one.
+                "0002" to setOf("0000", "0001AB", "0001CD", "0002"),
+
+                // Lexical and inclusive filtering should work in the middle of the track.
+                "0001CD" to setOf("0000", "0001AB", "0001CD"),
+
+                // Lexical and inclusive filtering should work in the middle of the track.
+                "0001AB" to setOf("0000", "0001AB"),
+
+                // Using the first km as the end filter should only include itself.
+                "0000" to setOf("0000"),
+            )
+
+        tests.forEach { (trackKmFilter, expectedTrackKms) ->
+            val response =
+                api.get<GeometryResponse>(
+                    url(oid),
+                    mapOf("geometriatiedot" to "true", "ratakilometri_loppu" to trackKmFilter),
+                )
+
+            assertEquals(expectedTrackKms, response.geometry.keys)
+        }
+    }
 
     @Test
     fun `Deleted kilometers of a location track are returned as empty lists`() {
