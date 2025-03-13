@@ -395,14 +395,13 @@ class LocationTrackService(
         startKmNumber: KmNumber?,
         endKmNumber: KmNumber?,
     ): List<GeometryPlanHeader> {
-        val locationTrack = get(layoutContext, locationTrackId)
-        val geocodingContext =
-            locationTrack?.let { geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId) }
+        val locationTrack = getOrThrow(layoutContext, locationTrackId)
+        val contextKey = geocodingService.getGeocodingContextCacheKey(layoutContext, locationTrack.trackNumberId)
 
-        return if (geocodingContext != null && locationTrack?.alignmentVersion != null) {
+        return if (contextKey != null && locationTrack.alignmentVersion != null) {
             alignmentService.getLinkedPlanHeaders(
                 locationTrack.alignmentVersion,
-                geocodingContext,
+                contextKey,
                 startKmNumber,
                 endKmNumber,
             )

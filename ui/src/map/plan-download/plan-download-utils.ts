@@ -1,5 +1,5 @@
 import { DownloadablePlan } from 'map/plan-download/plan-download-store';
-import { KmNumberRange, PlanApplicability } from 'geometry/geometry-model';
+import { GeometryPlanHeader, KmNumberRange, PlanApplicability } from 'geometry/geometry-model';
 import { compareKmNumberStrings } from 'common/common-model';
 import { expectDefined } from 'utils/type-utils';
 
@@ -31,3 +31,15 @@ export const isKmNumberWithinAlignment = (
 ): boolean =>
     compareKmNumberStrings(kmNumber, kmNumberRange.min) >= 0 &&
     compareKmNumberStrings(kmNumber, kmNumberRange.max) <= 0;
+
+export const toDownloadablePlan = (
+    planHeader: GeometryPlanHeader,
+    selected: boolean,
+): DownloadablePlan => ({
+    id: planHeader.id,
+    name: planHeader.fileName,
+    selected: selected,
+    applicability: planHeader.planApplicability,
+    source: planHeader.source,
+    kmNumberRange: planHeader.kmNumberRange,
+});

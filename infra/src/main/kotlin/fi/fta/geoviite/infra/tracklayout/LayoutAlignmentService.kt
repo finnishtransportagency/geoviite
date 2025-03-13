@@ -8,14 +8,25 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
+import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geography.bufferedPolygonForLineStringPoints
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
+import fi.fta.geoviite.infra.linking.switches.CroppedAlignment
+import fi.fta.geoviite.infra.map.simplify
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Range
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
-class LayoutAlignmentService(private val dao: LayoutAlignmentDao, private val geometryDao: GeometryDao) {
+class LayoutAlignmentService(
+    private val dao: LayoutAlignmentDao,
+    private val geometryDao: GeometryDao,
+    private val geocodingService: GeocodingService,
+) {
+
     fun update(alignment: LayoutAlignment) = dao.update(alignment)
 
     fun saveAsNew(alignment: LayoutAlignment): RowVersion<LayoutAlignment> = save(asNew(alignment))
@@ -67,27 +78,52 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao, private val ge
 
     fun getLinkedPlanHeaders(
         alignmentVersion: RowVersion<LayoutAlignment>,
-        context: GeocodingContext,
+        geocodingContextCacheKey: GeocodingContextCacheKey,
         startKmNumber: KmNumber?,
         endKmNumber: KmNumber?,
     ): List<GeometryPlanHeader> {
-        val metadataSections =
-            getGeometryMetadataSections(alignmentVersion, null, null, context).filter { section ->
-                val start = section.start.address.kmNumber
-                val end = section.end.address.kmNumber
+        val croppedAlignment = cropAlignment(alignmentVersion, geocodingContextCacheKey, startKmNumber, endKmNumber)
+        val simplified = simplify(croppedAlignment, 100, null, true)
 
-                if (startKmNumber != null && endKmNumber != null) {
-                    startKmNumber <= start && endKmNumber >= end
-                } else if (startKmNumber != null) {
-                    startKmNumber <= start
-                } else if (endKmNumber != null) {
-                    endKmNumber >= end
-                } else {
-                    true
-                }
-            }
+        val polygon = bufferedPolygonForLineStringPoints(simplified, 10.0, LAYOUT_SRID)
+        val plans = geometryDao.fetchIntersectingPlans(polygon)
+        return geometryDao.getPlanHeaders(plans)
+    }
 
-        return geometryDao.getPlanHeaders(metadataSections.mapNotNull { section -> section.planId })
+    private fun cropAlignment(
+        alignmentVersion: RowVersion<LayoutAlignment>,
+        geocodingContextCacheKey: GeocodingContextCacheKey,
+        startKmNumber: KmNumber?,
+        endKmNumber: KmNumber?,
+    ): IAlignment {
+        val alignment = dao.fetch(alignmentVersion)
+        if (startKmNumber == null && endKmNumber == null) return alignment
+
+        val addressPoints = geocodingService.getAddressPoints(geocodingContextCacheKey, alignmentVersion)
+        val startM =
+            requireNotNull(
+                startKmNumber?.let { kmNumber ->
+                    addressPoints?.allPoints?.firstOrNull { it.address.kmNumber == kmNumber }?.point?.m
+                } ?: alignment.start?.m
+            )
+        val endM =
+            endKmNumber?.let { kmNumber ->
+                addressPoints?.allPoints?.lastOrNull { it.address.kmNumber == kmNumber }?.point?.m
+            } ?: alignment.end?.m ?: Double.MAX_VALUE
+
+        val startSegment =
+            alignment.segments
+                .find { s -> startM in s.startM..s.endM }
+                ?.let { s -> if (startM < s.endM) s.slice(Range(startM, s.endM)) else null }
+        val endSegment =
+            alignment.segments
+                .find { s -> endM in s.startM..s.endM }
+                ?.let { s -> if (s.startM < endM) s.slice(Range(s.startM, endM)) else null }
+        val midSegments = alignment.segments.filter { s -> s.startM > startM && s.endM < endM }
+
+        val segments = listOfNotNull(startSegment) + midSegments + listOfNotNull(endSegment)
+        val croppedAlignment = CroppedAlignment(0, segments, alignment.id)
+        return croppedAlignment
     }
 }
 

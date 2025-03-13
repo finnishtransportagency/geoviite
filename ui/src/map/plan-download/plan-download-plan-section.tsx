@@ -4,7 +4,12 @@ import styles from './plan-download-popup.scss';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { GeometryPlanId, highestApplicability, PlanApplicability } from 'geometry/geometry-model';
+import {
+    GeometryPlanId,
+    highestApplicability,
+    PlanApplicability,
+    PlanSource,
+} from 'geometry/geometry-model';
 import { DownloadablePlan } from 'map/plan-download/plan-download-store';
 import { inframodelBatchDownloadUri } from 'infra-model/infra-model-api';
 import { createClassName } from 'vayla-design-lib/utils';
@@ -16,6 +21,7 @@ type PlanItemProps = {
     name: string;
     checked: boolean;
     applicability: PlanApplicability | undefined;
+    source: PlanSource;
     setPlanSelected: (planId: GeometryPlanId, selected: boolean) => void;
     selectPlan: (planId: GeometryPlanId) => void;
     disabled: boolean;
@@ -25,6 +31,7 @@ const PlanItem: React.FC<PlanItemProps> = ({
     id,
     checked,
     name,
+    source,
     applicability,
     setPlanSelected,
     selectPlan,
@@ -34,6 +41,11 @@ const PlanItem: React.FC<PlanItemProps> = ({
         styles['plan-download-popup__plan-row'],
         disabled && styles['plan-download-popup__plan-row--disabled'],
     );
+    const fromPaikannuspalvelu = source === 'PAIKANNUSPALVELU';
+    const nameClassNames = createClassName(
+        fromPaikannuspalvelu && styles['plan-download-popup__plan-name--has-subheader'],
+    );
+
     return (
         <li className={classNames}>
             <Checkbox
@@ -44,7 +56,12 @@ const PlanItem: React.FC<PlanItemProps> = ({
             <span
                 className={styles['plan-download-popup__plan-name']}
                 onClick={() => !disabled && selectPlan(id)}>
-                {name}
+                <span className={nameClassNames}>{name}</span>
+                {fromPaikannuspalvelu && (
+                    <span className={styles['plan-download-popup__plan-name-subheader']}>
+                        Paikannuspalvelu
+                    </span>
+                )}
             </span>
             <span className={styles['plan-download-popup__plan-icon']}>
                 {!applicability && '?'}
@@ -99,6 +116,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                         name={plan.name}
                         checked={plan.selected}
                         applicability={plan.applicability}
+                        source={plan.source}
                         setPlanSelected={setPlanSelected}
                         selectPlan={selectPlan}
                         disabled={disabled}

@@ -30,7 +30,11 @@ import {
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { expectDefined } from 'utils/type-utils';
-import { comparePlans, filterPlans } from 'map/plan-download/plan-download-utils';
+import {
+    comparePlans,
+    filterPlans,
+    toDownloadablePlan,
+} from 'map/plan-download/plan-download-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type PlanDownloadPopupSectionProps = {
@@ -183,14 +187,12 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 planDownloadState.areaSelection.startTrackMeter || undefined,
                 planDownloadState.areaSelection.endTrackMeter || undefined,
             ).then((plans) =>
-                plans.map((p) => ({
-                    id: p.id,
-                    name: p.name,
-                    applicability: p.planApplicability,
-                    kmNumberRange: p.kmNumberRange,
-                    selected:
+                plans.map((p) =>
+                    toDownloadablePlan(
+                        p,
                         planDownloadState.plans.find((sp) => sp.id === p.id)?.selected ?? false,
-                })),
+                    ),
+                ),
             );
         else if (planDownloadState.areaSelection.trackNumber)
             return await getPlansLinkedToTrackNumber(
@@ -199,14 +201,12 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 planDownloadState.areaSelection.startTrackMeter || undefined,
                 planDownloadState.areaSelection.endTrackMeter || undefined,
             ).then((plans) =>
-                plans.map((p) => ({
-                    id: p.id,
-                    name: p.name,
-                    applicability: p.planApplicability,
-                    kmNumberRange: p.kmNumberRange,
-                    selected:
+                plans.map((p) =>
+                    toDownloadablePlan(
+                        p,
                         planDownloadState.plans.find((sp) => sp.id === p.id)?.selected ?? false,
-                })),
+                    ),
+                ),
             );
         else return [];
     }, [

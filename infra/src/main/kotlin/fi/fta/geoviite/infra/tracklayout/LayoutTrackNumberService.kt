@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
@@ -185,10 +184,9 @@ class LayoutTrackNumberService(
         boundingBox: BoundingBox?,
     ): List<AlignmentPlanSection> {
         return get(layoutContext, trackNumberId)?.let { trackNumber ->
-            val referenceLine =
-                referenceLineService.getByTrackNumber(layoutContext, trackNumberId)
-                    ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
+            val referenceLine = referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId)
             val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
+
             if (geocodingContext != null && referenceLine.alignmentVersion != null) {
                 alignmentService.getGeometryMetadataSections(
                     referenceLine.alignmentVersion,
@@ -209,22 +207,11 @@ class LayoutTrackNumberService(
         startKmNumber: KmNumber?,
         endKmNumber: KmNumber?,
     ): List<GeometryPlanHeader> {
-        return get(layoutContext, trackNumberId)?.let { trackNumber ->
-            val referenceLine =
-                referenceLineService.getByTrackNumber(layoutContext, trackNumberId)
-                    ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
-            val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
-            if (geocodingContext != null && referenceLine.alignmentVersion != null) {
-                alignmentService.getLinkedPlanHeaders(
-                    referenceLine.alignmentVersion,
-                    geocodingContext,
-                    startKmNumber,
-                    endKmNumber,
-                )
-            } else {
-                null
-            }
-        } ?: listOf()
+        val alignmentVersion =
+            requireNotNull(referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId).alignmentVersion)
+        val cacheKey = requireNotNull(geocodingService.getGeocodingContextCacheKey(layoutContext, trackNumberId))
+
+        return alignmentService.getLinkedPlanHeaders(alignmentVersion, cacheKey, startKmNumber, endKmNumber)
     }
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()

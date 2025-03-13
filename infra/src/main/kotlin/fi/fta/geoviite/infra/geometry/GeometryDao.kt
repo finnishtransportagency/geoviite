@@ -10,6 +10,8 @@ import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.create2DPolygonString
+import fi.fta.geoviite.infra.geography.crs
+import fi.fta.geoviite.infra.geography.toGvtPoint
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.FileHash
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
@@ -29,6 +31,7 @@ import fi.fta.geoviite.infra.util.DbTable.*
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
+import org.locationtech.jts.geom.Polygon
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
@@ -923,6 +926,28 @@ constructor(
                 }
                 .filterNotNull()
         logger.daoAccess(FETCH, GeometryPlanArea::class, result.map { a -> a.id })
+        return result
+    }
+
+    fun fetchIntersectingPlans(polygon: Polygon): List<IntId<GeometryPlan>> {
+        val searchPolygonWkt = create2DPolygonString(polygon.coordinates.map { toGvtPoint(it, crs(LAYOUT_SRID)) })
+        val sql =
+            """
+          select 
+            plan.id,
+            plan.name,
+            postgis.st_astext(plan.bounding_polygon_simple) as bounding_polygon
+          from geometry.plan
+            where hidden = false
+              and postgis.st_intersects(
+                  plan.bounding_polygon_simple, 
+                  postgis.st_polygonfromtext(:polygon_wkt, :map_srid)
+              )
+        """
+                .trimIndent()
+        val params = mapOf("polygon_wkt" to searchPolygonWkt, "map_srid" to LAYOUT_SRID.code)
+        val result = jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<GeometryPlan>("id") }.filterNotNull()
+        logger.daoAccess(FETCH, IntId::class, result)
         return result
     }
 

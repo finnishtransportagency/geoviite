@@ -13,7 +13,12 @@ import {
 } from 'utils/validation-utils';
 import { compareKmNumberStrings, kmNumberIsValid } from 'common/common-model';
 import { filterNotEmpty } from 'utils/array-utils';
-import { GeometryPlanId, KmNumberRange, PlanApplicability } from 'geometry/geometry-model';
+import {
+    GeometryPlanId,
+    KmNumberRange,
+    PlanApplicability,
+    PlanSource,
+} from 'geometry/geometry-model';
 import { isKmNumberWithinAlignment } from 'map/plan-download/plan-download-utils';
 import { isValidKmNumber } from 'tool-panel/km-post/dialog/km-post-edit-store';
 
@@ -40,6 +45,7 @@ export type DownloadablePlan = {
     name: string;
     selected: boolean;
     applicability?: PlanApplicability;
+    source: PlanSource;
     kmNumberRange: KmNumberRange | undefined;
 };
 
@@ -49,37 +55,6 @@ export type SelectedPlanDownloadAsset =
           type: 'TRACK_NUMBER';
       }
     | { id: LocationTrackId; type: 'LOCATION_TRACK' };
-
-const _DUMMY_PLANS: DownloadablePlan[] = [
-    {
-        id: 'INT_1',
-        name: 'HOJOOOOOO',
-        selected: true,
-        applicability: 'STATISTICS',
-        kmNumberRange: { min: '0004', max: '0100' },
-    },
-    {
-        id: 'INT_2',
-        name: 'HOJOOOOOOOO',
-        selected: false,
-        applicability: 'MAINTENANCE',
-        kmNumberRange: { min: '0002', max: '0100' },
-    },
-    {
-        id: 'INT_3',
-        name: 'HOJOOOOOOOOOO',
-        selected: true,
-        applicability: 'PLANNING',
-        kmNumberRange: { min: '0003', max: '0100' },
-    },
-    {
-        id: 'INT_4',
-        name: 'HOJOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO',
-        selected: false,
-        applicability: undefined,
-        kmNumberRange: { min: '0005', max: '0100' },
-    },
-];
 
 export const initialPlanDownloadStateFromSelection = (
     locationTrackId: LocationTrackId | undefined,
