@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -129,29 +130,52 @@ constructor(
         // TODO This will require even more work due to having to get the differing address points based on the specific
         // alignment versions, specified by the optional change time submitted by the user. Also deleted kilometers
         // should be displayed as empty arrays in the result map.
+        //
+        //        val (midPoints, midPointErrors) =
+        //            if (request.includeGeometry) {
+        //                alignmentAddresses.midPoints
+        //                    .filter { addressPoint ->
+        //                        request.trackInterval.containsKmEndInclusive(addressPoint.address.kmNumber)
+        //                    }
+        //                    .let { addressPoints ->
+        //                        convertAddressPointsToRequestCoordinateSystem(request.coordinateSystem, addressPoints)
+        //                    }
+        //            } else {
+        //                emptyList<AddressPoint>() to emptyList()
+        //            }
+        //
+        //        val trackIntervals =
+        //            if (request.includeGeometry) {
+        //                createTrackIntervals(
+        //                    startAddress = alignmentAddresses.startPoint.address,
+        //                    endAddress = alignmentAddresses.endPoint.address,
+        //                    addressPoints = midPoints ?: emptyList(),
+        //                )
+        //            } else {
+        //                emptyList()
+        //            }
 
-        val (midPoints, midPointErrors) =
+        val (trackIntervals, midPointErrors) =
             if (request.includeGeometry) {
-                alignmentAddresses.midPoints
-                    .filter { addressPoint ->
-                        request.trackInterval.containsKmEndInclusive(addressPoint.address.kmNumber)
+                val filteredPoints =
+                    alignmentAddresses.midPoints.filter {
+                        request.trackInterval.containsKmEndInclusive(it.address.kmNumber)
                     }
-                    .let { addressPoints ->
-                        convertAddressPointsToRequestCoordinateSystem(request.coordinateSystem, addressPoints)
-                    }
+
+                val (convertedMidPoints, conversionErrors) =
+                    convertAddressPointsToRequestCoordinateSystem(request.coordinateSystem, filteredPoints)
+
+                val intervals =
+                    createTrackIntervals(
+                        startAddress = alignmentAddresses.startPoint.address,
+                        endAddress = alignmentAddresses.endPoint.address,
+                        addressPoints = convertedMidPoints ?: emptyList(),
+                    )
+
+                intervals to conversionErrors
             } else {
-                emptyList<AddressPoint>() to emptyList()
+                emptyList<CenterLineTrackIntervalV1>() to emptyList()
             }
-
-        val midPointsByKmNumber =
-            midPoints?.groupBy(
-                keySelector = { addressPoint -> addressPoint.address.kmNumber },
-
-                // TODO This call should probably include the coordinate system and/or convert coordinates
-                // during it
-                // or as parameters.
-                valueTransform = { addressPoint -> CenterLineGeometryPointV1.of(addressPoint) },
-            ) ?: emptyMap()
 
         val (convertedStartLocation, startLocationConversionErrors) =
             convertAddressPointToRequestCoordinateSystem(request.coordinateSystem, alignmentAddresses.startPoint)
@@ -177,7 +201,7 @@ constructor(
                 coordinateSystem = request.coordinateSystem,
                 startLocation = CenterLineGeometryPointV1.of(convertedStartLocation.let(::requireNotNull)),
                 endLocation = CenterLineGeometryPointV1.of(convertedEndLocation.let(::requireNotNull)),
-                trackKilometerGeometry = midPointsByKmNumber,
+                trackIntervals = trackIntervals,
             ) to emptyList()
         }
     }
@@ -273,4 +297,19 @@ fun convertAddressPointsToRequestCoordinateSystem(
             }
         }
     }
+}
+
+fun createTrackIntervals(
+    startAddress: TrackMeter,
+    endAddress: TrackMeter,
+    addressPoints: List<AddressPoint>,
+): List<CenterLineTrackIntervalV1> {
+    // TODO Just the entire track for now, intervals TODO
+    return listOf(
+        CenterLineTrackIntervalV1(
+            startAddress.toString(),
+            endAddress.toString(),
+            addressPoints.map(CenterLineGeometryPointV1::of),
+        )
+    )
 }
