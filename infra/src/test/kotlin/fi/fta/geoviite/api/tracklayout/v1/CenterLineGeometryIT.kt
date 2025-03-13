@@ -602,7 +602,95 @@ constructor(
         assertEquals(60.1829354, filterByKmNumber(trackInterval, "0002").first().y, requiredAccuracy)
     }
 
-    @Test fun `User provided address point interval value is used for returned geometry values`() {}
+    @Test
+    fun `Default track address point interval value is 1 meter`() {
+        val basePoint = Point(0.0, 0.0)
+
+        val oid = someOid<LocationTrack>()
+        val geocodableTrack =
+            extApiTestDataServiceV1.insertGeocodableTrack(
+                layoutContext = mainOfficialContext,
+                segments = listOf(segment(basePoint, Point(1000.0, 0.0))),
+            )
+
+        locationTrackDao.insertExternalId(
+            geocodableTrack.locationTrack.id as IntId,
+            mainOfficialContext.context.branch,
+            oid,
+        )
+
+        trackNumberDao.insertExternalId(
+            geocodableTrack.trackNumber.id as IntId,
+            mainOfficialContext.context.branch,
+            someOid(),
+        )
+
+        listOf(
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(0),
+                    roughLayoutLocation = basePoint,
+                    draft = false,
+                )
+            )
+            .forEach(layoutKmPostDao::save)
+
+        val requiredAccuracy = 0.001
+
+        val response = api.get<GeometryResponse>(url(oid), mapOf("geometriatiedot" to "true"))
+        val firstTrackKmPoints = filterByKmNumber(response.trackIntervals.first(), "0000")
+
+        assertEquals(0.0, firstTrackKmPoints[0].x, requiredAccuracy)
+        assertEquals(1.0, firstTrackKmPoints[1].x, requiredAccuracy)
+        assertEquals(2.0, firstTrackKmPoints[2].x, requiredAccuracy)
+    }
+
+    @Test
+    fun `User provided quarter meter address point interval value is used for returned geometry values`() {
+        val basePoint = Point(0.0, 0.0)
+
+        val oid = someOid<LocationTrack>()
+        val geocodableTrack =
+            extApiTestDataServiceV1.insertGeocodableTrack(
+                layoutContext = mainOfficialContext,
+                segments = listOf(segment(basePoint, Point(1000.0, 0.0))),
+            )
+
+        locationTrackDao.insertExternalId(
+            geocodableTrack.locationTrack.id as IntId,
+            mainOfficialContext.context.branch,
+            oid,
+        )
+
+        trackNumberDao.insertExternalId(
+            geocodableTrack.trackNumber.id as IntId,
+            mainOfficialContext.context.branch,
+            someOid(),
+        )
+
+        listOf(
+                kmPost(
+                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    km = KmNumber(0),
+                    roughLayoutLocation = basePoint,
+                    draft = false,
+                )
+            )
+            .forEach(layoutKmPostDao::save)
+
+        val requiredAccuracy = 0.001
+
+        val response =
+            api.get<GeometryResponse>(url(oid), mapOf("geometriatiedot" to "true", "osoitepistevali" to "0.25"))
+
+        val firstTrackKmPoints = filterByKmNumber(response.trackIntervals.first(), "0000")
+
+        assertEquals(0.0, firstTrackKmPoints[0].x, requiredAccuracy)
+        assertEquals(0.25, firstTrackKmPoints[1].x, requiredAccuracy)
+        assertEquals(0.5, firstTrackKmPoints[2].x, requiredAccuracy)
+        assertEquals(0.75, firstTrackKmPoints[3].x, requiredAccuracy)
+        assertEquals(1.0, firstTrackKmPoints[4].x, requiredAccuracy)
+    }
 
     @Test
     fun `Invalid coordinates should result in coordinate transformation error`() {
