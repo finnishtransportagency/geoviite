@@ -2,7 +2,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.api.formatting.splitBigDecimal
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
@@ -15,6 +14,7 @@ import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.FreeText
+import java.math.BigDecimal
 import java.time.Instant
 
 const val LOCATION_TRACK_OID_PARAM = "location_track_oid"
@@ -110,35 +110,14 @@ data class CenterLineGeometryResponseOkV1(
     @JsonProperty("loppusijainti") val endLocation: CenterLineGeometryPointV1,
     @JsonProperty("koordinaatisto") val coordinateSystem: Srid,
     @JsonProperty("osoitepistevali") val addressPointInterval: AddressPointInterval,
-    @JsonProperty("muuttuneet_kilometrit") val trackKilometerGeometry: Map<KmNumber, List<CenterLineGeometryPointV1>>,
+    @JsonProperty("osoitevalit") val trackIntervals: List<CenterLineTrackIntervalV1>,
 ) : CenterLineGeometryResponseV1()
-
-data class CenterLineGeometryPointV1(
-    val x: Double,
-    val y: Double,
-    @JsonProperty("ratakilometri") val kmNumber: KmNumber,
-    @JsonProperty("ratametri") val trackMeter: Int, // TODO Should this include prefix-zeroes as in the ticket?
-    @JsonProperty("ratametri_desimaalit") val trackMeterDecimals: Int,
-) {
-    companion object {
-        fun of(addressPoint: AddressPoint): CenterLineGeometryPointV1 {
-            val (trackMeterIntegers, trackMeterDecimals) = splitBigDecimal(addressPoint.address.meters)
-            return CenterLineGeometryPointV1(
-                addressPoint.point.x,
-                addressPoint.point.y,
-                addressPoint.address.kmNumber,
-                trackMeterIntegers,
-                trackMeterDecimals,
-            )
-        }
-    }
-}
 
 data class CenterLineGeometryResponseErrorV1(
-    @JsonProperty("virheet") val errors: List<CenterLineGeometryErrorResponseV1>
+    @JsonProperty("virheet") val errors: List<CenterLineGeometryTranslatedErrorV1>
 ) : CenterLineGeometryResponseV1()
 
-data class CenterLineGeometryErrorResponseV1(
+data class CenterLineGeometryTranslatedErrorV1(
     @JsonProperty("koodi") val code: Int,
     @JsonProperty("viesti") val message: String,
 )
@@ -159,8 +138,32 @@ enum class CenterLineGeometryErrorV1(val code: Int, private val localizationSuff
 
     val localizationKey: LocalizationKey by lazy { LocalizationKey("$BASE.$localizationSuffix") }
 
-    fun toResponseError(translation: Translation): CenterLineGeometryErrorResponseV1 {
-        return CenterLineGeometryErrorResponseV1(code = this.code, message = translation.t(localizationKey))
+    fun toResponseError(translation: Translation): CenterLineGeometryTranslatedErrorV1 {
+        return CenterLineGeometryTranslatedErrorV1(code = this.code, message = translation.t(localizationKey))
+    }
+}
+
+data class CenterLineTrackIntervalV1(
+    @JsonProperty("alku") val startAddress: String,
+    @JsonProperty("loppu") val endAddress: String,
+    @JsonProperty("pisteet") val addressPoints: List<CenterLineGeometryPointV1>,
+)
+
+data class CenterLineGeometryPointV1(
+    val x: Double,
+    val y: Double,
+    @JsonProperty("ratakilometri") val kmNumber: KmNumber,
+    @JsonProperty("ratametri") val trackMeter: BigDecimal,
+) {
+    companion object {
+        fun of(addressPoint: AddressPoint): CenterLineGeometryPointV1 {
+            return CenterLineGeometryPointV1(
+                addressPoint.point.x,
+                addressPoint.point.y,
+                addressPoint.address.kmNumber,
+                addressPoint.address.meters,
+            )
+        }
     }
 }
 
