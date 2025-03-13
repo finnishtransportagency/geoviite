@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
@@ -156,6 +157,13 @@ fun ResultSet.getGeometryPointOrNull(nameX: String, nameY: String, nameSrid: Str
     getPointOrNull(nameX, nameY)?.let { point ->
         getSridOrNull(nameSrid)?.let { srid -> GeometryPoint(point.x, point.y, srid) }
     }
+
+fun ResultSet.getPoint3DMOrNull(nameX: String, nameY: String, nameM: String): Point3DM? {
+    val x = getDoubleOrNull(nameX)
+    val y = getDoubleOrNull(nameY)
+    val m = getDoubleOrNull(nameM)
+    return if (x == null || y == null || m == null) null else Point3DM(x, y, m)
+}
 
 fun ResultSet.getPointOrNull(nameX: String, nameY: String): Point? {
     val x = getDoubleOrNull(nameX)

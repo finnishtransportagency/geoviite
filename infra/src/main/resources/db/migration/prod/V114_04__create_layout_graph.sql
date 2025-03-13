@@ -293,9 +293,6 @@ alter table node_point_version_temp
   add column node_hash uuid not null generated always as (
     layout.calculate_node_hash(a_port_hash, b_port_hash)
   ) stored;
--- select * from node_point_version_temp where switch_1_id is not null;
--- select * from node_point_version_temp where a_switch_id = b_switch_id and a_switch_joint_number = b_switch_joint_number;
-
 
 do $$
   begin
@@ -320,12 +317,12 @@ select distinct on (node_hash)
   node_hash as hash,
   node_type as type
   from node_point_version_temp;
+
 -- Insert node ports
 insert into layout.node_port
   (node_id, port, hash, switch_id, switch_joint_number, switch_joint_role, boundary_location_track_id, boundary_type)
   select
     node.id as node_id,
---     tmp.node_hash,
     tmp.port,
     tmp.port_hash,
     tmp.switch_id,
@@ -409,11 +406,6 @@ create temp table track_edge_version_temp as (
 );
 alter table track_edge_version_temp
   add primary key (location_track_id, location_track_layout_context_id, location_track_version, start_node_index);
--- TODO: what's wrong? Some of the nodes-ports are missing from the node_port table
--- select * from track_edge_version_temp;
---   ,
---   add constraint start_port_fkey foreign key (start_node_id, start_node_port) references layout.node_port (node_id, port),
---   add constraint end_port_fkey foreign key (end_node_id, end_node_port) references layout.node_port (node_id, port);
 
 drop table if exists edge_temp;
 create temporary table edge_temp as (
@@ -481,10 +473,8 @@ create temporary table edge_temp as (
         (array_agg(end_segment_index order by alignment_id, alignment_version))[1] as end_segment_index,
         (array_agg(change_time order by alignment_id, alignment_version))[1] as change_time,
         (array_agg(change_user order by alignment_id, alignment_version))[1] as change_user,
---         (array_agg(segment_hashes order by alignment_id, alignment_version))[1] as segment_hashes,
         edge_hash,
         segment_hashes,
---         array_agg(segment_hashes order by alignment_id, alignment_version) segment_hashes_2,
         start_node_id,
         start_node_port,
         end_node_id,
@@ -496,27 +486,7 @@ create temporary table edge_temp as (
     from edges
 );
 alter table edge_temp add primary key (edge_hash);
--- select * from edge_temp; where segment_hashes <> segment_hashes_2;
 
--- select * from edge_temp where edge_hash = '005b3d7a-9f64-52ce-92b9-159a22034ca6';
--- -- 6358b75c-9025-f4b4-0b6d-0126c29e91f4
--- select
---   layout.calculate_segment_hash(
---       geometry_alignment_id,
---       geometry_element_index,
---       source_start,
---       source,
---       geometry_id
---   )
---     from layout.segment_version
---       where alignment_id = 12522 and alignment_version = 1 and segment_index = 151;
--- [2025-02-18 12:26:00] Detail: Key (start_node_id, start_node_port)=(23300, B) is not present in table "node_port".
--- Node/port = 23300, B
--- Track 3091, v1 (alignment 3351) & v2 (alignment 12034), segment 7 start,
--- select * from edge_temp where start_node_id = 23300 or end_node_id = 23300;
--- select * from node_point_version_temp where location_track_id = 3091 and location_track_version = 1 and location_track_layout_context_id = 'main_official' order by end_segment_index;
-
--- delete from layout.edge where 1=1;
 insert into layout.edge(
   start_node_id,
   start_node_port,
@@ -544,29 +514,21 @@ select
     left join layout.segment_geometry sg on sg.id = sv.geometry_id
   group by e.edge_hash;
 
--- delete from layout.edge_segment where 1=1;
-insert into layout.edge_segment
-  (
-    edge_id,
-    segment_index,
-    geometry_alignment_id,
-    geometry_element_index,
-    start,
-    source_start,
-    source,
-    geometry_id,
-    hash
-  )
+drop table if exists edge_segment_temp;
+create temp table edge_segment_temp as
 select
-  edge.id,
+  edge.id edge_id,
   sv.segment_index - e.start_segment_index as segment_index,
   sv.geometry_alignment_id,
   sv.geometry_element_index,
-  sv.start - first_sv.start,
+  sv.start - first_sv.start as start,
   sv.source_start,
   sv.source,
   sv.geometry_id,
-  e.segment_hashes[sv.segment_index - e.start_segment_index + 1] as hash
+  e.segment_hashes[sv.segment_index - e.start_segment_index + 1] as hash,
+  sv.alignment_id orig_alignment_id,
+  sv.alignment_version orig_alignment_version,
+  sv.segment_index orig_segment_index
   from edge_temp e
     inner join layout.edge on edge.hash = e.edge_hash
     left join layout.segment_version first_sv
@@ -577,9 +539,19 @@ select
               on sv.alignment_id = e.alignment_id
                 and sv.alignment_version = e.alignment_version
                 and sv.segment_index between e.start_segment_index and e.end_segment_index;
+alter table edge_segment_temp add primary key (edge_id, segment_index);
 
--- Hash: 6358b75c-9025-f4b4-0b6d-0126c29e91f4
--- Recalc: 4c7a412e-aa6e-258a-f574-71353795fb51
+insert into layout.edge_segment
+  (edge_id, segment_index, geometry_alignment_id, geometry_element_index, start, source_start, source, geometry_id, hash)
+select
+  edge_id, segment_index, geometry_alignment_id, geometry_element_index, start, source_start, source, geometry_id, hash
+  from edge_segment_temp;
+
+insert into layout.initial_edge_segment_metadata (edge_id, segment_index, metadata_id)
+select es.edge_id, es.segment_index, md.metadata_id
+  from layout.initial_segment_metadata md
+    inner join edge_segment_temp es
+               on es.orig_alignment_id = md.alignment_id and es.orig_alignment_version = 1 and es.orig_segment_index = md.segment_index;
 
 do $$
   begin

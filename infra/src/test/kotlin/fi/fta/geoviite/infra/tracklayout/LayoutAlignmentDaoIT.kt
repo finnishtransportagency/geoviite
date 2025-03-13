@@ -194,39 +194,49 @@ constructor(
         val plan = geometryDao.fetchPlan(planVersion)
         val geometryAlignment = plan.alignments.first()
         val geometryElement = geometryAlignment.elements.first()
-        val alignment =
-            alignment(
+        val segments =
+            listOf(
                 segment(points = points, source = PLAN, sourceId = geometryElement.id),
                 segment(points = points2, source = PLAN, sourceId = geometryElement.id),
                 segment(points = points3, source = GENERATED),
                 segment(points = points4, source = GENERATED),
                 segment(points = points5, source = PLAN, sourceId = geometryElement.id),
             )
-        val version = alignmentDao.insert(alignment)
 
-        val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(version, null, null)
-        assertEquals(3, segmentGeometriesAndPlanMetadatas.size)
+        val alignmentVersion = alignmentDao.insert(alignment(segments))
+        val trackVersion =
+            locationTrackDao.save(
+                locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
+                trackGeometryOfSegments(segments),
+            )
 
-        assertApproximatelyEquals(points.first(), segmentGeometriesAndPlanMetadatas[0].startPoint!!)
-        assertApproximatelyEquals(points2.last(), segmentGeometriesAndPlanMetadatas[0].endPoint!!)
-        assertEquals(true, segmentGeometriesAndPlanMetadatas[0].isLinked)
-        assertEquals(planVersion.id, segmentGeometriesAndPlanMetadatas[0].planId)
-        assertEquals(plan.fileName, segmentGeometriesAndPlanMetadatas[0].fileName)
-        assertEquals(geometryAlignment.name, segmentGeometriesAndPlanMetadatas[0].alignmentName)
+        val alignmentMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, null, null)
+        val trackMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(trackVersion, null, null)
 
-        assertApproximatelyEquals(points3.first(), segmentGeometriesAndPlanMetadatas[1].startPoint!!)
-        assertApproximatelyEquals(points4.last(), segmentGeometriesAndPlanMetadatas[1].endPoint!!)
-        assertEquals(false, segmentGeometriesAndPlanMetadatas[1].isLinked)
-        assertEquals(null, segmentGeometriesAndPlanMetadatas[1].planId)
-        assertEquals(null, segmentGeometriesAndPlanMetadatas[1].fileName)
-        assertEquals(null, segmentGeometriesAndPlanMetadatas[1].alignmentName)
+        for (metaDatas in listOf(alignmentMetadatas, trackMetadatas)) {
+            assertEquals(3, metaDatas.size)
 
-        assertApproximatelyEquals(points5.first(), segmentGeometriesAndPlanMetadatas[2].startPoint!!)
-        assertApproximatelyEquals(points5.last(), segmentGeometriesAndPlanMetadatas[2].endPoint!!)
-        assertEquals(true, segmentGeometriesAndPlanMetadatas[2].isLinked)
-        assertEquals(planVersion.id, segmentGeometriesAndPlanMetadatas[2].planId)
-        assertEquals(plan.fileName, segmentGeometriesAndPlanMetadatas[2].fileName)
-        assertEquals(geometryAlignment.name, segmentGeometriesAndPlanMetadatas[2].alignmentName)
+            assertApproximatelyEquals(points.first(), metaDatas[0].startPoint!!)
+            assertApproximatelyEquals(points2.last(), metaDatas[0].endPoint!!)
+            assertEquals(true, metaDatas[0].isLinked)
+            assertEquals(planVersion.id, metaDatas[0].planId)
+            assertEquals(plan.fileName, metaDatas[0].fileName)
+            assertEquals(geometryAlignment.name, metaDatas[0].alignmentName)
+
+            assertApproximatelyEquals(points3.first(), metaDatas[1].startPoint!!)
+            assertApproximatelyEquals(points4.last(), metaDatas[1].endPoint!!)
+            assertEquals(false, metaDatas[1].isLinked)
+            assertEquals(null, metaDatas[1].planId)
+            assertEquals(null, metaDatas[1].fileName)
+            assertEquals(null, metaDatas[1].alignmentName)
+
+            assertApproximatelyEquals(points5.first(), metaDatas[2].startPoint!!)
+            assertApproximatelyEquals(points5.last(), metaDatas[2].endPoint!!)
+            assertEquals(true, metaDatas[2].isLinked)
+            assertEquals(planVersion.id, metaDatas[2].planId)
+            assertEquals(plan.fileName, metaDatas[2].fileName)
+            assertEquals(geometryAlignment.name, metaDatas[2].alignmentName)
+        }
     }
 
     @Test
