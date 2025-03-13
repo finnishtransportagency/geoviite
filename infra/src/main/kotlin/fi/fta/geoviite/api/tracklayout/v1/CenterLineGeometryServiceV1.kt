@@ -119,7 +119,10 @@ constructor(
             geocodingService.getAddressPoints(
                 layoutContext,
                 request.locationTrack.id as IntId,
-                Resolution.QUARTER_METER, // TODO Should be from the user or default to one meter
+                when (request.addressPointInterval) {
+                    AddressPointInterval.ONE_METER -> Resolution.ONE_METER
+                    AddressPointInterval.QUARTER_METER -> Resolution.QUARTER_METER
+                },
             )
 
         checkNotNull(alignmentAddresses) // TODO Better error
@@ -264,8 +267,9 @@ fun createTrackIntervals(
     coordinateSystem: Srid,
     trackIntervalFilter: TrackKilometerIntervalV1,
 ): Pair<List<CenterLineTrackIntervalV1>, List<CenterLineGeometryErrorV1>> {
+
     val filteredPoints =
-        alignmentAddresses.midPoints.filter { trackIntervalFilter.containsKmEndInclusive(it.address.kmNumber) }
+        alignmentAddresses.allPoints.filter { trackIntervalFilter.containsKmEndInclusive(it.address.kmNumber) }
 
     val (convertedMidPoints, conversionErrors) =
         convertAddressPointsToRequestCoordinateSystem(coordinateSystem, filteredPoints)
