@@ -9,14 +9,22 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.interpolate
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.data.YV54_200_1_9_V
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.NodePortType
+import fi.fta.geoviite.infra.tracklayout.SwitchLink
+import fi.fta.geoviite.infra.tracklayout.TmpEdgeNode
+import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
+import fi.fta.geoviite.infra.tracklayout.TmpTrackBoundaryNode
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
@@ -840,6 +848,36 @@ class SwitchLinkingTest {
             boundingBoxAroundPoints(point1, point2, point3e1, point3e2),
             getSwitchBoundsFromTracks(listOf(track1, track2, track3).map { (_, geom) -> geom }, switchId),
         )
+    }
+
+    @Test
+    fun `foo test`() {
+        val yv = YV54_200_1_9_V()
+        val joint3 = (yv.joints.find { j -> j.number == JointNumber(3) })!!
+
+        val locationTrackId = IntId<LocationTrack>(1)
+        val startNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.START)
+        val endNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.END)
+        val segments = listOf(segment(Point(0.0, 0.0), joint3.location))
+        val startEdgeNode = TmpEdgeNode(NodePortType.A, startNode)
+        val endEdgeNode = TmpEdgeNode(NodePortType.A, endNode)
+        val edge = TmpLayoutEdge(startEdgeNode, endEdgeNode, segments)
+
+        val locationTrackId2 = IntId<LocationTrack>(2)
+        val startNode2 = TmpTrackBoundaryNode(locationTrackId2, TrackBoundaryType.START)
+        val endNode2 = TmpTrackBoundaryNode(locationTrackId2, TrackBoundaryType.END)
+        val segments2 = listOf(segment(Point(0.0, 0.0), Point(50.0, 0.0)))
+        val startEdgeNode2 = TmpEdgeNode(NodePortType.A, startNode2)
+        val endEdgeNode2 = TmpEdgeNode(NodePortType.A, endNode2)
+        val edge2 = TmpLayoutEdge(startEdgeNode2, endEdgeNode2, segments2)
+    }
+
+    fun linkJointToEdge(edge: LayoutEdge, m: Double, switchLink: SwitchLink): TmpLayoutEdge {
+        // jos node tulee edgen keskelle, se jakaa noden kahtia,
+        //  jos joint on main/connection, silloin pitää tietää kumpi edge on vaihteen sisäinen A,
+        // toinen B
+        //  jos joint on math silloin molemmat edget A:han
+
     }
 }
 
