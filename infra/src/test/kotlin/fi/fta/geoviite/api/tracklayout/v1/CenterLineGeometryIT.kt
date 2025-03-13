@@ -58,15 +58,20 @@ private data class GeometryResponse(
     @JsonProperty("loppusijainti") val locationTrackEnd: ResponseGeometryPoint,
     @JsonProperty("koordinaatisto") val coordinateSystem: String,
     @JsonProperty("osoitepistevali") val addressPointIntervalMeters: String,
-    @JsonProperty("muuttuneet_kilometrit") val geometry: Map<String, List<ResponseGeometryPoint>>,
+    @JsonProperty("osoitevalit") val trackIntervals: List<ResponseGeometryInterval>,
+)
+
+private data class ResponseGeometryInterval(
+    @JsonProperty("alku") val startAddress: String,
+    @JsonProperty("loppu") val endAddress: String,
+    @JsonProperty("pisteet") val geometryPoints: List<ResponseGeometryPoint>,
 )
 
 private data class ResponseGeometryPoint(
     @JsonProperty("x") val x: Double,
     @JsonProperty("y") val y: Double,
     @JsonProperty("ratakilometri") val kmNumber: String,
-    @JsonProperty("ratametri") val trackMeter: Int,
-    @JsonProperty("ratametri_desimaalit") val trackMeterDecimals: Int,
+    @JsonProperty("ratametri") val trackMeter: Double,
 )
 
 private data class ErrorResponse(@JsonProperty("virheet") val errors: List<ResponseError>) : Response()
@@ -335,7 +340,7 @@ constructor(
         val oid = someOid<LocationTrack>()
         insertGeocodableLocationTrackWithOid(oid)
 
-        assertEquals(0, api.get<GeometryResponse>(url(oid)).geometry.size)
+        assertEquals(0, api.get<GeometryResponse>(url(oid)).trackIntervals.size)
     }
 
     @Test fun `Entire location track geometry is returned without other filters`() {}
@@ -423,7 +428,12 @@ constructor(
                     mapOf("geometriatiedot" to "true", "ratakilometri_alku" to trackKmFilter),
                 )
 
-            assertEquals(expectedTrackKms, response.geometry.keys)
+            // TODO The response should also only contain track interval which is related to the asked track km
+            // (Check the alku ja and loppu)
+            assertEquals(
+                expectedTrackKms,
+                response.trackIntervals.first().geometryPoints.map { p -> p.kmNumber }.toSet(),
+            )
         }
     }
 
@@ -511,7 +521,10 @@ constructor(
                     mapOf("geometriatiedot" to "true", "ratakilometri_loppu" to trackKmFilter),
                 )
 
-            assertEquals(expectedTrackKms, response.geometry.keys)
+            assertEquals(
+                expectedTrackKms,
+                response.trackIntervals.first().geometryPoints.map { p -> p.kmNumber }.toSet(),
+            )
         }
     }
 
@@ -577,14 +590,16 @@ constructor(
         assertEquals(24.9943374, response.locationTrackEnd.x, requiredAccuracy)
         assertEquals(60.1901543, response.locationTrackEnd.y, requiredAccuracy)
 
-        assertEquals(24.9414003, response.geometry["0000"]!!.first().x, requiredAccuracy)
-        assertEquals(60.1713788, response.geometry["0000"]!!.first().y, requiredAccuracy)
+        val trackInterval = response.trackIntervals.first()
 
-        assertEquals(24.9576822, response.geometry["0001"]!!.first().x, requiredAccuracy)
-        assertEquals(60.1771581, response.geometry["0001"]!!.first().y, requiredAccuracy)
+        assertEquals(24.9414003, filterByKmNumber(trackInterval, "0000").first().x, requiredAccuracy)
+        assertEquals(60.1713788, filterByKmNumber(trackInterval, "0000").first().y, requiredAccuracy)
 
-        assertEquals(24.9739698, response.geometry["0002"]!!.first().x, requiredAccuracy)
-        assertEquals(60.1829354, response.geometry["0002"]!!.first().y, requiredAccuracy)
+        assertEquals(24.9576822, filterByKmNumber(trackInterval, "0001").first().x, requiredAccuracy)
+        assertEquals(60.1771581, filterByKmNumber(trackInterval, "0001").first().y, requiredAccuracy)
+
+        assertEquals(24.9739698, filterByKmNumber(trackInterval, "0002").first().x, requiredAccuracy)
+        assertEquals(60.1829354, filterByKmNumber(trackInterval, "0002").first().y, requiredAccuracy)
     }
 
     @Test fun `User provided address point interval value is used for returned geometry values`() {}
@@ -635,4 +650,8 @@ constructor(
 
 private fun containsErrorCode(errors: List<ResponseError>, code: Int): Boolean {
     return errors.any { error -> error.code == code }
+}
+
+private fun filterByKmNumber(trackInterval: ResponseGeometryInterval, km: String): List<ResponseGeometryPoint> {
+    return trackInterval.geometryPoints.filter { p -> p.kmNumber == km }
 }
