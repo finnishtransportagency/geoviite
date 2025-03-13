@@ -401,7 +401,6 @@ class PublicationDao(
      *   null to have all candidate location tracks considered in the publication unit.
      * @param includeDeleted Filters location tracks, not switches
      */
-    // TODO: GVT-2932 fetch track links through edge geometry
     fun fetchLinkedLocationTracks(
         target: ValidationTarget,
         switchIds: List<IntId<LayoutSwitch>>,
@@ -417,55 +416,40 @@ class PublicationDao(
         // language="sql"
         val sql =
             """
-                with lt as not materialized (
-                  select *
-                    from layout.location_track_in_layout_context(:base_state::layout.publication_state,
-                                                                 :base_design_id) lt
-                    where not ($candidateTrackIncludedCondition)
-                  union all
-                  select *
-                    from layout.location_track_in_layout_context(:candidate_state::layout.publication_state,
-                                                                 :candidate_design_id) lt
-                    where ($candidateTrackIncludedCondition)
-                )
-                select
-                  lt.id,
-                  lt.design_id,
-                  lt.draft,
-                  lt.version,
-                  array_agg(distinct switch_id) as switch_ids
-                  from (
-                    select
-                      lt.id,
-                      lt.design_id,
-                      lt.draft,
-                      lt.version,
-                      lt.state,
-                      sv_switch.switch_id
-                      from (
-                        select distinct alignment_id, alignment_version, switch_id
-                          from layout.segment_version
-                          where switch_id in (:switch_ids)
-                      ) sv_switch
-                        join lt using (alignment_id, alignment_version)
-                    union all
-                    select id, design_id, draft, version, state, topology_start_switch_id
-                      from lt
-                      where topology_start_switch_id in (:switch_ids)
-                    union all
-                    select id, design_id, draft, version, state, topology_end_switch_id
-                      from lt
-                      where topology_end_switch_id in (:switch_ids)
-                  ) lt
-                  where (:include_deleted or lt.state != 'DELETED')
-                  group by lt.id, lt.design_id, lt.draft, lt.version
+            with
+              lt as (
+                select *
+                  from layout.location_track_in_layout_context(:base_state::layout.publication_state,
+                                                               :base_design_id) lt
+                  where not ($candidateTrackIncludedCondition)
+                union all
+                select *
+                  from layout.location_track_in_layout_context(:candidate_state::layout.publication_state,
+                                                               :candidate_design_id) lt
+                  where ($candidateTrackIncludedCondition)
+              )
+            select
+              lt.id,
+              lt.design_id,
+              lt.draft,
+              lt.version,
+              array_agg(distinct lt_s.switch_id) as switch_ids
+            from layout.location_track_version_switch_view lt_s
+              inner join lt
+                   on lt_s.location_track_id = lt.id
+                     and lt_s.location_track_layout_context_id = lt.layout_context_id
+                     and lt_s.location_track_version = lt.version
+            where lt_s.switch_id in (:switch_ids)
+              and (:include_deleted or lt.state != 'DELETED')
+            group by lt.id, lt.design_id, lt.draft, lt.version
             """
                 .trimIndent()
 
         val params =
             mapOf(
                 "switch_ids" to switchIds.map(IntId<LayoutSwitch>::intValue),
-                "location_track_ids" to locationTrackIdsInPublicationUnit?.map(IntId<*>::intValue),
+                "location_track_ids" to
+                    locationTrackIdsInPublicationUnit?.takeIf { it.isNotEmpty() }?.map(IntId<*>::intValue),
                 "include_deleted" to includeDeleted,
             ) + target.sqlParameters()
         val result = mutableMapOf<IntId<LayoutSwitch>, Set<LayoutRowVersion<LocationTrack>>>()

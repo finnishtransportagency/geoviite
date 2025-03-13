@@ -187,7 +187,7 @@ create temporary table node_point_version_temp as (
         alignment_id,
         alignment_version,
         -- Node ordering within the alignment version
-        row_number() over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by start_segment_index, end_segment_index) as node_index,
+        row_number() over (partition by location_track_id, location_track_version, alignment_id, alignment_version order by start_segment_index, end_segment_index)-1 as node_index,
         -- The grouping contracts the duplicated locations to a single node which may have multiple switch links
         -- There can only be one or null of these per node
         (array_agg(distinct switch_in_id) filter (where switch_in_id is not null))[1] as switch_in_id,
