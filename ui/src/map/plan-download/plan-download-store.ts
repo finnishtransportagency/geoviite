@@ -35,7 +35,7 @@ export type PlanDownloadState = {
     selectionType: PlanSelectionType;
     areaSelection: AreaSelection;
     validationIssues: FieldValidationIssue<AreaSelection>[];
-    plans: DownloadablePlan[];
+    plans: GeometryPlanId[];
     selectedApplicabilities: PlanApplicability[];
     committedFields: (keyof AreaSelection)[];
 };
@@ -43,7 +43,6 @@ export type PlanDownloadState = {
 export type DownloadablePlan = {
     id: GeometryPlanId;
     name: string;
-    selected: boolean;
     applicability?: PlanApplicability;
     source: PlanSource;
     kmNumberRange: KmNumberRange | undefined;
@@ -209,31 +208,28 @@ export const planDownloadReducers = {
     ) {
         state.committedFields = [...state.committedFields, key];
     },
-    setPlans: function (
-        state: PlanDownloadState,
-        { payload: plans }: PayloadAction<DownloadablePlan[]>,
-    ) {
-        state.plans = plans;
-    },
     setPlanDownloadApplicabilities: function (
         state: PlanDownloadState,
         { payload: applicabilities }: PayloadAction<PlanApplicability[]>,
     ) {
         state.selectedApplicabilities = applicabilities;
     },
-    setPlanDownloadPlanSelected: function (
+    togglePlanForDownload: function (
         state: PlanDownloadState,
         { payload: planId }: PayloadAction<{ id: GeometryPlanId; selected: boolean }>,
     ) {
-        state.plans = state.plans.map((plan) =>
-            plan.id === planId.id ? { ...plan, selected: planId.selected } : plan,
-        );
+        state.plans = planId.selected
+            ? [...state.plans, planId.id]
+            : state.plans.filter((p) => p !== planId.id);
     },
-    setAllPlansSelected: function (
+    selectMultiplePlansForDownload: function (
         state: PlanDownloadState,
-        { payload: selected }: PayloadAction<boolean>,
+        { payload: selectedPlans }: PayloadAction<GeometryPlanId[]>,
     ) {
-        state.plans = state.plans.map((plan) => ({ ...plan, selected }));
+        state.plans = state.plans = selectedPlans;
+    },
+    unselectPlansForDownload: function (state: PlanDownloadState) {
+        state.plans = [];
     },
     setPlanDownloadAlignmentStartAndEnd: function (
         state: PlanDownloadState,

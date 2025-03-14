@@ -1354,6 +1354,7 @@
         "applicable-for-maintenance": "Kunnossapitoon soveltuvat",
         "applicable-for-statistics": "Tilastointiin soveltuvat",
         "select-all": "Valitse kaikki",
+        "unselect-all": "Poista valinnat",
         "download-selected": "Lataa valitut ({{amount}} kpl)",
         "mandatory-field": "Pakollinen kenttä",
         "invalid-track-meter": "Tarkista ratakilometrin muoto",

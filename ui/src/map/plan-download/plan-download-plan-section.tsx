@@ -82,29 +82,36 @@ const PlanItem: React.FC<PlanItemProps> = ({
 type PlanDownloadPlanSectionProps = {
     disabled: boolean;
     plans: DownloadablePlan[];
+    selectedPlanIds: GeometryPlanId[];
     trackNumberId: LayoutTrackNumberId | undefined;
     locationTrackId: LocationTrackId | undefined;
     startKm: KmNumber | undefined;
     endKm: KmNumber | undefined;
     selectedApplicabilities: PlanApplicability[];
-    setPlanSelected: (planId: GeometryPlanId, selected: boolean) => void;
-    setAllPlansSelected: (selected: boolean) => void;
+    togglePlanForDownload: (planId: GeometryPlanId, selected: boolean) => void;
+    selectPlansForDownload: (planIds: GeometryPlanId[]) => void;
+    unselectAllPlans: () => void;
     selectPlan: (planId: GeometryPlanId) => void;
 };
 
 export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = ({
     disabled,
     plans,
+    selectedPlanIds,
     trackNumberId,
     locationTrackId,
     startKm,
     endKm,
     selectedApplicabilities,
-    setPlanSelected,
-    setAllPlansSelected,
+    togglePlanForDownload,
+    selectPlansForDownload,
+    unselectAllPlans,
     selectPlan,
 }) => {
     const { t } = useTranslation();
+    const selectedPlans = plans
+        .filter((p) => selectedPlanIds.includes(p.id))
+        .map((plan) => plan.id);
 
     return (
         <div>
@@ -114,29 +121,39 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                         key={plan.id}
                         id={plan.id}
                         name={plan.name}
-                        checked={plan.selected}
+                        checked={selectedPlanIds.includes(plan.id)}
                         applicability={plan.applicability}
                         source={plan.source}
-                        setPlanSelected={setPlanSelected}
+                        setPlanSelected={togglePlanForDownload}
                         selectPlan={selectPlan}
                         disabled={disabled}
                     />
                 ))}
             </ul>
             <div className={styles['plan-download-popup__buttons']}>
+                {plans.length > 0 && plans.every((p) => selectedPlanIds.includes(p.id)) ? (
+                    <Button
+                        disabled={disabled || plans.length === 0}
+                        size={ButtonSize.SMALL}
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={unselectAllPlans}>
+                        {t('plan-download.unselect-all')}
+                    </Button>
+                ) : (
+                    <Button
+                        disabled={disabled || plans.length === 0}
+                        size={ButtonSize.SMALL}
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={() => selectPlansForDownload(plans.map((p) => p.id))}>
+                        {t('plan-download.select-all')}
+                    </Button>
+                )}
                 <Button
-                    disabled={disabled || plans.length === 0}
                     size={ButtonSize.SMALL}
-                    variant={ButtonVariant.SECONDARY}
-                    onClick={() => setAllPlansSelected(true)}>
-                    {t('plan-download.select-all')}
-                </Button>
-                <Button
-                    size={ButtonSize.SMALL}
-                    disabled={disabled || plans.every((p) => !p.selected)}
+                    disabled={disabled || plans.every((p) => !selectedPlanIds.includes(p.id))}
                     onClick={() => {
                         location.href = inframodelBatchDownloadUri(
-                            plans.filter((p) => p.selected).map((plan) => plan.id),
+                            selectedPlans,
                             highestApplicability(selectedApplicabilities),
                             trackNumberId,
                             locationTrackId,
@@ -145,7 +162,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                         );
                     }}>
                     {t('plan-download.download-selected', {
-                        amount: plans.filter((p) => p.selected).length,
+                        amount: selectedPlans.length,
                     })}
                 </Button>
             </div>

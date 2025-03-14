@@ -180,34 +180,26 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
     }, [locationTrackAndStartAndEnd, trackNumberAndStartAndEnd]);
 
     const [linkedPlans, planFetchStatus] = useLoaderWithStatus<DownloadablePlan[]>(async () => {
+        const startKm = kmNumberIsValid(planDownloadState.areaSelection.startTrackMeter)
+            ? planDownloadState.areaSelection.startTrackMeter
+            : undefined;
+        const endKm = kmNumberIsValid(planDownloadState.areaSelection.endTrackMeter)
+            ? planDownloadState.areaSelection.endTrackMeter
+            : undefined;
         if (planDownloadState.areaSelection.locationTrack)
             return await getPlansLinkedToLocationTrack(
                 layoutContext,
                 planDownloadState.areaSelection.locationTrack,
-                planDownloadState.areaSelection.startTrackMeter || undefined,
-                planDownloadState.areaSelection.endTrackMeter || undefined,
-            ).then((plans) =>
-                plans.map((p) =>
-                    toDownloadablePlan(
-                        p,
-                        planDownloadState.plans.find((sp) => sp.id === p.id)?.selected ?? false,
-                    ),
-                ),
-            );
+                startKm,
+                endKm,
+            ).then((plans) => plans.map(toDownloadablePlan));
         else if (planDownloadState.areaSelection.trackNumber)
             return await getPlansLinkedToTrackNumber(
                 layoutContext,
                 planDownloadState.areaSelection.trackNumber,
-                planDownloadState.areaSelection.startTrackMeter || undefined,
-                planDownloadState.areaSelection.endTrackMeter || undefined,
-            ).then((plans) =>
-                plans.map((p) =>
-                    toDownloadablePlan(
-                        p,
-                        planDownloadState.plans.find((sp) => sp.id === p.id)?.selected ?? false,
-                    ),
-                ),
-            );
+                startKm,
+                endKm,
+            ).then((plans) => plans.map(toDownloadablePlan));
         else return [];
     }, [
         planDownloadState.areaSelection.locationTrack,
@@ -216,9 +208,6 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
         planDownloadState.areaSelection.endTrackMeter,
         getChangeTimes().geometryPlan,
     ]);
-    React.useEffect(() => {
-        if (linkedPlans) delegates.setPlans(linkedPlans);
-    }, [linkedPlans]);
 
     const menuAnchorRef = React.useRef<HTMLDivElement>(null);
     const [showFilterMenu, setShowFilterMenu] = React.useState(false);
@@ -271,13 +260,13 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
         styles['plan-download-popup__title-content'],
     );
 
-    const setPlanSelected = (id: GeometryPlanId, selected: boolean) => {
-        delegates.setPlanDownloadPlanSelected({ id, selected });
+    const togglePlanForDownload = (id: GeometryPlanId, selected: boolean) => {
+        delegates.togglePlanForDownload({ id, selected });
     };
     const selectPlan = (id: GeometryPlanId) => delegates.onSelect({ geometryPlans: [id] });
 
     const plans = filterPlans(
-        planDownloadState.plans,
+        linkedPlans ?? [],
         planDownloadState.selectedApplicabilities,
     ).toSorted(comparePlans);
 
@@ -372,8 +361,10 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 }>
                 <PlanDownloadPlanSection
                     plans={plans}
-                    setPlanSelected={setPlanSelected}
-                    setAllPlansSelected={delegates.setAllPlansSelected}
+                    selectedPlanIds={planDownloadState.plans}
+                    togglePlanForDownload={togglePlanForDownload}
+                    selectPlansForDownload={delegates.selectMultiplePlansForDownload}
+                    unselectAllPlans={delegates.unselectPlansForDownload}
                     selectPlan={selectPlan}
                     disabled={disabled}
                     trackNumberId={planDownloadState.areaSelection.trackNumber}

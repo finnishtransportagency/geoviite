@@ -76,7 +76,7 @@ class LayoutAlignmentService(
         }
     }
 
-    fun getLinkedPlanHeaders(
+    fun getOverlappingPlanHeaders(
         alignmentVersion: RowVersion<LayoutAlignment>,
         geocodingContextCacheKey: GeocodingContextCacheKey,
         startKmNumber: KmNumber?,
@@ -98,18 +98,18 @@ class LayoutAlignmentService(
     ): IAlignment {
         val alignment = dao.fetch(alignmentVersion)
         if (startKmNumber == null && endKmNumber == null) return alignment
-
-        val addressPoints = geocodingService.getAddressPoints(geocodingContextCacheKey, alignmentVersion)
+        val geocodingContext = geocodingService.getGeocodingContext(geocodingContextCacheKey)
         val startM =
             requireNotNull(
-                startKmNumber?.let { kmNumber ->
-                    addressPoints?.allPoints?.firstOrNull { it.address.kmNumber == kmNumber }?.point?.m
+                startKmNumber?.let {
+                    geocodingContext?.referencePoints?.find { it.kmNumber == startKmNumber }?.distance
                 } ?: alignment.start?.m
             )
         val endM =
-            endKmNumber?.let { kmNumber ->
-                addressPoints?.allPoints?.lastOrNull { it.address.kmNumber == kmNumber }?.point?.m
-            } ?: alignment.end?.m ?: Double.MAX_VALUE
+            requireNotNull(
+                endKmNumber?.let { geocodingContext?.referencePoints?.find { it.kmNumber >= endKmNumber }?.distance }
+                    ?: alignment.end?.m
+            )
 
         val startSegment =
             alignment.segments

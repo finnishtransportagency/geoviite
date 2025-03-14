@@ -129,8 +129,8 @@ class LayoutTrackNumberController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/linked-plans")
-    fun getLinkedPlans(
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/overlapping-plans")
+    fun getOverlappingPlanHeaders(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
@@ -138,7 +138,7 @@ class LayoutTrackNumberController(
         @RequestParam("endKm") endKmNumber: KmNumber? = null,
     ): List<GeometryPlanHeader> {
         val context = LayoutContext.of(branch, publicationState)
-        return trackNumberService.getLinkedPlans(context, id, startKmNumber, endKmNumber)
+        return trackNumberService.getOverlappingPlanHeaders(context, id, startKmNumber, endKmNumber)
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)

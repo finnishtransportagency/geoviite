@@ -201,7 +201,7 @@ class LayoutTrackNumberService(
     }
 
     @Transactional(readOnly = true)
-    fun getLinkedPlans(
+    fun getOverlappingPlanHeaders(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
         startKmNumber: KmNumber?,
@@ -211,7 +211,7 @@ class LayoutTrackNumberService(
             requireNotNull(referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId).alignmentVersion)
         val cacheKey = requireNotNull(geocodingService.getGeocodingContextCacheKey(layoutContext, trackNumberId))
 
-        return alignmentService.getLinkedPlanHeaders(alignmentVersion, cacheKey, startKmNumber, endKmNumber)
+        return alignmentService.getOverlappingPlanHeaders(alignmentVersion, cacheKey, startKmNumber, endKmNumber)
     }
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()

@@ -127,7 +127,7 @@ export const getPlansLinkedToTrackNumber = async (
 ) => {
     const params = queryParams({ startKm: startKm ?? undefined, endKm: endKm ?? undefined });
     return getNonNull<GeometryPlanHeader[]>(
-        `${layoutUri('track-numbers', layoutContext, id)}/linked-plans${params}`,
+        `${layoutUri('track-numbers', layoutContext, id)}/overlapping-plans${params}`,
     );
 };
 

@@ -389,7 +389,7 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun getLinkedPlanHeaders(
+    fun getOverlappingPlanHeaders(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
         startKmNumber: KmNumber?,
@@ -399,7 +399,7 @@ class LocationTrackService(
         val contextKey = geocodingService.getGeocodingContextCacheKey(layoutContext, locationTrack.trackNumberId)
 
         return if (contextKey != null && locationTrack.alignmentVersion != null) {
-            alignmentService.getLinkedPlanHeaders(
+            alignmentService.getOverlappingPlanHeaders(
                 locationTrack.alignmentVersion,
                 contextKey,
                 startKmNumber,
