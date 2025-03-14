@@ -123,9 +123,9 @@ class LayoutAlignmentService(
             alignment.segments
                 .find { s -> endM in s.startM..s.endM }
                 ?.let { s -> if (s.startM < endM) s.slice(Range(s.startM, endM)) else null }
-        val midSegments = alignment.segments.filter { s -> s.startM > startM && s.endM < endM }
+        val midSegments = alignment.segments.filter { s -> s.startM >= startM && s.endM <= endM }
 
-        val segments = listOfNotNull(startSegment) + midSegments + listOfNotNull(endSegment)
+        val segments = (listOfNotNull(startSegment) + midSegments + listOfNotNull(endSegment)).distinctBy { it.id }
         val croppedAlignment = CroppedAlignment(0, segments, alignment.id)
         return croppedAlignment
     }
