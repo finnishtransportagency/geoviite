@@ -4,28 +4,65 @@ import styles from './plan-download-popup.scss';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
+import {
+    GeometryPlanId,
+    highestApplicability,
+    PlanApplicability,
+    PlanSource,
+} from 'geometry/geometry-model';
 import { DownloadablePlan } from 'map/plan-download/plan-download-store';
+import { inframodelBatchDownloadUri } from 'infra-model/infra-model-api';
+import { createClassName } from 'vayla-design-lib/utils';
+import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
+import { KmNumber } from 'common/common-model';
 
 type PlanItemProps = {
     id: GeometryPlanId;
     name: string;
     checked: boolean;
     applicability: PlanApplicability | undefined;
+    source: PlanSource;
     setPlanSelected: (planId: GeometryPlanId, selected: boolean) => void;
+    selectPlan: (planId: GeometryPlanId) => void;
+    disabled: boolean;
 };
 
 const PlanItem: React.FC<PlanItemProps> = ({
     id,
     checked,
     name,
+    source,
     applicability,
     setPlanSelected,
+    selectPlan,
+    disabled,
 }) => {
+    const classNames = createClassName(
+        styles['plan-download-popup__plan-row'],
+        disabled && styles['plan-download-popup__plan-row--disabled'],
+    );
+    const fromPaikannuspalvelu = source === 'PAIKANNUSPALVELU';
+    const nameClassNames = createClassName(
+        fromPaikannuspalvelu && styles['plan-download-popup__plan-name--has-subheader'],
+    );
+
     return (
-        <li className={styles['plan-download-popup__plan-row']}>
-            <Checkbox checked={checked} onChange={() => setPlanSelected(id, !checked)} />
-            <span className={styles['plan-download-popup__plan-name']}>{name}</span>
+        <li className={classNames}>
+            <Checkbox
+                checked={checked}
+                onChange={() => setPlanSelected(id, !checked)}
+                disabled={disabled}
+            />
+            <span
+                className={styles['plan-download-popup__plan-name']}
+                onClick={() => !disabled && selectPlan(id)}>
+                <span className={nameClassNames}>{name}</span>
+                {fromPaikannuspalvelu && (
+                    <span className={styles['plan-download-popup__plan-name-subheader']}>
+                        Paikannuspalvelu
+                    </span>
+                )}
+            </span>
             <span className={styles['plan-download-popup__plan-icon']}>
                 {!applicability && '?'}
                 {applicability === 'STATISTICS' && (
@@ -43,15 +80,39 @@ const PlanItem: React.FC<PlanItemProps> = ({
 };
 
 type PlanDownloadPlanSectionProps = {
+    disabled: boolean;
     plans: DownloadablePlan[];
-    setPlanSelected: (planId: GeometryPlanId, selected: boolean) => void;
+    selectedPlanIds: GeometryPlanId[];
+    trackNumberId: LayoutTrackNumberId | undefined;
+    locationTrackId: LocationTrackId | undefined;
+    startKm: KmNumber | undefined;
+    endKm: KmNumber | undefined;
+    selectedApplicabilities: PlanApplicability[];
+    togglePlanForDownload: (planId: GeometryPlanId, selected: boolean) => void;
+    selectPlansForDownload: (planIds: GeometryPlanId[]) => void;
+    unselectAllPlans: () => void;
+    selectPlan: (planId: GeometryPlanId) => void;
 };
 
 export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = ({
+    disabled,
     plans,
-    setPlanSelected,
+    selectedPlanIds,
+    trackNumberId,
+    locationTrackId,
+    startKm,
+    endKm,
+    selectedApplicabilities,
+    togglePlanForDownload,
+    selectPlansForDownload,
+    unselectAllPlans,
+    selectPlan,
 }) => {
     const { t } = useTranslation();
+    const selectedPlans = plans
+        .filter((p) => selectedPlanIds.includes(p.id))
+        .map((plan) => plan.id);
+
     return (
         <div>
             <ul className={styles['plan-download-popup__plans-container']}>
@@ -60,18 +121,49 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                         key={plan.id}
                         id={plan.id}
                         name={plan.name}
-                        checked={plan.selected}
+                        checked={selectedPlanIds.includes(plan.id)}
                         applicability={plan.applicability}
-                        setPlanSelected={setPlanSelected}
+                        source={plan.source}
+                        setPlanSelected={togglePlanForDownload}
+                        selectPlan={selectPlan}
+                        disabled={disabled}
                     />
                 ))}
             </ul>
             <div className={styles['plan-download-popup__buttons']}>
-                <Button size={ButtonSize.SMALL} variant={ButtonVariant.SECONDARY}>
-                    {t('plan-download.select-all')}
-                </Button>
-                <Button size={ButtonSize.SMALL}>
-                    {t('plan-download.download-selected', { amount: plans.length })}
+                {plans.length > 0 && plans.every((p) => selectedPlanIds.includes(p.id)) ? (
+                    <Button
+                        disabled={disabled || plans.length === 0}
+                        size={ButtonSize.SMALL}
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={unselectAllPlans}>
+                        {t('plan-download.unselect-all')}
+                    </Button>
+                ) : (
+                    <Button
+                        disabled={disabled || plans.length === 0}
+                        size={ButtonSize.SMALL}
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={() => selectPlansForDownload(plans.map((p) => p.id))}>
+                        {t('plan-download.select-all')}
+                    </Button>
+                )}
+                <Button
+                    size={ButtonSize.SMALL}
+                    disabled={disabled || plans.every((p) => !selectedPlanIds.includes(p.id))}
+                    onClick={() => {
+                        location.href = inframodelBatchDownloadUri(
+                            selectedPlans,
+                            highestApplicability(selectedApplicabilities),
+                            trackNumberId,
+                            locationTrackId,
+                            startKm || undefined,
+                            endKm || undefined,
+                        );
+                    }}>
+                    {t('plan-download.download-selected', {
+                        amount: selectedPlans.length,
+                    })}
                 </Button>
             </div>
         </div>

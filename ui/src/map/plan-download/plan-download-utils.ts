@@ -1,6 +1,7 @@
 import { DownloadablePlan } from 'map/plan-download/plan-download-store';
-import { KmNumberRange, PlanApplicability } from 'geometry/geometry-model';
+import { GeometryPlanHeader, KmNumberRange, PlanApplicability } from 'geometry/geometry-model';
 import { compareKmNumberStrings } from 'common/common-model';
+import { expectDefined } from 'utils/type-utils';
 
 export const filterPlans = (
     plans: DownloadablePlan[],
@@ -13,8 +14,14 @@ export const filterPlans = (
 export const comparePlans = (a: DownloadablePlan, b: DownloadablePlan): number => {
     if (!a.applicability && b.applicability) return -1;
     else if (a.applicability && !b.applicability) return 1;
+    else if (!a.kmNumberRange && b.kmNumberRange) return -1;
+    else if (a.kmNumberRange && !b.kmNumberRange) return 1;
+    else if (!a.kmNumberRange && !b.kmNumberRange) return 0;
     else {
-        return compareKmNumberStrings(a.kmNumberRange.min, b.kmNumberRange.min);
+        return compareKmNumberStrings(
+            expectDefined(a.kmNumberRange).min,
+            expectDefined(b.kmNumberRange).min,
+        );
     }
 };
 
@@ -24,3 +31,11 @@ export const isKmNumberWithinAlignment = (
 ): boolean =>
     compareKmNumberStrings(kmNumber, kmNumberRange.min) >= 0 &&
     compareKmNumberStrings(kmNumber, kmNumberRange.max) <= 0;
+
+export const toDownloadablePlan = (planHeader: GeometryPlanHeader): DownloadablePlan => ({
+    id: planHeader.id,
+    name: planHeader.fileName,
+    applicability: planHeader.planApplicability,
+    source: planHeader.source,
+    kmNumberRange: planHeader.kmNumberRange,
+});

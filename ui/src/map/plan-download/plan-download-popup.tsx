@@ -2,19 +2,21 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './plan-download-popup.scss';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { kmNumberIsValid, LayoutContext } from 'common/common-model';
-import { PlanSelectionType } from 'map/plan-download/plan-download-store';
+import { DownloadablePlan, PlanSelectionType } from 'map/plan-download/plan-download-store';
 import { createDelegates } from 'store/store-utils';
 import { Menu, menuDivider, menuOption } from 'vayla-design-lib/menu/menu';
 import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
 import { PlanDownloadAreaSection } from 'map/plan-download/plan-download-area-section';
 import { PlanDownloadPlanSection } from 'map/plan-download/plan-download-plan-section';
-import { comparePlans, filterPlans } from 'map/plan-download/plan-download-utils';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import { getTrackNumberById } from 'track-layout/layout-track-number-api';
+import {
+    getPlansLinkedToTrackNumber,
+    getTrackNumberById,
+} from 'track-layout/layout-track-number-api';
 import {
     getReferenceLineStartAndEnd,
     getTrackNumberReferenceLine,
@@ -23,10 +25,17 @@ import { getChangeTimes } from 'common/change-time-api';
 import {
     getLocationTrack,
     getLocationTrackStartAndEnd,
+    getPlansLinkedToLocationTrack,
 } from 'track-layout/layout-location-track-api';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { expectDefined } from 'utils/type-utils';
+import {
+    comparePlans,
+    filterPlans,
+    toDownloadablePlan,
+} from 'map/plan-download/plan-download-utils';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type PlanDownloadPopupSectionProps = {
     selectedType: PlanSelectionType | undefined;
@@ -34,6 +43,7 @@ type PlanDownloadPopupSectionProps = {
     setPlanSelectionType: (planSelectionType: PlanSelectionType | undefined) => void;
     title: React.ReactNode;
     children?: React.ReactNode;
+    disabled: boolean;
 };
 const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> = ({
     selectedType,
@@ -41,25 +51,35 @@ const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> = ({
     setPlanSelectionType,
     title,
     children,
+    disabled,
 }) => {
     const chevronClasses = createClassName(
         styles['plan-download-popup-chevron'],
         planSelectionType === selectedType && styles['plan-download-popup-chevron--visible'],
     );
 
+    const titleContentClasses = createClassName(
+        styles['plan-download-popup__title-content'],
+        disabled && styles['plan-download-popup__title-content--disabled'],
+    );
+
     return (
         <React.Fragment>
             <h2 className={styles['plan-download-popup__title']}>
-                <span
+                <Button
+                    size={ButtonSize.X_SMALL}
                     className={chevronClasses}
+                    variant={ButtonVariant.GHOST}
+                    icon={Icons.Chevron}
+                    disabled={disabled}
                     onClick={() =>
+                        !disabled &&
                         setPlanSelectionType(
                             planSelectionType === selectedType ? undefined : planSelectionType,
                         )
-                    }>
-                    <Icons.Chevron size={IconSize.SMALL} />
-                </span>
-                <span className={styles['plan-download-popup__title-content']}>{title}</span>
+                    }
+                />
+                <span className={titleContentClasses}>{title}</span>
             </h2>
             {planSelectionType === selectedType && (
                 <div className={styles['plan-download-popup__content']}>{children}</div>
@@ -159,6 +179,36 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
             delegates.setPlanDownloadAlignmentStartAndEnd(trackNumberAndStartAndEnd?.startAndEnd);
     }, [locationTrackAndStartAndEnd, trackNumberAndStartAndEnd]);
 
+    const [linkedPlans, planFetchStatus] = useLoaderWithStatus<DownloadablePlan[]>(async () => {
+        const startKm = kmNumberIsValid(planDownloadState.areaSelection.startTrackMeter)
+            ? planDownloadState.areaSelection.startTrackMeter
+            : undefined;
+        const endKm = kmNumberIsValid(planDownloadState.areaSelection.endTrackMeter)
+            ? planDownloadState.areaSelection.endTrackMeter
+            : undefined;
+        if (planDownloadState.areaSelection.locationTrack)
+            return await getPlansLinkedToLocationTrack(
+                layoutContext,
+                planDownloadState.areaSelection.locationTrack,
+                startKm,
+                endKm,
+            ).then((plans) => plans.map(toDownloadablePlan));
+        else if (planDownloadState.areaSelection.trackNumber)
+            return await getPlansLinkedToTrackNumber(
+                layoutContext,
+                planDownloadState.areaSelection.trackNumber,
+                startKm,
+                endKm,
+            ).then((plans) => plans.map(toDownloadablePlan));
+        else return [];
+    }, [
+        planDownloadState.areaSelection.locationTrack,
+        planDownloadState.areaSelection.trackNumber,
+        planDownloadState.areaSelection.startTrackMeter,
+        planDownloadState.areaSelection.endTrackMeter,
+        getChangeTimes().geometryPlan,
+    ]);
+
     const menuAnchorRef = React.useRef<HTMLDivElement>(null);
     const [showFilterMenu, setShowFilterMenu] = React.useState(false);
 
@@ -210,13 +260,18 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
         styles['plan-download-popup__title-content'],
     );
 
-    const setPlanSelected = (id: GeometryPlanId, selected: boolean) => {
-        delegates.setPlanDownloadPlanSelected({ id, selected });
+    const togglePlanForDownload = (id: GeometryPlanId, selected: boolean) => {
+        delegates.togglePlanForDownload({ id, selected });
     };
+    const selectPlan = (id: GeometryPlanId) => delegates.onSelect({ geometryPlans: [id] });
+
     const plans = filterPlans(
-        planDownloadState.plans,
+        linkedPlans ?? [],
         planDownloadState.selectedApplicabilities,
     ).toSorted(comparePlans);
+
+    const disabled =
+        layoutContext.publicationState !== 'OFFICIAL' || layoutContext.branch !== 'MAIN';
 
     return (
         <div className={styles['plan-download-popup']}>
@@ -235,6 +290,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 planSelectionType={'AREA'}
                 setPlanSelectionType={delegates.setPlanDownloadSelectionType}
                 selectedType={planDownloadState.selectionType}
+                disabled={disabled}
                 title={
                     <React.Fragment>
                         <span>{t('plan-download.area')}</span>
@@ -263,6 +319,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                                   ? trackNumberFetchStatus !== LoaderStatus.Ready
                                   : false
                         }
+                        disabled={disabled}
                     />
                 )}
             </PlanDownloadPopupSection>
@@ -270,18 +327,24 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 planSelectionType={'PLAN'}
                 setPlanSelectionType={delegates.setPlanDownloadSelectionType}
                 selectedType={planDownloadState.selectionType}
+                disabled={disabled}
                 title={
                     <React.Fragment>
-                        <span>
-                            {t('plan-download.plans', {
-                                amount: plans.length,
-                            })}
-                        </span>
+                        {planFetchStatus === LoaderStatus.Ready ? (
+                            <span>
+                                {t('plan-download.plans', {
+                                    amount: plans.length,
+                                })}
+                            </span>
+                        ) : (
+                            <Spinner />
+                        )}
                         <div ref={menuAnchorRef}>
                             <Button
                                 size={ButtonSize.X_SMALL}
                                 variant={ButtonVariant.GHOST}
                                 icon={Icons.Filter}
+                                disabled={disabled}
                                 onClick={() => setShowFilterMenu(!showFilterMenu)}
                             />
                             {showFilterMenu && (
@@ -296,7 +359,20 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                         </div>
                     </React.Fragment>
                 }>
-                <PlanDownloadPlanSection plans={plans} setPlanSelected={setPlanSelected} />
+                <PlanDownloadPlanSection
+                    plans={plans}
+                    selectedPlanIds={planDownloadState.plans}
+                    togglePlanForDownload={togglePlanForDownload}
+                    selectPlansForDownload={delegates.selectMultiplePlansForDownload}
+                    unselectAllPlans={delegates.unselectPlansForDownload}
+                    selectPlan={selectPlan}
+                    disabled={disabled}
+                    trackNumberId={planDownloadState.areaSelection.trackNumber}
+                    locationTrackId={planDownloadState.areaSelection.locationTrack}
+                    startKm={planDownloadState.areaSelection.startTrackMeter}
+                    endKm={planDownloadState.areaSelection.endTrackMeter}
+                    selectedApplicabilities={planDownloadState.selectedApplicabilities}
+                />
             </PlanDownloadPopupSection>
         </div>
     );

@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -19,6 +20,7 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.TopologyLinkFindingSwitch
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -384,6 +386,21 @@ class LocationTrackService(
                 geocodingContext,
             )
         } else listOf()
+    }
+
+    @Transactional(readOnly = true)
+    fun getOverlappingPlanHeaders(
+        layoutContext: LayoutContext,
+        locationTrackId: IntId<LocationTrack>,
+        startKmNumber: KmNumber?,
+        endKmNumber: KmNumber?,
+    ): List<GeometryPlanHeader> {
+        val locationTrack = getOrThrow(layoutContext, locationTrackId)
+        val alignmentVersion = requireNotNull(locationTrack.alignmentVersion)
+        val contextKey =
+            requireNotNull(geocodingService.getGeocodingContextCacheKey(layoutContext, locationTrack.trackNumberId))
+
+        return alignmentService.getOverlappingPlanHeaders(alignmentVersion, contextKey, startKmNumber, endKmNumber)
     }
 
     private fun getSwitchIdAtStart(alignment: LayoutAlignment, locationTrack: LocationTrack) =

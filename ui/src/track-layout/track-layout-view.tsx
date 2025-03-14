@@ -16,6 +16,7 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
+import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
@@ -33,6 +34,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
 
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
+    const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
 
     return (
         <div className={className} qa-id="track-layout-content">
@@ -45,7 +47,9 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                     inline={false}>
                     <div className={styles['track-layout__main-view']}>
                         <div className={styles['track-layout__navi']}>
-                            <SelectionPanelContainer />
+                            <SelectionPanelContainer
+                                setSwitchToOfficialDialogOpen={setSwitchToOfficialDialogOpen}
+                            />
                         </div>
 
                         {showVerticalGeometryDiagram && (
@@ -62,7 +66,6 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                                     hoveredOverPlanSection={hoveredOverPlanSection}
                                     mapTools={[selectOrHighlightComboTool, measurementTool]}
                                     customActiveMapTool={selectOrHighlightComboTool}
-                                    allowPlanDownloads={true}
                                 />
                             </MapContext.Provider>
                         </div>
@@ -71,6 +74,11 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                         </div>
                     </div>
                 </ProgressIndicatorWrapper>
+                {switchToOfficialDialogOpen && (
+                    <ConfirmMoveToMainOfficialDialogContainer
+                        onClose={() => setSwitchToOfficialDialogOpen(false)}
+                    />
+                )}
             </div>
         </div>
     );

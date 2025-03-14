@@ -38,6 +38,7 @@ export const PlanDownloadAreaSection: React.FC<{
     ) => void;
     onCommitField: (field: keyof AreaSelection) => void;
     loading: boolean;
+    disabled: boolean;
 }> = ({
     layoutContext,
     locationTrack,
@@ -46,6 +47,7 @@ export const PlanDownloadAreaSection: React.FC<{
     onUpdateProp,
     onCommitField,
     loading,
+    disabled,
 }) => {
     const { t } = useTranslation();
     const [areaSelectionType, setAreaSelectionType] =
@@ -110,6 +112,7 @@ export const PlanDownloadAreaSection: React.FC<{
                 <div className={styles['plan-download-popup__radio-container']}>
                     <Radio
                         checked={areaSelectionType === 'TRACK_METERS'}
+                        disabled={disabled}
                         onChange={() => setAreaSelectionType('TRACK_METERS')}>
                         {t('plan-download.track-meter-range')}
                     </Radio>
@@ -126,6 +129,7 @@ export const PlanDownloadAreaSection: React.FC<{
                                         {t('plan-download.track-number-or-location-track')}
                                     </label>
                                     <SearchDropdown
+                                        disabled={disabled}
                                         searchTypes={ASSET_SEARCH_TYPES}
                                         layoutContext={layoutContext}
                                         placeholder={t('plan-download.search')}
@@ -164,6 +168,7 @@ export const PlanDownloadAreaSection: React.FC<{
                                     </label>
                                     <TextField
                                         qa-id="plan-download-start-km"
+                                        disabled={disabled}
                                         value={state.areaSelection.startTrackMeter}
                                         onChange={(e) =>
                                             updateProp('startTrackMeter', e.target.value)
@@ -207,6 +212,7 @@ export const PlanDownloadAreaSection: React.FC<{
                                     </label>
                                     <TextField
                                         qa-id="plan-download-end-km"
+                                        disabled={disabled}
                                         value={state.areaSelection.endTrackMeter}
                                         onChange={(e) =>
                                             updateProp('endTrackMeter', e.target.value)

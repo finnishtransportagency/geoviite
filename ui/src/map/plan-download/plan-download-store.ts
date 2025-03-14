@@ -13,7 +13,12 @@ import {
 } from 'utils/validation-utils';
 import { compareKmNumberStrings, kmNumberIsValid } from 'common/common-model';
 import { filterNotEmpty } from 'utils/array-utils';
-import { GeometryPlanId, KmNumberRange, PlanApplicability } from 'geometry/geometry-model';
+import {
+    GeometryPlanId,
+    KmNumberRange,
+    PlanApplicability,
+    PlanSource,
+} from 'geometry/geometry-model';
 import { isKmNumberWithinAlignment } from 'map/plan-download/plan-download-utils';
 import { isValidKmNumber } from 'tool-panel/km-post/dialog/km-post-edit-store';
 
@@ -30,7 +35,7 @@ export type PlanDownloadState = {
     selectionType: PlanSelectionType;
     areaSelection: AreaSelection;
     validationIssues: FieldValidationIssue<AreaSelection>[];
-    plans: DownloadablePlan[];
+    plans: GeometryPlanId[];
     selectedApplicabilities: PlanApplicability[];
     committedFields: (keyof AreaSelection)[];
 };
@@ -38,9 +43,9 @@ export type PlanDownloadState = {
 export type DownloadablePlan = {
     id: GeometryPlanId;
     name: string;
-    selected: boolean;
     applicability?: PlanApplicability;
-    kmNumberRange: KmNumberRange;
+    source: PlanSource;
+    kmNumberRange: KmNumberRange | undefined;
 };
 
 export type SelectedPlanDownloadAsset =
@@ -49,37 +54,6 @@ export type SelectedPlanDownloadAsset =
           type: 'TRACK_NUMBER';
       }
     | { id: LocationTrackId; type: 'LOCATION_TRACK' };
-
-const DUMMY_PLANS: DownloadablePlan[] = [
-    {
-        id: 'INT_1',
-        name: 'HOJOOOOOO',
-        selected: true,
-        applicability: 'STATISTICS',
-        kmNumberRange: { min: '0004', max: '0100' },
-    },
-    {
-        id: 'INT_2',
-        name: 'HOJOOOOOOOO',
-        selected: false,
-        applicability: 'MAINTENANCE',
-        kmNumberRange: { min: '0002', max: '0100' },
-    },
-    {
-        id: 'INT_3',
-        name: 'HOJOOOOOOOOOO',
-        selected: true,
-        applicability: 'PLANNING',
-        kmNumberRange: { min: '0003', max: '0100' },
-    },
-    {
-        id: 'INT_4',
-        name: 'HOJOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO',
-        selected: false,
-        applicability: undefined,
-        kmNumberRange: { min: '0005', max: '0100' },
-    },
-];
 
 export const initialPlanDownloadStateFromSelection = (
     locationTrackId: LocationTrackId | undefined,
@@ -102,7 +76,7 @@ export const initialPlanDownloadState: PlanDownloadState = {
         endTrackMeter: '',
         alignmentStartAndEnd: undefined,
     },
-    plans: DUMMY_PLANS,
+    plans: [],
     selectedApplicabilities: ['PLANNING', 'MAINTENANCE', 'STATISTICS'],
     validationIssues: [],
     committedFields: [],
@@ -240,13 +214,22 @@ export const planDownloadReducers = {
     ) {
         state.selectedApplicabilities = applicabilities;
     },
-    setPlanDownloadPlanSelected: function (
+    togglePlanForDownload: function (
         state: PlanDownloadState,
         { payload: planId }: PayloadAction<{ id: GeometryPlanId; selected: boolean }>,
     ) {
-        state.plans = state.plans.map((plan) =>
-            plan.id === planId.id ? { ...plan, selected: planId.selected } : plan,
-        );
+        state.plans = planId.selected
+            ? [...state.plans, planId.id]
+            : state.plans.filter((p) => p !== planId.id);
+    },
+    selectMultiplePlansForDownload: function (
+        state: PlanDownloadState,
+        { payload: selectedPlans }: PayloadAction<GeometryPlanId[]>,
+    ) {
+        state.plans = state.plans = selectedPlans;
+    },
+    unselectPlansForDownload: function (state: PlanDownloadState) {
+        state.plans = [];
     },
     setPlanDownloadAlignmentStartAndEnd: function (
         state: PlanDownloadState,

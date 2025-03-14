@@ -61,6 +61,14 @@ export type KmNumberRange = {
 export type PlanDecisionPhase = 'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE';
 
 export type PlanApplicability = 'PLANNING' | 'MAINTENANCE' | 'STATISTICS';
+export const highestApplicability = (
+    applicabilities: PlanApplicability[],
+): PlanApplicability | undefined => {
+    if (applicabilities.includes('PLANNING')) return 'PLANNING';
+    if (applicabilities.includes('MAINTENANCE')) return 'MAINTENANCE';
+    if (applicabilities.includes('STATISTICS')) return 'STATISTICS';
+    return undefined;
+};
 
 export type PlanPhase =
     | 'RAILWAY_PLAN'

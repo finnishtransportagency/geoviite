@@ -21,7 +21,9 @@ import {
     PVDocumentStatus,
 } from './projektivelho/pv-model';
 import { asyncCache } from 'cache/cache';
-import { Oid, TimeStamp } from 'common/common-model';
+import { KmNumber, Oid, TimeStamp } from 'common/common-model';
+import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
+import { filterUnique } from 'utils/array-utils';
 
 export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
     geometryValidationIssues: [],
@@ -37,6 +39,15 @@ const pvDocumentHeaderCache = asyncCache<PVDocumentId, PVDocumentHeader | undefi
 const pvDocumentHeadersByStateCache = asyncCache<PVDocumentStatus, PVDocumentHeader[]>();
 
 export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_URI}/${planId}/file`;
+export const inframodelBatchDownloadUri = (
+    planIds: GeometryPlanId[],
+    applicability: PlanApplicability | undefined,
+    trackNumberId: LayoutTrackNumberId | undefined,
+    locationTrackId: LocationTrackId | undefined,
+    startKm: KmNumber | undefined,
+    endKm: KmNumber | undefined,
+) =>
+    `${INFRAMODEL_URI}/batch${queryParams({ ids: planIds.filter(filterUnique), applicability, trackNumberId, locationTrackId, startKm, endKm })}`;
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
     `${PROJEKTIVELHO_URI}/${docId}`;
 

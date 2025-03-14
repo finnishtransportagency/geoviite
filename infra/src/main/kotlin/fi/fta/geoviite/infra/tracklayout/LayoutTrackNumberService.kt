@@ -9,13 +9,13 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateSystem
 import fi.fta.geoviite.infra.geography.GeographyService
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -184,10 +184,9 @@ class LayoutTrackNumberService(
         boundingBox: BoundingBox?,
     ): List<AlignmentPlanSection> {
         return get(layoutContext, trackNumberId)?.let { trackNumber ->
-            val referenceLine =
-                referenceLineService.getByTrackNumber(layoutContext, trackNumberId)
-                    ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
+            val referenceLine = referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId)
             val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
+
             if (geocodingContext != null && referenceLine.alignmentVersion != null) {
                 alignmentService.getGeometryMetadataSections(
                     referenceLine.alignmentVersion,
@@ -199,6 +198,20 @@ class LayoutTrackNumberService(
                 null
             }
         } ?: listOf()
+    }
+
+    @Transactional(readOnly = true)
+    fun getOverlappingPlanHeaders(
+        layoutContext: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>,
+        startKmNumber: KmNumber?,
+        endKmNumber: KmNumber?,
+    ): List<GeometryPlanHeader> {
+        val alignmentVersion =
+            requireNotNull(referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId).alignmentVersion)
+        val cacheKey = requireNotNull(geocodingService.getGeocodingContextCacheKey(layoutContext, trackNumberId))
+
+        return alignmentService.getOverlappingPlanHeaders(alignmentVersion, cacheKey, startKmNumber, endKmNumber)
     }
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()

@@ -10,7 +10,6 @@
     top: 8px;
     right: 54px;
     width: 358px;
-    max-height: 428px;
 
     background-color: rgba(vayla-design.$color-white-default, 0.95);
     border-radius: 4px;
@@ -42,7 +41,6 @@
     }
 
     &-chevron .icon {
-        margin-right: 12px;
         transition: transform 254ms;
     }
 
@@ -58,16 +56,21 @@
         display: flex;
         justify-content: space-between;
         flex-grow: 1;
+
+        &--disabled {
+            color: vayla-design.$color-black-lighter;
+        }
     }
 
     &__title {
         @include vayla-design.typography-sub-heading;
 
         background-color: vayla-design.$color-white-dark;
-        padding: 6px 8px 6px 16px;
+        padding: 6px 8px;
         margin: 0;
         box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
         display: flex;
+        gap: 6px;
     }
 
     &__content {
@@ -82,7 +85,7 @@
         border-radius: 4px;
         padding: 10px;
 
-        height: 200px;
+        height: 300px;
         overflow: auto;
         list-style: none;
         margin-top: 0;
@@ -93,14 +96,37 @@
         display: flex;
         align-items: center;
         font-weight: 600;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
         gap: 8px;
+        height: 32px;
+
+        &--disabled {
+            color: vayla-design.$color-black-lighter;
+        }
     }
 
     &__plan-name {
         flex-grow: 1;
         overflow: hidden;
-        text-overflow: ellipsis;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        font-weight: 400;
+
+        > span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        &--has-subheader {
+            white-space: pre;
+        }
+    }
+
+    &__plan-name-subheader {
+        font-size: 10px;
+        color: vayla-design.$color-black-lighter;
+        font-weight: 400;
     }
 
     &__plan-icon {

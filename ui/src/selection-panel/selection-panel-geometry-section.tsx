@@ -40,6 +40,8 @@ import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { filterNotEmpty, filterUnique, first } from 'utils/array-utils';
 import { GeometryPlanFilterMenuContainer } from 'selection-panel/geometry-plan-panel/geometry-plan-filter-menu-container';
 import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
@@ -49,6 +51,7 @@ type GeometryPlansPanelProps = {
     selectedTrackNumberIds: LayoutTrackNumberId[];
     openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
+    planDownloadPopupOpen: boolean;
     onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
@@ -57,6 +60,7 @@ type GeometryPlansPanelProps = {
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
+    togglePlanDownloadPopupOpen: (payload: boolean) => void;
     onSelect: (options: OnSelectOptions) => void;
     disabled?: boolean;
     grouping: GeometryPlanGrouping;
@@ -77,6 +81,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     selectedTrackNumberIds,
     openPlans,
     visiblePlans,
+    planDownloadPopupOpen,
     onTogglePlanVisibility,
     onToggleAlignmentVisibility,
     onToggleSwitchVisibility,
@@ -85,6 +90,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
+    togglePlanDownloadPopupOpen,
     onSelect,
     grouping,
     visibleSources,
@@ -225,6 +231,15 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     }/${planHeaderCount})`}{' '}
                 </span>
 
+                <div>
+                    <Button
+                        size={ButtonSize.SMALL}
+                        variant={ButtonVariant.GHOST}
+                        isPressed={planDownloadPopupOpen}
+                        onClick={() => togglePlanDownloadPopupOpen(!planDownloadPopupOpen)}
+                        icon={Icons.Download}
+                    />
+                </div>
                 <GeometryPlanFilterMenuContainer />
                 <Eye
                     disabled={disabled || planHeadersDisplayableInPanel.length === 0}
