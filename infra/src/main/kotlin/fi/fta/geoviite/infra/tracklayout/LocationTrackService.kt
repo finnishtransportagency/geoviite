@@ -396,16 +396,11 @@ class LocationTrackService(
         endKmNumber: KmNumber?,
     ): List<GeometryPlanHeader> {
         val locationTrack = getOrThrow(layoutContext, locationTrackId)
-        val contextKey = geocodingService.getGeocodingContextCacheKey(layoutContext, locationTrack.trackNumberId)
+        val alignmentVersion = requireNotNull(locationTrack.alignmentVersion)
+        val contextKey =
+            requireNotNull(geocodingService.getGeocodingContextCacheKey(layoutContext, locationTrack.trackNumberId))
 
-        return if (contextKey != null && locationTrack.alignmentVersion != null) {
-            alignmentService.getOverlappingPlanHeaders(
-                locationTrack.alignmentVersion,
-                contextKey,
-                startKmNumber,
-                endKmNumber,
-            )
-        } else listOf()
+        return alignmentService.getOverlappingPlanHeaders(alignmentVersion, contextKey, startKmNumber, endKmNumber)
     }
 
     private fun getSwitchIdAtStart(alignment: LayoutAlignment, locationTrack: LocationTrack) =

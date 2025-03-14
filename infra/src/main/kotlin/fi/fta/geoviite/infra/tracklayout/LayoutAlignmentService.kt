@@ -20,6 +20,9 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import org.springframework.transaction.annotation.Transactional
 
+const val ALIGNMENT_POLYGON_BUFFER = 10.0
+const val ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION = 100
+
 @GeoviiteService
 class LayoutAlignmentService(
     private val dao: LayoutAlignmentDao,
@@ -83,10 +86,10 @@ class LayoutAlignmentService(
         endKmNumber: KmNumber?,
     ): List<GeometryPlanHeader> {
         val croppedAlignment = cropAlignment(alignmentVersion, geocodingContextCacheKey, startKmNumber, endKmNumber)
-        val simplified = simplify(croppedAlignment, 100, null, true)
+        val simplified = simplify(croppedAlignment, ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION, null, true)
 
-        val polygon = bufferedPolygonForLineStringPoints(simplified, 10.0, LAYOUT_SRID)
-        val plans = geometryDao.fetchIntersectingPlans(polygon)
+        val polygon = bufferedPolygonForLineStringPoints(simplified, ALIGNMENT_POLYGON_BUFFER, LAYOUT_SRID)
+        val plans = geometryDao.fetchIntersectingPlans(polygon, LAYOUT_SRID)
         return geometryDao.getPlanHeaders(plans)
     }
 
@@ -98,6 +101,7 @@ class LayoutAlignmentService(
     ): IAlignment {
         val alignment = dao.fetch(alignmentVersion)
         if (startKmNumber == null && endKmNumber == null) return alignment
+
         val geocodingContext = geocodingService.getGeocodingContext(geocodingContextCacheKey)
         val startM =
             requireNotNull(

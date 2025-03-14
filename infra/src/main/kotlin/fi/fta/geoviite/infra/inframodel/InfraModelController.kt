@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkedItems
@@ -13,10 +14,11 @@ import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.util.getNameForInfraModelZipFile
 import fi.fta.geoviite.infra.util.toFileDownloadResponse
-import fi.fta.geoviite.infra.util.zip
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -32,6 +34,8 @@ constructor(
     private val geometryService: GeometryService,
     private val pvDocumentService: PVDocumentService,
     private val localizationService: LocalizationService,
+    private val locationTrackService: LocationTrackService,
+    private val trackNumberService: LayoutTrackNumberService,
 ) {
 
     @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
@@ -119,28 +123,19 @@ constructor(
         @RequestParam(name = "lang", defaultValue = "fi") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         val translation = localizationService.getLocalization(lang)
-        return geometryService
-            .getPlanHeaders { header -> ids.contains(header.id) }
-            .map { header -> Pair(header, geometryService.getPlanFile(header.id, translation)) }
-            .let { pairs ->
-                val csv = infraModelService.getInfraModelBatchSummaryCsv(pairs.map { it.first }, translation)
-                listOf(Pair(FileName("${translation.t("plan-download.csv.summary")}.csv"), csv))
-                    .plus(pairs.map { Pair(it.second.name, it.second.content) })
-            }
-            .let { files -> zip(files) }
-            .let { zipped ->
-                toFileDownloadResponse(
-                    infraModelService.getNameForZipFile(
-                        applicability,
-                        locationTrackId,
-                        trackNumberId,
-                        startKmNumber,
-                        endKmNumber,
-                        translation,
-                    ),
-                    zipped,
-                )
-            }
+
+        return infraModelService.getInfraModelsZipped(ids, translation).let { zipped ->
+            val locationTrackName =
+                locationTrackId?.let { locationTrackService.get(MainLayoutContext.official, it)?.name?.toString() }
+            val trackNumberName =
+                trackNumberId?.let { trackNumberService.get(MainLayoutContext.official, it)?.number.toString() }
+            val alignmentName = requireNotNull(locationTrackName ?: trackNumberName)
+
+            toFileDownloadResponse(
+                getNameForInfraModelZipFile(applicability, alignmentName, startKmNumber, endKmNumber, translation),
+                zipped,
+            )
+        }
     }
 
     @PreAuthorize(AUTH_VIEW_PV_DOCUMENTS)

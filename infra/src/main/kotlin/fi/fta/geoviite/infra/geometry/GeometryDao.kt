@@ -10,8 +10,6 @@ import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.create2DPolygonString
-import fi.fta.geoviite.infra.geography.crs
-import fi.fta.geoviite.infra.geography.toGvtPoint
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.FileHash
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
@@ -929,8 +927,8 @@ constructor(
         return result
     }
 
-    fun fetchIntersectingPlans(polygon: Polygon): List<IntId<GeometryPlan>> {
-        val searchPolygonWkt = create2DPolygonString(polygon.coordinates.map { toGvtPoint(it, crs(LAYOUT_SRID)) })
+    fun fetchIntersectingPlans(polygon: Polygon, srid: Srid): List<IntId<GeometryPlan>> {
+        val searchPolygonWkt = create2DPolygonString(polygon.coordinates, srid)
         val sql =
             """
           select 
@@ -945,7 +943,7 @@ constructor(
               )
         """
                 .trimIndent()
-        val params = mapOf("polygon_wkt" to searchPolygonWkt, "map_srid" to LAYOUT_SRID.code)
+        val params = mapOf("polygon_wkt" to searchPolygonWkt, "map_srid" to srid.code)
         val result = jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<GeometryPlan>("id") }.filterNotNull()
         logger.daoAccess(FETCH, IntId::class, result)
         return result

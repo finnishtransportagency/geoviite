@@ -23,6 +23,7 @@ import {
 import { asyncCache } from 'cache/cache';
 import { KmNumber, Oid, TimeStamp } from 'common/common-model';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
+import { filterUnique } from 'utils/array-utils';
 
 export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
     geometryValidationIssues: [],
@@ -46,7 +47,7 @@ export const inframodelBatchDownloadUri = (
     startKm: KmNumber | undefined,
     endKm: KmNumber | undefined,
 ) =>
-    `${INFRAMODEL_URI}/batch${queryParams({ ids: planIds, applicability, trackNumberId, locationTrackId, startKm, endKm })}`;
+    `${INFRAMODEL_URI}/batch${queryParams({ ids: planIds.filter(filterUnique), applicability, trackNumberId, locationTrackId, startKm, endKm })}`;
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
     `${PROJEKTIVELHO_URI}/${docId}`;
 

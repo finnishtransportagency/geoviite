@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
 import fi.fta.geoviite.infra.codeDictionary.FeatureType
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.InframodelParsingException
@@ -29,15 +28,13 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.KnownFileSuffix
 import fi.fta.geoviite.infra.util.printCsv
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import fi.fta.geoviite.infra.util.zip
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
@@ -124,35 +121,17 @@ constructor(
         return tryParsing(overrideParameters?.source) { validateInternal(file, overrideParameters) }
     }
 
-    fun getNameForZipFile(
-        applicability: PlanApplicability?,
-        locationTrackId: IntId<LocationTrack>?,
-        trackNumberId: IntId<LayoutTrackNumber>?,
-        startKmNumber: KmNumber?,
-        endKmNumber: KmNumber?,
-        translation: Translation,
-    ): FileName {
-        val locationTrackName =
-            locationTrackId?.let { locationTrackService.get(MainLayoutContext.official, it)?.name?.toString() }
-        val trackNumberName = trackNumberId?.let { trackNumberService.get(MainLayoutContext.official, it)?.number }
-        val alignmentNamePart = locationTrackName ?: trackNumberName
-        val kmNumberPart =
-            if (startKmNumber == null && endKmNumber == null) {
-                null
-            } else {
-                "${startKmNumber?.toString() ?: ""}-${endKmNumber?.toString() ?: ""}"
+    fun getInfraModelsZipped(ids: List<IntId<GeometryPlan>>, translation: Translation): ByteArray =
+        geometryService
+            .getPlanHeaders { header -> ids.contains(header.id) }
+            .map { header -> Pair(header, geometryService.getPlanFile(header.id, translation)) }
+            .distinctBy { it.first.fileName }
+            .let { pairs ->
+                val csv = getInfraModelBatchSummaryCsv(pairs.map { it.first }, translation)
+                listOf(Pair(FileName("${translation.t("plan-download.csv.summary")}.${KnownFileSuffix.CSV}"), csv))
+                    .plus(pairs.map { Pair(it.first.fileName, it.second.content) })
             }
-
-        val parts =
-            listOfNotNull(
-                translation.t("plan-download.csv.geometry-plans"),
-                translation.t("enum.PlanApplicability.${applicability?.name ?: "UNKNOWN"}"),
-                alignmentNamePart,
-                kmNumberPart,
-                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-            )
-        return FileName(parts.joinToString(" ") + ".zip")
-    }
+            .let { files -> zip(files) }
 
     private fun validateInternal(file: InfraModelFile, overrides: OverrideParameters?): ValidationResponse {
         val geometryPlan = parseInfraModel(file, overrides)
