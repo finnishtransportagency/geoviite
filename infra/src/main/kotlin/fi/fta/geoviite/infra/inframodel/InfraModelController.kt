@@ -11,14 +11,18 @@ import fi.fta.geoviite.infra.geometry.GeometryPlanLinkedItems
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.PlanApplicability
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.util.getNameForInfraModelZipFile
+import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.toFileDownloadResponse
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -190,4 +194,32 @@ constructor(
         return pvDocumentService.getFile(documentId)?.let(::toFileDownloadResponse)
             ?: throw NoSuchEntityException(PVDocument::class, documentId)
     }
+}
+
+private fun getNameForInfraModelZipFile(
+    applicability: PlanApplicability?,
+    alignmentName: String,
+    startKmNumber: KmNumber?,
+    endKmNumber: KmNumber?,
+    translation: Translation,
+): FileName {
+    val kmNumberPart =
+        if (startKmNumber == null && endKmNumber == null) {
+            null
+        } else {
+            "${startKmNumber?.toString() ?: ""}-${endKmNumber?.toString() ?: ""}"
+        }
+
+    val translationKey =
+        if (kmNumberPart != null) "filename.geometry-plans-with-km-range-zip" else "filename.geometry-plans-zip"
+    val params =
+        LocalizationParams(
+            mapOf(
+                "applicability" to translation.t("enum.PlanApplicability.${applicability?.name ?: "UNKNOWN"}"),
+                "alignmentName" to alignmentName,
+                "kmRange" to (kmNumberPart ?: ""),
+                "date" to LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+            )
+        )
+    return translation.filename(translationKey, params)
 }

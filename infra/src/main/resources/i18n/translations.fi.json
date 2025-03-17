@@ -1325,9 +1325,7 @@
     },
     "plan-download": {
         "csv": {
-            "geometry-plans": "Geometriasuunnitelmat",
-            "summary": "Yhteenveto",
-            "file-name": "Tiedostonimi",
+            "file-name": "Tiedosto",
             "start-km": "Alkuratakilometri",
             "end-km": "Loppuratakilometri",
             "crs": "Koordinaattijärjestelmä",
@@ -2073,6 +2071,9 @@
         "vertical-geometry-list-plan-csv": "Pystygeometria {{planFileName}}.csv",
         "vertical-geometry-list-entire-track-network": "Pystygeometria (koko rataverkko) {{date}}.csv",
         "publication-log": "Julkaisuloki {{dateRange}}.csv",
-        "split-details": "Raiteen jakaminen {{locationTrackName}}.csv"
+        "split-details": "Raiteen jakaminen {{locationTrackName}}.csv",
+        "geometry-plans-summary-csv": "Yhteenveto.csv",
+        "geometry-plans-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{date}}.zip",
+        "geometry-plans-with-km-range-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{kmRange}} {{date}}.csv"
     }
 }
