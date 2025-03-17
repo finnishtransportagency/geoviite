@@ -37,6 +37,8 @@ class GeocodingService(
         }
     }
 
+    // TODO Tänneppä varmaan tarvitaan getAddressPoints(layoutContext, alignmentVresion)
+
     fun getAddressPoints(
         contextKey: GeocodingContextCacheKey,
         alignmentVersion: RowVersion<LayoutAlignment>,
