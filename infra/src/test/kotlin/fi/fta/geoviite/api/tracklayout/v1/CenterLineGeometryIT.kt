@@ -763,9 +763,24 @@ constructor(
 
     @Test
     fun `Multiple partial overlap should result in properly trimmed range`() {
-        // Eg.
-        // AAA  BBBB    => AAARRBBB
-        //   RRRRR
+        // AAA--BBBB => AAARRBBB
+        // -RRRRRR--
+
+        todo {}
+    }
+
+    @Test
+    fun `Fully overlapping removed range should be split into two`() {
+        // --AAAA--- => RRAAAARRR
+        // RRRRRRRRR
+
+        todo {}
+    }
+
+    @Test
+    fun `Multi overlapping removed range should be split into N parts`() {
+        // --AA--BB--CC-- => RRAARRBBRRCCRR
+        // RRRRRRRRRRRRR
 
         todo {}
     }
