@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -1003,8 +1003,8 @@ class PublicationDao(
     data class UnprocessedGeometryChange(
         val publicationId: IntId<Publication>,
         val locationTrackId: IntId<LocationTrack>,
-        val newAlignmentVersion: RowVersion<LayoutAlignment>,
-        val oldAlignmentVersion: RowVersion<LayoutAlignment>?,
+        val newTrackVersion: LayoutRowVersion<LocationTrack>,
+        val oldTrackVersion: LayoutRowVersion<LocationTrack>?,
         val trackNumberId: IntId<LayoutTrackNumber>,
         val branch: LayoutBranch,
         val publicationTime: Instant,
@@ -1016,7 +1016,6 @@ class PublicationDao(
     fun fetchUnprocessedGeometryChangeRemarks(maxCount: Int): List<UnprocessedGeometryChange> =
         fetchUnprocessedGeometryChangeRemarks(null, maxCount)
 
-    // TODO: GVT-2932 fetch track change remarks through edge geometry
     private fun fetchUnprocessedGeometryChangeRemarks(
         publicationId: IntId<Publication>?,
         maxCount: Int?,
@@ -1028,18 +1027,18 @@ class PublicationDao(
               publication_id,
               publication.design_id,
               location_track_id,
-              new_ltv.alignment_id as new_alignment_id,
-              new_ltv.alignment_version as new_alignment_version,
-              old_ltv.alignment_id as old_alignment_id,
-              old_ltv.alignment_version as old_alignment_version,
+              new_ltv.layout_context_id as new_layout_context_id,
+              new_ltv.version as new_track_version,
+              old_ltv.layout_context_id as old_layout_context_id,
+              old_ltv.version as old_track_version,
               new_ltv.track_number_id as track_number_id,
               publication.publication_time
             from publication.location_track plt
               join publication.publication on plt.publication_id = publication.id
               join layout.location_track_version new_ltv
-                on plt.location_track_id = new_ltv.id and plt.location_track_version = new_ltv.version
+                on plt.location_track_id = new_ltv.id and plt.layout_context_id = new_ltv.layout_context_id and plt.location_track_version = new_ltv.version
               left join layout.location_track_version old_ltv
-                on plt.location_track_id = old_ltv.id and plt.location_track_version = old_ltv.version + 1 and not old_ltv.draft
+                on plt.location_track_id = old_ltv.id and plt.layout_context_id = old_ltv.layout_context_id and plt.location_track_version = old_ltv.version + 1
             where not geometry_change_summary_computed
               and (:publication_id::int is null or publication_id = :publication_id)
             order by publication_id, location_track_id
@@ -1052,8 +1051,10 @@ class PublicationDao(
                 branch = rs.getLayoutBranch("design_id"),
                 publicationId = rs.getIntId("publication_id"),
                 locationTrackId = rs.getIntId("location_track_id"),
-                newAlignmentVersion = rs.getRowVersion("new_alignment_id", "new_alignment_version"),
-                oldAlignmentVersion = rs.getRowVersionOrNull("old_alignment_id", "old_alignment_version"),
+                newTrackVersion =
+                    rs.getLayoutRowVersion("location_track_id", "new_layout_context_id", "new_track_version"),
+                oldTrackVersion =
+                    rs.getLayoutRowVersionOrNull("location_track_id", "old_layout_context_id", "old_track_version"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 publicationTime = rs.getInstant("publication_time"),
             )

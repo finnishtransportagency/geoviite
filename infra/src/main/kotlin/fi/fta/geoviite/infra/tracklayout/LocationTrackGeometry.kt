@@ -278,6 +278,8 @@ sealed class LayoutEdge : IAlignment {
     }
     @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(startNode.contentHash, endNode.contentHash, segments) }
 
+    fun withSegments(newSegments: List<LayoutSegment>) = TmpLayoutEdge(startNode, endNode, newSegments)
+
     fun withStartNode(newStartNode: EdgeNode) = TmpLayoutEdge(newStartNode, endNode, segments)
 
     fun withEndNode(newEndNode: EdgeNode) = TmpLayoutEdge(startNode, newEndNode, segments)

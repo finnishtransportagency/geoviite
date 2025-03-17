@@ -423,22 +423,19 @@ constructor(
         val switch = switch(IntId(1), joints = listOf(switchJoint(1, Point(1.0, 1.0))), draft = false)
         val switchVersion = switchDao.save(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
-        val (locationTrack, geometry) =
-            locationTrackAndGeometry(
-                mainDraftContext.createLayoutTrackNumber().id,
-                segment(joint1Point - 1.0, joint1Point),
-                draft = true,
-            )
-        val locationTrackVersion =
-            locationTrackService.saveDraft(
-                LayoutBranch.main,
-                locationTrack.copy(topologyEndSwitch = TopologyLocationTrackSwitch(switchVersion.id, JointNumber(1))),
-                geometry,
-            )
+        val trackVersion = mainDraftContext.save(
+            locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+            trackGeometry(
+                edge(
+                    endOuterSwitch = switchLinkYV(switchVersion.id, 1),
+                    segments = listOf(segment(joint1Point - 1.0, joint1Point)),
+                ),
+            ),
+        )
         val connections = switchService.getSwitchJointConnections(MainLayoutContext.draft, switchVersion.id)
 
         assertEquals(
-            listOf(LayoutSwitchJointMatch(locationTrackVersion.id, joint1Point)),
+            listOf(LayoutSwitchJointMatch(trackVersion.id, joint1Point)),
             connections.first { connection -> connection.number == JointNumber(1) }.accurateMatches,
         )
     }
