@@ -3,8 +3,11 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
@@ -15,6 +18,7 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.publication.getChangedGeometryRanges
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
@@ -148,6 +152,8 @@ constructor(
 
         val errors = listOf(startLocationConversionErrors, endLocationConversionErrors, midPointErrors).flatten()
 
+        asd()
+
         return if (errors.isNotEmpty()) {
             null to errors
         } else {
@@ -167,6 +173,33 @@ constructor(
                 trackIntervals = trackIntervals,
             ) to emptyList()
         }
+    }
+
+    fun asd() {
+        val locationTrackId = IntId<LocationTrack>(286)
+        val moment = Instant.parse("2024-01-01T01:00:00.000000000Z")
+
+        val versionAtMoment = locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, locationTrackId, moment)
+
+        val mainOfficial = LayoutContext.of(LayoutBranch.main, PublicationState.OFFICIAL)
+
+        val newestOfficialVersion = locationTrackDao.fetchVersion(mainOfficial, locationTrackId)
+
+        val track1 = locationTrackService.getWithAlignment(versionAtMoment!!) // TODO Remove!!
+        val track2 = locationTrackService.getWithAlignment(newestOfficialVersion!!)
+
+        val asd =
+            getChangedGeometryRanges(track1?.second?.segments ?: emptyList(), track2?.second?.segments ?: emptyList())
+
+        // sitten haetaan ne pisteet, jotka osuvat yllä määritellyille osoiteväleille
+        val asd2 = 1
+
+        // geocodingService.getAddressPoints(mainOfficial)
+
+        // TODO Laske osoitevälit joissa on poistoja (eli lisätty väli ei kata poistettua osoiteväliä)
+        // => Uusimmasta alignmentista voidaan hakea "added"-osoiteväleille addressPointit
+        // => Tyhjät listat poistetuille osoiteväleille
+        // => Diffaus done?
     }
 }
 
