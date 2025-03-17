@@ -10,6 +10,7 @@ import {
 import { compare } from 'utils/array-utils';
 import i18next from 'i18next';
 import { brand, Brand } from 'common/brand';
+import { KmNumberRange } from 'geometry/geometry-model';
 
 export type RotationDirection = 'CW' | 'CCW';
 export type LinearUnit = 'MILLIMETER' | 'CENTIMETER' | 'METER' | 'KILOMETER';
@@ -109,6 +110,10 @@ const KM_NUMBER_REGEX = /^([0-9]{4})([a-zA-Z]{0,2})$/;
 
 export const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(trackMeter);
 export const kmNumberIsValid = (kmNumber: string) => KM_NUMBER_REGEX.test(kmNumber);
+
+export const isKmNumberWithinRange = (kmNumber: string, kmNumberRange: KmNumberRange): boolean =>
+    compareKmNumberStrings(kmNumber, kmNumberRange.min) >= 0 &&
+    compareKmNumberStrings(kmNumber, kmNumberRange.max) <= 0;
 
 const splitTrackMeterIntoComponents = (trackMeterString: string) => {
     const components = trackMeterString.match(TRACK_METER_REGEX);

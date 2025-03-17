@@ -11,7 +11,11 @@ import {
     PropEdit,
     validate,
 } from 'utils/validation-utils';
-import { compareKmNumberStrings, kmNumberIsValid } from 'common/common-model';
+import {
+    compareKmNumberStrings,
+    isKmNumberWithinRange,
+    kmNumberIsValid,
+} from 'common/common-model';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     GeometryPlanId,
@@ -19,7 +23,6 @@ import {
     PlanApplicability,
     PlanSource,
 } from 'geometry/geometry-model';
-import { isKmNumberWithinAlignment } from 'map/plan-download/plan-download-utils';
 import { isValidKmNumber } from 'tool-panel/km-post/dialog/km-post-edit-store';
 
 export type AreaSelection = {
@@ -30,12 +33,12 @@ export type AreaSelection = {
     alignmentStartAndEnd: AlignmentStartAndEnd | undefined;
 };
 
-export type PlanSelectionType = 'AREA' | 'PLAN';
+export type PopupSection = 'AREA' | 'PLAN';
 export type PlanDownloadState = {
-    selectionType: PlanSelectionType;
+    openPopupSection: PopupSection | undefined;
     areaSelection: AreaSelection;
     validationIssues: FieldValidationIssue<AreaSelection>[];
-    plans: GeometryPlanId[];
+    selectedPlans: GeometryPlanId[];
     selectedApplicabilities: PlanApplicability[];
     committedFields: (keyof AreaSelection)[];
 };
@@ -68,7 +71,7 @@ export const initialPlanDownloadStateFromSelection = (
 });
 
 export const initialPlanDownloadState: PlanDownloadState = {
-    selectionType: 'AREA',
+    openPopupSection: 'AREA',
     areaSelection: {
         trackNumber: undefined,
         locationTrack: undefined,
@@ -76,7 +79,7 @@ export const initialPlanDownloadState: PlanDownloadState = {
         endTrackMeter: '',
         alignmentStartAndEnd: undefined,
     },
-    plans: [],
+    selectedPlans: [],
     selectedApplicabilities: ['PLANNING', 'MAINTENANCE', 'STATISTICS'],
     validationIssues: [],
     committedFields: [],
@@ -93,7 +96,7 @@ const validateAreaSelection = (state: PlanDownloadState): FieldValidationIssue<A
             : undefined;
     const alignmentType = state.areaSelection.locationTrack ? 'location-track' : 'track-number';
 
-    return state.selectionType === 'AREA'
+    return state.openPopupSection === 'AREA'
         ? [
               validate(
                   state.areaSelection.trackNumber !== undefined ||
@@ -139,7 +142,7 @@ const validateAreaSelection = (state: PlanDownloadState): FieldValidationIssue<A
                   !state.areaSelection.alignmentStartAndEnd ||
                       !alignmentStartAndEndRange ||
                       !isValidKmNumber(state.areaSelection.startTrackMeter) ||
-                      isKmNumberWithinAlignment(
+                      isKmNumberWithinRange(
                           state.areaSelection.startTrackMeter,
                           alignmentStartAndEndRange,
                       ),
@@ -157,7 +160,7 @@ const validateAreaSelection = (state: PlanDownloadState): FieldValidationIssue<A
                   !state.areaSelection.alignmentStartAndEnd ||
                       !alignmentStartAndEndRange ||
                       !isValidKmNumber(state.areaSelection.endTrackMeter) ||
-                      isKmNumberWithinAlignment(
+                      isKmNumberWithinRange(
                           state.areaSelection.endTrackMeter,
                           alignmentStartAndEndRange,
                       ),
@@ -176,11 +179,11 @@ const validateAreaSelection = (state: PlanDownloadState): FieldValidationIssue<A
 };
 
 export const planDownloadReducers = {
-    setPlanDownloadSelectionType: function (
+    setOpenPopupSection: function (
         state: PlanDownloadState,
-        { payload: type }: PayloadAction<PlanSelectionType>,
+        { payload: type }: PayloadAction<PopupSection | undefined>,
     ) {
-        state.selectionType = type;
+        state.openPopupSection = type;
     },
     onUpdatePlanDownloadAreaSelectionProp: function <TKey extends keyof AreaSelection>(
         state: PlanDownloadState,
@@ -218,18 +221,18 @@ export const planDownloadReducers = {
         state: PlanDownloadState,
         { payload: planId }: PayloadAction<{ id: GeometryPlanId; selected: boolean }>,
     ) {
-        state.plans = planId.selected
-            ? [...state.plans, planId.id]
-            : state.plans.filter((p) => p !== planId.id);
+        state.selectedPlans = planId.selected
+            ? [...state.selectedPlans, planId.id]
+            : state.selectedPlans.filter((p) => p !== planId.id);
     },
     selectMultiplePlansForDownload: function (
         state: PlanDownloadState,
         { payload: selectedPlans }: PayloadAction<GeometryPlanId[]>,
     ) {
-        state.plans = state.plans = selectedPlans;
+        state.selectedPlans = state.selectedPlans = selectedPlans;
     },
     unselectPlansForDownload: function (state: PlanDownloadState) {
-        state.plans = [];
+        state.selectedPlans = [];
     },
     setPlanDownloadAlignmentStartAndEnd: function (
         state: PlanDownloadState,

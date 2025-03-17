@@ -2,82 +2,12 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './plan-download-popup.scss';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import {
-    GeometryPlanId,
-    highestApplicability,
-    PlanApplicability,
-    PlanSource,
-} from 'geometry/geometry-model';
+import { GeometryPlanId, highestApplicability, PlanApplicability } from 'geometry/geometry-model';
 import { DownloadablePlan } from 'map/plan-download/plan-download-store';
 import { inframodelBatchDownloadUri } from 'infra-model/infra-model-api';
-import { createClassName } from 'vayla-design-lib/utils';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { KmNumber } from 'common/common-model';
-
-type PlanItemProps = {
-    id: GeometryPlanId;
-    name: string;
-    checked: boolean;
-    applicability: PlanApplicability | undefined;
-    source: PlanSource;
-    setPlanSelected: (planId: GeometryPlanId, selected: boolean) => void;
-    selectPlan: (planId: GeometryPlanId) => void;
-    disabled: boolean;
-};
-
-const PlanItem: React.FC<PlanItemProps> = ({
-    id,
-    checked,
-    name,
-    source,
-    applicability,
-    setPlanSelected,
-    selectPlan,
-    disabled,
-}) => {
-    const classNames = createClassName(
-        styles['plan-download-popup__plan-row'],
-        disabled && styles['plan-download-popup__plan-row--disabled'],
-    );
-    const fromPaikannuspalvelu = source === 'PAIKANNUSPALVELU';
-    const nameClassNames = createClassName(
-        fromPaikannuspalvelu && styles['plan-download-popup__plan-name--has-subheader'],
-    );
-
-    return (
-        <li className={classNames}>
-            <Checkbox
-                checked={checked}
-                onChange={() => setPlanSelected(id, !checked)}
-                disabled={disabled}
-            />
-            <span
-                className={styles['plan-download-popup__plan-name']}
-                onClick={() => !disabled && selectPlan(id)}>
-                <span className={nameClassNames}>{name}</span>
-                {fromPaikannuspalvelu && (
-                    <span className={styles['plan-download-popup__plan-name-subheader']}>
-                        Paikannuspalvelu
-                    </span>
-                )}
-            </span>
-            <span className={styles['plan-download-popup__plan-icon']}>
-                {!applicability && '?'}
-                {applicability === 'STATISTICS' && (
-                    <Icons.BarsI size={IconSize.SMALL} color={IconColor.ORIGINAL} />
-                )}
-                {applicability === 'MAINTENANCE' && (
-                    <Icons.BarsII size={IconSize.SMALL} color={IconColor.ORIGINAL} />
-                )}
-                {applicability === 'PLANNING' && (
-                    <Icons.BarsIII size={IconSize.SMALL} color={IconColor.ORIGINAL} />
-                )}
-            </span>
-        </li>
-    );
-};
+import { PlanDownloadRow } from 'map/plan-download/plan-download-row';
 
 type PlanDownloadPlanSectionProps = {
     disabled: boolean;
@@ -91,7 +21,7 @@ type PlanDownloadPlanSectionProps = {
     togglePlanForDownload: (planId: GeometryPlanId, selected: boolean) => void;
     selectPlansForDownload: (planIds: GeometryPlanId[]) => void;
     unselectAllPlans: () => void;
-    selectPlan: (planId: GeometryPlanId) => void;
+    selectPlanInToolPanel: (planId: GeometryPlanId) => void;
 };
 
 export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = ({
@@ -106,7 +36,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
     togglePlanForDownload,
     selectPlansForDownload,
     unselectAllPlans,
-    selectPlan,
+    selectPlanInToolPanel,
 }) => {
     const { t } = useTranslation();
     const selectedPlans = plans
@@ -117,7 +47,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
         <div>
             <ul className={styles['plan-download-popup__plans-container']}>
                 {plans.map((plan) => (
-                    <PlanItem
+                    <PlanDownloadRow
                         key={plan.id}
                         id={plan.id}
                         name={plan.name}
@@ -125,7 +55,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                         applicability={plan.applicability}
                         source={plan.source}
                         setPlanSelected={togglePlanForDownload}
-                        selectPlan={selectPlan}
+                        selectPlanInToolPanel={selectPlanInToolPanel}
                         disabled={disabled}
                     />
                 ))}

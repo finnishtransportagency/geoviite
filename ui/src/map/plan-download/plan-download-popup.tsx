@@ -6,87 +6,26 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { kmNumberIsValid, LayoutContext } from 'common/common-model';
-import { DownloadablePlan, PlanSelectionType } from 'map/plan-download/plan-download-store';
+import { DownloadablePlan, PopupSection } from 'map/plan-download/plan-download-store';
 import { createDelegates } from 'store/store-utils';
 import { Menu, menuDivider, menuOption } from 'vayla-design-lib/menu/menu';
 import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
 import { PlanDownloadAreaSection } from 'map/plan-download/plan-download-area-section';
 import { PlanDownloadPlanSection } from 'map/plan-download/plan-download-plan-section';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import {
-    getPlansLinkedToTrackNumber,
-    getTrackNumberById,
-} from 'track-layout/layout-track-number-api';
-import {
-    getReferenceLineStartAndEnd,
-    getTrackNumberReferenceLine,
-} from 'track-layout/layout-reference-line-api';
 import { getChangeTimes } from 'common/change-time-api';
-import {
-    getLocationTrack,
-    getLocationTrackStartAndEnd,
-    getPlansLinkedToLocationTrack,
-} from 'track-layout/layout-location-track-api';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { expectDefined } from 'utils/type-utils';
 import {
     comparePlans,
+    fetchLocationTrackAndExtremities,
+    fetchDownloadablePlans,
+    fetchTrackNumberAndExtremities,
     filterPlans,
-    toDownloadablePlan,
 } from 'map/plan-download/plan-download-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-
-type PlanDownloadPopupSectionProps = {
-    selectedType: PlanSelectionType | undefined;
-    planSelectionType: PlanSelectionType;
-    setPlanSelectionType: (planSelectionType: PlanSelectionType | undefined) => void;
-    title: React.ReactNode;
-    children?: React.ReactNode;
-    disabled: boolean;
-};
-const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> = ({
-    selectedType,
-    planSelectionType,
-    setPlanSelectionType,
-    title,
-    children,
-    disabled,
-}) => {
-    const chevronClasses = createClassName(
-        styles['plan-download-popup-chevron'],
-        planSelectionType === selectedType && styles['plan-download-popup-chevron--visible'],
-    );
-
-    const titleContentClasses = createClassName(
-        styles['plan-download-popup__title-content'],
-        disabled && styles['plan-download-popup__title-content--disabled'],
-    );
-
-    return (
-        <React.Fragment>
-            <h2 className={styles['plan-download-popup__title']}>
-                <Button
-                    size={ButtonSize.X_SMALL}
-                    className={chevronClasses}
-                    variant={ButtonVariant.GHOST}
-                    icon={Icons.Chevron}
-                    disabled={disabled}
-                    onClick={() =>
-                        !disabled &&
-                        setPlanSelectionType(
-                            planSelectionType === selectedType ? undefined : planSelectionType,
-                        )
-                    }
-                />
-                <span className={titleContentClasses}>{title}</span>
-            </h2>
-            {planSelectionType === selectedType && (
-                <div className={styles['plan-download-popup__content']}>{children}</div>
-            )}
-        </React.Fragment>
-    );
-};
+import { PlanDownloadPopupSection } from 'map/plan-download/plan-download-popup-section';
 
 const trackMeterRange = (start: string, end: string) => {
     const startOrUndefined = kmNumberIsValid(start) ? start : undefined;
@@ -137,40 +76,32 @@ const toggleApplicability = (
         ? applicabilities.filter((a) => a !== applicability)
         : [...applicabilities, applicability];
 
+const filterMenuOption = (onSelect: () => void, name: string, qaId: string, isChecked: boolean) =>
+    menuOption(onSelect, name, qaId, false, 'CLOSE_MANUALLY', isChecked ? Icons.Tick : undefined);
+
 export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, layoutContext }) => {
+    const { t } = useTranslation();
+
     const state = useTrackLayoutAppSelector((state) => state);
     const delegates = createDelegates(TrackLayoutActions);
     const planDownloadState = expectDefined(state.planDownloadState);
 
-    const [trackNumberAndStartAndEnd, trackNumberFetchStatus] = useLoaderWithStatus(async () => {
-        const trackNumber = planDownloadState.areaSelection.trackNumber
-            ? await getTrackNumberById(planDownloadState.areaSelection.trackNumber, layoutContext)
-            : undefined;
-        const referenceLine = trackNumber
-            ? await getTrackNumberReferenceLine(trackNumber.id, layoutContext)
-            : undefined;
-        const startAndEnd = referenceLine
-            ? await getReferenceLineStartAndEnd(referenceLine.id, layoutContext)
-            : undefined;
-        return { trackNumber, startAndEnd };
-    }, [planDownloadState.areaSelection.trackNumber]);
-    const [locationTrackAndStartAndEnd, locationTrackFetchStatus] =
-        useLoaderWithStatus(async () => {
-            const locationTrack = planDownloadState.areaSelection.locationTrack
-                ? await getLocationTrack(
-                      planDownloadState.areaSelection?.locationTrack,
-                      layoutContext,
-                  )
-                : undefined;
-            const startAndEnd = locationTrack
-                ? await getLocationTrackStartAndEnd(
-                      locationTrack.id,
-                      layoutContext,
-                      getChangeTimes().layoutLocationTrack,
-                  )
-                : undefined;
-            return { locationTrack, startAndEnd };
-        }, [planDownloadState.areaSelection.locationTrack]);
+    const [trackNumberAndStartAndEnd, trackNumberFetchStatus] = useLoaderWithStatus(
+        () =>
+            fetchTrackNumberAndExtremities(
+                planDownloadState.areaSelection.trackNumber,
+                layoutContext,
+            ),
+        [planDownloadState.areaSelection.trackNumber],
+    );
+    const [locationTrackAndStartAndEnd, locationTrackFetchStatus] = useLoaderWithStatus(
+        () =>
+            fetchLocationTrackAndExtremities(
+                planDownloadState.areaSelection.locationTrack,
+                layoutContext,
+            ),
+        [planDownloadState.areaSelection.locationTrack],
+    );
 
     React.useEffect(() => {
         if (planDownloadState.areaSelection.locationTrack)
@@ -179,81 +110,19 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
             delegates.setPlanDownloadAlignmentStartAndEnd(trackNumberAndStartAndEnd?.startAndEnd);
     }, [locationTrackAndStartAndEnd, trackNumberAndStartAndEnd]);
 
-    const [linkedPlans, planFetchStatus] = useLoaderWithStatus<DownloadablePlan[]>(async () => {
-        const startKm = kmNumberIsValid(planDownloadState.areaSelection.startTrackMeter)
-            ? planDownloadState.areaSelection.startTrackMeter
-            : undefined;
-        const endKm = kmNumberIsValid(planDownloadState.areaSelection.endTrackMeter)
-            ? planDownloadState.areaSelection.endTrackMeter
-            : undefined;
-        if (planDownloadState.areaSelection.locationTrack)
-            return await getPlansLinkedToLocationTrack(
-                layoutContext,
-                planDownloadState.areaSelection.locationTrack,
-                startKm,
-                endKm,
-            ).then((plans) => plans.map(toDownloadablePlan));
-        else if (planDownloadState.areaSelection.trackNumber)
-            return await getPlansLinkedToTrackNumber(
-                layoutContext,
-                planDownloadState.areaSelection.trackNumber,
-                startKm,
-                endKm,
-            ).then((plans) => plans.map(toDownloadablePlan));
-        else return [];
-    }, [
-        planDownloadState.areaSelection.locationTrack,
-        planDownloadState.areaSelection.trackNumber,
-        planDownloadState.areaSelection.startTrackMeter,
-        planDownloadState.areaSelection.endTrackMeter,
-        getChangeTimes().geometryPlan,
-    ]);
+    const [linkedPlans, planFetchStatus] = useLoaderWithStatus<DownloadablePlan[]>(
+        () => fetchDownloadablePlans(planDownloadState.areaSelection, layoutContext),
+        [
+            planDownloadState.areaSelection.locationTrack,
+            planDownloadState.areaSelection.trackNumber,
+            planDownloadState.areaSelection.startTrackMeter,
+            planDownloadState.areaSelection.endTrackMeter,
+            getChangeTimes().geometryPlan,
+        ],
+    );
 
     const menuAnchorRef = React.useRef<HTMLDivElement>(null);
     const [showFilterMenu, setShowFilterMenu] = React.useState(false);
-
-    const { t } = useTranslation();
-
-    const filterMenuItems = [
-        menuOption(
-            () =>
-                delegates.setPlanDownloadApplicabilities(
-                    toggleApplicability('PLANNING', planDownloadState.selectedApplicabilities),
-                ),
-            t('plan-download.applicable-for-plans'),
-            'applicability-planning-filter',
-            false,
-            'CLOSE_MANUALLY',
-            planDownloadState.selectedApplicabilities.includes('PLANNING') ? Icons.Tick : undefined,
-        ),
-        menuDivider(),
-        menuOption(
-            () =>
-                delegates.setPlanDownloadApplicabilities(
-                    toggleApplicability('MAINTENANCE', planDownloadState.selectedApplicabilities),
-                ),
-            t('plan-download.applicable-for-maintenance'),
-            'applicability-planning-filter',
-            false,
-            'CLOSE_MANUALLY',
-            planDownloadState.selectedApplicabilities.includes('MAINTENANCE')
-                ? Icons.Tick
-                : undefined,
-        ),
-        menuOption(
-            () =>
-                delegates.setPlanDownloadApplicabilities(
-                    toggleApplicability('STATISTICS', planDownloadState.selectedApplicabilities),
-                ),
-            t('plan-download.applicable-for-statistics'),
-            'applicability-planning-filter',
-            false,
-            'CLOSE_MANUALLY',
-            planDownloadState.selectedApplicabilities.includes('STATISTICS')
-                ? Icons.Tick
-                : undefined,
-        ),
-    ];
 
     const titleClasses = createClassName(
         styles['plan-download-popup__title'],
@@ -263,7 +132,8 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
     const togglePlanForDownload = (id: GeometryPlanId, selected: boolean) => {
         delegates.togglePlanForDownload({ id, selected });
     };
-    const selectPlan = (id: GeometryPlanId) => delegates.onSelect({ geometryPlans: [id] });
+    const selectPlanInToolPanel = (id: GeometryPlanId) =>
+        delegates.onSelect({ geometryPlans: [id] });
 
     const plans = filterPlans(
         linkedPlans ?? [],
@@ -272,6 +142,42 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
 
     const disabled =
         layoutContext.publicationState !== 'OFFICIAL' || layoutContext.branch !== 'MAIN';
+
+    const filterMenuItems = [
+        filterMenuOption(
+            () =>
+                delegates.setPlanDownloadApplicabilities(
+                    toggleApplicability('PLANNING', planDownloadState.selectedApplicabilities),
+                ),
+            t('plan-download.applicable-for-plans'),
+            'applicability-planning-filter',
+            planDownloadState.selectedApplicabilities.includes('PLANNING'),
+        ),
+        menuDivider(),
+        filterMenuOption(
+            () =>
+                delegates.setPlanDownloadApplicabilities(
+                    toggleApplicability('MAINTENANCE', planDownloadState.selectedApplicabilities),
+                ),
+            t('plan-download.applicable-for-maintenance'),
+            'applicability-planning-filter',
+            planDownloadState.selectedApplicabilities.includes('MAINTENANCE'),
+        ),
+        filterMenuOption(
+            () =>
+                delegates.setPlanDownloadApplicabilities(
+                    toggleApplicability('STATISTICS', planDownloadState.selectedApplicabilities),
+                ),
+            t('plan-download.applicable-for-statistics'),
+            'applicability-planning-filter',
+            planDownloadState.selectedApplicabilities.includes('STATISTICS'),
+        ),
+    ];
+
+    const toggleSectionOpen = (section: PopupSection) =>
+        planDownloadState.openPopupSection === section
+            ? delegates.setOpenPopupSection(undefined)
+            : delegates.setOpenPopupSection(section);
 
     return (
         <div className={styles['plan-download-popup']}>
@@ -287,9 +193,8 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 </span>
             </h1>
             <PlanDownloadPopupSection
-                planSelectionType={'AREA'}
-                setPlanSelectionType={delegates.setPlanDownloadSelectionType}
-                selectedType={planDownloadState.selectionType}
+                selected={planDownloadState.openPopupSection === 'AREA'}
+                toggleOpen={() => toggleSectionOpen('AREA')}
                 disabled={disabled}
                 title={
                     <React.Fragment>
@@ -324,9 +229,8 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 )}
             </PlanDownloadPopupSection>
             <PlanDownloadPopupSection
-                planSelectionType={'PLAN'}
-                setPlanSelectionType={delegates.setPlanDownloadSelectionType}
-                selectedType={planDownloadState.selectionType}
+                selected={planDownloadState.openPopupSection === 'PLAN'}
+                toggleOpen={() => toggleSectionOpen('PLAN')}
                 disabled={disabled}
                 title={
                     <React.Fragment>
@@ -361,11 +265,11 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 }>
                 <PlanDownloadPlanSection
                     plans={plans}
-                    selectedPlanIds={planDownloadState.plans}
+                    selectedPlanIds={planDownloadState.selectedPlans}
                     togglePlanForDownload={togglePlanForDownload}
                     selectPlansForDownload={delegates.selectMultiplePlansForDownload}
                     unselectAllPlans={delegates.unselectPlansForDownload}
-                    selectPlan={selectPlan}
+                    selectPlanInToolPanel={selectPlanInToolPanel}
                     disabled={disabled}
                     trackNumberId={planDownloadState.areaSelection.trackNumber}
                     locationTrackId={planDownloadState.areaSelection.locationTrack}
