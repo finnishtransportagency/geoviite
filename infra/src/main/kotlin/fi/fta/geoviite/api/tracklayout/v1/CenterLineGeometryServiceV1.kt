@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.publication.GeometryChangeRanges
 import fi.fta.geoviite.infra.publication.getChangedGeometryRanges
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -138,7 +139,7 @@ constructor(
         // TODO This will require even more work due to having to get the differing address points based on the specific
         // alignment versions, specified by the optional change time submitted by the user. Also deleted kilometers
         // should be displayed as empty arrays in the result map.
-        val (trackIntervals, midPointErrors) =
+        val (fullTrackIntervals, midPointErrors) =
             if (request.includeGeometry) {
                 createTrackIntervals(alignmentAddresses, request.coordinateSystem, request.trackInterval)
             } else {
@@ -153,7 +154,16 @@ constructor(
 
         val errors = listOf(startLocationConversionErrors, endLocationConversionErrors, midPointErrors).flatten()
 
-        asd(request.locationTrack.id)
+        // TODO Move up so that intervals are not found twice, get change time from request instead
+        // TODO Also check includegeometry also for this.
+        //        val changeTime = Instant.parse("2024-06-01T01:00:00.000000000Z")
+
+        val trackIntervals =
+            if (request.changesAfterTimestamp != null) {
+                findModifiedTrackIntervals(request, request.locationTrack.id, request.changesAfterTimestamp)
+            } else {
+                fullTrackIntervals
+            }
 
         return if (errors.isNotEmpty()) {
             null to errors
@@ -176,9 +186,13 @@ constructor(
         }
     }
 
-    fun asd(locationTrackId: IntId<LocationTrack>) {
+    fun findModifiedTrackIntervals(
+        request: ValidCenterLineGeometryRequestV1, // TODO Not needed here
+        locationTrackId: IntId<LocationTrack>,
+        afterMoment: Instant,
+    ): List<CenterLineTrackIntervalV1> {
         //        val locationTrackId = IntId<LocationTrack>(286)
-        val moment = Instant.parse("2024-06-01T01:00:00.000000000Z")
+        val moment = Instant.parse("2024-06-01T01:00:00.000000000Z") // TODO
 
         val versionAtMoment = locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, locationTrackId, moment)
 
@@ -200,36 +214,102 @@ constructor(
         // => Tyhjät listat poistetuille osoiteväleille
         // => Diffaus done?
 
-        val filteredRemovals =
-            changedGeometryRanges.removed.map { removedRange ->
-                var trimmedRange: Range<Double> = removedRange
-                var completelyReplaced = false
+        //        val changedTrackMeterRanges =
+        //            listOf(changedGeometryRanges.added, trimOverlappingRemovedGeometryRanges(changedGeometryRanges))
+        //                .flatten()
+        //                .sortedBy { it.min } // TODO Tämä ei enää tiedä mitkä ovat minkäkin tyyppisiä rangeja
+        // TODO Trimmaa alle kysytyn välin mittaiset ranget, eg. 1m?
 
-                for (addedRange in changedGeometryRanges.added) {
-                    if (addedRange.contains(removedRange)) {
-                        completelyReplaced = true
-                        break
-                    }
+        //        val firstMeter = changedTrackMeterRanges.firstOrNull()?.min
+        //        val lastMeter = changedTrackMeterRanges.lastOrNull()?.min
 
-                    if (addedRange.min <= trimmedRange.max && trimmedRange.max <= addedRange.max) {
-                        // Removal overlaps the added interval at the start => trim end of removal interval
-                        trimmedRange = Range(min = trimmedRange.min, max = addedRange.min)
-                    }
+        val addressPoints = geocodingService.getAddressPoints(mainOfficial, locationTrackId)!! // TODO Remove "!!"
 
-                    if (addedRange.min <= trimmedRange.min && trimmedRange.min <= addedRange.max) {
-                        // Removal overlaps the added interval at the end => trim start of removal interval
-                        trimmedRange = Range(min = addedRange.max, max = trimmedRange.max)
-                    }
+        //        val changedAddressPoints =
+        //            addressPoints.allPoints.filter { addressPoint ->
+        //                (firstMeter == null || addressPoint.point.m >= firstMeter) &&
+        //                    (lastMeter == null || addressPoint.point.m <= lastMeter) &&
+        //                    changedTrackMeterRanges.any { range -> range.contains(addressPoint.point.m) }
+        //            }
+
+        val addedOrModifiedIntervals =
+            addressPoints.allPoints // TODO Kaikkia näitä ei tarvii käydä varmaan läpi
+                .groupBy { addressPoint ->
+                    // TODO Optimoi tämä siten että se etsii ensimmäisen ja viimeisen indeksin eikä käy koko
+                    // interval-listaa aina läpi.
+                    changedGeometryRanges.added.firstOrNull { range -> addressPoint.point.m in range.min..range.max }
+                }
+                .filterKeys { it != null }
+                .map { (trackMeterRange, intervalAddressPoints) ->
+                    val startAddress =
+                        intervalAddressPoints.firstOrNull()?.address
+                            ?: geocodingService.getAddress(
+                                mainOfficial,
+                                request.locationTrack.trackNumberId,
+                                requireNotNull(trackMeterRange).min,
+                            )
+
+                    val endAddress =
+                        intervalAddressPoints.lastOrNull()?.address
+                            ?: geocodingService.getAddress(
+                                mainOfficial,
+                                request.locationTrack.trackNumberId,
+                                requireNotNull(trackMeterRange).max,
+                            )
+
+                    CenterLineTrackIntervalV1(
+                        // TODO This might error out if there are no points
+                        startAddress = startAddress.toString(),
+                        endAddress = endAddress.toString(),
+                        addressPoints = intervalAddressPoints.map(CenterLineGeometryPointV1::of),
+                    )
+
+                    // TODO
+                    //                    convertAddressPointsToRequestCoordinateSystem(coordinateSystem,
+                    // filteredPoints)
                 }
 
-                if (completelyReplaced) {
-                    null
-                } else {
-                    trimmedRange
-                }
+        val removedIntervals =
+            trimOverlappingRemovedGeometryRanges(changedGeometryRanges).map { trackMeterRange ->
+                val startAddress =
+                    geocodingService.getAddress(mainOfficial, request.locationTrack.trackNumberId, trackMeterRange.min)
+
+                val endAddress =
+                    geocodingService.getAddress(mainOfficial, request.locationTrack.trackNumberId, trackMeterRange.max)
+
+                CenterLineTrackIntervalV1(
+                    // TODO This might error out if there are no points
+                    startAddress = startAddress.toString(),
+                    endAddress = endAddress.toString(),
+                    addressPoints = listOf(),
+                )
             }
 
-        val asd1 = 1
+        val asd =
+            listOf((addedOrModifiedIntervals + removedIntervals)).flatten().sortedBy { interval ->
+                interval.startAddress
+            }
+
+        return asd
+
+        // TODO Filter
+        //        val filteredPoints =
+        //            alignmentAddresses.allPoints.filter {
+        // trackIntervalFilter.containsKmEndInclusive(it.address.kmNumber) }
+
+        //        val (convertedMidPoints, conversionErrors) =
+        //            convertAddressPointsToRequestCoordinateSystem(coordinateSystem, filteredPoints)
+
+        //        val intervals =
+        //            listOf(
+        //                CenterLineTrackIntervalV1(
+        //                    startAddress = alignmentAddresses.startPoint.address.toString(),
+        //                    endAddress = alignmentAddresses.endPoint.address.toString(),
+        //                    addressPoints = convertedMidPoints?.map(CenterLineGeometryPointV1::of) ?: emptyList(),
+        //                )
+        //            )
+
+        //        return asd2
     }
 }
 
@@ -347,4 +427,34 @@ fun createTrackIntervals(
         )
 
     return intervals to conversionErrors
+}
+
+fun trimOverlappingRemovedGeometryRanges(geometryChangeRanges: GeometryChangeRanges): List<Range<Double>> {
+    return geometryChangeRanges.removed.mapNotNull { removedRange ->
+        var trimmedRange: Range<Double> = removedRange
+        var completelyReplaced = false
+
+        for (addedRange in geometryChangeRanges.added) {
+            if (addedRange.contains(removedRange)) {
+                completelyReplaced = true
+                break
+            }
+
+            if (addedRange.min <= trimmedRange.max && trimmedRange.max <= addedRange.max) {
+                // Removal overlaps the added interval at the start => trim end of removal interval
+                trimmedRange = Range(min = trimmedRange.min, max = addedRange.min)
+            }
+
+            if (addedRange.min <= trimmedRange.min && trimmedRange.min <= addedRange.max) {
+                // Removal overlaps the added interval at the end => trim start of removal interval
+                trimmedRange = Range(min = addedRange.max, max = trimmedRange.max)
+            }
+        }
+
+        if (completelyReplaced) {
+            null
+        } else {
+            trimmedRange
+        }
+    }
 }
