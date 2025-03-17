@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.getChangedGeometryRanges
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -152,7 +153,7 @@ constructor(
 
         val errors = listOf(startLocationConversionErrors, endLocationConversionErrors, midPointErrors).flatten()
 
-        asd()
+        asd(request.locationTrack.id)
 
         return if (errors.isNotEmpty()) {
             null to errors
@@ -175,9 +176,9 @@ constructor(
         }
     }
 
-    fun asd() {
-        val locationTrackId = IntId<LocationTrack>(286)
-        val moment = Instant.parse("2024-01-01T01:00:00.000000000Z")
+    fun asd(locationTrackId: IntId<LocationTrack>) {
+        //        val locationTrackId = IntId<LocationTrack>(286)
+        val moment = Instant.parse("2024-06-01T01:00:00.000000000Z")
 
         val versionAtMoment = locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, locationTrackId, moment)
 
@@ -185,21 +186,50 @@ constructor(
 
         val newestOfficialVersion = locationTrackDao.fetchVersion(mainOfficial, locationTrackId)
 
-        val track1 = locationTrackService.getWithAlignment(versionAtMoment!!) // TODO Remove!!
+        val track1 = locationTrackService.getWithAlignment(versionAtMoment!!) // TODO Remove "!!"
         val track2 = locationTrackService.getWithAlignment(newestOfficialVersion!!)
 
-        val asd =
+        val changedGeometryRanges =
             getChangedGeometryRanges(track1?.second?.segments ?: emptyList(), track2?.second?.segments ?: emptyList())
 
         // sitten haetaan ne pisteet, jotka osuvat yllä määritellyille osoiteväleille
-        val asd2 = 1
-
         // geocodingService.getAddressPoints(mainOfficial)
 
         // TODO Laske osoitevälit joissa on poistoja (eli lisätty väli ei kata poistettua osoiteväliä)
         // => Uusimmasta alignmentista voidaan hakea "added"-osoiteväleille addressPointit
         // => Tyhjät listat poistetuille osoiteväleille
         // => Diffaus done?
+
+        val filteredRemovals =
+            changedGeometryRanges.removed.map { removedRange ->
+                var trimmedRange: Range<Double> = removedRange
+                var completelyReplaced = false
+
+                for (addedRange in changedGeometryRanges.added) {
+                    if (addedRange.contains(removedRange)) {
+                        completelyReplaced = true
+                        break
+                    }
+
+                    if (addedRange.min <= trimmedRange.max && trimmedRange.max <= addedRange.max) {
+                        // Removal overlaps the added interval at the start => trim end of removal interval
+                        trimmedRange = Range(min = trimmedRange.min, max = addedRange.min)
+                    }
+
+                    if (addedRange.min <= trimmedRange.min && trimmedRange.min <= addedRange.max) {
+                        // Removal overlaps the added interval at the end => trim start of removal interval
+                        trimmedRange = Range(min = addedRange.max, max = trimmedRange.max)
+                    }
+                }
+
+                if (completelyReplaced) {
+                    null
+                } else {
+                    trimmedRange
+                }
+            }
+
+        val asd1 = 1
     }
 }
 
