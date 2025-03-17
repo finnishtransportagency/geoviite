@@ -85,39 +85,54 @@ class LayoutSwitchDao(
         }
     }
 
-    // TODO: GVT-2932: Implement with topology: won't need separate topology & segments fetch as all come from nodes
-    fun fetchSegmentSwitchJointConnections(
+    fun fetchSwitchJointConnections(
         layoutContext: LayoutContext,
         switchId: IntId<LayoutSwitch>,
     ): List<LayoutSwitchJointConnection> {
         val sql =
             """
-            select number, location_accuracy, location_track_id, postgis.st_x(point) x, postgis.st_y(point) y
-              from layout.switch_in_layout_context(:publication_state::layout.publication_state,
-                                                   :design_id) switch
-                join layout.switch_version_joint jv on switch.id = jv.switch_id
-                  and switch.layout_context_id = jv.switch_layout_context_id
-                  and switch.version = jv.switch_version
-                left join (
-                  select lt.id as location_track_id, *
-                    from layout.segment_version
-                      join
-                        (select *
-                         from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
-                                                                      :design_id) lt
-                         where lt.state != 'DELETED') lt
-                           on lt.alignment_id = segment_version.alignment_id
-                             and lt.alignment_version = segment_version.alignment_version 
-                      join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                      cross join lateral
-                      (select switch_start_joint_number as number, postgis.st_startpoint(geometry) as point
-                         where switch_start_joint_number is not null
-                       union all
-                         select switch_end_joint_number, postgis.st_endpoint(geometry)
-                           where switch_end_joint_number is not null) p
-                  where switch_id = :switch_id
-              ) segment_joint using (number)
-            where state_category != 'NOT_EXISTING' and switch.id = :switch_id;
+            with
+              track_link as (
+                select distinct
+                  ltve.location_track_id,
+                  ltve.location_track_layout_context_id,
+                  ltve.location_track_version,
+                  np.switch_id,
+                  np.switch_joint_number,
+                  case
+                    when np.node_id = edge.start_node_id then postgis.st_astext(postgis.st_startpoint(start_g.geometry))
+                    when np.node_id = edge.end_node_id then postgis.st_astext(postgis.st_endpoint(start_g.geometry))
+                  end as location
+                  from layout.node_port np
+                    inner join layout.edge edge on np.node_id = edge.start_node_id or np.node_id = edge.end_node_id
+                    inner join layout.edge_segment start_segment on start_segment.edge_id = edge.id and start_segment.segment_index = 0
+                    inner join layout.edge_segment end_segment on end_segment.edge_id = edge.id and end_segment.segment_index = edge.segment_count - 1
+                    inner join layout.segment_geometry start_g on start_segment.geometry_id = start_g.id
+                    inner join layout.segment_geometry end_g on end_segment.geometry_id = end_g.id
+                    inner join layout.location_track_version_edge ltve on ltve.edge_id = edge.id
+                    inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+                               on ltve.location_track_id = lt.id and
+                                  ltve.location_track_layout_context_id::text =
+                                  lt.layout_context_id::text and ltve.location_track_version = lt.version
+                  where np.switch_id = :switch_id
+                    and (np.node_id = edge.end_node_id or ltve.edge_index = 0)
+                    and lt.state != 'DELETED'
+              )
+            select
+              jv.switch_id,
+              jv.number,
+              jv.location_accuracy,
+              track_link.location_track_id,
+              postgis.st_x(track_link.location) as x,
+              postgis.st_y(track_link.location) as y
+              from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) switch
+                left join layout.switch_version_joint jv
+                left join track_link on track_link.switch_id = jv.switch_id and track_link.switch_joint_number = jv.number
+                     on switch.id = jv.switch_id
+                       and switch.layout_context_id = jv.switch_layout_context_id
+                       and switch.version = jv.switch_version
+              where switch.id = :switch_id
+                and switch.state_category != 'NOT_EXISTING'
         """
                 .trimIndent()
         val params =
