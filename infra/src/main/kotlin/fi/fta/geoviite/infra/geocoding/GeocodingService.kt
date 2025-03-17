@@ -55,6 +55,10 @@ class GeocodingService(
         return getGeocodingContext(layoutContext, trackNumberId)?.getAddress(location)
     }
 
+    fun getAddress(layoutContext: LayoutContext, trackNumberId: IntId<LayoutTrackNumber>, meter: Double): TrackMeter? {
+        return getGeocodingContext(layoutContext, trackNumberId)?.getAddress(meter)
+    }
+
     fun getAddressIfWithin(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
