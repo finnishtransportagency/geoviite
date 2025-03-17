@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import java.util.*
+import kotlin.test.todo
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -733,6 +734,40 @@ constructor(
         )
 
         return geocodableTrack.locationTrack.id as IntId
+    }
+
+    @Test
+    fun `Removed ranges should be unmodified without any added ranges`() {
+        todo {}
+    }
+
+    @Test
+    fun `Partial start overlap should trimmed`() {
+        todo {}
+    }
+
+    @Test
+    fun `Partial end overlap should trimmed`() {
+        todo {}
+    }
+
+    @Test
+    fun `Full overlap should result in null`() {
+        todo {}
+    }
+
+    @Test
+    fun `No overlap should result in the same range`() {
+        todo {}
+    }
+
+    @Test
+    fun `Multiple partial overlap should result in properly trimmed range`() {
+        // Eg.
+        // AAA  BBBB    => AAARRBBB
+        //   RRRRR
+
+        todo {}
     }
 }
 
