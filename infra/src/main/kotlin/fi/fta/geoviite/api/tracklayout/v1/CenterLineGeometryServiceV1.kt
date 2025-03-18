@@ -290,6 +290,8 @@ constructor(
                 interval.startAddress
             }
 
+        val asdNew = mergeIntervals(changedGeometryRanges)
+
         return asd
 
         // TODO Filter
@@ -311,6 +313,96 @@ constructor(
 
         //        return asd2
     }
+
+    fun mergeIntervals(geometryChangeRanges: GeometryChangeRanges): List<TrackInterval> {
+        val intervalEvents =
+            listOf(
+                    geometryChangeRanges.added.flatMap { addedRange ->
+                        listOf(
+                            IntervalEvent(addedRange.min, IntervalType.ADDITION, IntervalState.START),
+                            IntervalEvent(addedRange.max, IntervalType.ADDITION, IntervalState.END),
+                        )
+                    },
+                    geometryChangeRanges.removed.flatMap { removedRange ->
+                        listOf(
+                            IntervalEvent(removedRange.min, IntervalType.REMOVAL, IntervalState.START),
+                            IntervalEvent(removedRange.max, IntervalType.REMOVAL, IntervalState.END),
+                        )
+                    },
+                )
+                .flatten()
+                .sortedBy { event -> event.trackM }
+
+        var mergedIntervals = mutableListOf<TrackInterval>()
+
+        var tempIntervals = mutableListOf<IntervalEvent>()
+        var tempIntervalStartM: Double? = null
+
+        for (event in intervalEvents) {
+            if (tempIntervals.isEmpty()) {
+                tempIntervals.add(event)
+                tempIntervalStartM = event.trackM
+            } else if (tempIntervals[0].type == event.type && tempIntervals[0].state == event.state) {
+                error("previous interval of the same type=${event.type} was unexpectedly already active")
+            } else if (tempIntervals[0].type < event.type && event.state == IntervalState.START) {
+                // The previous active interval should be split, but kept in the stack as it did not end,
+                // as the previous interval can still continue after the overriding interval.
+                mergedIntervals.add(
+                    TrackInterval(Range(requireNotNull(tempIntervalStartM), event.trackM), tempIntervals[0].type)
+                )
+
+                tempIntervals.add(0, event)
+                tempIntervalStartM = event.trackM
+            } else if (tempIntervals[0].type > event.type && event.state == IntervalState.START) {
+                // Unprioritized interval addition to the stack, it is active but not the most prioritized.
+                tempIntervals
+                    .binarySearchBy(event.type) { tempInterval -> tempInterval.type }
+                    .takeIf { index -> index != -1 }
+                    ?.let { index -> tempIntervals.add(index, event) } ?: tempIntervals.add(event)
+            } else if (event.state == IntervalState.END) {
+                if (tempIntervals[0].type == event.type) {
+                    // Active most prioritized interval ended.
+                    mergedIntervals.add(
+                        TrackInterval(Range(requireNotNull(tempIntervalStartM), event.trackM), tempIntervals[0].type)
+                    )
+
+                    tempIntervals.removeFirst()
+                    tempIntervalStartM = event.trackM
+                } else {
+                    // This interval type was not prioritized, but it ended while overlapped by another interval.
+                    tempIntervals.removeAll { previousEvent -> previousEvent.type == event.type }
+                }
+            } else {
+                error("Unhandled path?")
+            }
+        }
+
+        // Handle last interval if active.
+        if (tempIntervals.isNotEmpty()) {
+            mergedIntervals.add(
+                TrackInterval(
+                    Range(requireNotNull(tempIntervalStartM), intervalEvents.last().trackM),
+                    tempIntervals[0].type,
+                )
+            )
+        }
+
+        return mergedIntervals
+    }
+}
+
+data class TrackInterval(val trackRange: Range<Double>, val type: IntervalType)
+
+data class IntervalEvent(val trackM: Double, val type: IntervalType, val state: IntervalState)
+
+enum class IntervalType : Comparable<IntervalType> {
+    REMOVAL,
+    ADDITION,
+}
+
+enum class IntervalState {
+    START,
+    END,
 }
 
 fun validateLocationTrackOid(
