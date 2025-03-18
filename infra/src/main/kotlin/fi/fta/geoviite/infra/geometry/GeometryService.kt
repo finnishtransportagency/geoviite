@@ -203,9 +203,6 @@ constructor(
         } else fileAndSource.file
     }
 
-    fun getPlanFiles(planIds: List<IntId<GeometryPlan>>): List<InfraModelFile> =
-        planIds.map { id -> getPlanFile(id, localizationService.getLocalization(LocalizationLanguage.FI)) }
-
     private fun fileNameWithSourcePrefixIfPaikannuspalvelu(
         translation: Translation,
         originalFileName: FileName,

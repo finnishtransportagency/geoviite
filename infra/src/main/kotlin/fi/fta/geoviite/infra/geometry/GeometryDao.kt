@@ -944,9 +944,10 @@ constructor(
         """
                 .trimIndent()
         val params = mapOf("polygon_wkt" to searchPolygonWkt, "map_srid" to srid.code)
-        val result = jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<GeometryPlan>("id") }.filterNotNull()
-        logger.daoAccess(FETCH, IntId::class, result)
-        return result
+        return jdbcTemplate
+            .query(sql, params) { rs, _ -> rs.getIntId<GeometryPlan>("id") }
+            .filterNotNull()
+            .also { result -> logger.daoAccess(FETCH, IntId::class, result) }
     }
 
     @Cacheable(CACHE_GEOMETRY_PLAN, sync = true)

@@ -120,7 +120,7 @@ class LayoutAlignmentService(
             )
         val endM =
             requireNotNull(
-                endKmNumber?.let { geocodingContext?.referencePoints?.findLast { it.kmNumber > endKmNumber }?.distance }
+                endKmNumber?.let { geocodingContext?.referencePoints?.find { it.kmNumber > endKmNumber }?.distance }
                     ?: alignment.end?.m
             )
         val mRange = Range(startM, endM)
