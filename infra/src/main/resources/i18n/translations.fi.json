@@ -2074,6 +2074,6 @@
         "split-details": "Raiteen jakaminen {{locationTrackName}}.csv",
         "geometry-plans-summary-csv": "Yhteenveto.csv",
         "geometry-plans-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{date}}.zip",
-        "geometry-plans-with-km-range-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{kmRange}} {{date}}.csv"
+        "geometry-plans-with-km-range-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{kmRange}} {{date}}.zip"
     }
 }

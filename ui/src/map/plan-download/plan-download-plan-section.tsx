@@ -61,9 +61,9 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                 ))}
             </ul>
             <div className={styles['plan-download-popup__buttons']}>
-                {plans.length > 0 && plans.every((p) => selectedPlanIds.includes(p.id)) ? (
+                {selectedPlans.length === plans.length ? (
                     <Button
-                        disabled={disabled || plans.length === 0}
+                        disabled={disabled || selectedPlans.length === 0}
                         size={ButtonSize.SMALL}
                         variant={ButtonVariant.SECONDARY}
                         onClick={unselectAllPlans}>
@@ -71,7 +71,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                     </Button>
                 ) : (
                     <Button
-                        disabled={disabled || plans.length === 0}
+                        disabled={disabled || selectedPlans.length === 0}
                         size={ButtonSize.SMALL}
                         variant={ButtonVariant.SECONDARY}
                         onClick={() => selectPlansForDownload(plans.map((p) => p.id))}>
@@ -80,7 +80,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                 )}
                 <Button
                     size={ButtonSize.SMALL}
-                    disabled={disabled || plans.every((p) => !selectedPlanIds.includes(p.id))}
+                    disabled={disabled || selectedPlans.length === 0}
                     onClick={() => {
                         location.href = inframodelBatchDownloadUri(
                             selectedPlans,

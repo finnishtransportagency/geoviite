@@ -99,6 +99,7 @@ class LayoutAlignmentService(
             )
 
         val polygon = bufferedPolygonForLineStringPoints(simplified, ALIGNMENT_POLYGON_BUFFER, LAYOUT_SRID)
+        val size = polygon.coordinates.size
         val plans = geometryDao.fetchIntersectingPlans(polygon, LAYOUT_SRID)
         return geometryDao.getPlanHeaders(plans)
     }

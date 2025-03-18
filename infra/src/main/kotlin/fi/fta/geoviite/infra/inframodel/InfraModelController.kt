@@ -210,8 +210,7 @@ private fun getNameForInfraModelZipFile(
             "${startKmNumber?.toString() ?: ""}-${endKmNumber?.toString() ?: ""}"
         }
 
-    val translationKey =
-        if (kmNumberPart != null) "filename.geometry-plans-with-km-range-zip" else "filename.geometry-plans-zip"
+    val translationKey = if (kmNumberPart != null) "geometry-plans-with-km-range-zip" else "geometry-plans-zip"
     val params =
         LocalizationParams(
             mapOf(
