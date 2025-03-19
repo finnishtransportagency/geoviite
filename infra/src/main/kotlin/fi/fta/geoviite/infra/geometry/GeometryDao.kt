@@ -26,15 +26,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.*
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 enum class VerticalIntersectionType {
     POINT,
@@ -243,6 +243,7 @@ constructor(
 
     fun getPlanLinking(planId: IntId<GeometryPlan>): GeometryPlanLinkedItems = getPlanLinkings(listOf(planId)).first()
 
+    // TODO: GVT-2932
     fun getPlanLinkings(planIds: List<IntId<GeometryPlan>>): List<GeometryPlanLinkedItems> {
         if (planIds.isEmpty()) return listOf()
         // language=SQL
@@ -1893,6 +1894,7 @@ constructor(
         return jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue)) { rs, _ -> rs.getIntId("plan_id") }
     }
 
+    // TODO: GVT-2932
     fun getLocationTracksLinkedThroughGeometryElementToSwitch(
         layoutBranch: LayoutBranch,
         geometrySwitchId: IntId<GeometrySwitch>,

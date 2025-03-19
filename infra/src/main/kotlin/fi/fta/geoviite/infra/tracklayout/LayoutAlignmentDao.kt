@@ -14,15 +14,15 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -623,6 +623,8 @@ class LayoutAlignmentDao(
         return deletedRowId
     }
 
+    // TODO: GVT-2932 This should not care about tracks any more, but keep the track-alignments while still validating
+    // the data
     @Transactional
     fun deleteOrphanedAlignments(): List<IntId<LayoutAlignment>> {
         val sql =
@@ -1035,8 +1037,6 @@ class LayoutAlignmentDao(
         return result
     }
 
-    // TODO: GVT-2932 preliminary logic fixed (untested) to topology model, but might require optimization & indexes
-    // TODO: GVT-2932 Especially since there is a group of new joins to get the metadata
     fun fetchMetadata(trackVersion: LayoutRowVersion<LocationTrack>): List<LayoutSegmentMetadata> {
         // language=SQL
         val sql =

@@ -232,3 +232,46 @@ select
 --   inner join layout.location_track_version_edge ltve on edge.id = ltve.edge_id
 -- where 14 in (switch_1_id, switch_2_id)
 --   and ltve.location_track_layout_context_id = 'main_official';
+
+drop view if exists layout.edge_ends_view;
+create view layout.edge_ends_view as
+  select
+    edge.id,
+    postgis.st_startpoint(first_geom.geometry) as start_point,
+    postgis.st_endpoint(last_geom.geometry) as end_point
+    from layout.edge
+      inner join layout.edge_segment first_segment on edge.id = first_segment.edge_id and first_segment.segment_index = 0
+      inner join layout.segment_geometry first_geom on first_segment.geometry_id = first_geom.id
+      inner join layout.edge_segment last_segment on edge.id = last_segment.edge_id and last_segment.segment_index = edge.segment_count - 1
+      inner join layout.segment_geometry last_geom on last_segment.geometry_id = last_geom.id;
+
+drop view if exists layout.location_track_version_ends_view;
+create view layout.location_track_version_ends_view as
+  select
+    ltv.id,
+    ltv.layout_context_id,
+    ltv.version,
+    postgis.st_startpoint(first_geom.geometry) as start_point,
+    postgis.st_endpoint(last_geom.geometry) as end_point,
+    first_ltve.edge_index first_edge_index,
+    last_ltve.edge_index last_edge_index,
+    first_ltve.edge_id first_edge_id,
+    last_ltve.edge_id last_edge_id,
+    first_segment.segment_index first_segment_index,
+    last_segment.segment_index last_segment_index
+    from layout.location_track_version ltv
+      left join layout.location_track_version_edge first_ltve
+                 on ltv.id = first_ltve.location_track_id
+                   and ltv.layout_context_id = first_ltve.location_track_layout_context_id
+                   and ltv.version = first_ltve.location_track_version
+                   and first_ltve.edge_index = 0
+      left join layout.edge_segment first_segment on first_ltve.edge_id = first_segment.edge_id and first_segment.segment_index = 0
+      left join layout.segment_geometry first_geom on first_segment.geometry_id = first_geom.id
+      left join layout.location_track_version_edge last_ltve
+                 on ltv.id = last_ltve.location_track_id
+                   and ltv.layout_context_id = last_ltve.location_track_layout_context_id
+                   and ltv.version = last_ltve.location_track_version
+                   and last_ltve.edge_index = ltv.edge_count - 1
+      left join layout.edge last_edge on last_edge.id = last_ltve.edge_id
+      left join layout.edge_segment last_segment on last_edge.id = last_segment.edge_id and last_segment.segment_index = last_edge.segment_count - 1
+      left join layout.segment_geometry last_geom on last_segment.geometry_id = last_geom.id;

@@ -616,8 +616,6 @@ class LayoutSwitchDao(
         }
     }
 
-    // TODO: GVT-2932 preliminary logic fixed (untested) to topology model, but might require optimization & indexes
-    // TODO: GVT-2932 Especially since there is a group of new joins to get the metadata
     fun findSwitchesNearTrack(
         branch: LayoutBranch,
         trackVersion: LayoutRowVersion<LocationTrack>,

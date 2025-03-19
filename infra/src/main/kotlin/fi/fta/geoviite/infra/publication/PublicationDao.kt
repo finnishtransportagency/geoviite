@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -187,12 +187,9 @@ class PublicationDao(
                  where base_lt.id = candidate_location_track.id),
                 candidate_location_track.state
               ) as operation,
-              postgis.st_astext(alignment_version.bounding_box) as bounding_box,
+              postgis.st_astext(candidate_location_track.bounding_box) as bounding_box,
               splits.split_id
             from layout.location_track candidate_location_track
-                left join layout.alignment_version alignment_version
-                    on candidate_location_track.alignment_id = alignment_version.id
-                        and candidate_location_track.alignment_version = alignment_version.version
                 left join splits 
                     on splits.source_track_id = candidate_location_track.id
                         or candidate_location_track.id = any(splits.target_track_ids)
@@ -787,18 +784,10 @@ class PublicationDao(
                      and plt.location_track_version = ltv.version + 1
                      and not ltv.draft) ltvs on (true)
                 join lateral
-                (select distinct switch_id
-                   from (
-                     select ltvs.topology_start_switch_id as switch_id
-                     union all
-                     select ltvs.topology_end_switch_id
-                     union all
-                     select switch_id
-                       from layout.segment_version
-                       where segment_version.alignment_id = ltvs.alignment_id
-                         and segment_version.alignment_version = ltvs.alignment_version
-                   ) s
-                   where switch_id is not null) switch_ids on (true)
+                (select distinct switch_id from layout.location_track_version_switch_view ltvs
+                    where ltvs.location_track_id = plt.location_track_id
+                      and ltvs.location_track_layout_context_id = plt.layout_context_id
+                      and ltvs.location_track_version = plt.location_track_version) switch_ids on (true)
                 join layout.switch_version on switch_ids.switch_id = switch_version.id and not switch_version.draft
                   and switch_version.design_id is null
                 left join layout.switch_external_id
@@ -885,28 +874,20 @@ class PublicationDao(
               old_ltv.state as old_state,
               ltv.type,
               old_ltv.type as old_type,
-              av.length,
-              old_av.length as old_length,
+              ltv.length,
+              old_ltv.length as old_length,
               ltv.track_number_id as track_number_id,
               old_ltv.track_number_id as old_track_number_id,
-              ltv.alignment_id,
-              old_ltv.alignment_id as old_alignment_id,
-              ltv.alignment_version,
-              old_ltv.alignment_version as old_alignment_version,
-              ltv.topology_start_switch_id,
-              old_ltv.topology_start_switch_id as old_topology_start_switch_id,
-              ltv.topology_end_switch_id,
-              old_ltv.topology_end_switch_id as old_topology_end_switch_id,
               ltv.owner_id,
               old_ltv.owner_id as old_owner_id,
-              postgis.st_x(postgis.st_startpoint(old_sg_first.geometry)) as old_start_x,
-              postgis.st_y(postgis.st_startpoint(old_sg_first.geometry)) as old_start_y,
-              postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
-              postgis.st_y(postgis.st_endpoint(old_sg_last.geometry)) as old_end_y,
-              postgis.st_x(postgis.st_startpoint(sg_first.geometry)) as start_x,
-              postgis.st_y(postgis.st_startpoint(sg_first.geometry)) as start_y,
-              postgis.st_x(postgis.st_endpoint(sg_last.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y,
+              postgis.st_x(old_ltv_ends.start_point) as old_start_x,
+              postgis.st_y(old_ltv_ends.start_point) as old_start_y,
+              postgis.st_x(old_ltv_ends.end_point) as old_end_x,
+              postgis.st_y(old_ltv_ends.end_point) as old_end_y,
+              postgis.st_x(ltv_ends.start_point) as start_x,
+              postgis.st_y(ltv_ends.start_point) as start_y,
+              postgis.st_x(ltv_ends.end_point) as end_x,
+              postgis.st_y(ltv_ends.end_point) as end_y,
               geometry_change_summary_computed
               from publication.location_track
                 join publication.publication on location_track.publication_id = publication.id
@@ -914,16 +895,10 @@ class PublicationDao(
                           on location_track.location_track_id = ltv.id
                             and location_track.location_track_version = ltv.version
                             and location_track.layout_context_id = ltv.layout_context_id
-                left join layout.alignment_version av
-                          on ltv.alignment_id = av.id and ltv.alignment_version = av.version
-                left join layout.segment_version sv_first
-                          on av.id = sv_first.alignment_id and av.version = sv_first.alignment_version and sv_first.segment_index = 0
-                left join layout.segment_version sv_last
-                          on av.id = sv_last.alignment_id and av.version = sv_last.alignment_version and sv_last.segment_index = av.segment_count - 1
-                left join layout.segment_geometry sg_first
-                          on sv_first.geometry_id = sg_first.id
-                left join layout.segment_geometry sg_last
-                          on sv_last.geometry_id = sg_last.id
+                left join layout.location_track_version_ends_view ltv_ends
+                          on ltv.id = ltv_ends.id
+                            and ltv.layout_context_id = ltv_ends.layout_context_id
+                            and ltv.version = ltv_ends.version
                 left join layout.location_track_version old_ltv
                           on old_ltv.id = ltv.id 
                             and ((old_ltv.version = ltv.version - 1 
@@ -932,16 +907,10 @@ class PublicationDao(
                               and location_track.direct_change = false))
                             and old_ltv.draft = false
                             and old_ltv.design_id is null
-                left join layout.alignment_version old_av
-                          on old_ltv.alignment_id = old_av.id and old_ltv.alignment_version = old_av.version
-                left join layout.segment_version old_sv_first
-                          on old_av.id = old_sv_first.alignment_id and old_av.version = old_sv_first.alignment_version and old_sv_first.segment_index = 0
-                left join layout.segment_version old_sv_last
-                          on old_av.id = old_sv_last.alignment_id and old_av.version = old_sv_last.alignment_version and old_sv_last.segment_index = old_av.segment_count - 1
-                left join layout.segment_geometry old_sg_first
-                          on old_sv_first.geometry_id = old_sg_first.id
-                left join layout.segment_geometry old_sg_last
-                          on old_sv_last.geometry_id = old_sg_last.id
+                left join layout.location_track_version_ends_view old_ltv_ends
+                          on old_ltv.id = old_ltv_ends.id
+                            and old_ltv.layout_context_id = old_ltv_ends.layout_context_id
+                            and old_ltv.version = old_ltv_ends.version
             where publication_id = :publication_id
         """
                 .trimIndent()
@@ -964,7 +933,6 @@ class PublicationDao(
                         duplicateOf = rs.getChange("duplicate_of_location_track_id", rs::getIntIdOrNull),
                         type = rs.getChange("type") { rs.getEnumOrNull<LocationTrackType>(it) },
                         length = rs.getChange("length", rs::getDoubleOrNull),
-                        alignmentVersion = rs.getChangeRowVersion("alignment_id", "alignment_version"),
                         geometryChangeSummaries =
                             if (!rs.getBoolean("geometry_change_summary_computed")) null
                             else fetchGeometryChangeSummaries(publicationId, rs.getIntId("location_track_id")),
@@ -1749,15 +1717,13 @@ class PublicationDao(
                   location_track_version,
                   is_topology_switch
                 )
-                select distinct :publication_id, :switch_id, location_track.id, location_track.layout_context_id, location_track.version, false
+                select distinct :publication_id, :switch_id, location_track.id, location_track.layout_context_id, location_track.version, is_outer_link
                 from publication, layout.location_track_in_layout_context('OFFICIAL', publication.design_id) location_track
-                 inner join layout.segment_version on segment_version.alignment_id = location_track.alignment_id
-                   and location_track.alignment_version = segment_version.alignment_version
-                where segment_version.switch_id = :switch_id 
-                union all
-                select distinct :publication_id, :switch_id, location_track.id, location_track.layout_context_id, location_track.version, true
-                from publication, layout.location_track_in_layout_context('OFFICIAL', publication.design_id) location_track
-                where (location_track.topology_start_switch_id = :switch_id or location_track.topology_end_switch_id = :switch_id)
+                 inner join layout.location_track_version_switch_view lt_switch 
+                            on lt_switch.location_track_id = location_track.id
+                              and lt_switch.location_track_layout_context_id = location_track.layout_context_id
+                              and lt_switch.location_track_version = location_track.version
+                where lt_switch.switch_id = :switch_id 
             """
                 .trimIndent(),
             (directChanges + indirectChanges)
