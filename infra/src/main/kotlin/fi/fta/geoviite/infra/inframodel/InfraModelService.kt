@@ -127,12 +127,7 @@ constructor(
             .distinctBy { it.first.fileName }
             .let { pairs ->
                 val csv = getInfraModelBatchSummaryCsv(pairs.map { it.first }, translation)
-                listOf(
-                        Pair(
-                            translation.filename("filename.geometry-plans-summary-csv", LocalizationParams(emptyMap())),
-                            csv,
-                        )
-                    )
+                listOf(Pair(translation.filename("geometry-plans-summary-csv", LocalizationParams(emptyMap())), csv))
                     .plus(pairs.map { Pair(it.first.fileName, it.second.content) })
             }
             .let { files -> zip(files) }
