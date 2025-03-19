@@ -125,7 +125,11 @@ class LayoutAlignmentService(
             )
         val mRange = Range(startM, endM)
 
-        val segments = alignment.segments.filter { s -> mRange.contains(s.startM) || mRange.contains(s.endM) }
+        val segments =
+            alignment.segments.filter { s ->
+                val sRange = Range(s.startM, s.endM)
+                sRange.overlaps(mRange) || mRange.overlaps(sRange)
+            }
         val startSegment = segments.firstOrNull()
         val endSegment = segments.lastOrNull()
         val midSegments = segments.drop(1).dropLast(1)
