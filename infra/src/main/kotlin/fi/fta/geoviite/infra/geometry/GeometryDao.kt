@@ -932,13 +932,11 @@ constructor(
         val sql =
             """
           select 
-            plan.id,
-            plan.name,
-            postgis.st_astext(plan.bounding_polygon_simple) as bounding_polygon
+            plan.id
           from geometry.plan
             where hidden = false
               and postgis.st_intersects(
-                  plan.bounding_polygon_simple, 
+                  plan.bounding_polygon, 
                   postgis.st_polygonfromtext(:polygon_wkt, :map_srid)
               )
         """
