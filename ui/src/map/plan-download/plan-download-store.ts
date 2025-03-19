@@ -229,7 +229,7 @@ export const planDownloadReducers = {
         state: PlanDownloadState,
         { payload: selectedPlans }: PayloadAction<GeometryPlanId[]>,
     ) {
-        state.selectedPlans = state.selectedPlans = selectedPlans;
+        state.selectedPlans = selectedPlans;
     },
     unselectPlansForDownload: function (state: PlanDownloadState) {
         state.selectedPlans = [];
