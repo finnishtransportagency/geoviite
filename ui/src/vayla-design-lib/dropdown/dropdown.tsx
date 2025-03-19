@@ -8,6 +8,7 @@ import { useImmediateLoader } from 'utils/react-utils';
 import { first } from 'utils/array-utils';
 import { useTranslation } from 'react-i18next';
 import { OptionBase } from 'vayla-design-lib/menu/menu';
+import { isEmpty } from 'utils/string-utils';
 
 const MARGIN_BETWEEN_INPUT_AND_POPUP = 2;
 
@@ -159,6 +160,8 @@ export const Dropdown = function <TItemValue>({
         options?.find((item) => item.value === props.value)?.name ??
         '';
 
+    const valueShownInInput = searchCommitted || !displaySelectedName ? searchTerm : selectedName;
+
     function setHasFocus(value: boolean) {
         if (hasFocus && !value) {
             props.onBlur && props.onBlur();
@@ -223,6 +226,7 @@ export const Dropdown = function <TItemValue>({
         } else {
             setHasFocus(false);
             setOpen(false);
+            setSearchTermCommitted(false);
             searchFor('');
         }
     }
@@ -292,6 +296,12 @@ export const Dropdown = function <TItemValue>({
                     openListAndFocusSelectedItem();
                     e.preventDefault();
                     break;
+                case 'Tab':
+                case 'Enter': {
+                    if (isEmpty(valueShownInInput)) {
+                        select(undefined);
+                    }
+                }
             }
         }
     }
@@ -448,7 +458,7 @@ export const Dropdown = function <TItemValue>({
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
                         disabled={props.disabled}
-                        value={searchCommitted || !displaySelectedName ? searchTerm : selectedName}
+                        value={valueShownInInput}
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder={props.placeholder}
                     />

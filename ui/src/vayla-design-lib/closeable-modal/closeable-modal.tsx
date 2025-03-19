@@ -299,37 +299,42 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
         };
     }, [anchorElementRef]);
 
-    function updateModalPosition() {
-        const anchorDOMRect = anchorElementRef.current?.getBoundingClientRect();
-        const modalDOMRect = modalRef?.getBoundingClientRect();
+    const updateModalPosition = React.useMemo(
+        () => () => {
+            const anchorDOMRect = anchorElementRef.current?.getBoundingClientRect();
+            const modalDOMRect = modalRef?.getBoundingClientRect();
 
-        if (anchorDOMRect && modalDOMRect) {
-            const anchorElementRect = getRectByDOMRect(anchorDOMRect);
-            const lockedWidth = useAnchorElementWidth ? anchorElementRect.size.width : undefined;
+            if (anchorDOMRect && modalDOMRect) {
+                const anchorElementRect = getRectByDOMRect(anchorDOMRect);
+                const lockedWidth = useAnchorElementWidth
+                    ? anchorElementRect.size.width
+                    : undefined;
 
-            const modalSize = {
-                width: lockedWidth ? lockedWidth : modalDOMRect.width,
-                height: modalDOMRect.height,
-            };
+                const modalSize = {
+                    width: lockedWidth ? lockedWidth : modalDOMRect.width,
+                    height: modalDOMRect.height,
+                };
 
-            const windowSize = {
-                width: window.innerWidth,
-                height: window.innerHeight,
-            };
-            const newModalRect = findOptimalModalPosition(
-                windowSize,
-                anchorElementRect,
-                defaultAnchorElementAnchor,
-                modalSize,
-                defaultModalAnchor,
-                margin,
-                allowReposition ? 'REPOSITION' : 'NONE',
-            );
+                const windowSize = {
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                };
+                const newModalRect = findOptimalModalPosition(
+                    windowSize,
+                    anchorElementRect,
+                    defaultAnchorElementAnchor,
+                    modalSize,
+                    defaultModalAnchor,
+                    margin,
+                    allowReposition ? 'REPOSITION' : 'NONE',
+                );
 
-            setLockedWidth(lockedWidth);
-            setModalRect(newModalRect);
-        }
-    }
+                setLockedWidth(lockedWidth);
+                setModalRect(newModalRect);
+            }
+        },
+        [anchorElementRef, modalRef, children],
+    );
 
     React.useEffect(updateModalPosition, [anchorElementRef, modalRef, children]);
 
