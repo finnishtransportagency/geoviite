@@ -62,15 +62,26 @@
         }
     }
 
-    &__title {
-        @include vayla-design.typography-sub-heading;
+    &__title-buttons {
+        padding: 6px 6px 8px 0px;
+    }
 
+    &__title-container {
         background-color: vayla-design.$color-white-dark;
-        padding: 6px 8px;
         margin: 0;
         box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
         display: flex;
+        justify-content: space-between;
+    }
+
+    &__title {
+        @include vayla-design.typography-sub-heading;
+
+        padding: 6px 8px;
+        margin: 0;
+        display: flex;
         gap: 6px;
+        flex-grow: 1;
     }
 
     &__content {

@@ -40,6 +40,7 @@ export type PlanDownloadState = {
     validationIssues: FieldValidationIssue<AreaSelection>[];
     selectedPlans: GeometryPlanId[];
     selectedApplicabilities: PlanApplicability[];
+    includingPaikannuspalvelu: boolean;
     committedFields: (keyof AreaSelection)[];
 };
 
@@ -81,6 +82,7 @@ export const initialPlanDownloadState: PlanDownloadState = {
     },
     selectedPlans: [],
     selectedApplicabilities: ['PLANNING', 'MAINTENANCE', 'STATISTICS'],
+    includingPaikannuspalvelu: false,
     validationIssues: [],
     committedFields: [],
 };
@@ -216,6 +218,12 @@ export const planDownloadReducers = {
         { payload: applicabilities }: PayloadAction<PlanApplicability[]>,
     ) {
         state.selectedApplicabilities = applicabilities;
+    },
+    setIncludingPaikannuspalvelu: function (
+        state: PlanDownloadState,
+        { payload: includingPaikannuspalvelu }: PayloadAction<boolean>,
+    ) {
+        state.includingPaikannuspalvelu = includingPaikannuspalvelu;
     },
     togglePlanForDownload: function (
         state: PlanDownloadState,

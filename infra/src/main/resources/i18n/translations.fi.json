@@ -1348,6 +1348,7 @@
         "location-track": "Raide",
         "start-km": "Alkuratakilometri",
         "end-km": "Loppuratakilometri",
+        "paikannuspalvelu-plans": "Paikannuspalvelun suunnitelmat",
         "applicable-for-plans": "Suunnitteluun soveltuvat",
         "applicable-for-maintenance": "Kunnossapitoon soveltuvat",
         "applicable-for-statistics": "Tilastointiin soveltuvat",

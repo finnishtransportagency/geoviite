@@ -27,10 +27,13 @@ import { getChangeTimes } from 'common/change-time-api';
 export const filterPlans = (
     plans: DownloadablePlan[],
     selectedApplicabilities: PlanApplicability[],
+    includePaikannuspalvelu: boolean,
 ): DownloadablePlan[] =>
-    plans.filter(
-        (plan) => !plan.applicability || selectedApplicabilities.includes(plan.applicability),
-    );
+    plans
+        .filter(
+            (plan) => !plan.applicability || selectedApplicabilities.includes(plan.applicability),
+        )
+        .filter((plan) => includePaikannuspalvelu || plan.source !== 'PAIKANNUSPALVELU');
 
 export const comparePlans = (a: DownloadablePlan, b: DownloadablePlan): number => {
     if (!a.applicability && b.applicability) return -1;

@@ -125,6 +125,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
     const [showFilterMenu, setShowFilterMenu] = React.useState(false);
 
     const titleClasses = createClassName(
+        styles['plan-download-popup__title-container'],
         styles['plan-download-popup__title'],
         styles['plan-download-popup__title-content'],
     );
@@ -138,12 +139,23 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
     const plans = filterPlans(
         linkedPlans ?? [],
         planDownloadState.selectedApplicabilities,
+        planDownloadState.includingPaikannuspalvelu,
     ).toSorted(comparePlans);
 
     const disabled =
         layoutContext.publicationState !== 'OFFICIAL' || layoutContext.branch !== 'MAIN';
 
     const filterMenuItems = [
+        filterMenuOption(
+            () =>
+                delegates.setIncludingPaikannuspalvelu(
+                    !planDownloadState.includingPaikannuspalvelu,
+                ),
+            t('plan-download.paikannuspalvelu-plans'),
+            'include-paikannuspalvelu-filter',
+            planDownloadState.includingPaikannuspalvelu,
+        ),
+        menuDivider(),
         filterMenuOption(
             () =>
                 delegates.setPlanDownloadApplicabilities(
@@ -243,25 +255,27 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                         ) : (
                             <Spinner />
                         )}
-                        <div ref={menuAnchorRef}>
-                            <Button
-                                size={ButtonSize.X_SMALL}
-                                variant={ButtonVariant.GHOST}
-                                icon={Icons.Filter}
-                                disabled={disabled}
-                                onClick={() => setShowFilterMenu(!showFilterMenu)}
-                            />
-                            {showFilterMenu && (
-                                <Menu
-                                    anchorElementRef={menuAnchorRef}
-                                    onClickOutside={() => setShowFilterMenu(false)}
-                                    items={filterMenuItems}
-                                    onClose={() => setShowFilterMenu(false)}
-                                    opensTowards={'LEFT'}
-                                />
-                            )}
-                        </div>
                     </React.Fragment>
+                }
+                titleButtons={
+                    <div ref={menuAnchorRef}>
+                        <Button
+                            size={ButtonSize.X_SMALL}
+                            variant={ButtonVariant.GHOST}
+                            icon={Icons.Filter}
+                            disabled={disabled}
+                            onClick={() => setShowFilterMenu(!showFilterMenu)}
+                        />
+                        {showFilterMenu && (
+                            <Menu
+                                anchorElementRef={menuAnchorRef}
+                                onClickOutside={() => setShowFilterMenu(false)}
+                                items={filterMenuItems}
+                                onClose={() => setShowFilterMenu(false)}
+                                opensTowards={'LEFT'}
+                            />
+                        )}
+                    </div>
                 }>
                 <PlanDownloadPlanSection
                     plans={plans}

@@ -8,6 +8,7 @@ type PlanDownloadPopupSectionProps = {
     selected: boolean;
     toggleOpen: () => void;
     title: React.ReactNode;
+    titleButtons?: React.ReactNode;
     children?: React.ReactNode;
     disabled: boolean;
 };
@@ -15,6 +16,7 @@ export const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> =
     selected,
     toggleOpen,
     title,
+    titleButtons,
     children,
     disabled,
 }) => {
@@ -30,17 +32,25 @@ export const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> =
 
     return (
         <React.Fragment>
-            <h2 className={styles['plan-download-popup__title']}>
-                <Button
-                    size={ButtonSize.X_SMALL}
-                    className={chevronClasses}
-                    variant={ButtonVariant.GHOST}
-                    icon={Icons.Chevron}
-                    disabled={disabled}
-                    onClick={() => !disabled && toggleOpen()}
-                />
-                <span className={titleContentClasses}>{title}</span>
-            </h2>
+            <div className={styles['plan-download-popup__title-container']}>
+                <h2
+                    className={styles['plan-download-popup__title']}
+                    onClick={() => !disabled && toggleOpen()}>
+                    <Button
+                        size={ButtonSize.X_SMALL}
+                        className={chevronClasses}
+                        variant={ButtonVariant.GHOST}
+                        icon={Icons.Chevron}
+                        disabled={disabled}
+                    />
+                    <span className={titleContentClasses}>{title}</span>
+                </h2>
+                {titleButtons && (
+                    <div className={styles['plan-download-popup__title-buttons']}>
+                        {titleButtons}
+                    </div>
+                )}
+            </div>
             {selected && <div className={styles['plan-download-popup__content']}>{children}</div>}
         </React.Fragment>
     );
