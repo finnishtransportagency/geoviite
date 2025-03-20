@@ -15,7 +15,7 @@ val geotoolsVersion = "32.2"
 val kotlinVersion = "2.1.10"
 
 plugins {
-    id("org.springframework.boot") version "3.4.2"
+    id("org.springframework.boot") version "3.4.3"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "2.9"
     kotlin("jvm") version "2.1.10"
