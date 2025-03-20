@@ -929,15 +929,22 @@ constructor(
 
     fun fetchIntersectingPlans(polygon: Polygon, srid: Srid): List<IntId<GeometryPlan>> {
         val searchPolygonWkt = create2DPolygonString(polygon.coordinates, srid)
+        // search_input is materialized to work around an issue where PostgreSQL repeatedly
+        // re-parses the (possibly quite large) :polygon_wkt for each geometry.plan row while
+        // checking that its generic query plan is still valid. Note that the generic query plan is
+        // only used after pgJDBC has seen this query more than prepareThreshold (default 5) number
+        // of times in a session, so this query will initially run fast even without this fix: The
+        // forced materialization keeps it fast also on later times it's run in a session.
         val sql =
             """
+          with search_input as materialized (select postgis.st_polygonfromtext(:polygon_wkt, :map_srid) as poly)
           select 
             plan.id
           from geometry.plan
             where hidden = false
               and postgis.st_intersects(
                   plan.bounding_polygon, 
-                  postgis.st_polygonfromtext(:polygon_wkt, :map_srid)
+                  (select poly from search_input)
               )
         """
                 .trimIndent()
