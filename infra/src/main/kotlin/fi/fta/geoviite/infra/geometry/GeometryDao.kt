@@ -243,7 +243,6 @@ constructor(
 
     fun getPlanLinking(planId: IntId<GeometryPlan>): GeometryPlanLinkedItems = getPlanLinkings(listOf(planId)).first()
 
-    // TODO: GVT-2932
     fun getPlanLinkings(planIds: List<IntId<GeometryPlan>>): List<GeometryPlanLinkedItems> {
         if (planIds.isEmpty()) return listOf()
         // language=SQL
@@ -254,8 +253,12 @@ constructor(
                 select
                   distinct ga.plan_id, track.id
                   from layout.location_track track
-                    left join layout.segment_version sv on sv.alignment_id = track.alignment_id and sv.alignment_version = track.alignment_version
-                    left join geometry.alignment ga on ga.id = sv.geometry_alignment_id
+                    inner join layout.location_track_version_edge ltve
+                               on ltve.location_track_id = track.id
+                                 and ltve.location_track_layout_context_id = track.layout_context_id
+                                 and ltve.location_track_version = track.version
+                    inner join layout.edge_segment s on s.edge_id = ltve.edge_id
+                    left join geometry.alignment ga on ga.id = s.geometry_alignment_id
               ),
               switches as (
                 select
@@ -1894,7 +1897,6 @@ constructor(
         return jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue)) { rs, _ -> rs.getIntId("plan_id") }
     }
 
-    // TODO: GVT-2932
     fun getLocationTracksLinkedThroughGeometryElementToSwitch(
         layoutBranch: LayoutBranch,
         geometrySwitchId: IntId<GeometrySwitch>,
@@ -1902,17 +1904,21 @@ constructor(
         val sql =
             """
             select id, design_id, draft, version
-              from layout.location_track_in_layout_context('DRAFT', :design_id) location_track
-              where exists(select *
-                             from layout.segment_version
-                             where segment_version.alignment_id = location_track.alignment_id
-                               and segment_version.alignment_version = location_track.alignment_version
-                               and exists(select *
-                                            from geometry.element
-                                            where segment_version.geometry_alignment_id = element.alignment_id
-                                              and segment_version.geometry_element_index = element.element_index
-                                              and element.switch_id = :switch_id)
-                )
+              from layout.location_track_in_layout_context('DRAFT', :design_id) track
+              where exists (
+                select *
+                  from layout.location_track_version_edge ltve
+                    inner join layout.edge_segment s on s.edge_id = ltve.edge_id
+                  where ltve.location_track_id = track.id
+                    and ltve.location_track_layout_context_id = track.layout_context_id
+                    and ltve.location_track_version = track.version
+                    and exists (
+                      select *
+                        from geometry.element
+                        where s.geometry_alignment_id = element.alignment_id
+                          and s.geometry_element_index = element.element_index
+                          and element.switch_id = :switch_id
+                    ) )
                 and state != 'DELETED';
         """
                 .trimIndent()

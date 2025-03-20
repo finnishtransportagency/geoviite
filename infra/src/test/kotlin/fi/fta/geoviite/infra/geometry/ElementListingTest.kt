@@ -25,10 +25,14 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.geocodingContext
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switchLinkKV
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.util.FileName
 import java.math.BigDecimal
 import kotlin.test.assertEquals
@@ -322,18 +326,28 @@ class ElementListingTest {
                 id = IntId(1),
                 elements = listOf(minimalLine(id = IndexedId(1, 1)), minimalLine(id = IndexedId(1, 2))),
             )
-        val (track, layoutAlignment) =
-            locationTrackAndGeometry(
-                IntId(1),
-                segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0].id),
-                segment(
-                    Point(20.0, 2.0),
-                    Point(25.0, 2.5),
-                    source = PLAN,
-                    sourceId = alignment.elements[1].id,
-                    switchId = IntId(1),
-                ),
-                draft = false,
+        val track = locationTrack(IntId(1), draft = false)
+        val geometry =
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkKV(IntId(1), 3),
+                    endInnerSwitch = switchLinkKV(IntId(1), 3),
+                    segments =
+                        listOf(
+                            segment(
+                                Point(10.0, 1.0),
+                                Point(20.0, 2.0),
+                                source = PLAN,
+                                sourceId = alignment.elements[0].id,
+                            ),
+                            segment(
+                                Point(20.0, 2.0),
+                                Point(25.0, 2.5),
+                                source = PLAN,
+                                sourceId = alignment.elements[1].id,
+                            ),
+                        ),
+                )
             )
 
         val planHeader = planHeader(id = IntId(1), trackNumber = trackNumber, srid = LAYOUT_SRID)
@@ -349,7 +363,7 @@ class ElementListingTest {
                 context,
                 getTransformation,
                 track,
-                layoutAlignment,
+                geometry,
                 trackNumber,
                 allTrackElementTypes,
                 null,

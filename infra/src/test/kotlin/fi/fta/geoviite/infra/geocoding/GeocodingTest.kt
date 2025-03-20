@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -21,19 +20,21 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.alignmentFromPoints
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
-import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 
 const val DELTA = 0.000001
 
@@ -620,24 +621,47 @@ class GeocodingTest {
 
         val result =
             testContext.getSwitchPoints(
-                trackGeometryOfSegments(
-                    segment(start + Point(0.0, 1.0), start + Point(0.0, 5.5)),
-                    segment(start + Point(0.0, 5.5), start + Point(0.0, 15.5))
-                        .copy(switchId = IntId(1), startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)),
-                    segment(start + Point(0.0, 15.5), start + Point(0.0, 25.5))
-                        .copy(switchId = IntId(1), startJointNumber = JointNumber(5), endJointNumber = null),
-                    segment(start + Point(0.0, 25.5), start + Point(0.0, 35.5))
-                        .copy(switchId = IntId(1), startJointNumber = null, endJointNumber = null),
-                    segment(start + Point(0.0, 35.5), start + Point(0.0, 45.5))
-                        .copy(switchId = IntId(1), startJointNumber = null, endJointNumber = JointNumber(2)),
-                    segment(start + Point(0.0, 45.5), start + Point(0.0, 55.5)),
-                    segment(start + Point(0.0, 55.5), start + Point(0.0, 65.5))
-                        .copy(switchId = IntId(2), startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)),
-                    segment(start + Point(0.0, 65.5), start + Point(0.0, 75.5))
-                        .copy(switchId = IntId(2), startJointNumber = JointNumber(5), endJointNumber = null),
-                    segment(start + Point(0.0, 75.5), start + Point(0.0, 85.5))
-                        .copy(switchId = IntId(2), startJointNumber = null, endJointNumber = JointNumber(2)),
-                    segment(start + Point(0.0, 85.5), start + Point(0.0, 95.5)),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(IntId(1), 1),
+                        segments = listOf(segment(start + Point(0.0, 1.0), start + Point(0.0, 5.5)))
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(1), 1),
+                        endInnerSwitch = switchLinkYV(IntId(1), 5),
+                        segments = listOf(segment(start + Point(0.0, 5.5), start + Point(0.0, 15.5))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(1), 5),
+                        endInnerSwitch = switchLinkYV(IntId(1), 2),
+                        segments = listOf(
+                            segment(start + Point(0.0, 15.5), start + Point(0.0, 25.5)),
+                            segment(start + Point(0.0, 25.5), start + Point(0.0, 35.5)),
+                            segment(start + Point(0.0, 35.5), start + Point(0.0, 45.5)),
+                        )
+                    ),
+                    edge(
+                        startOuterSwitch = switchLinkYV(IntId(1), 2),
+                        endOuterSwitch = switchLinkYV(IntId(2), 1),
+                        segments = listOf(segment(start + Point(0.0, 45.5), start + Point(0.0, 55.5))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(2), 1),
+                        endInnerSwitch = switchLinkYV(IntId(2), 5),
+                        segments = listOf(segment(start + Point(0.0, 55.5), start + Point(0.0, 65.5))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(2), 5),
+                        endInnerSwitch = switchLinkYV(IntId(2), 2),
+                        segments = listOf(
+                            segment(start + Point(0.0, 65.5), start + Point(0.0, 75.5)),
+                            segment(start + Point(0.0, 75.5), start + Point(0.0, 85.5)),
+                        ),
+                    ),
+                    edge(
+                        startOuterSwitch = switchLinkYV(IntId(2), 2),
+                        segments = listOf(segment(start + Point(0.0, 85.5), start + Point(0.0, 95.5))),
+                    )
                 )
             )
 

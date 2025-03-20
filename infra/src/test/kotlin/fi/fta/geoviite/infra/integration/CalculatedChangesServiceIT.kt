@@ -67,11 +67,6 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -81,6 +76,11 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1036,10 +1036,15 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(0.0, 10.0)).copy(switchId = switch, endJointNumber = JointNumber(1)),
-                    segment(Point(0.0, 10.00001), Point(0.0, 20.0))
-                        .copy(switchId = switch, startJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(switch, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(0.0, 10.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch, 1),
+                        segments = listOf(segment(Point(0.0, 10.00001), Point(0.0, 20.0))),
+                    ),
                 ),
             )
         val changes =
@@ -1064,9 +1069,11 @@ constructor(
             mainOfficialContext
                 .save(
                     locationTrack(trackNumber),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(7.0, 0.0))
-                            .copy(switchId = switch, endJointNumber = JointNumber(1))
+                    trackGeometry(
+                        edge(
+                            endInnerSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(7.0, 0.0))),
+                        )
                     ),
                 )
                 .id
@@ -1129,9 +1136,11 @@ constructor(
             designDraftContext
                 .save(
                     locationTrack(trackNumber),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(7.0, 0.0))
-                            .copy(switchId = switch, endJointNumber = JointNumber(1))
+                    trackGeometry(
+                        edge(
+                            endInnerSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(7.0, 0.0))),
+                        )
                     ),
                 )
                 .id
@@ -1252,14 +1261,24 @@ constructor(
             mainDraftContext
                 .save(
                     locationTrack(trackNumber),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(2.0, 0.0))
-                            .copy(switchId = switchAt0, startJointNumber = JointNumber(1)),
-                        segment(Point(2.0, 0.0), Point(4.0, 0.0))
-                            .copy(switchId = switchAt4, endJointNumber = JointNumber(1)),
-                        segment(Point(4.0, 0.0), Point(6.0, 0.0))
-                            .copy(switchId = switchAt4, startJointNumber = JointNumber(1)),
-                        segment(Point(6.0, 0.0), Point(10.0, 0.0)),
+                    trackGeometry(
+                        edge(
+                            startInnerSwitch = switchLinkYV(switchAt0, 1),
+                            endInnerSwitch = switchLinkYV(switchAt4, 1),
+                            segments =
+                                listOf(
+                                    segment(Point(0.0, 0.0), Point(2.0, 0.0)),
+                                    segment(Point(2.0, 0.0), Point(4.0, 0.0)),
+                                ),
+                        ),
+                        edge(
+                            startInnerSwitch = switchLinkYV(switchAt4, 1),
+                            segments =
+                                listOf(
+                                    segment(Point(4.0, 0.0), Point(6.0, 0.0)),
+                                    segment(Point(6.0, 0.0), Point(10.0, 0.0)),
+                                ),
+                        ),
                     ),
                 )
                 .id

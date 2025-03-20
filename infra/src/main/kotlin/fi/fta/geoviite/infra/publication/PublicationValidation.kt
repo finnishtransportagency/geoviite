@@ -268,16 +268,10 @@ fun validateSwitchLocationTrackLinkStructure(
 
 fun validateLocationTrackSwitchConnectivity(
     layoutTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
 ): List<LayoutValidationIssue> {
-    val startSegment = alignment.segments.firstOrNull()
-    val endSegment = alignment.segments.lastOrNull()
-    val topologyStartSwitch = layoutTrack.topologyStartSwitch?.switchId
-    val topologyEndSwitch = layoutTrack.topologyEndSwitch?.switchId
-
-    val hasStartSwitch =
-        (startSegment?.switchId != null && startSegment.startJointNumber != null) || topologyStartSwitch != null
-    val hasEndSwitch = (endSegment?.switchId != null && endSegment.endJointNumber != null) || topologyEndSwitch != null
+    val hasStartSwitch = geometry.startSwitchLink != null
+    val hasEndSwitch = geometry.endSwitchLink != null
 
     return when (layoutTrack.topologicalConnectivity) {
         TopologicalConnectivityType.NONE -> {

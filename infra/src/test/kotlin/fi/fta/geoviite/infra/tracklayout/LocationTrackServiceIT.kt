@@ -109,7 +109,7 @@ constructor(
     fun locationTrackInsertAndUpdateWorks() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
 
-        val (insertedTrackVersion, insertedTrack) = createAndVerifyTrack(trackNumberId, 1)
+        val (insertedTrackVersion, _, insertedGeometry) = createAndVerifyTrack(trackNumberId, 1)
         val id = insertedTrackVersion.id
         val changeTimeAfterInsert = locationTrackService.getChangeTime()
 
@@ -119,9 +119,9 @@ constructor(
         assertEquals(id, updatedTrackVersion.id)
         assertEquals(insertedTrackVersion.rowId, updatedTrackVersion.rowId)
         assertNotEquals(insertedTrackVersion.version, updatedTrackVersion.version)
-        val updatedTrack = locationTrackService.get(MainLayoutContext.draft, id)!!
+        val (updatedTrack, updatedGeometry) = locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, id)
         assertMatches(updateRequest, updatedTrack)
-        assertEquals(insertedTrack.alignmentVersion, updatedTrack.alignmentVersion)
+        assertMatches(insertedGeometry, updatedGeometry)
         val changeTimeAfterUpdate = locationTrackService.getChangeTime()
 
         val changeInfo = locationTrackService.getLayoutAssetChangeInfo(MainLayoutContext.draft, id)
@@ -199,7 +199,7 @@ constructor(
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val draft = createAndVerifyTrack(trackNumber, 35)
 
-        assertNull(locationTrackService.get(MainLayoutContext.official, draft.first.id))
+        assertNull(locationTrackService.get(MainLayoutContext.official, draft.version.id))
     }
 
     @Test
@@ -208,7 +208,7 @@ constructor(
         val draft = createAndVerifyTrack(trackNumber, 35)
 
         assertThrows<NoSuchEntityException> {
-            locationTrackService.getOrThrow(MainLayoutContext.official, draft.first.id)
+            locationTrackService.getOrThrow(MainLayoutContext.official, draft.version.id)
         }
     }
 
@@ -740,40 +740,43 @@ constructor(
     ): Pair<LocationTrack, LocationTrackGeometry> =
         locationTrackService.getWithGeometry(locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry))
 
-    private fun createPublishedLocationTrack(seed: Int): Pair<LayoutRowVersion<LocationTrack>, LocationTrack> {
+    private fun createPublishedLocationTrack(seed: Int): VerifiedTrack {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val (trackInsertResponse, _) = createAndVerifyTrack(trackNumberId, seed)
         return publishAndVerify(trackInsertResponse.id)
     }
 
-    private fun createAndVerifyTrack(
-        trackNumberId: IntId<LayoutTrackNumber>,
-        seed: Int,
-    ): Pair<LayoutRowVersion<LocationTrack>, LocationTrack> {
+    private data class VerifiedTrack(
+        val version: LayoutRowVersion<LocationTrack>,
+        val track: LocationTrack,
+        val geometry: LocationTrackGeometry,
+    )
+
+    private fun createAndVerifyTrack(trackNumberId: IntId<LayoutTrackNumber>, seed: Int): VerifiedTrack {
         val insertRequest = saveRequest(trackNumberId, seed)
         val insertResponse = locationTrackService.insert(LayoutBranch.main, insertRequest)
-        val insertedTrack = locationTrackService.get(MainLayoutContext.draft, insertResponse.id)!!
+        val (insertedTrack, insertedGeometry) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, insertResponse.id)
         assertMatches(insertRequest, insertedTrack)
-        return insertResponse to insertedTrack
+        assertMatches(LocationTrackGeometry.empty, insertedGeometry)
+        return VerifiedTrack(insertResponse, insertedTrack, insertedGeometry)
     }
 
-    private fun publishAndVerify(
-        locationTrackId: IntId<LocationTrack>
-    ): Pair<LayoutRowVersion<LocationTrack>, LocationTrack> {
-        val (draft, draftAlignment) =
+    private fun publishAndVerify(locationTrackId: IntId<LocationTrack>): VerifiedTrack {
+        val (draft, draftGeometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, locationTrackId)
         assertTrue(draft.isDraft)
 
         val publicationResponse = publish(draft.id as IntId)
-        val (published, publishedAlignment) =
+        val (published, publishedGeometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.official, publicationResponse.id)
         assertFalse(published.isDraft)
         assertEquals(draft.id, published.id)
         assertEquals(published.id, publicationResponse.id)
-        assertEquals(draft.alignmentVersion, published.alignmentVersion)
-        assertEquals(draftAlignment.edges, publishedAlignment.edges)
+        assertMatches(draftGeometry, publishedGeometry)
+        assertEquals(draftGeometry.edges, publishedGeometry.edges)
 
-        return publicationResponse to published
+        return VerifiedTrack(publicationResponse, published, publishedGeometry)
     }
 
     private fun getAndVerifyDraft(id: IntId<LocationTrack>): LocationTrack {

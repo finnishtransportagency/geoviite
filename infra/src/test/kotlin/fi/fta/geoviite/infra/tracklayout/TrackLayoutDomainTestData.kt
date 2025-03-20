@@ -141,7 +141,7 @@ fun switchAndMatchingAlignments(
 ): Pair<LayoutSwitch, List<Pair<LocationTrack, LocationTrackGeometry>>> {
     val switchId = IntId<LayoutSwitch>(1)
     val jointLocations = mutableMapOf<JointNumber, Point>()
-    val alignments =
+    val tracks =
         structure.alignments.map { alignment ->
             val alignmentPoints =
                 alignment.jointNumbers.map { jointNumber ->
@@ -152,21 +152,24 @@ fun switchAndMatchingAlignments(
                         }
                     jointNumber to point
                 }
-            locationTrackAndGeometry(
-                trackNumberId,
-                alignmentPoints.zipWithNext { start, end ->
-                    val (startJoint, startPoint) = start
-                    val (endJoint, endPoint) = end
-                    val length = lineLength(startPoint, endPoint)
-                    segment(
-                        points(length.toInt(), startPoint.x..endPoint.x, startPoint.y..endPoint.y),
-                        switchId = switchId,
-                        startJointNumber = startJoint,
-                        endJointNumber = endJoint,
-                    )
-                },
-                draft = draft,
-            )
+            val track = locationTrack(trackNumberId, draft = draft)
+            val geometry =
+                trackGeometry(
+                    alignmentPoints.zipWithNext { start, end ->
+                        val (startJoint, startPoint) = start
+                        val (endJoint, endPoint) = end
+                        val length = lineLength(startPoint, endPoint)
+                        edge(
+                            startInnerSwitch = switchLinkYV(switchId, startJoint.intValue),
+                            endInnerSwitch = switchLinkYV(switchId, endJoint.intValue),
+                            segments =
+                                listOf(
+                                    segment(points(length.toInt(), startPoint.x..endPoint.x, startPoint.y..endPoint.y))
+                                ),
+                        )
+                    }
+                )
+            track to geometry
         }
     val switch =
         switch(
@@ -179,7 +182,7 @@ fun switchAndMatchingAlignments(
             draft = draft,
             stateCategory = LayoutStateCategory.EXISTING,
         )
-    return switch to alignments
+    return switch to tracks
 }
 
 fun edgesFromSwitchStructure(

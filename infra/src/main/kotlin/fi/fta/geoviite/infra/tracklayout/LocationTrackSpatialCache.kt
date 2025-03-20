@@ -11,9 +11,9 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
+import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class LocationTrackSpatialCache
@@ -71,14 +71,12 @@ constructor(
 
 data class SpatialCacheSegment(
     val locationTrackVersion: LayoutRowVersion<LocationTrack>,
-    val alignmentVersion: RowVersion<LayoutAlignment>?,
     val segment: LayoutSegment,
     val m: Range<Double>,
 )
 
 data class SpatialCacheEntry(
     val trackVersion: LayoutRowVersion<LocationTrack>,
-    val alignmentVersion: RowVersion<LayoutAlignment>?,
     val segmentData: List<Pair<SpatialCacheSegment, Rectangle>>,
 )
 
@@ -123,18 +121,6 @@ data class ContextCache(
             .keys
             .map { trackVersion -> getTrack(trackVersion) to getGeometry(trackVersion) }
 
-    //    @Deprecated("Use getWithinBoundingBox instead")
-    //    fun getAlignmentWithinBoundingBox(boundingBox: BoundingBox): List<Pair<LocationTrack, LayoutAlignment>> =
-    //        network
-    //            .search(Geometries.rectangle(boundingBox.x.min, boundingBox.y.min, boundingBox.x.max,
-    // boundingBox.y.max))
-    //            .groupBy { hit -> hit.value().locationTrackVersion to hit.value().alignmentVersion }
-    //            .filter { (_, hits) ->
-    //                hits.any { hit -> hit.value().segment.segmentPoints.any { point -> boundingBox.contains(point) } }
-    //            }
-    //            .keys
-    //            .map { (locationTrack, alignment) -> getTrack(locationTrack) to getAlignment(alignment) }
-
     private fun createHit(
         segment: SpatialCacheSegment,
         location: IPoint,
@@ -160,9 +146,9 @@ private fun createEntry(track: LocationTrack, geometry: DbLocationTrackGeometry)
     val segmentData =
         geometry.segmentsWithM.map { (segment, m) ->
             val bbox = segment.boundingBox
-            val entry = SpatialCacheSegment(track.versionOrThrow, track.alignmentVersion, segment, m)
+            val entry = SpatialCacheSegment(track.versionOrThrow, segment, m)
             val rect = Geometries.rectangle(bbox.x.min, bbox.y.min, bbox.x.max, bbox.y.max)
             entry to rect
         }
-    return SpatialCacheEntry(track.versionOrThrow, track.alignmentVersion, segmentData)
+    return SpatialCacheEntry(track.versionOrThrow, segmentData)
 }

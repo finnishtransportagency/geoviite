@@ -22,13 +22,11 @@ import fi.fta.geoviite.infra.math.RoundedPoint
 import fi.fta.geoviite.infra.math.radsMathToGeo
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.round
-import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
@@ -103,7 +101,7 @@ fun toElementListing(
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     track: LocationTrack,
-    layoutAlignment: IAlignment,
+    geometry: LocationTrackGeometry,
     trackNumber: TrackNumber?,
     elementTypes: List<TrackGeometryElementType>,
     startAddress: TrackMeter?,
@@ -111,7 +109,7 @@ fun toElementListing(
     getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
     getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
 ): List<ElementListing> {
-    val linkedElementIds = collectLinkedElements(layoutAlignment.segments, context, startAddress, endAddress)
+    val linkedElementIds = collectLinkedElements(geometry.segments, context, startAddress, endAddress)
     val lengthOfSegmentsConnectedToSameElement =
         linkedElementIds
             .groupBy { e -> e.elementId }

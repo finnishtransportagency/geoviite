@@ -56,21 +56,25 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.combineEdges
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import java.time.Instant
-import kotlin.reflect.KClass
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
+import kotlin.reflect.KClass
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -571,19 +575,19 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                 .id
         val innerTrackIds =
             alignmentJointPositions.map { jointPositions ->
-                saveLocationTrack(
-                        locationTrackAndGeometry(
-                            createLayoutTrackNumber().id,
-                            segments =
+                save(
+                        locationTrack(createLayoutTrackNumber().id),
+                        trackGeometry(
+                            combineEdges(
                                 jointPositions.zipWithNext().map { (from, to) ->
-                                    segment(
-                                        points = arrayOf(from.second, to.second),
-                                        switchId = switchId,
-                                        startJointNumber = from.first,
-                                        endJointNumber = to.first,
+                                    edge(
+                                        startInnerSwitch = switchLinkYV(switchId, from.first.intValue),
+                                        startOuterSwitch = switchLinkYV(switchId, to.first.intValue),
+                                        segments = listOf(segment(toSegmentPoints(from.second, to.second))),
                                     )
-                                },
-                        )
+                                }
+                            )
+                        ),
                     )
                     .id
             }

@@ -30,6 +30,7 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
@@ -41,9 +42,11 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someSegment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchAndMatchingAlignments
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import kotlin.math.PI
@@ -524,9 +527,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.NONE,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -543,9 +549,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.START,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -563,9 +572,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.END,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -581,9 +593,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -600,9 +615,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.NONE,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -619,9 +637,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.START,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -637,9 +658,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.END,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -657,9 +681,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -677,7 +704,13 @@ class PublicationValidationTest {
                     topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
                     draft = true,
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
+                ),
             )
 
         assertEquals(1, connectivityWarnings.size)
@@ -691,10 +724,15 @@ class PublicationValidationTest {
                 locationTrack(
                     trackNumberId = IntId(100),
                     topologicalConnectivity = TopologicalConnectivityType.START,
-                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
                     draft = true,
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
+                ),
             )
 
         assertEquals(2, connectivityWarnings.size)
@@ -706,13 +744,14 @@ class PublicationValidationTest {
     fun `should not return any validation warnings if location track end is topologically connected and connectivity type is set to END`() {
         val connectivityWarnings =
             validateLocationTrackSwitchConnectivity(
-                locationTrack(
-                    IntId(100),
-                    topologicalConnectivity = TopologicalConnectivityType.END,
-                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                    draft = true,
+                locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.END, draft = true),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
             )
 
         assertEquals(0, connectivityWarnings.size)
@@ -725,10 +764,15 @@ class PublicationValidationTest {
                 locationTrack(
                     IntId(100),
                     topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
-                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
                     draft = true,
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
+                ),
             )
 
         assertEquals(1, connectivityWarnings.size)
@@ -739,13 +783,14 @@ class PublicationValidationTest {
     fun `should return validation warning if location track start is topologically connected but connectivity type is set to NONE`() {
         val connectivityWarnings =
             validateLocationTrackSwitchConnectivity(
-                locationTrack(
-                    IntId(100),
-                    topologicalConnectivity = TopologicalConnectivityType.NONE,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                    draft = true,
+                locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.NONE, draft = true),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
             )
 
         assertEquals(1, connectivityWarnings.size)
@@ -756,13 +801,14 @@ class PublicationValidationTest {
     fun `should not return any validation warnings if location track start is topologically connected and connectivity type is set to START`() {
         val connectivityWarnings =
             validateLocationTrackSwitchConnectivity(
-                locationTrack(
-                    IntId(100),
-                    topologicalConnectivity = TopologicalConnectivityType.START,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                    draft = true,
+                locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.START, draft = true),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
             )
 
         assertEquals(0, connectivityWarnings.size)
@@ -772,13 +818,14 @@ class PublicationValidationTest {
     fun `should return validation warnings if location track start is topologically connected but connectivity type is set to END`() {
         val connectivityWarnings =
             validateLocationTrackSwitchConnectivity(
-                locationTrack(
-                    IntId(100),
-                    topologicalConnectivity = TopologicalConnectivityType.END,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                    draft = true,
+                locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.END, draft = true),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
             )
 
         assertEquals(2, connectivityWarnings.size)
@@ -793,10 +840,15 @@ class PublicationValidationTest {
                 locationTrack(
                     IntId(100),
                     topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
                     draft = true,
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
+                ),
             )
 
         assertEquals(1, connectivityWarnings.size)

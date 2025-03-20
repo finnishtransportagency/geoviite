@@ -61,10 +61,8 @@ class LocationTrackService(
 
     @Transactional
     fun insert(branch: LayoutBranch, request: LocationTrackSaveRequest): LayoutRowVersion<LocationTrack> {
-        //        val (alignment, alignmentVersion) = alignmentService.newEmpty()
         val locationTrack =
             LocationTrack(
-                //                alignmentVersion = alignmentVersion,
                 name = request.name,
                 descriptionBase = request.descriptionBase,
                 descriptionSuffix = request.descriptionSuffix,
@@ -72,9 +70,9 @@ class LocationTrackService(
                 state = request.state,
                 trackNumberId = request.trackNumberId,
                 sourceId = null,
-                length = 0.0, // alignment.length,
-                segmentCount = 0, // alignment.segments.size,
-                boundingBox = null, // alignment.boundingBox,
+                length = 0.0,
+                segmentCount = 0,
+                boundingBox = null,
                 duplicateOf = request.duplicateOf,
                 topologicalConnectivity = request.topologicalConnectivity,
                 topologyStartSwitch = null,
@@ -107,7 +105,6 @@ class LocationTrackService(
         request: LocationTrackSaveRequest,
     ): LayoutRowVersion<LocationTrack> {
         val (originalTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
-        //        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack =
             originalTrack.copy(
                 name = request.name,
@@ -150,7 +147,6 @@ class LocationTrackService(
         state: LocationTrackState,
     ): LayoutRowVersion<LocationTrack> {
         val (originalTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
-        //        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack = originalTrack.copy(state = state)
         // TODO: GVT-2928 do we need to recalc topology? I think not, (see above)
         return saveDraft(branch, locationTrack, originalGeometry)
@@ -401,12 +397,6 @@ class LocationTrackService(
         return getWithGeometryInternal(version)
     }
 
-    @Deprecated("")
-    @Transactional(readOnly = true)
-    fun getWithAlignment(version: LayoutRowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? {
-        return getWithAlignmentInternal(version)
-    }
-
     @Transactional(readOnly = true)
     fun listNearWithGeometries(
         layoutContext: LayoutContext,
@@ -418,18 +408,6 @@ class LocationTrackService(
             }
         }
 
-    //    @Deprecated("")
-    //    @Transactional(readOnly = true)
-    //    fun listNearWithAlignments(
-    //        layoutContext: LayoutContext,
-    //        bbox: BoundingBox,
-    //    ): List<Pair<LocationTrack, LayoutAlignment>> =
-    //        dao.listNear(layoutContext, bbox).let(::associateWithAlignments).filter { (_, alignment) ->
-    //            alignment.segments.any { segment ->
-    //                bbox.intersects(segment.boundingBox) && segment.segmentPoints.any(bbox::contains)
-    //            }
-    //        }
-    //
     @Transactional(readOnly = true)
     fun getLocationTracksNear(
         layoutContext: LayoutContext,
@@ -440,18 +418,6 @@ class LocationTrackService(
             BoundingBox(Point(0.0, 0.0), Point(TRACK_SEARCH_AREA_SIZE, TRACK_SEARCH_AREA_SIZE)).centerAt(location),
         )
 
-    //    @Deprecated("")
-    //    @Transactional(readOnly = true)
-    //    fun getLocationTracksAndAlignmentsNear(
-    //        layoutContext: LayoutContext,
-    //        location: IPoint,
-    //    ): List<Pair<LocationTrack, LayoutAlignment>> =
-    //        listNearWithAlignments(
-    //            layoutContext,
-    //            BoundingBox(Point(0.0, 0.0), Point(TRACK_SEARCH_AREA_SIZE,
-    // TRACK_SEARCH_AREA_SIZE)).centerAt(location),
-    //        )
-    //
     @Transactional(readOnly = true)
     fun getMetadataSections(
         layoutContext: LayoutContext,
@@ -528,20 +494,9 @@ class LocationTrackService(
         return getWithGeometryInternal(dao.fetchVersionOrThrow(layoutContext, id))
     }
 
-    //    private fun getWithAlignmentInternalOrThrow(
-    //        layoutContext: LayoutContext,
-    //        id: IntId<LocationTrack>,
-    //    ): Pair<LocationTrack, LayoutAlignment> {
-    //        return getWithAlignmentInternal(dao.fetchVersionOrThrow(layoutContext, id))
-    //    }
-    //
     private fun getWithGeometryInternal(
         version: LayoutRowVersion<LocationTrack>
     ): Pair<LocationTrack, DbLocationTrackGeometry> = locationTrackWithGeometry(dao, alignmentDao, version)
-
-    private fun getWithAlignmentInternal(
-        version: LayoutRowVersion<LocationTrack>
-    ): Pair<LocationTrack, LayoutAlignment>? = locationTrackWithAlignment(dao, alignmentDao, version)
 
     private fun associateWithGeometries(
         lines: List<LocationTrack>
@@ -552,13 +507,6 @@ class LocationTrackService(
         return lines.map { line -> line to alignments.getValue(line.versionOrThrow) }
     }
 
-    //    private fun associateWithAlignments(lines: List<LocationTrack>): List<Pair<LocationTrack, LayoutAlignment>> {
-    //        // This is a little convoluted to avoid extra passes of transaction annotation handling in
-    //        // alignmentDao.fetch
-    //        val alignments = alignmentDao.fetchMany(lines.map(LocationTrack::getAlignmentVersionOrThrow))
-    //        return lines.map { line -> line to alignments.getValue(line.getAlignmentVersionOrThrow()) }
-    //    }
-    //
     fun fillTrackAddress(splitPoint: SplitPoint, geocodingContext: GeocodingContext): SplitPoint {
         val address = geocodingContext.getAddress(splitPoint.location)?.first
         return when (splitPoint) {
@@ -982,12 +930,6 @@ fun locationTrackWithGeometry(
     alignmentDao: LayoutAlignmentDao,
     rowVersion: LayoutRowVersion<LocationTrack>,
 ) = locationTrackDao.fetch(rowVersion) to alignmentDao.fetch(rowVersion)
-
-fun locationTrackWithAlignment(
-    locationTrackDao: LocationTrackDao,
-    alignmentDao: LayoutAlignmentDao,
-    rowVersion: LayoutRowVersion<LocationTrack>,
-) = locationTrackDao.fetch(rowVersion).let { track -> track.alignmentVersion?.let { track to alignmentDao.fetch(it) } }
 
 fun filterByBoundingBox(list: List<LocationTrack>, boundingBox: BoundingBox?): List<LocationTrack> =
     if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) } else list
