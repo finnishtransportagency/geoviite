@@ -88,6 +88,8 @@ import { PublicationCandidate } from 'publication/publication-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
 import { useResizeObserver } from 'utils/use-resize-observer';
+import { PlanDownloadState } from 'map/plan-download/plan-download-store';
+import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
 
 declare global {
     interface Window {
@@ -101,6 +103,7 @@ export type MapViewProps = {
     layoutContext: LayoutContext;
     linkingState: LinkingState | undefined;
     splittingState: SplittingState | undefined;
+    planDownloadState: PlanDownloadState | undefined;
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
@@ -113,6 +116,7 @@ export type MapViewProps = {
     onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
+    onStopPlanDownload: () => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
@@ -183,6 +187,7 @@ const MapView: React.FC<MapViewProps> = ({
     layoutContext,
     linkingState,
     splittingState,
+    planDownloadState,
     changeTimes,
     onSelect,
     onViewportUpdate,
@@ -194,6 +199,7 @@ const MapView: React.FC<MapViewProps> = ({
     onRemoveGeometryLinkPoint,
     onShownLayerItemsChange,
     onHighlightItems,
+    onStopPlanDownload,
     onClickLocation,
     onMapLayerChange,
     mapLayerMenuGroups,
@@ -212,7 +218,6 @@ const MapView: React.FC<MapViewProps> = ({
         customActiveMapTool || (mapTools && first(mapTools)),
     );
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
-
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
 
     const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
@@ -759,7 +764,6 @@ const MapView: React.FC<MapViewProps> = ({
     const cssProperties = {
         ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
     };
-
     return (
         <div className={mapClassNames} style={cssProperties}>
             {mapTools && (
@@ -825,6 +829,12 @@ const MapView: React.FC<MapViewProps> = ({
                 <div className={styles['map__loading-spinner']} qa-id="map-loading-spinner">
                     <Spinner />
                 </div>
+            )}
+            {planDownloadState && (
+                <PlanDownloadPopup
+                    onClose={() => onStopPlanDownload()}
+                    layoutContext={layoutContext}
+                />
             )}
         </div>
     );

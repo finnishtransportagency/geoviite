@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
@@ -125,6 +126,19 @@ class LayoutTrackNumberController(
     ): List<AlignmentPlanSection> {
         val context = LayoutContext.of(branch, publicationState)
         return trackNumberService.getMetadataSections(context, id, boundingBox)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/overlapping-plans")
+    fun getOverlappingPlanHeaders(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
+        @RequestParam("startKm") startKmNumber: KmNumber? = null,
+        @RequestParam("endKm") endKmNumber: KmNumber? = null,
+    ): List<GeometryPlanHeader> {
+        val context = LayoutContext.of(branch, publicationState)
+        return trackNumberService.getOverlappingPlanHeaders(context, id, startKmNumber, endKmNumber)
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)

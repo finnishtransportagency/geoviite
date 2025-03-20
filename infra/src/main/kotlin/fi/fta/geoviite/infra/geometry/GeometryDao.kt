@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.util.DbTable.*
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
+import org.locationtech.jts.geom.Polygon
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
@@ -924,6 +925,27 @@ constructor(
                 .filterNotNull()
         logger.daoAccess(FETCH, GeometryPlanArea::class, result.map { a -> a.id })
         return result
+    }
+
+    fun fetchIntersectingPlans(polygon: Polygon, srid: Srid): List<IntId<GeometryPlan>> {
+        val searchPolygonWkt = create2DPolygonString(polygon.coordinates, srid)
+        val sql =
+            """
+          select 
+            plan.id
+          from geometry.plan
+            where hidden = false
+              and postgis.st_intersects(
+                  plan.bounding_polygon, 
+                  postgis.st_polygonfromtext(:polygon_wkt, :map_srid)
+              )
+        """
+                .trimIndent()
+        val params = mapOf("polygon_wkt" to searchPolygonWkt, "map_srid" to srid.code)
+        return jdbcTemplate
+            .query(sql, params) { rs, _ -> rs.getIntId<GeometryPlan>("id") }
+            .filterNotNull()
+            .also { result -> logger.daoAccess(FETCH, IntId::class, result) }
     }
 
     @Cacheable(CACHE_GEOMETRY_PLAN, sync = true)

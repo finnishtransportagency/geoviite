@@ -14,9 +14,9 @@ $dropdown-border-error: 2px;
     border-color: transparent;
 
     @if ($has-icon) {
-        padding: 8px 8px 8px 32px;
+        padding: 8px 12px 8px 32px;
     } @else {
-        padding: 8px 8px;
+        padding: 8px 12px;
     }
 }
 
@@ -139,6 +139,7 @@ $dropdown-border-error: 2px;
     border: none;
     outline: none;
     opacity: 0;
+    padding: 0;
 }
 
 .dropdown--searchable .dropdown__input {

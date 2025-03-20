@@ -1327,6 +1327,44 @@
         "cluster-overlay-choose-geometry": "Valitse suunnitelman piste",
         "cluster-overlay-choose-layout": "Valitse paikannuspohjan piste"
     },
+    "plan-download": {
+        "csv": {
+            "file-name": "Tiedosto",
+            "start-km": "Alkuratakilometri",
+            "end-km": "Loppuratakilometri",
+            "crs": "Koordinaattijärjestelmä",
+            "vertical-crs": "Korkeusjärjestelmä",
+            "plan-time": "Laadittu",
+            "message": "Huomiot"
+        },
+        "move-to-official-confirm-title": "Siirtyminen nykytilaan",
+        "move-to-official-confirm-content": "Suunnitelmia voi ladata ainoastaan nykytilasta. Siirrytäänkö nykytilaan?",
+        "move-to-official": "Siirry nykytilaan",
+        "title": "Suunnitelmien lataus",
+        "area": "Alue",
+        "plans": "Suunnitelmat ({{amount}} kpl)",
+        "track-meter-range": "Rataosoiteväli",
+        "maintenance-area": "Kunnossapitoalue",
+        "choose-from-map": "Valitse kartalta",
+        "track-number-or-location-track": "Ratanumero tai sijaintiraide",
+        "search": "Hae",
+        "track-number": "Ratanumero",
+        "location-track": "Raide",
+        "start-km": "Alkuratakilometri",
+        "end-km": "Loppuratakilometri",
+        "paikannuspalvelu-plans": "Paikannuspalvelun suunnitelmat",
+        "applicable-for-plans": "Suunnitteluun soveltuvat",
+        "applicable-for-maintenance": "Kunnossapitoon soveltuvat",
+        "applicable-for-statistics": "Tilastointiin soveltuvat",
+        "select-all": "Valitse kaikki",
+        "unselect-all": "Poista valinnat",
+        "download-selected": "Lataa valitut ({{amount}} kpl)",
+        "mandatory-field": "Pakollinen kenttä",
+        "invalid-track-meter": "Tarkista ratakilometrin muoto",
+        "end-before-start": "Ratakilometrin loppu on ennen alkua",
+        "outside-track-number-range": "Ratakilometri ei osu ratanumeron alueelle ({{start}}-{{end}})",
+        "outside-location-track-range": "Ratakilometri ei osu raiteen alueelle ({{start}}-{{end}})"
+    },
     "preview-view": {
         "unstaged-changes-title": "Muutokset ({{amount}} kpl)",
         "staged-changes-title": "Julkaistavat muutokset ({{amount}} kpl)",
@@ -2038,6 +2076,9 @@
         "vertical-geometry-list-plan-csv": "Pystygeometria {{planFileName}}.csv",
         "vertical-geometry-list-entire-track-network": "Pystygeometria (koko rataverkko) {{date}}.csv",
         "publication-log": "Julkaisuloki {{dateRange}}.csv",
-        "split-details": "Raiteen jakaminen {{locationTrackName}}.csv"
+        "split-details": "Raiteen jakaminen {{locationTrackName}}.csv",
+        "geometry-plans-summary-csv": "Yhteenveto.csv",
+        "geometry-plans-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{date}}.zip",
+        "geometry-plans-with-km-range-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{kmRange}} {{date}}.zip"
     }
 }

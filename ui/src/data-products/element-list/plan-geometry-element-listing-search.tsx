@@ -5,7 +5,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { debounceAsync } from 'utils/async-utils';
-import { PropEdit } from 'utils/validation-utils';
+import { getVisibleErrorsByProp, PropEdit } from 'utils/validation-utils';
 import { getGeometryPlanElements, getGeometryPlanElementsCsv } from 'geometry/geometry-api';
 import { ElementItem, GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
@@ -17,7 +17,6 @@ import {
     debouncedGetGeometryPlanHeaders,
     getGeometryPlanOptions,
     getPlanFullName,
-    getVisibleErrorsByProp,
 } from 'data-products/data-products-utils';
 import { PlanGeometrySearchState, selectedElementTypes } from 'data-products/data-products-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
