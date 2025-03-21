@@ -211,7 +211,13 @@ class LayoutTrackNumberService(
             requireNotNull(referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId).alignmentVersion)
         val cacheKey = requireNotNull(geocodingService.getGeocodingContextCacheKey(layoutContext, trackNumberId))
 
-        return alignmentService.getOverlappingPlanHeaders(alignmentVersion, cacheKey, startKmNumber, endKmNumber)
+        return alignmentService.getOverlappingPlanHeaders(
+            alignmentVersion,
+            cacheKey,
+            ALIGNMENT_POLYGON_BUFFER,
+            startKmNumber,
+            endKmNumber,
+        )
     }
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
