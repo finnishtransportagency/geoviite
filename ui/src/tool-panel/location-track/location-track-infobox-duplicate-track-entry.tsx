@@ -70,6 +70,7 @@ function validateIsExplicitDuplicate(
 
 function validateExplicitDuplicateOnSameTrackNumber(
     currentTrackNumberId: LayoutTrackNumberId | undefined,
+    currentLocationTrackName: string,
     duplicate: LocationTrackDuplicate,
     trackNumbers: LayoutTrackNumber[] | undefined,
 ): LocationTrackDuplicateNotice | undefined {
@@ -77,7 +78,12 @@ function validateExplicitDuplicateOnSameTrackNumber(
         return {
             translationKey: 'tool-panel.location-track.duplicate-on-different-track-number',
             translationParams: {
-                trackNumber: trackNumbers?.find((tn) => tn.id === currentTrackNumberId)?.number,
+                currentTrack: currentLocationTrackName,
+                currentTrackNumber: trackNumbers?.find((tn) => tn.id === currentTrackNumberId)
+                    ?.number,
+                otherTrackNumber: trackNumbers?.find((tn) => tn.id === duplicate?.trackNumberId)
+                    ?.number,
+                otherTrack: duplicate.name,
             },
             level: 'ERROR',
         };
@@ -193,7 +199,12 @@ export const LocationTrackInfoboxDuplicateTrackEntry: React.FC<
 
     const notices: LocationTrackDuplicateNotice[] = [
         validateIsExplicitDuplicate(duplicate, targetLocationTrack.name),
-        validateExplicitDuplicateOnSameTrackNumber(currentTrackNumberId, duplicate, trackNumbers),
+        validateExplicitDuplicateOnSameTrackNumber(
+            currentTrackNumberId,
+            targetLocationTrack.name,
+            duplicate,
+            trackNumbers,
+        ),
         validateExplicitDuplicateOfThisLocationTrack(
             targetLocationTrack,
             duplicate,
