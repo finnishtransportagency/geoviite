@@ -125,9 +125,9 @@ constructor(
 
         val cacheKey = geocodingService.getGeocodingContextCacheKey(mainOfficialContext.context, track.trackNumberId)
         val overlapping =
-            layoutAlignmentService.getOverlappingPlanHeaders(track.alignmentVersion!!, cacheKey!!, null, null).map {
-                it.id
-            }
+            layoutAlignmentService
+                .getOverlappingPlanHeaders(track.alignmentVersion!!, cacheKey!!, 10.0, null, null)
+                .map { it.id }
 
         assertEquals(4, overlapping.size)
         assertContains(overlapping, plan2EndsWithinAlignmentBuffer.id)
@@ -247,7 +247,7 @@ constructor(
         val cacheKey = geocodingService.getGeocodingContextCacheKey(mainOfficialContext.context, trackNumberId)
         val overlapping =
             layoutAlignmentService
-                .getOverlappingPlanHeaders(rl.alignmentVersion!!, cacheKey!!, kmPost2.kmNumber, kmPost3.kmNumber)
+                .getOverlappingPlanHeaders(rl.alignmentVersion!!, cacheKey!!, 10.0, kmPost2.kmNumber, kmPost3.kmNumber)
                 .map { it.id }
         assertEquals(4, overlapping.size)
         assertContains(overlapping, plan2EndsBeforeStartKmButWithinBuffer.id)

@@ -400,7 +400,13 @@ class LocationTrackService(
         val contextKey =
             requireNotNull(geocodingService.getGeocodingContextCacheKey(layoutContext, locationTrack.trackNumberId))
 
-        return alignmentService.getOverlappingPlanHeaders(alignmentVersion, contextKey, startKmNumber, endKmNumber)
+        return alignmentService.getOverlappingPlanHeaders(
+            alignmentVersion,
+            contextKey,
+            ALIGNMENT_POLYGON_BUFFER,
+            startKmNumber,
+            endKmNumber,
+        )
     }
 
     private fun getSwitchIdAtStart(alignment: LayoutAlignment, locationTrack: LocationTrack) =
