@@ -94,7 +94,7 @@ class LayoutAlignmentService(
         val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(geocodingContextCacheKey))
         val (cropStartM, cropEndM) = getCropMValues(geocodingContext, startKmNumber, endKmNumber)
 
-        return if (!validateCropOverlapsAlignment(alignment, cropStartM, cropEndM)) {
+        return if (!cropRangeOverlapsAlignment(alignment, cropStartM, cropEndM)) {
             emptyList()
         } else {
             val simplifiedAlignment =
@@ -117,10 +117,8 @@ class LayoutAlignmentService(
     private fun cropAlignment(alignment: LayoutAlignment, cropStartM: Double?, cropEndM: Double?): IAlignment {
         val alignmentStartM = requireNotNull(alignment.start?.m)
         val alignmentEndM = requireNotNull(alignment.end?.m)
-
         val startM = if (cropStartM != null) max(cropStartM, alignmentStartM) else alignmentStartM
         val endM = if (cropEndM != null) min(cropEndM, alignmentEndM) else alignmentEndM
-
         val mRange = Range(startM, endM)
 
         val segments =
@@ -144,7 +142,7 @@ class LayoutAlignmentService(
         return CroppedAlignment(0, croppedSegments, alignment.id)
     }
 
-    fun getCropMValues(
+    private fun getCropMValues(
         geocodingContext: GeocodingContext,
         startKmNumber: KmNumber?,
         endKmNumber: KmNumber?,
@@ -153,21 +151,6 @@ class LayoutAlignmentService(
             startKmNumber?.let { geocodingContext.referencePoints.find { it.kmNumber == startKmNumber }?.distance }
         val endM = endKmNumber?.let { geocodingContext.referencePoints.find { it.kmNumber > endKmNumber }?.distance }
         return startM to endM
-    }
-
-    fun validateCropOverlapsAlignment(alignment: LayoutAlignment, cropStartM: Double?, cropEndM: Double?): Boolean {
-        val alignmentStartM = requireNotNull(alignment.start?.m)
-        val alignmentEndM = requireNotNull(alignment.end?.m)
-
-        return if (cropStartM != null && cropEndM != null) {
-            cropStartM < cropEndM && Range(cropStartM, cropEndM).overlaps(Range(alignmentStartM, alignmentEndM))
-        } else if (cropStartM != null && cropEndM == null) {
-            cropStartM <= alignmentEndM
-        } else if (cropStartM == null && cropEndM != null) {
-            cropEndM >= alignmentStartM
-        } else {
-            true
-        }
     }
 }
 
@@ -184,3 +167,18 @@ private fun toPlanSectionPoint(point: IPoint, alignment: LayoutAlignment, contex
 
 private fun asNew(alignment: LayoutAlignment): LayoutAlignment =
     if (alignment.dataType == TEMP) alignment else alignment.copy(id = StringId(), dataType = TEMP)
+
+private fun cropRangeOverlapsAlignment(alignment: LayoutAlignment, cropStartM: Double?, cropEndM: Double?): Boolean {
+    val alignmentStartM = requireNotNull(alignment.start?.m)
+    val alignmentEndM = requireNotNull(alignment.end?.m)
+
+    return if (cropStartM != null && cropEndM != null) {
+        cropStartM < cropEndM && Range(cropStartM, cropEndM).overlaps(Range(alignmentStartM, alignmentEndM))
+    } else if (cropStartM != null && cropEndM == null) {
+        cropStartM <= alignmentEndM
+    } else if (cropStartM == null && cropEndM != null) {
+        cropEndM >= alignmentStartM
+    } else {
+        true
+    }
+}
