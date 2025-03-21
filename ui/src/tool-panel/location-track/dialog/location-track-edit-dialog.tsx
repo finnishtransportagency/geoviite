@@ -344,7 +344,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const fullDescription = () => {
         const base = state.locationTrack?.descriptionBase ?? '';
         const suffix = descriptionSuffix(locationTrackDescriptionSuffixMode ?? 'NONE');
-        return suffix ? `${base} ${suffix}` : base;
+        return suffix ? `${base.trim()} ${suffix}` : base;
     };
 
     const shortenSwitchName = (name?: string) => {
