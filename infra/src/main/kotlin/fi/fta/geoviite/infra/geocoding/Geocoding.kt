@@ -827,7 +827,7 @@ data class PolyLineEdge(
         }
 
     private fun interpolatePointAtM(m: Double): IPoint =
-        if (m <= startM) start else if (m >= endM) end else interpolate(start, end, (m - startM) / length)
+        if (m <= startM) start else if (m >= endM) end else interpolate(start.toPoint(), end, (m - startM) / length)
 
     fun interpolateAlignmentPointAtPortion(portion: Double): AlignmentPoint =
         interpolateSegmentPointAtPortion(portion).toAlignmentPoint(segmentStart)
