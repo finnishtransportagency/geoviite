@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.math.boundingBoxCombining
+import fi.fta.geoviite.infra.math.combineContinuous
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -29,6 +30,7 @@ import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -46,9 +48,9 @@ import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
 import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
-import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 private val temporarySwitchId: IntId<LayoutSwitch> = IntId(-1)
 
@@ -203,7 +205,8 @@ constructor(
                 locationTrackService.saveDraft(branch, locationTrack, geometry)
             } else if (originalLocationTrack != locationTrack) {
                 // TODO: GVT-2927 Switch linking in graph model: is this branch needed?
-                // TODO: GVT-2927 Switch links are all in geometry now, so can the track itself even change?
+                // TODO: GVT-2927 Switch links are all in geometry now, so can the track itself even
+                // change?
                 locationTrackService.saveDraft(branch, locationTrack, originalGeometry)
             }
         }
@@ -320,7 +323,8 @@ constructor(
         layoutContext: LayoutContext,
         track: LocationTrack,
     ): List<Pair<IntId<LayoutSwitch>, SuggestedSwitch?>> {
-        // TODO: GVT-1727 Should be able to just use track.switchIds here, unless something funky about the args
+        // TODO: GVT-1727 Should be able to just use track.switchIds here, unless something funky
+        // about the args
         val switchIds = alignmentDao.fetch(track.versionOrThrow).switchLinks.map { s -> s.id }.distinct()
         val replacementSwitchLocations =
             switchIds.map { switchId ->
@@ -383,18 +387,22 @@ fun matchFittedSwitchToTracks(
     switchId: IntId<LayoutSwitch>?,
     name: SwitchName? = null,
 ): SuggestedSwitch {
-    // TODO: GVT-2927 switch linking in topology model: all links are now in nodes, so this should be simpler
+    // TODO: GVT-2927 switch linking in topology model: all links are now in nodes, so this should
+    // be simpler
     val segmentLinks = mapOf<IntId<LocationTrack>, List<SwitchLinkingJoint>>()
-    //        calculateSwitchLinkingJoints(fittedSwitch, relevantLocationTracks, fittedSwitch.switchStructure, switchId)
+    //        calculateSwitchLinkingJoints(fittedSwitch, relevantLocationTracks,
+    // fittedSwitch.switchStructure, switchId)
     val topologyLinks = mapOf<IntId<LocationTrack>, SwitchLinkingTopologicalTrackLink>()
-    //        findTopologyLinks(relevantLocationTracks, fittedSwitch, segmentLinks, switchId ?: temporarySwitchId)
+    //        findTopologyLinks(relevantLocationTracks, fittedSwitch, segmentLinks, switchId ?:
+    // temporarySwitchId)
     val trackLinks =
         relevantLocationTracks.entries
             .mapNotNull { (id, trackAndGeometry) ->
                 val segmentLink = segmentLinks[id] ?: listOf()
                 val topologyLink = topologyLinks[id]
 
-                // TODO: GVT-1727 Should be able to just use track.switchIds here, unless something funky about the args
+                // TODO: GVT-1727 Should be able to just use track.switchIds here, unless something
+                // funky about the args
                 val hadOriginalLink = switchId?.let(trackAndGeometry.second::containsSwitch) ?: false
 
                 // "relevant" location tracks can contain tracks that are just nearby but not
@@ -658,7 +666,8 @@ fun withChangesFromLinkingSwitch(
     // TODO: GVT-2927 Switch linking in graph model
     return emptyList()
     //    val segmentLinksMade = withSegmentLinks(suggestedSwitch, existingLinksCleared, switchId)
-    //    val topologicalLinksMade = withTopologicalLinks(suggestedSwitch, existingLinksCleared, switchId)
+    //    val topologicalLinksMade = withTopologicalLinks(suggestedSwitch, existingLinksCleared,
+    // switchId)
     //    val onlyDelinked =
     //        existingLinksCleared.entries
     //            .filter { (id, trackAndAlignment) ->
@@ -1126,4 +1135,46 @@ fun createModifiedLayoutSwitchLinking(suggestedSwitch: SuggestedSwitch, layoutSw
         joints = suggestedSwitch.joints,
         source = if (newGeometrySwitchId != null) GeometrySource.PLAN else GeometrySource.GENERATED,
     )
+}
+
+data class JointOnEdge(val jointNumber: JointNumber, val edge: LayoutEdge, val m: Double)
+
+fun eraseSwitchFromEdges(switchId: IntId<LayoutSwitch>, tracks: List<Pair<LocationTrack, LocationTrackGeometry>>):List<Pair<LocationTrack, LocationTrackGeometry>> {
+    val newTracks = tracks.map { (locationTrack, geometry) ->
+        val switchEdges = geometry.edges.mapIndexed{ index, edge ->
+            if (edge.startNode.switchIn?.id == switchId && edge.endNode.switchIn?.id == switchId)
+                Range(index,index)
+            else
+                null
+        }.filterNotNull()
+            .let{ranges -> combineContinuous(ranges) }
+        locationTrack to geometry
+    }
+    return newTracks
+}
+
+fun mapFittedSwitchToEdges(
+    fittedSwitch: FittedSwitch,
+    nearbyTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+): List<JointOnEdge> {
+    val jointsOnEdge =
+        fittedSwitch.joints.flatMap { joint ->
+            joint.matches.map { match ->
+                val (_, geometry) =
+                    nearbyTracks.first { (locationTrack, _) -> locationTrack.id == match.locationTrackId }
+                val edge = geometry.getEdgeAtMOrThrow(match.m)
+                JointOnEdge(match.switchJoint.number, edge, match.m)
+            }
+        }
+    return jointsOnEdge
+}
+
+
+fun yyy() {
+    /*
+    Tässä tarkastetaan että vaihdelinjat ovat samoilla edgeillä.
+
+
+    Mikäli näin ei ole, esim. limittäisten vaihteiden vuoksi, voidaan jointtipisteitä vielä siirtää.
+    */
 }

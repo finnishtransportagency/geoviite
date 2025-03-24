@@ -154,6 +154,11 @@ sealed class LocationTrackGeometry : IAlignment {
         val end = nodesWithLocation.first { (node, _) -> node == edges[edgeIndices.last].endNode }.second
         return start to end
     }
+
+    fun getEdgeAtM(m:Double):LayoutEdge? {
+        // TODO: optimize
+        return edgesWithM.firstOrNull{(_, mRange) -> mRange.contains(m)}?.first
+    }
 }
 
 fun calculateEdgeMs(edges: List<LayoutEdge>): List<Range<Double>> {
