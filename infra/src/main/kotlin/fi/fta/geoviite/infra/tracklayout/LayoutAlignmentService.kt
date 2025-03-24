@@ -96,15 +96,24 @@ class LayoutAlignmentService(
             return emptyList()
         }
 
-        val (cropStartM, cropEndM) = getCropMValues(geocodingContext, startKmNumber, endKmNumber)
-        return if (!alignmentOverlapsCropRange(alignment, cropStartM, cropEndM)) {
+        val (cropStartRereferenceLineM, cropEndReferenceLineM) =
+            getCropMValuesAlongReferenceline(geocodingContext, startKmNumber, endKmNumber)
+        return if (
+            !alignmentOverlapsCropRange(alignment, geocodingContext, cropStartRereferenceLineM, cropEndReferenceLineM)
+        ) {
             emptyList()
         } else {
             val simplifiedAlignment =
                 simplify(
                     alignment =
                         if (startKmNumber == null && endKmNumber == null) alignment
-                        else cropAlignment(alignment, cropStartM, cropEndM),
+                        else
+                            cropAlignment(
+                                alignment,
+                                geocodingContext,
+                                cropStartRereferenceLineM,
+                                cropEndReferenceLineM,
+                            ),
                     resolution = ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION,
                     bbox = null,
                     includeSegmentEndPoints = true,
@@ -117,11 +126,19 @@ class LayoutAlignmentService(
         }
     }
 
-    private fun cropAlignment(alignment: LayoutAlignment, cropStartM: Double?, cropEndM: Double?): IAlignment {
+    private fun cropAlignment(
+        alignment: LayoutAlignment,
+        geocodingContext: GeocodingContext,
+        cropStartM: Double?,
+        cropEndM: Double?,
+    ): IAlignment {
         val alignmentStartM = requireNotNull(alignment.start?.m)
         val alignmentEndM = requireNotNull(alignment.end?.m)
-        val startM = if (cropStartM != null) max(cropStartM, alignmentStartM) else alignmentStartM
-        val endM = if (cropEndM != null) min(cropEndM, alignmentEndM) else alignmentEndM
+        val startM =
+            if (cropStartM != null) normalizeMValueToAlignment(cropStartM, alignment, geocodingContext)
+            else alignmentStartM
+        val endM =
+            if (cropEndM != null) normalizeMValueToAlignment(cropEndM, alignment, geocodingContext) else alignmentEndM
         val mRange = Range(startM, endM)
 
         val segments =
@@ -160,16 +177,23 @@ private fun toPlanSectionPoint(point: IPoint, alignment: LayoutAlignment, contex
 private fun asNew(alignment: LayoutAlignment): LayoutAlignment =
     if (alignment.dataType == TEMP) alignment else alignment.copy(id = StringId(), dataType = TEMP)
 
-private fun alignmentOverlapsCropRange(alignment: LayoutAlignment, cropStartM: Double?, cropEndM: Double?): Boolean {
-    val alignmentStartM = requireNotNull(alignment.start?.m)
-    val alignmentEndM = requireNotNull(alignment.end?.m)
+private fun alignmentOverlapsCropRange(
+    alignment: LayoutAlignment,
+    geocodingContext: GeocodingContext,
+    cropStartM: Double?,
+    cropEndM: Double?,
+): Boolean {
+    val alignmentStartM = requireNotNull(geocodingContext.getM(requireNotNull(alignment.start))?.first)
+    val alignmentEndM = requireNotNull(geocodingContext.getM(requireNotNull(alignment.end))?.first)
 
     return if (cropStartM != null && cropEndM == null) {
         cropStartM <= alignmentEndM
     } else if (cropStartM == null && cropEndM != null) {
         cropEndM >= alignmentStartM
     } else if (cropStartM != null && cropEndM != null) {
-        cropStartM < cropEndM && Range(cropStartM, cropEndM).overlaps(Range(alignmentStartM, alignmentEndM))
+        val cropRange = Range(cropStartM, cropEndM)
+        val alignmentRange = Range(alignmentStartM, alignmentEndM)
+        cropStartM < cropEndM && ((cropRange.overlaps(alignmentRange) || alignmentRange.overlaps(cropRange)))
     } else {
         true
     }
@@ -186,20 +210,27 @@ private fun cropKmsAreWithinGeocodingContext(
         geocodingContext.referencePoints.last().kmNumber >= startKmNumber
     } else if (startKmNumber == null && endKmNumber != null) {
         geocodingContext.referencePoints.first().kmNumber <= endKmNumber
-    } else if (startKmNumber != null && endKmNumber != null) {
-        Range(startKmNumber, endKmNumber)
-            .overlaps(
-                Range(
-                    geocodingContext.referencePoints.first().kmNumber,
-                    geocodingContext.referencePoints.last().kmNumber,
-                )
-            )
+    } else if (startKmNumber != null && endKmNumber != null && startKmNumber <= endKmNumber) {
+        val kmNumberRange = Range(startKmNumber, endKmNumber)
+        val geocodingRange =
+            Range(geocodingContext.referencePoints.first().kmNumber, geocodingContext.referencePoints.last().kmNumber)
+        kmNumberRange.overlaps(geocodingRange) || geocodingRange.overlaps(kmNumberRange)
     } else {
-        true
+        startKmNumber == null && endKmNumber == null
     }
 }
 
-private fun getCropMValues(
+private fun normalizeMValueToAlignment(
+    mFromGeocodingContextStart: Double,
+    alignment: LayoutAlignment,
+    geocodingContext: GeocodingContext,
+): Double {
+    val alignmentStartM = requireNotNull(geocodingContext.getM(requireNotNull(alignment.start))?.first)
+    val alignmentEndM = requireNotNull(geocodingContext.getM(requireNotNull(alignment.end))?.first)
+    return max(min(mFromGeocodingContextStart, alignmentEndM), alignmentStartM) - alignmentStartM
+}
+
+private fun getCropMValuesAlongReferenceline(
     geocodingContext: GeocodingContext,
     startKmNumber: KmNumber?,
     endKmNumber: KmNumber?,
