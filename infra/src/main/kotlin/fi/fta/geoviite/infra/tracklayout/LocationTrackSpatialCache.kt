@@ -67,7 +67,7 @@ constructor(
 data class SpatialCacheSegment(
     val locationTrackVersion: LayoutRowVersion<LocationTrack>,
     val alignmentVersion: RowVersion<LayoutAlignment>,
-    val segment: LayoutSegment,
+    val segmentIndex: Int,
 )
 
 data class SpatialCacheEntry(
@@ -109,8 +109,11 @@ data class ContextCache(
         network
             .search(Geometries.rectangle(boundingBox.x.min, boundingBox.y.min, boundingBox.x.max, boundingBox.y.max))
             .groupBy { hit -> hit.value().locationTrackVersion to hit.value().alignmentVersion }
-            .filter { (_, hits) ->
-                hits.any { hit -> hit.value().segment.segmentPoints.any { point -> boundingBox.contains(point) } }
+            .filter { (versions, hits) ->
+                val layoutSegments = getAlignment(versions.second).segments
+                hits.any { hit ->
+                    layoutSegments[hit.value().segmentIndex].segmentPoints.any { point -> boundingBox.contains(point) }
+                }
             }
             .keys
             .map { (locationTrack, alignment) -> getTrack(locationTrack) to getAlignment(alignment) }
@@ -120,8 +123,9 @@ data class ContextCache(
         location: IPoint,
         thresholdMeters: Double,
     ): LocationTrackCacheHit? {
-        val closestPointM = segment.segment.getClosestPointM(location).first
-        val closestPoint = segment.segment.seekPointAtM(closestPointM).point
+        val layoutSegment = getAlignment(segment.alignmentVersion).segments[segment.segmentIndex]
+        val closestPointM = layoutSegment.getClosestPointM(location).first
+        val closestPoint = layoutSegment.seekPointAtM(closestPointM).point
         val distance = lineLength(location, closestPoint)
         return if (distance < thresholdMeters) {
             LocationTrackCacheHit(
@@ -139,9 +143,9 @@ data class ContextCache(
 private fun createEntry(track: LocationTrack, alignment: LayoutAlignment): SpatialCacheEntry {
     val alignmentVersion = track.getAlignmentVersionOrThrow()
     val segmentData =
-        alignment.segments.map { segment ->
+        alignment.segments.mapIndexed { segmentIndex, segment ->
             val bbox = segment.boundingBox!!
-            val entry = SpatialCacheSegment(track.version!!, alignmentVersion, segment)
+            val entry = SpatialCacheSegment(track.version!!, alignmentVersion, segmentIndex)
             val rect = Geometries.rectangle(bbox.x.min, bbox.y.min, bbox.x.max, bbox.y.max)
             entry to rect
         }
