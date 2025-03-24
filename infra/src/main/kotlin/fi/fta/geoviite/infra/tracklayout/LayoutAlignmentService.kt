@@ -18,8 +18,6 @@ import fi.fta.geoviite.infra.map.simplify
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
-import kotlin.math.max
-import kotlin.math.min
 import org.springframework.transaction.annotation.Transactional
 
 const val ALIGNMENT_POLYGON_BUFFER = 10.0
@@ -100,11 +98,23 @@ class LayoutAlignmentService(
         if (!alignmentOverlapsCropRange(alignment, geocodingContext, cropStartM, cropEndM)) {
             return emptyList()
         } else {
+            val (alignmentStartMAlongReferenceLine, alignmentEndMAlongReferenceLine) =
+                getAlignmentBoundsInReferenceLineM(alignment, geocodingContext)
+
+            val cropStartMAlongAlignment =
+                cropStartM?.coerceIn(alignmentStartMAlongReferenceLine, alignmentEndMAlongReferenceLine)?.let {
+                    it - alignmentStartMAlongReferenceLine
+                }
+            val cropEndMAlongAlignment =
+                cropEndM?.coerceIn(alignmentStartMAlongReferenceLine, alignmentEndMAlongReferenceLine)?.let {
+                    it - alignmentStartMAlongReferenceLine
+                }
+
             val simplifiedAlignment =
                 simplify(
                     alignment =
                         if (startKmNumber == null && endKmNumber == null) alignment
-                        else cropAlignment(alignment, geocodingContext, cropStartM, cropEndM),
+                        else cropAlignment(alignment, cropStartMAlongAlignment, cropEndMAlongAlignment),
                     resolution = ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION,
                     bbox = null,
                     includeSegmentEndPoints = true,
@@ -119,20 +129,13 @@ class LayoutAlignmentService(
 
     private fun cropAlignment(
         alignment: LayoutAlignment,
-        geocodingContext: GeocodingContext,
-        cropStartMAlongReferenceLine: Double?,
-        cropEndMAlongReferenceLine: Double?,
+        cropStartMAlongAlignment: Double?,
+        cropEndMAlongAlignment: Double?,
     ): IAlignment {
         val alignmentStartM = requireNotNull(alignment.start?.m)
         val alignmentEndM = requireNotNull(alignment.end?.m)
-        val startMOnAlignment =
-            if (cropStartMAlongReferenceLine != null)
-                normalizeMValueToAlignment(cropStartMAlongReferenceLine, alignment, geocodingContext)
-            else alignmentStartM
-        val endMOnAlignment =
-            if (cropEndMAlongReferenceLine != null)
-                normalizeMValueToAlignment(cropEndMAlongReferenceLine, alignment, geocodingContext)
-            else alignmentEndM
+        val startMOnAlignment = cropStartMAlongAlignment ?: alignmentStartM
+        val endMOnAlignment = cropEndMAlongAlignment ?: alignmentEndM
         val mRange = Range(startMOnAlignment, endMOnAlignment)
 
         val segments =
@@ -216,14 +219,13 @@ private fun cropKmsAreWithinGeocodingContext(
     }
 }
 
-private fun normalizeMValueToAlignment(
-    mFromGeocodingContextStart: Double,
+private fun getAlignmentBoundsInReferenceLineM(
     alignment: LayoutAlignment,
     geocodingContext: GeocodingContext,
-): Double {
+): Pair<Double, Double> {
     val alignmentStartM = requireNotNull(geocodingContext.getM(requireNotNull(alignment.start))?.first)
     val alignmentEndM = requireNotNull(geocodingContext.getM(requireNotNull(alignment.end))?.first)
-    return max(min(mFromGeocodingContextStart, alignmentEndM), alignmentStartM) - alignmentStartM
+    return alignmentStartM to alignmentEndM
 }
 
 private fun getMValuesAlongReferenceLineForCrop(
