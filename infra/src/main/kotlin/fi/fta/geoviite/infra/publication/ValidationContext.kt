@@ -182,24 +182,24 @@ class ValidationContext(
     fun getPotentiallyAffectedSwitches(trackId: IntId<LocationTrack>): List<LayoutSwitch> =
         getPotentiallyAffectedSwitchIds(trackId).mapNotNull(::getSwitch)
 
-    fun getSegmentSwitches(alignment: LayoutAlignment): List<SegmentSwitch> =
-        alignment.segments
-            .mapNotNull { segment -> segment.switchId?.let { id -> id to segment } }
-            .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
-            .map { (switchId, segments) ->
+    fun getSwitchTrackLinks(geometry: LocationTrackGeometry): List<SwitchTrackLinking> =
+        geometry.trackSwitchLinks
+            .mapIndexed { index, link -> index to link }
+            .groupBy({ (_, link) -> link.switchId })
+            .map { (switchId, links) ->
                 val switch = getSwitch(switchId)
                 val name = switch?.name ?: getCandidateSwitch(switchId)?.name
                 val structure = switch?.switchStructureId?.let(switchLibraryService::getSwitchStructure)
-                SegmentSwitch(switchId, name, switch, structure, segments)
+                SwitchTrackLinking(switchId, name, switch, structure, links)
             }
 
-    fun getTopologicallyConnectedSwitches(track: LocationTrack): List<Pair<SwitchName, LayoutSwitch?>> =
-        listOfNotNull(track.topologyStartSwitch?.switchId, track.topologyEndSwitch?.switchId).map { switchId ->
-            val switch = getSwitch(switchId)
-            // If there's no draft either, we have a referential integrity error
-            val name = switch?.name ?: requireNotNull(getCandidateSwitch(switchId)).name
-            name to switch
-        }
+    //    fun getTopologicallyConnectedSwitches(track: LocationTrack): List<Pair<SwitchName, LayoutSwitch?>> =
+    //        listOfNotNull(track.topologyStartSwitch?.switchId, track.topologyEndSwitch?.switchId).map { switchId ->
+    //            val switch = getSwitch(switchId)
+    //            // If there's no draft either, we have a referential integrity error
+    //            val name = switch?.name ?: requireNotNull(getCandidateSwitch(switchId)).name
+    //            name to switch
+    //        }
 
     fun getPublicationSplits(): List<Split> =
         allUnfinishedSplits.filter { split -> publicationSet.containsSplit(split.id) }

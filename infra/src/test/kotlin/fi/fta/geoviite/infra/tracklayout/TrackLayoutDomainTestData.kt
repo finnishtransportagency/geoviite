@@ -1100,9 +1100,13 @@ fun someKmNumber(): KmNumber {
 fun offsetAlignment(alignment: LayoutAlignment, amount: Point) =
     alignment.copy(segments = alignment.segments.map { origSegment -> offsetSegment(origSegment, amount) })
 
-fun offsetAlignment(geometry: LocationTrackGeometry, amount: Point): LocationTrackGeometry =
-    // TODO: GVT-2927
-    TODO()
+fun offsetGeometry(geometry: LocationTrackGeometry, amount: Point): LocationTrackGeometry =
+    TmpLocationTrackGeometry(edges = geometry.edges.map { edge -> offsetEdge(edge, amount) })
+
+fun offsetEdge(edge: LayoutEdge, amount: Point): LayoutEdge {
+    val newSegments = edge.segments.map { segment -> offsetSegment(segment, amount) }
+    return TmpLayoutEdge(startNode = edge.startNode, endNode = edge.endNode, segments = newSegments)
+}
 
 fun offsetSegment(segment: LayoutSegment, amount: Point): LayoutSegment {
     val newPoints = toSegmentPoints(*(segment.segmentPoints.map { p -> p + amount }.toTypedArray()))

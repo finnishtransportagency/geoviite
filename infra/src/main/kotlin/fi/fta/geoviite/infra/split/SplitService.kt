@@ -39,9 +39,9 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -757,7 +757,7 @@ private fun findSplitEdgeIndices(
 }
 
 private fun throwSwitchSegmentMappingFailure(geometry: LocationTrackGeometry, switch: SplitPointSwitch?): Nothing {
-    val geometrySwitches = geometry.switchLinks.joinToString(", ") { s -> "${s.id}[${s.jointNumber}]" }
+    val geometrySwitches = geometry.trackSwitchLinks.joinToString(", ") { s -> "${s.switchId}[${s.jointNumber}]" }
     throw SplitFailureException(
         message = "Failed to map split switches to segment indices: switch=$switch geometrySwitches=$geometrySwitches",
         localizedMessageKey = "switch-segment-mapping-failed",

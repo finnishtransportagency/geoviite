@@ -320,15 +320,13 @@ constructor(
         layoutContext: LayoutContext,
         track: LocationTrack,
     ): List<Pair<IntId<LayoutSwitch>, SuggestedSwitch?>> {
-        // TODO: GVT-1727 Should be able to just use track.switchIds here, unless something funky about the args
-        val switchIds = alignmentDao.fetch(track.versionOrThrow).switchLinks.map { s -> s.id }.distinct()
         val replacementSwitchLocations =
-            switchIds.map { switchId ->
+            track.switchIds.map { switchId ->
                 val switch = switchService.getOrThrow(layoutContext, switchId)
                 SwitchPlacingRequest(SamplingGridPoints(switch.presentationJointOrThrow.location), switchId)
             }
         val switchSuggestions = getSuggestedSwitches(layoutContext.branch, replacementSwitchLocations)
-        return switchIds.mapIndexed { index, id -> id to switchSuggestions[index].keys().firstOrNull() }
+        return track.switchIds.mapIndexed { index, id -> id to switchSuggestions[index].keys().firstOrNull() }
     }
 
     fun collectAllSwitchesOnTrackAndNearby(
@@ -336,7 +334,7 @@ constructor(
         locationTrack: LocationTrack,
         geometry: LocationTrackGeometry,
     ): List<IntId<LayoutSwitch>> {
-        val trackSwitches = geometry.switchLinks.map { s -> s.id }
+        val trackSwitches = geometry.switchIds
         val nearbySwitches = switchDao.findSwitchesNearTrack(branch, locationTrack.versionOrThrow)
         return (trackSwitches + nearbySwitches).distinct()
     }
@@ -470,9 +468,7 @@ private fun findTopologyLinks(
 fun getSwitchBoundsFromTracks(tracks: Collection<LocationTrackGeometry>, switchId: IntId<LayoutSwitch>): BoundingBox? =
     tracks
         .flatMap { geometry ->
-            geometry.nodesWithLocation.mapNotNull { (node, location) ->
-                location.takeIf { node.switchIn?.id == switchId || node.switchOut?.id == switchId }
-            }
+            geometry.trackSwitchLinks.mapNotNull { link -> link.location.takeIf { link.switchId == switchId } }
         }
         .let(::boundingBoxAroundPointsOrNull)
 

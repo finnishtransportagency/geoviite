@@ -32,11 +32,13 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
-import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -89,10 +91,18 @@ constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         mainOfficialContext.save(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
-        val startSegment = segment(Point(0.0, 0.0), Point(5.0, 0.0))
-        val endSegment = segment(Point(5.0, 0.0), Point(10.0, 0.0))
-        val sourceTrack =
-            mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(startSegment, endSegment))
+        val splitSwitchId = mainOfficialContext.createSwitch().id
+        val startEdge =
+            edge(
+                endInnerSwitch = switchLinkYV(splitSwitchId, 1),
+                segments = listOf(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
+            )
+        val endEdge =
+            edge(
+                startOuterSwitch = switchLinkYV(splitSwitchId, 1),
+                segments = listOf(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+            )
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(startEdge, endEdge))
         locationTrackDao.insertExternalId(sourceTrack.id, LayoutBranch.main, someOid())
 
         val draftSource =
@@ -100,9 +110,9 @@ constructor(
                 locationTrackService.saveDraft(LayoutBranch.main, d, alignmentDao.fetch(sourceTrack))
             }
 
-        val startTrack = mainDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(startSegment))
+        val startTrack = mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(startEdge))
 
-        val endTrack = mainDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(endSegment))
+        val endTrack = mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(endEdge))
 
         return SplitSetup(draftSource, listOf(startTrack to 0..0, endTrack to 1..1))
     }

@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.math.Range
 
 data class EndPointSwitchInfo(val switchId: IntId<LayoutSwitch>, val jointNumber: JointNumber)
 
@@ -168,41 +169,42 @@ fun collectSplitPoints(geometry: LocationTrackGeometry): List<SplitPoint> {
     // TODO: GVT-2941 Compare to main: it includes all segment links + some endpoint link which is more complex
     // Would it be fine to just include all inner links + topology link if it's a presentation joint?
     // Currently the logic takes the topology link only if the inner link doesn't override it as "main link"
-    val allSplitPoints =
-        geometry.nodesWithLocation.flatMapIndexed { index, (node, location) ->
-            when (index) {
-                0 -> {
+
+    val allSplitPoints: List<SplitPoint> =
+        geometry.edgesWithM.flatMapIndexed { index: Int, (edge: LayoutEdge, m: Range<Double>) ->
+            val edgeStart = edge.firstSegmentStart.toAlignmentPoint(m.min)
+            val startSplitPoints: List<SplitPoint> =
+                if (index == 0) {
                     // The main switch link might be a topology link or an in-track-switch link
                     val mainLink = geometry.startSwitchLink
                     // Inner links need to be included always, unless it's already the main link
-                    val innerLink = node.switchOut?.takeIf { it != mainLink }
+                    val innerLink = edge.startNode.switchIn?.takeIf { it != mainLink }
                     if (mainLink != null || innerLink != null) {
                         listOfNotNull(mainLink, innerLink).map { sl ->
-                            SwitchSplitPoint(location, null, sl.id, sl.jointNumber)
+                            SwitchSplitPoint(edgeStart, null, sl.id, sl.jointNumber)
                         }
                     } else {
-                        listOf(EndpointSplitPoint(location, null, DuplicateEndPointType.START))
+                        listOf(EndpointSplitPoint(edgeStart, null, DuplicateEndPointType.START))
                     }
+                } else {
+                    edge.startNode.switches.map { sl -> SwitchSplitPoint(edgeStart, null, sl.id, sl.jointNumber) }
                 }
-                geometry.nodesWithLocation.size -> {
+            val endSplitPoints: List<SplitPoint> =
+                if (index == geometry.edges.lastIndex) {
+                    val edgeEnd = edge.lastSegmentEnd.toAlignmentPoint(m.min)
                     // The main switch link might be a topology link or an in-track-switch link
                     val mainLink = geometry.endSwitchLink
                     // Inner links need to be included always, unless it's already the main link
-                    val innerLink = node.switchIn?.takeIf { it != mainLink }
+                    val innerLink = edge.endNode.switchIn?.takeIf { it != mainLink }
                     if (mainLink != null || innerLink != null) {
-                        listOfNotNull(mainLink, innerLink).map { sl ->
-                            SwitchSplitPoint(location, null, sl.id, sl.jointNumber)
+                        listOfNotNull(innerLink, mainLink).map { sl ->
+                            SwitchSplitPoint(edgeEnd, null, sl.id, sl.jointNumber)
                         }
                     } else {
-                        listOf(EndpointSplitPoint(location, null, DuplicateEndPointType.END))
+                        listOf(EndpointSplitPoint(edgeEnd, null, DuplicateEndPointType.END))
                     }
-                }
-                else -> {
-                    listOfNotNull(node.switchIn, node.switchOut).map { sl ->
-                        SwitchSplitPoint(location, null, sl.id, sl.jointNumber)
-                    }
-                }
-            }
+                } else emptyList()
+            startSplitPoints + endSplitPoints
         }
     return allSplitPoints.filterIndexed { index, splitPoint ->
         val firstIndex = allSplitPoints.indexOfFirst { otherSplitPoint -> splitPoint.isSame(otherSplitPoint) }
