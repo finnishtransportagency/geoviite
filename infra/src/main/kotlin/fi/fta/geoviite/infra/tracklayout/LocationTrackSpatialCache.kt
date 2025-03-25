@@ -123,17 +123,13 @@ data class ContextCache(
         location: IPoint,
         thresholdMeters: Double,
     ): LocationTrackCacheHit? {
-        val layoutSegment = getAlignment(segment.alignmentVersion).segments[segment.segmentIndex]
+        val alignment = getAlignment(segment.alignmentVersion)
+        val layoutSegment = alignment.segments[segment.segmentIndex]
         val closestPointM = layoutSegment.getClosestPointM(location).first
         val closestPoint = layoutSegment.seekPointAtM(closestPointM).point
         val distance = lineLength(location, closestPoint)
         return if (distance < thresholdMeters) {
-            LocationTrackCacheHit(
-                getTrack(segment.locationTrackVersion),
-                getAlignment(segment.alignmentVersion),
-                closestPoint,
-                distance,
-            )
+            LocationTrackCacheHit(getTrack(segment.locationTrackVersion), alignment, closestPoint, distance)
         } else {
             null
         }
