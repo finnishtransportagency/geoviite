@@ -17,7 +17,6 @@ import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
 const val ALIGNMENT_CACHE_SIZE = 10000L
@@ -31,7 +30,6 @@ data class MapSegmentProfileInfo<T>(
     val hasProfile: Boolean,
 )
 
-@Transactional(readOnly = true)
 @Component
 class LayoutAlignmentDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
@@ -46,11 +44,10 @@ class LayoutAlignmentDao(
 
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment =
         if (cacheEnabled) alignmentsCache.get(alignmentVersion, ::fetchInternal) else fetchInternal(alignmentVersion)
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+    @Transactional(readOnly = true)
     fun fetchMany(versions: List<RowVersion<LayoutAlignment>>): Map<RowVersion<LayoutAlignment>, LayoutAlignment> =
         versions.associateWith(::fetch)
 

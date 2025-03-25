@@ -36,7 +36,6 @@ import org.springframework.transaction.annotation.Transactional
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
-@Transactional(readOnly = true)
 @Component
 class LocationTrackDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
@@ -397,6 +396,7 @@ class LocationTrackDao(
         }
     }
 
+    @Transactional(readOnly = true)
     fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
         fetchVersionsNear(context, bbox).map(::fetch)
 

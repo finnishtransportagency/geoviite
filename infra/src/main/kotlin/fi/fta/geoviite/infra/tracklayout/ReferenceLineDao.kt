@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional
 
 const val REFERENCE_LINE_CACHE_SIZE = 1000L
 
-@Transactional(readOnly = true)
 @Component
 class ReferenceLineDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,

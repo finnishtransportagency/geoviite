@@ -29,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional
 
 const val KM_POST_CACHE_SIZE = 10000L
 
-@Transactional(readOnly = true)
 @Component
 class LayoutKmPostDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
@@ -45,6 +44,7 @@ class LayoutKmPostDao(
     override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
         fetchVersions(layoutContext, includeDeleted, null, null)
 
+    @Transactional(readOnly = true)
     fun list(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
