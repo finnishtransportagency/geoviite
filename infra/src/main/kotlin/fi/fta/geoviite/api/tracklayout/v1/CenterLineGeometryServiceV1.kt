@@ -338,6 +338,8 @@ constructor(
         var tempIntervals = mutableListOf<IntervalEvent>()
         var tempIntervalStartM: Double? = null
 
+        val additionTolerance = 0.001
+
         for (event in intervalEvents) {
             if (tempIntervals.isEmpty()) {
                 tempIntervals.add(event)
@@ -362,9 +364,11 @@ constructor(
             } else if (event.state == IntervalState.END) {
                 if (tempIntervals[0].type == event.type) {
                     // Active most prioritized interval ended.
-                    mergedIntervals.add(
-                        TrackInterval(Range(requireNotNull(tempIntervalStartM), event.trackM), tempIntervals[0].type)
-                    )
+                    tempIntervalStartM
+                        ?.takeIf { startM -> event.trackM - startM >= additionTolerance }
+                        ?.let { startM ->
+                            mergedIntervals.add(TrackInterval(Range(startM, event.trackM), tempIntervals[0].type))
+                        }
 
                     tempIntervals.removeFirst()
                     tempIntervalStartM = event.trackM
@@ -378,14 +382,19 @@ constructor(
         }
 
         // Handle last interval if active.
-        if (tempIntervals.isNotEmpty()) {
-            mergedIntervals.add(
-                TrackInterval(
-                    Range(requireNotNull(tempIntervalStartM), intervalEvents.last().trackM),
-                    tempIntervals[0].type,
-                )
-            )
-        }
+        //        if (tempIntervals.isNotEmpty()) {
+        //            val additionTolerance = 0.001
+        //
+        //            val lastTrackM = intervalEvents.last().trackM
+        //            if (tempIntervalStartM != null && abs(tempIntervalStartM - lastTrackM) > additionTolerance) {
+        //                mergedIntervals.add(
+        //                    TrackInterval(
+        //                        Range(requireNotNull(tempIntervalStartM), intervalEvents.last().trackM),
+        //                        tempIntervals[0].type,
+        //                    )
+        //                )
+        //            }
+        //        }
 
         return mergedIntervals
     }

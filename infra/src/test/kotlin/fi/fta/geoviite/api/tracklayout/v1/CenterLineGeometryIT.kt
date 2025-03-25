@@ -8,7 +8,10 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.publication.GeometryChangeRanges
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -97,6 +100,9 @@ constructor(
     private val extApiTestDataServiceV1: ExtApiTestDataServiceV1,
 ) : DBTestBase() {
 
+    @Autowired private lateinit var centerLineGeometryServiceV1: CenterLineGeometryServiceV1
+
+    @Autowired private lateinit var geometryService: GeometryService
     private val api = TrackLayoutTestApiService(mockMvc)
     private val invalidOidUrl = url("foo")
 
@@ -737,23 +743,109 @@ constructor(
     }
 
     @Test
+    fun `Added ranges should be unmodified`() {
+        val tests =
+            listOf(
+                GeometryChangeRanges(added = emptyList(), removed = emptyList()),
+                GeometryChangeRanges(added = listOf(Range(0.0, 10.0)), removed = emptyList()),
+                GeometryChangeRanges(
+                    added = listOf(Range(10.0, 11.0), Range(15.0, 20.0), Range(20.0, 25.0)),
+                    removed = emptyList(),
+                ),
+            )
+
+        tests.forEach { geometryChangeRanges ->
+            val mergedIntervals = centerLineGeometryServiceV1.mergeIntervals(geometryChangeRanges)
+
+            geometryChangeRanges.added.forEachIndexed { index, range ->
+                assertEquals(IntervalType.ADDITION, mergedIntervals[index].type)
+                assertEquals(range, mergedIntervals[index].trackRange)
+            }
+        }
+    }
+
+    @Test
     fun `Removed ranges should be unmodified without any added ranges`() {
-        todo {}
+        val tests =
+            listOf(
+                GeometryChangeRanges(added = emptyList(), removed = emptyList()),
+                GeometryChangeRanges(added = emptyList(), removed = listOf(Range(0.0, 10.0))),
+                GeometryChangeRanges(
+                    added = emptyList(),
+                    removed = listOf(Range(10.0, 11.0), Range(15.0, 20.0), Range(20.0, 25.0)),
+                ),
+            )
+
+        tests.forEach { geometryChangeRanges ->
+            val mergedIntervals = centerLineGeometryServiceV1.mergeIntervals(geometryChangeRanges)
+
+            geometryChangeRanges.added.forEachIndexed { index, range ->
+                assertEquals(IntervalType.REMOVAL, mergedIntervals[index].type)
+                assertEquals(range, mergedIntervals[index].trackRange)
+            }
+        }
     }
 
     @Test
-    fun `Partial start overlap should trimmed`() {
-        todo {}
+    fun `Partial removal overlap should trimmed from the start`() {
+        // ---AAA--  => RRRAAA--
+        // RRRRR---
+        val testChangeRanges =
+            GeometryChangeRanges(added = listOf(Range(10.0, 20.0)), removed = listOf(Range(5.0, 15.0)))
+
+        val expectedMerge =
+            listOf(
+                TrackInterval(Range(5.0, 10.0), IntervalType.REMOVAL),
+                TrackInterval(Range(10.0, 20.0), IntervalType.ADDITION),
+            )
+
+        assertEquals(expectedMerge, centerLineGeometryServiceV1.mergeIntervals(testChangeRanges))
     }
 
     @Test
-    fun `Partial end overlap should trimmed`() {
-        todo {}
+    fun `Partial removal overlap should be trimmed from the end`() {
+        // ---AAA-- => ---AAARR
+        // ----RRRR
+        val testChangeRanges =
+            GeometryChangeRanges(added = listOf(Range(10.0, 20.0)), removed = listOf(Range(15.0, 25.0)))
+
+        val expectedMerge =
+            listOf(
+                TrackInterval(Range(10.0, 20.0), IntervalType.ADDITION),
+                TrackInterval(Range(20.0, 25.0), IntervalType.REMOVAL),
+            )
+
+        assertEquals(expectedMerge, centerLineGeometryServiceV1.mergeIntervals(testChangeRanges))
     }
 
     @Test
-    fun `Full overlap should result in null`() {
-        todo {}
+    fun `Full overlap should result in no removals`() {
+        val addedGeometryRange = listOf(Range(10.0, 20.0))
+
+        val tests =
+            listOf(
+
+                // Exact same entire overlap range.
+                GeometryChangeRanges(added = addedGeometryRange, removed = listOf(Range(10.0, 20.0))),
+
+                // Full overlap in the middle of the added range.
+                GeometryChangeRanges(added = addedGeometryRange, removed = listOf(Range(12.5, 17.5))),
+
+                // Multiple overlaps, exact same start point.
+                GeometryChangeRanges(
+                    added = addedGeometryRange,
+                    removed = listOf(Range(10.0, 12.0), Range(15.0, 17.5)),
+                ),
+
+                // Multiple overlaps, exact same end point.
+                GeometryChangeRanges(added = addedGeometryRange, removed = listOf(Range(12.5, 15.0), Range(18.0, 20.0))),
+            )
+
+        val expectedMerge = listOf(TrackInterval(addedGeometryRange[0], IntervalType.ADDITION))
+
+        tests.forEach { testGeometryRange ->
+            assertEquals(expectedMerge, centerLineGeometryServiceV1.mergeIntervals(testGeometryRange))
+        }
     }
 
     @Test
