@@ -17,7 +17,8 @@ import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.angleAvgRads
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
-import fi.fta.geoviite.infra.math.interpolate
+import fi.fta.geoviite.infra.math.interpolateToPoint
+import fi.fta.geoviite.infra.math.interpolateToSegmentPoint
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.math.lineIntersection
 import fi.fta.geoviite.infra.math.lineLength
@@ -827,11 +828,11 @@ data class PolyLineEdge(
         }
 
     private fun interpolatePointAtM(m: Double): IPoint =
-        if (m <= startM) start else if (m >= endM) end else interpolate(start.toPoint(), end, (m - startM) / length)
+        if (m <= startM) start else if (m >= endM) end else interpolateToPoint(start, end, (m - startM) / length)
 
     fun interpolateAlignmentPointAtPortion(portion: Double): AlignmentPoint =
         interpolateSegmentPointAtPortion(portion).toAlignmentPoint(segmentStart)
 
     fun interpolateSegmentPointAtPortion(portion: Double): SegmentPoint =
-        if (portion <= 0.0) start else if (portion >= 1.0) end else interpolate(start, end, portion)
+        if (portion <= 0.0) start else if (portion >= 1.0) end else interpolateToSegmentPoint(start, end, portion)
 }
