@@ -8,8 +8,6 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
-import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.bufferedPolygonForLineStringPoints
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
@@ -24,11 +22,7 @@ const val ALIGNMENT_POLYGON_BUFFER = 10.0
 const val ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION = 100
 
 @GeoviiteService
-class LayoutAlignmentService(
-    private val layoutAlignmentDao: LayoutAlignmentDao,
-    private val geometryDao: GeometryDao,
-    private val geocodingService: GeocodingService,
-) {
+class LayoutAlignmentService(private val layoutAlignmentDao: LayoutAlignmentDao, private val geometryDao: GeometryDao) {
 
     fun update(alignment: LayoutAlignment) = layoutAlignmentDao.update(alignment)
 
@@ -82,53 +76,40 @@ class LayoutAlignmentService(
     }
 
     fun getOverlappingPlanHeaders(
-        alignmentVersion: RowVersion<LayoutAlignment>,
-        geocodingContextCacheKey: GeocodingContextCacheKey,
-        startKmNumber: KmNumber?,
-        endKmNumber: KmNumber?,
+        alignment: LayoutAlignment,
+        polygonBufferSize: Double,
+        cropStartM: Double?,
+        cropEndM: Double?,
     ): List<GeometryPlanHeader> {
-        val croppedAlignment =
-            if (startKmNumber == null && endKmNumber == null) layoutAlignmentDao.fetch(alignmentVersion)
-            else cropAlignment(alignmentVersion, geocodingContextCacheKey, startKmNumber, endKmNumber)
-        val simplified =
+        val simplifiedAlignment =
             simplify(
-                croppedAlignment,
-                ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION,
+                alignment =
+                    if (cropStartM == null && cropEndM == null) alignment
+                    else cropAlignment(alignment, cropStartM, cropEndM),
+                resolution = ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION,
                 bbox = null,
                 includeSegmentEndPoints = true,
             )
 
-        val polygon = bufferedPolygonForLineStringPoints(simplified, ALIGNMENT_POLYGON_BUFFER, LAYOUT_SRID)
+        val polygon = bufferedPolygonForLineStringPoints(simplifiedAlignment, polygonBufferSize, LAYOUT_SRID)
         val plans = geometryDao.fetchIntersectingPlans(polygon, LAYOUT_SRID)
+
         return geometryDao.getPlanHeaders(plans)
     }
 
-    private fun cropAlignment(
-        alignmentVersion: RowVersion<LayoutAlignment>,
-        geocodingContextCacheKey: GeocodingContextCacheKey,
-        startKmNumber: KmNumber?,
-        endKmNumber: KmNumber?,
-    ): IAlignment {
-        val alignment = layoutAlignmentDao.fetch(alignmentVersion)
-
-        val geocodingContext = geocodingService.getGeocodingContext(geocodingContextCacheKey)
-        val startM =
-            requireNotNull(
-                startKmNumber?.let {
-                    geocodingContext?.referencePoints?.find { it.kmNumber == startKmNumber }?.distance
-                } ?: alignment.start?.m
-            )
-        val endM =
-            requireNotNull(
-                endKmNumber?.let { geocodingContext?.referencePoints?.find { it.kmNumber > endKmNumber }?.distance }
-                    ?: alignment.end?.m
-            )
-        val mRange = Range(startM, endM)
+    private fun cropAlignment(alignment: LayoutAlignment, cropStartM: Double?, cropEndM: Double?): IAlignment {
+        val alignmentStartM = requireNotNull(alignment.start?.m)
+        val alignmentEndM = requireNotNull(alignment.end?.m)
+        val startMOnAlignment = cropStartM ?: alignmentStartM
+        val endMOnAlignment = cropEndM ?: alignmentEndM
+        val mRange = Range(startMOnAlignment, endMOnAlignment)
 
         val segments =
             alignment.segments.filter { s ->
                 val sRange = Range(s.startM, s.endM)
-                sRange.overlaps(mRange) || mRange.overlaps(sRange)
+                sRange.min != mRange.max &&
+                    sRange.max != mRange.min &&
+                    (sRange.overlaps(mRange) || mRange.overlaps(sRange))
             }
         val startSegment = segments.firstOrNull()
         val endSegment = segments.lastOrNull()
@@ -136,10 +117,10 @@ class LayoutAlignmentService(
 
         val croppedSegments =
             if (startSegment == endSegment) {
-                listOfNotNull(startSegment?.slice(Range(startM, endM)))
+                listOfNotNull(startSegment?.slice(Range(startMOnAlignment, endMOnAlignment)))
             } else {
-                val croppedStartSegment = startSegment?.slice(Range(startM, startSegment.endM))
-                val croppedEndSegment = endSegment?.slice(Range(endSegment.startM, endM))
+                val croppedStartSegment = startSegment?.slice(Range(startMOnAlignment, startSegment.endM))
+                val croppedEndSegment = endSegment?.slice(Range(endSegment.startM, endMOnAlignment))
                 listOfNotNull(croppedStartSegment) + midSegments + listOfNotNull(croppedEndSegment)
             }
 
@@ -160,3 +141,24 @@ private fun toPlanSectionPoint(point: IPoint, alignment: LayoutAlignment, contex
 
 private fun asNew(alignment: LayoutAlignment): LayoutAlignment =
     if (alignment.dataType == TEMP) alignment else alignment.copy(id = StringId(), dataType = TEMP)
+
+fun cropIsWithinReferenceLine(
+    startKmNumber: KmNumber?,
+    endKmNumber: KmNumber?,
+    geocodingContext: GeocodingContext,
+): Boolean {
+    return if (geocodingContext.referencePoints.isEmpty()) {
+        false
+    } else if (startKmNumber != null && endKmNumber == null) {
+        geocodingContext.referencePoints.last().kmNumber >= startKmNumber
+    } else if (startKmNumber == null && endKmNumber != null) {
+        geocodingContext.referencePoints.first().kmNumber <= endKmNumber
+    } else if (startKmNumber != null && endKmNumber != null && startKmNumber <= endKmNumber) {
+        val kmNumberRange = Range(startKmNumber, endKmNumber)
+        val geocodingRange =
+            Range(geocodingContext.referencePoints.first().kmNumber, geocodingContext.referencePoints.last().kmNumber)
+        kmNumberRange.overlaps(geocodingRange) || geocodingRange.overlaps(kmNumberRange)
+    } else {
+        startKmNumber == null && endKmNumber == null
+    }
+}

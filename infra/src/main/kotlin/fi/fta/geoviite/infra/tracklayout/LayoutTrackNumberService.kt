@@ -46,6 +46,7 @@ class LayoutTrackNumberService(
     private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
+    private val layoutAlignmentDao: LayoutAlignmentDao,
 ) : LayoutAssetService<LayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
@@ -204,14 +205,32 @@ class LayoutTrackNumberService(
     fun getOverlappingPlanHeaders(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
+        polygonBufferSize: Double,
         startKmNumber: KmNumber?,
         endKmNumber: KmNumber?,
     ): List<GeometryPlanHeader> {
         val alignmentVersion =
             requireNotNull(referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId).alignmentVersion)
-        val cacheKey = requireNotNull(geocodingService.getGeocodingContextCacheKey(layoutContext, trackNumberId))
+        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(layoutContext, trackNumberId))
 
-        return alignmentService.getOverlappingPlanHeaders(alignmentVersion, cacheKey, startKmNumber, endKmNumber)
+        if (!cropIsWithinReferenceLine(startKmNumber, endKmNumber, geocodingContext)) {
+            return emptyList()
+        } else if (startKmNumber == null && endKmNumber == null) {
+            return alignmentService.getOverlappingPlanHeaders(
+                alignment = layoutAlignmentDao.fetch(alignmentVersion),
+                polygonBufferSize = polygonBufferSize,
+                cropStartM = null,
+                cropEndM = null,
+            )
+        } else {
+            val (cropStartM, cropEndM) = getCropMValues(geocodingContext, startKmNumber, endKmNumber)
+            return alignmentService.getOverlappingPlanHeaders(
+                alignment = layoutAlignmentDao.fetch(alignmentVersion),
+                polygonBufferSize = polygonBufferSize,
+                cropStartM = cropStartM,
+                cropEndM = cropEndM,
+            )
+        }
     }
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
@@ -373,3 +392,13 @@ private fun getKmPostDistances(
         }
         kmPost to distance
     }
+
+private fun getCropMValues(
+    geocodingContext: GeocodingContext,
+    startKmNumber: KmNumber?,
+    endKmNumber: KmNumber?,
+): Pair<Double?, Double?> {
+    val startM = startKmNumber?.let { geocodingContext.referencePoints.find { it.kmNumber == startKmNumber }?.distance }
+    val endM = endKmNumber?.let { geocodingContext.referencePoints.find { it.kmNumber > endKmNumber }?.distance }
+    return startM to endM
+}
