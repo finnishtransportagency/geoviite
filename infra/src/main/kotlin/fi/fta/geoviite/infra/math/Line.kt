@@ -32,7 +32,7 @@ fun closestPointOnLine(start: IPoint, end: IPoint, target: IPoint): Point {
     return when {
         portion < 0 -> Point(start.x, start.y)
         portion > 1 -> Point(end.x, end.y)
-        else -> interpolate(start, end, portion)
+        else -> interpolateToPoint(start, end, portion)
     }
 }
 
