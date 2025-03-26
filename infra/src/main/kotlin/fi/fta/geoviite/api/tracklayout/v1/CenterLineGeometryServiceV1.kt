@@ -382,19 +382,13 @@ constructor(
         }
 
         // Handle last interval if active.
-        //        if (tempIntervals.isNotEmpty()) {
-        //            val additionTolerance = 0.001
-        //
-        //            val lastTrackM = intervalEvents.last().trackM
-        //            if (tempIntervalStartM != null && abs(tempIntervalStartM - lastTrackM) > additionTolerance) {
-        //                mergedIntervals.add(
-        //                    TrackInterval(
-        //                        Range(requireNotNull(tempIntervalStartM), intervalEvents.last().trackM),
-        //                        tempIntervals[0].type,
-        //                    )
-        //                )
-        //            }
-        //        }
+        if (tempIntervals.isNotEmpty()) {
+            val lastTrackM = intervalEvents.last().trackM
+
+            tempIntervalStartM
+                ?.takeIf { startM -> lastTrackM - startM >= additionTolerance }
+                ?.let { startM -> TrackInterval(Range(startM, lastTrackM), tempIntervals[0].type) }
+        }
 
         return mergedIntervals
     }
