@@ -8,6 +8,12 @@ import fi.fta.geoviite.infra.math.Point
 fun collectAnglePoints(alignments: List<GeometryAlignment>): List<Point> =
     alignments.flatMap { a: GeometryAlignment -> a.elements.flatMap { e -> e.bounds } }
 
+fun getBoundingPolygonFromPlan(plan: GeometryPlan, transformation: Transformation): List<Point> =
+    tryCreateBoundingPolygonPoints(
+        collectAnglePoints(plan.alignments) + plan.kmPosts.mapNotNull { it.location },
+        transformation,
+    )
+
 fun getBoundingPolygonPointsFromAlignments(
     alignments: List<GeometryAlignment>,
     transformation: Transformation,

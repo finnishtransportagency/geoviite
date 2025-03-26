@@ -4,10 +4,12 @@ import assertPlansMatch
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.PlanApplicability
@@ -15,10 +17,17 @@ import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
 import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.geometry.PlanPhase
 import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.geometry.PlanState
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.minimalLine
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.someBoundingPolygon
 import fi.fta.geoviite.infra.geometry.testFile
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -41,8 +50,8 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
     @Autowired private lateinit var geometryService: GeometryService
 
     @BeforeEach
-    fun clearPlanFiles() {
-        jdbc.execute("delete from geometry.plan_file where true") { it.execute() }
+    fun clearPlanTables() {
+        testDBService.clearGeometryTables()
     }
 
     @Test
@@ -155,6 +164,59 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
                 version = headerAfterUpdate.version,
             ),
             headerAfterUpdate,
+        )
+    }
+
+    @Test
+    fun `plan with only a straight alignment gets a sensible bounding polygon`() {
+        val file = testFile()
+        val plan =
+            plan(
+                source = PlanSource.GEOMETRIAPALVELU,
+                srid = LAYOUT_SRID,
+                kmPosts = listOf(),
+                alignments =
+                    listOf(geometryAlignment(minimalLine(start = Point(100.0, 100.0), end = Point(100.0, 101.0)))),
+            )
+        val savedVersion = geometryDao.insertPlan(plan, file, infraModelService.getBoundingPolygon(plan))
+
+        assertEquals(
+            listOf(savedVersion),
+            geometryDao.fetchPlanVersions(
+                listOf(PlanSource.GEOMETRIAPALVELU),
+                boundingBoxAroundPoint(Point(100.0, 100.0), 1.0),
+            ),
+        )
+    }
+
+    @Test
+    fun `plan with only a single km post gets a sensible bounding polygon`() {
+        val file = testFile()
+        val plan =
+            plan(
+                srid = LAYOUT_SRID,
+                kmPosts =
+                    listOf(
+                        GeometryKmPost(
+                            staBack = BigDecimal("1003.440894"),
+                            staAhead = BigDecimal("854.711894"),
+                            staInternal = BigDecimal("854.711894"),
+                            kmNumber = KmNumber(1),
+                            description = PlanElementName("1"),
+                            state = PlanState.PROPOSED,
+                            location = Point(x = 100.0, 100.0),
+                        )
+                    ),
+                alignments = listOf(),
+            )
+        val savedVersion = geometryDao.insertPlan(plan, file, infraModelService.getBoundingPolygon(plan))
+
+        assertEquals(
+            listOf(savedVersion),
+            geometryDao.fetchPlanVersions(
+                listOf(PlanSource.GEOMETRIAPALVELU),
+                boundingBoxAroundPoint(Point(100.0, 100.0), 1.0),
+            ),
         )
     }
 
