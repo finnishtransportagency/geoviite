@@ -29,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional
 
 const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
-@Transactional(readOnly = true)
 @Component
 class LayoutTrackNumberDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
@@ -51,6 +50,7 @@ class LayoutTrackNumberDao(
     override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
         fetchVersions(layoutContext, includeDeleted, null)
 
+    @Transactional(readOnly = true)
     fun list(layoutContext: LayoutContext, trackNumber: TrackNumber): List<LayoutTrackNumber> =
         fetchVersions(layoutContext, false, trackNumber).map(::fetch)
 

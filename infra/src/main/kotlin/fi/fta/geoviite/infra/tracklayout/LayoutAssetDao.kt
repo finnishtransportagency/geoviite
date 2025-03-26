@@ -30,7 +30,6 @@ import fi.fta.geoviite.infra.util.setUser
 import java.sql.Timestamp
 import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
 interface LayoutAssetWriter<T : LayoutAsset<T>> {
@@ -45,7 +44,6 @@ interface LayoutAssetWriter<T : LayoutAsset<T>> {
     fun deleteDrafts(branch: LayoutBranch): List<LayoutRowVersion<T>>
 }
 
-@Transactional(readOnly = true)
 interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetch(version: LayoutRowVersion<T>): T
 
@@ -69,25 +67,29 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     fun fetchOfficialVersionAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>?
 
+    @Transactional(readOnly = true)
     fun get(context: LayoutContext, id: IntId<T>): T? = fetchVersion(context, id)?.let(::fetch)
 
+    @Transactional(readOnly = true)
     fun getOrThrow(context: LayoutContext, id: IntId<T>): T = fetch(fetchVersionOrThrow(context, id))
 
+    @Transactional(readOnly = true)
     fun getOfficialAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): T? =
         fetchOfficialVersionAtMoment(branch, id, moment)?.let(::fetch)
 
+    @Transactional(readOnly = true)
     fun getMany(context: LayoutContext, ids: List<IntId<T>>): List<T> = fetchVersions(context, ids).map(::fetch)
 
+    @Transactional(readOnly = true)
     fun list(context: LayoutContext, includeDeleted: Boolean): List<T> =
         fetchVersions(context, includeDeleted).map(::fetch)
 }
 
 interface ILayoutAssetDao<T : LayoutAsset<T>> : LayoutAssetReader<T>, LayoutAssetWriter<T>
 
-@Transactional(readOnly = true)
 abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    val table: LayoutAssetTable,
+    open val table: LayoutAssetTable,
     val cacheEnabled: Boolean,
     cacheSize: Long,
 ) : DaoBase(jdbcTemplateParam), ILayoutAssetDao<T> {
@@ -95,7 +97,6 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     protected val cache: Cache<LayoutRowVersion<T>, T> =
         Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     override fun fetch(version: LayoutRowVersion<T>): T =
         if (cacheEnabled) {
             cache.get(version, ::fetchInternal)
