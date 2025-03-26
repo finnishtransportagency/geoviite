@@ -119,21 +119,13 @@ class LayoutAlignmentDao(
                     }
                 alignmentData to segment
             }
-        val groupedByAlignment = alignmentAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s })
-        val alignments =
-            groupedByAlignment.entries
-                .parallelStream()
-                .map { (alignmentData, segmentDatas) ->
-                    alignmentData.version to
-                        LayoutAlignment(
-                            id = alignmentData.version.id,
-                            segments = createSegments(segmentDatas.filterNotNull()),
-                        )
-                }
-                .collect(Collectors.toList())
-                .associate { it }
-        alignmentsCache.putAll(alignments)
-        return alignments.size
+        val groupedByAlignment = alignmentAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s }).entries
+        groupedByAlignment.parallelStream().forEach { (alignmentData, segmentDatas) ->
+            alignmentsCache.get(alignmentData.version) { _ ->
+                LayoutAlignment(id = alignmentData.version.id, segments = createSegments(segmentDatas.filterNotNull()))
+            }
+        }
+        return groupedByAlignment.size
     }
 
     @Transactional
@@ -721,7 +713,7 @@ class LayoutAlignmentDao(
                         resolution = rs.getInt("resolution"),
                     )
                 }
-            parseGeometries(rowResults)
+            rowResults.parallelStream().collect(Collectors.toMap(GeometryRowResult::id, ::parseGeometry))
         } else mapOf()
     }
 
@@ -758,7 +750,8 @@ class LayoutAlignmentDao(
                     resolution = rs.getInt("resolution"),
                 )
             }
-        segmentGeometryCache.putAll(parseGeometries(rowResults))
+
+        rowResults.parallelStream().forEach { row -> segmentGeometryCache.get(row.id) { _ -> parseGeometry(row) } }
         return rowResults.size
     }
 }
@@ -771,17 +764,12 @@ data class GeometryRowResult(
     val resolution: Int,
 )
 
-private fun parseGeometries(rowResults: List<GeometryRowResult>): Map<IntId<SegmentGeometry>, SegmentGeometry> =
-    rowResults
-        .parallelStream()
-        .map { row ->
-            SegmentGeometry(
-                id = row.id,
-                segmentPoints = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
-                resolution = row.resolution,
-            )
-        }
-        .collect(Collectors.toMap({ g -> g.id as IntId }, { it }))
+private fun parseGeometry(row: GeometryRowResult): SegmentGeometry =
+    SegmentGeometry(
+        id = row.id,
+        segmentPoints = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
+        resolution = row.resolution,
+    )
 
 private fun getSegmentPointsWkt(
     rs: ResultSet,
