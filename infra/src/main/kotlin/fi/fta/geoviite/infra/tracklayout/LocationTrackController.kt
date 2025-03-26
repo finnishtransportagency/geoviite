@@ -266,7 +266,13 @@ class LocationTrackController(
         @RequestParam("endKm") endKmNumber: KmNumber? = null,
     ): List<GeometryPlanHeader> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.getOverlappingPlanHeaders(context, id, startKmNumber, endKmNumber)
+        return locationTrackService.getOverlappingPlanHeaders(
+            context,
+            id,
+            ALIGNMENT_POLYGON_BUFFER,
+            startKmNumber,
+            endKmNumber,
+        )
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

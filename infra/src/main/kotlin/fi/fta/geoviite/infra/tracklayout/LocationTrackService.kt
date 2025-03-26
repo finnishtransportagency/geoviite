@@ -392,21 +392,66 @@ class LocationTrackService(
     fun getOverlappingPlanHeaders(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
-        startKmNumber: KmNumber?,
-        endKmNumber: KmNumber?,
+        polygonBufferSize: Double,
+        cropStart: KmNumber?,
+        cropEnd: KmNumber?,
     ): List<GeometryPlanHeader> {
         val locationTrack = getOrThrow(layoutContext, locationTrackId)
-        val alignmentVersion = requireNotNull(locationTrack.alignmentVersion)
-        val contextKey =
-            requireNotNull(geocodingService.getGeocodingContextCacheKey(layoutContext, locationTrack.trackNumberId))
+        val context = requireNotNull(geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId))
+        val alignment = alignmentDao.fetch(requireNotNull(locationTrack.alignmentVersion))
 
-        return alignmentService.getOverlappingPlanHeaders(
-            alignmentVersion,
-            contextKey,
-            ALIGNMENT_POLYGON_BUFFER,
-            startKmNumber,
-            endKmNumber,
-        )
+        val startAndEnd = getStartAndEnd(layoutContext, listOf(locationTrackId)).first()
+        val trackStart = startAndEnd.start?.address
+        val trackEnd = startAndEnd.end?.address
+
+        return if (trackStart == null || trackEnd == null || !cropIsWithinReferenceLine(cropStart, cropEnd, context)) {
+            emptyList()
+        } else if (cropStart == null && cropEnd == null) {
+            alignmentService.getOverlappingPlanHeaders(alignment, polygonBufferSize, cropStartM = null, cropEndM = null)
+        } else {
+            getPlanHeadersOverlappingCroppedLocationTrack(
+                alignment,
+                context,
+                polygonBufferSize,
+                trackStart,
+                trackEnd,
+                cropStart,
+                cropEnd,
+            )
+        }
+    }
+
+    private fun getPlanHeadersOverlappingCroppedLocationTrack(
+        alignment: LayoutAlignment,
+        geocodingContext: GeocodingContext,
+        polygonBufferSize: Double,
+        trackStart: TrackMeter,
+        trackEnd: TrackMeter,
+        cropStartKm: KmNumber?,
+        cropEndKm: KmNumber?,
+    ): List<GeometryPlanHeader> {
+        val cropStart = cropStartKm?.let { TrackMeter(cropStartKm, 0) } ?: trackStart
+        val cropEnd =
+            cropEndKm?.let {
+                geocodingContext.referencePoints
+                    .find { it.kmNumber > cropEndKm }
+                    ?.let { referencePoint -> TrackMeter(referencePoint.kmNumber, 0) }
+            } ?: trackEnd
+
+        return if (cropStart > trackEnd || cropEnd < trackStart) {
+            emptyList()
+        } else {
+            val cropStartM =
+                requireNotNull(
+                    geocodingContext.getTrackLocation(alignment, cropStart.coerceIn(trackStart, trackEnd))?.point?.m
+                )
+            val cropEndM =
+                requireNotNull(
+                    geocodingContext.getTrackLocation(alignment, cropEnd.coerceIn(trackStart, trackEnd))?.point?.m
+                )
+
+            alignmentService.getOverlappingPlanHeaders(alignment, polygonBufferSize, cropStartM, cropEndM)
+        }
     }
 
     private fun getSwitchIdAtStart(alignment: LayoutAlignment, locationTrack: LocationTrack) =

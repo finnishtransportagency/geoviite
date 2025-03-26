@@ -232,6 +232,7 @@ const MapView: React.FC<MapViewProps> = ({
         });
     };
     const isLoading = () => [...map.visibleLayers].some((l) => layersLoadingData.includes(l));
+    const inPreviewView = !!designPublicationMode;
 
     const mapLayers = [...map.visibleLayers].sort().join();
 
@@ -377,7 +378,7 @@ const MapView: React.FC<MapViewProps> = ({
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'deleted-publication-candidate-icon-layer':
-                        return designPublicationMode
+                        return inPreviewView
                             ? createDeletedPublicationCandidateIconLayer(
                                   mapTiles,
                                   existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
@@ -391,7 +392,7 @@ const MapView: React.FC<MapViewProps> = ({
                               )
                             : undefined;
                     case 'publication-candidate-layer':
-                        return designPublicationMode
+                        return inPreviewView
                             ? createPublicationCandidateLayer(
                                   mapTiles,
                                   existingOlLayer as GeoviiteMapLayer<LineString>,
@@ -830,7 +831,7 @@ const MapView: React.FC<MapViewProps> = ({
                     <Spinner />
                 </div>
             )}
-            {planDownloadState && (
+            {!inPreviewView && planDownloadState && (
                 <PlanDownloadPopup
                     onClose={() => onStopPlanDownload()}
                     layoutContext={layoutContext}
