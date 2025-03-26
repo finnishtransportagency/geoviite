@@ -45,6 +45,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.NearbyTracks
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
+import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
 import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
@@ -1139,17 +1140,69 @@ fun createModifiedLayoutSwitchLinking(suggestedSwitch: SuggestedSwitch, layoutSw
 
 data class JointOnEdge(val jointNumber: JointNumber, val edge: LayoutEdge, val m: Double)
 
-fun eraseSwitchFromEdges(switchId: IntId<LayoutSwitch>, tracks: List<Pair<LocationTrack, LocationTrackGeometry>>):List<Pair<LocationTrack, LocationTrackGeometry>> {
-    val newTracks = tracks.map { (locationTrack, geometry) ->
-        val switchEdges = geometry.edges.mapIndexed{ index, edge ->
-            if (edge.startNode.switchIn?.id == switchId && edge.endNode.switchIn?.id == switchId)
-                Range(index,index)
-            else
-                null
-        }.filterNotNull()
-            .let{ranges -> combineContinuous(ranges) }
-        locationTrack to geometry
-    }
+fun eraseSwitchFromEdges(
+    switchId: IntId<LayoutSwitch>,
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+): List<Pair<LocationTrack, LocationTrackGeometry>> {
+
+    tämä edge.withoutSwitch ja combine edges
+
+    val newTracks =
+        tracks.map { (locationTrack, geometry) ->
+            geometry.edges.foldIndexed(listOf<LayoutEdge>()) {index, edges, edge ->
+                val newStartEdgeNode = edge.startNode.withoutSwitch(switchId)
+                val newEndNode = edge.endNode.withoutSwitch(switchId)
+
+                if (index>0) {
+                    val prevEdge = geometry.edges[index-1]
+                    if (prevEdge.startNode.switchIn?.id==switchId && prevEdge.endNode.switchIn?.id==switchId &&
+                        edge.startNode.switchIn?.id == switchId && edge.endNode.switchIn?.id == switchId) {
+                        val mergedEdge =
+                    }
+                    edges
+                } else
+                    listOf(edge)
+            }
+
+            geometry.edges.drop(1).fold(listOf(geometry.edges.first())) { edges, edge ->
+                val isSwitchEdge = edge.startNode.switchIn?.id == switchId && edge.endNode.switchIn?.id == switchId
+                val newEdges = if (isSwitchEdge) {
+                    val prevEdge = edges.last()
+                    edges
+                }
+                    else
+                       edges+edge
+                newEdges
+            }
+
+            val switchEdgeRanges =
+                geometry.edges
+                    .mapIndexed { index, edge ->
+                        if (edge.startNode.switchIn?.id == switchId && edge.endNode.switchIn?.id == switchId)
+                            Range(index, index)
+                        else null
+                    }
+                    .filterNotNull()
+                    .let { ranges -> combineContinuous(ranges) }
+
+            switchEdgeRanges.fold(Range(-1, -1) to listOf<LayoutEdge>()) { (prevRange, currentEdgeCollection), range ->
+                val edgeRangeToKeep = Range(prevRange.max + 1, range.min - 1)
+                val edgesToKeep =
+                    if (edgeRangeToKeep.max >= edgeRangeToKeep.min)
+                        geometry.edges.subList(edgeRangeToKeep.min, edgeRangeToKeep.max)
+                    else listOf()
+
+                val switchEdges = geometry.edges.subList(range.min, range.max)
+                val newStartEdgeNode =  switchEdges.first().startNode.withoutSwitch(switchId)
+                val newEndEdgeNode = switchEdges.last().endNode.withoutSwitch(switchId)
+                val allSegments = switchEdges.flatMap { edge -> edge.segments }
+                val newEdge = TmpLayoutEdge(newStartEdgeNode, newEndEdgeNode, allSegments)
+
+                range to currentEdgeCollection+edgesToKeep+newEdge
+            }
+
+            locationTrack to geometry
+        }
     return newTracks
 }
 
@@ -1168,7 +1221,6 @@ fun mapFittedSwitchToEdges(
         }
     return jointsOnEdge
 }
-
 
 fun yyy() {
     /*

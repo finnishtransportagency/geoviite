@@ -155,6 +155,10 @@ sealed class LocationTrackGeometry : IAlignment {
         return start to end
     }
 
+    fun getEdgeAtMOrThrow(m:Double):LayoutEdge {
+        return requireNotNull(getEdgeAtM(m)) {"Geometry does not contain edge at m $m"}
+    }
+
     fun getEdgeAtM(m:Double):LayoutEdge? {
         // TODO: optimize
         return edgesWithM.firstOrNull{(_, mRange) -> mRange.contains(m)}?.first
