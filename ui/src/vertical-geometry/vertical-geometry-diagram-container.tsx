@@ -7,6 +7,8 @@ import { VerticalGeometryDiagramHolder } from './vertical-geometry-diagram-holde
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/store';
 import { first } from 'utils/array-utils';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
+import { LocationTrackId } from 'track-layout/track-layout-model';
 
 export const VerticalGeometryDiagramContainer: React.FC = () => {
     const state = useTrackLayoutAppSelector((s) => s);
@@ -18,7 +20,8 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
 
     const { t } = useTranslation();
 
-    const [alignmentId, setAlignmentId] = React.useState<VerticalGeometryDiagramAlignmentId>();
+    const [selectedAlignment, setSelectedAlignment] =
+        React.useState<VerticalGeometryDiagramAlignmentSelection>();
 
     React.useEffect(() => {
         const selectedGeometryAlignment = first(state.selection.selectedItems.geometryAlignmentIds);
@@ -28,17 +31,16 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
             state.selectedToolPanelTab?.type === 'GEOMETRY_ALIGNMENT' &&
             selectedGeometryAlignment
         ) {
-            setAlignmentId({
+            setSelectedAlignment({
                 planId: selectedGeometryAlignment.planId,
                 alignmentId: selectedGeometryAlignment.geometryId,
             });
         } else if (state.selectedToolPanelTab?.type === 'LOCATION_TRACK' && selectedLocationTrack) {
-            setAlignmentId({
+            setSelectedAlignment({
                 locationTrackId: selectedLocationTrack,
-                layoutContext: state.layoutContext,
             });
         } else {
-            setAlignmentId(undefined);
+            setSelectedAlignment(undefined);
         }
     }, [state.selectedToolPanelTab]);
 
@@ -46,6 +48,13 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
         () => trackLayoutDelegates.onVerticalGeometryDiagramVisibilityChange(false),
         [],
     );
+
+    const alignmentId: VerticalGeometryDiagramAlignmentId | undefined =
+        selectedAlignment === undefined
+            ? undefined
+            : 'locationTrackId' in selectedAlignment
+              ? { ...selectedAlignment, layoutContext: state.layoutContext }
+              : selectedAlignment;
 
     const setVisibleExtentM = function (startM: number | undefined, endM: number | undefined) {
         if (startM !== undefined && endM !== undefined && alignmentId !== undefined) {
@@ -71,7 +80,7 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
                     }
                 />
             )}
-            {!alignmentId && (
+            {!selectedAlignment && (
                 <div className={styles['vertical-geometry-diagram-holder__not-alignment']}>
                     <span>{t('vertical-geometry-diagram.not-alignment')}</span>
                 </div>
@@ -79,3 +88,7 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
         </>
     );
 };
+
+type VerticalGeometryDiagramAlignmentSelection =
+    | { planId: GeometryPlanId; alignmentId: GeometryAlignmentId }
+    | { locationTrackId: LocationTrackId };
