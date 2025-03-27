@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -38,6 +39,15 @@ class GeographyTest {
             )
 
         assertEquals(expectedBounds, bounds)
+    }
+
+    @Test
+    fun `boundingPolygonPointsByConvexHull expands degenerate geometries into sensible bounding boxes`() {
+        val points = listOf(Point(10.0, 10.0), Point(10.0, 20.0))
+        val bounds = boundingBoxAroundPoints(boundingPolygonPointsByConvexHull(points, Srid(3067)))
+        assertTrue(bounds.min.x < bounds.max.x)
+        assertTrue(bounds.min.y + 10.0 < bounds.max.y)
+        assertTrue(boundingBoxAroundPoints(Point(9.9, 9.9), Point(10.1, 20.1)).contains(bounds))
     }
 
     @Test

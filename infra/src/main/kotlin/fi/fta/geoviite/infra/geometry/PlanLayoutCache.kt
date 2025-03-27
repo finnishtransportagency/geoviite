@@ -93,7 +93,7 @@ class PlanLayoutCache(
         val planToLayoutTransformation = coordinateTransformationService.getTransformation(srid, LAYOUT_SRID)
         val planToGkTransformation = coordinateTransformationService.getTransformationToGkFin(srid)
 
-        val polygon = getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, planToLayoutTransformation)
+        val polygon = getBoundingPolygonFromPlan(geometryPlan, planToLayoutTransformation)
 
         if (polygon.isEmpty()) {
             logger.warn(

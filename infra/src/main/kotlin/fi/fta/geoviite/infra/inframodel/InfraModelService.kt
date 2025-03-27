@@ -20,7 +20,7 @@ import fi.fta.geoviite.infra.geometry.PlanLayoutCache
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.TransformationError
-import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
+import fi.fta.geoviite.infra.geometry.getBoundingPolygonFromPlan
 import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
@@ -76,17 +76,16 @@ constructor(
         extraInfo: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
         val geometryPlan = cleanMissingFeatureTypeCodes(parseInfraModel(file, overrides, extraInfo))
-        val transformedBoundingBox =
-            geometryPlan.units.coordinateSystemSrid
-                ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
-                ?.let { transformation ->
-                    getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation)
-                }
 
         checkForDuplicateFile(file.hash, geometryPlan.source)
 
-        return geometryDao.insertPlan(geometryPlan, file, transformedBoundingBox)
+        return geometryDao.insertPlan(geometryPlan, file, getBoundingPolygon(geometryPlan))
     }
+
+    fun getBoundingPolygon(geometryPlan: GeometryPlan) =
+        geometryPlan.units.coordinateSystemSrid
+            ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
+            ?.let { transformation -> getBoundingPolygonFromPlan(geometryPlan, transformation) }
 
     fun parseInfraModel(
         file: InfraModelFile,
