@@ -13,10 +13,17 @@ import fi.fta.geoviite.infra.tracklayout.NodePortType.A
 import fi.fta.geoviite.infra.tracklayout.NodePortType.B
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
+import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.INNER
+import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.OUTER
 import java.util.*
 import kotlin.math.abs
 
-data class TrackSwitchLink(val link: SwitchLink, val location: AlignmentPoint) {
+enum class TrackSwitchLinkType {
+    INNER,
+    OUTER,
+}
+
+data class TrackSwitchLink(val link: SwitchLink, val location: AlignmentPoint, val type: TrackSwitchLinkType) {
     val switchId: IntId<LayoutSwitch>
         get() = link.id
 
@@ -81,20 +88,26 @@ sealed class LocationTrackGeometry : IAlignment {
     val switchIds: List<IntId<LayoutSwitch>>
         get() = trackSwitchLinks.map(TrackSwitchLink::switchId).distinct()
 
-    fun getSwitchJoints(id: IntId<LayoutSwitch>): List<JointNumber> =
-        trackSwitchLinks.filter { it.switchId == id }.map { it.jointNumber }
+    fun getSwitchJoints(id: IntId<LayoutSwitch>, includeOuterLinks: Boolean = true): List<JointNumber> =
+        trackSwitchLinks.filter { it.switchId == id && (includeOuterLinks || it.type == INNER) }.map { it.jointNumber }
 
     @get:JsonIgnore
     val trackSwitchLinks: List<TrackSwitchLink> by lazy {
         edgesWithM.flatMapIndexed { i, (e, m) ->
             // Init-block ensures that edges are connected: previous edge end node is the next edge start node
-            val startSwitches =
-                e.startNode.switches.map { TrackSwitchLink(it, e.firstSegmentStart.toAlignmentPoint(m.min)) }
-            val endSwitches =
+            val start = e.firstSegmentStart.toAlignmentPoint(m.min)
+            val startSwitches: List<TrackSwitchLink> =
+                listOfNotNull(
+                    e.startNode.switchOut?.let { TrackSwitchLink(it, start, if (i == 0) OUTER else INNER) },
+                    e.startNode.switchIn?.let { TrackSwitchLink(it, start, INNER) },
+                )
+            val endSwitches: List<TrackSwitchLink> =
                 if (i == edges.lastIndex) {
-                    e.endNode.switches.map {
-                        TrackSwitchLink(it, e.lastSegmentEnd.toAlignmentPoint(m.min + e.segmentMValues.last().min))
-                    }
+                    val end = e.lastSegmentEnd.toAlignmentPoint(m.min + e.segmentMValues.last().min)
+                    listOfNotNull(
+                        e.endNode.switchIn?.let { TrackSwitchLink(it, end, INNER) },
+                        e.endNode.switchOut?.let { TrackSwitchLink(it, end, OUTER) },
+                    )
                 } else emptyList()
             startSwitches + endSwitches
         }
@@ -128,6 +141,14 @@ sealed class LocationTrackGeometry : IAlignment {
     @get:JsonIgnore
     val endSwitchLink: SwitchLink?
         get() = endNode?.let { node -> pickEndJoint(node.switchIn, node.switchOut) }
+
+    @get:JsonIgnore
+    val outerStartSwitch: SwitchLink?
+        get() = startNode?.switchOut
+
+    @get:JsonIgnore
+    val outerEndSwitch: SwitchLink?
+        get() = endNode?.switchOut
 
     //    val outerSwitches: Pair<SwitchLink?, SwitchLink?>
     //        get() = startNode?.switchIn to endNode?.switchOut
@@ -631,7 +652,7 @@ fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
             // Edges disagree on the switch content -> create a new combined node of their connected ports
             else {
                 val endingNode = EdgeNode.switch(inner = previous.endNode.switchIn, outer = next.startNode.switchIn)
-                val startingNode = EdgeNode.switch(inner = previous.startNode.switchIn, outer = next.endNode.switchIn)
+                val startingNode = EdgeNode.switch(inner = next.startNode.switchIn, outer = previous.endNode.switchIn)
                 require(endingNode.node.contentHash == startingNode.node.contentHash) {
                     "Failed to resolve dual-switch node: previous=$endingNode next=$startingNode"
                 }
@@ -675,9 +696,12 @@ private fun <T : NodePort> inNodeOrder(linkIn: T?, linkOut: T?): Pair<T, T?> {
 }
 
 fun verifySwitchNode(portA: SwitchLink, portB: SwitchLink?) {
-    require(portA.id != portB?.id || portA.jointNumber != portB.jointNumber) {
-        "Switch node cannot have two identical ports (they should be the same single port): portA=$portA portB=$portB"
+    require(portA.id != portB?.id) {
+        "Switch node cannot have two connections to the same switch (1 joint of a switch in 1 location): portA=$portA portB=$portB"
     }
+    //        require(portA.id != portB?.id || portA.jointNumber != portB.jointNumber) {
+    //    "Switch node cannot have two identical ports (they should be the same single port): portA=$portA portB=$portB"
+    // }
 }
 
 fun verifyTrackBoundaryNode(portA: TrackBoundary, portB: TrackBoundary?) {

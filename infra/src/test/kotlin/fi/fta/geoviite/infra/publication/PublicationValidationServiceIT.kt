@@ -39,8 +39,11 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
-import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.SwitchLink
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType.END
+import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType.START
+import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType.START_AND_END
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -57,13 +60,12 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -71,6 +73,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -332,7 +335,7 @@ constructor(
         // we pop
         val duplicateError = getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id)
         assertNotNull(duplicateError, "small track duplicates to-be-published middle track which duplicates big track")
-        assertEquals("small track", duplicateError.params.get("otherDuplicates"))
+        assertEquals("small track", duplicateError!!.params.get("otherDuplicates"))
         assertEquals("big track", duplicateError.params.get("duplicateTrack"))
 
         // if we have a draft of the small track that is not a duplicate of the middle track, but
@@ -443,20 +446,32 @@ constructor(
         val officialTrackOn152 =
             locationTrackDao.save(
                 locationTrack(trackNumberId = trackNumberId, draft = false),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 5.0), Point(0.0, 0.0)),
-                    segment(Point(0.0, 0.0), Point(5.0, 0.0))
-                        .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)),
-                    segment(Point(5.0, 0.0), Point(10.0, 0.0))
-                        .copy(switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(2)),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(switchId, 1),
+                        segments = listOf(segment(Point(0.0, 5.0), Point(0.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switchId, 1),
+                        endInnerSwitch = switchLinkYV(switchId, 5),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switchId, 5),
+                        endInnerSwitch = switchLinkYV(switchId, 2),
+                        segments = listOf(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+                    ),
                 ),
             )
         val officialTrackOn13 =
             locationTrackDao.save(
                 locationTrack(trackNumberId = trackNumberId, draft = false),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(10.0, 2.0))
-                        .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(3))
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switchId, 1),
+                        endInnerSwitch = switchLinkYV(switchId, 3),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 2.0))),
+                    )
                 ),
             )
         locationTrackService.saveDraft(
@@ -1004,7 +1019,13 @@ constructor(
                     LayoutBranch.main,
                     switch(
                         name = "TV123",
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null)),
+                        joints =
+                            listOf(
+                                LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null),
+                                LayoutSwitchJoint(JointNumber(2), SwitchJointRole.MAIN, Point(10.0, 0.0), null),
+                                LayoutSwitchJoint(JointNumber(3), SwitchJointRole.MAIN, Point(10.0, 2.0), null),
+                                LayoutSwitchJoint(JointNumber(5), SwitchJointRole.MAIN, Point(5.0, 0.0), null),
+                            ),
                         structureId = switchStructureYV60_300_1_9().id,
                         stateCategory = LayoutStateCategory.EXISTING,
                         draft = true,
@@ -1016,19 +1037,17 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(5.0, 0.0))
-                            .copy(
-                                switchId = switchId,
-                                startJointNumber = JointNumber(1),
-                                endJointNumber = JointNumber(5),
-                            ),
-                        segment(Point(5.0, 0.0), Point(10.0, 0.0))
-                            .copy(
-                                switchId = switchId,
-                                startJointNumber = JointNumber(5),
-                                endJointNumber = JointNumber(2),
-                            ),
+                    trackGeometry(
+                        edge(
+                            startInnerSwitch = switchLinkYV(switchId, 1),
+                            endInnerSwitch = switchLinkYV(switchId, 5),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
+                        ),
+                        edge(
+                            startInnerSwitch = switchLinkYV(switchId, 5),
+                            endInnerSwitch = switchLinkYV(switchId, 2),
+                            segments = listOf(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+                        ),
                     ),
                 )
                 .id
@@ -1037,13 +1056,12 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(10.0, 2.0))
-                            .copy(
-                                switchId = switchId,
-                                startJointNumber = JointNumber(5),
-                                endJointNumber = JointNumber(3),
-                            )
+                    trackGeometry(
+                        edge(
+                            startInnerSwitch = switchLinkYV(switchId, 5), // TODO: 5? really?
+                            endInnerSwitch = switchLinkYV(switchId, 3),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 2.0))),
+                        )
                     ),
                 )
                 .id
@@ -1067,18 +1085,19 @@ constructor(
             ),
         )
 
+        val topoGeometry =
+            trackGeometry(
+                edge(
+                    startOuterSwitch = switchLinkYV(switchId, 1),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(-5.0, 0.0))),
+                )
+            )
         val topoTrackMarkedAsDuplicate =
             locationTrackService
                 .saveDraft(
                     LayoutBranch.main,
-                    locationTrack(
-                        trackNumberId = trackNumberId,
-                        topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
-                        duplicateOf = trackOn13Alignment,
-                        draft = true,
-                    ),
-                    // TODO: GVT-2927 this was empty before, but new model cannot have switch links without geometry
-                    LocationTrackGeometry.empty,
+                    locationTrack(trackNumberId = trackNumberId, duplicateOf = trackOn13Alignment, draft = true),
+                    topoGeometry,
                 )
                 .id
 
@@ -1093,16 +1112,7 @@ constructor(
 
         val goodTopoTrack =
             locationTrackService
-                .saveDraft(
-                    LayoutBranch.main,
-                    locationTrack(
-                        trackNumberId,
-                        topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
-                        draft = true,
-                    ),
-                    // TODO: GVT-2927 this was empty before, but new model cannot have switch links without geometry
-                    LocationTrackGeometry.empty,
-                )
+                .saveDraft(LayoutBranch.main, locationTrack(trackNumberId, draft = true), topoGeometry)
                 .id
 
         val errors =
@@ -1163,7 +1173,7 @@ constructor(
             )
 
         val errors = validateLocationTracks(listOf(draft.id))
-        assertTrue { errors.isEmpty() }
+        assertTrue(errors.isEmpty(), "Expected no errors: found=$errors")
     }
 
     @Test
@@ -1381,9 +1391,10 @@ constructor(
 
         val errors = validateLocationTracks(sourceTrackResponse.id, startTargetTrackId, endTargetTrackId)
 
-        assertTrue(errors.joinToString { ", " }) {
-            errors.any { it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed") }
-        }
+        assertTrue(
+            errors.any { it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed") },
+            errors.joinToString { ", " },
+        )
     }
 
     @Test
@@ -1574,7 +1585,7 @@ constructor(
                 publicationRequestIds(locationTracks = listOf(duplicatingLocationTrack)),
             )
         assertEquals(
-            listOf(),
+            emptyList<LayoutValidationIssue>(),
             validatedWithoutCancellationPublication.validatedAsPublicationUnit.locationTracks[0].issues,
         )
 
@@ -1615,33 +1626,37 @@ constructor(
                 )
                 .id
         val throughTrackGeometry =
-            trackGeometryOfSegments(
-                segment(Point(-1.0, 0.0), Point(0.0, 0.0)),
-                segment(Point(0.0, 0.0), Point(34.4, 0.0))
-                    .copy(switchId = switch, startJointNumber = JointNumber(1), endJointNumber = JointNumber(2)),
+            trackGeometry(
+                edge(
+                    endOuterSwitch = switchLinkYV(switch, 1),
+                    segments = listOf(segment(Point(-1.0, 0.0), Point(0.0, 0.0))),
+                ),
+                edge(
+                    startInnerSwitch = switchLinkYV(switch, 1),
+                    endInnerSwitch = switchLinkYV(switch, 2),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(34.4, 0.0))),
+                ),
             )
         val mainOfficialBranchingTrackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(34.4, 2.0)))
-        val linkedBranchingTrackAlignment =
-            trackGeometryOfSegments(
-                segment(Point(0.0, 0.0), Point(34.4, 2.0))
-                    .copy(switchId = switch, startJointNumber = JointNumber(1), endJointNumber = JointNumber(3))
+        val linkedBranchingTrackGeometry =
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(switch, 1),
+                    endInnerSwitch = switchLinkYV(switch, 3),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(34.4, 2.0))),
+                )
             )
         val throughTrack =
-            mainOfficialContext
-                .save(
-                    locationTrack(trackNumber, topologicalConnectivity = TopologicalConnectivityType.END),
-                    throughTrackGeometry,
-                )
-                .id
+            mainOfficialContext.save(locationTrack(trackNumber, topologicalConnectivity = END), throughTrackGeometry).id
         val branchingTrack =
             mainOfficialContext
                 .save(
-                    locationTrack(trackNumber, topologicalConnectivity = TopologicalConnectivityType.START_AND_END),
+                    locationTrack(trackNumber, topologicalConnectivity = START_AND_END),
                     mainOfficialBranchingTrackGeometry,
                 )
                 .id
         designDraftContext.save(mainOfficialContext.fetch(throughTrack)!!, throughTrackGeometry)
-        designDraftContext.save(mainOfficialContext.fetch(branchingTrack)!!, linkedBranchingTrackAlignment)
+        designDraftContext.save(mainOfficialContext.fetch(branchingTrack)!!, linkedBranchingTrackGeometry)
         designDraftContext.save(designOfficialContext.fetch(switch)!!)
 
         // Tl;dr we created some tracks in the main-official context, then in design-draft we
@@ -1652,11 +1667,17 @@ constructor(
                 publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
                 publicationRequestIds(locationTracks = listOf(throughTrack, branchingTrack), switches = listOf(switch)),
             )
-        assertEquals(listOf(), okayValidation.validatedAsPublicationUnit.locationTracks.flatMap { it.issues })
-        assertEquals(listOf(), okayValidation.validatedAsPublicationUnit.switches.flatMap { it.issues })
+        assertEquals(
+            listOf<LayoutValidationIssue>(),
+            okayValidation.validatedAsPublicationUnit.locationTracks.flatMap { it.issues },
+        )
+        assertEquals(
+            listOf<LayoutValidationIssue>(),
+            okayValidation.validatedAsPublicationUnit.switches.flatMap { it.issues },
+        )
 
         designOfficialContext.save(designDraftContext.fetch(throughTrack)!!, throughTrackGeometry)
-        designOfficialContext.save(designDraftContext.fetch(branchingTrack)!!, linkedBranchingTrackAlignment)
+        designOfficialContext.save(designDraftContext.fetch(branchingTrack)!!, linkedBranchingTrackGeometry)
         locationTrackService.cancel(designBranch, throughTrack)
         locationTrackService.cancel(designBranch, branchingTrack)
 
@@ -1699,32 +1720,25 @@ constructor(
 
     private fun getTopologicalSwitchConnectionTestCases(
         trackNumberGenerator: () -> IntId<LayoutTrackNumber>,
-        topologyStartSwitch: TopologyLocationTrackSwitch,
-        topologyEndSwitch: TopologyLocationTrackSwitch,
-    ): List<LocationTrack> {
+        topologyStartSwitch: SwitchLink,
+        topologyEndSwitch: SwitchLink,
+    ): List<Pair<LocationTrack, LocationTrackGeometry>> {
         return listOf(
-            locationTrack(trackNumberId = trackNumberGenerator(), draft = true),
-            locationTrack(
-                trackNumberId = trackNumberGenerator(),
-                topologicalConnectivity = TopologicalConnectivityType.START,
-                topologyStartSwitch = topologyStartSwitch,
-                draft = true,
-            ),
-            locationTrack(
-                trackNumberId = trackNumberGenerator(),
-                topologicalConnectivity = TopologicalConnectivityType.END,
-                topologyEndSwitch = topologyEndSwitch,
-                draft = true,
-            ),
-            locationTrack(
-                trackNumberId = trackNumberGenerator(),
-                topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
-                topologyStartSwitch = topologyStartSwitch,
-                topologyEndSwitch = topologyEndSwitch,
-                draft = true,
-            ),
+            locationTrack(trackNumberGenerator(), draft = true) to
+                topologyTrackGeometry(startSwitch = null, endSwitch = null),
+            locationTrack(trackNumberGenerator(), topologicalConnectivity = START, draft = true) to
+                topologyTrackGeometry(startSwitch = topologyStartSwitch, endSwitch = null),
+            locationTrack(trackNumberGenerator(), topologicalConnectivity = END, draft = true) to
+                topologyTrackGeometry(startSwitch = null, endSwitch = topologyEndSwitch),
+            locationTrack(trackNumberGenerator(), topologicalConnectivity = START_AND_END, draft = true) to
+                topologyTrackGeometry(startSwitch = topologyStartSwitch, endSwitch = topologyEndSwitch),
         )
     }
+
+    private fun topologyTrackGeometry(startSwitch: SwitchLink?, endSwitch: SwitchLink?): TmpLocationTrackGeometry =
+        trackGeometry(
+            edge(startOuterSwitch = startSwitch, endOuterSwitch = endSwitch, segments = listOf(someSegment()))
+        )
 
     private data class TopologicalSwitchConnectionTestData(
         val locationTracksUnderTest: List<Pair<IntId<LocationTrack>, LocationTrack>>,
@@ -1744,18 +1758,17 @@ constructor(
                 listOf(JointNumber(1) to Point(2.0, 0.0), JointNumber(3) to Point(3.0, 0.0)),
             )
 
-        val trackGeometry = trackGeometryOfSegments(segment(Point(1.0, 0.0), Point(2.0, 0.0)))
         val locationTracksUnderTest =
             getTopologicalSwitchConnectionTestCases(
                 { mainOfficialContext.createLayoutTrackNumber().id },
-                TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(1)),
-                TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(3)),
+                switchLinkYV(topologyStartSwitchId, 1),
+                switchLinkYV(topologyEndSwitchId, 3),
             )
 
         val locationTrackIdsUnderTest =
-            locationTracksUnderTest.map { locationTrack ->
-                locationTrackDao.save(asMainDraft(locationTrack), trackGeometry).id to locationTrack
-            }
+            locationTracksUnderTest
+                .map { (track, geometry) -> locationTrackDao.save(asMainDraft(track), geometry) }
+                .map { v -> v.id to locationTrackDao.fetch(v) }
 
         return TopologicalSwitchConnectionTestData(
             locationTracksUnderTest = locationTrackIdsUnderTest,

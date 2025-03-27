@@ -11,13 +11,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
-import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureRR54_4x1_9
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
@@ -29,35 +28,38 @@ class SwitchTopologicalConnectivityTest {
 
     @Test
     fun `minimal OK switch topological connectivity is OK`() {
-        val (switch, link) = switchAndLink()
+        val structure = switchStructureYV60_300_1_9()
+        val (switch, link) = switchAndLink(structure)
         val tracks = listOf(track("through track", null, link(1, 5), link(5, 2)), track("branching track", link(1, 3)))
-        val issues = validateSwitchTopologicalConnectivity(switch, switchStructureYV60_300_1_9(), tracks, null)
+        val issues = validateSwitchTopologicalConnectivity(switch, structure, tracks, null)
         assertEquals(listOf(), issues)
     }
 
     @Test
     fun `track from front joint is allowed to be only topologically connected`() {
-        val (switch, link) = switchAndLink()
+        val structure = switchStructureYV60_300_1_9()
+        val (switch, link) = switchAndLink(structure)
         val tracks =
             listOf(
                 track("through track", link(1, 5), link(5, 2)),
                 track("branching track", link(1, 3)),
                 track("topo track", topologyLinks = link(1, null)),
             )
-        val issues = validateSwitchTopologicalConnectivity(switch, switchStructureYV60_300_1_9(), tracks, null)
+        val issues = validateSwitchTopologicalConnectivity(switch, structure, tracks, null)
         assertEquals(listOf(), issues)
     }
 
     @Test
     fun `the only track from the front joint must not be duplicate`() {
-        val (switch, link) = switchAndLink()
+        val structure = switchStructureYV60_300_1_9()
+        val (switch, link) = switchAndLink(structure)
         val tracks =
             listOf(
                 track("through track", link(1, 5), link(5, 2)),
                 track("branching track", link(1, 3)),
                 track("topo track", isDuplicate = true, topologyLinks = link(1, null)),
             )
-        val issues = validateSwitchTopologicalConnectivity(switch, switchStructureYV60_300_1_9(), tracks, null)
+        val issues = validateSwitchTopologicalConnectivity(switch, structure, tracks, null)
         assertEquals(
             listOf("validation.layout.switch.track-linkage.front-joint-only-duplicate-connected"),
             issues.map { it.localizationKey.toString() },
@@ -66,17 +68,18 @@ class SwitchTopologicalConnectivityTest {
 
     @Test
     fun `head-to-head YV switches with branching tracks topologically linked to opposing sides are okay`() {
-        val (switchA, linkA) = switchAndLink()
-        val (switchB, linkB) = switchAndLink()
+        val structure = switchStructureYV60_300_1_9()
+        val (switchA, linkA) = switchAndLink(structure)
+        val (switchB, linkB) = switchAndLink(structure)
         val tracks =
             listOf(
                 track("through track", linkA(2, 5), linkA(5, 1), linkB(1, 5), linkB(5, 2)),
                 track("branching A", linkA(3, 1), topologyLinks = linkB(null, 1)),
                 track("branching B", linkB(1, 3), topologyLinks = linkA(1, null)),
             )
-        val issuesA = validateSwitchTopologicalConnectivity(switchA, switchStructureYV60_300_1_9(), tracks, null)
+        val issuesA = validateSwitchTopologicalConnectivity(switchA, structure, tracks, null)
         assertEquals(emptyList(), issuesA)
-        val issuesB = validateSwitchTopologicalConnectivity(switchB, switchStructureYV60_300_1_9(), tracks, null)
+        val issuesB = validateSwitchTopologicalConnectivity(switchB, structure, tracks, null)
         assertEquals(emptyList(), issuesB)
     }
 
@@ -282,24 +285,20 @@ class SwitchTopologicalConnectivityTest {
     }
 
     // might be a segment's start and/or end joint, might be a track's topology start or end link
-    private data class SwitchLinkPair(
-        val switchId: IntId<LayoutSwitch>,
-        val startJointNumber: JointNumber?,
-        val endJointNumber: JointNumber?,
-    )
+    private data class SwitchLinkPair(val start: SwitchLink?, val end: SwitchLink?)
 
     private fun interface MakeSwitchLinkPair {
 
         operator fun invoke(start: Int?, end: Int?): SwitchLinkPair
     }
 
-    private fun switchLink(switchId: IntId<LayoutSwitch>) = MakeSwitchLinkPair { startJoint, endJoint ->
-        SwitchLinkPair(
-            switchId,
-            startJointNumber = startJoint?.let(::JointNumber),
-            endJointNumber = endJoint?.let(::JointNumber),
-        )
-    }
+    private fun switchLink(switchId: IntId<LayoutSwitch>, structure: SwitchStructure) =
+        MakeSwitchLinkPair { startJoint, endJoint ->
+            SwitchLinkPair(
+                start = startJoint?.let { j -> SwitchLink(switchId, JointNumber(j), structure) },
+                end = endJoint?.let { j -> SwitchLink(switchId, JointNumber(j), structure) },
+            )
+        }
 
     private var idCounter: Int = 0
 
@@ -317,29 +316,27 @@ class SwitchTopologicalConnectivityTest {
                 name = name,
                 duplicateOf = if (isDuplicate) IntId(12345) else null,
                 state = if (isDeleted) LocationTrackState.DELETED else LocationTrackState.IN_USE,
-                topologyStartSwitch =
-                    topologyLinks?.let { t ->
-                        t.startJointNumber?.let { jointNumber -> TopologyLocationTrackSwitch(t.switchId, jointNumber) }
-                    },
-                topologyEndSwitch =
-                    topologyLinks?.let { t ->
-                        t.endJointNumber?.let { jointNumber -> TopologyLocationTrackSwitch(t.switchId, jointNumber) }
-                    },
             )
-        val geometry =
-            trackGeometry(
-                combineEdges(
-                    switchLinks.mapIndexed { index, link ->
-                        edge(
-                            startInnerSwitch =
-                                link?.startJointNumber?.let { n -> switchLinkYV(link.switchId, n.intValue) },
-                            endInnerSwitch = link?.endJointNumber?.let { n -> switchLinkYV(link.switchId, n.intValue) },
-                            segments = listOf(segment(Point(0.0, index.toDouble()), Point(0.0, index.toDouble() + 1.0))),
-                        )
-                    }
+        val switchEdges =
+            switchLinks.mapIndexed { index, link ->
+                edge(
+                    startOuterSwitch = topologyLinks?.start?.takeIf { index == 0 },
+                    endOuterSwitch = topologyLinks?.end?.takeIf { index == switchLinks.lastIndex },
+                    startInnerSwitch = link?.start,
+                    endInnerSwitch = link?.end,
+                    segments = listOf(segment(Point(0.0, index.toDouble()), Point(0.0, index.toDouble() + 1.0))),
                 )
-            )
-        return locationTrack to geometry
+            }
+        val edges =
+            switchEdges.takeIf { it.isNotEmpty() }
+                ?: listOf(
+                    edge(
+                        startOuterSwitch = topologyLinks?.start,
+                        endOuterSwitch = topologyLinks?.end,
+                        segments = listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0))),
+                    )
+                )
+        return locationTrack to trackGeometry(combineEdges(edges))
     }
 
     private fun switchAndLink(
@@ -355,7 +352,7 @@ class SwitchTopologicalConnectivityTest {
                         LayoutSwitchJoint(j.number, SwitchJointRole.of(switchStructure, j.number), j.location, null)
                     },
             )
-        val link = switchLink(switchId)
+        val link = switchLink(switchId, switchStructure)
         return switch to link
     }
 }

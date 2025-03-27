@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.math.roundTo6Decimals
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.util.CsvEntry
@@ -157,15 +156,17 @@ fun toVerticalGeometryListing(
     getTransformation: (srid: Srid) -> Transformation,
     getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
 ): List<VerticalGeometryListing> {
-    val linkedElementIds =
-        collectLinkedElements(geometry.segments, geocodingContext, startAddress, endAddress).mapNotNull { it.elementId }
+    val linkedElements = collectLinkedElements(geometry, geocodingContext, startAddress, endAddress)
     val headersAndAlignments =
-        linkedElementIds.map(::getAlignmentId).distinct().associateWith(getPlanHeaderAndAlignment)
+        linkedElements.mapNotNull { l -> l.alignmentId }.distinct().associateWith(getPlanHeaderAndAlignment)
 
     val listing =
-        linkedElementIds
-            .flatMap { elementId ->
-                val (planHeader, geometryAlignment) = headersAndAlignments.getValue(getAlignmentId(elementId))
+        linkedElements
+            .filter { it.elementId != null }
+            .flatMap { linked ->
+                val elementId = requireNotNull(linked.elementId)
+                val alignmentId = requireNotNull(linked.alignmentId)
+                val (planHeader, geometryAlignment) = headersAndAlignments.getValue(alignmentId)
                 val elementRange = Range(geometryAlignment.getElementStationRangeWithinAlignment(elementId))
 
                 val (curvedProfileSegments, linearProfileSegments) =

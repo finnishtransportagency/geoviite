@@ -1,22 +1,40 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.tracklayout.ISegment
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 
-data class LinkedElement(val segmentIndex: Int, val segment: ISegment, val elementId: IndexedId<GeometryElement>?)
+data class LinkedElement(
+    private val edgeIndex: Int,
+    private val segmentIndex: Int,
+    val edge: LayoutEdge,
+    val segment: LayoutSegment,
+    val elementId: IndexedId<GeometryElement>?,
+) {
+    val idString: String
+        get() = "${edgeIndex}_$segmentIndex"
+
+    val alignmentId: IntId<GeometryAlignment>?
+        get() = elementId?.parentId?.let(::IntId)
+}
 
 fun collectLinkedElements(
-    segments: List<ISegment>,
+    geometry: LocationTrackGeometry,
     context: GeocodingContext?,
     startAddress: TrackMeter?,
     endAddress: TrackMeter?,
 ): List<LinkedElement> =
-    segments
-        .mapIndexed { index, segment -> index to segment }
-        .filter { (_, s) -> overlapsAddressInterval(s, context, startAddress, endAddress) }
-        .map { (i, s) -> LinkedElement(i, s, s.sourceId as? IndexedId) }
+    geometry.edges.flatMapIndexed { edgeIndex, edge ->
+        edge.segments
+            .mapIndexed { segmentIndex, segment -> segmentIndex to segment }
+            .filter { (_, s) -> overlapsAddressInterval(s, context, startAddress, endAddress) }
+            .map { (segmentIndex, segment) -> LinkedElement(edgeIndex, segmentIndex, edge, segment, segment.sourceId) }
+    }
 
 private fun overlapsAddressInterval(
     segment: ISegment,

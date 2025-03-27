@@ -48,13 +48,13 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -240,9 +240,7 @@ constructor(
             coordinateTransformationService::getLayoutTransformation,
             plan,
             elementTypes,
-        ) { id ->
-            getSwitchName(MainLayoutContext.official, id)
-        }
+        )
     }
 
     @Transactional(readOnly = true)

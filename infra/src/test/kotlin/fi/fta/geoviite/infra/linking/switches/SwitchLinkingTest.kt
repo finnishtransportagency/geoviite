@@ -18,15 +18,18 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrackWithTwoSwitches
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentPoint
 import fi.fta.geoviite.infra.tracklayout.someSegment
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -230,6 +233,9 @@ class SwitchLinkingTest {
 
     @Test
     fun shouldClearSwitchTopologyLinkingFromLocationTrackStart() {
+        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry, but...
+        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the same as
+        // TODO: LocationTrackGeometry.withoutSwitch
         val locationTrackWithStartLink =
             locationTrack(
                 trackNumberId = IntId(1),
@@ -245,6 +251,9 @@ class SwitchLinkingTest {
 
     @Test
     fun shouldClearSwitchTopologyLinkingFromLocationTrackEnd() {
+        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry, but...
+        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the same as
+        // TODO: LocationTrackGeometry.withoutSwitch
         val locationTrackWithEndLink =
             locationTrack(
                 trackNumberId = IntId(1),
@@ -260,6 +269,9 @@ class SwitchLinkingTest {
 
     @Test
     fun shouldClearSwitchLinkingInfoFromAlignment() {
+        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry, but...
+        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the same as
+        // TODO: LocationTrackGeometry.withoutSwitch
         val (origLocationTrack, origAlignment) =
             locationTrackWithTwoSwitches(
                 trackNumberId = IntId(0),
@@ -741,48 +753,46 @@ class SwitchLinkingTest {
 
     @Test
     fun `getSwitchBoundsFromTracks handles topology and segment points`() {
-        val topoLinkedTrack =
-            locationTrack(
-                trackNumberId = IntId(1),
-                topologyEndSwitch = TopologyLocationTrackSwitch(IntId(1), JointNumber(1)),
-                draft = false,
-            )
+        val topoLinkedTrack = locationTrack(trackNumberId = IntId(1), draft = false)
         // let's say the switch's main joint is at (5.0, 5.0), this geometry incidentally doesn't
         // *quite* come to the
         // front joint, but close enough to link anyway
-        val topoAlignment = trackGeometryOfSegments(segment(Point(4.0, 5.0), Point(4.9, 5.0)))
+        val topoGeometry =
+            trackGeometry(
+                edge(
+                    endOuterSwitch = switchLinkYV(IntId(1), 1),
+                    segments = listOf(segment(Point(4.0, 5.0), Point(4.9, 5.0))),
+                )
+            )
 
         val geometryOn152 =
-            trackGeometryOfSegments(
-                segment(
-                    Point(5.0, 5.0),
-                    Point(6.0, 5.0),
-                    switchId = IntId(1),
-                    startJointNumber = JointNumber(1),
-                    endJointNumber = JointNumber(5),
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(IntId(1), 1),
+                    endInnerSwitch = switchLinkYV(IntId(1), 5),
+                    segments = listOf(segment(Point(5.0, 5.0), Point(6.0, 5.0))),
                 ),
-                segment(
-                    Point(6.0, 5.0),
-                    Point(7.0, 5.0),
-                    switchId = IntId(1),
-                    startJointNumber = JointNumber(5),
-                    endJointNumber = JointNumber(2),
+                edge(
+                    startInnerSwitch = switchLinkYV(IntId(1), 5),
+                    endInnerSwitch = switchLinkYV(IntId(1), 2),
+                    segments = listOf(segment(Point(6.0, 5.0), Point(7.0, 5.0))),
                 ),
-                segment(Point(7.0, 5.0), Point(8.0, 5.0)),
+                edge(
+                    startOuterSwitch = switchLinkYV(IntId(1), 2),
+                    segments = listOf(segment(Point(7.0, 5.0), Point(8.0, 5.0))),
+                ),
             )
         val geometryOn13 =
-            trackGeometryOfSegments(
-                segment(
-                    Point(5.0, 5.0),
-                    Point(6.0, 6.0),
-                    switchId = IntId(1),
-                    startJointNumber = JointNumber(1),
-                    endJointNumber = JointNumber(3),
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(IntId(1), 1),
+                    endInnerSwitch = switchLinkYV(IntId(1), 3),
+                    segments = listOf(segment(Point(5.0, 5.0), Point(6.0, 6.0))),
                 )
             )
         val tracks =
             listOf(
-                topoLinkedTrack to topoAlignment,
+                topoLinkedTrack to topoGeometry,
                 locationTrack(IntId(1), draft = false) to geometryOn152,
                 locationTrack(IntId(1), draft = false) to geometryOn13,
             )
@@ -811,28 +821,32 @@ class SwitchLinkingTest {
 
         // Linked from the start only -> second point shouldn't matter
         val track1 =
-            locationTrack(
-                trackNumberId = tnId,
-                topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
-            ) to trackGeometryOfSegments(segment(point1, point1 + Point(5.0, 5.0)))
+            locationTrack(trackNumberId = tnId) to
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(switchId, 1),
+                        segments = listOf(segment(point1, point1 + Point(5.0, 5.0))),
+                    )
+                )
 
         // Linked from the end only -> first point shouldn't matter
         val track2 =
-            locationTrack(
-                trackNumberId = tnId,
-                topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
-            ) to trackGeometryOfSegments(segment(point2 - Point(5.0, 5.0), point2))
+            locationTrack(trackNumberId = tnId) to
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(switchId, 2),
+                        segments = listOf(segment(point2 - Point(5.0, 5.0), point2)),
+                    )
+                )
 
         // Linked by segment ends -> both points matter
         val track3 =
             locationTrack(tnId) to
-                trackGeometryOfSegments(
-                    segment(
-                        point3e1,
-                        point3e2,
-                        switchId = switchId,
-                        startJointNumber = JointNumber(1),
-                        endJointNumber = JointNumber(2),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switchId, 1),
+                        endInnerSwitch = switchLinkYV(switchId, 2),
+                        segments = listOf(segment(point3e1, point3e2)),
                     )
                 )
 

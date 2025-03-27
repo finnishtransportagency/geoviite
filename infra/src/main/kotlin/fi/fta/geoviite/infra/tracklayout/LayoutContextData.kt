@@ -50,6 +50,8 @@ sealed class LayoutAssetId<T : LayoutAsset<T>> {
 }
 
 class TemporaryAssetId<T : LayoutAsset<T>> : LayoutAssetId<T>() {
+    // Note: this is not a data class because the id is lazily initialized
+    // As the ID is unique for each instance, we can also rely on basic Java `equals` and `hashCode` implementations
     override val id: DomainId<T> by lazy { StringId() }
     override val version = null
 }

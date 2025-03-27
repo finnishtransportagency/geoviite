@@ -216,7 +216,6 @@ fun clearLinksToSwitch(
     geometry: LocationTrackGeometry,
     layoutSwitchId: IntId<LayoutSwitch>,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val trackId = track.id as IntId
     val newEdges = combineEdges(geometry.edges.map { edge -> edge.withoutSwitch(layoutSwitchId) })
     return track to TmpLocationTrackGeometry(newEdges)
 }
