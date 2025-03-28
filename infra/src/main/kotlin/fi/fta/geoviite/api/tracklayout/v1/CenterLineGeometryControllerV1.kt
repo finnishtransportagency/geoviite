@@ -51,6 +51,28 @@ class CenterLineGeometryControllerV1(
             ?: createErrorResponse(translation, validationErrors)
     }
 
+    @GetMapping("/geoviite/paikannuspohja/v1/sijaintiraiteet/kaikki")
+    fun singleTrackCenterLineGeometry(): List<CenterLineGeometryResponseV1> {
+        val translation = localizationService.getLocalization(LocalizationLanguage.FI)
+
+        //        val (validationErrors, validRequest) =
+        //            CenterLineGeometryRequestV1(
+        //                locationTrackOid,
+        //                changesAfterTimestamp,
+        //                trackKilometerStart,
+        //                trackKilometerInclusiveEnd,
+        //                coordinateSystem,
+        //                addressPointInterval,
+        //                includeGeometry,
+        //            )
+        //                .let(centerLineGeometryService::validate)
+
+        return centerLineGeometryService.all()
+
+        //        return validRequest?.let { processValidatedRequest(translation, validRequest) }
+        //            ?: createErrorResponse(translation, validationErrors)
+    }
+
     private fun processValidatedRequest(
         translation: Translation,
         request: ValidCenterLineGeometryRequestV1,
