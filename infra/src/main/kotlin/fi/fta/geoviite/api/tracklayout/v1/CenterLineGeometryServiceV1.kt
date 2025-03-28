@@ -102,6 +102,70 @@ constructor(
         }
     }
 
+    fun all(): List<CenterLineGeometryResponseV1> {
+        val layoutContext = MainLayoutContext.official
+
+        val locationTracks = locationTrackDao.list(layoutContext, includeDeleted = false)
+        val oids = locationTrackDao.fetchExternalIds(layoutContext.branch)
+
+        return locationTracks.take(1000).mapNotNull { locationTrack ->
+            val trackNumberName =
+                trackNumberService.get(layoutContext, locationTrack.trackNumberId).let(::requireNotNull).number
+
+            val trackNumberOid =
+                trackNumberDao
+                    .fetchExternalId(layoutContext.branch, locationTrack.trackNumberId)
+                    .let(::requireNotNull)
+                    .oid
+
+            val locationTrackDescription =
+                locationTrackService
+                    .getFullDescriptions(layoutContext, listOf(locationTrack), LocalizationLanguage.FI)
+                    .first()
+
+            val alignmentAddresses = geocodingService.getAddressPoints(layoutContext, locationTrack.id as IntId)
+
+            if (alignmentAddresses == null) {
+                println("missing alignmentAddresses for ${locationTrack.id}")
+                null
+            } else if (oids[locationTrack.id] == null) {
+                println("missing oid for ${locationTrack.id}")
+                null
+            } else {
+                CenterLineGeometryResponseOkV1(
+                    trackNumberName = trackNumberName,
+                    trackNumberOid = trackNumberOid,
+                    locationTrackOid = oids[locationTrack.id]!!.oid,
+                    locationTrackName = locationTrack.name,
+                    locationTrackType = ApiLocationTrackType(locationTrack.type),
+                    locationTrackState = ApiLocationTrackState(locationTrack.state),
+                    locationTrackDescription = locationTrackDescription,
+                    locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
+                    addressPointInterval = AddressPointInterval.ONE_METER,
+                    coordinateSystem = LAYOUT_SRID,
+                    startLocation = CenterLineGeometryPointV1.of(alignmentAddresses.startPoint),
+                    endLocation = CenterLineGeometryPointV1.of(alignmentAddresses.endPoint),
+                    trackIntervals =
+                        listOf(
+                            CenterLineTrackIntervalV1(
+                                alignmentAddresses.startPoint.address.toString(),
+                                alignmentAddresses.endPoint.address.toString(),
+                                addressPoints =
+                                    alignmentAddresses.allPoints.map { p ->
+                                        CenterLineGeometryPointV1(
+                                            p.point.x,
+                                            p.point.y,
+                                            p.address.kmNumber,
+                                            p.address.meters,
+                                        )
+                                    },
+                            )
+                        ),
+                )
+            }
+        }
+    }
+
     fun process(
         request: ValidCenterLineGeometryRequestV1
     ): Pair<CenterLineGeometryResponseV1?, List<CenterLineGeometryErrorV1>> {
@@ -147,7 +211,7 @@ constructor(
             }
 
         val (convertedStartLocation, startLocationConversionErrors) =
-            convertAddressPointToRequestCoordinateSystem(request.coordinateSystem, alignmentAddresses.startPoint)
+            convertAddressPointToRequestCoordinateSystem(request.coordinateSystem, alignmentAddresses.endPoint)
 
         val (convertedEndLocation, endLocationConversionErrors) =
             convertAddressPointToRequestCoordinateSystem(request.coordinateSystem, alignmentAddresses.endPoint)
@@ -515,7 +579,7 @@ fun createTrackIntervals(
     val intervals =
         listOf(
             CenterLineTrackIntervalV1(
-                startAddress = alignmentAddresses.startPoint.address.toString(),
+                startAddress = alignmentAddresses.endPoint.address.toString(),
                 endAddress = alignmentAddresses.endPoint.address.toString(),
                 addressPoints = convertedMidPoints?.map(CenterLineGeometryPointV1::of) ?: emptyList(),
             )
