@@ -224,8 +224,7 @@ constructor(
                         source = rs.getEnum("source"),
                     )
             }
-            .groupBy { (id, file) -> id }
-            .mapValues { (_, files) -> files.single().second }
+            .associate { (id, file) -> id to file }
             .also { logger.daoAccess(FETCH, InfraModelFile::class, planIds) }
     }
 
