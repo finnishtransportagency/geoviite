@@ -524,6 +524,7 @@ class PublicationDao(
             """
             select
               id,
+              publication_uuid,
               publication_user,
               publication_time,
               message,
@@ -541,6 +542,7 @@ class PublicationDao(
                 jdbcTemplate.query(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
                     Publication(
                         id = rs.getIntId("id"),
+                        uuid = rs.getUuid<Publication>("publication_uuid"),
                         publicationUser = rs.getString("publication_user").let(UserName::of),
                         publicationTime = rs.getInstant("publication_time"),
                         message = rs.getFreeTextWithNewLines("message"),
@@ -595,7 +597,16 @@ class PublicationDao(
     fun fetchPublicationsBetween(layoutBranch: LayoutBranch, from: Instant?, to: Instant?): List<Publication> {
         val sql =
             """
-            select id, publication_user, publication_time, message, design_id, design_version, cause, parent_publication_id
+            select 
+              id, 
+              publication_uuid, 
+              publication_user,
+              publication_time, 
+              message, 
+              design_id, 
+              design_version, 
+              cause, 
+              parent_publication_id
             from publication.publication
             where (:from <= publication_time or :from::timestamptz is null) and (publication_time < :to or :to::timestamptz is null)
               and design_id is not distinct from :design_id
@@ -614,6 +625,7 @@ class PublicationDao(
             .query(sql, params) { rs, _ ->
                 Publication(
                     id = rs.getIntId("id"),
+                    uuid = rs.getUuid("publication_uuid"),
                     publicationUser = rs.getString("publication_user").let(UserName::of),
                     publicationTime = rs.getInstant("publication_time"),
                     message = rs.getFreeTextWithNewLines("message"),
@@ -627,7 +639,16 @@ class PublicationDao(
     fun list(branchType: LayoutBranchType): List<Publication> {
         val sql =
             """
-            select id, publication_user, publication_time, message, design_id, design_version, cause, parent_publication_id
+            select 
+              id, 
+              publication_uuid, 
+              publication_user, 
+              publication_time, 
+              message, 
+              design_id, 
+              design_version, 
+              cause, 
+              parent_publication_id
             from publication.publication
             where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
             order by id desc
@@ -640,6 +661,7 @@ class PublicationDao(
             .query(sql, params) { rs, _ ->
                 Publication(
                     id = rs.getIntId("id"),
+                    uuid = rs.getUuid("publication_uuid"),
                     publicationUser = rs.getString("publication_user").let(UserName::of),
                     publicationTime = rs.getInstant("publication_time"),
                     message = rs.getFreeTextWithNewLines("message"),
@@ -653,7 +675,16 @@ class PublicationDao(
     fun fetchLatestPublications(branchType: LayoutBranchType, count: Int): List<Publication> {
         val sql =
             """
-            select id, publication_user, publication_time, message, design_id, design_version, cause, parent_publication_id
+            select 
+              id, 
+              publication_uuid, 
+              publication_user, 
+              publication_time, 
+              message, 
+              design_id, 
+              design_version, 
+              cause, 
+              parent_publication_id
             from publication.publication
             where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
             order by id desc limit :count
@@ -666,6 +697,7 @@ class PublicationDao(
             .query(sql, params) { rs, _ ->
                 Publication(
                     id = rs.getIntId("id"),
+                    uuid = rs.getUuid("publication_uuid"),
                     publicationUser = rs.getString("publication_user").let(UserName::of),
                     publicationTime = rs.getInstant("publication_time"),
                     message = rs.getFreeTextWithNewLines("message"),

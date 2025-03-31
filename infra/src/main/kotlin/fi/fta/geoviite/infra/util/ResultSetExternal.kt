@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.geometry.PlanName
@@ -97,6 +98,10 @@ fun <T> ResultSet.getIntIdOrNull(name: String): IntId<T>? = getIntOrNull(name)?.
 fun <T> ResultSet.getStringId(name: String): StringId<T> = verifyNotNull(name, ::getStringIdOrNull)
 
 fun <T> ResultSet.getStringIdOrNull(name: String): StringId<T>? = getString(name)?.let(::StringId)
+
+fun <T> ResultSet.getUuid(name: String): Uuid<T> = verifyNotNull(name, ::getUuidOrNull)
+
+fun <T> ResultSet.getUuidOrNull(name: String): Uuid<T>? = getString(name)?.let(::Uuid)
 
 fun <T> ResultSet.getOid(name: String): Oid<T> = verifyNotNull(name, ::getOidOrNull)
 
