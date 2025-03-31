@@ -105,26 +105,23 @@ class LayoutAlignmentService(private val layoutAlignmentDao: LayoutAlignmentDao,
         val mRange = Range(startMOnAlignment, endMOnAlignment)
 
         val segments =
-            alignment.segments.filter { s ->
+            alignment.segments.mapNotNull { s ->
                 val sRange = Range(s.startM, s.endM)
-                sRange.min != mRange.max &&
-                    sRange.max != mRange.min &&
-                    (sRange.overlaps(mRange) || mRange.overlaps(sRange))
-            }
-        val startSegment = segments.firstOrNull()
-        val endSegment = segments.lastOrNull()
-        val midSegments = segments.drop(1).dropLast(1)
 
-        val croppedSegments =
-            if (startSegment == endSegment) {
-                listOfNotNull(startSegment?.slice(Range(startMOnAlignment, endMOnAlignment)))
-            } else {
-                val croppedStartSegment = startSegment?.slice(Range(startMOnAlignment, startSegment.endM))
-                val croppedEndSegment = endSegment?.slice(Range(endSegment.startM, endMOnAlignment))
-                listOfNotNull(croppedStartSegment) + midSegments + listOfNotNull(croppedEndSegment)
+                if (sRange.contains(mRange)) {
+                    s.slice(mRange)
+                } else if (sRange.contains(startMOnAlignment)) {
+                    s.slice(Range(startMOnAlignment, s.endM))
+                } else if (sRange.contains(endMOnAlignment)) {
+                    s.slice(Range(s.startM, endMOnAlignment))
+                } else if (mRange.overlaps(sRange)) {
+                    s
+                } else {
+                    null
+                }
             }
 
-        return CroppedAlignment(0, croppedSegments, alignment.id)
+        return CroppedAlignment(0, segments, alignment.id)
     }
 }
 

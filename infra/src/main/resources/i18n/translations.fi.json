@@ -2077,8 +2077,10 @@
         "vertical-geometry-list-entire-track-network": "Pystygeometria (koko rataverkko) {{date}}.csv",
         "publication-log": "Julkaisuloki {{dateRange}}.csv",
         "split-details": "Raiteen jakaminen {{locationTrackName}}.csv",
-        "geometry-plans-summary-csv": "Yhteenveto.csv",
+        "geometries-folder": "Geometriat",
+        "geometry-plans-summary-csv": "Yhteenveto {{date}} {{applicability}} {{alignmentName}}.csv",
+        "geometry-plans-summary-with-km-range-csv": "Yhteenveto {{date}} {{applicability}} {{startKm}}-{{endKm}} {{alignmentName}}.csv",
         "geometry-plans-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{date}}.zip",
-        "geometry-plans-with-km-range-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{kmRange}} {{date}}.zip"
+        "geometry-plans-with-km-range-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{startKm}}-{{endKm}} {{date}}.zip"
     }
 }

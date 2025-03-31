@@ -1,13 +1,11 @@
 package fi.fta.geoviite.infra.geography
 
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IPoint3DM
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.util.logger
-import org.locationtech.jts.geom.Coordinate
 
 private const val POINT_SEPARATOR = ","
 private const val COORDINATE_SEPARATOR = " "
@@ -40,9 +38,6 @@ fun create3DMLineString(coordinates: List<IPoint3DM>): String {
     val content = coordinates.joinToString(POINT_SEPARATOR) { c -> point3DMToString(c) }
     return "$LINESTRING_TYPE_3DM${addParenthesis(content)}"
 }
-
-fun create2DPolygonString(jtsCoordinates: Array<Coordinate>, srid: Srid): String =
-    jtsCoordinates.map { toGvtPoint(it, crs(srid)) }.let(::create2DPolygonString)
 
 fun create2DPolygonString(coordinates: List<IPoint>): String {
     val content = coordinates.joinToString(POINT_SEPARATOR) { c -> point2DToString(c) }

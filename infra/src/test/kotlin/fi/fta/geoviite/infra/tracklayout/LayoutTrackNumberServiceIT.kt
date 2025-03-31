@@ -422,74 +422,64 @@ constructor(
     @Test
     fun `overlapping plan search finds plans that are within 10m of alignment`() {
         val tn = TrackNumber("001")
-        // TODO: The alignments with "_2" in their names exist because of a bug that causes bounding polygons for plans
-        // with alignments in a straight line to be treated as linestrings and throw an SQL error when trying to
-        // be saved into the database. This a workaround to make the bounding polygon a valid polygon instead of a
-        // linestring. Remove them after GVT-3040 has been done
-        val a1_1 = geometryAlignment(line(Point(0.0, 0.0), Point(10.0, 0.0)))
-        val a1_2 = geometryAlignment(line(Point(0.0, 2.0), Point(10.0, 2.0)))
-        val a2_1 = geometryAlignment(line(Point(20.0, 0.0), Point(30.0, 0.0)))
-        val a2_2 = geometryAlignment(line(Point(20.0, 2.0), Point(30.0, 2.0)))
-        val a3_1 = geometryAlignment(line(Point(40.0, 0.0), Point(50.0, 0.0)))
-        val a3_2 = geometryAlignment(line(Point(40.0, 2.0), Point(50.0, 2.0)))
-        val a4_1 = geometryAlignment(line(Point(60.0, 0.0), Point(70.0, 0.0)))
-        val a4_2 = geometryAlignment(line(Point(60.0, 2.0), Point(70.0, 2.0)))
-        val a5_1 = geometryAlignment(line(Point(80.0, 0.0), Point(90.0, 0.0)))
-        val a5_2 = geometryAlignment(line(Point(80.0, 2.0), Point(90.0, 2.0)))
-        val a6_1 = geometryAlignment(line(Point(40.0, 20.0), Point(50.0, 20.0)))
-        val a6_2 = geometryAlignment(line(Point(40.0, 22.0), Point(50.0, 22.0)))
-        val a7_1 = geometryAlignment(line(Point(40.0, -10.0), Point(50.0, -10.0)))
-        val a7_2 = geometryAlignment(line(Point(40.0, -12.0), Point(50.0, -12.0)))
+
+        val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val a2 = geometryAlignment(line(Point(20.0, 0.0), Point(30.0, 0.0)))
+        val a3 = geometryAlignment(line(Point(40.0, 0.0), Point(50.0, 0.0)))
+        val a4 = geometryAlignment(line(Point(60.0, 0.0), Point(70.0, 0.0)))
+        val a5 = geometryAlignment(line(Point(80.0, 0.0), Point(90.0, 0.0)))
+        val a6 = geometryAlignment(line(Point(40.0, 20.0), Point(50.0, 20.0)))
+        val a7 = geometryAlignment(line(Point(40.0, -10.0), Point(50.0, -10.0)))
 
         val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
 
         val plan1EndsBeforeAlignment =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a1_1, a1_2),
+                plan(tn, LAYOUT_SRID, a1),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a1_1, a1_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a1), tf),
             )
         val plan2EndsWithinAlignmentBuffer =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a2_1, a2_2),
+                plan(tn, LAYOUT_SRID, a2),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a2_1, a2_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a2), tf),
             )
         val plan3CompletelyWithin =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a3_1, a3_2),
+                plan(tn, LAYOUT_SRID, a3),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a3_1, a3_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a3), tf),
             )
         val plan4TouchesEndOfAlignmentBuffer =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a4_1, a4_2),
+                plan(tn, LAYOUT_SRID, a4),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a4_1, a4_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
             )
         val plan5StartsAfterAlignmentEnd =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a5_1, a5_2),
+                plan(tn, LAYOUT_SRID, a5),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a5_1, a5_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a5), tf),
             )
         val plan6TooFarToTheSide =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a6_1, a6_2),
+                plan(tn, LAYOUT_SRID, a6),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a6_1, a6_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a6), tf),
             )
         val plan7TouchesBufferFromSide =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a7_1, a7_2),
+                plan(tn, LAYOUT_SRID, a7),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a7_1, a7_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a7), tf),
             )
         val plan8Hidden =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a4_1, a4_2),
+                plan(tn, LAYOUT_SRID, a4),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a4_1, a4_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
             )
         geometryDao.setPlanHidden(plan8Hidden.id, true)
 
@@ -517,57 +507,50 @@ constructor(
     fun `overlapping plan search cropping works correctly in a happy case`() {
         val tn = TrackNumber("001")
 
-        // TODO: Same as above, remove segments with "_2" in their names after GVT-3040 has been done
-        val a1_1 = geometryAlignment(line(Point(0.0, 0.0), Point(900.0, 0.0)))
-        val a1_2 = geometryAlignment(line(Point(0.0, 2.0), Point(900.0, 2.0)))
-        val a2_1 = geometryAlignment(line(Point(500.0, 0.0), Point(995.0, 0.0)))
-        val a2_2 = geometryAlignment(line(Point(500.0, 2.0), Point(995.0, 2.0)))
-        val a3_1 = geometryAlignment(line(Point(1200.0, 0.0), Point(1500.0, 0.0)))
-        val a3_2 = geometryAlignment(line(Point(1200.0, 2.0), Point(1500.0, 2.0)))
-        val a4_1 = geometryAlignment(line(Point(1800.0, 0.0), Point(3200.0, 0.0)))
-        val a4_2 = geometryAlignment(line(Point(1800.0, 2.0), Point(3200.0, 2.0)))
-        val a5_1 = geometryAlignment(line(Point(3010.0, 0.0), Point(4000.0, 0.0)))
-        val a5_2 = geometryAlignment(line(Point(3010.0, 2.0), Point(4000.0, 2.0)))
-        val a6_1 = geometryAlignment(line(Point(3500.0, 0.0), Point(4000.0, 0.0)))
-        val a6_2 = geometryAlignment(line(Point(3500.0, 2.0), Point(4000.0, 2.0)))
+        val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(900.0, 0.0)))
+        val a2 = geometryAlignment(line(Point(500.0, 0.0), Point(995.0, 0.0)))
+        val a3 = geometryAlignment(line(Point(1200.0, 0.0), Point(1500.0, 0.0)))
+        val a4 = geometryAlignment(line(Point(1800.0, 0.0), Point(3200.0, 0.0)))
+        val a5 = geometryAlignment(line(Point(3010.0, 0.0), Point(4000.0, 0.0)))
+        val a6 = geometryAlignment(line(Point(3500.0, 0.0), Point(4000.0, 0.0)))
 
         val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
 
         val plan1EndsBeforeStartKm =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a1_1, a1_2),
+                plan(tn, LAYOUT_SRID, a1),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a1_1, a1_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a1), tf),
             )
         val plan2EndsBeforeStartKmButWithinBuffer =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a2_1, a2_2),
+                plan(tn, LAYOUT_SRID, a2),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a2_1, a2_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a2), tf),
             )
         val plan3IsCompletelyWithinKmRange =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a3_1, a3_2),
+                plan(tn, LAYOUT_SRID, a3),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a3_1, a3_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a3), tf),
             )
         val plan4StartsWithinKmRangeButEndsAfter =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a4_1, a4_2),
+                plan(tn, LAYOUT_SRID, a4),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a4_1, a4_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
             )
         val plan5TouchesEndKmWhenBufferIsIncluded =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a5_1, a5_2),
+                plan(tn, LAYOUT_SRID, a5),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a5_1, a5_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a5), tf),
             )
         val plan6IsPastEndOfEndKm =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a6_1, a6_2),
+                plan(tn, LAYOUT_SRID, a6),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a6_1, a6_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a6), tf),
             )
 
         val trackNumberId =
@@ -641,33 +624,29 @@ constructor(
     fun `overlapping plan search cropping works correctly in different edge cases`() {
         val tn = TrackNumber("001")
 
-        // TODO: Same as above, remove segments with "_2" in their names after GVT-3040 has been done
-        val a1_1 = geometryAlignment(line(Point(0.0, 0.0), Point(500.0, 0.0)))
-        val a1_2 = geometryAlignment(line(Point(0.0, 2.0), Point(500.0, 2.0)))
-        val a2_1 = geometryAlignment(line(Point(1000.0, 0.0), Point(4000.0, 0.0)))
-        val a2_2 = geometryAlignment(line(Point(1000.0, 2.0), Point(4000.0, 2.0)))
-        val a3_1 = geometryAlignment(line(Point(5000.0, 0.0), Point(7000.0, 0.0)))
-        val a3_2 = geometryAlignment(line(Point(5000.0, 2.0), Point(7000.0, 2.0)))
+        val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(500.0, 0.0)))
+        val a2 = geometryAlignment(line(Point(1000.0, 0.0), Point(4000.0, 0.0)))
+        val a3 = geometryAlignment(line(Point(5000.0, 0.0), Point(7000.0, 0.0)))
 
         val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
 
         val plan1EndsBeforeLocationTrackStart =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a1_1, a1_2),
+                plan(tn, LAYOUT_SRID, a1),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a1_1, a1_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a1), tf),
             )
         val plan2IsWithinLocationTrack =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a2_1, a2_2),
+                plan(tn, LAYOUT_SRID, a2),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a2_1, a2_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a2), tf),
             )
         val plan3IsPastEndOfEndKm =
             geometryDao.insertPlan(
-                plan(tn, LAYOUT_SRID, a3_1, a3_2),
+                plan(tn, LAYOUT_SRID, a3),
                 testFile(),
-                getBoundingPolygonPointsFromAlignments(listOf(a3_1, a3_2), tf),
+                getBoundingPolygonPointsFromAlignments(listOf(a3), tf),
             )
 
         val trackNumberId =

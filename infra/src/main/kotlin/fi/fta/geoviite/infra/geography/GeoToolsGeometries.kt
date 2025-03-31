@@ -22,7 +22,6 @@ import org.locationtech.jts.geom.GeometryFactory
 import org.locationtech.jts.geom.LineString as JtsLineString
 import org.locationtech.jts.geom.Point as JtsPoint
 import org.locationtech.jts.geom.Polygon as JtsPolygon
-import org.locationtech.jts.geom.Polygon
 import org.locationtech.jts.geom.PrecisionModel
 
 val FINNISH_GK_LONGITUDE_RANGE = 19..31
@@ -94,7 +93,7 @@ fun calculateDistance(points: List<IPoint>, ref: CoordinateReferenceSystem): Dou
 
 private val crsCache: MutableMap<Srid, CoordinateReferenceSystem> = ConcurrentHashMap()
 
-fun crs(srid: Srid): CoordinateReferenceSystem = crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
+private fun crs(srid: Srid): CoordinateReferenceSystem = crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
 
 private val geometryFactory = JTSFactoryFinder.getGeometryFactory()
 
@@ -135,7 +134,7 @@ private fun toGvtPoint(point: JtsPoint, ref: CoordinateReferenceSystem): Point {
     }
 }
 
-fun toGvtPoint(coordinate: JtsCoordinate, ref: CoordinateReferenceSystem): Point {
+private fun toGvtPoint(coordinate: JtsCoordinate, ref: CoordinateReferenceSystem): Point {
     return when (val order = CRS.getAxisOrder(ref)) {
         CRS.AxisOrder.EAST_NORTH -> Point(coordinate.x, coordinate.y)
         CRS.AxisOrder.NORTH_EAST -> Point(coordinate.y, coordinate.x)
@@ -160,11 +159,13 @@ fun boundingPolygonPointsByConvexHull(points: List<IPoint>, srid: Srid): List<Po
     }
 }
 
-fun bufferedPolygonForLineStringPoints(points: List<IPoint>, buffer: Double, srid: Srid): Polygon {
+fun bufferedPolygonForLineStringPoints(points: List<IPoint>, buffer: Double, srid: Srid): List<IPoint> {
     val crs = crs(srid)
     val lineString = toJtsLineString(points)
     val buffered = lineString.buffer(buffer)
-    return toJtsPolygon(buffered.coordinates.map { c -> toGvtPoint(c, crs) }.toList())
+    return toJtsPolygon(buffered.coordinates.map { c -> toGvtPoint(c, crs) }.toList()).coordinates.map { c ->
+        toGvtPoint(c, crs)
+    }
 }
 
 class CoordinateTransformationException(message: String, cause: Throwable? = null) : Exception(message, cause) {

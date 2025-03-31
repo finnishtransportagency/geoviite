@@ -190,30 +190,28 @@ constructor(
     }
 
     fun getPlanFileHash(planId: IntId<GeometryPlan>): FileHash {
-        return geometryDao.getPlanFile(planId).file.hash
+        return geometryDao.getPlanFiles(listOf(planId)).getValue(planId).file.hash
     }
 
-    fun getPlanFile(planId: IntId<GeometryPlan>, translation: Translation): InfraModelFile {
-        val fileAndSource = geometryDao.getPlanFile(planId)
-        return if (fileAndSource.source == PAIKANNUSPALVELU) {
-            InfraModelFile(
-                fileNameWithSourcePrefixIfPaikannuspalvelu(translation, fileAndSource.file.name, fileAndSource.source),
-                fileAndSource.file.content,
-            )
-        } else fileAndSource.file
-    }
+    fun getPlanFile(planId: IntId<GeometryPlan>, translation: Translation): InfraModelFile =
+        getPlanFiles(listOf(planId), translation).getValue(planId)
 
-    private fun fileNameWithSourcePrefixIfPaikannuspalvelu(
+    fun getPlanFiles(
+        planIds: List<IntId<GeometryPlan>>,
         translation: Translation,
-        originalFileName: FileName,
-        source: PlanSource,
-    ): FileName {
-        return if (source == PAIKANNUSPALVELU) {
-            translation.filename("unreliable-plan-file", localizationParams("originalFileName" to originalFileName))
-        } else {
-            originalFileName
+    ): Map<IntId<GeometryPlan>, InfraModelFile> =
+        geometryDao.getPlanFiles(planIds).mapValues { (_, fileAndSource) ->
+            if (fileAndSource.source == PAIKANNUSPALVELU) {
+                InfraModelFile(
+                    fileNameWithSourcePrefixIfPaikannuspalvelu(
+                        translation,
+                        fileAndSource.file.name,
+                        fileAndSource.source,
+                    ),
+                    fileAndSource.file.content,
+                )
+            } else fileAndSource.file
         }
-    }
 
     fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
         return geometryDao.getLinkingSummaries(planIds)
@@ -707,6 +705,18 @@ private val whitespace = "\\s+".toRegex()
 private fun splitSearchTerms(freeText: FreeText?): List<String> =
     freeText?.toString()?.split(whitespace)?.toList()?.map { s -> s.lowercase().trim() }?.filter(String::isNotBlank)
         ?: listOf()
+
+fun fileNameWithSourcePrefixIfPaikannuspalvelu(
+    translation: Translation,
+    originalFileName: FileName,
+    source: PlanSource,
+): FileName {
+    return if (source == PAIKANNUSPALVELU) {
+        translation.filename("unreliable-plan-file", localizationParams("originalFileName" to originalFileName))
+    } else {
+        originalFileName
+    }
+}
 
 enum class GeometryPlanSortField {
     ID,

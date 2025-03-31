@@ -12,6 +12,8 @@ data class Range<T : Comparable<T>>(val min: T, val max: T) {
     fun contains(other: Range<T>) = contains(other.min) && contains(other.max)
 
     fun overlaps(other: Range<T>) = min <= other.max && max >= other.min
+
+    fun overlapsExclusive(other: Range<T>) = min < other.max && max > other.min
 }
 
 fun <T : Comparable<T>> combineContinuous(ranges: List<Range<T>>): List<Range<T>> {
