@@ -4,12 +4,15 @@ import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-fun zip(files: List<Pair<FileName, String>>): ByteArray {
+data class GvtZipEntry(val folder: FileName?, val fileName: FileName, val content: ByteArray)
+
+fun zip(files: List<GvtZipEntry>): ByteArray {
     val bos = ByteArrayOutputStream()
     ZipOutputStream(bos).use { zipStream ->
-        files.forEach { (fileName, content) ->
-            zipStream.putNextEntry(ZipEntry(fileName.toString()))
-            zipStream.write(content.toByteArray())
+        files.forEach { (folder, fileName, content) ->
+            val fileNameWithinZip = folder?.let { "$it/$fileName" } ?: fileName.toString()
+            zipStream.putNextEntry(ZipEntry(fileNameWithinZip))
+            zipStream.write(content)
             zipStream.closeEntry()
         }
     }

@@ -68,21 +68,23 @@ export async function fetchDownloadablePlans(
         ? areaSelection.endTrackMeter
         : undefined;
 
-    if (areaSelection.locationTrack)
+    if (areaSelection.locationTrack) {
         return await getPlansLinkedToLocationTrack(
             layoutContext,
             areaSelection.locationTrack,
             startKm,
             endKm,
         ).then((plans) => plans.map(toDownloadablePlan));
-    else if (areaSelection.trackNumber)
+    } else if (areaSelection.trackNumber) {
         return await getPlansLinkedToTrackNumber(
             layoutContext,
             areaSelection.trackNumber,
             startKm,
             endKm,
         ).then((plans) => plans.map(toDownloadablePlan));
-    else return [];
+    } else {
+        return [];
+    }
 }
 
 export async function fetchTrackNumberAndExtremities(

@@ -160,7 +160,7 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
         val fileContent = "<a></a>"
         val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
         val fetchedPlan = geometryDao.fetchPlan(id)
-        val file = geometryDao.getPlanFile(id.id)
+        val file = geometryDao.getPlanFiles(listOf(id.id)).first()
         assertPlansMatch(plan, fetchedPlan)
         assertEquals(fileContent, file.file.content)
         assertEquals(plan.fileName, file.file.name)
