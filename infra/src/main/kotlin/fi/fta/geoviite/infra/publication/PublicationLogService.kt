@@ -80,6 +80,7 @@ constructor(
 
         return PublicationDetails(
             id = publication.id,
+            uuid = publication.uuid,
             publicationTime = publication.publicationTime,
             publicationUser = publication.publicationUser,
             message = publication.message,

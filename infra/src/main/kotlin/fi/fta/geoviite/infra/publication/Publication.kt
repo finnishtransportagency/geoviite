@@ -72,6 +72,7 @@ data class PropKey(val key: LocalizationKey, val params: LocalizationParams = Lo
 
 open class Publication(
     open val id: IntId<Publication>,
+    open val uuid: Uuid<Publication>,
     open val publicationTime: Instant,
     open val publicationUser: UserName,
     open val message: FreeTextWithNewLines,
@@ -162,6 +163,7 @@ data class PublishedIndirectChanges(
 
 data class PublicationDetails(
     override val id: IntId<Publication>,
+    override val uuid: Uuid<Publication>,
     override val publicationTime: Instant,
     override val publicationUser: UserName,
     override val message: FreeTextWithNewLines,
@@ -176,7 +178,7 @@ data class PublicationDetails(
     val ratkoPushTime: Instant?,
     val indirectChanges: PublishedIndirectChanges,
     val split: SplitHeader?,
-) : Publication(id, publicationTime, publicationUser, message, layoutBranch, cause) {
+) : Publication(id, uuid, publicationTime, publicationUser, message, layoutBranch, cause) {
     val allPublishedTrackNumbers = trackNumbers + indirectChanges.trackNumbers
     val allPublishedLocationTracks = locationTracks + indirectChanges.locationTracks
     val allPublishedSwitches = switches + indirectChanges.switches
