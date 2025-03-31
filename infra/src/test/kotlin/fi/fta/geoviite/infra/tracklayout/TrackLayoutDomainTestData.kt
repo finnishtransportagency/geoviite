@@ -541,17 +541,10 @@ fun verticalEdge(startPoint: IPoint, segmentCount: Int = 3, pointOffset: Double 
 }
 
 fun switchLinkYV(switchId: IntId<LayoutSwitch>, jointNumber: Int) =
-    SwitchLink(
-        switchId,
-        when (jointNumber) {
-            1 -> SwitchJointRole.MAIN
-            2 -> SwitchJointRole.CONNECTION
-            3 -> SwitchJointRole.CONNECTION
-            5 -> SwitchJointRole.MATH
-            else -> throw IllegalArgumentException("Invalid joint number for YV: $jointNumber")
-        },
-        JointNumber(jointNumber),
-    )
+    SwitchLink(switchId, JointNumber(jointNumber), switchStructureYV60_300_1_9())
+
+fun switchLinkRR(switchId: IntId<LayoutSwitch>, jointNumber: Int) =
+    SwitchLink(switchId, JointNumber(jointNumber), switchStructureRR54_4x1_9())
 
 fun switchLinkKV(switchId: IntId<LayoutSwitch>, jointNumber: Int) =
     SwitchLink(
@@ -563,7 +556,7 @@ fun switchLinkKV(switchId: IntId<LayoutSwitch>, jointNumber: Int) =
             4 -> SwitchJointRole.CONNECTION
             5 -> SwitchJointRole.MATH
             6 -> SwitchJointRole.MATH
-            else -> throw IllegalArgumentException("Invalid joint number for YV: $jointNumber")
+            else -> throw IllegalArgumentException("Invalid joint number for KV: $jointNumber")
         },
         JointNumber(jointNumber),
     )

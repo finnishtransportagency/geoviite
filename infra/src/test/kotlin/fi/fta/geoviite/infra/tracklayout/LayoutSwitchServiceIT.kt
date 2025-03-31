@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
+import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -28,7 +29,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -423,15 +423,16 @@ constructor(
         val switch = switch(IntId(1), joints = listOf(switchJoint(1, Point(1.0, 1.0))), draft = false)
         val switchVersion = switchDao.save(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
-        val trackVersion = mainDraftContext.save(
-            locationTrack(mainDraftContext.createLayoutTrackNumber().id),
-            trackGeometry(
-                edge(
-                    endOuterSwitch = switchLinkYV(switchVersion.id, 1),
-                    segments = listOf(segment(joint1Point - 1.0, joint1Point)),
+        val trackVersion =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(switchVersion.id, 1),
+                        segments = listOf(segment(joint1Point - 1.0, joint1Point)),
+                    )
                 ),
-            ),
-        )
+            )
         val connections = switchService.getSwitchJointConnections(MainLayoutContext.draft, switchVersion.id)
 
         assertEquals(
@@ -471,21 +472,46 @@ constructor(
         val locationTrack =
             mainDraftContext.save(
                 locationTrack(trackNumber),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(1.0, 0.0))
-                        .copy(switchId = draftOnlySwitch, startJointNumber = JointNumber(1)),
-                    segment(Point(1.0, 0.0), Point(2.0, 0.0))
-                        .copy(switchId = officialSwitch.id, startJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(draftOnlySwitch, 1),
+                        endInnerSwitch = switchLinkYV(draftOnlySwitch, 2),
+                        endOuterSwitch = switchLinkYV(officialSwitch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+                    ),
+                    edge(
+                        startOuterSwitch = switchLinkYV(draftOnlySwitch, 2),
+                        startInnerSwitch = switchLinkYV(officialSwitch.id, 1),
+                        endInnerSwitch = switchLinkYV(officialSwitch.id, 2),
+                        segments = listOf(segment(Point(1.0, 0.0), Point(2.0, 0.0))),
+                    ),
                 ),
             )
+
+        assertEquals(
+            listOf(
+                switchLinkYV(draftOnlySwitch, 1),
+                switchLinkYV(draftOnlySwitch, 2),
+                switchLinkYV(officialSwitch.id, 1),
+                switchLinkYV(officialSwitch.id, 2),
+            ),
+            locationTrackService
+                .getWithGeometryOrThrow(MainLayoutContext.draft, locationTrack.id)
+                .second
+                .trackSwitchLinks
+                .map { l -> l.link },
+        )
+
         switchService.deleteDraft(LayoutBranch.main, draftOnlySwitch)
         switchService.deleteDraft(LayoutBranch.main, officialSwitch.id)
 
         assertEquals(
-            listOf(null, officialSwitch.id),
-            locationTrackService.getWithGeometry(MainLayoutContext.draft, locationTrack.id)!!.second.segments.map {
-                it.switchId
-            },
+            listOf(switchLinkYV(officialSwitch.id, 1), switchLinkYV(officialSwitch.id, 2)),
+            locationTrackService
+                .getWithGeometryOrThrow(MainLayoutContext.draft, locationTrack.id)
+                .second
+                .trackSwitchLinks
+                .map { l -> l.link },
         )
     }
 

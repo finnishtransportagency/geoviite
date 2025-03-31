@@ -30,6 +30,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -37,6 +38,7 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
+import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
@@ -91,18 +93,42 @@ constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         mainOfficialContext.save(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
-        val splitSwitchId = mainOfficialContext.createSwitch().id
+        val origin = Point.zero()
+        val splitPoint = Point(5.0, 0.0)
+        val turningTrackEnd = Point(2.0, 2.0)
+        val splitSwitchId =
+            mainOfficialContext
+                .createSwitch(
+                    joints = listOf(switchJoint(1, splitPoint), switchJoint(2, origin), switchJoint(3, turningTrackEnd))
+                )
+                .id
+        // Also save the turning track to make the switch valid. It's not party to the split
+        mainOfficialContext.save(
+            locationTrack(trackNumberId),
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(splitSwitchId, 1),
+                    endInnerSwitch = switchLinkYV(splitSwitchId, 3),
+                    segments = listOf(segment(origin, turningTrackEnd)),
+                )
+            ),
+        )
         val startEdge =
             edge(
+                startInnerSwitch = switchLinkYV(splitSwitchId, 2),
                 endInnerSwitch = switchLinkYV(splitSwitchId, 1),
-                segments = listOf(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
+                segments = listOf(segment(origin, splitPoint)),
             )
         val endEdge =
             edge(
                 startOuterSwitch = switchLinkYV(splitSwitchId, 1),
-                segments = listOf(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+                segments = listOf(segment(splitPoint, splitPoint + splitPoint)),
             )
-        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(startEdge, endEdge))
+        val sourceTrack =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId, topologicalConnectivity = TopologicalConnectivityType.START),
+                trackGeometry(startEdge, endEdge),
+            )
         locationTrackDao.insertExternalId(sourceTrack.id, LayoutBranch.main, someOid())
 
         val draftSource =
@@ -110,9 +136,17 @@ constructor(
                 locationTrackService.saveDraft(LayoutBranch.main, d, alignmentDao.fetch(sourceTrack))
             }
 
-        val startTrack = mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(startEdge))
+        val startTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumberId, topologicalConnectivity = TopologicalConnectivityType.START_AND_END),
+                trackGeometry(startEdge),
+            )
 
-        val endTrack = mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(endEdge))
+        val endTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumberId, topologicalConnectivity = TopologicalConnectivityType.START),
+                trackGeometry(endEdge),
+            )
 
         return SplitSetup(draftSource, listOf(startTrack to 0..0, endTrack to 1..1))
     }

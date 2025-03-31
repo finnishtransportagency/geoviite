@@ -33,14 +33,16 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
@@ -141,12 +143,14 @@ constructor(
 
         val locationTrack1 =
             mainOfficialContext.save(
-                locationTrack(
-                    trackNumber,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(switchAtStart.id, JointNumber(1)),
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchAtEnd.id, JointNumber(1)),
+                locationTrack(trackNumber),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(switchAtStart.id, 1),
+                        endOuterSwitch = switchLinkYV(switchAtEnd.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                    )
                 ),
-                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
         val locationTrack2 =
             mainOfficialContext.save(
@@ -258,10 +262,15 @@ constructor(
             mainDraftContext
                 .save(
                     locationTrack(trackNumber),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(1.0, 0.0)),
-                        segment(Point(1.0, 0.0), Point(10.0, 0.0))
-                            .copy(startJointNumber = JointNumber(1), switchId = switch),
+                    trackGeometry(
+                        edge(
+                            endOuterSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+                        ),
+                        edge(
+                            startInnerSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(1.0, 0.0), Point(10.0, 0.0))),
+                        ),
                     ),
                 )
                 .id
@@ -313,10 +322,15 @@ constructor(
             mainOfficialContext
                 .save(
                     locationTrack(trackNumber),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(4.0, 0.0)),
-                        segment(Point(4.0, 0.0), Point(8.0, 0.0))
-                            .copy(switchId = switch, startJointNumber = JointNumber(1)),
+                    trackGeometry(
+                        edge(
+                            endOuterSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(4.0, 0.0))),
+                        ),
+                        edge(
+                            startInnerSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(4.0, 0.0), Point(8.0, 0.0))),
+                        ),
                     ),
                 )
                 .id

@@ -327,7 +327,11 @@ class TestDBService(
             is LayoutTrackNumber -> trackNumberDao.save(asset)
             is LocationTrack ->
                 locationTrackDao.save(asset, asset.version?.let(alignmentDao::fetch) ?: LocationTrackGeometry.empty)
-            is ReferenceLine -> referenceLineDao.save(asset)
+            is ReferenceLine ->
+                referenceLineDao.save(
+                    asset.takeIf { it.alignmentVersion != null }
+                        ?: asset.copy(alignmentVersion = alignmentDao.insert(alignment()))
+                )
             is LayoutKmPost -> kmPostDao.save(asset)
             is LayoutSwitch -> switchDao.save(asset)
         }
