@@ -89,3 +89,14 @@ create table layout.location_track_version_edge
       references layout.location_track_version (id, layout_context_id, version)
 );
 comment on table layout.location_track_version_edge is 'Versioned 1-to-many linking for edges composing a location track version';
+
+create table layout.initial_edge_segment_metadata
+(
+  edge_id       int not null references layout.edge (id),
+  segment_index int not null,
+  metadata_id   int not null references layout.initial_import_metadata (id),
+  primary key (edge_id, segment_index),
+  constraint initial_edge_segment_metadata_edge_segment_fkey
+    foreign key (edge_id, segment_index) references layout.edge_segment (edge_id, segment_index)
+);
+comment on table layout.initial_edge_segment_metadata is 'Initial import metadata links for edge segments';

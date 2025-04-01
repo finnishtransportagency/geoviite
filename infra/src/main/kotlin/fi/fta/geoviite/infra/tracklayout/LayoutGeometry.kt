@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.math.IntersectType.AFTER
 import fi.fta.geoviite.infra.math.IntersectType.BEFORE
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleAvgRads
 import fi.fta.geoviite.infra.math.angleDiffRads
@@ -60,8 +61,8 @@ data class SegmentGeometryAndMetadata(
     val fileName: FileName?,
     val alignmentId: IntId<GeometryAlignment>?,
     val alignmentName: AlignmentName?,
-    val startPoint: IPoint?,
-    val endPoint: IPoint?,
+    val startPoint: Point3DM?,
+    val endPoint: Point3DM?,
     val isLinked: Boolean,
     val id: StringId<SegmentGeometryAndMetadata>,
 )

@@ -26,15 +26,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.*
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 enum class VerticalIntersectionType {
     POINT,
@@ -253,8 +253,12 @@ constructor(
                 select
                   distinct ga.plan_id, track.id
                   from layout.location_track track
-                    left join layout.segment_version sv on sv.alignment_id = track.alignment_id and sv.alignment_version = track.alignment_version
-                    left join geometry.alignment ga on ga.id = sv.geometry_alignment_id
+                    inner join layout.location_track_version_edge ltve
+                               on ltve.location_track_id = track.id
+                                 and ltve.location_track_layout_context_id = track.layout_context_id
+                                 and ltve.location_track_version = track.version
+                    inner join layout.edge_segment s on s.edge_id = ltve.edge_id
+                    left join geometry.alignment ga on ga.id = s.geometry_alignment_id
               ),
               switches as (
                 select
@@ -1900,17 +1904,21 @@ constructor(
         val sql =
             """
             select id, design_id, draft, version
-              from layout.location_track_in_layout_context('DRAFT', :design_id) location_track
-              where exists(select *
-                             from layout.segment_version
-                             where segment_version.alignment_id = location_track.alignment_id
-                               and segment_version.alignment_version = location_track.alignment_version
-                               and exists(select *
-                                            from geometry.element
-                                            where segment_version.geometry_alignment_id = element.alignment_id
-                                              and segment_version.geometry_element_index = element.element_index
-                                              and element.switch_id = :switch_id)
-                )
+              from layout.location_track_in_layout_context('DRAFT', :design_id) track
+              where exists (
+                select *
+                  from layout.location_track_version_edge ltve
+                    inner join layout.edge_segment s on s.edge_id = ltve.edge_id
+                  where ltve.location_track_id = track.id
+                    and ltve.location_track_layout_context_id = track.layout_context_id
+                    and ltve.location_track_version = track.version
+                    and exists (
+                      select *
+                        from geometry.element
+                        where s.geometry_alignment_id = element.alignment_id
+                          and s.geometry_element_index = element.element_index
+                          and element.switch_id = :switch_id
+                    ) )
                 and state != 'DELETED';
         """
                 .trimIndent()

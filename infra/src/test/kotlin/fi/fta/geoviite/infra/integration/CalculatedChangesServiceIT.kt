@@ -48,6 +48,7 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.addTopologyEndSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.addTopologyStartSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
@@ -60,8 +61,10 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segments
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import java.math.BigDecimal
@@ -1033,10 +1036,15 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(0.0, 10.0)).copy(switchId = switch, endJointNumber = JointNumber(1)),
-                    segment(Point(0.0, 10.00001), Point(0.0, 20.0))
-                        .copy(switchId = switch, startJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(switch, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(0.0, 10.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch, 1),
+                        segments = listOf(segment(Point(0.0, 10.00001), Point(0.0, 20.0))),
+                    ),
                 ),
             )
         val changes =
@@ -1061,9 +1069,11 @@ constructor(
             mainOfficialContext
                 .save(
                     locationTrack(trackNumber),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(7.0, 0.0))
-                            .copy(switchId = switch, endJointNumber = JointNumber(1))
+                    trackGeometry(
+                        edge(
+                            endInnerSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(7.0, 0.0))),
+                        )
                     ),
                 )
                 .id
@@ -1126,9 +1136,11 @@ constructor(
             designDraftContext
                 .save(
                     locationTrack(trackNumber),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(7.0, 0.0))
-                            .copy(switchId = switch, endJointNumber = JointNumber(1))
+                    trackGeometry(
+                        edge(
+                            endInnerSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(7.0, 0.0))),
+                        )
                     ),
                 )
                 .id
@@ -1192,9 +1204,11 @@ constructor(
             mainOfficialContext
                 .save(
                     locationTrack(trackNumber),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(7.0, 0.0))
-                            .copy(switchId = switch, endJointNumber = JointNumber(1))
+                    trackGeometry(
+                        edge(
+                            endInnerSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(7.0, 0.0))),
+                        )
                     ),
                 )
                 .id
@@ -1247,14 +1261,24 @@ constructor(
             mainDraftContext
                 .save(
                     locationTrack(trackNumber),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(2.0, 0.0))
-                            .copy(switchId = switchAt0, startJointNumber = JointNumber(1)),
-                        segment(Point(2.0, 0.0), Point(4.0, 0.0))
-                            .copy(switchId = switchAt4, endJointNumber = JointNumber(1)),
-                        segment(Point(4.0, 0.0), Point(6.0, 0.0))
-                            .copy(switchId = switchAt4, startJointNumber = JointNumber(1)),
-                        segment(Point(6.0, 0.0), Point(10.0, 0.0)),
+                    trackGeometry(
+                        edge(
+                            startInnerSwitch = switchLinkYV(switchAt0, 1),
+                            endInnerSwitch = switchLinkYV(switchAt4, 1),
+                            segments =
+                                listOf(
+                                    segment(Point(0.0, 0.0), Point(2.0, 0.0)),
+                                    segment(Point(2.0, 0.0), Point(4.0, 0.0)),
+                                ),
+                        ),
+                        edge(
+                            startInnerSwitch = switchLinkYV(switchAt4, 1),
+                            segments =
+                                listOf(
+                                    segment(Point(4.0, 0.0), Point(6.0, 0.0)),
+                                    segment(Point(6.0, 0.0), Point(10.0, 0.0)),
+                                ),
+                        ),
                     ),
                 )
                 .id
@@ -1302,10 +1326,15 @@ constructor(
         val locationTrack =
             designOfficialContext.save(
                 locationTrack(trackNumber),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(4.0, 0.0)).copy(switchId = switch, endJointNumber = JointNumber(1)),
-                    segment(Point(4.0, 0.0), Point(10.0, 0.0))
-                        .copy(switchId = switch, startJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(switch, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(4.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch, 1),
+                        segments = listOf(segment(Point(4.0, 0.0), Point(10.0, 0.0))),
+                    ),
                 ),
             )
         locationTrackService.cancel(designBranch, locationTrack.id)

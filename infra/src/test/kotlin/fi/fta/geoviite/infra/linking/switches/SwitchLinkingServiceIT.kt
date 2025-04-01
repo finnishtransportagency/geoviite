@@ -33,6 +33,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
@@ -47,6 +48,7 @@ import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -84,6 +86,7 @@ constructor(
     private val locationTrackDao: LocationTrackDao,
 ) : DBTestBase() {
 
+    @Autowired private lateinit var layoutAlignmentDao: LayoutAlignmentDao
     lateinit var switchStructure: SwitchStructure
     lateinit var switchAlignment_1_5_2: SwitchStructureAlignment
 
@@ -1395,9 +1398,9 @@ constructor(
         switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id)
 
         assertTrackDraftVersionSwitchLinks(throughTrackStart.id, null, switch.id, listOf(0.0..134.4 to null))
-        assertEquals(
-            locationTrackDao.fetch(throughTrackStart).alignmentVersion!!,
-            locationTrackDao.getOrThrow(MainLayoutContext.draft, throughTrackStart.id).alignmentVersion!!,
+        assertMatches(
+            layoutAlignmentDao.fetch(throughTrackStart),
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, throughTrackStart.id).second,
         )
         assertEquals(uninvolvedTrack, locationTrackDao.fetchVersion(MainLayoutContext.draft, uninvolvedTrack.id))
     }

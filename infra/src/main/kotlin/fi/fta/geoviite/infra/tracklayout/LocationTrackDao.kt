@@ -26,7 +26,6 @@ import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getJointNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
-import fi.fta.geoviite.infra.util.getRowVersionOrNull
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
@@ -185,8 +184,6 @@ class LocationTrackDao(
               lt.design_id,
               lt.draft,
               lt.design_asset_state,
-              lt.alignment_id,
-              lt.alignment_version,
               lt.track_number_id, 
               lt.name, 
               lt.description_base,
@@ -230,8 +227,6 @@ class LocationTrackDao(
 
     private fun getLocationTrack(rs: ResultSet): LocationTrack =
         LocationTrack(
-            // TODO: GVT-2926 Remove this field entirely - maybe need to alter the baseclass?
-            alignmentVersion = rs.getRowVersionOrNull("alignment_id", "alignment_version"),
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
             name = rs.getString("name").let(::AlignmentName),
@@ -446,7 +441,6 @@ class LocationTrackDao(
     fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
         fetchVersionsNear(context, bbox).map(::fetch)
 
-    // TODO: GVT-2932 Optimize fetch for new model. Relevant for main map use, as this provides map tracks
     fun fetchVersionsNear(
         context: LayoutContext,
         bbox: BoundingBox,

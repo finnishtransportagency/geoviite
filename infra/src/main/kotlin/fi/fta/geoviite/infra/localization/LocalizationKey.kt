@@ -39,6 +39,8 @@ constructor(@JsonValue val params: Map<String, String>) {
     }
 
     fun get(key: String) = params[key] ?: ""
+
+    operator fun plus(other: LocalizationParams) = LocalizationParams(params + other.params)
 }
 
 fun localizationParams(params: Map<String, Any?>): LocalizationParams =

@@ -85,6 +85,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -92,11 +93,17 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.queryOne
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -105,10 +112,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -800,6 +803,17 @@ constructor(
 
         val switchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
         val latestSwitchLocations = switchLocations.last()
+
+        // TODO: GVT-2929 The data init has changed & topology switch handling is not finished, so this will fail
+        // Data change:
+        //   The old init produced a borked switch linking (compare with main) where multiple joints met at the same
+        //   point. This cannot be represented in the topology model so the above init is now different.
+        // Logic unfinished:
+        //   Original change calc filtered out topology joints that were not the presentation joint.
+        //   Should we still do that?
+        // Below asserts:
+        //   These are the original, unfixed asserts: fix when we know what the correct output is
+
         // switch was originally after kmPost2, but it got removed and then we pushed again
         assertEquals("0002+0001", switchLocations[0][0].nodecollection.nodes.first().point.kmM.toString())
         assertEquals("0002+0003.5", switchLocations[0][1].nodecollection.nodes.first().point.kmM.toString())
@@ -841,6 +855,15 @@ constructor(
         publishAndPush(locationTracks = listOf(throughTrack.id))
         val pushedSwitchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
 
+        // TODO: GVT-2929 The data init has changed & topology switch handling is not finished, so this will fail
+        // Data change:
+        //   The old init produced a borked switch linking (compare with main) where multiple joints met at the same
+        //   point. This cannot be represented in the topology model so the above init is now different.
+        // Logic unfinished:
+        //   Original change calc filtered out topology joints that were not the presentation joint.
+        //   Should we still do that?
+        // Below asserts:
+        //   These are the original, unfixed asserts: fix when we know what the correct output is
         val firstPush = pushedSwitchLocations.first()
         assertEquals(2, firstPush.size)
         assertEquals("JOINT_A", firstPush[0].nodecollection.nodes.toList()[0].nodeType.name)
@@ -910,6 +933,16 @@ constructor(
 
         publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
         val switchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")[0]
+
+        // TODO: GVT-2929 The data init has changed & topology switch handling is not finished, so this will fail
+        // Data change:
+        //   The old init produced a borked switch linking (compare with main) where multiple joints met at the same
+        //   point. This cannot be represented in the topology model so the above init is now different.
+        // Logic unfinished:
+        //   Original change calc filtered out topology joints that were not the presentation joint.
+        //   Should we still do that?
+        // Below asserts:
+        //   These are the original, unfixed asserts: fix when we know what the correct output is
         assertEquals(
             listOf(listOf(5f, 5f), listOf(7.5f)),
             switchLocations.map { l -> l.nodecollection.nodes.map { p -> p.point.kmM.meters.toFloat() } },
@@ -982,13 +1015,16 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrack(trackNumber.id, draft = true),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 10.0), Point(5.0, 10.0), switchId = switch.id, endJointNumber = JointNumber(1)),
-                    segment(
-                        Point(5.0, 10.0),
-                        Point(10.0, 10.0),
-                        switchId = switch.id,
-                        startJointNumber = JointNumber(3),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        endInnerSwitch = switchLinkYV(switch.id, 5),
+                        segments = listOf(segment(Point(0.0, 10.0), Point(5.0, 10.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 5),
+                        endInnerSwitch = switchLinkYV(switch.id, 2),
+                        segments = listOf(segment(Point(5.0, 10.0), Point(10.0, 10.0))),
                     ),
                 ),
             )
@@ -996,14 +1032,16 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrack(trackNumber.id, draft = true),
-                trackGeometryOfSegments(
-                    segment(Point(5.0, 10.0), Point(7.5, 10.5), switchId = switch.id, endJointNumber = JointNumber(3)),
-                    segment(
-                        Point(7.5, 10.5),
-                        Point(10.0, 11.0),
-                        switchId = switch.id,
-                        startJointNumber = JointNumber(3),
-                    ),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        endInnerSwitch = switchLinkYV(switch.id, 3),
+                        segments =
+                            listOf(
+                                segment(Point(5.0, 10.0), Point(7.5, 10.5)),
+                                segment(Point(7.5, 10.5), Point(10.0, 11.0)),
+                            ),
+                    )
                 ),
             )
         listOf("4.4.4.4.4", "5.5.5.5.5").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
@@ -1011,6 +1049,15 @@ constructor(
         val switchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
         val latestSwitchLocations = switchLocations.last()
 
+        // TODO: GVT-2929 The data init has changed & topology switch handling is not finished, so this will fail
+        // Data change:
+        //   The old init produced a borked switch linking (compare with main) where multiple joints met at the same
+        //   point. This cannot be represented in the topology model so the above init is now different.
+        // Logic unfinished:
+        //   Original change calc filtered out topology joints that were not the presentation joint.
+        //   Should we still do that?
+        // Below asserts:
+        //   These are the original, unfixed asserts: fix when we know what the correct output is
         val expectedNodeTypes =
             listOf(listOf(RatkoNodeType.JOINT_A, RatkoNodeType.JOINT_C), listOf(RatkoNodeType.JOINT_C))
         assertEquals(
@@ -1063,18 +1110,33 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(5.0, 0.0), switchId = switch.id, endJointNumber = JointNumber(1)),
-                    segment(Point(5.0, 0.0), Point(10.0, 0.0), switchId = switch.id, startJointNumber = JointNumber(3)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        endInnerSwitch = switchLinkYV(switch.id, 5),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 5),
+                        endInnerSwitch = switchLinkYV(switch.id, 2),
+                        segments = listOf(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+                    ),
                 ),
             )
         val branchingTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(
-                    segment(Point(5.0, 0.0), Point(7.5, 0.5), switchId = switch.id, endJointNumber = JointNumber(3)),
-                    segment(Point(7.5, 0.5), Point(10.0, 1.0), switchId = switch.id, startJointNumber = JointNumber(3)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        endInnerSwitch = switchLinkYV(switch.id, 3),
+                        segments =
+                            listOf(
+                                segment(Point(5.0, 0.0), Point(7.5, 0.5)),
+                                segment(Point(7.5, 0.5), Point(10.0, 1.0)),
+                            ),
+                    )
                 ),
             )
 
@@ -1529,10 +1591,15 @@ constructor(
             designDraft
                 .save(
                     locationTrack(trackNumber.id),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(1.0, 0.0)),
-                        segment(Point(1.0, 0.0), Point(10.0, 0.0))
-                            .copy(switchId = switch, startJointNumber = JointNumber(1)),
+                    trackGeometry(
+                        edge(
+                            endOuterSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+                        ),
+                        edge(
+                            startInnerSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(1.0, 0.0), Point(10.0, 0.0))),
+                        ),
                     ),
                 )
                 .id
@@ -1589,10 +1656,15 @@ constructor(
         val locationTrack =
             designDraftContext.save(
                 locationTrack(trackNumber.id),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(4.0, 0.0)),
-                    segment(Point(4.0, 0.0), Point(8.0, 0.0))
-                        .copy(switchId = switch.id, startJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(4.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(4.0, 0.0), Point(8.0, 0.0))),
+                    ),
                 ),
             )
 
@@ -1666,10 +1738,15 @@ constructor(
         val locationTrack =
             designDraftContext.save(
                 locationTrack(trackNumber.id),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(4.0, 0.0)),
-                    segment(Point(4.0, 0.0), Point(8.0, 0.0))
-                        .copy(switchId = switch.id, startJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(4.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(4.0, 0.0), Point(8.0, 0.0))),
+                    ),
                 ),
             )
 
@@ -1746,10 +1823,15 @@ constructor(
         val locationTrack =
             mainOfficialContext.save(
                 locationTrack(trackNumber.id),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(4.0, 0.0)),
-                    segment(Point(4.0, 0.0), Point(8.0, 0.0))
-                        .copy(switchId = switch.id, startJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(4.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(4.0, 0.0), Point(8.0, 0.0))),
+                    ),
                 ),
             )
         locationTrackDao.insertExternalId(locationTrack.id, LayoutBranch.main, Oid("1.1.1.3.1"))

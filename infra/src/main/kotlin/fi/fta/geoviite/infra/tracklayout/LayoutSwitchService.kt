@@ -20,9 +20,9 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class LayoutSwitchService
@@ -97,14 +97,6 @@ constructor(
         }
     }
 
-    // TODO: GVT-2932: Implement with topology: won't need separate topology & segments fetch as all come from nodes
-    fun getSegmentSwitchJointConnections(
-        layoutContext: LayoutContext,
-        switchId: IntId<LayoutSwitch>,
-    ): List<LayoutSwitchJointConnection> {
-        return dao.fetchSegmentSwitchJointConnections(layoutContext, switchId)
-    }
-
     @Transactional(readOnly = true)
     fun listWithStructure(
         layoutContext: LayoutContext,
@@ -153,40 +145,17 @@ constructor(
     private fun withStructure(switch: LayoutSwitch): Pair<LayoutSwitch, SwitchStructure> =
         switch to switchLibraryService.getSwitchStructure(switch.switchStructureId)
 
-    // TODO: GVT-2932: Implement with topology: won't need separate topology & segments fetch as all come from nodes
     @Transactional(readOnly = true)
     fun getSwitchJointConnections(
         layoutContext: LayoutContext,
         switchId: IntId<LayoutSwitch>,
     ): List<LayoutSwitchJointConnection> {
-        return listOf()
-        //        val segment = getSegmentSwitchJointConnections(layoutContext, switchId)
-        //        val topological = getTopologySwitchJointConnections(layoutContext, switchId)
-        //        return (segment + topological)
-        //            .groupBy { joint -> joint.number }
-        //            .values
-        //            .map { jointConnections -> jointConnections.reduceRight(LayoutSwitchJointConnection::merge) }
+        return dao.fetchSwitchJointConnections(layoutContext, switchId)
+            .groupBy { joint -> joint.number }
+            .values
+            .map { jointConnections -> jointConnections.reduceRight(LayoutSwitchJointConnection::merge) }
     }
 
-    //    private fun getTopologySwitchJointConnections(
-    //        layoutContext: LayoutContext,
-    //        layoutSwitchId: IntId<LayoutSwitch>,
-    //    ): List<LayoutSwitchJointConnection> {
-    //        val layoutSwitch = get(layoutContext, layoutSwitchId) ?: return listOf()
-    //        val linkedTracks = getLocationTracksLinkedToSwitch(layoutContext, layoutSwitchId)
-    //        return linkedTracks.flatMap { (track, geometry) ->
-    //            getTopologyPoints(layoutSwitchId, track, geometry).mapNotNull { (connection, point) ->
-    //                layoutSwitch.getJoint(connection.jointNumber)?.let { joint ->
-    //                    LayoutSwitchJointConnection(
-    //                        connection.jointNumber,
-    //                        listOf(LayoutSwitchJointMatch(track.id as IntId, point)),
-    //                        joint.locationAccuracy,
-    //                    )
-    //                }
-    //            }
-    //        }
-    //    }
-    //
     private fun getLocationTracksLinkedToSwitch(
         layoutContext: LayoutContext,
         layoutSwitchId: IntId<LayoutSwitch>,

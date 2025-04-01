@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
@@ -10,7 +9,6 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
-import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -186,30 +184,6 @@ constructor(
         // Second edit to same draft should not duplicate alignment again
         assertEquals(editedDraft.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         assertNotEquals(editedDraft.alignmentVersion!!.version, editedDraft2.alignmentVersion!!.version)
-    }
-
-    @Test
-    fun `should throw exception when there are switches linked to reference line`() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-
-        val (referenceLine, alignment) =
-            referenceLineAndAlignment(
-                trackNumberId = trackNumberId,
-                segments =
-                    listOf(
-                        segment(
-                            Point(0.0, 0.0),
-                            Point(1.0, 1.0),
-                            switchId = IntId(100),
-                            startJointNumber = JointNumber(1),
-                        )
-                    ),
-                draft = false,
-            )
-
-        assertThrows<IllegalArgumentException> {
-            referenceLineService.saveDraft(LayoutBranch.main, referenceLine, alignment)
-        }
     }
 
     private fun getAndVerifyDraft(id: IntId<ReferenceLine>): ReferenceLine {

@@ -16,11 +16,13 @@ import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import java.util.*
 import kotlin.math.abs
 
-data class TrackSwitchLink(
-    val switchId: IntId<LayoutSwitch>,
-    val jointNumber: JointNumber,
-    val location: AlignmentPoint,
-)
+data class TrackSwitchLink(val link: SwitchLink, val location: AlignmentPoint) {
+    val switchId: IntId<LayoutSwitch>
+        get() = link.id
+
+    val jointNumber: JointNumber
+        get() = link.jointNumber
+}
 
 sealed class LocationTrackGeometry : IAlignment {
     companion object {
@@ -53,30 +55,53 @@ sealed class LocationTrackGeometry : IAlignment {
     // TODO: GVT-1727 Use streams instead of lists here?
 
     @get:JsonIgnore
-    open val nodes: List<EdgeNode> by lazy {
+    open val nodes: List<LayoutNode> by lazy {
         // Init-block ensures that edges are connected: previous edge end node is the next edge start node
         edges.flatMapIndexed { i, e ->
-            if (i == edges.lastIndex) listOf(e.startNode, e.endNode) else listOf(e.startNode)
+            if (i == edges.lastIndex) listOf(e.startNode.node, e.endNode.node) else listOf(e.startNode.node)
         }
     }
 
     @get:JsonIgnore
-    open val nodesWithLocation: List<Pair<EdgeNode, AlignmentPoint>> by lazy {
+    open val nodesWithLocation: List<Pair<LayoutNode, AlignmentPoint>> by lazy {
         edgesWithM.flatMapIndexed { i, (e, m) ->
             // Init-block ensures that edges are connected: previous edge end node is the next edge start node
             if (i == edges.lastIndex) {
                 listOf(
-                    e.startNode to e.firstSegmentStart.toAlignmentPoint(m.min),
-                    e.endNode to e.lastSegmentEnd.toAlignmentPoint(m.min + e.segmentMValues.last().min),
+                    e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min),
+                    e.endNode.node to e.lastSegmentEnd.toAlignmentPoint(m.min + e.segmentMValues.last().min),
                 )
             } else {
-                listOf(e.startNode to e.firstSegmentStart.toAlignmentPoint(m.min))
+                listOf(e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min))
             }
         }
     }
 
+    @get:JsonIgnore
+    val switchIds: List<IntId<LayoutSwitch>>
+        get() = trackSwitchLinks.map(TrackSwitchLink::switchId).distinct()
+
+    fun getSwitchJoints(id: IntId<LayoutSwitch>): List<JointNumber> =
+        trackSwitchLinks.filter { it.switchId == id }.map { it.jointNumber }
+
+    @get:JsonIgnore
+    val trackSwitchLinks: List<TrackSwitchLink> by lazy {
+        edgesWithM.flatMapIndexed { i, (e, m) ->
+            // Init-block ensures that edges are connected: previous edge end node is the next edge start node
+            val startSwitches =
+                e.startNode.switches.map { TrackSwitchLink(it, e.firstSegmentStart.toAlignmentPoint(m.min)) }
+            val endSwitches =
+                if (i == edges.lastIndex) {
+                    e.endNode.switches.map {
+                        TrackSwitchLink(it, e.lastSegmentEnd.toAlignmentPoint(m.min + e.segmentMValues.last().min))
+                    }
+                } else emptyList()
+            startSwitches + endSwitches
+        }
+    }
+
     fun getSwitchLocation(switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
-        nodesWithLocation.firstOrNull { (node, _) -> node.containsJoint(switchId, jointNumber) }?.second
+        trackSwitchLinks.firstOrNull { tsl -> tsl.link.matches(switchId, jointNumber) }?.location
 
     @get:JsonIgnore
     open val startNode: EdgeNode?
@@ -117,22 +142,6 @@ sealed class LocationTrackGeometry : IAlignment {
     //                }
     //            }
 
-    @get:JsonIgnore
-    val switchLinks: List<SwitchLink> by lazy {
-        nodes.flatMap { node -> listOfNotNull(node.switchIn, node.switchOut) }.distinct()
-    }
-
-    @get:JsonIgnore
-    val trackSwitchLinks: List<TrackSwitchLink> by lazy {
-        nodesWithLocation
-            .flatMap { (node, location) ->
-                val switchIn = node.switchIn?.let { TrackSwitchLink(it.id, it.jointNumber, location) }
-                val switchOut = node.switchOut?.let { TrackSwitchLink(it.id, it.jointNumber, location) }
-                listOfNotNull(switchIn, switchOut)
-            }
-            .distinct()
-    }
-
     /**
      * This picks the to-display "track end joint" from various combinations of track inner switches (switch is part of
      * track geometry) and outer switches (track ends at the switch start). Normally, the inner one is the preferred
@@ -145,13 +154,16 @@ sealed class LocationTrackGeometry : IAlignment {
             ?: trackInnerJoint
             ?: trackOuterJoint
 
-    fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = switchLinks.any { sl -> sl.id == switchId }
+    fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = switchIds.contains(switchId)
 
     abstract fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry
 
     fun getEdgeStartAndEnd(edgeIndices: IntRange): Pair<AlignmentPoint, AlignmentPoint> {
-        val start = nodesWithLocation.first { (node, _) -> node == edges[edgeIndices.first].startNode }.second
-        val end = nodesWithLocation.first { (node, _) -> node == edges[edgeIndices.last].endNode }.second
+        require(edgeIndices.first >= 0 && edgeIndices.last <= edges.lastIndex) {
+            "Edge indices out of bounds: first=${edgeIndices.first} last=${edgeIndices.last} edges=${edges.size}"
+        }
+        val start = edgesWithM[edgeIndices.first].let { (e, m) -> e.firstSegmentStart.toAlignmentPoint(m.min) }
+        val end = edgesWithM[edgeIndices.last].let { (e, m) -> e.lastSegmentEnd.toAlignmentPoint(m.min) }
         return start to end
     }
 
@@ -286,6 +298,8 @@ sealed class LayoutEdge : IAlignment {
         }
     }
     @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(startNode.contentHash, endNode.contentHash, segments) }
+
+    fun withSegments(newSegments: List<LayoutSegment>) = TmpLayoutEdge(startNode, endNode, newSegments)
 
     fun withStartNode(newStartNode: EdgeNode) = TmpLayoutEdge(newStartNode, endNode, segments)
 
@@ -425,10 +439,10 @@ sealed class EdgeNode {
                 }
             }
 
-    fun containsSwitch(switchId: IntId<LayoutSwitch>) = switches.any { s -> s.id == switchId }
+    fun containsSwitch(switchId: IntId<LayoutSwitch>) = node.containsSwitch(switchId)
 
     fun containsJoint(switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
-        switches.any { s -> s.matches(switchId, jointNumber) }
+        node.containsJoint(switchId, jointNumber)
 
     @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(portConnection, node.contentHash) }
 
@@ -488,6 +502,12 @@ sealed class LayoutNode {
         get() = listOfNotNull(portA, portB)
 
     fun get(port: NodePortType) = if (port == A) portA else portB
+
+    fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean =
+        ports.any { port -> (port as? SwitchLink)?.id == switchId }
+
+    fun containsJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
+        ports.any { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
 
     abstract val type: LayoutNodeType
 

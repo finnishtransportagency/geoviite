@@ -151,18 +151,8 @@ class SplitTest {
     }
 }
 
-fun linearSegment(
-    points: IntRange,
-    switchId: IntId<LayoutSwitch>? = null,
-    startJoint: Int? = null,
-    endJoint: Int? = null,
-): LayoutSegment =
-    segment(
-        points = points.map { value -> Point(value.toDouble(), 0.0) }.toTypedArray(),
-        switchId = switchId,
-        startJointNumber = startJoint?.let(::JointNumber),
-        endJointNumber = endJoint?.let(::JointNumber),
-    )
+fun linearSegment(points: IntRange): LayoutSegment =
+    segment(points = points.map { value -> Point(value.toDouble(), 0.0) }.toTypedArray())
 
 private fun assertEdgesMatch(expectedEdges: List<LayoutEdge>, result: LocationTrackGeometry) {
     assertEquals(expectedEdges.size, result.edges.size)

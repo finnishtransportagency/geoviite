@@ -78,8 +78,23 @@ fun moveLocationTrackPoints(
     geometry: LocationTrackGeometry,
     moveFunc: (point: AlignmentPoint) -> Point?,
 ): LocationTrackGeometry {
-    // TODO: GVT-2915
-    TODO()
+    return TmpLocationTrackGeometry(
+        geometry.edgesWithM.map { (edge, edgeM) ->
+            val newSegments =
+                edge.segmentsWithM.map { (segment, segmentM) ->
+                    val newPoints =
+                        toSegmentPoints(
+                            to3DMPoints(
+                                segment.segmentPoints.mapNotNull { point ->
+                                    moveFunc(point.toAlignmentPoint(edgeM.min + segmentM.min))
+                                }
+                            )
+                        )
+                    segment.withPoints(points = newPoints, newSourceStart = null)
+                }
+            edge.withSegments(newSegments)
+        }
+    )
 }
 
 fun moveAlignmentPoints(alignment: LayoutAlignment, moveFunc: (point: AlignmentPoint) -> Point?): LayoutAlignment {

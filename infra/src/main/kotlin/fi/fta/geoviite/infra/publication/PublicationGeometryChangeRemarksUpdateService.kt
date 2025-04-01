@@ -8,15 +8,15 @@ import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
-import java.time.Duration
-import kotlin.math.hypot
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.time.Duration
+import kotlin.math.hypot
 
 private const val GEOMETRY_CHANGE_BATCH_SIZE = 10
 private const val MINIMUM_M_DISTANCE_SEPARATING_ALIGNMENT_CHANGE_SUMMARIES = 10.0
@@ -66,13 +66,13 @@ class PublicationGeometryChangeRemarksUpdateService(
         publicationDao.upsertGeometryChangeSummaries(
             unprocessedChange.publicationId,
             unprocessedChange.locationTrackId,
-            if (geocodingContext == null || unprocessedChange.oldAlignmentVersion == null) {
+            if (geocodingContext == null || unprocessedChange.oldTrackVersion == null) {
                 listOf()
             } else {
                 summarizeAlignmentChanges(
                     geocodingContext = geocodingContext,
-                    oldAlignment = alignmentDao.fetch(unprocessedChange.oldAlignmentVersion),
-                    newAlignment = alignmentDao.fetch(unprocessedChange.newAlignmentVersion),
+                    oldGeometry = alignmentDao.fetch(unprocessedChange.oldTrackVersion),
+                    newGeometry = alignmentDao.fetch(unprocessedChange.newTrackVersion),
                 )
             },
         )
@@ -90,7 +90,10 @@ private data class ComparisonPoints(
     fun distance() = calculateDistance(LAYOUT_SRID, oldPoint, newPoint)
 }
 
-private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment): List<List<LayoutSegment>> {
+private fun getChangedAlignmentRanges(
+    old: LocationTrackGeometry,
+    new: LocationTrackGeometry,
+): List<List<LayoutSegment>> {
     val newIndexByGeometryId =
         new.segments.mapIndexed { i, s -> i to s }.associate { (index, segment) -> segment.geometry.id to index }
     val changedOldSegmentIndexRanges =
@@ -105,11 +108,11 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
 
 fun summarizeAlignmentChanges(
     geocodingContext: GeocodingContext,
-    oldAlignment: LayoutAlignment,
-    newAlignment: LayoutAlignment,
+    oldGeometry: LocationTrackGeometry,
+    newGeometry: LocationTrackGeometry,
     changeThreshold: Double = 1.0,
 ): List<GeometryChangeSummary> {
-    val changedRanges = getChangedAlignmentRanges(oldAlignment, newAlignment)
+    val changedRanges = getChangedAlignmentRanges(oldGeometry, newGeometry)
     return changedRanges
         .mapNotNull { oldSegments ->
             val oldPoints = oldSegments.flatMap { segment -> segment.segmentPoints }
@@ -120,7 +123,7 @@ fun summarizeAlignmentChanges(
                     .map { (index, oldPoint) ->
                         geocodingContext.getAddressAndM(oldPoint)?.let { (address, mOnReferenceLine) ->
                             geocodingContext
-                                .getTrackLocation(newAlignment, address)
+                                .getTrackLocation(newGeometry, address)
                                 ?.let { newAddressPoint ->
                                     ComparisonPoints(mOnReferenceLine, index, oldPoint, newAddressPoint.point)
                                 }

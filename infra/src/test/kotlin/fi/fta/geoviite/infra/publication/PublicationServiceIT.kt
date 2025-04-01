@@ -54,6 +54,7 @@ import fi.fta.geoviite.infra.tracklayout.StoredAssetId
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asDesignDraft
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -63,17 +64,11 @@ import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import java.math.BigDecimal
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -83,6 +78,14 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import java.math.BigDecimal
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1156,26 +1159,25 @@ constructor(
 
         val locationTrack =
             mainOfficialContext
-                .saveLocationTrack(
-                    locationTrackAndGeometry(
-                        trackNumber,
-                        segment(Point(0.0, 0.0), Point(10.0, 10.0))
-                            .copy(startJointNumber = JointNumber(1), switchId = switch),
-                    )
+                .save(
+                    locationTrack(trackNumber),
+                    trackGeometry(
+                        edge(
+                            startInnerSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+                        )
+                    ),
                 )
                 .id
 
-        val editedAlignmentVersion =
-            alignmentDao.insert(
-                alignment(
-                    segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(endJointNumber = JointNumber(1), switchId = switch)
-                )
-            )
         testDraftContext.save(
-            asDesignDraft(
-                mainOfficialContext.fetch(locationTrack)!!.copy(alignmentVersion = editedAlignmentVersion),
-                testBranch.designId,
-            )
+            asDesignDraft(mainOfficialContext.fetch(locationTrack)!!, testBranch.designId),
+            trackGeometry(
+                edge(
+                    endInnerSwitch = switchLinkYV(switch, 1),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+                )
+            ),
         )
 
         publicationTestSupportService.publishAndVerify(

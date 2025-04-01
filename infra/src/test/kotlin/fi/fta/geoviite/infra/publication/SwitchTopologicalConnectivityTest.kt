@@ -12,15 +12,18 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.combineEdges
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureRR54_4x1_9
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
-import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import org.junit.jupiter.api.Test
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
 
 class SwitchTopologicalConnectivityTest {
 
@@ -324,17 +327,17 @@ class SwitchTopologicalConnectivityTest {
                     },
             )
         val geometry =
-            trackGeometryOfSegments(
-                // TODO: GVT-2927
-                switchLinks.mapIndexed { index, link ->
-                    segment(
-                        Point(0.0, index.toDouble()),
-                        Point(0.0, index.toDouble() + 1.0),
-                        switchId = link?.switchId,
-                        startJointNumber = link?.startJointNumber,
-                        endJointNumber = link?.endJointNumber,
-                    )
-                }
+            trackGeometry(
+                combineEdges(
+                    switchLinks.mapIndexed { index, link ->
+                        edge(
+                            startInnerSwitch =
+                                link?.startJointNumber?.let { n -> switchLinkYV(link.switchId, n.intValue) },
+                            endInnerSwitch = link?.endJointNumber?.let { n -> switchLinkYV(link.switchId, n.intValue) },
+                            segments = listOf(segment(Point(0.0, index.toDouble()), Point(0.0, index.toDouble() + 1.0))),
+                        )
+                    }
+                )
             )
         return locationTrack to geometry
     }

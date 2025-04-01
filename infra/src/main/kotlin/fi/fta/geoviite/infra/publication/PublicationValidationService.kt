@@ -462,27 +462,17 @@ constructor(
                     trackNumberName,
                     trackNumberIsCancelled = validationContext.trackNumberIsCancelled(track.trackNumberId),
                 )
-            // TODO: GVT-2933 Validation in topology model
-            val segmentSwitches: List<SegmentSwitch> = emptyList() // validationContext.getSegmentSwitches(alignment)
-            val switchSegmentIssues = validateSegmentSwitchReferences(track, segmentSwitches)
-            val topologicallyConnectedSwitchIssues =
-                validateTopologicallyConnectedSwitchReferences(
-                    track,
-                    validationContext.getTopologicallyConnectedSwitches(track),
-                )
+            val switchTrackLinkings: List<SwitchTrackLinking> = validationContext.getSwitchTrackLinks(geometry)
+            val switchTrackIssues = validateTrackSwitchReferences(track, switchTrackLinkings)
             val trackNetworkTopologyIssues =
                 validationContext.getPotentiallyAffectedSwitches(id).filter(LayoutSwitch::exists).flatMap { switch ->
                     val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
                     val switchTracks = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
-                    // TODO: GVT-2933 Validation in topology model
-                    //                    validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
-                    emptyList<LayoutValidationIssue>()
+                    validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
                 }
             val switchConnectivityIssues =
                 if (track.exists) {
-                    // TODO: GVT-2933 Validation in topology model
-                    //                    validateLocationTrackSwitchConnectivity(track, alignment)
-                    emptyList<LayoutValidationIssue>()
+                    validateLocationTrackSwitchConnectivity(track, geometry)
                 } else {
                     emptyList()
                 }
@@ -520,8 +510,7 @@ constructor(
                 )
 
             (referenceIssues +
-                switchSegmentIssues +
-                topologicallyConnectedSwitchIssues +
+                switchTrackIssues +
                 duplicateIssues +
                 alignmentIssues +
                 geocodingIssues +
