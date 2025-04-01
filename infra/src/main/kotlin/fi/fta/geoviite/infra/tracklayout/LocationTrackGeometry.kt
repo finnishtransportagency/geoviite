@@ -56,7 +56,8 @@ sealed class LocationTrackGeometry : IAlignment {
 
     @get:JsonIgnore
     open val nodes: List<LayoutNode> by lazy {
-        // Init-block ensures that edges are connected: previous edge end node is the next edge start node
+        // Init-block ensures that edges are connected: previous edge end node is the next edge
+        // start node
         edges.flatMapIndexed { i, e ->
             if (i == edges.lastIndex) listOf(e.startNode.node, e.endNode.node) else listOf(e.startNode.node)
         }
@@ -65,7 +66,8 @@ sealed class LocationTrackGeometry : IAlignment {
     @get:JsonIgnore
     open val nodesWithLocation: List<Pair<LayoutNode, AlignmentPoint>> by lazy {
         edgesWithM.flatMapIndexed { i, (e, m) ->
-            // Init-block ensures that edges are connected: previous edge end node is the next edge start node
+            // Init-block ensures that edges are connected: previous edge end node is the next edge
+            // start node
             if (i == edges.lastIndex) {
                 listOf(
                     e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min),
@@ -87,7 +89,8 @@ sealed class LocationTrackGeometry : IAlignment {
     @get:JsonIgnore
     val trackSwitchLinks: List<TrackSwitchLink> by lazy {
         edgesWithM.flatMapIndexed { i, (e, m) ->
-            // Init-block ensures that edges are connected: previous edge end node is the next edge start node
+            // Init-block ensures that edges are connected: previous edge end node is the next edge
+            // start node
             val startSwitches =
                 e.startNode.switches.map { TrackSwitchLink(it, e.firstSegmentStart.toAlignmentPoint(m.min)) }
             val endSwitches =
@@ -167,13 +170,37 @@ sealed class LocationTrackGeometry : IAlignment {
         return start to end
     }
 
-    fun getEdgeAtMOrThrow(m:Double):LayoutEdge {
-        return requireNotNull(getEdgeAtM(m)) {"Geometry does not contain edge at m $m"}
+    fun getEdgeAtMOrThrow(m: Double): LayoutEdge {
+        return requireNotNull(getEdgeAtM(m)) { "Geometry does not contain edge at m $m" }
     }
 
-    fun getEdgeAtM(m:Double):LayoutEdge? {
+    fun getEdgeAtM(m: Double): LayoutEdge? {
         // TODO: optimize
-        return edgesWithM.firstOrNull{(_, mRange) -> mRange.contains(m)}?.first
+        return edgesWithM.firstOrNull { (_, mRange) -> mRange.contains(m) }?.first
+    }
+
+    fun withoutSwitch(switchId: IntId<LayoutSwitch>): LocationTrackGeometry {
+        return TmpLocationTrackGeometry(
+            edges.map { edge -> edge.withoutSwitch(switchId) }.let { edges -> combineEdges(edges) }
+        )
+    }
+
+    fun mergeEdges(edgesToMerge: List<LayoutEdge>): LocationTrackGeometry {
+        val newEdges =
+            edges
+                .fold(listOf<LayoutEdge>() to listOf<LayoutEdge>()) { (collectedEdges, collectedToMerge), edge ->
+                    if (!edgesToMerge.contains(edge) || edge == edges.last()) {
+                        // merge multiple into one
+                        val toMerge = collectedToMerge + edge
+                        val newSegments = toMerge.flatMap { edgeToMerge -> edgeToMerge.segments }
+                        val newEdge = TmpLayoutEdge(toMerge.first().startNode, toMerge.last().endNode, newSegments)
+                        collectedEdges + newEdge to listOf()
+                    } else if (edgesToMerge.contains(edge)) {
+                        collectedEdges to collectedToMerge + edge
+                    } else collectedEdges + edge to collectedToMerge
+                }
+                .first
+        return TmpLocationTrackGeometry(combineEdges(newEdges))
     }
 }
 
@@ -320,8 +347,10 @@ sealed class LayoutEdge : IAlignment {
 
 fun verifyEdgeContent(edge: LayoutEdge) {
     // TODO: GVT-2934 fix the data and re-enable this
-    // Our base data is broken so that there's bad edges like this. It's the same in original segments as well.
-    //        require(startNodeId != endNodeId) { "Start and end node must be different: start=$startNodeId
+    // Our base data is broken so that there's bad edges like this. It's the same in original
+    // segments as well.
+    //        require(startNodeId != endNodeId) { "Start and end node must be different:
+    // start=$startNodeId
     // end=$endNodeId" }
     require(edge.segments.isNotEmpty()) { "LayoutEdge must have at least one segment" }
     edge.segmentMValues.forEach { range ->
@@ -351,7 +380,8 @@ fun verifyEdgeContent(edge: LayoutEdge) {
     // TODO: GVT-2926 We shouldn't have edges like this, but we do. What's up?
     // We shouldn't really have edges between null and a joint, but due to old data, we do
     //        require(
-    //            startNode.switchOut == null || endNode.switchIn == null || startNode.switchOut?.id ==
+    //            startNode.switchOut == null || endNode.switchIn == null || startNode.switchOut?.id
+    // ==
     // endNode.switchIn?.id
     //        ) {
     //            "An edge that is switch internal geometry, can only be that for one switch:
@@ -509,6 +539,12 @@ sealed class LayoutNode {
     fun containsJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
         ports.any { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
 
+    fun containsInnerSwitch(switchId: IntId<LayoutSwitch>): Boolean =
+        portA.let { port -> (port as? SwitchLink)?.id == switchId }
+
+    fun containsInnerJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
+        portA.let { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
+
     abstract val type: LayoutNodeType
 
     @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(portA, portB) }
@@ -637,7 +673,8 @@ fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
                 combined.add(previous)
                 previous = next
             }
-            // Edges disagree on the switch content -> create a new combined node of their connected ports
+            // Edges disagree on the switch content -> create a new combined node of their connected
+            // ports
             else {
                 val endingNode = EdgeNode.switch(inner = previous.endNode.switchIn, outer = next.startNode.switchIn)
                 val startingNode = EdgeNode.switch(inner = previous.startNode.switchIn, outer = next.endNode.switchIn)

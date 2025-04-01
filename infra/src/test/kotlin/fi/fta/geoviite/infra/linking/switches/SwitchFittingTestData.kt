@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
@@ -19,6 +20,7 @@ import fi.fta.geoviite.infra.tracklayout.TmpTrackBoundaryNode
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.splitSegments
 
 fun asJointNumbers(vararg joints: Int): List<JointNumber> {
     return joints.map { joint -> JointNumber(joint) }
@@ -48,7 +50,13 @@ fun createTrack(
     val locationTrackId = IntId<LocationTrack>(trackName.hashCode())
     val startNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.START)
     val endNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.END)
-    val segments = segmentEndPoints.map { (start, end) -> segment(start, end) }
+    val (_, segments) =
+        segmentEndPoints.fold(0.0 to listOf<LayoutSegment>()) { (startM, segments), (start, end) ->
+            val segment = segment(from = start, to = end, startM = startM)
+            val newSegments = segments + segment
+            val newStartM = startM + segment.length
+            newStartM to newSegments
+        }
     val startEdgeNode = TmpEdgeNode(NodePortType.A, startNode)
     val endEdgeNode = TmpEdgeNode(NodePortType.A, endNode)
     val edge = TmpLayoutEdge(startEdgeNode, endEdgeNode, segments)
@@ -57,6 +65,24 @@ fun createTrack(
     val locationTrack =
         locationTrack(trackNumberId = trackNumberId, geometry = geometry, id = locationTrackId, name = trackName)
     return locationTrack to geometry
+}
+
+fun createContinuingTrack(track: TrackForSwitchFitting, length: Double, trackName: String): TrackForSwitchFitting {
+    val points = track.geometry.allSegmentPoints.toList()
+    val directionVector = (points[points.lastIndex] - points[points.lastIndex - 1]).normalized()
+    val start = points.last()
+    val end = points.last() + directionVector * length
+    val (locationTrack, geometry) = createTrack(listOf(start to end), trackName)
+    return TrackForSwitchFitting(listOf(), locationTrack, geometry)
+}
+
+fun createPrependingTrack(track: TrackForSwitchFitting, length: Double, trackName: String): TrackForSwitchFitting {
+    val points = track.geometry.allSegmentPoints.toList()
+    val directionVector = (points[1] - points[0]).normalized()
+    val start = points.first() - directionVector * length
+    val end = points.first()
+    val (locationTrack, geometry) = createTrack(listOf(start to end), trackName)
+    return TrackForSwitchFitting(listOf(), locationTrack, geometry)
 }
 
 fun expandTrackFromStart(
@@ -79,6 +105,38 @@ fun expandTrackFromStart(
             id = locationTrack.id as IntId,
             name = locationTrack.name.toString(),
         )
+    return newLocationTrack to newGeometry
+}
+
+fun cutFromStart(
+    locationTrack: LocationTrack,
+    geometry: LocationTrackGeometry,
+    length: Double,
+): Pair<LocationTrack, LocationTrackGeometry> {
+    val cutPosition = length
+    val newEdges =
+        geometry.edgesWithM.mapNotNull { (edge, range) ->
+            if (cutPosition <= range.min)
+            // is fully included
+            edge
+            else if (cutPosition >= range.max)
+            // is fully excluded
+            null
+            else {
+                // is partly included
+                val newSegments = splitSegments(cutPosition, edge.segmentsWithM).second
+                edge.withSegments(newSegments)
+            }
+        }
+    var newGeometry = TmpLocationTrackGeometry(newEdges)
+    val newLocationTrack =
+        locationTrack(
+            trackNumberId = locationTrack.trackNumberId,
+            geometry = newGeometry,
+            id = locationTrack.id as IntId,
+            name = locationTrack.name.toString(),
+        )
+
     return newLocationTrack to newGeometry
 }
 

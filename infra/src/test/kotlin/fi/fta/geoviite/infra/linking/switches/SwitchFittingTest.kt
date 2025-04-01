@@ -19,6 +19,23 @@ data class TrackForSwitchFitting(
     val locationTrack: LocationTrack,
     val geometry: LocationTrackGeometry,
 ) {
+    val locationTrackId = locationTrack.id as IntId
+    val trackAndGeometry = locationTrack to geometry
+
+    fun startPoint(): IPoint {
+        return requireNotNull(geometry.start)
+    }
+
+    fun getPointAtM(m: Double): IPoint? {
+        return geometry.getPointAtM(m)
+    }
+
+    fun cutFromStart(length: Double): TrackForSwitchFitting {
+        return cutFromStart(locationTrack, geometry, length).let { (locationTrack, geometry) ->
+            this.copy(locationTrack = locationTrack, geometry = geometry)
+        }
+    }
+
     fun expandFromStart(length: Double): TrackForSwitchFitting {
         return expandTrackFromStart(locationTrack, geometry, length).let { (locationTrack, geometry) ->
             this.copy(locationTrack = locationTrack, geometry = geometry)
@@ -42,9 +59,9 @@ class SwitchFittingTest {
         //    | /
         //  1 |/ 1
         //
-        // Track 1-5-2 is going straight, track 1-3 is a diverging track.
+        // Track 1-5-2 is going straight
+        // Track 1-3 is a diverging track.
         // Geometry is optimal, tracks intersect at joint 1.
-        // No existing switch.
 
         // init data
         val switchStructure = YV60_300_1_9_O()
@@ -52,8 +69,8 @@ class SwitchFittingTest {
         val track13 = createTrack(switchStructure, asJointNumbers(1, 3))
 
         // fit switch
-        val point = track152.geometry.start!!
-        val fitted = fitSwitch(point, switchStructure, listOf(track152, track13))
+        val targetPoint = track152.startPoint()
+        val fitted = fitSwitch(targetPoint, switchStructure, listOf(track152, track13))
 
         // assert
         val distance1to5 = switchJointDistance(switchStructure, 1, 5)
@@ -62,7 +79,9 @@ class SwitchFittingTest {
         assertJoint(fitted, 1, track152.locationTrack, 0.0)
         assertJoint(fitted, 5, track152.locationTrack, distance1to5)
         assertJoint(fitted, 2, track152.locationTrack, distance1to2)
+        assertJoint(fitted, 1, track13.locationTrack, 0.0)
         assertJoint(fitted, 3, track13.locationTrack, distance1to3)
+        assertMatchCount(fitted, 5)
     }
 
     @Test
@@ -77,9 +96,9 @@ class SwitchFittingTest {
         //    |
         //    |
         //
-        // Track 1-5-2 is going straight and trough, track 1-3 is a diverging track.
+        // Track 1-5-2 is going straight and trough
+        // Track 1-3 is a diverging track.
         // Geometry is optimal, tracks intersect at joint 1.
-        // No existing switch.
 
         // init data
         val switchStructure = YV60_300_1_9_O()
@@ -91,8 +110,8 @@ class SwitchFittingTest {
         val track13 = createTrack(switchStructure, asJointNumbers(1, 3))
 
         // fit switch
-        val point = track152.geometry.getPointAtM(extraTrackLength)!!
-        val fitted = fitSwitch(point, switchStructure, listOf(track152, track13))
+        val targetPoint = track152.getPointAtM(extraTrackLength)!!
+        val fitted = fitSwitch(targetPoint, switchStructure, listOf(track152, track13))
 
         // assert
         val distance1to5 = switchJointDistance(switchStructure, 1, 5)
@@ -101,7 +120,88 @@ class SwitchFittingTest {
         assertJoint(fitted, 1, track152.locationTrack, expectedM = 0.0 + extraTrackLength)
         assertJoint(fitted, 5, track152.locationTrack, expectedM = distance1to5 + extraTrackLength)
         assertJoint(fitted, 2, track152.locationTrack, expectedM = distance1to2 + extraTrackLength)
+        assertJoint(fitted, 1, track13.locationTrack, 0.0)
         assertJoint(fitted, 3, track13.locationTrack, expectedM = distance1to3)
+        assertMatchCount(fitted, 5)
+    }
+
+    @Test
+    fun `Should find correct joint positions for YV switch in a case of three connecting tracks`() {
+        // track A   track C
+        //  2 |    / 3
+        //    |   /
+        //  5 |  /
+        //    | /
+        //  1 |/ 1
+        //    T
+        //    |
+        //  track B
+        //
+        // Track B ends at joint 1
+        // Track A starts from joint 1
+        // Track C is diverging track
+        // Geometry is optimal
+
+        // init data
+        val switchStructure = YV60_300_1_9_O()
+        val trackBLength = 20.0
+        val trackA = createTrack(switchStructure, asJointNumbers(1, 5, 2))
+        val trackB = createPrependingTrack(trackA, trackBLength, "Track B")
+        val trackC = createTrack(switchStructure, asJointNumbers(1, 3))
+
+        // fit switch
+        val targetPoint = trackA.startPoint()
+        val fitted = fitSwitch(targetPoint, switchStructure, listOf(trackA, trackB, trackC))
+
+        // assert
+        val distance1to5 = switchJointDistance(switchStructure, 1, 5)
+        val distance1to2 = switchAlignmentLength(switchStructure, 1, 2)
+        val distance1to3 = switchAlignmentLength(switchStructure, 1, 3)
+        assertJoint(fitted, 1, trackA.locationTrack, expectedM = 0.0)
+        assertJoint(fitted, 5, trackA.locationTrack, expectedM = distance1to5)
+        assertJoint(fitted, 2, trackA.locationTrack, expectedM = distance1to2)
+        assertJoint(fitted, 1, trackC.locationTrack, expectedM = 0.0)
+        assertJoint(fitted, 3, trackC.locationTrack, expectedM = distance1to3)
+        assertJoint(fitted, 1, trackB.locationTrack, expectedM = trackBLength)
+        assertMatchCount(fitted, 6)
+    }
+
+    @Test
+    fun `XXX`() {
+        // track A   track C
+        //  2 |    / 3
+        //    |   /
+        //  5 |  /
+        //    | /
+        //  1 ╋/ 1
+        //    |
+        //    |
+        // track B
+        //
+        // In this case geometry is not optimal.
+        // Track B ends slightly after joint 1
+        // Track A continues from track B
+
+        // init data
+        val switchStructure = YV60_300_1_9_O()
+        val positioningErrorInMeters = 0.1
+        val trackBLength = 20.0
+        val trackA = createTrack(switchStructure, asJointNumbers(1, 5, 2)).cutFromStart(positioningErrorInMeters)
+        val trackB = createPrependingTrack(trackA, trackBLength, "track B")
+        val trackC = createTrack(switchStructure, asJointNumbers(1, 3))
+
+        // fit switch
+        val targetPoint = trackC.geometry.start!!
+        val fitted = fitSwitch(targetPoint, switchStructure, listOf(trackA, trackB, trackC))
+
+        // assert
+        val distance1to5 = switchJointDistance(switchStructure, 1, 5)
+        val distance1to2 = switchAlignmentLength(switchStructure, 1, 2)
+        val distance1to3 = switchAlignmentLength(switchStructure, 1, 3)
+        assertJoint(fitted, 1, trackA.locationTrack, expectedM = 0.0)
+        assertJoint(fitted, 5, trackA.locationTrack, expectedM = distance1to5)
+        assertJoint(fitted, 2, trackA.locationTrack, expectedM = distance1to2)
+        assertJoint(fitted, 3, trackC.locationTrack, expectedM = distance1to3)
     }
 
     @Test
@@ -185,6 +285,10 @@ fun assertJoint(fitted: FittedSwitch, joint: Int, track: LocationTrack, expected
     assertEquals(1, matches.count(), "Expecting one match per location track \"${track.name}\" and joint $joint")
     val match = matches.first()
     assertEquals(expectedM, match.m, 0.001, "M-value is not matching")
+}
+
+fun assertMatchCount(fitted: FittedSwitch, matchCount: Int) {
+    assertEquals(matchCount, fitted.joints.sumOf { joint -> joint.matches.size }, "Match count does not match!")
 }
 
 /** Utility function to hide fitting implementation details. */

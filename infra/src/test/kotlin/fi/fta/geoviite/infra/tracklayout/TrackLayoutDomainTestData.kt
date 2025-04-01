@@ -629,11 +629,13 @@ fun attachSwitchToStart(
     //            segments =
     //                geometry.segments.mapIndexed { index, segment ->
     //                    when (index) {
-    //                        0 -> segment.copy(switchId = switchId, startJointNumber = JointNumber(1))
+    //                        0 -> segment.copy(switchId = switchId, startJointNumber =
+    // JointNumber(1))
     //
     //                        1 -> segment.copy(switchId = switchId)
     //
-    //                        2 -> segment.copy(switchId = switchId, endJointNumber = JointNumber(2))
+    //                        2 -> segment.copy(switchId = switchId, endJointNumber =
+    // JointNumber(2))
     //
     //                        else -> segment
     //                    }
@@ -661,11 +663,13 @@ fun attachSwitchToEnd(
     //            segments =
     //                alignment.segments.mapIndexed { index, segment ->
     //                    when (index) {
-    //                        segmentCount - 3 -> segment.copy(switchId = switchId, startJointNumber = JointNumber(2))
+    //                        segmentCount - 3 -> segment.copy(switchId = switchId, startJointNumber
+    // = JointNumber(2))
     //
     //                        segmentCount - 2 -> segment.copy(switchId = switchId)
     //
-    //                        segmentCount - 1 -> segment.copy(switchId = switchId, endJointNumber = JointNumber(1))
+    //                        segmentCount - 1 -> segment.copy(switchId = switchId, endJointNumber =
+    // JointNumber(1))
     //
     //                        else -> segment
     //                    }
@@ -693,11 +697,13 @@ fun attachSwitchToIndex(
     //        segments =
     //            alignment.segments.mapIndexed { index, segment ->
     //                when (index) {
-    //                    segmentIndex -> segment.copy(switchId = switchId, startJointNumber = JointNumber(1))
+    //                    segmentIndex -> segment.copy(switchId = switchId, startJointNumber =
+    // JointNumber(1))
     //
     //                    segmentIndex + 1 -> segment.copy(switchId = switchId)
     //
-    //                    segmentIndex + 2 -> segment.copy(switchId = switchId, endJointNumber = JointNumber(2))
+    //                    segmentIndex + 2 -> segment.copy(switchId = switchId, endJointNumber =
+    // JointNumber(2))
     //
     //                    else -> segment
     //                }
@@ -719,11 +725,13 @@ fun attachSwitchToIndex(
     //        segments =
     //            alignment.segments.mapIndexed { index, segment ->
     //                when (index) {
-    //                    segmentIndex -> segment.copy(switchId = switch.id as IntId, startJointNumber = JointNumber(1))
+    //                    segmentIndex -> segment.copy(switchId = switch.id as IntId,
+    // startJointNumber = JointNumber(1))
     //
     //                    segmentIndex + 1 -> segment.copy(switchId = switch.id as IntId)
     //
-    //                    segmentIndex + 2 -> segment.copy(switchId = switch.id as IntId, endJointNumber =
+    //                    segmentIndex + 2 -> segment.copy(switchId = switch.id as IntId,
+    // endJointNumber =
     // JointNumber(2))
     //
     //                    else -> segment
@@ -926,8 +934,10 @@ fun segment(points: Int, minX: Double, maxX: Double, minY: Double, maxY: Double)
 
 fun segment(points: Int, start: Point, end: Point) = segment(points, start.x, end.x, start.y, end.y)
 
-fun segment(from: IPoint, to: IPoint): LayoutSegment {
-    return segment(toSegmentPoints(to3DMPoints((listOf(from) + middlePoints(from, to) + listOf(to)).distinct())))
+fun segment(from: IPoint, to: IPoint, startM: Double = 0.0): LayoutSegment {
+    return segment(
+        toSegmentPoints(to3DMPoints((listOf(from) + middlePoints(from, to) + listOf(to)).distinct(), startM))
+    )
 }
 
 private fun middlePoints(from: IPoint, to: IPoint) =
