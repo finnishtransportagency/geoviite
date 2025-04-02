@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 
-data class ApiLocationTrackType(val locationTrackType: LocationTrackType) {
+data class ExtLocationTrackTypeV1(val locationTrackType: LocationTrackType) {
 
     @JsonValue
     override fun toString(): String {
@@ -17,7 +17,7 @@ data class ApiLocationTrackType(val locationTrackType: LocationTrackType) {
     }
 }
 
-data class ApiLocationTrackState(val locationTrackState: LocationTrackState) {
+data class ExtLocationTrackStateV1(val locationTrackState: LocationTrackState) {
     @JsonValue
     override fun toString(): String {
         return when (locationTrackState) {
