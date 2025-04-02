@@ -28,7 +28,7 @@ class RemarksUpdaterServiceTest {
     }
 
     @Test
-    fun `summarizeAlignmentChanges detects multiple changes based on segment identity match`() {
+    fun `summarizeAlignmentChanges detects multiple changes on different segments`() {
         val oldAlignment =
             alignment(
                 ((0..4).map { segmentIx ->
@@ -46,10 +46,10 @@ class RemarksUpdaterServiceTest {
 
         val result = summarizeAlignmentChanges(xAxisGeocodingContext(), oldAlignment, newAlignment)
         assertEquals(2, result.size)
-        assertEquals(1.4, result[0].maxDistance, 0.1)
+        assertEquals(1.5, result[0].maxDistance, 0.1)
         assertEquals(2.0, result[0].changedLengthM)
-        assertEquals(5.0, result[1].maxDistance, 0.1)
-        assertEquals(5.0, result[1].changedLengthM)
+        assertEquals(4.0, result[1].maxDistance, 0.1)
+        assertEquals(4.0, result[1].changedLengthM)
     }
 
     @Test
