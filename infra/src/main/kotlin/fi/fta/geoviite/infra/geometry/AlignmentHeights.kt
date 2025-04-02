@@ -4,10 +4,15 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.util.FileName
+
+data class KmTicks(val kmNumber: KmNumber, val ticks: List<TrackMeterTick>, val endM: Double)
+
+data class TrackMeterTick(val addressPoint: AddressPoint, val segmentIndex: Int?)
 
 data class TrackMeterHeight(val m: Double, val meter: Double, val height: Double?, val point: Point)
 

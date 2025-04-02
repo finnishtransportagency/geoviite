@@ -6,20 +6,18 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
 import fi.fta.geoviite.infra.geocoding.getIndexRangeForRangeInOrderedList
-import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.util.processFlattened
 import java.math.BigDecimal
 
-fun collectTrackMeterHeights(
+fun collectTrackMeterTicks(
     startDistance: Double,
     endDistance: Double,
     geocodingContext: GeocodingContext,
     alignment: IAlignment,
     tickLength: Int,
     geometryAlignmentBoundaryPoints: List<GeometryAlignmentBoundaryPoint> = listOf(),
-    getHeightAt: (point: AlignmentPoint, segmentIndex: Int?) -> Double?,
-): List<KmHeights>? {
+): List<KmTicks>? {
     val (alignmentStart, alignmentEnd) = geocodingContext.getStartAndEnd(alignment)
     if (alignmentStart == null || alignmentEnd == null) return null
 
@@ -44,25 +42,16 @@ fun collectTrackMeterHeights(
         val kmNumber = geocodingContext.referencePoints[referencePointIndex].kmNumber
         val kmTicks = ticksByKm[kmIndex]
         val kmTrackLocations = tickTrackLocationsByKm[kmIndex]
+        fun getTrackEndEndM() = getLastEndM(geocodingContext, referencePointIndices, alignmentEnd, alignment)
         val endM =
-            (if (referencePointIndex == referencePointIndices.last)
-                getLastEndM(geocodingContext, referencePointIndices, alignmentEnd, alignment)
-            else tickTrackLocationsByKm[kmIndex + 1].first().point.m)
+            (if (referencePointIndex == referencePointIndices.last) getTrackEndEndM()
+            else tickTrackLocationsByKm[kmIndex + 1].first()?.point?.m ?: getTrackEndEndM())
 
-        val trackKmHeights =
+        val trackKmTicks =
             kmTicks
-                .zip(kmTrackLocations) { tick, address ->
-                    TrackMeterHeight(
-                        address.point.m,
-                        address.address.meters.toDouble(),
-                        getHeightAt(address.point, tick.segmentIndex),
-                        address.point.toPoint(),
-                    )
-                }
-                // if different sides of a segment boundary have exactly the same height, the height
-                // ticks end up equal here: Throw one out as unneeded
-                .distinct()
-        KmHeights(kmNumber, trackKmHeights, endM)
+                .zip(kmTrackLocations) { tick, address -> address?.let { TrackMeterTick(address, tick.segmentIndex) } }
+                .filterNotNull()
+        KmTicks(kmNumber, trackKmTicks, endM)
     }
 }
 
@@ -239,16 +228,14 @@ private fun getTickTrackLocationsByKm(
     alignment: IAlignment,
     ticksByKm: List<List<TrackMeterHeightTick>>,
     referencePointIndices: IntRange,
-): List<List<AddressPoint>> {
+): List<List<AddressPoint?>> {
     val trackAddresses =
         ticksByKm.zip(referencePointIndices) { kmTicks, referencePointIndex ->
             val km = geocodingContext.referencePoints[referencePointIndex].kmNumber
             kmTicks.map { tick -> TrackMeter(km, tick.trackMeterInKm) }
         }
     return processFlattened(trackAddresses) { allTrackAddresses ->
-        // null-safety: ticksByKm came from fitKmTicksWithinAlignmentBounds, which
-        // drops all ticks outside the alignment bounds, so everything is geocodable.
-        geocodingContext.getTrackLocations(alignment, allTrackAddresses).map(::checkNotNull)
+        geocodingContext.getTrackLocations(alignment, allTrackAddresses)
     }
 }
 
