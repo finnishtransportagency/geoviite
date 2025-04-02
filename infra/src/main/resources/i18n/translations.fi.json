@@ -30,6 +30,9 @@
         },
         "track-layout": {
             "v1": {
+                "error": {
+                    "oid-not-found": "Pyynnön OID-tunnuksen perusteella ei löydetty kohdetta."
+                },
                 "center-line": {
                     "error": {
                         "invalid-location-track-oid": "Pyyntö sisälsi virheellisen OID-tunnuksen sijaintiraiteelle.",
