@@ -146,7 +146,7 @@ enum class CenterLineGeometryErrorV1(val code: Int, private val localizationSuff
 data class ExtCenterLineTrackIntervalV1(
     @JsonProperty("alku") val startAddress: String,
     @JsonProperty("loppu") val endAddress: String,
-    @JsonProperty("pisteet") val addressPoints: List<CenterLineGeometryPointV1>,
+    @JsonProperty("pisteet") val addressPoints: List<ExtCenterLineGeometryPointV1>,
 )
 
 data class CenterLineGeometryPointV1(
