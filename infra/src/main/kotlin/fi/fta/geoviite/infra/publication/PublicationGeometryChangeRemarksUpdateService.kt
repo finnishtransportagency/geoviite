@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 private const val GEOMETRY_CHANGE_BATCH_SIZE = 10
-private const val MINIMUM_M_DISTANCE_SEPARATING_ALIGNMENT_CHANGE_SUMMARIES = 10.0
 
 @Component
 class PublicationGeometryChangeRemarksUpdateService(
