@@ -524,6 +524,23 @@ constructor(
         assertTrue(publication.uuid.toString().isNotEmpty())
     }
 
+    @Test
+    fun `Publication can be found by its generated uuid`() {
+        val publication =
+            publicationDao
+                .createPublication(
+                    MainLayoutContext.official.branch,
+                    FreeTextWithNewLines.of("test publication"),
+                    PublicationCause.MANUAL,
+                )
+                .let(publicationDao::getPublication)
+
+        val publicationByUuid =
+            publicationDao.fetchPublicationIdByUuid(publication.uuid)?.let(publicationDao::getPublication)
+
+        assertEquals(publication.id, publicationByUuid?.id)
+    }
+
     private fun insertAndCheck(
         trackNumber: LayoutTrackNumber
     ): Pair<LayoutRowVersion<LayoutTrackNumber>, LayoutTrackNumber> {
