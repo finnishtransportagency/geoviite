@@ -2,9 +2,11 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -66,6 +68,49 @@ class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocat
                 modificationsFromVersion,
                 trackNetworkVersion,
                 coordinateSystem,
+            )
+            ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
+    }
+
+    @GetMapping("/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria")
+    fun extGetLocationTrackGeometry(
+        @PathVariable(LOCATION_TRACK_OID_PARAM) oid: Oid<LocationTrack>,
+        @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>? = null,
+        @RequestParam(ADDRESS_POINT_RESOLUTION, required = false) resolution: Resolution = Resolution.ONE_METER,
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid = LAYOUT_SRID,
+        @RequestParam(TRACK_KILOMETER_START_PARAM, required = false) trackKmStart: KmNumber? = null,
+        @RequestParam(TRACK_KILOMETER_END_PARAM, required = false) trackKmEnd: KmNumber? = null,
+    ): ExtLocationTrackGeometryResponseV1 {
+        return extLocationTrackService.locationTrackGeometryResponse(
+            oid,
+            trackNetworkVersion,
+            resolution,
+            coordinateSystem,
+            ExtTrackKilometerIntervalV1(trackKmStart, trackKmEnd),
+        )
+    }
+
+    @GetMapping(
+        "/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria",
+        params = [MODIFICATIONS_FROM_VERSION],
+    )
+    fun extGetLocationTrackGeometryModifications(
+        @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
+        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
+        @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>? = null,
+        @RequestParam(ADDRESS_POINT_RESOLUTION, required = false) resolution: Resolution = Resolution.ONE_METER,
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid = LAYOUT_SRID,
+        @RequestParam(TRACK_KILOMETER_START_PARAM, required = false) trackKmStart: KmNumber? = null,
+        @RequestParam(TRACK_KILOMETER_END_PARAM, required = false) trackKmEnd: KmNumber? = null,
+    ): ResponseEntity<ExtModifiedLocationTrackGeometryResponseV1> {
+        return extLocationTrackService
+            .locationTrackGeometryModificationResponse(
+                locationTrackOid,
+                modificationsFromVersion,
+                trackNetworkVersion,
+                resolution,
+                coordinateSystem,
+                ExtTrackKilometerIntervalV1(trackKmStart, trackKmEnd),
             )
             ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
     }
