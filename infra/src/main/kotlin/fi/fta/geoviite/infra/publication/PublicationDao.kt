@@ -2157,6 +2157,24 @@ class PublicationDao(
             rs.getInt("design_version")
         }
     }
+
+    fun fetchPublicationIdByUuid(uuid: Uuid<Publication>): IntId<Publication>? {
+        val sql =
+            """
+                select id from publication.publication 
+                where publication_uuid = :publication_uuid::uuid
+                limit 1
+            """
+                .trimIndent()
+
+        return jdbcTemplate.queryOptional(sql, mapOf("publication_uuid" to uuid.toString())) { rs, _ ->
+            rs.getIntId("id")
+        }
+    }
+
+    fun fetchPublicationByUuid(uuid: Uuid<Publication>): Publication? {
+        return fetchPublicationIdByUuid(uuid)?.let(::getPublication)
+    }
 }
 
 private fun <T> partitionDirectIndirectChanges(rows: List<Pair<Boolean, T>>) =
