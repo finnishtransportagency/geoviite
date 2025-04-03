@@ -6,15 +6,21 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.GeocodingCacheService
+import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
+import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -30,6 +36,8 @@ constructor(
     private val trackNumberService: LayoutTrackNumberService,
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val geocodingService: GeocodingService,
+    private val geocodingCacheService: GeocodingCacheService,
+    private val geocodingDao: GeocodingDao,
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
     private val publicationDao: PublicationDao,
@@ -46,16 +54,7 @@ constructor(
                 ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrack =
-            locationTrackDao
-                .lookupByExternalId(oid)
-                ?.let { layoutRowId ->
-                    locationTrackDao.fetchOfficialVersionAtMoment(
-                        layoutContext.branch,
-                        layoutRowId.id,
-                        publication.publicationTime,
-                    )
-                }
-                ?.let(locationTrackDao::fetch)
+            getLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
                 ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
 
         return ExtLocationTrackResponseV1(
@@ -180,6 +179,103 @@ constructor(
             trackNumberName = trackNumberName,
             trackNumberOid = trackNumberOid,
         )
+    }
+
+    fun locationTrackGeometryResponse(
+        oid: Oid<LocationTrack>,
+        trackNetworkVersion: Uuid<Publication>?,
+        resolution: Resolution,
+        coordinateSystem: Srid,
+        trackIntervalFilter: ExtTrackKilometerIntervalV1,
+    ): ExtLocationTrackGeometryResponseV1 {
+        val layoutContext = MainLayoutContext.official
+
+        val publication =
+            trackNetworkVersion?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull) }
+                ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+
+        val locationTrack =
+            getLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
+                ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
+
+        val geocodingContextCacheKey =
+            geocodingDao
+                .getLayoutGeocodingContextCacheKey(
+                    layoutContext.branch,
+                    locationTrack.trackNumberId,
+                    publication.publicationTime,
+                )
+                .let(::requireNotNull)
+
+        return ExtLocationTrackGeometryResponseV1(
+            trackNetworkVersion = publication.uuid,
+            trackIntervals =
+                getExtLocationTrackGeometry(
+                    locationTrack.getAlignmentVersionOrThrow(),
+                    geocodingContextCacheKey,
+                    trackIntervalFilter,
+                    resolution,
+                    coordinateSystem,
+                ),
+        )
+    }
+
+    fun getExtLocationTrackGeometry(
+        locationTrackAlignmentVersion: RowVersion<LayoutAlignment>,
+        geocodingContextCacheKey: GeocodingContextCacheKey,
+        trackIntervalFilter: ExtTrackKilometerIntervalV1,
+        resolution: Resolution,
+        coordinateSystem: Srid,
+    ): List<ExtCenterLineTrackIntervalV1> {
+        val alignmentAddresses =
+            geocodingService
+                .getAddressPoints(geocodingContextCacheKey, locationTrackAlignmentVersion, resolution)
+                .let(::requireNotNull)
+
+        val filteredPoints =
+            alignmentAddresses.allPoints.filter { trackIntervalFilter.containsKmEndInclusive(it.address.kmNumber) }
+
+        val (convertedMidPoints, conversionErrors) =
+            convertAddressPointsToRequestCoordinateSystem(coordinateSystem, filteredPoints)
+
+        // TODO This doesn't create changed intervals just yet
+        return listOf(
+            ExtCenterLineTrackIntervalV1(
+                startAddress = alignmentAddresses.startPoint.address.toString(),
+                endAddress = alignmentAddresses.endPoint.address.toString(),
+                addressPoints = convertedMidPoints?.map(CenterLineGeometryPointV1::of) ?: emptyList(),
+            )
+        )
+    }
+
+    fun getModifiedLocationTrackGeometry(
+
+    ): List<ExtCenterLineTrackIntervalV1> {
+
+    }
+
+    fun locationTrackGeometryModificationResponse(
+        oid: Oid<LocationTrack>,
+        modificationsFromVersion: Uuid<Publication>,
+        trackNetworkVersion: Uuid<Publication>?,
+        resolution: Resolution,
+        coordinateSystem: Srid,
+        trackIntervalFilter: ExtTrackKilometerIntervalV1,
+    ): ExtModifiedLocationTrackGeometryResponseV1? {
+        TODO()
+    }
+
+    private fun getLocationTrackByOidAtMoment(
+        oid: Oid<LocationTrack>,
+        layoutContext: LayoutContext,
+        moment: Instant,
+    ): LocationTrack? {
+        return locationTrackDao
+            .lookupByExternalId(oid)
+            ?.let { layoutRowId ->
+                locationTrackDao.fetchOfficialVersionAtMoment(layoutContext.branch, layoutRowId.id, moment)
+            }
+            ?.let(locationTrackDao::fetch)
     }
 }
 
