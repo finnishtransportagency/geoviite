@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -45,20 +46,29 @@ class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocat
     @GetMapping("/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
     fun extGetLocationTrack(
         @PathVariable(LOCATION_TRACK_OID_PARAM) oid: Oid<LocationTrack>,
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid = LAYOUT_SRID,
         @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>? = null,
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid = LAYOUT_SRID,
     ): ExtLocationTrackResponseV1 {
-        // TODO Network version search
-        return extLocationTrackService.locationTrackResponse(oid, coordinateSystem)
+        return extLocationTrackService.locationTrackResponse(oid, trackNetworkVersion, coordinateSystem)
     }
 
-    //    @GetMapping(
-    //        "/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}",
-    //        params = [MODIFICATIONS_FROM_VERSION],
-    //    )
-    //    fun extGetLocationTrackModifications (
-    //        @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
-    //        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid,
-    //        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
-    //    ): ExtModifiedLocationTrackResponseV1 {}
+    @GetMapping(
+        "/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}",
+        params = [MODIFICATIONS_FROM_VERSION],
+    )
+    fun extGetLocationTrackModifications(
+        @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
+        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
+        @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>? = null,
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid = LAYOUT_SRID,
+    ): ResponseEntity<ExtModifiedLocationTrackResponseV1> {
+        return extLocationTrackService
+            .locationTrackModificationResponse(
+                locationTrackOid,
+                modificationsFromVersion,
+                trackNetworkVersion,
+                coordinateSystem,
+            )
+            ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
+    }
 }
