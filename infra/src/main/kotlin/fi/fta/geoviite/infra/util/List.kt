@@ -28,5 +28,24 @@ fun <T> chunkBySizes(list: List<T>, sizes: List<Int>): List<List<T>> {
     return sizes.zip(starts) { size, start -> list.subList(start, start + size) }
 }
 
+/**
+ * Flattens the given lists, calls process() on the result, and returns the result of that chunked back to the original
+ * lists' sizes.
+ */
 fun <T, R> processFlattened(lists: List<List<T>>, process: (listIn: List<T>) -> List<R>): List<List<R>> =
     chunkBySizes(process(lists.flatten()), lists.map { it.size })
+
+/**
+ * Sorts the given list, calls process() on the result, and sorts the results back to correspond to the original order.
+ */
+fun <T, R> processSortedBy(list: List<T>, comparator: Comparator<T>, process: (listIn: List<T>) -> List<R>): List<R> {
+    val withOriginalIndices = list.indices.zip(list).sortedWith(Comparator.comparing({ it.second }, comparator))
+    val processed = process(withOriginalIndices.map { it.second })
+    assert(withOriginalIndices.size == processed.size) {
+        "processSortedBy expected ${withOriginalIndices.size} results from process() but got ${processed.size}"
+    }
+    val rv: MutableList<R?> = MutableList(list.size) { null }
+    withOriginalIndices.forEachIndexed { index, (originalIndex) -> rv[originalIndex] = processed[index] }
+    @Suppress("UNCHECKED_CAST")
+    return rv as List<R>
+}
