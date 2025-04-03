@@ -274,7 +274,14 @@ constructor(
         updateExternalId(branch, request.content + inheritedChangeIds)
         val calculatedChanges = calculatedChangesService.getCalculatedChanges(versions)
         val mainPublication =
-            PreparedPublicationRequest(branch, versions, calculatedChanges, request.message, PublicationCause.MANUAL)
+            PreparedPublicationRequest(
+                branch,
+                versions,
+                calculatedChanges,
+                request.message,
+                PublicationCause.MANUAL,
+                parentId = null,
+            )
         // publication results already only include direct changes, and all inherited changes are
         // indirect, so all but the first publication result are empty -> can be thrown out
         return publishPublicationRequests(mainPublication, inheritedChanges).first()
@@ -288,7 +295,7 @@ constructor(
         cause: PublicationCause,
     ): PublicationResultSummary =
         publishPublicationRequests(
-                PreparedPublicationRequest(branch, versions, calculatedChanges, message, cause),
+                PreparedPublicationRequest(branch, versions, calculatedChanges, message, cause, parentId = null),
                 mapOf(),
             )
             .first()
@@ -318,7 +325,7 @@ constructor(
                 enrichDuplicateNameExceptionOrRethrow(inheritedChanges.keys + mainPublication.branch, exception)
             }
         results.forEach { result ->
-            result.publicationId?.let { publicationGeometryChangeRemarksUpdateService.processPublication(it) }
+            result.publicationId.let { publicationGeometryChangeRemarksUpdateService.processPublication(it) }
         }
         return results
     }
@@ -403,7 +410,7 @@ constructor(
         val switches = versions.switches.map { v -> switchService.publish(branch, v) }
         val referenceLines = versions.referenceLines.map { v -> referenceLineService.publish(branch, v) }
         val locationTracks = versions.locationTracks.map { v -> locationTrackService.publish(branch, v) }
-        val publicationId = publicationDao.createPublication(branch, message, cause)
+        val publicationId = publicationDao.createPublication(branch, message, cause, request.parentId)
         publicationDao.insertCalculatedChanges(
             publicationId,
             calculatedChanges,

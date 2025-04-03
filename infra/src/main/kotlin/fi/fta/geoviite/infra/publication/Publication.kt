@@ -87,7 +87,11 @@ data object PublishedInMain : PublishedInBranch() {
     override val branch = LayoutBranch.main
 }
 
-data class PublishedInDesign(val designBranch: DesignBranch, @JsonIgnore val designVersion: Int) : PublishedInBranch() {
+data class PublishedInDesign(
+    val designBranch: DesignBranch,
+    @JsonIgnore val designVersion: Int,
+    val parentPublicationId: IntId<Publication>?,
+) : PublishedInBranch() {
     override val branch = designBranch
 }
 
@@ -338,7 +342,7 @@ data class PublicationRequestIds(
 data class PublicationRequest(val content: PublicationRequestIds, val message: FreeTextWithNewLines)
 
 data class PublicationResult(
-    val publicationId: IntId<Publication>?,
+    val publicationId: IntId<Publication>,
     val trackNumbers: List<PublicationResultVersions<LayoutTrackNumber>>,
     val referenceLines: List<PublicationResultVersions<ReferenceLine>>,
     val locationTracks: List<PublicationResultVersions<LocationTrack>>,
@@ -704,6 +708,7 @@ data class PreparedPublicationRequest(
     val calculatedChanges: CalculatedChanges,
     val message: FreeTextWithNewLines,
     val cause: PublicationCause,
+    val parentId: IntId<Publication>?,
 )
 
 data class PublicationResultVersions<T : LayoutAsset<T>>(
