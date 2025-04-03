@@ -68,6 +68,7 @@ constructor(
                 LayoutBranch.main,
                 FreeTextWithNewLines.of("successful"),
                 PublicationCause.MANUAL,
+                parentId = null,
             )
         publicationDao.insertCalculatedChanges(
             successfulPublicationId,
@@ -86,6 +87,7 @@ constructor(
                 LayoutBranch.main,
                 FreeTextWithNewLines.of("failing test publication"),
                 PublicationCause.MANUAL,
+                parentId = null,
             )
         publicationDao.insertCalculatedChanges(
             failingPublicationId,

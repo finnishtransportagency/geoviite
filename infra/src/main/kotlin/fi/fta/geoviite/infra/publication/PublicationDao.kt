@@ -362,6 +362,7 @@ class PublicationDao(
         layoutBranch: LayoutBranch,
         message: FreeTextWithNewLines,
         cause: PublicationCause,
+        parentId: IntId<Publication>?,
     ): IntId<Publication> {
         jdbcTemplate.setUser()
         val sql =
@@ -372,21 +373,28 @@ class PublicationDao(
               message,
               design_id,
               design_version,
-              cause)
+              cause,
+              parent_publication_id)
             (select
               current_setting('geoviite.edit_user'),
               now(),
               :message,
               :design_id,
               (select version from layout.design where id = :design_id),
-              :cause::publication.publication_cause)
+              :cause::publication.publication_cause,
+              :parent)
             returning id
         """
                 .trimIndent()
         val publicationId: IntId<Publication> =
             jdbcTemplate.queryForObject(
                 sql,
-                mapOf("message" to message, "design_id" to layoutBranch.designId?.intValue, "cause" to cause.name),
+                mapOf(
+                    "message" to message,
+                    "design_id" to layoutBranch.designId?.intValue,
+                    "cause" to cause.name,
+                    "parent" to parentId?.intValue,
+                ),
             ) { rs, _ ->
                 rs.getIntId("id")
             } ?: error("Failed to generate ID for new publication row")
@@ -521,7 +529,8 @@ class PublicationDao(
               message,
               design_id,
               design_version,
-              cause
+              cause,
+              parent_publication_id
             from publication.publication
             where publication.id = :id
         """
@@ -535,7 +544,8 @@ class PublicationDao(
                         publicationUser = rs.getString("publication_user").let(UserName::of),
                         publicationTime = rs.getInstant("publication_time"),
                         message = rs.getFreeTextWithNewLines("message"),
-                        layoutBranch = rs.getPublicationPublishedIn("design_id", "design_version"),
+                        layoutBranch =
+                            rs.getPublicationPublishedIn("design_id", "design_version", "parent_publication_id"),
                         cause = rs.getEnum("cause"),
                     )
                 },
@@ -585,7 +595,7 @@ class PublicationDao(
     fun fetchPublicationsBetween(layoutBranch: LayoutBranch, from: Instant?, to: Instant?): List<Publication> {
         val sql =
             """
-            select id, publication_user, publication_time, message, design_id, design_version, cause
+            select id, publication_user, publication_time, message, design_id, design_version, cause, parent_publication_id
             from publication.publication
             where (:from <= publication_time or :from::timestamptz is null) and (publication_time < :to or :to::timestamptz is null)
               and design_id is not distinct from :design_id
@@ -607,7 +617,7 @@ class PublicationDao(
                     publicationUser = rs.getString("publication_user").let(UserName::of),
                     publicationTime = rs.getInstant("publication_time"),
                     message = rs.getFreeTextWithNewLines("message"),
-                    layoutBranch = rs.getPublicationPublishedIn("design_id", "design_version"),
+                    layoutBranch = rs.getPublicationPublishedIn("design_id", "design_version", "parent_publication_id"),
                     cause = rs.getEnum("cause"),
                 )
             }
@@ -617,7 +627,7 @@ class PublicationDao(
     fun list(branchType: LayoutBranchType): List<Publication> {
         val sql =
             """
-            select id, publication_user, publication_time, message, design_id, design_version, cause
+            select id, publication_user, publication_time, message, design_id, design_version, cause, parent_publication_id
             from publication.publication
             where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
             order by id desc
@@ -633,7 +643,7 @@ class PublicationDao(
                     publicationUser = rs.getString("publication_user").let(UserName::of),
                     publicationTime = rs.getInstant("publication_time"),
                     message = rs.getFreeTextWithNewLines("message"),
-                    layoutBranch = rs.getPublicationPublishedIn("design_id", "design_version"),
+                    layoutBranch = rs.getPublicationPublishedIn("design_id", "design_version", "parent_publication_id"),
                     cause = rs.getEnum("cause"),
                 )
             }
@@ -643,7 +653,7 @@ class PublicationDao(
     fun fetchLatestPublications(branchType: LayoutBranchType, count: Int): List<Publication> {
         val sql =
             """
-            select id, publication_user, publication_time, message, design_id, design_version, cause
+            select id, publication_user, publication_time, message, design_id, design_version, cause, parent_publication_id
             from publication.publication
             where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
             order by id desc limit :count
@@ -659,7 +669,7 @@ class PublicationDao(
                     publicationUser = rs.getString("publication_user").let(UserName::of),
                     publicationTime = rs.getInstant("publication_time"),
                     message = rs.getFreeTextWithNewLines("message"),
-                    layoutBranch = rs.getPublicationPublishedIn("design_id", "design_version"),
+                    layoutBranch = rs.getPublicationPublishedIn("design_id", "design_version", "parent_publication_id"),
                     cause = rs.getEnum("cause"),
                 )
             }
