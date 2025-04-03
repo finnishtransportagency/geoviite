@@ -32,6 +32,8 @@ constructor(
     private val publicationDao: PublicationDao,
 ) {
     fun locationTrackResponse(oid: Oid<LocationTrack>, coordinateSystem: Srid): ExtLocationTrackResponseV1 {
+        // TODO Publicationilla on publicationTime-kenttä
+
         return ExtLocationTrackResponseV1(
             trackNetworkVersion =
                 publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single().uuid,
@@ -48,6 +50,8 @@ constructor(
             locationTrackDao.lookupByExternalId(oid)?.let { layoutRow ->
                 locationTrackService.get(layoutContext, layoutRow.id)
             } ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
+
+        // TODO locationTrackDao.fetchOfficialVersionAtMoment
 
         val trackNumberName =
             trackNumberService.get(layoutContext, locationTrack.trackNumberId).let(::requireNotNull).number
