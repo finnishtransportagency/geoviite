@@ -41,7 +41,7 @@ fun <T, R> processFlattened(lists: List<List<T>>, process: (listIn: List<T>) -> 
 fun <T, R> processSortedBy(list: List<T>, comparator: Comparator<T>, process: (listIn: List<T>) -> List<R>): List<R> {
     val withOriginalIndices = list.indices.zip(list).sortedWith(Comparator.comparing({ it.second }, comparator))
     val processed = process(withOriginalIndices.map { it.second })
-    assert(withOriginalIndices.size == processed.size) {
+    require(withOriginalIndices.size == processed.size) {
         "processSortedBy expected ${withOriginalIndices.size} results from process() but got ${processed.size}"
     }
     val rv: MutableList<R?> = MutableList(list.size) { null }

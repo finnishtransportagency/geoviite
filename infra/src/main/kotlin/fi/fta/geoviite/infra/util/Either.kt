@@ -64,10 +64,10 @@ fun <T, LeftValue, RightValue, Result> processPartitioned(
     }
     val leftResults = processLefts(lefts)
     val rightResults = processRights(rights)
-    assert(lefts.size == leftResults.size) {
+    require(lefts.size == leftResults.size) {
         "expected ${lefts.size} results from processLefts, but got ${leftResults.size}"
     }
-    assert(rights.size == rightResults.size) {
+    require(rights.size == rightResults.size) {
         "expected ${rights.size} results from processRights, but got ${rightResults.size}"
     }
     var leftIndex = 0
