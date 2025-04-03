@@ -1313,14 +1313,68 @@ fun linkJointToEdge(
     }
 }
 
+fun adjustJointPositions(switchStructure: SwitchStructure, jointsOnEdge: List<JointOnEdge>): List<JointOnEdge> {
+    val validJointSequences = getAllValidSwitchAlignmentJointSequences(switchStructure)
+    val jointsByLocationTrack = jointsOnEdge.groupBy { jointOnEdge -> jointOnEdge.locationTrackId }.toList()
+
+    // validit linjat
+    // 1-3
+    //
+    // 1-5-2
+
+    validJointSequences.flatMap { jointSequence ->
+        // Tarkasta validit raiteet
+        val validLocationTracks = jointsByLocationTrack.filter{ (_, jointsOnLocationTrack) ->
+            val jointNumbersOnLocationTrack = jointsOnLocationTrack.map { jointOnLocationTrack -> jointOnLocationTrack.jointNumber }
+            val hasAllJoints = jointNumbersOnLocationTrack.containsAll(jointSequence)
+            hasAllJoints // TODO: voiko olla liikaa jointteja?
+        }
+
+        // Validin lisäksi voi olla vajaa
+        // Entä jos löytyy vain yksi joint, esim. potentiaalinen "topologinen" liitos
+        // Tosin jos tälle raiteelle yrittää sovittaa muita jointteja, siirto tulisi liian kauas, joten ei pitäisi olla ongelma
+        val missingJointsByLocationTrack = jointsByLocationTrack.map{ (locationTrack, jointsOnLocationTrack) ->
+            val jointNumbersOnLocationTrack = jointsOnLocationTrack.map { jointOnLocationTrack -> jointOnLocationTrack.jointNumber }
+            val missingJoints = jointSequence.minus(jointNumbersOnLocationTrack)
+            locationTrack to missingJoints
+        }
+
+        val middleJointNumbers = jointSequence.drop(1).dropLast(1)
+
+        missingJointsByLocationTrack.map { (locationTrack, missingJointNumbers) ->
+            val isMissingMiddleJoint = missingJointNumbers.any { missingJointNumber -> middleJointNumbers.contains(missingJointNumber) }
+            if (isMissingMiddleJoint) {
+                // cannot fix this
+                null
+            } else {
+                // try to create missing joints
+                missingJointNumbers.map { missingJointNumber ->
+                    // selvitä sijoitus alkuun/loppuun
+                }
+
+            }
+        }
+
+        listOf<JointOnEdge>()
+    }
+}
+
 fun linkFittedSwitch(
     switchId: IntId<LayoutSwitch>,
     fittedSwitch: FittedSwitch,
     nearbyTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): List<Pair<LocationTrack, LocationTrackGeometry>> {
+    jatkuu näistä
+    // Siivoa vaihde pois edgeiltä
     val locationTracks = nearbyTracks.map { (locationTrack, _) -> locationTrack }
     val locationTracksById = locationTracks.associateBy { locationTrack -> locationTrack.id }
     val jointsOnEdges = mapFittedSwitchToEdges(fittedSwitch, nearbyTracks)
+    // jointtien liikuttelu
+    // - eli toleranssin rajoissa luodaan uusia jointtisijainteja, jotta saadaan vaihdelinjan jointit samalle raiteelle
+    // - tässä on tuettava vain sellaisia käyttötapauksia, joita ei voi ratkaista operaattorin muilla työkaluilla
+    //      - on tuettava esim. limittäisiä vaihteita
+    //
+
     val validatedJoints = validateJointsOnEdges(fittedSwitch.switchStructure, jointsOnEdges)
     val jointsOnSingleEdge = mergeJointsOnEdgesIntoSingleEdge(validatedJoints)
     val jointsByEdge = jointsOnSingleEdge.groupBy { joint -> joint.edge }
