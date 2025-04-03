@@ -388,6 +388,78 @@ constructor(
         assertMatches(geometry2, updatedGeometry)
     }
 
+    @Test
+    fun `Nearby node fetching works`() {
+        val track1Start = Point(100.0, 100.0)
+        val crossingPoint = Point(100.0, 200.0)
+        val track1End = Point(110.0, 300.0)
+        val track2Start = Point(200.0, 200.0)
+        val track3End = Point(120.0, 400.0)
+        val switchLink1 = switchLinkYV(IntId(1), 1)
+        val switchLink2 = switchLinkYV(IntId(2), 2)
+        val switchLink3 = switchLinkYV(IntId(3), 3)
+
+        assertEquals(emptyList(), alignmentDao.getNodeConnectionsNear(track1Start, MainLayoutContext.official, 1.0))
+        assertEquals(emptyList(), alignmentDao.getNodeConnectionsNear(track1Start, MainLayoutContext.draft, 1.0))
+
+        val (track1, geometry1) =
+            testDBService.fetchWithGeometry(
+                mainOfficialContext.save(
+                    locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
+                    trackGeometry(
+                        edge(endInnerSwitch = switchLink1, segments = listOf(segment(track1Start, crossingPoint))),
+                        edge(
+                            startInnerSwitch = switchLink1,
+                            endOuterSwitch = switchLink2,
+                            segments = listOf(segment(crossingPoint, track1End)),
+                        ),
+                    ),
+                )
+            )
+        val (track2, geometry2) =
+            testDBService.fetchWithGeometry(
+                mainOfficialContext.save(
+                    locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
+                    trackGeometry(
+                        edge(endInnerSwitch = switchLink3, segments = listOf(segment(track2Start, crossingPoint)))
+                    ),
+                )
+            )
+        val (track3, _) =
+            testDBService.fetchWithGeometry(
+                mainDraftContext.save(
+                    locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                    trackGeometry(
+                        edge(startInnerSwitch = switchLink2, segments = listOf(segment(track1End, track3End)))
+                    ),
+                )
+            )
+
+        // Only track1 has something at this point (the track start)
+        assertEquals(
+            listOf(NodeConnection(geometry1.nodes[0], listOf(track1.versionOrThrow))),
+            alignmentDao.getNodeConnectionsNear(track1Start, MainLayoutContext.official),
+        )
+        // Both track1 & track 2 go through the crossing point
+        assertEquals(
+            listOf(
+                NodeConnection(geometry1.nodes[1], listOf(track1.versionOrThrow)),
+                NodeConnection(geometry2.nodes[1], listOf(track2.versionOrThrow)),
+            ),
+            alignmentDao.getNodeConnectionsNear(crossingPoint, MainLayoutContext.official),
+        )
+        // In official context, only track 1 is at the end-point
+        assertEquals(
+            listOf(NodeConnection(geometry1.nodes[2], listOf(track1.versionOrThrow))),
+            alignmentDao.getNodeConnectionsNear(track1End, MainLayoutContext.official),
+        )
+        // In draft context, also track 3 starts from the same node
+        assertEquals(
+            listOf(NodeConnection(geometry1.nodes[2], listOf(track1.versionOrThrow, track3.versionOrThrow))),
+            alignmentDao.getNodeConnectionsNear(track1End, MainLayoutContext.draft),
+        )
+    }
+
     fun edgesBetweenNodes(
         nodes: List<EdgeNode> = listOf(PlaceHolderEdgeNode, PlaceHolderEdgeNode),
         edgeLength: Double = 10.0,

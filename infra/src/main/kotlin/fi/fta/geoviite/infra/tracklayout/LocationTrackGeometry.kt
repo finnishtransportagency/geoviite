@@ -187,6 +187,14 @@ sealed class LocationTrackGeometry : IAlignment {
         val end = edgesWithM[edgeIndices.last].let { (e, m) -> e.lastSegmentEnd.toAlignmentPoint(m.min) }
         return start to end
     }
+
+    fun withoutSwitch(switchId: IntId<LayoutSwitch>): LocationTrackGeometry {
+        val newEdges = edges.map { e -> e.withoutSwitch(switchId) }
+        return if (newEdges == edges) this else TmpLocationTrackGeometry(combineEdges(newEdges))
+    }
+
+    fun replaceNodes(nodeChanges: Map<LayoutNode, LayoutNode>) =
+        TmpLocationTrackGeometry(edges.map { edge -> edge.replaceNodes(nodeChanges) })
 }
 
 fun calculateEdgeMs(edges: List<LayoutEdge>): List<Range<Double>> {
@@ -258,9 +266,10 @@ data class DbLocationTrackGeometry(
     //    override val edgesWithM: List<Pair<DbLayoutEdge, Range<Double>>>
     //        get() = super.edgesWithM as List<Pair<DbLayoutEdge, Range<Double>>>
     //
-    //    @Suppress("UNCHECKED_CAST")
-    //    override val nodes: List<DbEdgeNode>
-    //        get() = super.nodes as List<DbEdgeNode>
+    @Suppress("UNCHECKED_CAST")
+    override val nodes: List<DbLayoutNode>
+        get() = super.nodes as List<DbLayoutNode>
+
     //
     //    @Suppress("UNCHECKED_CAST")
     //    override val nodesWithLocation: List<Pair<DbEdgeNode, AlignmentPoint>>
@@ -327,6 +336,27 @@ sealed class LayoutEdge : IAlignment {
         val newStart = startNode.takeIf { n -> n.type != TRACK_BOUNDARY } ?: startNode.withInnerBoundary(id, START)
         val newEnd = endNode.takeIf { n -> n.type != TRACK_BOUNDARY } ?: endNode.withInnerBoundary(id, END)
         return if (newStart == startNode && newEnd == endNode) this else TmpLayoutEdge(newStart, newEnd, segments)
+    }
+
+    fun replaceNodes(nodeChanges: Map<LayoutNode, LayoutNode>): LayoutEdge {
+        val newStartNode =
+            nodeChanges[startNode.node]?.let { newNode ->
+                when (startNode.innerPort) {
+                    newNode.portA -> TmpEdgeNode(A, newNode)
+                    newNode.portB -> TmpEdgeNode(B, newNode)
+                    else -> throw IllegalStateException("Node replacement cannot alter edge inner links")
+                }
+            } ?: startNode
+        val newEndNode =
+            nodeChanges[endNode.node]?.let { newNode ->
+                when (endNode.innerPort) {
+                    newNode.portA -> TmpEdgeNode(A, newNode)
+                    newNode.portB -> TmpEdgeNode(B, newNode)
+                    else -> throw IllegalStateException("Node replacement cannot alter edge inner links")
+                }
+            } ?: endNode
+        return if (newStartNode == startNode && newEndNode == endNode) this
+        else TmpLayoutEdge(newStartNode, newEndNode, segments)
     }
 }
 
@@ -521,7 +551,17 @@ sealed class LayoutNode {
     fun containsJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
         ports.any { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
 
+    fun containsBoundary(boundary: TrackBoundary): Boolean = ports.any { port -> port == boundary }
+
     abstract val type: LayoutNodeType
+
+    companion object {
+        fun of(link1: SwitchLink, link2: SwitchLink? = null): LayoutNode =
+            inNodeOrder(link1, link2).let { (portA, portB) -> TmpSwitchNode(portA, portB) }
+
+        fun of(link1: TrackBoundary, link2: TrackBoundary? = null) =
+            inNodeOrder(link1, link2).let { (portA, portB) -> TmpTrackBoundaryNode(portA, portB) }
+    }
 
     @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(portA, portB) }
 }
@@ -709,3 +749,63 @@ fun verifyTrackBoundaryNode(portA: TrackBoundary, portB: TrackBoundary?) {
         "Track boundary node cannot connect twice to the same track: portA=$portA portB=$portB"
     }
 }
+
+private val nodeCombinationPriority =
+    Comparator<LayoutNode> { o1, o2 ->
+        o1.type.ordinal.compareTo(o2.type.ordinal).takeIf { it != 0 }
+            ?: (-(o1.ports.size.compareTo(o2.ports.size))).takeIf { it != 0 }
+            ?: comparePorts(o1.portA, o2.portA).takeIf { it != 0 }
+            ?: comparePorts(o1.portB, o2.portB)
+    }
+
+private fun comparePorts(port1: NodePort?, port2: NodePort?): Int =
+    when {
+        port1 == null && port2 == null -> 0
+        port1 == null -> 1
+        port2 == null -> -1
+        port1.isBefore(port2) -> -1
+        port2.isBefore(port1) -> 1
+        else -> 0
+    }
+
+fun combineEligibleNodes(nodes: List<LayoutNode>): Map<LayoutNode, LayoutNode> {
+    // Match targets in priority order for deterministic results in case multiple combinations are possible
+    val targets = nodes.toSortedSet(nodeCombinationPriority)
+    return nodes
+        // Do the combinations in priority order to produce any high-priority combination nodes for further attempts
+        .sortedWith(nodeCombinationPriority)
+        // Double-port nodes cannot be further connected
+        .filter { node -> node.ports.size == 1 }
+        // Combine with the first eligible option
+        .mapNotNull { node ->
+            targets
+                // Since we're combining a single-port node -> there can only be port A
+                .firstNotNullOfOrNull { other -> tryToCombinePortToNode(node.portA, other) }
+                ?.also(targets::add)
+                ?.let(node::to)
+        }
+        .associate { it }
+}
+
+private fun tryToCombinePortToNode(ownPort: NodePort, otherNode: LayoutNode): LayoutNode? =
+    when (ownPort) {
+        // Switch link can be connected to any other switch link that is either:
+        // * A single-switch node with a link to a different switch
+        // * A double-switch node where one of the links is this one (switch & joint)
+        // Note: this might create multiple tmp-nodes for the same link-combination, but they will be joined upon saving
+        is SwitchLink -> {
+            val otherA = otherNode.portA as? SwitchLink
+            val otherB = otherNode.portB as? SwitchLink
+            when {
+                otherA == null -> null
+                otherB == null -> otherA.takeIf { it.id != ownPort.id }?.let { LayoutNode.of(ownPort, it) }
+                else -> otherNode.takeIf { otherA == ownPort || otherB == ownPort }
+            }
+        }
+        // Track boundary can be connected to any switch link node or an existing boundary-combo
+        is TrackBoundary ->
+            otherNode.takeIf { it.type == SWITCH || (it.ports.size == 2 && it.containsBoundary(ownPort)) }
+        // Empty ports don't have sufficient information for combination, but this should
+        // anyhow only be done after the track is stored, so the case should never happen
+        is EmptyPort -> throw IllegalArgumentException("Empty port cannot be combined")
+    }

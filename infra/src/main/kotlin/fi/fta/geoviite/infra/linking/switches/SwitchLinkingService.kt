@@ -45,7 +45,6 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
-import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
 import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
@@ -709,9 +708,9 @@ private fun withExistingLinksToSwitchCleared(
     originalLocationTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
     switchId: IntId<LayoutSwitch>,
 ): Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>> =
-    originalLocationTracks.mapValues { (_, trackAndAlignment) ->
-        val (track, alignment) = trackAndAlignment
-        clearLinksToSwitch(track, alignment, switchId)
+    originalLocationTracks.mapValues { (_, trackAndGeometry) ->
+        val (track, geometry) = trackAndGeometry
+        track to geometry.withoutSwitch(switchId)
     }
 
 fun updateLocationTrackWithTopologyEndLinking(

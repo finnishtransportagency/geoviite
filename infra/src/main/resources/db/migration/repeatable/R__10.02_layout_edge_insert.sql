@@ -68,6 +68,8 @@ begin
      end_node_id,
      end_node_port,
      bounding_box,
+     start_location,
+     end_location,
      segment_count,
      length,
      hash)
@@ -77,6 +79,16 @@ begin
        end_node_id,
        end_node_port,
        edge_bbox,
+       (
+         select postgis.st_force2d(postgis.st_startpoint(geometry))
+           from layout.segment_geometry
+           where id = geometry_ids[1]
+       ),
+       (
+         select postgis.st_force2d(postgis.st_endpoint(geometry))
+           from layout.segment_geometry
+           where id = geometry_ids[array_length(geometry_ids, 1)]
+       ),
        array_length(geometry_ids, 1),
        edge_length,
        edge_hash)

@@ -20,9 +20,9 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class LayoutSwitchService
@@ -91,9 +91,8 @@ constructor(
 
     @Transactional
     fun clearSwitchInformationFromSegments(branch: LayoutBranch, layoutSwitchId: IntId<LayoutSwitch>) {
-        getLocationTracksLinkedToSwitch(branch.draft, layoutSwitchId).forEach { (locationTrack, geometry) ->
-            val (updatedLocationTrack, updatedAlignment) = clearLinksToSwitch(locationTrack, geometry, layoutSwitchId)
-            locationTrackService.saveDraft(branch, updatedLocationTrack, updatedAlignment)
+        getLocationTracksLinkedToSwitch(branch.draft, layoutSwitchId).forEach { (track, geometry) ->
+            locationTrackService.saveDraft(branch, track, geometry.withoutSwitch(layoutSwitchId))
         }
     }
 
@@ -211,6 +210,7 @@ fun <T> compareByDistanceNullsFirst(itemAndDistance1: Pair<T, Double?>, itemAndD
     }
 }
 
+@Deprecated("Use LocationTrackGeometry.withoutSwitch instead")
 fun clearLinksToSwitch(
     track: LocationTrack,
     geometry: LocationTrackGeometry,

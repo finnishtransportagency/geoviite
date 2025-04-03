@@ -36,11 +36,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -630,6 +630,59 @@ class LocationTrackService(
 
     private fun fetchSwitchAtEndById(layoutContext: LayoutContext, id: IntId<LayoutSwitch>): LayoutSwitchIdAndName? =
         switchDao.get(layoutContext, id)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
+
+    @Transactional
+    fun recalculateTopology(switch: LayoutSwitch, layoutContext: LayoutContext): List<LayoutRowVersion<LocationTrack>> {
+        val jointLocations = switch.joints.filter { j -> j.role != SwitchJointRole.MATH }.map { j -> j.location }
+        return recalculateTopology(jointLocations, layoutContext)
+    }
+
+    @Transactional
+    fun recalculateTopology(
+        locations: List<IPoint>,
+        layoutContext: LayoutContext,
+    ): List<LayoutRowVersion<LocationTrack>> =
+        locations
+            // Combine the nodes in each location separately
+            .map { location -> resolveNodeReplacementsAt(location, layoutContext) }
+            // Combine all node-swaps into a single map to generate only one change per track
+            .let { replacements ->
+                replacements
+                    .flatMap { map -> map.entries }
+                    .associate { e -> e.toPair() }
+                    // TODO: GVT-2928 Do we need to worry about the same node being found replaced multiple times?
+                    .also { combined -> require(replacements.sumOf { r -> r.size } == combined.size) }
+            }
+            .let(::replaceNodesOnTracks)
+            .map { (newTrack, newGeometry) -> dao.save(newTrack, newGeometry) }
+
+    fun resolveNodeReplacementsAt(location: IPoint, layoutContext: LayoutContext): Map<NodeConnection, LayoutNode> {
+        val connections = alignmentDao.getNodeConnectionsNear(location, layoutContext)
+        val replacements = combineEligibleNodes(connections.map { c -> c.node })
+        return connections
+            .mapNotNull { connection ->
+                replacements[connection.node]?.let { replacement -> connection to replacement }
+            }
+            .associate { it }
+    }
+
+    fun replaceNodesOnTracks(
+        reconnected: Map<NodeConnection, LayoutNode>
+    ): List<Pair<LocationTrack, LocationTrackGeometry>> =
+        // Resolve by-track to handle cases where multiple nodes are swapped at once
+        reconnected
+            .flatMap { (c, _) -> c.trackVersions }
+            .distinct()
+            .map { version ->
+                val (track, geometry) = getWithGeometry(version)
+                val nodeChanges: Map<LayoutNode, LayoutNode> =
+                    reconnected
+                        .filter { (connection, _) -> connection.trackVersions.contains(version) }
+                        .map { (connection, replacementNode) -> connection.node to replacementNode }
+                        .associate { it }
+                val newGeometry = geometry.replaceNodes(nodeChanges)
+                track to newGeometry
+            }
 
     private fun fetchNearbyLocationTracksWithGeometries(
         layoutContext: LayoutContext,

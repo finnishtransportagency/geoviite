@@ -496,6 +496,8 @@ insert into layout.edge(
   end_node_id,
   end_node_port,
   bounding_box,
+  start_location,
+  end_location,
   segment_count,
   length,
   hash
@@ -506,6 +508,22 @@ select
   e.end_node_id,
   e.end_node_port,
   postgis.st_extent(sg.geometry) as bounding_box,
+  (
+    select postgis.st_force2d(postgis.st_startpoint(geometry))
+      from layout.segment_version
+       inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+      where segment_version.alignment_id = e.alignment_id
+        and segment_version.alignment_version = e.alignment_version
+        and segment_version.segment_index = e.start_segment_index
+  ) as start_location,
+  (
+    select postgis.st_force2d(postgis.st_endpoint(geometry))
+      from layout.segment_version
+        inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+      where segment_version.alignment_id = e.alignment_id
+        and segment_version.alignment_version = e.alignment_version
+        and segment_version.segment_index = e.end_segment_index
+  ) as end_location,
   e.end_segment_index - e.start_segment_index + 1 as segment_count,
   sum(postgis.st_m(postgis.st_endpoint(sg.geometry))) as length,
   e.edge_hash as hash

@@ -284,7 +284,7 @@ class TestDBService(
 
     final fun fetchWithGeometry(
         rowVersion: LayoutRowVersion<LocationTrack>
-    ): Pair<LocationTrack, LocationTrackGeometry> =
+    ): Pair<LocationTrack, DbLocationTrackGeometry> =
         fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.versionOrThrow) }
 
     fun deleteFromTables(schema: String, vararg tables: String) {
