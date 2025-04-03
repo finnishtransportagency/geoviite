@@ -94,8 +94,8 @@ constructor(
                     locationTrackOid = requireNotNull(locationTrackOid),
                     locationTrack = requireNotNull(locationTrack),
                     changesAfterTimestamp = changesAfterTimestamp,
-                    trackInterval = TrackKilometerIntervalV1(trackKmNumberStart, trackKmNumberEnd),
-                    addressPointInterval = addressPointInterval,
+                    trackInterval = ExtTrackKilometerIntervalV1(trackKmNumberStart, trackKmNumberEnd),
+                    addressPointResolution = addressPointInterval,
                     coordinateSystem = coordinateSystem,
                     includeGeometry = request.includeGeometry,
                 )
@@ -141,13 +141,13 @@ constructor(
                     locationTrackState = ExtLocationTrackStateV1(locationTrack.state),
                     locationTrackDescription = locationTrackDescription,
                     locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
-                    addressPointInterval = AddressPointInterval.ONE_METER,
+                    addressPointResolution = AddressPointResolution.ONE_METER,
                     coordinateSystem = LAYOUT_SRID,
                     startLocation = CenterLineGeometryPointV1.of(alignmentAddresses.startPoint),
                     endLocation = CenterLineGeometryPointV1.of(alignmentAddresses.endPoint),
                     trackIntervals =
                         listOf(
-                            CenterLineTrackIntervalV1(
+                            ExtCenterLineTrackIntervalV1(
                                 alignmentAddresses.startPoint.address.toString(),
                                 alignmentAddresses.endPoint.address.toString(),
                                 addressPoints =
@@ -189,9 +189,9 @@ constructor(
             geocodingService.getAddressPoints(
                 layoutContext,
                 request.locationTrack.id as IntId,
-                when (request.addressPointInterval) {
-                    AddressPointInterval.ONE_METER -> Resolution.ONE_METER
-                    AddressPointInterval.QUARTER_METER -> Resolution.QUARTER_METER
+                when (request.addressPointResolution) {
+                    AddressPointResolution.ONE_METER -> Resolution.ONE_METER
+                    AddressPointResolution.QUARTER_METER -> Resolution.QUARTER_METER
                 },
             )
 
@@ -207,7 +207,7 @@ constructor(
             if (request.includeGeometry) {
                 createTrackIntervals(alignmentAddresses, request.coordinateSystem, request.trackInterval)
             } else {
-                emptyList<CenterLineTrackIntervalV1>() to emptyList()
+                emptyList<ExtCenterLineTrackIntervalV1>() to emptyList()
             }
 
         val (convertedStartLocation, startLocationConversionErrors) =
@@ -241,7 +241,7 @@ constructor(
                 locationTrackState = ExtLocationTrackStateV1(request.locationTrack.state),
                 locationTrackDescription = locationTrackDescription,
                 locationTrackOwner = locationTrackService.getLocationTrackOwner(request.locationTrack.ownerId).name,
-                addressPointInterval = request.addressPointInterval,
+                addressPointResolution = request.addressPointResolution,
                 coordinateSystem = request.coordinateSystem,
                 startLocation = CenterLineGeometryPointV1.of(convertedStartLocation.let(::requireNotNull)),
                 endLocation = CenterLineGeometryPointV1.of(convertedEndLocation.let(::requireNotNull)),
@@ -254,7 +254,7 @@ constructor(
         request: ValidCenterLineGeometryRequestV1, // TODO Not needed here
         locationTrackId: IntId<LocationTrack>,
         afterMoment: Instant,
-    ): List<CenterLineTrackIntervalV1> {
+    ): List<ExtCenterLineTrackIntervalV1> {
         //        val locationTrackId = IntId<LocationTrack>(286)
         val moment = Instant.parse("2024-06-01T01:00:00.000000000Z") // TODO
 
@@ -321,7 +321,7 @@ constructor(
                                 requireNotNull(trackMeterRange).max,
                             )
 
-                    CenterLineTrackIntervalV1(
+                    ExtCenterLineTrackIntervalV1(
                         // TODO This might error out if there are no points
                         startAddress = startAddress.toString(),
                         endAddress = endAddress.toString(),
@@ -341,7 +341,7 @@ constructor(
                 val endAddress =
                     geocodingService.getAddress(mainOfficial, request.locationTrack.trackNumberId, trackMeterRange.max)
 
-                CenterLineTrackIntervalV1(
+                ExtCenterLineTrackIntervalV1(
                     // TODO This might error out if there are no points
                     startAddress = startAddress.toString(),
                     endAddress = endAddress.toString(),
@@ -378,7 +378,7 @@ constructor(
         //        return asd2
     }
 
-    fun mergeIntervals(geometryChangeRanges: GeometryChangeRanges): List<TrackInterval> {
+    fun mergeIntervals(geometryChangeRanges: GeometryChangeRanges): List<ExtTrackInterval> {
         val intervalEvents =
             listOf(
                     geometryChangeRanges.added.flatMap { addedRange ->
@@ -397,7 +397,7 @@ constructor(
                 .flatten()
                 .sortedBy { event -> event.trackM }
 
-        var mergedIntervals = mutableListOf<TrackInterval>()
+        var mergedIntervals = mutableListOf<ExtTrackInterval>()
 
         var tempIntervals = mutableListOf<IntervalEvent>()
         var tempIntervalStartM: Double? = null
@@ -414,7 +414,7 @@ constructor(
                 // The previous active interval should be split, but kept in the stack as it did not end,
                 // as the previous interval can still continue after the overriding interval.
                 mergedIntervals.add(
-                    TrackInterval(Range(requireNotNull(tempIntervalStartM), event.trackM), tempIntervals[0].type)
+                    ExtTrackInterval(Range(requireNotNull(tempIntervalStartM), event.trackM), tempIntervals[0].type)
                 )
 
                 tempIntervals.add(0, event)
@@ -431,7 +431,7 @@ constructor(
                     tempIntervalStartM
                         ?.takeIf { startM -> event.trackM - startM >= additionTolerance }
                         ?.let { startM ->
-                            mergedIntervals.add(TrackInterval(Range(startM, event.trackM), tempIntervals[0].type))
+                            mergedIntervals.add(ExtTrackInterval(Range(startM, event.trackM), tempIntervals[0].type))
                         }
 
                     tempIntervals.removeFirst()
@@ -451,14 +451,14 @@ constructor(
 
             tempIntervalStartM
                 ?.takeIf { startM -> lastTrackM - startM >= additionTolerance }
-                ?.let { startM -> TrackInterval(Range(startM, lastTrackM), tempIntervals[0].type) }
+                ?.let { startM -> ExtTrackInterval(Range(startM, lastTrackM), tempIntervals[0].type) }
         }
 
         return mergedIntervals
     }
 }
 
-data class TrackInterval(val trackRange: Range<Double>, val type: IntervalType)
+data class ExtTrackInterval(val trackRange: Range<Double>, val type: IntervalType)
 
 data class IntervalEvent(val trackM: Double, val type: IntervalType, val state: IntervalState)
 
@@ -513,13 +513,13 @@ fun validateChangesAfterTimestamp(
 
 fun validateAddressPointInterval(
     maybeAddressPointInterval: ApiRequestStringV1
-): Pair<AddressPointInterval?, List<CenterLineGeometryErrorV1>> {
-    val parsedAddressPointInterval = AddressPointInterval.of(maybeAddressPointInterval.toString())
+): Pair<AddressPointResolution?, List<CenterLineGeometryErrorV1>> {
+    val parsedAddressPointResolution = AddressPointResolution.of(maybeAddressPointInterval.toString())
 
-    return if (parsedAddressPointInterval == null) {
+    return if (parsedAddressPointResolution == null) {
         null to listOf(CenterLineGeometryErrorV1.InvalidAddressPointInterval)
     } else {
-        parsedAddressPointInterval to emptyList()
+        parsedAddressPointResolution to emptyList()
     }
 }
 
@@ -567,8 +567,8 @@ fun convertAddressPointsToRequestCoordinateSystem(
 fun createTrackIntervals(
     alignmentAddresses: AlignmentAddresses,
     coordinateSystem: Srid,
-    trackIntervalFilter: TrackKilometerIntervalV1,
-): Pair<List<CenterLineTrackIntervalV1>, List<CenterLineGeometryErrorV1>> {
+    trackIntervalFilter: ExtTrackKilometerIntervalV1,
+): Pair<List<ExtCenterLineTrackIntervalV1>, List<CenterLineGeometryErrorV1>> {
 
     val filteredPoints =
         alignmentAddresses.allPoints.filter { trackIntervalFilter.containsKmEndInclusive(it.address.kmNumber) }
@@ -578,7 +578,7 @@ fun createTrackIntervals(
 
     val intervals =
         listOf(
-            CenterLineTrackIntervalV1(
+            ExtCenterLineTrackIntervalV1(
                 startAddress = alignmentAddresses.endPoint.address.toString(),
                 endAddress = alignmentAddresses.endPoint.address.toString(),
                 addressPoints = convertedMidPoints?.map(CenterLineGeometryPointV1::of) ?: emptyList(),

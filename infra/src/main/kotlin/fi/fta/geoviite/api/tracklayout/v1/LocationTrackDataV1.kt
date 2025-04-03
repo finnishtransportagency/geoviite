@@ -43,6 +43,17 @@ data class ExtLocationTrackV1(
     @JsonProperty("koordinaatisto") val coordinateSystem: Srid,
 )
 
+data class ExtLocationTrackGeometryResponseV1(
+    @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
+    @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
+)
+
+data class ExtModifiedLocationTrackGeometryResponseV1(
+    @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
+    @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>?,
+    @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
+)
+
 data class ExtCenterLineGeometryPointV1(
     val x: Double,
     val y: Double,

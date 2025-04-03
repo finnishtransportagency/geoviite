@@ -795,8 +795,8 @@ constructor(
 
         val expectedMerge =
             listOf(
-                TrackInterval(Range(5.0, 10.0), IntervalType.REMOVAL),
-                TrackInterval(Range(10.0, 20.0), IntervalType.ADDITION),
+                ExtTrackInterval(Range(5.0, 10.0), IntervalType.REMOVAL),
+                ExtTrackInterval(Range(10.0, 20.0), IntervalType.ADDITION),
             )
 
         assertEquals(expectedMerge, centerLineGeometryServiceV1.mergeIntervals(testChangeRanges))
@@ -811,8 +811,8 @@ constructor(
 
         val expectedMerge =
             listOf(
-                TrackInterval(Range(10.0, 20.0), IntervalType.ADDITION),
-                TrackInterval(Range(20.0, 25.0), IntervalType.REMOVAL),
+                ExtTrackInterval(Range(10.0, 20.0), IntervalType.ADDITION),
+                ExtTrackInterval(Range(20.0, 25.0), IntervalType.REMOVAL),
             )
 
         assertEquals(expectedMerge, centerLineGeometryServiceV1.mergeIntervals(testChangeRanges))
@@ -841,7 +841,7 @@ constructor(
                 GeometryChangeRanges(added = addedGeometryRange, removed = listOf(Range(12.5, 15.0), Range(18.0, 20.0))),
             )
 
-        val expectedMerge = listOf(TrackInterval(addedGeometryRange[0], IntervalType.ADDITION))
+        val expectedMerge = listOf(ExtTrackInterval(addedGeometryRange[0], IntervalType.ADDITION))
 
         tests.forEach { testGeometryRange ->
             assertEquals(expectedMerge, centerLineGeometryServiceV1.mergeIntervals(testGeometryRange))

@@ -23,7 +23,7 @@ const val TRACK_KILOMETER_END_PARAM = "ratakilometri_loppu"
 const val COORDINATE_SYSTEM_PARAM = "koordinaatisto"
 
 const val CHANGE_TIME_PARAM = "muutosaika"
-const val ADDRESS_POINT_INTERVAL_PARAM = "osoitepistevali"
+const val ADDRESS_POINT_RESOLUTION = "osoitepistevali"
 const val INCLUDE_GEOMETRY_PARAM = "geometriatiedot"
 
 /**
@@ -52,7 +52,7 @@ data class CenterLineGeometryRequestV1(
     val includeGeometry: Boolean?,
 )
 
-data class TrackKilometerIntervalV1(val start: KmNumber?, val inclusiveEnd: KmNumber?) {
+data class ExtTrackKilometerIntervalV1(val start: KmNumber?, val inclusiveEnd: KmNumber?) {
     fun containsKmEndInclusive(kmNumber: KmNumber): Boolean {
         val startsAfterStartKmFilter = start == null || kmNumber >= start
         val endsBeforeEndKmFilter = inclusiveEnd == null || kmNumber <= inclusiveEnd
@@ -65,14 +65,14 @@ data class ValidCenterLineGeometryRequestV1(
     val locationTrackOid: Oid<LocationTrack>,
     val locationTrack: LocationTrack,
     val changesAfterTimestamp: Instant?,
-    val trackInterval: TrackKilometerIntervalV1,
+    val trackInterval: ExtTrackKilometerIntervalV1,
     val coordinateSystem: Srid,
-    val addressPointInterval: AddressPointInterval,
+    val addressPointResolution: AddressPointResolution,
     val includeGeometry: Boolean,
 ) {
     companion object {
         val DEFAULT_COORDINATE_SYSTEM = Srid(3067)
-        val DEFAULT_ADDRESS_POINT_INTERVAL = AddressPointInterval.ONE_METER
+        val DEFAULT_ADDRESS_POINT_INTERVAL = AddressPointResolution.ONE_METER
         const val DEFAULT_INCLUDE_GEOMETRY = false
     }
 
@@ -80,9 +80,9 @@ data class ValidCenterLineGeometryRequestV1(
         locationTrackOid: Oid<LocationTrack>,
         locationTrack: LocationTrack,
         changesAfterTimestamp: Instant?,
-        trackInterval: TrackKilometerIntervalV1,
+        trackInterval: ExtTrackKilometerIntervalV1,
         coordinateSystem: Srid?,
-        addressPointInterval: AddressPointInterval?,
+        addressPointResolution: AddressPointResolution?,
         includeGeometry: Boolean?,
     ) : this(
         locationTrackOid = locationTrackOid,
@@ -90,7 +90,7 @@ data class ValidCenterLineGeometryRequestV1(
         changesAfterTimestamp = changesAfterTimestamp,
         trackInterval = trackInterval,
         coordinateSystem = coordinateSystem ?: DEFAULT_COORDINATE_SYSTEM,
-        addressPointInterval = addressPointInterval ?: DEFAULT_ADDRESS_POINT_INTERVAL,
+        addressPointResolution = addressPointResolution ?: DEFAULT_ADDRESS_POINT_INTERVAL,
         includeGeometry = includeGeometry ?: DEFAULT_INCLUDE_GEOMETRY,
     )
 }
@@ -109,8 +109,8 @@ data class CenterLineGeometryResponseOkV1(
     @JsonProperty("alkusijainti") val startLocation: CenterLineGeometryPointV1,
     @JsonProperty("loppusijainti") val endLocation: CenterLineGeometryPointV1,
     @JsonProperty("koordinaatisto") val coordinateSystem: Srid,
-    @JsonProperty("osoitepistevali") val addressPointInterval: AddressPointInterval,
-    @JsonProperty("osoitevalit") val trackIntervals: List<CenterLineTrackIntervalV1>,
+    @JsonProperty("osoitepistevali") val addressPointResolution: AddressPointResolution,
+    @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 ) : CenterLineGeometryResponseV1()
 
 data class CenterLineGeometryResponseErrorV1(
@@ -143,7 +143,7 @@ enum class CenterLineGeometryErrorV1(val code: Int, private val localizationSuff
     }
 }
 
-data class CenterLineTrackIntervalV1(
+data class ExtCenterLineTrackIntervalV1(
     @JsonProperty("alku") val startAddress: String,
     @JsonProperty("loppu") val endAddress: String,
     @JsonProperty("pisteet") val addressPoints: List<CenterLineGeometryPointV1>,
@@ -167,12 +167,12 @@ data class CenterLineGeometryPointV1(
     }
 }
 
-enum class AddressPointInterval(@JsonValue val value: String) {
+enum class AddressPointResolution(@JsonValue val value: String) {
     QUARTER_METER("0.25"),
     ONE_METER("1.0");
 
     companion object {
-        fun of(value: String): AddressPointInterval? {
+        fun of(value: String): AddressPointResolution? {
             return entries.find { entry -> entry.value == value }
         }
     }
