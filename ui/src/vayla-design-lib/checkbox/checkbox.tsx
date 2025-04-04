@@ -4,7 +4,6 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 
 export type CheckboxProps = {
-    foo?: string;
     qaId?: string;
     extraClassName?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>;
@@ -19,6 +18,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
 
     const className = createClassName(
         styles.checkbox,
+        props.disabled && styles['checkbox--disabled'],
         touched && styles['checkbox--touched'],
         extraClassName,
     );

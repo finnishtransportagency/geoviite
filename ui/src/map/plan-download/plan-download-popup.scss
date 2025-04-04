@@ -82,6 +82,10 @@
         display: flex;
         gap: 6px;
         flex-grow: 1;
+
+        &--interactable {
+            cursor: pointer;
+        }
     }
 
     &__content {
@@ -111,6 +115,10 @@
         gap: 8px;
         height: 32px;
 
+        &--enabled {
+            cursor: pointer;
+        }
+
         &--disabled {
             color: vayla-design.$color-black-lighter;
         }
@@ -119,7 +127,6 @@
     &__plan-name {
         flex-grow: 1;
         overflow: hidden;
-        cursor: pointer;
         display: flex;
         flex-direction: column;
         font-weight: 400;

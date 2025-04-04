@@ -7,16 +7,20 @@ import { createClassName } from 'vayla-design-lib/utils';
 import styles from 'map/plan-download/plan-download-popup.scss';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 
-const ApplicabilityIcon: React.FC<{ applicability: PlanApplicability | undefined }> = ({
-    applicability,
-}) => {
+type ApplicabilityIconProps = {
+    applicability: PlanApplicability | undefined;
+    disabled: boolean;
+};
+
+const ApplicabilityIcon: React.FC<ApplicabilityIconProps> = ({ applicability, disabled }) => {
+    const iconColor = disabled ? IconColor.DISABLED : IconColor.ORIGINAL;
     switch (applicability) {
         case 'STATISTICS':
-            return <Icons.BarsI size={IconSize.SMALL} color={IconColor.ORIGINAL} />;
+            return <Icons.BarsI size={IconSize.SMALL} color={iconColor} />;
         case 'MAINTENANCE':
-            return <Icons.BarsII size={IconSize.SMALL} color={IconColor.ORIGINAL} />;
+            return <Icons.BarsII size={IconSize.SMALL} color={iconColor} />;
         case 'PLANNING':
-            return <Icons.BarsIII size={IconSize.SMALL} color={IconColor.ORIGINAL} />;
+            return <Icons.BarsIII size={IconSize.SMALL} color={iconColor} />;
         case undefined:
             return <React.Fragment>?</React.Fragment>;
         default:
@@ -49,6 +53,7 @@ export const PlanDownloadRow: React.FC<PlanItemProps> = ({
     const classNames = createClassName(
         styles['plan-download-popup__plan-row'],
         disabled && styles['plan-download-popup__plan-row--disabled'],
+        !disabled && styles['plan-download-popup__plan-row--enabled'],
     );
     const fromPaikannuspalvelu = source === 'PAIKANNUSPALVELU';
     const nameClassNames = createClassName(
@@ -73,7 +78,7 @@ export const PlanDownloadRow: React.FC<PlanItemProps> = ({
                 )}
             </span>
             <span className={styles['plan-download-popup__plan-icon']}>
-                <ApplicabilityIcon applicability={applicability} />
+                <ApplicabilityIcon applicability={applicability} disabled={disabled} />
             </span>
         </li>
     );
