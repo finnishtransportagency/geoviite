@@ -3,9 +3,8 @@ import { useTranslation } from 'react-i18next';
 import styles from './plan-download-popup.scss';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { GeometryPlanId, highestApplicability, PlanApplicability } from 'geometry/geometry-model';
-import { DownloadablePlan } from 'map/plan-download/plan-download-store';
+import { DownloadablePlan, PlanDownloadAssetId } from 'map/plan-download/plan-download-store';
 import { inframodelBatchDownloadUri } from 'infra-model/infra-model-api';
-import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { KmNumber } from 'common/common-model';
 import { PlanDownloadRow } from 'map/plan-download/plan-download-row';
 
@@ -13,8 +12,7 @@ type PlanDownloadPlanSectionProps = {
     disabled: boolean;
     plans: DownloadablePlan[];
     selectedPlanIds: GeometryPlanId[];
-    trackNumberId: LayoutTrackNumberId | undefined;
-    locationTrackId: LocationTrackId | undefined;
+    asset: PlanDownloadAssetId | undefined;
     startKm: KmNumber | undefined;
     endKm: KmNumber | undefined;
     selectedApplicabilities: PlanApplicability[];
@@ -28,8 +26,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
     disabled,
     plans,
     selectedPlanIds,
-    trackNumberId,
-    locationTrackId,
+    asset,
     startKm,
     endKm,
     selectedApplicabilities,
@@ -82,14 +79,15 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                     size={ButtonSize.SMALL}
                     disabled={disabled || selectedPlans.length === 0}
                     onClick={() => {
-                        location.href = inframodelBatchDownloadUri(
-                            selectedPlans,
-                            highestApplicability(selectedApplicabilities),
-                            trackNumberId,
-                            locationTrackId,
-                            startKm || undefined,
-                            endKm || undefined,
-                        );
+                        if (asset) {
+                            location.href = inframodelBatchDownloadUri(
+                                selectedPlans,
+                                highestApplicability(selectedApplicabilities),
+                                asset,
+                                startKm || undefined,
+                                endKm || undefined,
+                            );
+                        }
                     }}>
                     {t('plan-download.download-selected', {
                         amount: selectedPlans.length,

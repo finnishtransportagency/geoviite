@@ -6,7 +6,7 @@ import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { usePlanHeader } from 'track-layout/track-layout-react-utils';
-import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
+import GeometryPlanInfobox from 'tool-panel/geometry-plan/geometry-plan-infobox';
 import GeometryAlignmentLinkingInfobox from 'tool-panel/geometry-alignment/geometry-alignment-linking-infobox';
 import {
     GeometryLinkingAlignmentLockParameters,

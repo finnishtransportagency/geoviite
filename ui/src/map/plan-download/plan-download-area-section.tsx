@@ -8,8 +8,11 @@ import {
     TrackNumberItemValue,
 } from 'tool-bar/search-dropdown';
 import { LayoutContext } from 'common/common-model';
-import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
-import { AreaSelection, PlanDownloadState } from 'map/plan-download/plan-download-store';
+import {
+    AreaSelection,
+    PlanDownloadAsset,
+    PlanDownloadState,
+} from 'map/plan-download/plan-download-store';
 import {
     filterErrors,
     filterWarnings,
@@ -30,8 +33,7 @@ const ASSET_SEARCH_TYPES = [SearchType.TRACK_NUMBER, SearchType.LOCATION_TRACK];
 
 export const PlanDownloadAreaSection: React.FC<{
     layoutContext: LayoutContext;
-    trackNumber: LayoutTrackNumber | undefined;
-    locationTrack: LayoutLocationTrack | undefined;
+    selectedAsset: PlanDownloadAsset | undefined;
     state: PlanDownloadState;
     onUpdateProp: <TKey extends keyof AreaSelection>(
         propEdit: PropEdit<AreaSelection, TKey>,
@@ -39,16 +41,7 @@ export const PlanDownloadAreaSection: React.FC<{
     onCommitField: (field: keyof AreaSelection) => void;
     loading: boolean;
     disabled: boolean;
-}> = ({
-    layoutContext,
-    locationTrack,
-    trackNumber,
-    state,
-    onUpdateProp,
-    onCommitField,
-    loading,
-    disabled,
-}) => {
+}> = ({ layoutContext, selectedAsset, state, onUpdateProp, onCommitField, loading, disabled }) => {
     const { t } = useTranslation();
     const [areaSelectionType, setAreaSelectionType] =
         React.useState<AreaSelectionType>('TRACK_METERS');
@@ -67,11 +60,15 @@ export const PlanDownloadAreaSection: React.FC<{
     const onItemSelected = (item: SearchItemValue) => {
         if (item) {
             if (item.type === 'trackNumberSearchItem') {
-                updateProp('trackNumber', item.trackNumber.id);
-                updateProp('locationTrack', undefined);
+                updateProp('asset', {
+                    id: item.trackNumber.id,
+                    type: 'TRACK_NUMBER',
+                });
             } else if (item.type === 'locationTrackSearchItem') {
-                updateProp('locationTrack', item.locationTrack.id);
-                updateProp('trackNumber', undefined);
+                updateProp('asset', {
+                    id: item.locationTrack.id,
+                    type: 'LOCATION_TRACK',
+                });
             }
         }
     };
@@ -84,19 +81,18 @@ export const PlanDownloadAreaSection: React.FC<{
     const labelClasses = (hasErrors: boolean) =>
         createClassName(hasErrors && styles['plan-download-popup__field-label--error']);
 
-    const selectedLocationTrackValue: LocationTrackItemValue | undefined = locationTrack && {
-        locationTrack,
-        type: 'locationTrackSearchItem',
-    };
-    const selectedTrackNumberValue: TrackNumberItemValue | undefined = trackNumber && {
-        trackNumber,
-        type: 'trackNumberSearchItem',
-    };
-    const value = locationTrack
-        ? selectedLocationTrackValue
-        : trackNumber
-          ? selectedTrackNumberValue
-          : undefined;
+    const value: TrackNumberItemValue | LocationTrackItemValue | undefined =
+        selectedAsset?.type === 'TRACK_NUMBER'
+            ? {
+                  trackNumber: selectedAsset.asset,
+                  type: 'trackNumberSearchItem',
+              }
+            : selectedAsset?.type === 'LOCATION_TRACK'
+              ? {
+                    locationTrack: selectedAsset.asset,
+                    type: 'locationTrackSearchItem',
+                }
+              : undefined;
 
     const getName = (item: SearchItemValue) => {
         if (item.type === 'locationTrackSearchItem') return item.locationTrack.name;
@@ -124,7 +120,7 @@ export const PlanDownloadAreaSection: React.FC<{
                                 <div className={styles['plan-download-popup__area-grid']}>
                                     <label
                                         className={labelClasses(
-                                            hasErrors(state.committedFields, errors, 'trackNumber'),
+                                            hasErrors(state.committedFields, errors, 'asset'),
                                         )}>
                                         {t('plan-download.track-number-or-location-track')}
                                     </label>
@@ -134,12 +130,8 @@ export const PlanDownloadAreaSection: React.FC<{
                                         layoutContext={layoutContext}
                                         placeholder={t('plan-download.search')}
                                         onItemSelected={onItemSelected}
-                                        onBlur={() => onCommitField('trackNumber')}
-                                        hasError={hasErrors(
-                                            state.committedFields,
-                                            errors,
-                                            'trackNumber',
-                                        )}
+                                        onBlur={() => onCommitField('asset')}
+                                        hasError={hasErrors(state.committedFields, errors, 'asset')}
                                         value={value}
                                         getName={getName}
                                     />
@@ -148,7 +140,7 @@ export const PlanDownloadAreaSection: React.FC<{
                             errors={getVisibleErrorsByProp(
                                 state.committedFields,
                                 errors,
-                                'trackNumber',
+                                'asset',
                             ).map((error) => t(`plan-download.${error}`))}
                             help={loading && <Spinner />}
                         />

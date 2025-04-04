@@ -22,8 +22,8 @@ import {
 } from './projektivelho/pv-model';
 import { asyncCache } from 'cache/cache';
 import { KmNumber, Oid, TimeStamp } from 'common/common-model';
-import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { filterUnique } from 'utils/array-utils';
+import { PlanDownloadAssetId } from 'map/plan-download/plan-download-store';
 
 export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
     geometryValidationIssues: [],
@@ -42,12 +42,19 @@ export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_U
 export const inframodelBatchDownloadUri = (
     planIds: GeometryPlanId[],
     applicability: PlanApplicability | undefined,
-    trackNumberId: LayoutTrackNumberId | undefined,
-    locationTrackId: LocationTrackId | undefined,
+    asset: PlanDownloadAssetId,
     startKm: KmNumber | undefined,
     endKm: KmNumber | undefined,
-) =>
-    `${INFRAMODEL_URI}/batch${queryParams({ ids: planIds.filter(filterUnique), applicability, trackNumberId, locationTrackId, startKm, endKm })}`;
+) => {
+    return `${INFRAMODEL_URI}/batch${queryParams({
+        ids: planIds.filter(filterUnique),
+        applicability,
+        trackNumberId: asset.type === 'TRACK_NUMBER' ? asset.id : undefined,
+        locationTrackId: asset.type === 'LOCATION_TRACK' ? asset.id : undefined,
+        startKm,
+        endKm,
+    })}`;
+};
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
     `${PROJEKTIVELHO_URI}/${docId}`;
 

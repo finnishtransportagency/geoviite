@@ -1,5 +1,5 @@
 import * as React from 'react';
-import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
+import GeometryPlanInfobox from 'tool-panel/geometry-plan/geometry-plan-infobox';
 import {
     GeometryAlignmentId,
     GeometryKmPostId,
@@ -175,6 +175,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         changeTimes.layoutKmPost,
         changeTimes.layoutTrackNumber,
         changeTimes.split,
+        changeTimes.geometryPlan,
         planIds,
         geometryKmPostIds,
         geometrySwitchIds,

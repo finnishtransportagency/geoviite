@@ -10,7 +10,6 @@ type PlanDownloadPopupSectionProps = {
     title: React.ReactNode;
     titleButtons?: React.ReactNode;
     children?: React.ReactNode;
-    disabled: boolean;
 };
 export const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> = ({
     selected,
@@ -18,30 +17,27 @@ export const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> =
     title,
     titleButtons,
     children,
-    disabled,
 }) => {
     const chevronClasses = createClassName(
         styles['plan-download-popup-chevron'],
         selected && styles['plan-download-popup-chevron--visible'],
     );
 
-    const titleContentClasses = createClassName(
-        styles['plan-download-popup__title-content'],
-        disabled && styles['plan-download-popup__title-content--disabled'],
+    const titleContentClasses = createClassName(styles['plan-download-popup__title-content']);
+    const titleClasses = createClassName(
+        styles['plan-download-popup__title'],
+        styles['plan-download-popup__title--interactable'],
     );
 
     return (
         <React.Fragment>
             <div className={styles['plan-download-popup__title-container']}>
-                <h2
-                    className={styles['plan-download-popup__title']}
-                    onClick={() => !disabled && toggleOpen()}>
+                <h2 className={titleClasses} onClick={() => toggleOpen()}>
                     <Button
                         size={ButtonSize.X_SMALL}
                         className={chevronClasses}
                         variant={ButtonVariant.GHOST}
                         icon={Icons.Chevron}
-                        disabled={disabled}
                     />
                     <span className={titleContentClasses}>{title}</span>
                 </h2>

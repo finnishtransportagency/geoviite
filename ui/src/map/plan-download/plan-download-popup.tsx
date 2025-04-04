@@ -4,9 +4,12 @@ import styles from './plan-download-popup.scss';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
-import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
-import { kmNumberIsValid, LayoutContext } from 'common/common-model';
-import { DownloadablePlan, PopupSection } from 'map/plan-download/plan-download-store';
+import { kmNumberIsValid, LayoutContext, officialMainLayoutContext } from 'common/common-model';
+import {
+    DownloadablePlan,
+    PlanDownloadAsset,
+    PopupSection,
+} from 'map/plan-download/plan-download-store';
 import { createDelegates } from 'store/store-utils';
 import { Menu, menuDivider, menuOption } from 'vayla-design-lib/menu/menu';
 import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
@@ -19,9 +22,8 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 import { expectDefined } from 'utils/type-utils';
 import {
     comparePlans,
-    fetchLocationTrackAndExtremities,
     fetchDownloadablePlans,
-    fetchTrackNumberAndExtremities,
+    fetchAssetAndExtremities,
     filterPlans,
 } from 'map/plan-download/plan-download-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -38,27 +40,25 @@ const trackMeterRange = (start: string, end: string) => {
 };
 
 type LocationSpecifierProps = {
-    trackNumber: LayoutTrackNumber | undefined;
-    locationTrack: LayoutLocationTrack | undefined;
+    selectedAsset: PlanDownloadAsset | undefined;
     startTrackMeter: string;
     endTrackMeter: string;
 };
 export const LocationSpecifier: React.FC<LocationSpecifierProps> = ({
-    trackNumber,
-    locationTrack,
+    selectedAsset,
     startTrackMeter,
     endTrackMeter,
 }) => {
     const { t } = useTranslation();
-    const base = locationTrack
-        ? `${t('plan-download.location-track')} ${locationTrack.name}`
-        : trackNumber
-          ? `${t('plan-download.track-number')} ${trackNumber.number}`
-          : '';
+    const base = !selectedAsset
+        ? ''
+        : selectedAsset.type === 'LOCATION_TRACK'
+          ? `${t('plan-download.location-track')} ${selectedAsset.asset.name}`
+          : `${t('plan-download.track-number')} ${selectedAsset.asset.number}`;
     const trackMeter = trackMeterRange(startTrackMeter, endTrackMeter);
     return (
         <React.Fragment>
-            {!locationTrack && !trackNumber ? '' : !trackMeter ? base : `${base}, ${trackMeter}`}
+            {!selectedAsset ? '' : !trackMeter ? base : `${base}, ${trackMeter}`}
         </React.Fragment>
     );
 };
@@ -86,35 +86,25 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
     const delegates = createDelegates(TrackLayoutActions);
     const planDownloadState = expectDefined(state.planDownloadState);
 
-    const [trackNumberAndStartAndEnd, trackNumberFetchStatus] = useLoaderWithStatus(
+    const [assetAndStartAndEnd, assetFetchStatus] = useLoaderWithStatus(
         () =>
-            fetchTrackNumberAndExtremities(
-                planDownloadState.areaSelection.trackNumber,
-                layoutContext,
-            ),
-        [planDownloadState.areaSelection.trackNumber],
-    );
-    const [locationTrackAndStartAndEnd, locationTrackFetchStatus] = useLoaderWithStatus(
-        () =>
-            fetchLocationTrackAndExtremities(
-                planDownloadState.areaSelection.locationTrack,
-                layoutContext,
-            ),
-        [planDownloadState.areaSelection.locationTrack],
+            planDownloadState.areaSelection.asset
+                ? fetchAssetAndExtremities(
+                      planDownloadState.areaSelection.asset,
+                      officialMainLayoutContext(),
+                  )
+                : Promise.resolve(undefined),
+        [planDownloadState.areaSelection.asset],
     );
 
     React.useEffect(() => {
-        if (planDownloadState.areaSelection.locationTrack)
-            delegates.setPlanDownloadAlignmentStartAndEnd(locationTrackAndStartAndEnd?.startAndEnd);
-        else if (planDownloadState.areaSelection.trackNumber)
-            delegates.setPlanDownloadAlignmentStartAndEnd(trackNumberAndStartAndEnd?.startAndEnd);
-    }, [locationTrackAndStartAndEnd, trackNumberAndStartAndEnd]);
+        delegates.setPlanDownloadAlignmentStartAndEnd(assetAndStartAndEnd?.startAndEnd);
+    }, [assetAndStartAndEnd]);
 
     const [linkedPlans, planFetchStatus] = useLoaderWithStatus<DownloadablePlan[]>(
-        () => fetchDownloadablePlans(planDownloadState.areaSelection, layoutContext),
+        () => fetchDownloadablePlans(planDownloadState.areaSelection, officialMainLayoutContext()),
         [
-            planDownloadState.areaSelection.locationTrack,
-            planDownloadState.areaSelection.trackNumber,
+            planDownloadState.areaSelection.asset,
             planDownloadState.areaSelection.startTrackMeter,
             planDownloadState.areaSelection.endTrackMeter,
             getChangeTimes().geometryPlan,
@@ -207,14 +197,12 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
             <PlanDownloadPopupSection
                 selected={planDownloadState.openPopupSection === 'AREA'}
                 toggleOpen={() => toggleSectionOpen('AREA')}
-                disabled={disabled}
                 title={
                     <React.Fragment>
                         <span>{t('plan-download.area')}</span>
                         <span>
                             <LocationSpecifier
-                                trackNumber={trackNumberAndStartAndEnd?.trackNumber}
-                                locationTrack={locationTrackAndStartAndEnd?.locationTrack}
+                                selectedAsset={assetAndStartAndEnd}
                                 startTrackMeter={planDownloadState.areaSelection.startTrackMeter}
                                 endTrackMeter={planDownloadState.areaSelection.endTrackMeter}
                             />
@@ -223,19 +211,12 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 }>
                 {planDownloadState.areaSelection && (
                     <PlanDownloadAreaSection
-                        layoutContext={layoutContext}
-                        trackNumber={trackNumberAndStartAndEnd?.trackNumber}
-                        locationTrack={locationTrackAndStartAndEnd?.locationTrack}
+                        layoutContext={officialMainLayoutContext()}
+                        selectedAsset={assetAndStartAndEnd}
                         state={planDownloadState}
                         onCommitField={delegates.onCommitPlanDownloadAreaSelectionField}
                         onUpdateProp={delegates.onUpdatePlanDownloadAreaSelectionProp}
-                        loading={
-                            planDownloadState.areaSelection.locationTrack
-                                ? locationTrackFetchStatus !== LoaderStatus.Ready
-                                : planDownloadState.areaSelection.trackNumber
-                                  ? trackNumberFetchStatus !== LoaderStatus.Ready
-                                  : false
-                        }
+                        loading={assetFetchStatus === LoaderStatus.Loading}
                         disabled={disabled}
                     />
                 )}
@@ -243,7 +224,6 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
             <PlanDownloadPopupSection
                 selected={planDownloadState.openPopupSection === 'PLAN'}
                 toggleOpen={() => toggleSectionOpen('PLAN')}
-                disabled={disabled}
                 title={
                     <React.Fragment>
                         {planFetchStatus === LoaderStatus.Ready ? (
@@ -285,8 +265,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                     unselectAllPlans={delegates.unselectPlansForDownload}
                     selectPlanInToolPanel={selectPlanInToolPanel}
                     disabled={disabled}
-                    trackNumberId={planDownloadState.areaSelection.trackNumber}
-                    locationTrackId={planDownloadState.areaSelection.locationTrack}
+                    asset={planDownloadState.areaSelection.asset}
                     startKm={planDownloadState.areaSelection.startTrackMeter}
                     endKm={planDownloadState.areaSelection.endTrackMeter}
                     selectedApplicabilities={planDownloadState.selectedApplicabilities}
