@@ -1,6 +1,8 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
     AlignmentStartAndEnd,
+    LayoutLocationTrack,
+    LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
@@ -26,8 +28,7 @@ import {
 import { isValidKmNumber } from 'tool-panel/km-post/dialog/km-post-edit-store';
 
 export type AreaSelection = {
-    trackNumber: LayoutTrackNumberId | undefined;
-    locationTrack: LocationTrackId | undefined;
+    asset: PlanDownloadAssetId | undefined;
     startTrackMeter: string;
     endTrackMeter: string;
     alignmentStartAndEnd: AlignmentStartAndEnd | undefined;
@@ -52,30 +53,49 @@ export type DownloadablePlan = {
     kmNumberRange: KmNumberRange | undefined;
 };
 
-export type SelectedPlanDownloadAsset =
+export type PlanDownloadAssetId =
     | {
           id: LayoutTrackNumberId;
           type: 'TRACK_NUMBER';
       }
     | { id: LocationTrackId; type: 'LOCATION_TRACK' };
 
+type WithExtremities = {
+    startAndEnd: AlignmentStartAndEnd;
+};
+export type TrackNumberAsset = {
+    asset: LayoutTrackNumber;
+    type: 'TRACK_NUMBER';
+};
+export type TrackNumberAssetAndExtremities = TrackNumberAsset & WithExtremities;
+
+export type LocationTrackAsset = {
+    asset: LayoutLocationTrack;
+    type: 'LOCATION_TRACK';
+};
+export type LocationTrackAssetAndExtremities = LocationTrackAsset & WithExtremities;
+
+export type PlanDownloadAssetAndExtremities =
+    | TrackNumberAssetAndExtremities
+    | LocationTrackAssetAndExtremities;
+export type PlanDownloadAsset = TrackNumberAsset | LocationTrackAsset;
+
 export const initialPlanDownloadStateFromSelection = (
-    locationTrackId: LocationTrackId | undefined,
-    trackNumberId: LayoutTrackNumberId | undefined,
-): PlanDownloadState => ({
-    ...initialPlanDownloadState,
-    areaSelection: {
-        ...initialPlanDownloadState.areaSelection,
-        locationTrack: locationTrackId,
-        trackNumber: trackNumberId,
-    },
-});
+    selectedAsset: PlanDownloadAssetId | undefined,
+): PlanDownloadState => {
+    return {
+        ...initialPlanDownloadState,
+        areaSelection: {
+            ...initialPlanDownloadState.areaSelection,
+            asset: selectedAsset,
+        },
+    };
+};
 
 export const initialPlanDownloadState: PlanDownloadState = {
     openPopupSection: 'AREA',
     areaSelection: {
-        trackNumber: undefined,
-        locationTrack: undefined,
+        asset: undefined,
         startTrackMeter: '',
         endTrackMeter: '',
         alignmentStartAndEnd: undefined,
@@ -96,19 +116,20 @@ const validateAreaSelection = (state: PlanDownloadState): FieldValidationIssue<A
                   max: state.areaSelection.alignmentStartAndEnd.end.address.kmNumber,
               }
             : undefined;
-    const alignmentType = state.areaSelection.locationTrack ? 'location-track' : 'track-number';
+    const alignmentType =
+        state.areaSelection.asset?.type === 'LOCATION_TRACK'
+            ? 'location-track'
+            : state.areaSelection.asset?.type === 'TRACK_NUMBER'
+              ? 'track-number'
+              : undefined;
 
     return state.openPopupSection === 'AREA'
         ? [
-              validate(
-                  state.areaSelection.trackNumber !== undefined ||
-                      state.areaSelection.locationTrack !== undefined,
-                  {
-                      type: FieldValidationIssueType.ERROR,
-                      field: 'trackNumber',
-                      reason: 'mandatory-field',
-                  },
-              ),
+              validate(state.areaSelection.asset !== undefined, {
+                  type: FieldValidationIssueType.ERROR,
+                  field: 'asset',
+                  reason: 'mandatory-field',
+              }),
               validate(
                   state.areaSelection.startTrackMeter === '' ||
                       kmNumberIsValid(state.areaSelection.startTrackMeter),

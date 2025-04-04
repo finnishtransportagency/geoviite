@@ -1,4 +1,10 @@
-import { AreaSelection, DownloadablePlan } from 'map/plan-download/plan-download-store';
+import {
+    AreaSelection,
+    PlanDownloadAssetAndExtremities,
+    DownloadablePlan,
+    PlanDownloadAssetId,
+    TrackNumberAssetAndExtremities,
+} from 'map/plan-download/plan-download-store';
 import { GeometryPlanHeader, PlanApplicability } from 'geometry/geometry-model';
 import { compareKmNumberStrings, kmNumberIsValid, LayoutContext } from 'common/common-model';
 import { expectDefined } from 'utils/type-utils';
@@ -11,13 +17,7 @@ import {
     getPlansLinkedToTrackNumber,
     getTrackNumberById,
 } from 'track-layout/layout-track-number-api';
-import {
-    AlignmentStartAndEnd,
-    LayoutLocationTrack,
-    LayoutTrackNumber,
-    LayoutTrackNumberId,
-    LocationTrackId,
-} from 'track-layout/track-layout-model';
+import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import {
     getReferenceLineStartAndEnd,
     getTrackNumberReferenceLine,
@@ -68,17 +68,17 @@ export async function fetchDownloadablePlans(
         ? areaSelection.endTrackMeter
         : undefined;
 
-    if (areaSelection.locationTrack) {
+    if (areaSelection.asset?.type === 'LOCATION_TRACK') {
         return await getPlansLinkedToLocationTrack(
             layoutContext,
-            areaSelection.locationTrack,
+            areaSelection.asset.id,
             startKm,
             endKm,
         ).then((plans) => plans.map(toDownloadablePlan));
-    } else if (areaSelection.trackNumber) {
+    } else if (areaSelection.asset?.type === 'TRACK_NUMBER') {
         return await getPlansLinkedToTrackNumber(
             layoutContext,
-            areaSelection.trackNumber,
+            areaSelection.asset.id,
             startKm,
             endKm,
         ).then((plans) => plans.map(toDownloadablePlan));
@@ -87,35 +87,27 @@ export async function fetchDownloadablePlans(
     }
 }
 
-export async function fetchTrackNumberAndExtremities(
-    trackNumberId: LayoutTrackNumberId | undefined,
+const fetchTrackNumberAndExtremities = async (
+    trackNumberId: LayoutTrackNumberId,
     layoutContext: LayoutContext,
-): Promise<{
-    trackNumber: LayoutTrackNumber | undefined;
-    startAndEnd: AlignmentStartAndEnd | undefined;
-}> {
-    const trackNumber = trackNumberId
-        ? await getTrackNumberById(trackNumberId, layoutContext)
-        : undefined;
+): Promise<TrackNumberAssetAndExtremities | undefined> => {
+    const trackNumber = await getTrackNumberById(trackNumberId, layoutContext);
     const referenceLine = trackNumber
         ? await getTrackNumberReferenceLine(trackNumber.id, layoutContext)
         : undefined;
     const startAndEnd = referenceLine
         ? await getReferenceLineStartAndEnd(referenceLine.id, layoutContext)
         : undefined;
-    return { trackNumber, startAndEnd };
-}
-
-export async function fetchLocationTrackAndExtremities(
-    locationTrackId: LocationTrackId | undefined,
-    layoutContext: LayoutContext,
-): Promise<{
-    startAndEnd: AlignmentStartAndEnd | undefined;
-    locationTrack: LayoutLocationTrack | undefined;
-}> {
-    const locationTrack = locationTrackId
-        ? await getLocationTrack(locationTrackId, layoutContext)
+    return trackNumber && startAndEnd
+        ? { type: 'TRACK_NUMBER', asset: trackNumber, startAndEnd }
         : undefined;
+};
+
+const fetchLocationTrackAndExtremities = async (
+    locationTrackId: LocationTrackId,
+    layoutContext: LayoutContext,
+): Promise<PlanDownloadAssetAndExtremities | undefined> => {
+    const locationTrack = await getLocationTrack(locationTrackId, layoutContext);
     const startAndEnd = locationTrack
         ? await getLocationTrackStartAndEnd(
               locationTrack.id,
@@ -123,5 +115,15 @@ export async function fetchLocationTrackAndExtremities(
               getChangeTimes().layoutLocationTrack,
           )
         : undefined;
-    return { locationTrack, startAndEnd };
-}
+    return locationTrack && startAndEnd
+        ? { type: 'LOCATION_TRACK', asset: locationTrack, startAndEnd }
+        : undefined;
+};
+
+export const fetchAssetAndExtremities = async (
+    asset: PlanDownloadAssetId,
+    layoutContext: LayoutContext,
+): Promise<PlanDownloadAssetAndExtremities | undefined> =>
+    asset.type === 'TRACK_NUMBER'
+        ? fetchTrackNumberAndExtremities(asset.id, layoutContext)
+        : fetchLocationTrackAndExtremities(asset.id, layoutContext);
