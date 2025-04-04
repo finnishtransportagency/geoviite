@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
+import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
@@ -609,38 +610,16 @@ constructor(
                 tickLength,
                 geometryAlignmentBoundaryPoints = alignmentBoundaryAddresses,
             ) ?: listOf()
-        return processFlattened(kmTicks.map { it.ticks }) { allTicks ->
-                allTicks
-                    .parallelStream()
-                    .map(getHeightAtTickInLayoutAlignment(alignment, segmentSources))
-                    .collect(Collectors.toList())
-            }
-            .zip(kmTicks, ::combineKmTicksWithHeights)
-    }
-
-    private fun getHeightAtTickInLayoutAlignment(
-        alignment: LayoutAlignment,
-        segmentSources: List<SegmentSource>,
-    ): (tick: TrackMeterTick) -> Double? {
         val boundingBox = requireNotNull(alignment.boundingBox)
         val heightTriangles = heightTriangleDao.fetchTriangles(boundingBox.polygonFromCorners)
 
-        return { tick ->
-            val point = tick.addressPoint.point
-            val givenSegmentIndex = tick.segmentIndex
-            val segmentIndex = givenSegmentIndex ?: alignment.getSegmentIndexAtM(point.m)
-            val segment = alignment.segments[segmentIndex]
-            val source = segmentSources[segmentIndex]
-            val distanceInSegment = point.m - segment.startM
-            val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
-            val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
-            val profileHeight = source.profile?.getHeightAt(distanceInGeometryAlignment)
-            profileHeight?.let { height ->
-                source.plan?.units?.verticalCoordinateSystem?.let { verticalCoordinateSystem ->
-                    transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
-                }
+        return processFlattened(kmTicks.map { it.ticks }) { allTicks ->
+                allTicks
+                    .parallelStream()
+                    .map { tick -> getHeightAtTickInLayoutAlignment(alignment, segmentSources, heightTriangles, tick) }
+                    .collect(Collectors.toList())
             }
-        }
+            .zip(kmTicks, ::combineKmTicksWithHeights)
     }
 
     @Transactional(readOnly = true)
@@ -781,3 +760,26 @@ private data class SegmentSource(
     val alignment: GeometryAlignment?,
     val plan: GeometryPlan?,
 )
+
+private fun getHeightAtTickInLayoutAlignment(
+    alignment: LayoutAlignment,
+    segmentSources: List<SegmentSource>,
+    heightTriangles: List<HeightTriangle>,
+    tick: TrackMeterTick,
+): Double? {
+    val point = tick.addressPoint.point
+    val segmentIndex = tick.segmentIndex ?: alignment.getSegmentIndexAtM(point.m)
+    val segment = alignment.segments[segmentIndex]
+    val source = segmentSources[segmentIndex]
+
+    val distanceInSegment = point.m - segment.startM
+    val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
+    val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
+
+    val profileHeight = source.profile?.getHeightAt(distanceInGeometryAlignment)
+    return profileHeight?.let { height ->
+        source.plan?.units?.verticalCoordinateSystem?.let { verticalCoordinateSystem ->
+            transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
+        }
+    }
+}
