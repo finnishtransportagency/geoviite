@@ -37,7 +37,7 @@ sealed class LocationTrackGeometry : IAlignment {
     }
 
     @get:JsonIgnore abstract val edges: List<LayoutEdge>
-    @get:JsonIgnore val edgeMs: List<Range<Double>> by lazy { calculateEdgeMs(edges) }
+    @get:JsonIgnore val edgeMs: List<Range<Double>> by lazy { calculateEdgeMValues(edges) }
     @get:JsonIgnore override val segments: List<LayoutSegment> by lazy { edges.flatMap(LayoutEdge::segments) }
     override val segmentMValues: List<Range<Double>> by lazy { calculateSegmentMValues(segments) }
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(edges.mapNotNull(LayoutEdge::boundingBox)) }
@@ -193,11 +193,18 @@ sealed class LocationTrackGeometry : IAlignment {
         return if (newEdges == edges) this else TmpLocationTrackGeometry(combineEdges(newEdges))
     }
 
-    fun replaceNodes(nodeChanges: Map<LayoutNode, LayoutNode>) =
-        TmpLocationTrackGeometry(edges.map { edge -> edge.replaceNodes(nodeChanges) })
+    fun withCombinationNodes(nodeChanges: Map<LayoutNode, LayoutNode>) =
+        TmpLocationTrackGeometry(
+            edges.mapIndexed { index, edge ->
+                val startReplacement = edge.takeIf { index == 0 }?.startNode?.node?.let { nodeChanges[it] }
+                val endReplacement = edge.takeIf { index == edges.lastIndex }?.endNode?.node?.let { nodeChanges[it] }
+                edge.takeIf { startReplacement == null && endReplacement == null }
+                    ?: edge.withCombinationNodes(startReplacement, endReplacement)
+            }
+        )
 }
 
-fun calculateEdgeMs(edges: List<LayoutEdge>): List<Range<Double>> {
+fun calculateEdgeMValues(edges: List<LayoutEdge>): List<Range<Double>> {
     var previousEnd = 0.0
     return edges.map { edge -> Range(previousEnd, previousEnd + edge.length).also { previousEnd += edge.length } }
 }
@@ -338,26 +345,29 @@ sealed class LayoutEdge : IAlignment {
         return if (newStart == startNode && newEnd == endNode) this else TmpLayoutEdge(newStart, newEnd, segments)
     }
 
-    fun replaceNodes(nodeChanges: Map<LayoutNode, LayoutNode>): LayoutEdge {
-        val newStartNode =
-            nodeChanges[startNode.node]?.let { newNode ->
-                when (startNode.innerPort) {
-                    newNode.portA -> TmpEdgeNode(A, newNode)
-                    newNode.portB -> TmpEdgeNode(B, newNode)
-                    else -> throw IllegalStateException("Node replacement cannot alter edge inner links")
-                }
-            } ?: startNode
-        val newEndNode =
-            nodeChanges[endNode.node]?.let { newNode ->
-                when (endNode.innerPort) {
-                    newNode.portA -> TmpEdgeNode(A, newNode)
-                    newNode.portB -> TmpEdgeNode(B, newNode)
-                    else -> throw IllegalStateException("Node replacement cannot alter edge inner links")
-                }
-            } ?: endNode
-        return if (newStartNode == startNode && newEndNode == endNode) this
-        else TmpLayoutEdge(newStartNode, newEndNode, segments)
-    }
+    fun withCombinationNodes(newStartNode: LayoutNode?, newEndNode: LayoutNode?): LayoutEdge =
+        this.takeIf { newStartNode == null && newEndNode == null }
+            ?: TmpLayoutEdge(
+                startNode =
+                    when {
+                        newStartNode == null -> startNode
+                        startNode.type == TRACK_BOUNDARY && newStartNode.type == SWITCH ->
+                            TmpEdgeNode(B, newStartNode).also { require(newStartNode.portB == null) }
+                        newStartNode.portA == startNode.innerPort -> TmpEdgeNode(A, newStartNode)
+                        newStartNode.portB == startNode.innerPort -> TmpEdgeNode(B, newStartNode)
+                        else -> error("Unable to replace start node: start=$startNode new=$newStartNode")
+                    },
+                endNode =
+                    when {
+                        newEndNode == null -> endNode
+                        endNode.type == TRACK_BOUNDARY && newEndNode.type == SWITCH ->
+                            TmpEdgeNode(B, newEndNode).also { require(newEndNode.portB == null) }
+                        newEndNode.portA == endNode.innerPort -> TmpEdgeNode(A, newEndNode)
+                        newEndNode.portB == endNode.innerPort -> TmpEdgeNode(B, newEndNode)
+                        else -> error("Unable to replace end node: end=$endNode new=$newEndNode")
+                    },
+                segments = segments,
+            )
 }
 
 fun verifyEdgeContent(edge: LayoutEdge) {
@@ -781,6 +791,9 @@ fun combineEligibleNodes(nodes: List<LayoutNode>): Map<LayoutNode, LayoutNode> {
             targets
                 // Since we're combining a single-port node -> there can only be port A
                 .firstNotNullOfOrNull { other -> tryToCombinePortToNode(node.portA, other) }
+                // If the best match is a combination-switch node, there's multiple switches to connect to
+                // For a track boundary, we couldn't know which one to use -> don't connect at all
+                ?.takeIf { newNode -> node.type != TRACK_BOUNDARY || newNode.type != SWITCH || newNode.portB == null }
                 ?.also(targets::add)
                 ?.let(node::to)
         }

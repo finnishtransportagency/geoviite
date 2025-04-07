@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
@@ -192,13 +193,9 @@ class LocationTrackGeometryTest {
             combineEligibleNodes(listOf(trackBoundaryNode1, trackBoundaryNode2, loneSwitch1Node)),
         )
         // Track boundaries are combined to combination-switches generated in a previous step
+        // However, boundaries cannot be connected to such nodes as we wouldn't know which port to use
         assertEquals(
-            mapOf(
-                loneSwitch1Node to switch12Node,
-                loneSwitch2Node to switch12Node,
-                trackBoundaryNode1 to switch12Node,
-                trackBoundaryNode2 to switch12Node,
-            ),
+            mapOf(loneSwitch1Node to switch12Node, loneSwitch2Node to switch12Node),
             combineEligibleNodes(listOf(trackBoundaryNode1, trackBoundaryNode2, loneSwitch1Node, loneSwitch2Node)),
         )
         // Track boundaries are combined with existing combination-tracks
@@ -318,69 +315,205 @@ class LocationTrackGeometryTest {
         val geometry =
             trackGeometry(
                 edge(
-                    startOuterSwitch = switchLinkYV(IntId(1), 1),
+                    startInnerSwitch = switchLinkYV(IntId(1), 1),
+                    endInnerSwitch = switchLinkYV(IntId(1), 2),
                     endOuterSwitch = switchLinkYV(IntId(2), 1),
                     segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
                 ),
                 edge(
+                    startOuterSwitch = switchLinkYV(IntId(1), 2),
                     startInnerSwitch = switchLinkYV(IntId(2), 1),
                     endInnerSwitch = switchLinkYV(IntId(2), 2),
                     segments = listOf(segment(Point(1.0, 0.0), Point(2.0, 0.0))),
                 ),
             )
-        val middleNode = geometry.nodes[1]
-        assertEquals(TmpSwitchNode(switchLinkYV(IntId(2), 1), null), middleNode)
-        val replacement = TmpSwitchNode(switchLinkYV(IntId(3), 1), null)
-        assertEquals(
+        val startNode = TmpSwitchNode(switchLinkYV(IntId(1), 1), null)
+        val middleNode = TmpSwitchNode(switchLinkYV(IntId(1), 2), switchLinkYV(IntId(2), 1))
+        val endNode = TmpSwitchNode(switchLinkYV(IntId(2), 2), null)
+        assertEquals(listOf(startNode, middleNode, endNode), geometry.nodes)
+
+        val startCombined = TmpSwitchNode(switchLinkYV(IntId(1), 1), switchLinkYV(IntId(3), 1))
+        val endCombined = TmpSwitchNode(switchLinkYV(IntId(2), 2), switchLinkYV(IntId(4), 1))
+
+        val result = geometry.withCombinationNodes(mapOf(startNode to startCombined, endNode to endCombined))
+        assertEquals(listOf(startCombined, middleNode, endCombined), result.nodes)
+    }
+
+    @Test
+    fun `Node replacement works with single-edge node`() {
+        val geometry =
             trackGeometry(
                 edge(
-                    startOuterSwitch = switchLinkYV(IntId(1), 1),
-                    endOuterSwitch = switchLinkYV(IntId(3), 1),
+                    startInnerSwitch = switchLinkYV(IntId(1), 1),
+                    endInnerSwitch = switchLinkYV(IntId(1), 2),
                     segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
-                ),
-                edge(
-                    startInnerSwitch = switchLinkYV(IntId(2), 1),
-                    endOuterSwitch = switchLinkYV(IntId(3), 1),
-                    segments = listOf(segment(Point(1.0, 0.0), Point(2.0, 0.0))),
-                ),
-            ),
-            geometry.replaceNodes(mapOf(middleNode to replacement)),
-        )
-        TODO("More cases")
-    }
+                )
+            )
+        val startNode = TmpSwitchNode(switchLinkYV(IntId(1), 1), null)
+        val endNode = TmpSwitchNode(switchLinkYV(IntId(1), 2), null)
+        assertEquals(listOf(startNode, endNode), geometry.nodes)
 
-    @Test
-    fun `Topology change calculation works`() {
-        TODO()
-    }
+        val startCombined = TmpSwitchNode(switchLinkYV(IntId(1), 1), switchLinkYV(IntId(2), 1))
+        val endCombined = TmpSwitchNode(switchLinkYV(IntId(1), 2), switchLinkYV(IntId(3), 1))
 
-    @Test
-    fun `Topology recalculate works`() {
-        TODO()
+        val result = geometry.withCombinationNodes(mapOf(startNode to startCombined, endNode to endCombined))
+        assertEquals(listOf(startCombined, endCombined), result.nodes)
     }
 
     @Test
     fun `combineEdges works`() {
-        TODO()
+        val segments1 = listOf(segment(Point(0.0, 0.0), Point(2.0, 0.0)))
+        val segments2 = listOf(segment(Point(2.0, 0.0), Point(4.0, 0.0)))
+        val segments3 = listOf(segment(Point(4.0, 0.0), Point(6.0, 0.0)))
+        assertEquals(
+            listOf(
+                edge(segments1, endOuterSwitch = switchLinkYV(IntId(1), 1)),
+                edge(
+                    segments2,
+                    startInnerSwitch = switchLinkYV(IntId(1), 1),
+                    endInnerSwitch = switchLinkYV(IntId(2), 1),
+                    endOuterSwitch = switchLinkYV(IntId(3), 1),
+                ),
+                edge(
+                    segments3,
+                    startOuterSwitch = switchLinkYV(IntId(2), 1),
+                    startInnerSwitch = switchLinkYV(IntId(3), 1),
+                    endInnerSwitch = switchLinkYV(IntId(4), 1),
+                ),
+            ),
+            combineEdges(
+                listOf(
+                    edge(segments1),
+                    edge(
+                        segments2,
+                        startInnerSwitch = switchLinkYV(IntId(1), 1),
+                        endInnerSwitch = switchLinkYV(IntId(2), 1),
+                    ),
+                    edge(
+                        segments3,
+                        startInnerSwitch = switchLinkYV(IntId(3), 1),
+                        endInnerSwitch = switchLinkYV(IntId(4), 1),
+                    ),
+                )
+            ),
+        )
     }
 
     @Test
     fun `Track switch links are resolved correctly`() {
-        TODO()
-    }
-
-    @Test
-    fun `Segment m calculation works`() {
-        TODO()
-    }
-
-    @Test
-    fun `Edge m calculation works`() {
-        TODO()
+        assertEquals(
+            listOf(
+                TrackSwitchLink(
+                    switchLinkYV(IntId(1), 1),
+                    alignmentPoint(0.0, 0.0, m = 0.0),
+                    TrackSwitchLinkType.OUTER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(IntId(2), 1),
+                    alignmentPoint(2.0, 0.0, m = 2.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(IntId(3), 1),
+                    alignmentPoint(4.0, 0.0, m = 4.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(IntId(4), 1),
+                    alignmentPoint(4.0, 0.0, m = 4.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(IntId(5), 1),
+                    alignmentPoint(6.0, 0.0, m = 6.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(switchLinkYV(IntId(6), 1), alignmentPoint(6.0, 0.0, m = 6.0), TrackSwitchLinkType.OUTER),
+            ),
+            trackGeometry(
+                    edge(
+                        listOf(segment(Point(0.0, 0.0), Point(2.0, 0.0))),
+                        startOuterSwitch = switchLinkYV(IntId(1), 1),
+                        endOuterSwitch = switchLinkYV(IntId(2), 1),
+                    ),
+                    edge(
+                        listOf(segment(Point(2.0, 0.0), Point(4.0, 0.0))),
+                        startInnerSwitch = switchLinkYV(IntId(2), 1),
+                        endInnerSwitch = switchLinkYV(IntId(3), 1),
+                        endOuterSwitch = switchLinkYV(IntId(4), 1),
+                    ),
+                    edge(
+                        listOf(segment(Point(4.0, 0.0), Point(6.0, 0.0))),
+                        startOuterSwitch = switchLinkYV(IntId(3), 1),
+                        startInnerSwitch = switchLinkYV(IntId(4), 1),
+                        endInnerSwitch = switchLinkYV(IntId(5), 1),
+                        endOuterSwitch = switchLinkYV(IntId(6), 1),
+                    ),
+                )
+                .trackSwitchLinks,
+        )
     }
 
     @Test
     fun `Node location is resolved correctly`() {
-        TODO()
+        assertEquals(
+            listOf(
+                PlaceholderNode to alignmentPoint(0.0, 0.0, m = 0.0),
+                TmpSwitchNode(switchLinkYV(IntId(1), 1), null) to alignmentPoint(2.0, 0.0, m = 2.0),
+                TmpSwitchNode(switchLinkYV(IntId(2), 1), switchLinkYV(IntId(3), 1)) to
+                    alignmentPoint(4.0, 0.0, m = 4.0),
+                TmpSwitchNode(switchLinkYV(IntId(4), 1), null) to alignmentPoint(6.0, 0.0, m = 6.0),
+            ),
+            trackGeometry(
+                    edge(listOf(segment(Point(0.0, 0.0), Point(2.0, 0.0))), endOuterSwitch = switchLinkYV(IntId(1), 1)),
+                    edge(
+                        listOf(segment(Point(2.0, 0.0), Point(4.0, 0.0))),
+                        startInnerSwitch = switchLinkYV(IntId(1), 1),
+                        endInnerSwitch = switchLinkYV(IntId(2), 1),
+                        endOuterSwitch = switchLinkYV(IntId(3), 1),
+                    ),
+                    edge(
+                        listOf(segment(Point(4.0, 0.0), Point(6.0, 0.0))),
+                        startOuterSwitch = switchLinkYV(IntId(2), 1),
+                        startInnerSwitch = switchLinkYV(IntId(3), 1),
+                        endInnerSwitch = switchLinkYV(IntId(4), 1),
+                    ),
+                )
+                .nodesWithLocation,
+        )
+    }
+
+    @Test
+    fun `Segment m calculation works`() {
+        assertEquals(
+            listOf(Range(0.0, 2.0), Range(2.0, 5.0), Range(5.0, 9.0)),
+            calculateSegmentMValues(
+                listOf(
+                    segment(Point(0.0, 0.0), Point(2.0, 0.0)),
+                    segment(Point(2.0, 0.0), Point(5.0, 0.0)),
+                    segment(Point(5.0, 0.0), Point(9.0, 0.0)),
+                )
+            ),
+        )
+    }
+
+    @Test
+    fun `Edge m calculation works`() {
+        assertEquals(
+            listOf(Range(0.0, 2.0), Range(2.0, 5.0), Range(5.0, 9.0)),
+            calculateEdgeMValues(
+                listOf(
+                    edge(listOf(segment(Point(0.0, 0.0), Point(2.0, 0.0)))),
+                    edge(
+                        listOf(
+                            segment(Point(2.0, 0.0), Point(3.0, 0.0)),
+                            segment(Point(3.0, 0.0), Point(4.0, 0.0)),
+                            segment(Point(4.0, 0.0), Point(5.0, 0.0)),
+                        )
+                    ),
+                    edge(listOf(segment(Point(5.0, 0.0), Point(9.0, 0.0)))),
+                )
+            ),
+        )
     }
 }
