@@ -64,10 +64,10 @@ fun <T, LeftValue, RightValue, Result> processPartitioned(
     }
     val leftResults = processLefts(lefts)
     val rightResults = processRights(rights)
-    assert(lefts.size == leftResults.size) {
+    require(lefts.size == leftResults.size) {
         "expected ${lefts.size} results from processLefts, but got ${leftResults.size}"
     }
-    assert(rights.size == rightResults.size) {
+    require(rights.size == rightResults.size) {
         "expected ${rights.size} results from processRights, but got ${rightResults.size}"
     }
     var leftIndex = 0
@@ -88,13 +88,9 @@ fun <T, ValidInput, ErrorOrProcessedResult> processRights(
     process: (input: List<ValidInput>) -> List<ErrorOrProcessedResult>,
 ): List<ErrorOrProcessedResult> = processPartitioned(values, extractSide, { it }, process)
 
-fun <T, ProcessableInput, Result> processNonNulls(
-    values: List<T>,
-    extractProcessable: (value: T) -> ProcessableInput?,
-    process: (input: List<ProcessableInput>) -> List<Result>,
-): List<Result?> =
-    processRights(
-        values,
-        { value -> extractProcessable(value).let { if (it == null) Left(null) else Right(it) } },
-        process,
-    )
+/**
+ * Call process() only on the non-null values of the input list, but put the nulls back in their original positions
+ * afterward. process must return a list of the same length as it was passed.
+ */
+fun <T, Result> processNonNulls(values: List<T?>, process: (input: List<T>) -> List<Result>): List<Result?> =
+    processRights(values, { value -> if (value == null) Left(null) else Right(value) }, process)

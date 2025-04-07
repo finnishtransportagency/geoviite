@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.PlanApplicability
@@ -19,14 +20,20 @@ import fi.fta.geoviite.infra.geometry.PlanLayoutCache
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.TransformationError
-import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
+import fi.fta.geoviite.infra.geometry.fileNameWithSourcePrefixIfPaikannuspalvelu
+import fi.fta.geoviite.infra.geometry.getBoundingPolygonFromPlan
 import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.util.CsvEntry
+import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
@@ -34,6 +41,8 @@ import org.springframework.web.multipart.MultipartFile
 const val VALIDATION_LAYOUT_POINTS_RESOLUTION = 10
 
 val noFileValidationError = ParsingError(LocalizationKey(INFRAMODEL_PARSING_KEY_EMPTY))
+const val START_KM_PARAM_KEY = "startKm"
+const val END_KM_PARAM_KEY = "endKm"
 
 fun noFileValidationResponse(overrideParameters: OverrideParameters?) =
     ValidationResponse(
@@ -54,6 +63,7 @@ constructor(
     private val geographyService: GeographyService,
     private val switchLibraryService: SwitchLibraryService,
     private val trackNumberService: LayoutTrackNumberService,
+    private val locationTrackService: LocationTrackService,
     private val coordinateTransformationService: CoordinateTransformationService,
 ) {
 
@@ -68,17 +78,16 @@ constructor(
         extraInfo: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
         val geometryPlan = cleanMissingFeatureTypeCodes(parseInfraModel(file, overrides, extraInfo))
-        val transformedBoundingBox =
-            geometryPlan.units.coordinateSystemSrid
-                ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
-                ?.let { transformation ->
-                    getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation)
-                }
 
         checkForDuplicateFile(file.hash, geometryPlan.source)
 
-        return geometryDao.insertPlan(geometryPlan, file, transformedBoundingBox)
+        return geometryDao.insertPlan(geometryPlan, file, getBoundingPolygon(geometryPlan))
     }
+
+    fun getBoundingPolygon(geometryPlan: GeometryPlan) =
+        geometryPlan.units.coordinateSystemSrid
+            ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
+            ?.let { transformation -> getBoundingPolygonFromPlan(geometryPlan, transformation) }
 
     fun parseInfraModel(
         file: InfraModelFile,
@@ -111,6 +120,13 @@ constructor(
     fun validateInfraModelFile(file: InfraModelFile, overrideParameters: OverrideParameters?): ValidationResponse {
         return tryParsing(overrideParameters?.source) { validateInternal(file, overrideParameters) }
     }
+
+    fun getInfraModelBatchSummary(
+        headers: List<GeometryPlanHeader>,
+        summaryFileName: FileName,
+        translation: Translation,
+    ): Pair<FileName, String> =
+        summaryFileName to getInfraModelBatchSummaryCsv(headers.sortedBy { it.fileName }, translation)
 
     private fun validateInternal(file: InfraModelFile, overrides: OverrideParameters?): ValidationResponse {
         val geometryPlan = parseInfraModel(file, overrides)
@@ -166,6 +182,22 @@ constructor(
             geometryDao.updatePlan(planId, plan.copy(planApplicability = applicability))
         }
 
+    fun getInfraModelBatchSummaryCsv(headers: List<GeometryPlanHeader>, translation: Translation): String {
+        return printCsv(
+            mapOf<String, (item: GeometryPlanHeader) -> Any?>(
+                    "file-name" to { fileNameWithSourcePrefixIfPaikannuspalvelu(translation, it.fileName, it.source) },
+                    "start-km" to { it.kmNumberRange?.min },
+                    "end-km" to { it.kmNumberRange?.max },
+                    "crs" to { it.units.coordinateSystemName },
+                    "vertical-crs" to { it.units.verticalCoordinateSystem },
+                    "plan-time" to { it.planTime },
+                    "message" to { it.message },
+                )
+                .map { (key, fn) -> CsvEntry(translation.t("plan-download.csv.$key"), fn) },
+            headers,
+        )
+    }
+
     private fun overrideGeometryPlanWithParameters(
         plan: GeometryPlan,
         overrideParameters: OverrideParameters? = null,
@@ -208,7 +240,7 @@ constructor(
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
             source = overrideParameters?.source ?: plan.source,
-            planApplicability = extraInfoParameters?.planApplicability ?: plan.planApplicability,
+            planApplicability = extraInfoParameters?.planApplicability,
         )
     }
 

@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -16,6 +17,7 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.TopologyLinkFindingSwitch
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -439,6 +441,72 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
+    fun getOverlappingPlanHeaders(
+        layoutContext: LayoutContext,
+        locationTrackId: IntId<LocationTrack>,
+        polygonBufferSize: Double,
+        cropStart: KmNumber?,
+        cropEnd: KmNumber?,
+    ): List<GeometryPlanHeader> {
+        val locationTrack = getOrThrow(layoutContext, locationTrackId)
+        val context = requireNotNull(geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId))
+        val alignment = alignmentDao.fetch(requireNotNull(locationTrack.alignmentVersion))
+
+        val startAndEnd = getStartAndEnd(layoutContext, listOf(locationTrackId)).first()
+        val trackStart = startAndEnd.start?.address
+        val trackEnd = startAndEnd.end?.address
+
+        return if (trackStart == null || trackEnd == null || !cropIsWithinReferenceLine(cropStart, cropEnd, context)) {
+            emptyList()
+        } else if (cropStart == null && cropEnd == null) {
+            alignmentService.getOverlappingPlanHeaders(alignment, polygonBufferSize, cropStartM = null, cropEndM = null)
+        } else {
+            getPlanHeadersOverlappingCroppedLocationTrack(
+                alignment,
+                context,
+                polygonBufferSize,
+                trackStart,
+                trackEnd,
+                cropStart,
+                cropEnd,
+            )
+        }
+    }
+
+    private fun getPlanHeadersOverlappingCroppedLocationTrack(
+        alignment: LayoutAlignment,
+        geocodingContext: GeocodingContext,
+        polygonBufferSize: Double,
+        trackStart: TrackMeter,
+        trackEnd: TrackMeter,
+        cropStartKm: KmNumber?,
+        cropEndKm: KmNumber?,
+    ): List<GeometryPlanHeader> {
+        val cropStart = cropStartKm?.let { TrackMeter(cropStartKm, 0) } ?: trackStart
+        val cropEnd =
+            cropEndKm?.let {
+                geocodingContext.referencePoints
+                    .find { it.kmNumber > cropEndKm }
+                    ?.let { referencePoint -> TrackMeter(referencePoint.kmNumber, 0) }
+            } ?: trackEnd
+
+        return if (cropStart > trackEnd || cropEnd < trackStart) {
+            emptyList()
+        } else {
+            val cropStartM =
+                requireNotNull(
+                    geocodingContext.getTrackLocation(alignment, cropStart.coerceIn(trackStart, trackEnd))?.point?.m
+                )
+            val cropEndM =
+                requireNotNull(
+                    geocodingContext.getTrackLocation(alignment, cropEnd.coerceIn(trackStart, trackEnd))?.point?.m
+                )
+
+            alignmentService.getOverlappingPlanHeaders(alignment, polygonBufferSize, cropStartM, cropEndM)
+        }
+    }
+
+    @Transactional(readOnly = true)
     fun getFullDescriptions(
         layoutContext: LayoutContext,
         locationTracks: List<LocationTrack>,
@@ -461,21 +529,22 @@ class LocationTrackService(
         return locationTracks.zip(startAndEndSwitchIds) { locationTrack, startAndEndSwitch ->
             val startSwitchName = startAndEndSwitch.first?.let(::getSwitchShortName)
             val endSwitchName = startAndEndSwitch.second?.let(::getSwitchShortName)
+            val trimmedDescriptionBase = locationTrack.descriptionBase.toString().trim()
 
             when (locationTrack.descriptionSuffix) {
-                LocationTrackDescriptionSuffix.NONE -> FreeText(locationTrack.descriptionBase.toString())
+                LocationTrackDescriptionSuffix.NONE -> FreeText(trimmedDescriptionBase)
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER ->
                     FreeText(
-                        "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
+                        "${trimmedDescriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
                     )
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ->
-                    FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
+                    FreeText("${trimmedDescriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ->
                     FreeText(
-                        "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
+                        "${trimmedDescriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
                     )
             }
         }

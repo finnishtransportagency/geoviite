@@ -9,8 +9,16 @@ import {
     useReferenceLines,
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
+import { SelectedPlanDownloadAsset } from 'map/plan-download/plan-download-store';
+import { first } from 'utils/array-utils';
 
-export const SelectionPanelContainer: React.FC = () => {
+type SelectionPanelContainerProps = {
+    setSwitchToOfficialDialogOpen: (open: boolean) => void;
+};
+
+export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = ({
+    setSwitchToOfficialDialogOpen,
+}) => {
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
     const state = useTrackLayoutAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
@@ -39,6 +47,30 @@ export const SelectionPanelContainer: React.FC = () => {
         state.layoutContext,
         changeTimes.layoutKmPost,
     );
+
+    const initialSelectionForPlanDownload: () => SelectedPlanDownloadAsset | undefined = () => {
+        const selectedLocationTrack = first(state.selection.selectedItems.locationTracks);
+        const selectedTrackNumber = first(state.selection.selectedItems.trackNumbers);
+
+        if (selectedLocationTrack) {
+            return { id: selectedLocationTrack, type: 'LOCATION_TRACK' };
+        } else if (selectedTrackNumber) {
+            return { id: selectedTrackNumber, type: 'TRACK_NUMBER' };
+        } else {
+            return undefined;
+        }
+    };
+
+    const togglePlanDownload = () => {
+        if (state.planDownloadState) {
+            delegates.onStopPlanDownload();
+        } else if (state.layoutContext.publicationState === 'DRAFT') {
+            setSwitchToOfficialDialogOpen(true);
+        } else {
+            delegates.onStartPlanDownload(initialSelectionForPlanDownload());
+        }
+    };
+
     return (
         <SelectionPanel
             onSelect={delegates.onSelect}
@@ -68,6 +100,8 @@ export const SelectionPanelContainer: React.FC = () => {
             splittingState={state.splittingState}
             grouping={state.geometryPlanViewSettings.grouping}
             visibleSources={state.geometryPlanViewSettings.visibleSources}
+            togglePlanDownloadPopupOpen={togglePlanDownload}
+            planDownloadPopupOpen={!!state.planDownloadState}
         />
     );
 };

@@ -1603,6 +1603,45 @@ constructor(
         )
     }
 
+    @Test
+    fun `joint 5 hitting an existing segment boundary gets linked to both start and end sides correctly`() {
+        val throughAlignment =
+            alignment(
+                segment(Point(-1.0, 0.0), Point(0.0, 0.0)),
+                // just to be extra sneaky, have the segment ends very slightly zigzag to mess up
+                // the m-order
+                segment(Point(0.0, 0.0), Point(16.61500001, 0.0)),
+                segment(Point(16.615, 0.0), Point(34.43, 0.0)),
+            )
+        val branchingAlignment = alignment(segment(Point(0.0, 0.0), Point(34.321, -1.967)))
+
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val throughTrack = mainOfficialContext.insert(locationTrack(trackNumber), throughAlignment).id
+        mainOfficialContext.insert(locationTrack(trackNumber), branchingAlignment).id
+        val switch =
+            mainOfficialContext
+                .insert(
+                    switch(
+                        switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!.id
+                    )
+                )
+                .id
+        val suggested = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(0.0, 0.0), switch)!!
+
+        listOf(
+                SwitchLinkingJoint(JointNumber(1), 1, 1.0, Point(0.0, 0.0)),
+                SwitchLinkingJoint(JointNumber(5), 1, 17.615, Point(16.615, 0.0)),
+                SwitchLinkingJoint(JointNumber(5), 2, 17.615, Point(16.615, 0.0)),
+                SwitchLinkingJoint(JointNumber(2), 2, 35.43, Point(34.43, 0.0)),
+            )
+            .zip(suggested.trackLinks[throughTrack]!!.segmentJoints) { expected, actual ->
+                assertEquals(expected.number, actual.number)
+                assertEquals(expected.segmentIndex, actual.segmentIndex)
+                assertEquals(expected.m, actual.m, 0.0001)
+                assertEquals(expected.location.x, actual.location.x, 0.0001)
+            }
+    }
+
     private fun setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox():
         Triple<IntId<LocationTrack>, IntId<LocationTrack>, IntId<LayoutSwitch>> {
         val trackNumberId =

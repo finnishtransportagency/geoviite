@@ -24,6 +24,15 @@ export const initialVerticalGeometryDiagramState: VerticalGeometryDiagramState =
     visible: false,
 };
 
+export type VerticalGeometryDiagramGeometryAlignmentId = {
+    planId: GeometryPlanId;
+    alignmentId: GeometryAlignmentId;
+};
+export type VerticalGeometryDiagramLayoutAlignmentId = {
+    locationTrackId: LocationTrackId;
+    layoutContext: LayoutContext;
+};
+
 export type VerticalGeometryDiagramAlignmentId =
-    | { planId: GeometryPlanId; alignmentId: GeometryAlignmentId }
-    | { locationTrackId: LocationTrackId; layoutContext: LayoutContext };
+    | VerticalGeometryDiagramGeometryAlignmentId
+    | VerticalGeometryDiagramLayoutAlignmentId;

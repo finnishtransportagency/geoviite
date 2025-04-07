@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
+import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
@@ -48,13 +49,15 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
+import fi.fta.geoviite.infra.util.processFlattened
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.stream.Collectors
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -191,30 +194,28 @@ constructor(
     }
 
     fun getPlanFileHash(planId: IntId<GeometryPlan>): FileHash {
-        return geometryDao.getPlanFile(planId).file.hash
+        return geometryDao.getPlanFiles(listOf(planId)).getValue(planId).file.hash
     }
 
-    fun getPlanFile(planId: IntId<GeometryPlan>, translation: Translation): InfraModelFile {
-        val fileAndSource = geometryDao.getPlanFile(planId)
-        return if (fileAndSource.source == PAIKANNUSPALVELU) {
-            InfraModelFile(
-                fileNameWithSourcePrefixIfPaikannuspalvelu(translation, fileAndSource.file.name, fileAndSource.source),
-                fileAndSource.file.content,
-            )
-        } else fileAndSource.file
-    }
+    fun getPlanFile(planId: IntId<GeometryPlan>, translation: Translation): InfraModelFile =
+        getPlanFiles(listOf(planId), translation).getValue(planId)
 
-    private fun fileNameWithSourcePrefixIfPaikannuspalvelu(
+    fun getPlanFiles(
+        planIds: List<IntId<GeometryPlan>>,
         translation: Translation,
-        originalFileName: FileName,
-        source: PlanSource,
-    ): FileName {
-        return if (source == PAIKANNUSPALVELU) {
-            translation.filename("unreliable-plan-file", localizationParams("originalFileName" to originalFileName))
-        } else {
-            originalFileName
+    ): Map<IntId<GeometryPlan>, InfraModelFile> =
+        geometryDao.getPlanFiles(planIds).mapValues { (_, fileAndSource) ->
+            if (fileAndSource.source == PAIKANNUSPALVELU) {
+                InfraModelFile(
+                    fileNameWithSourcePrefixIfPaikannuspalvelu(
+                        translation,
+                        fileAndSource.file.name,
+                        fileAndSource.source,
+                    ),
+                    fileAndSource.file.content,
+                )
+            } else fileAndSource.file
         }
-    }
 
     fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
         return geometryDao.getLinkingSummaries(planIds)
@@ -582,7 +583,6 @@ constructor(
     ): List<KmHeights>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
         val alignment = layoutAlignmentDao.fetch(locationTrack.versionOrThrow)
-        val boundingBox = alignment.boundingBox ?: return null
         val geocodingContext =
             geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId) ?: return null
 
@@ -600,30 +600,25 @@ constructor(
                 )
             }
 
+        val kmTicks =
+            collectTrackMeterTicks(
+                startDistance,
+                endDistance,
+                geocodingContext,
+                alignment,
+                tickLength,
+                geometryAlignmentBoundaryPoints = alignmentBoundaryAddresses,
+            ) ?: listOf()
+        val boundingBox = requireNotNull(alignment.boundingBox)
         val heightTriangles = heightTriangleDao.fetchTriangles(boundingBox.polygonFromCorners)
 
-        return collectTrackMeterHeights(
-            startDistance,
-            endDistance,
-            geocodingContext,
-            alignment,
-            tickLength,
-            geometryAlignmentBoundaryPoints = alignmentBoundaryAddresses,
-        ) { point, givenSegmentIndex ->
-            val segmentIndex = givenSegmentIndex ?: alignment.getSegmentIndexAtM(point.m)
-            val segment = alignment.segments[segmentIndex]
-            val segmentM = alignment.segmentMValues[segmentIndex]
-            val source = segmentSources[segmentIndex]
-            val distanceInSegment = point.m - segmentM.min
-            val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
-            val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
-            val profileHeight = source.profile?.getHeightAt(distanceInGeometryAlignment)
-            profileHeight?.let { height ->
-                source.plan?.units?.verticalCoordinateSystem?.let { verticalCoordinateSystem ->
-                    transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
-                }
+        return processFlattened(kmTicks.map { it.ticks }) { allTicks ->
+                allTicks
+                    .parallelStream()
+                    .map { tick -> getHeightAtTickInLayoutAlignment(alignment, segmentSources, heightTriangles, tick) }
+                    .collect(Collectors.toList())
             }
-        }
+            .zip(kmTicks, ::combineKmTicksWithHeights)
     }
 
     @Transactional(readOnly = true)
@@ -666,11 +661,17 @@ constructor(
         val verticalCoordinateSystem = plan.units.verticalCoordinateSystem ?: return null
 
         val startStation = geometryAlignment.staStart.toDouble()
-        return collectTrackMeterHeights(startDistance, endDistance, geocodingContext, alignment, tickLength) { point, _
-            ->
-            profile?.getHeightAt(point.m + startStation)?.let { height ->
-                transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
-            }
+        val kmTicks =
+            collectTrackMeterTicks(startDistance, endDistance, geocodingContext, alignment, tickLength) ?: listOf()
+        return kmTicks.map { kmTick ->
+            val heights =
+                kmTick.ticks.map { tick ->
+                    val point = tick.addressPoint.point
+                    profile?.getHeightAt(point.m + startStation)?.let { height ->
+                        transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
+                    }
+                }
+            combineKmTicksWithHeights(heights, kmTick)
         }
     }
 
@@ -696,6 +697,22 @@ constructor(
             ?.let { trackNumberId -> geocodingService.getGeocodingContext(MainLayoutContext.official, trackNumberId) }
 }
 
+private fun combineKmTicksWithHeights(kmHeights: List<Double?>, kmTick: KmTicks): KmHeights =
+    KmHeights(
+        kmTick.kmNumber,
+        kmHeights
+            .zip(kmTick.ticks) { height, tick ->
+                TrackMeterHeight(
+                    tick.addressPoint.point.m,
+                    tick.addressPoint.address.meters.toDouble(),
+                    height,
+                    tick.addressPoint.point.toPoint(),
+                )
+            }
+            .distinct(),
+        kmTick.endM,
+    )
+
 private fun trackNumbersMatch(header: GeometryPlanHeader, trackNumbers: List<TrackNumber>) =
     (trackNumbers.isEmpty() || (header.trackNumber?.let(trackNumbers::contains) ?: false))
 
@@ -707,6 +724,18 @@ private val whitespace = "\\s+".toRegex()
 private fun splitSearchTerms(freeText: FreeText?): List<String> =
     freeText?.toString()?.split(whitespace)?.toList()?.map { s -> s.lowercase().trim() }?.filter(String::isNotBlank)
         ?: listOf()
+
+fun fileNameWithSourcePrefixIfPaikannuspalvelu(
+    translation: Translation,
+    originalFileName: FileName,
+    source: PlanSource,
+): FileName {
+    return if (source == PAIKANNUSPALVELU) {
+        translation.filename("unreliable-plan-file", localizationParams("originalFileName" to originalFileName))
+    } else {
+        originalFileName
+    }
+}
 
 enum class GeometryPlanSortField {
     ID,
@@ -730,3 +759,26 @@ private data class SegmentSource(
     val alignment: GeometryAlignment?,
     val plan: GeometryPlan?,
 )
+
+private fun getHeightAtTickInLayoutAlignment(
+    alignment: LayoutAlignment,
+    segmentSources: List<SegmentSource>,
+    heightTriangles: List<HeightTriangle>,
+    tick: TrackMeterTick,
+): Double? {
+    val point = tick.addressPoint.point
+    val segmentIndex = tick.segmentIndex ?: alignment.getSegmentIndexAtM(point.m)
+    val segment = alignment.segments[segmentIndex]
+    val source = segmentSources[segmentIndex]
+
+    val distanceInSegment = point.m - segment.startM
+    val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
+    val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
+
+    val profileHeight = source.profile?.getHeightAt(distanceInGeometryAlignment)
+    return profileHeight?.let { height ->
+        source.plan?.units?.verticalCoordinateSystem?.let { verticalCoordinateSystem ->
+            transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
+        }
+    }
+}

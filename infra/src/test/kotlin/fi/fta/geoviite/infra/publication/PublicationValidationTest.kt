@@ -395,9 +395,8 @@ class PublicationValidationTest {
 
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
         // the correct error range is hard to calculate because it depends on how lines get
-        // projected; this at least
-        // seems OK though
-        assertSingleAddressPointErrorRangeDescription(geocode, "0000+0006..0000+0008")
+        // projected; this at least seems OK though
+        assertSingleAddressPointErrorRangeDescription(geocode, "0000+0006..0000+0008, 0000+0008..0000+0013")
     }
 
     @Test

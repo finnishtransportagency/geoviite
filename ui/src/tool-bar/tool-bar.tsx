@@ -6,17 +6,6 @@ import {
     ButtonSize,
     ButtonVariant,
 } from 'vayla-design-lib/button/button';
-import { Dropdown, dropdownOption, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
-import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
-import {
-    LayoutLocationTrack,
-    LayoutSwitch,
-    LayoutTrackNumber,
-    LocationTrackId,
-    OperatingPoint,
-} from 'track-layout/track-layout-model';
-import { debounceAsync } from 'utils/async-utils';
-import { isNilOrBlank } from 'utils/string-utils';
 import {
     BoundingBox,
     boundingBoxAroundPoints,
@@ -40,7 +29,6 @@ import {
     refreshSwitchSelection,
     refreshTrackNumberSelection,
 } from 'track-layout/track-layout-react-utils';
-import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
@@ -65,7 +53,7 @@ import { getLayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-
 import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
-import { ALIGNMENT_DESCRIPTION_REGEX } from 'tool-panel/location-track/dialog/location-track-validation';
+import { SearchDropdown, SearchItemValue, SearchType } from 'tool-bar/search-dropdown';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;
@@ -87,118 +75,6 @@ export type ToolbarParams = {
     designId: LayoutDesignId | undefined;
     onDesignIdChange: (value: LayoutDesignId | undefined) => void;
 };
-
-type LocationTrackItemValue = {
-    locationTrack: LayoutLocationTrack;
-    type: 'locationTrackSearchItem';
-};
-
-function createLocationTrackOptionItem(
-    locationTrack: LayoutLocationTrack,
-    description: string,
-): Item<LocationTrackItemValue> {
-    return dropdownOption(
-        {
-            type: 'locationTrackSearchItem',
-            locationTrack: locationTrack,
-        } as const,
-        `${locationTrack.name}, ${description}`,
-        `location-track-${locationTrack.id}`,
-    );
-}
-
-type SwitchItemValue = {
-    layoutSwitch: LayoutSwitch;
-    type: 'switchSearchItem';
-};
-
-function createSwitchOptionItem(layoutSwitch: LayoutSwitch): Item<SwitchItemValue> {
-    return dropdownOption(
-        {
-            type: 'switchSearchItem',
-            layoutSwitch: layoutSwitch,
-        } as const,
-        layoutSwitch.name,
-        `switch-${layoutSwitch.id}`,
-    );
-}
-
-type TrackNumberItemValue = {
-    trackNumber: LayoutTrackNumber;
-    type: 'trackNumberSearchItem';
-};
-
-function createTrackNumberOptionItem(
-    layoutTrackNumber: LayoutTrackNumber,
-): Item<TrackNumberItemValue> {
-    return dropdownOption(
-        {
-            type: 'trackNumberSearchItem',
-            trackNumber: layoutTrackNumber,
-        } as const,
-        layoutTrackNumber.number,
-        `track-number-${layoutTrackNumber.id}`,
-    );
-}
-
-type OperatingPointItemValue = {
-    operatingPoint: OperatingPoint;
-    type: 'operatingPointSearchItem';
-};
-
-function createOperatingPointOptionItem(
-    operatingPoint: OperatingPoint,
-): Item<OperatingPointItemValue> {
-    return dropdownOption(
-        {
-            operatingPoint: operatingPoint,
-            type: 'operatingPointSearchItem',
-        } as const,
-        `${operatingPoint.name}, ${operatingPoint.abbreviation}`,
-        `operating-point-${operatingPoint.name}`,
-    );
-}
-
-type SearchItemValue =
-    | LocationTrackItemValue
-    | SwitchItemValue
-    | TrackNumberItemValue
-    | OperatingPointItemValue;
-
-// The characters that alignment descriptions can contain is a superset of the characters that can be used in search,
-// and it's considered quite likely to stay that way even if allowed character sets for names etc. are changed.
-const SEARCH_REGEX = ALIGNMENT_DESCRIPTION_REGEX;
-
-async function getOptions(
-    layoutContext: LayoutContext,
-    searchTerm: string,
-    locationTrackSearchScope: LocationTrackId | undefined,
-): Promise<Item<SearchItemValue>[]> {
-    if (isNilOrBlank(searchTerm) || !searchTerm.match(SEARCH_REGEX)) {
-        return Promise.resolve([]);
-    }
-
-    const searchResult = await getBySearchTerm(searchTerm, layoutContext, locationTrackSearchScope);
-
-    const locationTrackDescriptions = await getLocationTrackDescriptions(
-        searchResult.locationTracks.map((lt) => lt.id),
-        layoutContext,
-    );
-
-    const locationTrackOptions = searchResult.locationTracks.map((locationTrack) => {
-        const description =
-            locationTrackDescriptions?.find((d) => d.id === locationTrack.id)?.description ?? '';
-
-        return createLocationTrackOptionItem(locationTrack, description);
-    });
-
-    return [
-        searchResult.operatingPoints.map(createOperatingPointOptionItem),
-        locationTrackOptions,
-        searchResult.switches.map(createSwitchOptionItem),
-        searchResult.trackNumbers.map(createTrackNumberOptionItem),
-    ].flat();
-}
 
 export const ToolBar: React.FC<ToolbarParams> = ({
     onSelect,
@@ -283,15 +159,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             'tool-bar.new-km-post',
         ),
     ];
-
-    // Use debounced function to collect keystrokes before triggering a search
-    const debouncedGetOptions = debounceAsync(getOptions, 250);
-    // Use memoized function to make debouncing functionality to work when re-rendering
-    const memoizedDebouncedGetOptions = React.useCallback(
-        (searchTerm: string) =>
-            debouncedGetOptions(layoutContext, searchTerm, splittingState?.originLocationTrack?.id),
-        [layoutContext, splittingState],
-    );
 
     function onItemSelected(item: SearchItemValue | undefined) {
         if (!item) {
@@ -580,7 +447,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     </PrivilegeRequired>
                 )}
                 <div className={styles['tool-bar__search-container']}>
-                    <Dropdown
+                    <SearchDropdown
+                        layoutContext={layoutContext}
+                        splittingState={splittingState}
                         placeholder={
                             splittingState
                                 ? t('tool-bar.search-from-track', {
@@ -588,14 +457,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                   })
                                 : t('tool-bar.search-from-whole-network')
                         }
+                        onItemSelected={onItemSelected}
                         disabled={!canSearch}
-                        options={memoizedDebouncedGetOptions}
-                        searchable
-                        onChange={onItemSelected}
-                        size={DropdownSize.STRETCH}
-                        wideList
-                        wide
-                        qa-id="search-box"
+                        searchTypes={[
+                            SearchType.LOCATION_TRACK,
+                            SearchType.SWITCH,
+                            SearchType.TRACK_NUMBER,
+                            SearchType.OPERATING_POINT,
+                        ]}
                     />
                 </div>
             </div>

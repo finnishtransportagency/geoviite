@@ -9,13 +9,13 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateSystem
 import fi.fta.geoviite.infra.geography.GeographyService
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -46,6 +46,7 @@ class LayoutTrackNumberService(
     private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
+    private val layoutAlignmentDao: LayoutAlignmentDao,
 ) : LayoutAssetService<LayoutTrackNumber, NoParams, LayoutTrackNumberDao>(dao) {
 
     @Transactional
@@ -184,10 +185,9 @@ class LayoutTrackNumberService(
         boundingBox: BoundingBox?,
     ): List<AlignmentPlanSection> {
         return get(layoutContext, trackNumberId)?.let { trackNumber ->
-            val referenceLine =
-                referenceLineService.getByTrackNumber(layoutContext, trackNumberId)
-                    ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
+            val referenceLine = referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId)
             val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
+
             if (geocodingContext != null && referenceLine.alignmentVersion != null) {
                 alignmentService.getGeometryMetadataSections(
                     referenceLine.alignmentVersion,
@@ -199,6 +199,38 @@ class LayoutTrackNumberService(
                 null
             }
         } ?: listOf()
+    }
+
+    @Transactional(readOnly = true)
+    fun getOverlappingPlanHeaders(
+        layoutContext: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>,
+        polygonBufferSize: Double,
+        startKmNumber: KmNumber?,
+        endKmNumber: KmNumber?,
+    ): List<GeometryPlanHeader> {
+        val alignmentVersion =
+            requireNotNull(referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId).alignmentVersion)
+        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(layoutContext, trackNumberId))
+
+        if (!cropIsWithinReferenceLine(startKmNumber, endKmNumber, geocodingContext)) {
+            return emptyList()
+        } else if (startKmNumber == null && endKmNumber == null) {
+            return alignmentService.getOverlappingPlanHeaders(
+                alignment = layoutAlignmentDao.fetch(alignmentVersion),
+                polygonBufferSize = polygonBufferSize,
+                cropStartM = null,
+                cropEndM = null,
+            )
+        } else {
+            val (cropStartM, cropEndM) = getCropMValues(geocodingContext, startKmNumber, endKmNumber)
+            return alignmentService.getOverlappingPlanHeaders(
+                alignment = layoutAlignmentDao.fetch(alignmentVersion),
+                polygonBufferSize = polygonBufferSize,
+                cropStartM = cropStartM,
+                cropEndM = cropEndM,
+            )
+        }
     }
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
@@ -364,3 +396,13 @@ private fun getKmPostDistances(
         }
         kmPost to distance
     }
+
+private fun getCropMValues(
+    geocodingContext: GeocodingContext,
+    startKmNumber: KmNumber?,
+    endKmNumber: KmNumber?,
+): Pair<Double?, Double?> {
+    val startM = startKmNumber?.let { geocodingContext.referencePoints.find { it.kmNumber == startKmNumber }?.distance }
+    val endM = endKmNumber?.let { geocodingContext.referencePoints.find { it.kmNumber > endKmNumber }?.distance }
+    return startM to endM
+}

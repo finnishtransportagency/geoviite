@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.toAngle
@@ -197,29 +198,34 @@ constructor(
         return fileId
     }
 
-    fun getPlanFile(planId: IntId<GeometryPlan>): InfraModelFileWithSource {
+    fun getPlanFiles(planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, InfraModelFileWithSource> {
+        if (planIds.isEmpty()) return emptyMap()
+
         val sql =
             """
           select 
             plan_file.name as file_name, 
             plan.source, 
+            plan.id,
             xmlserialize(document content as varchar) as file_content
             from geometry.plan_file
             inner join geometry.plan 
             on plan_id = plan.id
-          where plan_id = :plan_id
+          where plan_id in (:plan_ids)
         """
                 .trimIndent()
-        val params = mapOf("plan_id" to planId.intValue)
-        return getOne(
-            planId,
-            jdbcTemplate.query(sql, params) { rs, _ ->
-                InfraModelFileWithSource(
-                    file = InfraModelFile(name = rs.getFileName("file_name"), content = rs.getString("file_content")),
-                    source = rs.getEnum("source"),
-                )
-            },
-        )
+        val params = mapOf("plan_ids" to planIds.map { it.intValue })
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                rs.getIntId<GeometryPlan>("id") to
+                    InfraModelFileWithSource(
+                        file =
+                            InfraModelFile(name = rs.getFileName("file_name"), content = rs.getString("file_content")),
+                        source = rs.getEnum("source"),
+                    )
+            }
+            .associate { (id, file) -> id to file }
+            .also { logger.daoAccess(FETCH, InfraModelFile::class, planIds) }
     }
 
     fun fetchDuplicateGeometryPlanVersion(newFileHash: FileHash, source: PlanSource): RowVersion<GeometryPlan>? {
@@ -928,6 +934,34 @@ constructor(
                 .filterNotNull()
         logger.daoAccess(FETCH, GeometryPlanArea::class, result.map { a -> a.id })
         return result
+    }
+
+    fun fetchIntersectingPlans(polygon: List<IPoint>, srid: Srid): List<IntId<GeometryPlan>> {
+        val searchPolygonWkt = create2DPolygonString(polygon)
+        // search_input is materialized to work around an issue where PostgreSQL repeatedly
+        // re-parses the (possibly quite large) :polygon_wkt for each geometry.plan row while
+        // checking that its generic query plan is still valid. Note that the generic query plan is
+        // only used after pgJDBC has seen this query more than prepareThreshold (default 5) number
+        // of times in a session, so this query will initially run fast even without this fix: The
+        // forced materialization keeps it fast also on later times it's run in a session.
+        val sql =
+            """
+          with search_input as materialized (select postgis.st_polygonfromtext(:polygon_wkt, :map_srid) as poly)
+          select 
+            plan.id
+          from geometry.plan
+            where hidden = false
+              and postgis.st_intersects(
+                  plan.bounding_polygon, 
+                  (select poly from search_input)
+              )
+        """
+                .trimIndent()
+        val params = mapOf("polygon_wkt" to searchPolygonWkt, "map_srid" to srid.code)
+        return jdbcTemplate
+            .query(sql, params) { rs, _ -> rs.getIntId<GeometryPlan>("id") }
+            .filterNotNull()
+            .also { result -> logger.daoAccess(FETCH, GeometryPlan::class, result) }
     }
 
     @Cacheable(CACHE_GEOMETRY_PLAN, sync = true)

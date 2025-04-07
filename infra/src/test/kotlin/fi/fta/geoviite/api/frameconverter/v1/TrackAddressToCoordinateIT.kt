@@ -45,7 +45,6 @@ private data class TestTrackAddressToCoordinateRequest(
     val ratanumero_oid: String? = null,
     val ratakilometri: Int? = null,
     val ratametri: Int? = null,
-    val ratametri_desimaalit: Int? = null,
     val sijaintiraide: String? = null,
     val sijaintiraide_oid: String? = null,
     val sijaintiraide_tyyppi: String? = null,
@@ -1306,6 +1305,12 @@ constructor(
 
     @Test
     fun `Track address to coordinate transformation allows decimals in search`() {
+        data class TestTrackAddressToCoordinateRequestWithDoubleAddress(
+            val ratanumero: String? = null,
+            val ratakilometri: Int? = null,
+            val ratametri: Double? = null,
+        ) : FrameConverterTestRequest()
+
         val layoutContext = mainOfficialContext
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
@@ -1320,14 +1325,13 @@ constructor(
             segments = segments,
         )
 
-        val decimalSearchTests = listOf(0, 123, 400, 999)
+        val decimalSearchTests = listOf(0.0, 0.123, 0.400, 0.999)
 
         decimalSearchTests.forEach { testDecimals ->
             val request =
-                TestTrackAddressToCoordinateRequest(
+                TestTrackAddressToCoordinateRequestWithDoubleAddress(
                     ratakilometri = 0,
-                    ratametri = 500,
-                    ratametri_desimaalit = testDecimals,
+                    ratametri = 500.0 + testDecimals,
                     ratanumero = trackNumberName,
                 )
 
@@ -1336,26 +1340,11 @@ constructor(
             assertEquals(1, featureCollection.features.size)
             assertEquals(0, featureCollection.features[0].properties?.get("ratakilometri"))
             assertEquals(500, featureCollection.features[0].properties?.get("ratametri"))
-            assertEquals(testDecimals, featureCollection.features[0].properties?.get("ratametri_desimaalit"))
-        }
-    }
-
-    @Test
-    fun `Invalid track address decimals results in an error`() {
-        val request =
-            TestTrackAddressToCoordinateRequest(
-                ratakilometri = 0,
-                ratametri = 500,
-                ratametri_desimaalit = -1,
-                ratanumero = testDBService.getUnusedTrackNumber().value,
+            assertEquals(
+                (testDecimals * 1000).toInt(),
+                featureCollection.features[0].properties?.get("ratametri_desimaalit"),
             )
-
-        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
-
-        val expectedErrorMessage =
-            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri.ratametri_desimaalit yhdistelmä oli virheellinen)."
-
-        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+        }
     }
 
     @Test

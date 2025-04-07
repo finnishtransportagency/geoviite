@@ -18,7 +18,6 @@
             "invalid-location-track-oid": "Pyyntö sisälsi virheellisen sijaintiraide_oid-asetuksen.",
             "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
             "invalid-track-address": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen).",
-            "invalid-track-address-with-decimals": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri.ratametri_desimaalit yhdistelmä oli virheellinen).",
             "no-track-number-search-condition": "Pyyntö ei sisältänyt hakuehtoa ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid.",
             "both-name-and-oid-for-track-number": "Pyyntö sisälsi useamman kuin yhden hakuehdon ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid.",
             "too-many-requests": "Kutsu sisälsi liian monta muunnospyyntöä. Yhdessä kutsussa saa olla korkeintaan 1000 muunnosta.",
@@ -170,7 +169,6 @@
         "yes": "Kyllä",
         "show-more": "Näytä lisää",
         "show-less": "Piilota",
-        "logout": "Kirjaudu ulos",
         "close": "Sulje"
     },
     "yes": "Kyllä",
@@ -343,9 +341,7 @@
         },
         "licenses": "Lisenssitiedot",
         "vertical-geometry-diagram-demo": "Korkeuskaavio-demo",
-        "more": "Lisää",
-        "logout": "Kirjaudu ulos",
-        "logout-confirm": "Geoviitteen uloskirjautuminen kirjaa ulos myös muista auki olevista Väyläviraston tietojärjestelmistä."
+        "more": "Lisää"
     },
     "app-bar-debug": {
         "expired-token": "Debug: Vanhentunut tokeni"
@@ -686,14 +682,14 @@
             "description": "Kuvaus",
             "track-number": "Ratanumero",
             "duplicate-of": "Duplikaatti raiteelle",
-            "location-track": "Raide \"{{trackName}}\"",
+            "location-track": "Raide {{trackName}}",
             "errors": "Virheet ({{count}}):",
             "warnings": "Varoitukset ({{count}}):",
             "infos": "Huomiot ({{count}}):",
             "is-partial-duplicate-tooltip": "Raide on osittainen duplikaatti, päällekkäinen osuus {{overlappingLength}} m, ei-päällekkäinen osuus {{nonOverlappingLength}} m",
-            "implicit-duplicate-tooltip": "Raidetta \"{{trackName}}\" ei ole merkattu raiteen \"{{otherTrackName}}\" duplikaatiksi, mutta raiteilla on päällekkäistä geometriaa",
-            "non-overlapping-duplicate-tooltip": "Raide \"{{trackName}}\" on merkattu raiteen \"{{otherTrackName}}\" duplikaatiksi, mutta raiteilla ei ole päällekkäistä geometriaa",
-            "overlapping-duplicate-of-different-track-tooltip": "Raide \"{{implicitDuplicateName}}\" on merkattu eri raiteen duplikaatiksi (\"{{explicitDuplicateName}}\",) mutta sillä on päällekkäistä geometriaa myös raiteen \"{{trackName}}\" kanssa",
+            "implicit-duplicate-tooltip": "Raidetta {{trackName}} ei ole merkattu raiteen {{otherTrackName}} duplikaatiksi, mutta raiteilla on päällekkäistä geometriaa",
+            "non-overlapping-duplicate-tooltip": "Raide {{trackName}} on merkattu raiteen {{otherTrackName}} duplikaatiksi, mutta raiteilla ei ole päällekkäistä geometriaa",
+            "overlapping-duplicate-of-different-track-tooltip": "Raide {{implicitDuplicateName}} on merkattu eri raiteen duplikaatiksi ({{explicitDuplicateName}}), mutta sillä on päällekkäistä geometriaa myös raiteen {{trackName}} kanssa",
             "short-non-overlapping-length-warning": "Duplikaattiraiteen ei-päällekkäisen osuuden pituus on vain {{nonOverlappingLength}} m, joten kannattaa tarkastaa, ettei geometria jatku tarkoituksettomasti vaihteiden yli",
             "has-duplicates": "Duplikaattiraiteet",
             "not-a-duplicate": "Ei duplikaatti",
@@ -716,7 +712,7 @@
             "end-location": "Loppusijainti (km + m)",
             "true-length": "Todellinen pituus (m)",
             "owner": "Omistaja",
-            "duplicate-on-different-track-number": "Raide on eri ratanumerolla ({{trackNumber}})",
+            "duplicate-on-different-track-number": "Raide {{currentTrack}} on ratanumerolla {{currentTrackNumber}}, duplikaattiraide {{otherTrack}} on ratanumerolla {{otherTrackNumber}}",
             "revert-dialog": {
                 "revert-draft-confirm": "Hylätäänkö luonnos?",
                 "can-be-reverted": "Luonnoksen hylkääminen palauttaa sijaintiraiteen takaisin uusimpaan viralliseen tilaan. Sijaintiraide poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
@@ -1329,6 +1325,44 @@
         "cluster-overlay-remove-both": "Poista valinnat",
         "cluster-overlay-choose-geometry": "Valitse suunnitelman piste",
         "cluster-overlay-choose-layout": "Valitse paikannuspohjan piste"
+    },
+    "plan-download": {
+        "csv": {
+            "file-name": "Tiedosto",
+            "start-km": "Alkuratakilometri",
+            "end-km": "Loppuratakilometri",
+            "crs": "Koordinaattijärjestelmä",
+            "vertical-crs": "Korkeusjärjestelmä",
+            "plan-time": "Laadittu",
+            "message": "Huomiot"
+        },
+        "move-to-official-confirm-title": "Siirtyminen nykytilaan",
+        "move-to-official-confirm-content": "Suunnitelmia voi ladata ainoastaan nykytilasta. Siirrytäänkö nykytilaan?",
+        "move-to-official": "Siirry nykytilaan",
+        "title": "Suunnitelmien lataus",
+        "area": "Alue",
+        "plans": "Suunnitelmat ({{amount}} kpl)",
+        "track-meter-range": "Rataosoiteväli",
+        "maintenance-area": "Kunnossapitoalue",
+        "choose-from-map": "Valitse kartalta",
+        "track-number-or-location-track": "Ratanumero tai sijaintiraide",
+        "search": "Hae",
+        "track-number": "Ratanumero",
+        "location-track": "Raide",
+        "start-km": "Alkuratakilometri",
+        "end-km": "Loppuratakilometri",
+        "paikannuspalvelu-plans": "Paikannuspalvelun suunnitelmat",
+        "applicable-for-plans": "Suunnitteluun soveltuvat",
+        "applicable-for-maintenance": "Kunnossapitoon soveltuvat",
+        "applicable-for-statistics": "Tilastointiin soveltuvat",
+        "select-all": "Valitse kaikki",
+        "unselect-all": "Poista valinnat",
+        "download-selected": "Lataa valitut ({{amount}} kpl)",
+        "mandatory-field": "Pakollinen kenttä",
+        "invalid-track-meter": "Tarkista ratakilometrin muoto",
+        "end-before-start": "Ratakilometrin loppu on ennen alkua",
+        "outside-track-number-range": "Ratakilometri ei osu ratanumeron alueelle ({{start}}-{{end}})",
+        "outside-location-track-range": "Ratakilometri ei osu raiteen alueelle ({{start}}-{{end}})"
     },
     "preview-view": {
         "unstaged-changes-title": "Muutokset ({{amount}} kpl)",
@@ -2041,6 +2075,11 @@
         "vertical-geometry-list-plan-csv": "Pystygeometria {{planFileName}}.csv",
         "vertical-geometry-list-entire-track-network": "Pystygeometria (koko rataverkko) {{date}}.csv",
         "publication-log": "Julkaisuloki {{dateRange}}.csv",
-        "split-details": "Raiteen jakaminen {{locationTrackName}}.csv"
+        "split-details": "Raiteen jakaminen {{locationTrackName}}.csv",
+        "geometries-folder": "Geometriat",
+        "geometry-plans-summary-csv": "Yhteenveto {{date}} {{applicability}} {{alignmentName}}.csv",
+        "geometry-plans-summary-with-km-range-csv": "Yhteenveto {{date}} {{applicability}} {{startKm}}-{{endKm}} {{alignmentName}}.csv",
+        "geometry-plans-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{date}}.zip",
+        "geometry-plans-with-km-range-zip": "Geometriasuunnitelmat {{applicability}} {{alignmentName}} {{startKm}}-{{endKm}} {{date}}.zip"
     }
 }

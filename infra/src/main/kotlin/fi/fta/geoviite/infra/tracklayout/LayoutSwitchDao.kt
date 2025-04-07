@@ -42,7 +42,6 @@ import org.springframework.transaction.annotation.Transactional
 const val SWITCH_CACHE_SIZE = 10000L
 
 @Suppress("SameParameterValue")
-@Transactional(readOnly = true)
 @Component
 class LayoutSwitchDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,

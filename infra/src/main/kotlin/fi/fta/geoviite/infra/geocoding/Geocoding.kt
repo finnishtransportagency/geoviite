@@ -17,7 +17,8 @@ import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.angleAvgRads
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
-import fi.fta.geoviite.infra.math.interpolate
+import fi.fta.geoviite.infra.math.interpolateToPoint
+import fi.fta.geoviite.infra.math.interpolateToSegmentPoint
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.math.lineIntersection
 import fi.fta.geoviite.infra.math.lineLength
@@ -33,6 +34,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.util.Either
+import fi.fta.geoviite.infra.util.Left
+import fi.fta.geoviite.infra.util.Right
+import fi.fta.geoviite.infra.util.processRights
+import fi.fta.geoviite.infra.util.processSortedBy
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
@@ -455,19 +461,62 @@ data class GeocodingContext(
         val alignmentEnd = alignment.end
         val startAddress = alignmentStart?.let(::getAddress)?.first
         val endAddress = alignmentEnd?.let(::getAddress)?.first
-        return addresses.map { address ->
-            if (startAddress == null || endAddress == null || address !in startAddress..endAddress) {
-                null
-            } else if (startAddress.isSame(address)) {
-                AddressPoint(alignmentStart, startAddress)
-            } else if (endAddress.isSame(address)) {
-                AddressPoint(alignmentEnd, endAddress)
-            } else
-                getProjectionLine(address)?.let { projectionLine ->
-                    getProjectedAddressPoint(projectionLine, alignment)
-                }
+        return if (startAddress == null || endAddress == null) addresses.map { null }
+        else getTrackLocations(alignment, addresses, alignmentStart, startAddress, alignmentEnd, endAddress)
+    }
+
+    private fun getTrackLocations(
+        alignment: IAlignment,
+        addresses: List<TrackMeter>,
+        alignmentStart: AlignmentPoint,
+        startAddress: TrackMeter,
+        alignmentEnd: AlignmentPoint,
+        endAddress: TrackMeter,
+    ): List<AddressPoint?> =
+        processRights(
+            addresses,
+            getProjectionLineForAddressInAlignment(alignmentStart, startAddress, alignmentEnd, endAddress),
+        ) { projectionLines ->
+            if (projectionLines.size < 10) projectionLines.map { pl -> getProjectedAddressPoint(pl, alignment) }
+            else getManyTrackLocations(alignment, startAddress, endAddress, projectionLines)
+        }
+
+    private fun getProjectionLineForAddressInAlignment(
+        alignmentStart: AlignmentPoint,
+        alignmentStartAddress: TrackMeter,
+        alignmentEnd: AlignmentPoint,
+        alignmentEndAddress: TrackMeter,
+    ): (address: TrackMeter) -> Either<AddressPoint?, ProjectionLine> = { address ->
+        if (address !in alignmentStartAddress..alignmentEndAddress) {
+            Left(null)
+        } else if (alignmentStartAddress.isSame(address)) {
+            Left(AddressPoint(alignmentStart, alignmentStartAddress))
+        } else if (alignmentEndAddress.isSame(address)) {
+            Left(AddressPoint(alignmentEnd, alignmentEndAddress))
+        } else {
+            getProjectionLine(address)?.let(::Right) ?: Left(null)
         }
     }
+
+    private fun getManyTrackLocations(
+        alignment: IAlignment,
+        alignmentStartAddress: TrackMeter,
+        alignmentEndAddress: TrackMeter,
+        projectionLinesWithinAlignment: List<ProjectionLine>,
+    ) =
+        processSortedBy(
+                projectionLinesWithinAlignment +
+                    // add some extra projection lines to make sure we don't go out of sync when the track and reference
+                    // line loop in on themselves
+                    getProjectionLinesForRange(
+                            (alignmentStartAddress + MIN_METER_LENGTH)..(alignmentEndAddress - MIN_METER_LENGTH)
+                        )
+                        .filterIndexed { index, _ -> index % 10 == 0 },
+                Comparator.comparing(ProjectionLine::distance),
+            ) { sortedLines ->
+                getProjectedAddressPoints(sortedLines, alignment)
+            }
+            .take(projectionLinesWithinAlignment.size)
 
     fun getStartAndEnd(alignment: IAlignment): Pair<AddressPoint?, AddressPoint?> {
         val start = alignment.start?.let(::toAddressPoint)?.first
@@ -475,10 +524,14 @@ data class GeocodingContext(
         return start to end
     }
 
-    private fun getMidPoints(alignment: IAlignment, range: ClosedRange<TrackMeter>): List<AddressPoint> {
-        val projectionLines = getSublistForRangeInOrderedList(projectionLines, range) { p, e -> p.address.compareTo(e) }
-        return getProjectedAddressPoints(projectionLines, alignment)
-    }
+    private fun getMidPoints(alignment: IAlignment, range: ClosedRange<TrackMeter>): List<AddressPoint> =
+        getProjectedAddressPoints(getProjectionLinesForRange(range), alignment)
+            // projection lines can simply fail to hit the alignment even if they are between its start and end
+            // addresses
+            .filterNotNull()
+
+    private fun getProjectionLinesForRange(range: ClosedRange<TrackMeter>) =
+        getSublistForRangeInOrderedList(projectionLines, range) { p, e -> p.address.compareTo(e) }
 
     fun getSwitchPoints(geometry: LocationTrackGeometry): List<AddressPoint> =
         geometry.trackSwitchLinks
@@ -568,48 +621,66 @@ fun getProjectedAddressPoint(projection: ProjectionLine, alignment: IAlignment):
     }
 }
 
-fun getProjectedAddressPoints(projectionLines: List<ProjectionLine>, alignment: IAlignment): List<AddressPoint> {
-    val alignmentEdges = getPolyLineEdges(alignment)
+private fun getProjectedAddressPoints(
+    projectionLines: List<ProjectionLine>,
+    alignment: IAlignment,
+): List<AddressPoint?> {
+    val walk = AlignmentWalk(getPolyLineEdges(alignment))
+    return projectionLines.map(walk::stepWith)
+}
+
+private sealed class StepResult
+
+private data object AddressDoesNotExistOnAlignment : StepResult()
+
+private data object AddressFound : StepResult()
+
+private data class ContinueStepping(val direction: StepDirection) : StepResult()
+
+private enum class StepDirection(val diff: Int) {
+    Forward(1),
+    Backward(-1),
+}
+
+private class AlignmentWalk(val alignmentEdges: List<PolyLineEdge>) {
     var edgeIndex = 0
-    var projectionIndex = 0
-    val addressPoints: MutableList<AddressPoint> = mutableListOf()
+    private val edge
+        get() = alignmentEdges[edgeIndex]
 
-    while (edgeIndex <= alignmentEdges.lastIndex && projectionIndex <= projectionLines.lastIndex) {
-        val edge = alignmentEdges[edgeIndex]
-        val projection = projectionLines[projectionIndex]
-        // Check if the edge goes in the same direction as the reference line at projection point
-        // This affects how we should hande BEFORE/AFTER cases (missed intersections)
-        val isEdgeAligned = angleDiffRads(edge.referenceDirection, projection.referenceDirection) <= PI / 2
-        val intersection = intersection(edge, projection.projection)
-        when (intersection.inSegment1) {
-            BEFORE -> {
-                // If the we're going the correct way, a projection hitting behind the current edge is an invalid
-                // address for the track -> move on to the next one
-                if (isEdgeAligned) projectionIndex += 1
-                // If the edge is reversed, a "BEFORE" actually means we need to move on to the next edge
-                else edgeIndex += 1
-            }
-
-            WITHIN -> {
-                addressPoints.add(
-                    AddressPoint(
+    fun stepWith(projection: ProjectionLine): AddressPoint? {
+        var lastStepDirection = 0
+        while (true) {
+            val isEdgeAligned = angleDiffRads(edge.referenceDirection, projection.referenceDirection) <= PI / 2
+            val intersection = intersection(edge, projection.projection)
+            val stepResult =
+                when (intersection.inSegment1) {
+                    BEFORE -> stepInDirection(if (isEdgeAligned) StepDirection.Backward else StepDirection.Forward)
+                    WITHIN -> AddressFound
+                    AFTER -> stepInDirection(if (isEdgeAligned) StepDirection.Forward else StepDirection.Backward)
+                }
+            when (stepResult) {
+                is AddressDoesNotExistOnAlignment -> return null
+                is AddressFound ->
+                    return AddressPoint(
                         edge.interpolateAlignmentPointAtPortion(intersection.segment1Portion),
                         projection.address,
                     )
-                )
-                projectionIndex += 1
-            }
-
-            AFTER -> {
-                // If going the correct way, the projection intersection is after the current edge -> move on
-                if (isEdgeAligned) edgeIndex += 1
-                // Otherwise, "AFTER" is actually before the current point, so the address is invalid for the track ->
-                // move on to the next projection
-                else projectionIndex += 1
+                is ContinueStepping -> {
+                    require(lastStepDirection != -stepResult.direction.diff) { "alignmentWalk would loop" }
+                    lastStepDirection = stepResult.direction.diff
+                    edgeIndex += stepResult.direction.diff
+                    continue
+                }
             }
         }
     }
-    return addressPoints
+
+    private fun stepInDirection(direction: StepDirection): StepResult =
+        if (direction == StepDirection.Forward) {
+            if (edgeIndex == alignmentEdges.lastIndex) AddressDoesNotExistOnAlignment else ContinueStepping(direction)
+        } else {
+            if (edgeIndex == 0) AddressDoesNotExistOnAlignment else ContinueStepping(direction)
+        }
 }
 
 private fun createProjectionLines(
@@ -745,7 +816,8 @@ private fun getPolyLineEdges(
                     directionBetweenPoints(previous, point)
                 } else if (prevDir == null || nextDir == null) {
                     // Generated connection segments can have a sideways offset, but the real line
-                    // doesn't change direction. To compensate, we want to project with the direction
+                    // doesn't change direction. To compensate, we want to project with the
+                    // direction
                     // of previous/next segments
                     prevDir ?: nextDir ?: directionBetweenPoints(previous, point)
                 } else {
@@ -785,7 +857,8 @@ data class PolyLineEdge(
     val referenceDirection: Double,
 ) {
     // Direction for projection lines from the edge: 90 degrees turned from edge direction
-    val projectionDirection by lazy { PI / 2 + referenceDirection }
+    val projectionDirection: Double
+        get() = PI / 2 + referenceDirection
 
     val startM: Double
         get() = start.m + segmentStart
@@ -802,11 +875,11 @@ data class PolyLineEdge(
         }
 
     private fun interpolatePointAtM(m: Double): IPoint =
-        if (m <= startM) start else if (m >= endM) end else interpolate(start, end, (m - startM) / length)
+        if (m <= startM) start else if (m >= endM) end else interpolateToPoint(start, end, (m - startM) / length)
 
     fun interpolateAlignmentPointAtPortion(portion: Double): AlignmentPoint =
         interpolateSegmentPointAtPortion(portion).toAlignmentPoint(segmentStart)
 
     fun interpolateSegmentPointAtPortion(portion: Double): SegmentPoint =
-        if (portion <= 0.0) start else if (portion >= 1.0) end else interpolate(start, end, portion)
+        if (portion <= 0.0) start else if (portion >= 1.0) end else interpolateToSegmentPoint(start, end, portion)
 }

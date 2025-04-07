@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.util.concurrent.ConcurrentHashMap
@@ -34,7 +33,6 @@ data class MapSegmentProfileInfo<T>(val id: IntId<T>, val mRange: Range<Double>,
 
 data class NodeConnection(val node: DbLayoutNode, val trackVersions: List<LayoutRowVersion<LocationTrack>>)
 
-@Transactional(readOnly = true)
 @Component
 class LayoutAlignmentDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
@@ -60,10 +58,8 @@ class LayoutAlignmentDao(
 
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun getNode(id: IntId<LayoutNode>): DbLayoutNode = requireNotNull(getNodes(listOf(id))[id])
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun getNodes(ids: Iterable<IntId<LayoutNode>>): Map<IntId<LayoutNode>, DbLayoutNode> =
         nodesCache.getAll(ids) { nonCached -> fetchNodes(nonCached).also(::cacheHashValues) }
 
@@ -167,7 +163,6 @@ class LayoutAlignmentDao(
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutNode>("id") }.single()
     }
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun getEdge(id: IntId<LayoutEdge>): DbLayoutEdge =
         edgesCache.get(id) {
             val edge = fetchEdges(ids = listOf(id), active = false).values.single()
@@ -335,7 +330,6 @@ class LayoutAlignmentDao(
         }
     }
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetch(trackVersion: LayoutRowVersion<LocationTrack>): DbLocationTrackGeometry =
         locationTrackGeometryCache.get(trackVersion) { version ->
             fetchLocationTrackGeometry(version, false)[trackVersion]
@@ -459,11 +453,10 @@ class LayoutAlignmentDao(
         return geoms.size
     }
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment =
         if (cacheEnabled) alignmentsCache.get(alignmentVersion, ::fetchInternal) else fetchInternal(alignmentVersion)
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+    @Transactional(readOnly = true)
     fun fetchMany(versions: List<RowVersion<LayoutAlignment>>): Map<RowVersion<LayoutAlignment>, LayoutAlignment> =
         versions.associateWith(this::fetch)
 
@@ -540,21 +533,13 @@ class LayoutAlignmentDao(
                     }
                 alignmentData to segment
             }
-        val groupedByAlignment = alignmentAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s })
-        val alignments =
-            groupedByAlignment.entries
-                .parallelStream()
-                .map { (alignmentData, segmentDatas) ->
-                    alignmentData.version to
-                        LayoutAlignment(
-                            id = alignmentData.version.id,
-                            segments = createSegments(segmentDatas.filterNotNull()),
-                        )
-                }
-                .collect(Collectors.toList())
-                .associate { it }
-        alignmentsCache.putAll(alignments)
-        return alignments.size
+        val groupedByAlignment = alignmentAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s }).entries
+        groupedByAlignment.parallelStream().forEach { (alignmentData, segmentDatas) ->
+            alignmentsCache.get(alignmentData.version) { _ ->
+                LayoutAlignment(id = alignmentData.version.id, segments = createSegments(segmentDatas.filterNotNull()))
+            }
+        }
+        return groupedByAlignment.size
     }
 
     @Transactional
@@ -1371,7 +1356,7 @@ class LayoutAlignmentDao(
                         resolution = rs.getInt("resolution"),
                     )
                 }
-            parseGeometries(rowResults)
+            rowResults.parallelStream().collect(Collectors.toMap(GeometryRowResult::id, ::parseGeometry))
         } else mapOf()
     }
 
@@ -1408,7 +1393,8 @@ class LayoutAlignmentDao(
                     resolution = rs.getInt("resolution"),
                 )
             }
-        segmentGeometryCache.putAll(parseGeometries(rowResults))
+
+        rowResults.parallelStream().forEach { row -> segmentGeometryCache.get(row.id) { _ -> parseGeometry(row) } }
         return rowResults.size
     }
 
@@ -1467,17 +1453,12 @@ data class GeometryRowResult(
     val resolution: Int,
 )
 
-private fun parseGeometries(rowResults: List<GeometryRowResult>): Map<IntId<SegmentGeometry>, SegmentGeometry> =
-    rowResults
-        .parallelStream()
-        .map { row ->
-            SegmentGeometry(
-                id = row.id,
-                segmentPoints = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
-                resolution = row.resolution,
-            )
-        }
-        .collect(Collectors.toMap({ g -> g.id as IntId }, { it }))
+private fun parseGeometry(row: GeometryRowResult): SegmentGeometry =
+    SegmentGeometry(
+        id = row.id,
+        segmentPoints = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
+        resolution = row.resolution,
+    )
 
 private fun getSegmentPointsWkt(
     rs: ResultSet,

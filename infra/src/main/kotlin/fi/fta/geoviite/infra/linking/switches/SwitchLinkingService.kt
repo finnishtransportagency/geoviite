@@ -508,7 +508,9 @@ private fun calculateSwitchLinkingJoints(
                             snappedMatch.segmentIndex,
                             snappedMatch.m,
                             alignment.segments[snappedMatch.segmentIndex]
-                                .seekPointAtSegmentM(snappedMatch.m)
+                                .seekPointAtSegmentM(
+                                    snappedMatch.m - alignment.segments[snappedMatch.segmentIndex].startM
+                                )
                                 .point
                                 .toPoint(),
                         )

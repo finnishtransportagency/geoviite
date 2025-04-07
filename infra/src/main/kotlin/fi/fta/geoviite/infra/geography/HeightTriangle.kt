@@ -12,10 +12,15 @@ data class HeightTriangle(
     val corner2Diff: Double,
     val corner3Diff: Double,
 ) {
-    private val polygon by lazy { toJtsGeoPolygon(listOf(corner1, corner2, corner3, corner1), LAYOUT_SRID) }
+    internal val polygon by lazy { toJtsGeoPolygon(listOf(corner1, corner2, corner3, corner1), LAYOUT_SRID) }
     val corner1XZ: Point by lazy { Point(corner1.x, corner1Diff) }
     val corner2XZ: Point by lazy { Point(corner2.x, corner2Diff) }
     val corner3XZ: Point by lazy { Point(corner3.x, corner3Diff) }
 
     fun contains(point: IPoint) = polygon.intersects(toJtsGeoPoint(point, LAYOUT_SRID))
+}
+
+fun findHeightTriangleContainingPoint(triangles: List<HeightTriangle>, point: IPoint): HeightTriangle? {
+    val jtsPoint = toJtsGeoPoint(point, LAYOUT_SRID)
+    return triangles.find { triangle -> triangle.polygon.intersects(jtsPoint) }
 }

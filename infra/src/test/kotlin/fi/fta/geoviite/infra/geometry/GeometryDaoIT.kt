@@ -157,9 +157,9 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
         val trackNumber = mainOfficialContext.createAndFetchLayoutTrackNumber().number
         val plan = plan(trackNumber, source = PlanSource.GEOMETRIAPALVELU)
         val fileContent = "<a></a>"
-        val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
-        val fetchedPlan = geometryDao.fetchPlan(id)
-        val file = geometryDao.getPlanFile(id.id)
+        val rowVersion = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
+        val fetchedPlan = geometryDao.fetchPlan(rowVersion)
+        val file = geometryDao.getPlanFiles(listOf(rowVersion.id)).get(rowVersion.id)!!
         assertPlansMatch(plan, fetchedPlan)
         assertEquals(fileContent, file.file.content)
         assertEquals(plan.fileName, file.file.name)

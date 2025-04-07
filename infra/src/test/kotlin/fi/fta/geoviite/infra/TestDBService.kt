@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.CompanyName
@@ -527,9 +528,10 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     fun createLayoutTrackNumberAndReferenceLine(
         lineAlignment: LayoutAlignment = alignment(),
         trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
+        startAddress: TrackMeter = TrackMeter.ZERO,
     ): LayoutRowVersion<LayoutTrackNumber> =
         createLayoutTrackNumber(trackNumber).also { tnResponse ->
-            save(referenceLine(trackNumberId = tnResponse.id), lineAlignment)
+            save(referenceLine(trackNumberId = tnResponse.id, startAddress = startAddress), lineAlignment)
         }
 
     fun createLayoutTrackNumbers(count: Int): List<LayoutRowVersion<LayoutTrackNumber>> =

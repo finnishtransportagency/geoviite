@@ -185,7 +185,18 @@ constructor(
             someTrackGeometry(),
         )
 
-        val searchResults = searchService.searchAssets(MainLayoutContext.draft, FreeText("bl"), 100, lt1.id)
+        val searchResults =
+            searchService.searchAssets(
+                MainLayoutContext.draft,
+                FreeText("bl"),
+                100,
+                lt1.id,
+                listOf(
+                    TrackLayoutSearchedAssetType.LOCATION_TRACK,
+                    TrackLayoutSearchedAssetType.SWITCH,
+                    TrackLayoutSearchedAssetType.TRACK_NUMBER,
+                ),
+            )
 
         assertEquals(3, searchResults.locationTracks.size)
         assertContains(searchResults.locationTracks.map { it.id }, lt1.id)

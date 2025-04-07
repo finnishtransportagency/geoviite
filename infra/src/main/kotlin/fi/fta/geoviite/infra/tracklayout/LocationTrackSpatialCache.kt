@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import LazyMap
 import com.github.davidmoten.rtree2.RTree
 import com.github.davidmoten.rtree2.geometry.Geometries
 import com.github.davidmoten.rtree2.geometry.Rectangle
@@ -59,20 +58,13 @@ constructor(
 
         val newItems = newTracks.map { (id, track) -> id to (currentTracks[id] ?: addEntry(track)) }
 
-        return ContextCache(
-            LazyMap(locationTrackDao::fetch)::get,
-            LazyMap<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry>(alignmentDao::fetch)::get,
-            LazyMap<RowVersion<LayoutAlignment>, LayoutAlignment>(alignmentDao::fetch)::get,
-            newNet,
-            newItems.toMap(),
-        )
+        return ContextCache(locationTrackDao::fetch, alignmentDao::fetch, alignmentDao::fetch, newNet, newItems.toMap())
     }
 }
 
 data class SpatialCacheSegment(
     val locationTrackVersion: LayoutRowVersion<LocationTrack>,
-    val segment: LayoutSegment,
-    val m: Range<Double>,
+    val segmentIndex: Int,
 )
 
 data class SpatialCacheEntry(
@@ -115,8 +107,11 @@ data class ContextCache(
         network
             .search(Geometries.rectangle(boundingBox.x.min, boundingBox.y.min, boundingBox.x.max, boundingBox.y.max))
             .groupBy { hit -> hit.value().locationTrackVersion }
-            .filter { (_, hits) ->
-                hits.any { hit -> hit.value().segment.segmentPoints.any { point -> boundingBox.contains(point) } }
+            .filter { (version, hits) ->
+                val layoutSegments = getGeometry(version).segments
+                hits.any { hit ->
+                    layoutSegments[hit.value().segmentIndex].segmentPoints.any { point -> boundingBox.contains(point) }
+                }
             }
             .keys
             .map { trackVersion -> getTrack(trackVersion) to getGeometry(trackVersion) }
@@ -126,16 +121,13 @@ data class ContextCache(
         location: IPoint,
         thresholdMeters: Double,
     ): LocationTrackCacheHit? {
-        val closestPointM = segment.segment.getClosestPointM(segment.m.min, location).first
-        val closestPoint = segment.segment.seekPointAtM(segment.m.min, closestPointM).point
+        val geometry = getGeometry(segment.locationTrackVersion)
+        val (layoutSegment, segmentM) = geometry.segmentsWithM[segment.segmentIndex]
+        val closestPointM = layoutSegment.getClosestPointM(segmentM.min, location).first
+        val closestPoint = layoutSegment.seekPointAtM(segmentM.min, closestPointM).point
         val distance = lineLength(location, closestPoint)
         return if (distance < thresholdMeters) {
-            LocationTrackCacheHit(
-                getTrack(segment.locationTrackVersion),
-                getGeometry(segment.locationTrackVersion),
-                closestPoint,
-                distance,
-            )
+            LocationTrackCacheHit(getTrack(segment.locationTrackVersion), geometry, closestPoint, distance)
         } else {
             null
         }
@@ -144,9 +136,9 @@ data class ContextCache(
 
 private fun createEntry(track: LocationTrack, geometry: DbLocationTrackGeometry): SpatialCacheEntry {
     val segmentData =
-        geometry.segmentsWithM.map { (segment, m) ->
+        geometry.segments.mapIndexed { segmentIndex, segment ->
             val bbox = segment.boundingBox
-            val entry = SpatialCacheSegment(track.versionOrThrow, segment, m)
+            val entry = SpatialCacheSegment(track.versionOrThrow, segmentIndex)
             val rect = Geometries.rectangle(bbox.x.min, bbox.y.min, bbox.x.max, bbox.y.max)
             entry to rect
         }

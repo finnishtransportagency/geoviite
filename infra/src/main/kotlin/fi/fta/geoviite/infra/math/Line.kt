@@ -32,7 +32,7 @@ fun closestPointOnLine(start: IPoint, end: IPoint, target: IPoint): Point {
     return when {
         portion < 0 -> Point(start.x, start.y)
         portion > 1 -> Point(end.x, end.y)
-        else -> interpolate(start, end, portion)
+        else -> interpolateToPoint(start, end, portion)
     }
 }
 
@@ -110,6 +110,9 @@ fun lineConstant(point: Point, slope: Double): Double {
 }
 
 data class Line(val start: IPoint, val end: IPoint) {
-    val angle: Double by lazy { directionBetweenPoints(start, end) }
-    val length by lazy { lineLength(start, end) }
+    val angle: Double
+        get() = directionBetweenPoints(start, end)
+
+    val length
+        get() = lineLength(start, end)
 }

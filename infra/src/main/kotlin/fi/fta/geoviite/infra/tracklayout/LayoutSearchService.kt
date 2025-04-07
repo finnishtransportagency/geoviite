@@ -22,11 +22,18 @@ constructor(
         searchTerm: FreeText,
         limitPerResultType: Int,
         locationTrackSearchScope: IntId<LocationTrack>?,
+        searchedAssetTypes: List<TrackLayoutSearchedAssetType>,
     ): TrackLayoutSearchResult {
         return if (locationTrackSearchScope != null) {
-            searchByLocationTrackSearchScope(layoutContext, locationTrackSearchScope, searchTerm, limitPerResultType)
+            searchByLocationTrackSearchScope(
+                layoutContext,
+                locationTrackSearchScope,
+                searchTerm,
+                limitPerResultType,
+                searchedAssetTypes,
+            )
         } else {
-            searchFromEntireRailwayNetwork(layoutContext, searchTerm, limitPerResultType)
+            searchFromEntireRailwayNetwork(layoutContext, searchTerm, limitPerResultType, searchedAssetTypes)
         }
     }
 
@@ -62,12 +69,25 @@ constructor(
         layoutContext: LayoutContext,
         searchTerm: FreeText,
         limitPerResultType: Int,
+        searchedAssetTypes: List<TrackLayoutSearchedAssetType>,
     ) =
         TrackLayoutSearchResult(
-            switches = searchAllSwitches(layoutContext, searchTerm, limitPerResultType),
-            locationTracks = searchAllLocationTracks(layoutContext, searchTerm, limitPerResultType),
-            trackNumbers = searchAllTrackNumbers(layoutContext, searchTerm, limitPerResultType),
-            operatingPoints = ratkoLocalService.searchOperatingPoints(searchTerm, limitPerResultType),
+            switches =
+                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.SWITCH))
+                    searchAllSwitches(layoutContext, searchTerm, limitPerResultType)
+                else emptyList(),
+            locationTracks =
+                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.LOCATION_TRACK))
+                    searchAllLocationTracks(layoutContext, searchTerm, limitPerResultType)
+                else emptyList(),
+            trackNumbers =
+                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.TRACK_NUMBER))
+                    searchAllTrackNumbers(layoutContext, searchTerm, limitPerResultType)
+                else emptyList(),
+            operatingPoints =
+                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
+                    ratkoLocalService.searchOperatingPoints(searchTerm, limitPerResultType)
+                else emptyList(),
         )
 
     private fun searchByLocationTrackSearchScope(
@@ -75,16 +95,24 @@ constructor(
         locationTrackSearchScope: IntId<LocationTrack>,
         searchTerm: FreeText,
         limit: Int,
+        searchedAssetTypes: List<TrackLayoutSearchedAssetType>,
     ): TrackLayoutSearchResult {
         val switches =
-            locationTrackService.getSwitchesForLocationTrack(layoutContext, locationTrackSearchScope).let { ids ->
-                switchService.getMany(layoutContext, ids)
-            }
-        val locationTracks = getLocationTrackAndDuplicatesByScope(layoutContext, locationTrackSearchScope)
+            if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.SWITCH))
+                locationTrackService.getSwitchesForLocationTrack(layoutContext, locationTrackSearchScope).let { ids ->
+                    switchService.getMany(layoutContext, ids)
+                }
+            else emptyList()
+        val locationTracks =
+            if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.LOCATION_TRACK))
+                getLocationTrackAndDuplicatesByScope(layoutContext, locationTrackSearchScope)
+            else emptyList()
         val trackNumbers = emptyList<LayoutTrackNumber>()
+
         val switchIdMatch = switchService.idMatches(layoutContext, switches.map { it.id as IntId })
         val ltIdMatch = locationTrackService.idMatches(layoutContext, locationTracks.map { it.id as IntId })
         val trackNumberIdMatch = trackNumberService.idMatches(layoutContext, trackNumbers.map { it.id as IntId })
+
         return TrackLayoutSearchResult(
             switches =
                 switches.let { list -> switchService.filterBySearchTerm(list, searchTerm, switchIdMatch) }.take(limit),
@@ -96,7 +124,10 @@ constructor(
                 trackNumbers
                     .let { list -> trackNumberService.filterBySearchTerm(list, searchTerm, trackNumberIdMatch) }
                     .take(limit),
-            operatingPoints = ratkoLocalService.searchOperatingPoints(searchTerm, limit),
+            operatingPoints =
+                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
+                    ratkoLocalService.searchOperatingPoints(searchTerm, limit)
+                else emptyList(),
         )
     }
 

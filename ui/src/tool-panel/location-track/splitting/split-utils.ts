@@ -202,7 +202,7 @@ export const mandatoryFieldMissing = (error: string) => error === 'mandatory-fie
 export const switchDeleted = (error: string) => error === 'switch-not-found';
 export const otherError = (error: string) => !mandatoryFieldMissing(error) && !switchDeleted(error);
 
-export const hasErrors = (errorsReasons: string[], predicate: (errorReason: string) => boolean) =>
+const hasErrors = (errorsReasons: string[], predicate: (errorReason: string) => boolean) =>
     errorsReasons.filter(predicate).length > 0;
 
 export const findRefToFirstErroredField = (

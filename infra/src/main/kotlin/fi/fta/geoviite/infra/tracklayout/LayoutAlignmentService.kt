@@ -3,17 +3,28 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geography.bufferedPolygonForLineStringPoints
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
+import fi.fta.geoviite.infra.linking.switches.CroppedAlignment
+import fi.fta.geoviite.infra.map.simplify
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Range
 import org.springframework.transaction.annotation.Transactional
 
+const val ALIGNMENT_POLYGON_BUFFER = 10.0
+const val ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION = 100
+
 @GeoviiteService
-class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
-    fun update(alignment: LayoutAlignment) = dao.update(alignment)
+class LayoutAlignmentService(private val layoutAlignmentDao: LayoutAlignmentDao, private val geometryDao: GeometryDao) {
+
+    fun update(alignment: LayoutAlignment) = layoutAlignmentDao.update(alignment)
 
     fun saveAsNew(alignment: LayoutAlignment): RowVersion<LayoutAlignment> = save(asNew(alignment))
 
@@ -23,14 +34,15 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
 
     @Transactional
     fun duplicate(alignmentVersion: RowVersion<LayoutAlignment>): RowVersion<LayoutAlignment> =
-        save(asNew(dao.fetch(alignmentVersion)))
+        save(asNew(layoutAlignmentDao.fetch(alignmentVersion)))
 
     fun save(alignment: LayoutAlignment): RowVersion<LayoutAlignment> =
-        if (alignment.dataType == DataType.STORED) dao.update(alignment) else dao.insert(alignment)
+        if (alignment.dataType == DataType.STORED) layoutAlignmentDao.update(alignment)
+        else layoutAlignmentDao.insert(alignment)
 
     fun newEmpty(): Pair<LayoutAlignment, RowVersion<LayoutAlignment>> {
         val alignment = emptyAlignment()
-        return alignment to dao.insert(alignment)
+        return alignment to layoutAlignmentDao.insert(alignment)
     }
 
     fun getGeometryMetadataSections(
@@ -39,8 +51,8 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
         boundingBox: BoundingBox?,
         context: GeocodingContext,
     ): List<AlignmentPlanSection> {
-        val sections = dao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
-        val alignment = dao.fetch(alignmentVersion)
+        val sections = layoutAlignmentDao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
+        val alignment = layoutAlignmentDao.fetch(alignmentVersion)
         return toPlanSections(sections, alignment, context)
     }
 
@@ -50,8 +62,8 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
         boundingBox: BoundingBox?,
         context: GeocodingContext,
     ): List<AlignmentPlanSection> {
-        val sections = dao.fetchSegmentGeometriesAndPlanMetadata(trackVersion, externalId, boundingBox)
-        val alignment = dao.fetch(trackVersion)
+        val sections = layoutAlignmentDao.fetchSegmentGeometriesAndPlanMetadata(trackVersion, externalId, boundingBox)
+        val alignment = layoutAlignmentDao.fetch(trackVersion)
         return toPlanSections(sections, alignment, context)
     }
 
@@ -80,6 +92,55 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
             }
         }
     }
+
+    fun getOverlappingPlanHeaders(
+        alignment: LayoutAlignment,
+        polygonBufferSize: Double,
+        cropStartM: Double?,
+        cropEndM: Double?,
+    ): List<GeometryPlanHeader> {
+        val simplifiedAlignment =
+            simplify(
+                alignment =
+                    if (cropStartM == null && cropEndM == null) alignment
+                    else cropAlignment(alignment, cropStartM, cropEndM),
+                resolution = ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION,
+                bbox = null,
+                includeSegmentEndPoints = true,
+            )
+
+        val polygon = bufferedPolygonForLineStringPoints(simplifiedAlignment, polygonBufferSize, LAYOUT_SRID)
+        val plans = geometryDao.fetchIntersectingPlans(polygon, LAYOUT_SRID)
+
+        return geometryDao.getPlanHeaders(plans)
+    }
+
+    private fun cropAlignment(alignment: LayoutAlignment, cropStartM: Double?, cropEndM: Double?): IAlignment {
+        val alignmentStartM = requireNotNull(alignment.start?.m)
+        val alignmentEndM = requireNotNull(alignment.end?.m)
+        val startMOnAlignment = cropStartM ?: alignmentStartM
+        val endMOnAlignment = cropEndM ?: alignmentEndM
+        val mRange = Range(startMOnAlignment, endMOnAlignment)
+
+        val segments =
+            alignment.segments.mapNotNull { s ->
+                val sRange = Range(s.startM, s.endM)
+
+                if (sRange.contains(mRange)) {
+                    s.slice(mRange)
+                } else if (sRange.contains(startMOnAlignment)) {
+                    s.slice(Range(startMOnAlignment, s.endM))
+                } else if (sRange.contains(endMOnAlignment)) {
+                    s.slice(Range(s.startM, endMOnAlignment))
+                } else if (mRange.overlaps(sRange)) {
+                    s
+                } else {
+                    null
+                }
+            }
+
+        return CroppedAlignment(0, segments, alignment.id)
+    }
 }
 
 private fun toPlanSectionPoint(point: IPoint, alignment: IAlignment, context: GeocodingContext) =
@@ -95,3 +156,24 @@ private fun toPlanSectionPoint(point: IPoint, alignment: IAlignment, context: Ge
 
 private fun asNew(alignment: LayoutAlignment): LayoutAlignment =
     if (alignment.dataType == TEMP) alignment else alignment.copy(id = StringId(), dataType = TEMP)
+
+fun cropIsWithinReferenceLine(
+    startKmNumber: KmNumber?,
+    endKmNumber: KmNumber?,
+    geocodingContext: GeocodingContext,
+): Boolean {
+    return if (geocodingContext.referencePoints.isEmpty()) {
+        false
+    } else if (startKmNumber != null && endKmNumber == null) {
+        geocodingContext.referencePoints.last().kmNumber >= startKmNumber
+    } else if (startKmNumber == null && endKmNumber != null) {
+        geocodingContext.referencePoints.first().kmNumber <= endKmNumber
+    } else if (startKmNumber != null && endKmNumber != null && startKmNumber <= endKmNumber) {
+        val kmNumberRange = Range(startKmNumber, endKmNumber)
+        val geocodingRange =
+            Range(geocodingContext.referencePoints.first().kmNumber, geocodingContext.referencePoints.last().kmNumber)
+        kmNumberRange.overlaps(geocodingRange) || geocodingRange.overlaps(kmNumberRange)
+    } else {
+        startKmNumber == null && endKmNumber == null
+    }
+}
