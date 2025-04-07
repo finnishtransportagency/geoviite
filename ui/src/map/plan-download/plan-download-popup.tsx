@@ -26,6 +26,7 @@ import {
 } from 'map/plan-download/plan-download-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PlanDownloadPopupSection } from 'map/plan-download/plan-download-popup-section';
+import { createPortal } from 'react-dom';
 
 const trackMeterRange = (start: string, end: string) => {
     const startOrUndefined = kmNumberIsValid(start) ? start : undefined;
@@ -191,7 +192,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
             ? delegates.setOpenPopupSection(undefined)
             : delegates.setOpenPopupSection(section);
 
-    return (
+    return createPortal(
         <div className={styles['plan-download-popup']}>
             <h1 className={titleClasses}>
                 {t('plan-download.title')}
@@ -292,6 +293,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                     selectedApplicabilities={planDownloadState.selectedApplicabilities}
                 />
             </PlanDownloadPopupSection>
-        </div>
+        </div>,
+        document.body,
     );
 };
