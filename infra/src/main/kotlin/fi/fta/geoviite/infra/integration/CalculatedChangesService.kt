@@ -334,9 +334,13 @@ class CalculatedChangesService(
             DirectChanges(
                 completedKmPosts.map { it.id },
                 completedReferenceLines.map { it.id },
-                completedTrackNumbers.map { v -> TrackNumberChange(v.id, setOf(), false, false) },
-                completedLocationTracks.map { v -> LocationTrackChange(v.id, setOf(), false, false) },
-                completedSwitches.map { v -> SwitchChange(v.id, listOf()) },
+                completedTrackNumbers.map { v ->
+                    TrackNumberChange(v.id, changedKmNumbers = setOf(), isStartChanged = false, isEndChanged = false)
+                },
+                completedLocationTracks.map { v ->
+                    LocationTrackChange(v.id, changedKmNumbers = setOf(), isStartChanged = false, isEndChanged = false)
+                },
+                completedSwitches.map { v -> SwitchChange(v.id, changedJoints = listOf()) },
             )
         val indirectChanges =
             IndirectChanges(
