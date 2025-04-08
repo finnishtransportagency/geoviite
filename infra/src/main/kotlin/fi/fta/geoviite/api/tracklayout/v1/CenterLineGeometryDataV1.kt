@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.FreeText
+import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -145,6 +146,7 @@ enum class CenterLineGeometryErrorV1(val code: Int, private val localizationSuff
     }
 }
 
+@Schema(name = "Osoiteväli")
 data class ExtCenterLineTrackIntervalV1(
     @JsonProperty("alku") val startAddress: String,
     @JsonProperty("loppu") val endAddress: String,

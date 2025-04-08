@@ -17,6 +17,8 @@ data class ExtLocationTrackTypeV1(val locationTrackType: LocationTrackType) {
     }
 }
 
+// TODO Create another enum class which can be mapped to the location track state and vice versa. It is simpler to
+// annotate compared to this wrapped enum.
 data class ExtLocationTrackStateV1(val locationTrackState: LocationTrackState) {
     @JsonValue
     override fun toString(): String {
