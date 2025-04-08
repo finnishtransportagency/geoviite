@@ -17,7 +17,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
 import java.time.Instant
 
-const val LOCATION_TRACK_OID_PARAM = "location_track_oid"
+const val LOCATION_TRACK_OID_PARAM = "sijaintiraide_oid"
 const val TRACK_KILOMETER_START_PARAM = "ratakilometri_alku"
 const val TRACK_KILOMETER_END_PARAM = "ratakilometri_loppu"
 const val COORDINATE_SYSTEM_PARAM = "koordinaatisto"
@@ -25,6 +25,8 @@ const val COORDINATE_SYSTEM_PARAM = "koordinaatisto"
 const val CHANGE_TIME_PARAM = "muutosaika"
 const val ADDRESS_POINT_RESOLUTION = "osoitepistevali"
 const val INCLUDE_GEOMETRY_PARAM = "geometriatiedot"
+
+const val LOCATION_TRACK_OID_DESCRIPTION = "Sijaintiraiteen OID-tunnus"
 
 /**
  * @property locationTrackOid Identifier for the location track geometry search. (Required)
