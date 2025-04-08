@@ -78,6 +78,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                 LayoutBranch.main,
                 FreeTextWithNewLines.of("SPLIT PUBLICATION"),
                 PublicationCause.MANUAL,
+                parentId = null,
             )
         val updatedSplit =
             splitDao
@@ -209,6 +210,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                 LayoutBranch.main,
                 FreeTextWithNewLines.of("test: bulk transfer state update"),
                 PublicationCause.MANUAL,
+                parentId = null,
             )
 
         BulkTransferState.entries.forEach { newBulkTransferState ->

@@ -1258,6 +1258,7 @@ constructor(
                 LayoutBranch.main,
                 FreeTextWithNewLines.of("test: bulk transfer to in progress"),
                 PublicationCause.MANUAL,
+                parentId = null,
             )
         splitDao.updateSplit(splitId = splitId, publicationId = publicationId)
 
@@ -1290,6 +1291,7 @@ constructor(
                             LayoutBranch.main,
                             FreeTextWithNewLines.of("some in progress bulk transfer"),
                             PublicationCause.MANUAL,
+                            parentId = null,
                         ),
                     bulkTransferState = BulkTransferState.IN_PROGRESS,
                     bulkTransferId = someBulkTransferId,
@@ -1307,6 +1309,7 @@ constructor(
                                 LayoutBranch.main,
                                 FreeTextWithNewLines.of("pending bulk transfer"),
                                 PublicationCause.MANUAL,
+                                parentId = null,
                             ),
                     )
                     .id
@@ -1334,6 +1337,7 @@ constructor(
                                 LayoutBranch.main,
                                 FreeTextWithNewLines.of("pending bulk transfer"),
                                 PublicationCause.MANUAL,
+                                parentId = null,
                             ),
                     )
                     .id
@@ -1373,6 +1377,7 @@ constructor(
                                     LayoutBranch.main,
                                     FreeTextWithNewLines.of("pending bulk transfer $index"),
                                     PublicationCause.MANUAL,
+                                    parentId = null,
                                 ),
                         )
                         .id
@@ -1408,6 +1413,7 @@ constructor(
                                         LayoutBranch.main,
                                         FreeTextWithNewLines.of("testing $bulkTransferState"),
                                         PublicationCause.MANUAL,
+                                        parentId = null,
                                     ),
                                 bulkTransferId = testDBService.getUnusedBulkTransferId(),
                                 bulkTransferState = bulkTransferState,
