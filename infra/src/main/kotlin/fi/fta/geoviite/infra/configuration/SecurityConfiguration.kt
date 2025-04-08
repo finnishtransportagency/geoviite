@@ -35,7 +35,11 @@ class SecurityConfiguration {
             // Set permissions on endpoints
             .authorizeHttpRequests { auth ->
                 auth
+                    // Dynamically generated openapi config
+                    // TODO: Only enable these based on activated profiles (ext-api, ext-api-dev-swagger)
                     .requestMatchers("/geoviite/v3/api-docs/geoviite")
+                    .hasAuthority(TODO_FLAG_API_GEOMETRY)
+                    .requestMatchers("/geoviite/dev/v3/api-docs/geoviite/dev")
                     .hasAuthority(TODO_FLAG_API_GEOMETRY)
                     .anyRequest()
                     .authenticated()

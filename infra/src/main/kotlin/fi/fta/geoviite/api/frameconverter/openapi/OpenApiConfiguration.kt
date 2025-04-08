@@ -1,13 +1,15 @@
 package fi.fta.geoviite.api.frameconverter.openapi
 
+import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
+import io.swagger.v3.oas.models.info.Contact
+import io.swagger.v3.oas.models.info.Info
+import org.springdoc.core.customizers.OpenApiCustomizer
 import org.springdoc.core.models.GroupedOpenApi
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
 
 // Disabling the automatically generated openapi structure in (springdoc.api-docs.enabled=false)
 // also disables serving the swagger-ui. By creating default configuration objects, the swagger ui
@@ -38,51 +40,54 @@ import org.springframework.web.bind.annotation.RestController
 class OpenApiConfig {
     @Bean
     fun geoviiteApi(): GroupedOpenApi {
-        return GroupedOpenApi.builder().group("geoviite").pathsToMatch("/geoviite/**").build()
+        return GroupedOpenApi.builder()
+            .group("geoviite")
+            .pathsToMatch("/geoviite/**")
+            .pathsToExclude("/geoviite/dev/**")
+            .addOpenApiCustomizer(geoviiteOpenApiCustomiser())
+            .build()
     }
 
-    //    @Bean
-    //    fun rataVkmApi(): GroupedOpenApi {
-    //        return GroupedOpenApi.builder().group("rata-vkm").pathsToMatch("/rata-vkm/**").build()
-    //    }
+    @Bean
+    //     TODO Missing @Profile
+    fun geoviiteDevApi(): GroupedOpenApi {
+        return GroupedOpenApi.builder()
+            .group("geoviite-dev")
+            .pathsToMatch("/geoviite/dev/**")
+            .addOpenApiCustomizer(geoviiteOpenApiCustomiser())
+            .build()
+    }
 
-    // TODO Missing ext-api profile check
-    @RestController
-    @RequestMapping("/rata-vkm/v3/api-docs")
-    class StaticApiController {
+    @Bean
+    fun geoviiteOpenApiCustomiser(): OpenApiCustomizer {
+        return OpenApiCustomizer { openApi ->
+            openApi.info(
+                Info()
+                    .title("Geoviite")
+                    .description("Geoviitteen ulkoiset rajapinnat")
+                    .version("1.0.0")
+                    .contact(
+                        Contact().name("geoviite.support@solita.fi").email("geoviite.support@solita.fi")
+                    ) // TODO Easily possible to get as an env var now
+            )
+        }
+    }
+
+    @GeoviiteExtApiController(["/rata-vkm/v3/api-docs"])
+    class StaticRataVkmApiController {
         @GetMapping
         fun getRataVkm(): ResponseEntity<String> {
             val staticOpenApiJson = javaClass.getResource("/static/openapi-rata-vkm-v1.yml")?.readText() ?: "{}"
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(staticOpenApiJson)
         }
     }
+
+    @GeoviiteExtApiController(["/rata-vkm/dev/v3/api-docs"])
+    class StaticRataVkmDevApiController {
+        @GetMapping
+        fun getRataVkmDev(): ResponseEntity<String> {
+            val staticOpenApiJson = javaClass.getResource("/static/openapi-rata-vkm-v1-dev.yml")?.readText() ?: "{}"
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(staticOpenApiJson)
+        }
+    }
 }
-
-// @Configuration
-// @EnableWebMvc
-// class SwaggerConfig : WebMvcConfigurer {
-
-//    @Bean
-//    fun swaggerUiConfig1(): SwaggerUiConfigProperties {
-//        val config = SwaggerUiConfigProperties()
-
-        //        config.urls =
-        //            setOf(AbstractSwaggerUiConfigProperties.SwaggerUrl("geoviite", "/geoviite/v3/api-docs/geoviite",
-        // "API 1"))
-        ////        config.path = "/path1/swagger-ui"
-        //
-        //        config.isEnabled = true
-
-//        return config
-//    }
-
-    //    @Bean
-    //    fun swaggerUiConfig2(): SwaggerUiConfigProperties {
-    //        val config = SwaggerUiConfigProperties()
-    //        config.urls =
-    //            setOf(AbstractSwaggerUiConfigProperties.SwaggerUrl("rata-vkm", "/rata-vkm/v3/api-docs/rata-vkm", "API
-    // 2"))
-    //        config.path = "/path2/swagger-ui"
-    //        return config
-    //    }
-// }

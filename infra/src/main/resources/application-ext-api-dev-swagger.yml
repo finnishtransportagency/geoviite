@@ -4,8 +4,8 @@ geoviite:
 
 springdoc:
   api-docs:
-    path: /rata-vkm/dev/v3/api-docs
-  swagger-ui:
-    url: /rata-vkm/dev/static/openapi-rata-vkm-v1-dev.yml
-    path: /rata-vkm/dev/swagger-ui.html
-    config-url: /rata-vkm/dev/v3/api-docs/swagger-config
+    path: /geoviite/dev/v3/api-docs
+#  swagger-ui:
+#    url: /rata-vkm/dev/static/openapi-rata-vkm-v1-dev.yml
+#    path: /rata-vkm/dev/swagger-ui.html
+#    config-url: /rata-vkm/dev/v3/api-docs/swagger-config

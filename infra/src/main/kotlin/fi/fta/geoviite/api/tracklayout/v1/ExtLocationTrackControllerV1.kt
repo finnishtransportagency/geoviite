@@ -46,7 +46,10 @@ class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocat
     //            ?: createErrorResponse(translation, validationErrors)
     //    }
 
-    @GetMapping("/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
+    @GetMapping(
+        "/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}",
+        "/geoviite/dev/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}",
+    )
     fun extGetLocationTrack(
         @Parameter(description = LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
