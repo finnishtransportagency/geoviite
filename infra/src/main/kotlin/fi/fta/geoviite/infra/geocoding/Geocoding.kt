@@ -40,6 +40,7 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.processSortedBy
+import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
@@ -170,6 +171,8 @@ enum class KmPostRejectedReason {
     DUPLICATE,
 }
 
+// TODO Schema definitions should not be here -> create another class in ext api which maps to this one.
+@Schema(type = "String", allowableValues = ["0.25", "1"], defaultValue = "1")
 enum class Resolution(val meters: Number) {
     ONE_METER(1),
     QUARTER_METER(0.25),
