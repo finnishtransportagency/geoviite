@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.math.IntersectType.BEFORE
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.math.Intersection
 import fi.fta.geoviite.infra.math.Line
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleAvgRads
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
@@ -206,6 +207,9 @@ data class GeocodingContext(
         }
     }
     val allKms: List<KmNumber> by lazy { referencePoints.map(GeocodingReferencePoint::kmNumber).distinct() }
+    val kmRange: Range<KmNumber>? by lazy {
+        referencePoints.takeIf { it.isNotEmpty() }?.let { Range(it.first().kmNumber, it.last().kmNumber) }
+    }
 
     val startProjection: ProjectionLine? by lazy {
         val meters = referencePoints.first().meters

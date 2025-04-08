@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
 import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
@@ -62,10 +61,7 @@ constructor(
     }
 }
 
-data class SpatialCacheSegment(
-    val locationTrackVersion: LayoutRowVersion<LocationTrack>,
-    val segmentIndex: Int,
-)
+data class SpatialCacheSegment(val locationTrackVersion: LayoutRowVersion<LocationTrack>, val segmentIndex: Int)
 
 data class SpatialCacheEntry(
     val trackVersion: LayoutRowVersion<LocationTrack>,

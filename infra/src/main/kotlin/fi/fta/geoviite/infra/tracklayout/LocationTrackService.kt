@@ -17,14 +17,17 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.TopologyLinkFindingSwitch
+import fi.fta.geoviite.infra.linking.switches.cropAlignment
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
+import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
@@ -38,11 +41,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -441,16 +444,16 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun getOverlappingPlanHeaders(
+    fun getTrackPolygon(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
-        polygonBufferSize: Double,
         cropStart: KmNumber?,
         cropEnd: KmNumber?,
-    ): List<GeometryPlanHeader> {
+        bufferSize: Double = ALIGNMENT_POLYGON_BUFFER,
+    ): List<IPoint> {
         val locationTrack = getOrThrow(layoutContext, locationTrackId)
         val context = requireNotNull(geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId))
-        val alignment = alignmentDao.fetch(requireNotNull(locationTrack.alignmentVersion))
+        val geometry = alignmentDao.fetch(locationTrack.versionOrThrow)
 
         val startAndEnd = getStartAndEnd(layoutContext, listOf(locationTrackId)).first()
         val trackStart = startAndEnd.start?.address
@@ -458,51 +461,34 @@ class LocationTrackService(
 
         return if (trackStart == null || trackEnd == null || !cropIsWithinReferenceLine(cropStart, cropEnd, context)) {
             emptyList()
-        } else if (cropStart == null && cropEnd == null) {
-            alignmentService.getOverlappingPlanHeaders(alignment, polygonBufferSize, cropStartM = null, cropEndM = null)
         } else {
-            getPlanHeadersOverlappingCroppedLocationTrack(
-                alignment,
-                context,
-                polygonBufferSize,
-                trackStart,
-                trackEnd,
-                cropStart,
-                cropEnd,
-            )
+            getMRange(geometry, context, trackStart, trackEnd, cropStart, cropEnd)?.let { cropRange ->
+                toPolygon(cropAlignment(geometry.segmentsWithM, cropRange))
+            } ?: emptyList()
         }
     }
 
-    private fun getPlanHeadersOverlappingCroppedLocationTrack(
-        alignment: LayoutAlignment,
+    private fun getMRange(
+        geometry: LocationTrackGeometry,
         geocodingContext: GeocodingContext,
-        polygonBufferSize: Double,
         trackStart: TrackMeter,
         trackEnd: TrackMeter,
         cropStartKm: KmNumber?,
         cropEndKm: KmNumber?,
-    ): List<GeometryPlanHeader> {
-        val cropStart = cropStartKm?.let { TrackMeter(cropStartKm, 0) } ?: trackStart
+    ): Range<Double>? {
+        val cropStart = cropStartKm?.let { km -> TrackMeter(km, 0) } ?: trackStart
         val cropEnd =
-            cropEndKm?.let {
-                geocodingContext.referencePoints
-                    .find { it.kmNumber > cropEndKm }
-                    ?.let { referencePoint -> TrackMeter(referencePoint.kmNumber, 0) }
-            } ?: trackEnd
-
+            cropEndKm
+                ?.let { km -> geocodingContext.referencePoints.find { it.kmNumber > km } }
+                ?.let { referencePoint -> TrackMeter(referencePoint.kmNumber, 0) } ?: trackEnd
         return if (cropStart > trackEnd || cropEnd < trackStart) {
-            emptyList()
+            null
         } else {
-            val cropStartM =
+            fun getM(address: TrackMeter): Double =
                 requireNotNull(
-                    geocodingContext.getTrackLocation(alignment, cropStart.coerceIn(trackStart, trackEnd))?.point?.m
+                    geocodingContext.getTrackLocation(geometry, address.coerceIn(trackStart, trackEnd))?.point?.m
                 )
-            val cropEndM =
-                requireNotNull(
-                    geocodingContext.getTrackLocation(alignment, cropEnd.coerceIn(trackStart, trackEnd))?.point?.m
-                )
-
-            alignmentService.getOverlappingPlanHeaders(alignment, polygonBufferSize, cropStartM, cropEndM)
+            Range(getM(cropStart), getM(cropEnd))
         }
     }
 

@@ -15,6 +15,8 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
+import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
 import fi.fta.geoviite.infra.geometry.line
@@ -56,7 +58,7 @@ constructor(
     private val splitTestDataService: SplitTestDataService,
     private val geometryDao: GeometryDao,
     private val coordinateTransformationService: CoordinateTransformationService,
-    private val kmPostDao: LayoutKmPostDao,
+    private val geometryService: GeometryService,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -773,42 +775,41 @@ constructor(
     @Test
     fun `getFullDescriptions() trims out extra whitespaces in descriptionBase`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switch1 = mainDraftContext.insert(switch(name = "ABC V123"))
-        val switch2 = mainDraftContext.insert(switch(name = "QUX V456"))
+        val switch1 = mainDraftContext.save(switch(name = "ABC V123"))
+        val switch2 = mainDraftContext.save(switch(name = "QUX V456"))
         val track1 =
             mainDraftContext
-                .insert(
+                .save(
                     locationTrack(
                         trackNumberId,
-                        topologyStartSwitch = TopologyLocationTrackSwitch(switch1.id, JointNumber(1)),
                         description = "    track 1  ",
                         descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
                     ),
-                    alignment(
-                        segment(Point(0.0, 0.0), Point(1.0, 1.0)),
-                        segment(
-                            Point(1.0, 1.0),
-                            Point(2.0, 2.0),
-                            switchId = switch2.id,
-                            endJointNumber = JointNumber(1),
-                        ),
+                    trackGeometry(
+                        edge(
+                            startOuterSwitch = switchLinkYV(switch1.id, 1),
+                            endInnerSwitch = switchLinkYV(switch2.id, 1),
+                            segments =
+                                listOf(
+                                    segment(Point(0.0, 0.0), Point(1.0, 1.0)),
+                                    segment(Point(1.0, 1.0), Point(2.0, 2.0)),
+                                ),
+                        )
                     ),
                 )
                 .id
         val track2 =
             mainDraftContext
-                .insert(
+                .save(
                     locationTrack(
                         trackNumberId,
                         description = " track 2  ",
                         descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
                     ),
-                    alignment(
-                        segment(
-                            Point(2.0, 2.0),
-                            Point(3.0, 3.0),
-                            switchId = switch2.id,
-                            startJointNumber = JointNumber(1),
+                    trackGeometry(
+                        edge(
+                            startInnerSwitch = switchLinkYV(switch2.id, 1),
+                            segments = listOf(segment(Point(2.0, 2.0), Point(3.0, 3.0))),
                         )
                     ),
                 )
@@ -907,19 +908,20 @@ constructor(
         geometryDao.setPlanHidden(plan8Hidden.id, true)
 
         val (track, _) =
-            mainOfficialContext.insertAndFetch(
-                locationTrackAndAlignment(
+            mainOfficialContext.save(
+                locationTrack(
                     mainOfficialContext
                         .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
                         .id,
-                    segment(Point(32.0, 0.0), Point(50.0, 0.0)),
                     draft = false,
-                )
+                ),
+                trackGeometryOfSegments(segment(Point(32.0, 0.0), Point(50.0, 0.0))),
             )
 
         val overlapping =
             locationTrackService
-                .getOverlappingPlanHeaders(mainOfficialContext.context, track.id as IntId, 10.0, null, null)
+                .getTrackPolygon(mainOfficialContext.context, track.id, null, null, 10.0)
+                .let(geometryService::getOverlappingPlanHeaders)
                 .map { it.id }
 
         assertEquals(4, overlapping.size)
@@ -984,64 +986,32 @@ constructor(
                 .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
                 .id
         val (track, _) =
-            mainOfficialContext.insertAndFetch(
-                locationTrackAndAlignment(trackNumberId, segment(Point(0.0, 0.0), Point(4000.0, 0.0)), draft = false)
+            mainOfficialContext.save(
+                locationTrack(trackNumberId, draft = false),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(4000.0, 0.0))),
             )
 
         val kmPost1 =
-            kmPostDao.fetch(
-                kmPostDao.save(
-                    kmPost(
-                        trackNumberId = trackNumberId,
-                        km = KmNumber(1),
-                        roughLayoutLocation = Point(0.0, 0.0),
-                        draft = false,
-                    )
-                )
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(1), roughLayoutLocation = Point(0.0, 0.0))
             )
         val kmPost2 =
-            kmPostDao.fetch(
-                kmPostDao.save(
-                    kmPost(
-                        trackNumberId = trackNumberId,
-                        km = KmNumber(2),
-                        roughLayoutLocation = Point(1000.0, 0.0),
-                        draft = false,
-                    )
-                )
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(1000.0, 0.0))
             )
         val kmPost3 =
-            kmPostDao.fetch(
-                kmPostDao.save(
-                    kmPost(
-                        trackNumberId = trackNumberId,
-                        km = KmNumber(3),
-                        roughLayoutLocation = Point(2000.0, 0.0),
-                        draft = false,
-                    )
-                )
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(2000.0, 0.0))
             )
         val kmPost4 =
-            kmPostDao.fetch(
-                kmPostDao.save(
-                    kmPost(
-                        trackNumberId = trackNumberId,
-                        km = KmNumber(4),
-                        roughLayoutLocation = Point(3000.0, 0.0),
-                        draft = false,
-                    )
-                )
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(3000.0, 0.0))
             )
 
         val overlapping =
             locationTrackService
-                .getOverlappingPlanHeaders(
-                    mainOfficialContext.context,
-                    track.id as IntId,
-                    10.0,
-                    kmPost2.kmNumber,
-                    kmPost3.kmNumber,
-                )
+                .getTrackPolygon(mainOfficialContext.context, track.id, kmPost2.kmNumber, kmPost3.kmNumber, 10.0)
+                .let(geometryService::getOverlappingPlanHeaders)
                 .map { it.id }
         assertEquals(4, overlapping.size)
         assertContains(overlapping, plan2EndsBeforeStartKmButWithinBuffer.id)
@@ -1084,103 +1054,48 @@ constructor(
                 .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(2000.0, 0.0), Point(5000.0, 0.0))))
                 .id
         val (track, _) =
-            mainOfficialContext.insertAndFetch(
-                locationTrackAndAlignment(trackNumberId, segment(Point(3200.0, 0.0), Point(3800.0, 0.0)), draft = false)
+            mainOfficialContext.save(
+                locationTrack(trackNumberId),
+                trackGeometryOfSegments(segment(Point(3200.0, 0.0), Point(3800.0, 0.0))),
             )
 
-        val kmPost2 =
-            kmPostDao.fetch(
-                kmPostDao.save(
-                    kmPost(
-                        trackNumberId = trackNumberId,
-                        km = KmNumber(2),
-                        roughLayoutLocation = Point(2000.0, 0.0),
-                        draft = false,
-                    )
-                )
-            )
-        val kmPost3 =
-            kmPostDao.fetch(
-                kmPostDao.save(
-                    kmPost(
-                        trackNumberId = trackNumberId,
-                        km = KmNumber(3),
-                        roughLayoutLocation = Point(3000.0, 0.0),
-                        draft = false,
-                    )
-                )
-            )
-        val kmPost4 =
-            kmPostDao.fetch(
-                kmPostDao.save(
-                    kmPost(
-                        trackNumberId = trackNumberId,
-                        km = KmNumber(4),
-                        roughLayoutLocation = Point(4000.0, 0.0),
-                        draft = false,
-                    )
-                )
-            )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(2000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(3000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(4000.0, 0.0))
+        )
 
-        val overlappingEntireTrackNumber =
+        fun getOverlappingPlans(start: KmNumber?, end: KmNumber?): List<GeometryPlanHeader> =
             locationTrackService
-                .getOverlappingPlanHeaders(
-                    mainOfficialContext.context,
-                    track.id as IntId,
-                    10.0,
-                    KmNumber(0),
-                    KmNumber(6),
-                )
-                .map { it.id }
+                .getTrackPolygon(mainOfficialContext.context, track.id, start, end, 10.0)
+                .let(geometryService::getOverlappingPlanHeaders)
+
+        val overlappingEntireTrackNumber = getOverlappingPlans(KmNumber(0), KmNumber(6)).map { it.id }
         assertEquals(1, overlappingEntireTrackNumber.size)
         assertContains(overlappingEntireTrackNumber, plan2IsWithinLocationTrack.id)
 
-        val withinPlanAreaButNotWithinTrackNumber =
-            locationTrackService
-                .getOverlappingPlanHeaders(
-                    mainOfficialContext.context,
-                    track.id as IntId,
-                    10.0,
-                    KmNumber(0),
-                    KmNumber(0),
-                )
-                .map { it.id }
+        val withinPlanAreaButNotWithinTrackNumber = getOverlappingPlans(KmNumber(0), KmNumber(0)).map { it.id }
         assertEquals(0, withinPlanAreaButNotWithinTrackNumber.size)
 
         val withinPlanAreaAndTrackNumberButNotWithinLocationTrack =
-            locationTrackService
-                .getOverlappingPlanHeaders(
-                    mainOfficialContext.context,
-                    track.id as IntId,
-                    10.0,
-                    KmNumber(2),
-                    KmNumber(2),
-                )
-                .map { it.id }
+            getOverlappingPlans(KmNumber(2), KmNumber(2)).map { it.id }
         assertEquals(0, withinPlanAreaAndTrackNumberButNotWithinLocationTrack.size)
 
         val startIsWithinTrackNumberButWithinLocationTrackAndEndIsNull =
-            locationTrackService
-                .getOverlappingPlanHeaders(mainOfficialContext.context, track.id as IntId, 10.0, KmNumber(2), null)
-                .map { it.id }
+            getOverlappingPlans(KmNumber(2), null).map { it.id }
         assertEquals(1, startIsWithinTrackNumberButWithinLocationTrackAndEndIsNull.size)
 
-        val endIsAfterTrackNumberEndAndStartIsNull =
-            locationTrackService
-                .getOverlappingPlanHeaders(mainOfficialContext.context, track.id as IntId, 10.0, null, KmNumber(5))
-                .map { it.id }
+        val endIsAfterTrackNumberEndAndStartIsNull = getOverlappingPlans(null, KmNumber(5)).map { it.id }
         assertEquals(1, endIsAfterTrackNumberEndAndStartIsNull.size)
 
-        val endIsBeforeLocationTrackStartButWithinTrackNumber =
-            locationTrackService
-                .getOverlappingPlanHeaders(mainOfficialContext.context, track.id as IntId, 10.0, null, KmNumber(2))
-                .map { it.id }
+        val endIsBeforeLocationTrackStartButWithinTrackNumber = getOverlappingPlans(null, KmNumber(2)).map { it.id }
         assertEquals(0, endIsBeforeLocationTrackStartButWithinTrackNumber.size)
 
-        val startIsAfterTrackNumberEndAndEndIsNull =
-            locationTrackService
-                .getOverlappingPlanHeaders(mainOfficialContext.context, track.id as IntId, 10.0, KmNumber(5), null)
-                .map { it.id }
+        val startIsAfterTrackNumberEndAndEndIsNull = getOverlappingPlans(KmNumber(5), null).map { it.id }
         assertEquals(0, startIsAfterTrackNumberEndAndEndIsNull.size)
     }
 

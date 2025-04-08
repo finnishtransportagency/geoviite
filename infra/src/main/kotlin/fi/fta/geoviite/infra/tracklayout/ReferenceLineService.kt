@@ -147,6 +147,14 @@ class ReferenceLineService(
     }
 
     @Transactional(readOnly = true)
+    fun getByTrackNumberWithAlignmentOrThrow(
+        layoutContext: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>,
+    ): Pair<ReferenceLine, LayoutAlignment> =
+        dao.fetchVersionByTrackNumberId(layoutContext, trackNumberId)?.let(::getWithAlignmentInternal)
+            ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
+
+    @Transactional(readOnly = true)
     fun getByTrackNumberWithAlignment(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,

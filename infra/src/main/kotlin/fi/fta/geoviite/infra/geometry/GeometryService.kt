@@ -31,6 +31,7 @@ import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ElementListingFile
@@ -42,6 +43,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.toAlignmentHeader
 import fi.fta.geoviite.infra.tracklayout.toLayoutSwitch
@@ -116,6 +118,10 @@ constructor(
             filter?.let(all::filter) ?: all
         }
     }
+
+    fun getOverlappingPlanHeaders(polygon: List<IPoint>): List<GeometryPlanHeader> =
+        if (polygon.isEmpty()) emptyList()
+        else geometryDao.getPlanHeaders(geometryDao.fetchIntersectingPlans(polygon, LAYOUT_SRID))
 
     fun getPlanHeader(planId: IntId<GeometryPlan>): GeometryPlanHeader {
         return geometryDao.getPlanHeader(planId)
@@ -582,11 +588,11 @@ constructor(
         tickLength: Int,
     ): List<KmHeights>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
-        val alignment = layoutAlignmentDao.fetch(locationTrack.versionOrThrow)
+        val geometry = layoutAlignmentDao.fetch(locationTrack.versionOrThrow)
         val geocodingContext =
             geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId) ?: return null
 
-        val segmentSources = collectSegmentSources(alignment.segments)
+        val segmentSources = collectSegmentSources(geometry.segments)
         val alignmentLinkEndSegmentIndices =
             segmentSources
                 .zipWithNext { a, b -> a.alignment == b.alignment }
@@ -595,8 +601,8 @@ constructor(
         val alignmentBoundaryAddresses =
             alignmentLinkEndSegmentIndices.flatMap { i ->
                 listOf(
-                    GeometryAlignmentBoundaryPoint(alignment.segmentMValues[i].max, i),
-                    GeometryAlignmentBoundaryPoint(alignment.segmentMValues[i + 1].min, i + 1),
+                    GeometryAlignmentBoundaryPoint(geometry.segmentMValues[i].max, i),
+                    GeometryAlignmentBoundaryPoint(geometry.segmentMValues[i + 1].min, i + 1),
                 )
             }
 
@@ -605,17 +611,17 @@ constructor(
                 startDistance,
                 endDistance,
                 geocodingContext,
-                alignment,
+                geometry,
                 tickLength,
                 geometryAlignmentBoundaryPoints = alignmentBoundaryAddresses,
             ) ?: listOf()
-        val boundingBox = requireNotNull(alignment.boundingBox)
+        val boundingBox = requireNotNull(geometry.boundingBox)
         val heightTriangles = heightTriangleDao.fetchTriangles(boundingBox.polygonFromCorners)
 
         return processFlattened(kmTicks.map { it.ticks }) { allTicks ->
                 allTicks
                     .parallelStream()
-                    .map { tick -> getHeightAtTickInLayoutAlignment(alignment, segmentSources, heightTriangles, tick) }
+                    .map { tick -> getHeightAtTickInLayoutAlignment(geometry, segmentSources, heightTriangles, tick) }
                     .collect(Collectors.toList())
             }
             .zip(kmTicks, ::combineKmTicksWithHeights)
@@ -761,17 +767,17 @@ private data class SegmentSource(
 )
 
 private fun getHeightAtTickInLayoutAlignment(
-    alignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
     segmentSources: List<SegmentSource>,
     heightTriangles: List<HeightTriangle>,
     tick: TrackMeterTick,
 ): Double? {
     val point = tick.addressPoint.point
-    val segmentIndex = tick.segmentIndex ?: alignment.getSegmentIndexAtM(point.m)
-    val segment = alignment.segments[segmentIndex]
+    val segmentIndex = tick.segmentIndex ?: geometry.getSegmentIndexAtM(point.m)
+    val (segment, segmentM) = geometry.segmentsWithM[segmentIndex]
     val source = segmentSources[segmentIndex]
 
-    val distanceInSegment = point.m - segment.startM
+    val distanceInSegment = point.m - segmentM.min
     val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
     val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
 

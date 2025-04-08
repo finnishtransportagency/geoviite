@@ -224,7 +224,7 @@ fun toVerticalGeometryListing(
 private fun getEntryLayoutStations(
     listing: List<VerticalGeometryListing>,
     geocodingContext: GeocodingContext,
-    layoutAlignment: LayoutAlignment,
+    layoutAlignment: LocationTrackGeometry,
 ): List<List<Double?>> =
     processFlattened(listing.map { entry -> listOf(entry.start.address, entry.point.address, entry.end.address) }) {
         addresses ->

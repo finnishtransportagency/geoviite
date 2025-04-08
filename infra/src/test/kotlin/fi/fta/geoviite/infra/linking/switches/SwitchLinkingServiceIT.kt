@@ -1605,22 +1605,22 @@ constructor(
 
     @Test
     fun `joint 5 hitting an existing segment boundary gets linked to both start and end sides correctly`() {
-        val throughAlignment =
-            alignment(
+        val throughGeometry =
+            trackGeometryOfSegments(
                 segment(Point(-1.0, 0.0), Point(0.0, 0.0)),
                 // just to be extra sneaky, have the segment ends very slightly zigzag to mess up
                 // the m-order
                 segment(Point(0.0, 0.0), Point(16.61500001, 0.0)),
                 segment(Point(16.615, 0.0), Point(34.43, 0.0)),
             )
-        val branchingAlignment = alignment(segment(Point(0.0, 0.0), Point(34.321, -1.967)))
+        val branchingGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(34.321, -1.967)))
 
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val throughTrack = mainOfficialContext.insert(locationTrack(trackNumber), throughAlignment).id
-        mainOfficialContext.insert(locationTrack(trackNumber), branchingAlignment).id
+        val throughTrack = mainOfficialContext.save(locationTrack(trackNumber), throughGeometry).id
+        mainOfficialContext.save(locationTrack(trackNumber), branchingGeometry).id
         val switch =
             mainOfficialContext
-                .insert(
+                .save(
                     switch(
                         switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!.id
                     )
