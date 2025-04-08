@@ -19,17 +19,20 @@ import java.math.BigDecimal
 const val MODIFICATIONS_FROM_VERSION = "muutokset_versiosta"
 const val TRACK_NETWORK_VERSION = "rataverkon_versio"
 
+@Schema(name = "Vastaus: Sijaintiraide")
 data class ExtLocationTrackResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty("sijaintiraide") val locationTrack: ExtLocationTrackV1,
 )
 
+@Schema(name = "Vastaus: Muutettu sijaintiraide")
 data class ExtModifiedLocationTrackResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>?,
     @JsonProperty("sijaintiraide") val locationTrack: ExtLocationTrackV1,
 )
 
+@Schema(name = "Sijaintiraide")
 data class ExtLocationTrackV1(
     @JsonProperty("ratanumero") val trackNumberName: TrackNumber,
     @JsonProperty("ratanumero_oid") val trackNumberOid: Oid<LayoutTrackNumber>,
@@ -44,15 +47,16 @@ data class ExtLocationTrackV1(
     @JsonProperty("koordinaatisto") val coordinateSystem: Srid,
 )
 
+@Schema(name = "Vastaus: Sijaintiraidegeometria")
 data class ExtLocationTrackGeometryResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
-@Schema(name = "Muutettu sijaintiraidegeometria")
+@Schema(name = "Vastaus: Muutettu sijaintiraidegeometria")
 data class ExtModifiedLocationTrackGeometryResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
-    @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>?,
+    @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
