@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.FreeText
+import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
 
 const val MODIFICATIONS_FROM_VERSION = "muutokset_versiosta"
@@ -48,13 +49,15 @@ data class ExtLocationTrackGeometryResponseV1(
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
+@Schema(name = "Muutettu sijaintiraidegeometria")
 data class ExtModifiedLocationTrackGeometryResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>?,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
-data class ExtCenterLineGeometryPointV1(
+@Schema(name = "Osoitepiste")
+data class ExtCenterLineGeometryPointV1( // TODO Rename
     val x: Double,
     val y: Double,
     @JsonProperty("ratakilometri") val kmNumber: KmNumber,
