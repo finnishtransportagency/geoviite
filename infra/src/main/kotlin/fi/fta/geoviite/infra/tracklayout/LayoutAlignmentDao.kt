@@ -732,11 +732,13 @@ class LayoutAlignmentDao(
               when geom.cant_values is null then null 
               else array_to_string(geom.cant_values, ',', 'null') 
             end as cant_values
-          from layout.alignment a
-            left join layout.segment_version sv on a.id = sv.alignment_id and a.version = sv.alignment_version
-            left join layout.segment_geometry geom on geom.id = sv.geometry_id
-          where geom.id is not null
-          group by geom.id
+          from layout.segment_geometry geom
+          where exists(
+            select *
+            from layout.alignment a
+              join layout.segment_version sv on a.id = sv.alignment_id and a.version = sv.alignment_version
+            where geom.id = sv.geometry_id
+          )
         """
                 .trimIndent()
 
