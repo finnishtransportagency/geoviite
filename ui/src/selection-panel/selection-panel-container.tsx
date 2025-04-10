@@ -9,8 +9,8 @@ import {
     useReferenceLines,
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
-import { SelectedPlanDownloadAsset } from 'map/plan-download/plan-download-store';
-import { first } from 'utils/array-utils';
+import { PlanDownloadAssetId } from 'map/plan-download/plan-download-store';
+import { brand } from 'common/brand';
 
 type SelectionPanelContainerProps = {
     setSwitchToOfficialDialogOpen: (open: boolean) => void;
@@ -48,17 +48,19 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         changeTimes.layoutKmPost,
     );
 
-    const initialSelectionForPlanDownload: () => SelectedPlanDownloadAsset | undefined = () => {
-        const selectedLocationTrack = first(state.selection.selectedItems.locationTracks);
-        const selectedTrackNumber = first(state.selection.selectedItems.trackNumbers);
-
-        if (selectedLocationTrack) {
-            return { id: selectedLocationTrack, type: 'LOCATION_TRACK' };
-        } else if (selectedTrackNumber) {
-            return { id: selectedTrackNumber, type: 'TRACK_NUMBER' };
-        } else {
-            return undefined;
+    const initialSelectionForPlanDownload: () => PlanDownloadAssetId | undefined = () => {
+        if (state.selectedToolPanelTab?.type === 'TRACK_NUMBER') {
+            return {
+                type: 'TRACK_NUMBER',
+                id: brand(state.selectedToolPanelTab.id),
+            };
+        } else if (state.selectedToolPanelTab?.type === 'LOCATION_TRACK') {
+            return {
+                type: 'LOCATION_TRACK',
+                id: brand(state.selectedToolPanelTab.id),
+            };
         }
+        return undefined;
     };
 
     const togglePlanDownload = () => {

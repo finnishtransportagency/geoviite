@@ -53,7 +53,7 @@ import { brand } from 'common/brand';
 import {
     initialPlanDownloadState,
     initialPlanDownloadStateFromSelection,
-    SelectedPlanDownloadAsset,
+    PlanDownloadAssetId,
     planDownloadReducers,
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
@@ -609,20 +609,12 @@ const trackLayoutSlice = createSlice({
         },
         onStartPlanDownload: (
             state: TrackLayoutState,
-            { payload: idAndType }: PayloadAction<SelectedPlanDownloadAsset | undefined>,
+            { payload: asset }: PayloadAction<PlanDownloadAssetId | undefined>,
         ): void => {
-            if (!idAndType) {
+            if (!asset) {
                 state.planDownloadState = initialPlanDownloadState;
-            } else if (idAndType.type === 'TRACK_NUMBER') {
-                state.planDownloadState = initialPlanDownloadStateFromSelection(
-                    undefined,
-                    idAndType.id,
-                );
             } else {
-                state.planDownloadState = initialPlanDownloadStateFromSelection(
-                    idAndType.id,
-                    undefined,
-                );
+                state.planDownloadState = initialPlanDownloadStateFromSelection(asset);
             }
         },
         onStopPlanDownload: (state: TrackLayoutState): void => {
