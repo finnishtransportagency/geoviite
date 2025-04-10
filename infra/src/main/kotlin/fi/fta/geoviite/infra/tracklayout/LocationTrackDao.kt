@@ -27,12 +27,12 @@ import fi.fta.geoviite.infra.util.getJointNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -374,26 +374,6 @@ class LocationTrackDao(
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save Location Track")
         logger.daoAccess(AccessType.INSERT, LocationTrack::class, response)
-        //        when (geometry) {
-        //            null ->
-        //                item.contextData.layoutAssetId.let { id ->
-        //                    when (id) {
-        //                        is EditedAssetId -> {
-        //                            // Edited from previous asset without new geometry -> copy the original to this
-        // version
-        //                            alignmentDao.copyLocationTrackGeometry(id.sourceRowVersion, response)
-        //                        }
-        //                        is TemporaryAssetId -> {
-        //                            // Completely new item without geometry
-        //                        }
-        //                        else -> {
-        //                            error("Unexpected layout asset ID type when saving location track: $id")
-        //                        }
-        //                    }
-        //                }
-        //            else -> alignmentDao.saveLocationTrackGeometry(response, geometry)
-        //        }
-        //        logger.info("Writing: ${geometry.withLocationTrackId(response.id).nodes}")
         alignmentDao.saveLocationTrackGeometry(response, geometry.withLocationTrackId(response.id))
         return response
     }

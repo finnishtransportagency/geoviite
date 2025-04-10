@@ -134,7 +134,7 @@ sealed class LocationTrackGeometry : IAlignment {
      */
     @get:JsonIgnore
     val startSwitchLink: SwitchLink?
-        get() = startNode?.let { node -> pickEndJoint(node.switchOut, node.switchIn) }
+        get() = startNode?.let(::pickPrimaryEndJoint)
 
     /**
      * The primary switch link at track end
@@ -143,7 +143,7 @@ sealed class LocationTrackGeometry : IAlignment {
      */
     @get:JsonIgnore
     val endSwitchLink: SwitchLink?
-        get() = endNode?.let { node -> pickEndJoint(node.switchIn, node.switchOut) }
+        get() = endNode?.let(::pickPrimaryEndJoint)
 
     @get:JsonIgnore
     val outerStartSwitch: SwitchLink?
@@ -153,30 +153,17 @@ sealed class LocationTrackGeometry : IAlignment {
     val outerEndSwitch: SwitchLink?
         get() = endNode?.switchOut
 
-    //    val outerSwitches: Pair<SwitchLink?, SwitchLink?>
-    //        get() = startNode?.switchIn to endNode?.switchOut
-    //
-    //    val innerSwitches: List<SwitchLink>
-    //        get() =
-    //            nodes.flatMapIndexed { index, node ->
-    //                when (index) {
-    //                    0 -> listOfNotNull(node.switchOut)
-    //                    nodes.lastIndex -> listOfNotNull(node.switchIn)
-    //                    else -> listOfNotNull(node.switchIn, node.switchOut)
-    //                }
-    //            }
-
     /**
      * This picks the to-display "track end joint" from various combinations of track inner switches (switch is part of
      * track geometry) and outer switches (track ends at the switch start). Normally, the inner one is the preferred
      * one, but in cases where there are two switches following each other, a presentation joint is preferred, as that's
      * the logical node of the topology.
      */
-    private fun pickEndJoint(trackInnerJoint: SwitchLink?, trackOuterJoint: SwitchLink?): SwitchLink? =
-        trackInnerJoint?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
-            ?: trackOuterJoint?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
-            ?: trackInnerJoint
-            ?: trackOuterJoint
+    private fun pickPrimaryEndJoint(edgeNode: EdgeNode): SwitchLink? =
+        edgeNode.switchIn?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
+            ?: edgeNode.switchOut?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
+            ?: edgeNode.switchIn
+            ?: edgeNode.switchOut
 
     fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = switchIds.contains(switchId)
 
@@ -186,8 +173,13 @@ sealed class LocationTrackGeometry : IAlignment {
         require(edgeIndices.first >= 0 && edgeIndices.last <= edges.lastIndex) {
             "Edge indices out of bounds: first=${edgeIndices.first} last=${edgeIndices.last} edges=${edges.size}"
         }
-        val start = edgesWithM[edgeIndices.first].let { (e, m) -> e.firstSegmentStart.toAlignmentPoint(m.min) }
-        val end = edgesWithM[edgeIndices.last].let { (e, m) -> e.lastSegmentEnd.toAlignmentPoint(m.min) }
+        val start =
+            edgesWithM[edgeIndices.first].let { (edge, edgeM) -> edge.firstSegmentStart.toAlignmentPoint(edgeM.min) }
+        val end =
+            edgesWithM[edgeIndices.last].let { (edge, edgeM) ->
+                val (segment, segmentM) = edge.segmentsWithM.last()
+                segment.segmentEnd.toAlignmentPoint(edgeM.min + segmentM.min)
+            }
         return start to end
     }
 
@@ -255,7 +247,7 @@ data class TmpLocationTrackGeometry(@get:JsonIgnore override val edges: List<Lay
     }
 
     override fun withLocationTrackId(id: IntId<LocationTrack>): TmpLocationTrackGeometry {
-        val newEdges = edges.map { it.reifyNodeTrackId(id) }
+        val newEdges = edges.map { it.withLocationTrackId(id) }
         return if (newEdges == edges) this else return TmpLocationTrackGeometry(newEdges)
     }
 
@@ -272,28 +264,26 @@ data class DbLocationTrackGeometry(
         verifyTrackGeometry(trackRowVersion.id, edges)
     }
 
-    //    @Suppress("UNCHECKED_CAST")
-    //    override val edgesWithM: List<Pair<DbLayoutEdge, Range<Double>>>
-    //        get() = super.edgesWithM as List<Pair<DbLayoutEdge, Range<Double>>>
-    //
+    @Suppress("UNCHECKED_CAST")
+    override val edgesWithM: List<Pair<DbLayoutEdge, Range<Double>>>
+        get() = super.edgesWithM as List<Pair<DbLayoutEdge, Range<Double>>>
+
     @Suppress("UNCHECKED_CAST")
     override val nodes: List<DbLayoutNode>
         get() = super.nodes as List<DbLayoutNode>
 
-    //
-    //    @Suppress("UNCHECKED_CAST")
-    //    override val nodesWithLocation: List<Pair<DbEdgeNode, AlignmentPoint>>
-    //        get() = super.nodesWithLocation as List<Pair<DbEdgeNode, AlignmentPoint>>
-    //
-    //    override val startNode: DbEdgeNode?
-    //        get() = edges.firstOrNull()?.startNode
-    //
-    //    override val endNode: DbEdgeNode?
-    //        get() = edges.lastOrNull()?.endNode
+    @Suppress("UNCHECKED_CAST")
+    override val nodesWithLocation: List<Pair<DbLayoutNode, AlignmentPoint>>
+        get() = super.nodesWithLocation as List<Pair<DbLayoutNode, AlignmentPoint>>
 
-    override fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry {
-        return if (trackRowVersion.id == id) this else TmpLocationTrackGeometry(edges.map { it.reifyNodeTrackId(id) })
-    }
+    override val startNode: DbEdgeNode?
+        get() = edges.firstOrNull()?.startNode
+
+    override val endNode: DbEdgeNode?
+        get() = edges.lastOrNull()?.endNode
+
+    override fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry =
+        this.takeIf { trackRowVersion.id == id } ?: TmpLocationTrackGeometry(edges.map { it.withLocationTrackId(id) })
 }
 
 sealed class LayoutEdge : IAlignment {
@@ -342,7 +332,7 @@ sealed class LayoutEdge : IAlignment {
         return this.takeIf { startNode == start && endNode == end } ?: TmpLayoutEdge(start, end, segments)
     }
 
-    fun reifyNodeTrackId(id: IntId<LocationTrack>): LayoutEdge {
+    fun withLocationTrackId(id: IntId<LocationTrack>): LayoutEdge {
         val newStart = startNode.takeIf { n -> n.type != TRACK_BOUNDARY } ?: startNode.withInnerBoundary(id, START)
         val newEnd = endNode.takeIf { n -> n.type != TRACK_BOUNDARY } ?: endNode.withInnerBoundary(id, END)
         return if (newStart == startNode && newEnd == endNode) this else TmpLayoutEdge(newStart, newEnd, segments)

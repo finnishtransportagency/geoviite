@@ -516,4 +516,114 @@ class LocationTrackGeometryTest {
             ),
         )
     }
+
+    @Test
+    fun `Track primary start switch is resolved correctly`() {
+        val mainLink = switchLinkYV(IntId(1), 1)
+        val mathLink = switchLinkYV(IntId(2), 5)
+        val mathLink2 = switchLinkYV(IntId(3), 5)
+        assertEquals(null, trackGeometry(edge(listOf(someSegment()))).startSwitchLink)
+        assertEquals(mainLink, trackGeometry(edge(listOf(someSegment()), startInnerSwitch = mainLink)).startSwitchLink)
+        assertEquals(mainLink, trackGeometry(edge(listOf(someSegment()), startOuterSwitch = mainLink)).startSwitchLink)
+        assertEquals(
+            mainLink,
+            trackGeometry(edge(listOf(someSegment()), startInnerSwitch = mainLink, startOuterSwitch = mathLink))
+                .startSwitchLink,
+        )
+        assertEquals(
+            mainLink,
+            trackGeometry(edge(listOf(someSegment()), startInnerSwitch = mathLink, startOuterSwitch = mainLink))
+                .startSwitchLink,
+        )
+        assertEquals(
+            mathLink,
+            trackGeometry(edge(listOf(someSegment()), startInnerSwitch = mathLink, startOuterSwitch = mathLink2))
+                .startSwitchLink,
+        )
+        assertEquals(
+            mathLink2,
+            trackGeometry(edge(listOf(someSegment()), startInnerSwitch = mathLink2, startOuterSwitch = mathLink))
+                .startSwitchLink,
+        )
+    }
+
+    @Test
+    fun `Track primary end switch is resolved correctly`() {
+        val mainLink = switchLinkYV(IntId(1), 1)
+        val mathLink = switchLinkYV(IntId(2), 5)
+        val mathLink2 = switchLinkYV(IntId(3), 5)
+        assertEquals(null, trackGeometry(edge(listOf(someSegment()))).endSwitchLink)
+        assertEquals(mainLink, trackGeometry(edge(listOf(someSegment()), endInnerSwitch = mainLink)).endSwitchLink)
+        assertEquals(mainLink, trackGeometry(edge(listOf(someSegment()), endOuterSwitch = mainLink)).endSwitchLink)
+        assertEquals(
+            mainLink,
+            trackGeometry(edge(listOf(someSegment()), endInnerSwitch = mainLink, endOuterSwitch = mathLink))
+                .endSwitchLink,
+        )
+        assertEquals(
+            mainLink,
+            trackGeometry(edge(listOf(someSegment()), endInnerSwitch = mathLink, endOuterSwitch = mainLink))
+                .endSwitchLink,
+        )
+        assertEquals(
+            mathLink,
+            trackGeometry(edge(listOf(someSegment()), endInnerSwitch = mathLink, endOuterSwitch = mathLink2))
+                .endSwitchLink,
+        )
+        assertEquals(
+            mathLink2,
+            trackGeometry(edge(listOf(someSegment()), endInnerSwitch = mathLink2, endOuterSwitch = mathLink))
+                .endSwitchLink,
+        )
+    }
+
+    @Test
+    fun `Track portion end nodes are resolved correctly`() {
+        val switch1 = switchLinkYV(IntId(1), 1)
+        val switch2 = switchLinkYV(IntId(2), 1)
+        val switch3 = switchLinkYV(IntId(3), 1)
+        val geometry =
+            trackGeometry(
+                edge(
+                    endInnerSwitch = switch1,
+                    segments =
+                        listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0)), segment(Point(1.0, 0.0), Point(2.0, 0.0))),
+                ),
+                edge(
+                    startInnerSwitch = switch1,
+                    endInnerSwitch = switch2,
+                    segments =
+                        listOf(segment(Point(2.0, 0.0), Point(3.0, 0.0)), segment(Point(3.0, 0.0), Point(4.0, 0.0))),
+                ),
+                edge(
+                    startInnerSwitch = switch2,
+                    endInnerSwitch = switch3,
+                    segments =
+                        listOf(segment(Point(4.0, 0.0), Point(5.0, 0.0)), segment(Point(5.0, 0.0), Point(6.0, 0.0))),
+                ),
+                edge(
+                    startInnerSwitch = switch3,
+                    segments =
+                        listOf(segment(Point(6.0, 0.0), Point(7.0, 0.0)), segment(Point(7.0, 0.0), Point(8.0, 0.0))),
+                ),
+            )
+
+        val start = alignmentPoint(0.0, 0.0, m = 0.0)
+        val mid1 = alignmentPoint(2.0, 0.0, m = 2.0)
+        val mid2 = alignmentPoint(4.0, 0.0, m = 4.0)
+        val mid3 = alignmentPoint(6.0, 0.0, m = 6.0)
+        val end = alignmentPoint(8.0, 0.0, m = 8.0)
+
+        assertEquals(start to end, geometry.getEdgeStartAndEnd(0..3))
+
+        assertEquals(start to mid1, geometry.getEdgeStartAndEnd(0..0))
+        assertEquals(start to mid2, geometry.getEdgeStartAndEnd(0..1))
+        assertEquals(start to mid3, geometry.getEdgeStartAndEnd(0..2))
+
+        assertEquals(mid1 to end, geometry.getEdgeStartAndEnd(1..3))
+        assertEquals(mid2 to end, geometry.getEdgeStartAndEnd(2..3))
+        assertEquals(mid3 to end, geometry.getEdgeStartAndEnd(3..3))
+
+        assertEquals(mid1 to mid3, geometry.getEdgeStartAndEnd(1..2))
+    }
 }

@@ -15,14 +15,14 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -412,41 +412,6 @@ class LayoutAlignmentDao(
         logger.daoAccess(AccessType.INSERT, LocationTrackGeometry::class, trackVersion)
     }
 
-    //    fun copyLocationTrackGeometry(from: LayoutRowVersion<LocationTrack>, to: LayoutRowVersion<LocationTrack>) {
-    //        val sql =
-    //            """
-    //            insert into layout.location_track_version_edge(
-    //                location_track_id,
-    //                location_track_layout_context_id,
-    //                location_track_version,
-    //                edge_id,
-    //                edge_index,
-    //                start_m
-    //            ) select
-    //                :to_id,
-    //                :to_context_id,
-    //                :to_version,
-    //                edge_id,
-    //                edge_index,
-    //                start_m
-    //                from layout.location_track_version_edge
-    //                where location_track_id = :from_id
-    //                  and location_track_layout_context_id = :from_context_id
-    //                  and location_track_version = :from_version
-    //        """
-    //                .trimIndent()
-    //        val params =
-    //            mapOf(
-    //                "from_id" to from.id.intValue,
-    //                "from_context_id" to from.context.toSqlString(),
-    //                "from_version" to from.version,
-    //                "to_id" to to.id.intValue,
-    //                "to_context_id" to to.context.toSqlString(),
-    //                "to_version" to to.version,
-    //            )
-    //        jdbcTemplate.update(sql, params)
-    //    }
-    //
     fun preloadLocationTrackGeometries(): Int {
         val geoms = fetchLocationTrackGeometry(trackVersion = null, active = true)
         locationTrackGeometryCache.putAll(geoms)

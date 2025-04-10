@@ -897,7 +897,6 @@ fun cropPoints(
     )
 }
 
-// TODO: GVT-2927 switches are now in nodes -> this should be edge-based, instead of segments
 data class CroppedTrackGeometry(
     val cropStartSegmentIndex: Int,
     override val segments: List<LayoutSegment>,
