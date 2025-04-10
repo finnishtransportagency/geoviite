@@ -262,10 +262,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         ),
                     });
                 });
-        }, [
-            JSON.stringify(props.stagedPublicationCandidateReferences),
-            JSON.stringify(publicationCandidates),
-        ]) ?? emptyValidatedPublicationCandidates();
+        }, [props.stagedPublicationCandidateReferences, publicationCandidates]) ??
+        emptyValidatedPublicationCandidates();
 
     const calculatedChanges = useLoader(
         () =>
@@ -275,7 +273,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                       props.stagedPublicationCandidateReferences,
                   )
                 : Promise.resolve(noCalculatedChanges),
-        [JSON.stringify(props.stagedPublicationCandidateReferences)],
+        [props.stagedPublicationCandidateReferences],
     );
 
     const unstagedPublicationCandidates = addValidationState(

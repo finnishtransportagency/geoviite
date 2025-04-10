@@ -136,10 +136,6 @@ export function deduplicateById<T, TId>(items: T[], getItemId: (item: T) => TId)
     return [...x.values()];
 }
 
-export function arraysEqual<T>(arr1: T[], arr2: T[]) {
-    return JSON.stringify(arr1) === JSON.stringify(arr2);
-}
-
 export const compareByFields = <
     T extends EmptyObject | undefined,
     S extends EmptyObject | undefined,
