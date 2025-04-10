@@ -57,6 +57,7 @@ import {
     planDownloadReducers,
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
+import { objectEquals } from 'utils/object-utils';
 
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
@@ -425,13 +426,15 @@ const trackLayoutSlice = createSlice({
             state: TrackLayoutState,
             action: PayloadAction<PublicationCandidate[]>,
         ): void {
-            const stagedCandidates = filterByPublicationStage(
-                action.payload,
-                PublicationStage.STAGED,
+            const stagedCandidateReferences = asPublicationCandidateReferences(
+                filterByPublicationStage(action.payload, PublicationStage.STAGED),
             );
 
-            state.stagedPublicationCandidateReferences =
-                asPublicationCandidateReferences(stagedCandidates);
+            if (
+                !objectEquals(stagedCandidateReferences, state.stagedPublicationCandidateReferences)
+            ) {
+                state.stagedPublicationCandidateReferences = stagedCandidateReferences;
+            }
         },
 
         onHighlightItems: function (
