@@ -45,8 +45,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.PlaceHolderEdgeNode
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
+import fi.fta.geoviite.infra.tracklayout.TrackBoundary
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
@@ -54,6 +58,7 @@ import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
@@ -355,6 +360,88 @@ constructor(
                 LayoutBranch.main,
                 LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval),
             )
+        }
+    }
+
+    @Test
+    fun `Location track linking updates topology links correctly`() {
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
+
+        val connectionPoint = Point(377921.0, 6676129.0)
+
+        // Create a switch and a linked track: these are not edited but the topology should connect here
+        val connectionJoint = switchJoint(1, connectionPoint)
+        val switchId = mainOfficialContext.createSwitch(joints = listOf(connectionJoint)).id
+        val switchLink = SwitchLink(switchId, connectionJoint.role, connectionJoint.number)
+        mainOfficialContext.save(
+            locationTrack(trackNumberId),
+            trackGeometry(
+                edge(
+                    listOf(segment(connectionPoint + Point(-10.0, 0.0), connectionJoint.location)),
+                    endInnerSwitch = switchLink,
+                )
+            ),
+        )
+
+        // Create some geometry to link into the track
+        val plan =
+            plan(
+                trackNumber = trackNumber,
+                srid = Srid(3067),
+                alignments = listOf(geometryAlignment(line(connectionPoint, connectionPoint + Point(100.0, 0.0)))),
+            )
+        val planVersion = geometryDao.insertPlan(plan, testFile(), null)
+        val alignmentId = geometryDao.fetchPlan(planVersion).alignments[0].id as IntId
+
+        // Create an empty base track to start editing
+        val initVersion = mainDraftContext.save(locationTrack(trackNumberId), LocationTrackGeometry.empty)
+        val id = initVersion.id
+        val trackStartPort = TrackBoundary(id, TrackBoundaryType.START)
+        locationTrackService.getWithGeometry(initVersion).second.let { geometry ->
+            assertNull(geometry.startNode?.innerPort)
+            assertNull(geometry.startNode?.outerPort)
+        }
+
+        // Link it so that it touches the switch
+        val endM = 50.0
+        val connectedVersion =
+            linkingService.saveLocationTrackLinking(
+                LayoutBranch.main,
+                EmptyAlignmentLinkingParameters(
+                    geometryPlanId = planVersion.id,
+                    layoutAlignmentId = id,
+                    geometryInterval = GeometryInterval(alignmentId, Range(0.0, endM)),
+                ),
+            )
+        locationTrackService.getWithGeometry(connectedVersion).second.let { geometry ->
+            assertNull(geometry.startNode?.innerPort)
+            assertEquals(switchLink, geometry.startNode?.outerPort)
+        }
+
+        // Shorten from the start, so that it separates again
+        val separationM = 20.0
+        val separatedVersion =
+            linkingService.shortenLocationTrackGeometry(LayoutBranch.main, id, Range(separationM, endM))
+        locationTrackService.getWithGeometry(separatedVersion).second.let { geometry ->
+            assertEquals(trackStartPort, geometry.startNode?.innerPort)
+            assertNull(geometry.startNode?.outerPort)
+        }
+
+        // Relink it so that it touches the switch again
+        val reconnectedVersion =
+            linkingService.saveLocationTrackLinking(
+                LayoutBranch.main,
+                LinkingParameters(
+                    geometryPlanId = planVersion.id,
+                    // Link more stuff at the beginning
+                    layoutInterval = LayoutInterval(id, Range(0.0, 0.0)),
+                    // About what was cut off, with a small connection segment
+                    geometryInterval = GeometryInterval(alignmentId, Range(0.0, separationM - 1.0)),
+                ),
+            )
+        locationTrackService.getWithGeometry(reconnectedVersion).second.let { geometry ->
+            assertNull(geometry.startNode?.innerPort)
+            assertEquals(switchLink, geometry.startNode?.outerPort)
         }
     }
 

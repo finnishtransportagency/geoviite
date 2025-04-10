@@ -21,12 +21,10 @@ import fi.fta.geoviite.infra.publication.PreparedPublicationRequest
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
-import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -48,6 +46,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
+import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -174,7 +174,6 @@ class CalculatedChangesService(
     val kmPostDao: LayoutKmPostDao,
     val geocodingService: GeocodingService,
     val alignmentDao: LayoutAlignmentDao,
-    val publicationValidationService: PublicationValidationService,
 ) {
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges {
         val changeContext = createChangeContext(versions)
@@ -426,12 +425,7 @@ class CalculatedChangesService(
         val geocodingContext = getGeocodingContext(trackNumberId)
 
         return geocodingContext?.let { context ->
-            getSwitchJointChanges(
-                geometry = geometry,
-                geocodingContext = context,
-                fetchSwitch = fetchSwitchById,
-                fetchStructure = switchLibraryService::getSwitchStructure,
-            )
+            getSwitchJointChanges(geometry = geometry, geocodingContext = context, fetchSwitch = fetchSwitchById)
         } ?: emptyList()
     }
 
@@ -590,7 +584,6 @@ class CalculatedChangesService(
                         geometry = geometry,
                         geocodingContext = geocodingContext,
                         fetchSwitch = changeContext.switches::getBefore,
-                        fetchStructure = switchLibraryService::getSwitchStructure,
                     )
                 }
             } ?: emptyList()
@@ -601,7 +594,6 @@ class CalculatedChangesService(
                     geometry = newGeometry,
                     geocodingContext = context,
                     fetchSwitch = changeContext.switches::getAfterIfExists,
-                    fetchStructure = switchLibraryService::getSwitchStructure,
                 )
             } ?: emptyList()
 
@@ -760,23 +752,22 @@ private fun getSwitchJointChanges(
     geometry: LocationTrackGeometry,
     geocodingContext: GeocodingContext,
     fetchSwitch: (switchId: IntId<LayoutSwitch>) -> LayoutSwitch?,
-    fetchStructure: (structureId: IntId<SwitchStructure>) -> SwitchStructure,
 ): List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>> {
-    // TODO: GVT-2929 previously this filtered topology links out if they were not presentation joints - check vs main
-    // TODO: GVT-2929 it never did the same to segment joints, so the solution might have been partial
-    // TODO: (comment from main) Use presentation joint to filter joints to update because
-    // TODO: (comment from main) - that is joint number that is normally used to connect tracks and switch topologically
-    // TODO: (comment from main) - and Ratko may not want other joint numbers in this case
     val switchChanges =
-        geometry.trackSwitchLinks.mapNotNull { link ->
-            val joint = fetchSwitch(link.switchId)?.getJoint(link.jointNumber)
-            val address = geocodingContext.getAddress(link.location)?.first
-            if (joint != null && address != null) {
-                link.switchId to SwitchJointDataHolder(joint, address, link.location.toPoint())
-            } else {
-                null
+        geometry.trackSwitchLinks
+            // Use presentation joint to filter joints to update because
+            // - that is joint number that is normally used to connect tracks and switch topologically
+            // - and Ratko may not want other joint numbers in this case
+            .filter { link -> link.type == TrackSwitchLinkType.INNER || link.jointRole == SwitchJointRole.MAIN }
+            .mapNotNull { link ->
+                val joint = fetchSwitch(link.switchId)?.getJoint(link.jointNumber)
+                val address = geocodingContext.getAddress(link.location)?.first
+                if (joint != null && address != null) {
+                    link.switchId to SwitchJointDataHolder(joint, address, link.location.toPoint())
+                } else {
+                    null
+                }
             }
-        }
     return switchChanges.groupBy({ it.first }, { it.second }).toList()
 }
 

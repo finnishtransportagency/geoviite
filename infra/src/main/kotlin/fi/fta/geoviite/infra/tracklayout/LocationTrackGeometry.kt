@@ -29,6 +29,9 @@ data class TrackSwitchLink(val link: SwitchLink, val location: AlignmentPoint, v
 
     val jointNumber: JointNumber
         get() = link.jointNumber
+
+    val jointRole: SwitchJointRole
+        get() = link.jointRole
 }
 
 sealed class LocationTrackGeometry : IAlignment {
