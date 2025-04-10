@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
+import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
@@ -47,10 +48,12 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
+import fi.fta.geoviite.infra.util.processFlattened
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 import withUser
@@ -581,7 +584,6 @@ constructor(
     ): List<KmHeights>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
         val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
-        val boundingBox = alignment.boundingBox ?: return null
         val geocodingContext =
             geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId) ?: return null
 
@@ -599,29 +601,25 @@ constructor(
                 )
             }
 
+        val kmTicks =
+            collectTrackMeterTicks(
+                startDistance,
+                endDistance,
+                geocodingContext,
+                alignment,
+                tickLength,
+                geometryAlignmentBoundaryPoints = alignmentBoundaryAddresses,
+            ) ?: listOf()
+        val boundingBox = requireNotNull(alignment.boundingBox)
         val heightTriangles = heightTriangleDao.fetchTriangles(boundingBox.polygonFromCorners)
 
-        return collectTrackMeterHeights(
-            startDistance,
-            endDistance,
-            geocodingContext,
-            alignment,
-            tickLength,
-            geometryAlignmentBoundaryPoints = alignmentBoundaryAddresses,
-        ) { point, givenSegmentIndex ->
-            val segmentIndex = givenSegmentIndex ?: alignment.getSegmentIndexAtM(point.m)
-            val segment = alignment.segments[segmentIndex]
-            val source = segmentSources[segmentIndex]
-            val distanceInSegment = point.m - segment.startM
-            val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
-            val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
-            val profileHeight = source.profile?.getHeightAt(distanceInGeometryAlignment)
-            profileHeight?.let { height ->
-                source.plan?.units?.verticalCoordinateSystem?.let { verticalCoordinateSystem ->
-                    transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
-                }
+        return processFlattened(kmTicks.map { it.ticks }) { allTicks ->
+                allTicks
+                    .parallelStream()
+                    .map { tick -> getHeightAtTickInLayoutAlignment(alignment, segmentSources, heightTriangles, tick) }
+                    .collect(Collectors.toList())
             }
-        }
+            .zip(kmTicks, ::combineKmTicksWithHeights)
     }
 
     @Transactional(readOnly = true)
@@ -664,11 +662,17 @@ constructor(
         val verticalCoordinateSystem = plan.units.verticalCoordinateSystem ?: return null
 
         val startStation = geometryAlignment.staStart.toDouble()
-        return collectTrackMeterHeights(startDistance, endDistance, geocodingContext, alignment, tickLength) { point, _
-            ->
-            profile?.getHeightAt(point.m + startStation)?.let { height ->
-                transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
-            }
+        val kmTicks =
+            collectTrackMeterTicks(startDistance, endDistance, geocodingContext, alignment, tickLength) ?: listOf()
+        return kmTicks.map { kmTick ->
+            val heights =
+                kmTick.ticks.map { tick ->
+                    val point = tick.addressPoint.point
+                    profile?.getHeightAt(point.m + startStation)?.let { height ->
+                        transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
+                    }
+                }
+            combineKmTicksWithHeights(heights, kmTick)
         }
     }
 
@@ -693,6 +697,22 @@ constructor(
             ?.let { number -> trackNumberService.find(MainLayoutContext.official, number).firstOrNull()?.id }
             ?.let { trackNumberId -> geocodingService.getGeocodingContext(MainLayoutContext.official, trackNumberId) }
 }
+
+private fun combineKmTicksWithHeights(kmHeights: List<Double?>, kmTick: KmTicks): KmHeights =
+    KmHeights(
+        kmTick.kmNumber,
+        kmHeights
+            .zip(kmTick.ticks) { height, tick ->
+                TrackMeterHeight(
+                    tick.addressPoint.point.m,
+                    tick.addressPoint.address.meters.toDouble(),
+                    height,
+                    tick.addressPoint.point.toPoint(),
+                )
+            }
+            .distinct(),
+        kmTick.endM,
+    )
 
 private fun trackNumbersMatch(header: GeometryPlanHeader, trackNumbers: List<TrackNumber>) =
     (trackNumbers.isEmpty() || (header.trackNumber?.let(trackNumbers::contains) ?: false))
@@ -740,3 +760,26 @@ private data class SegmentSource(
     val alignment: GeometryAlignment?,
     val plan: GeometryPlan?,
 )
+
+private fun getHeightAtTickInLayoutAlignment(
+    alignment: LayoutAlignment,
+    segmentSources: List<SegmentSource>,
+    heightTriangles: List<HeightTriangle>,
+    tick: TrackMeterTick,
+): Double? {
+    val point = tick.addressPoint.point
+    val segmentIndex = tick.segmentIndex ?: alignment.getSegmentIndexAtM(point.m)
+    val segment = alignment.segments[segmentIndex]
+    val source = segmentSources[segmentIndex]
+
+    val distanceInSegment = point.m - segment.startM
+    val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
+    val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
+
+    val profileHeight = source.profile?.getHeightAt(distanceInGeometryAlignment)
+    return profileHeight?.let { height ->
+        source.plan?.units?.verticalCoordinateSystem?.let { verticalCoordinateSystem ->
+            transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
+        }
+    }
+}

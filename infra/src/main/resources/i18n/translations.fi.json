@@ -169,7 +169,6 @@
         "yes": "Kyllä",
         "show-more": "Näytä lisää",
         "show-less": "Piilota",
-        "logout": "Kirjaudu ulos",
         "close": "Sulje"
     },
     "yes": "Kyllä",
@@ -342,9 +341,7 @@
         },
         "licenses": "Lisenssitiedot",
         "vertical-geometry-diagram-demo": "Korkeuskaavio-demo",
-        "more": "Lisää",
-        "logout": "Kirjaudu ulos",
-        "logout-confirm": "Geoviitteen uloskirjautuminen kirjaa ulos myös muista auki olevista Väyläviraston tietojärjestelmistä."
+        "more": "Lisää"
     },
     "app-bar-debug": {
         "expired-token": "Debug: Vanhentunut tokeni"

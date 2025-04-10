@@ -1,7 +1,4 @@
 import * as React from 'react';
-import { Dialog } from 'geoviite-design-lib/dialog/dialog';
-import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import {
     Menu,
     menuDivider,
@@ -23,7 +20,6 @@ import { createDebugActions } from 'app-bar/app-bar-more-menu-debug-actions';
 const AppBarMoreMenu: React.FC = () => {
     const { t } = useTranslation();
     const [showMenu, setShowMenu] = React.useState(false);
-    const [showLogoutConfirmation, setShowLogoutConfirmation] = React.useState(false);
     const menuRef = React.useRef(null);
     const navigate = useNavigate();
 
@@ -75,13 +71,6 @@ const AppBarMoreMenu: React.FC = () => {
             'licenses',
         ),
         ...createRoleSelectionOptions(),
-        menuOption(
-            () => {
-                setShowLogoutConfirmation(true);
-            },
-            t('app-bar.logout'),
-            'logout',
-        ),
         ...debugActions,
     ];
 
@@ -106,29 +95,6 @@ const AppBarMoreMenu: React.FC = () => {
                     qa-id={'app-bar-more-menu'}
                     onClose={() => setShowMenu(false)}
                 />
-            )}
-
-            {showLogoutConfirmation && (
-                <Dialog
-                    title={t('app-bar.logout')}
-                    allowClose={false}
-                    footerContent={
-                        <div className={dialogStyles['dialog__footer-content--centered']}>
-                            <Button
-                                onClick={() => setShowLogoutConfirmation(false)}
-                                variant={ButtonVariant.SECONDARY}>
-                                {t('button.cancel')}
-                            </Button>
-                            <Button
-                                qa-id="confirm-logout"
-                                onClick={() => (window.location.href = '/sso/logout?auth=1')}
-                                variant={ButtonVariant.PRIMARY}>
-                                {t('button.logout')}
-                            </Button>
-                        </div>
-                    }>
-                    {t('app-bar.logout-confirm')}
-                </Dialog>
             )}
         </React.Fragment>
     );

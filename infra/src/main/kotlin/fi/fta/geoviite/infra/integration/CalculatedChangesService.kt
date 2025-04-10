@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.InheritanceFromPublicationInMain
 import fi.fta.geoviite.infra.publication.PreparedPublicationRequest
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
@@ -303,6 +304,7 @@ class CalculatedChangesService(
                     completedSwitches[branch] ?: listOf(),
                     completedKmPosts[branch] ?: listOf(),
                     mainPublication,
+                    mainPublicationResult.publicationId,
                 )
             }
     }
@@ -316,6 +318,7 @@ class CalculatedChangesService(
         completedSwitches: List<LayoutRowVersion<LayoutSwitch>>,
         completedKmPosts: List<LayoutRowVersion<LayoutKmPost>>,
         mainPublication: PreparedPublicationRequest,
+        mainPublicationId: IntId<Publication>,
     ): PreparedPublicationRequest {
         val versions =
             mergeInheritedChangeVersionsWithCompletedMergeVersions(
@@ -331,18 +334,13 @@ class CalculatedChangesService(
             DirectChanges(
                 completedKmPosts.map { it.id },
                 completedReferenceLines.map { it.id },
-                mergeTrackNumberChanges(
-                    inheritedChanges.trackNumberChanges,
-                    completedTrackNumbers.map { v -> TrackNumberChange(v.id, setOf(), false, false) },
-                ),
-                mergeLocationTrackChanges(
-                    inheritedChanges.locationTrackChanges,
-                    completedLocationTracks.map { v -> LocationTrackChange(v.id, setOf(), false, false) },
-                ),
-                mergeSwitchChanges(
-                    inheritedChanges.switchChanges,
-                    completedSwitches.map { v -> SwitchChange(v.id, listOf()) },
-                ),
+                completedTrackNumbers.map { v ->
+                    TrackNumberChange(v.id, changedKmNumbers = setOf(), isStartChanged = false, isEndChanged = false)
+                },
+                completedLocationTracks.map { v ->
+                    LocationTrackChange(v.id, changedKmNumbers = setOf(), isStartChanged = false, isEndChanged = false)
+                },
+                completedSwitches.map { v -> SwitchChange(v.id, changedJoints = listOf()) },
             )
         val indirectChanges =
             IndirectChanges(
@@ -363,6 +361,7 @@ class CalculatedChangesService(
             CalculatedChanges(directChanges, indirectChanges),
             mainPublication.message,
             PublicationCause.CALCULATED_CHANGE,
+            mainPublicationId,
         )
     }
 
@@ -380,16 +379,19 @@ class CalculatedChangesService(
             trackNumbers =
                 trackNumberDao
                     .getMany(inheritorBranch.official, changes.trackNumberChanges.map { it.trackNumberId })
+                    .filter { it.branch == inheritorBranch }
                     .map { requireNotNull(it.version) },
             referenceLines = listOf(),
             locationTracks =
                 locationTrackDao
                     .getMany(inheritorBranch.official, changes.locationTrackChanges.map { it.locationTrackId })
+                    .filter { it.branch == inheritorBranch }
                     .map { requireNotNull(it.version) },
             switches =
-                switchDao.getMany(inheritorBranch.official, changes.switchChanges.map { it.switchId }).map {
-                    requireNotNull(it.version)
-                },
+                switchDao
+                    .getMany(inheritorBranch.official, changes.switchChanges.map { it.switchId })
+                    .filter { it.branch == inheritorBranch }
+                    .map { requireNotNull(it.version) },
             kmPosts = listOf(),
             splits = listOf(),
         )

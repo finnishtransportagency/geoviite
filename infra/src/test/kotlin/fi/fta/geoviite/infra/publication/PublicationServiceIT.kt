@@ -8,9 +8,11 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
@@ -1555,6 +1557,154 @@ constructor(
         assertEquals(listOf(switch), candidates.switches.map { it.id })
         assertEquals(listOf(kmPost), candidates.kmPosts.map { it.id })
     }
+
+    @Test
+    fun `inherited publications gain their main publication's ID as parent ID`() {
+        val designBranch = testDBService.createDesignBranch()
+
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
+        val referenceLine =
+            mainOfficialContext.insert(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment).id
+        val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber), alignment).id
+        locationTrackDao.insertExternalId(locationTrack, designBranch, Oid("1.2.3.4.5"))
+
+        mainDraftContext.insert(
+            mainOfficialContext.fetch(referenceLine)!!.copy(startAddress = TrackMeter("0123+0123")),
+            alignment,
+        )
+        val mainPublicationResult = publishManualPublication(referenceLines = listOf(referenceLine))
+        val designPublications = publicationDao.list(LayoutBranchType.DESIGN)
+        assertEquals(1, designPublications.size)
+
+        assertEquals(
+            mainPublicationResult.publicationId,
+            (designPublications[0].layoutBranch as PublishedInDesign).parentPublicationId,
+        )
+    }
+
+    @Test
+    fun `publication in main cleans up origin object from live table`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
+        mainOfficialContext.insert(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment).id
+        val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber), alignment)
+        locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
+        locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
+        designDraftContext.copyFrom(locationTrack)
+
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
+        locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
+        publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
+
+        assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
+        jdbc.query(
+            "select count(*) count_in_design from layout.location_track where design_id = :design_id",
+            mapOf("design_id" to designBranch.designId.intValue),
+        ) { rs, _ ->
+            assertEquals(0, rs.getInt("count_in_design"), "design objects are fully cleaned up from live table")
+        }
+    }
+
+    @Test
+    fun `publication in main succeeds even if origin object has been cancelled`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
+        mainOfficialContext.insert(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment).id
+        val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber), alignment)
+        locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
+        locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
+        designDraftContext.copyFrom(locationTrack)
+
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
+        locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
+        locationTrackService.cancel(designBranch, locationTrack.id)
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
+        publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
+        assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
+        jdbc.query(
+            "select count(*) count_in_design from layout.location_track where design_id = :design_id",
+            mapOf("design_id" to designBranch.designId.intValue),
+        ) { rs, _ ->
+            assertEquals(0, rs.getInt("count_in_design"), "design objects are fully cleaned up from live table")
+        }
+    }
+
+    @Test
+    fun `publication in main succeeds even if origin object has been partially cancelled`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
+        mainOfficialContext.insert(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment).id
+        val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber), alignment)
+        locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
+        locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
+        designDraftContext.copyFrom(locationTrack)
+
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
+        locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
+        locationTrackService.cancel(designBranch, locationTrack.id)
+        // cancellation started but not finished
+        publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
+        assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
+        jdbc.query(
+            "select count(*) count_in_design from layout.location_track where design_id = :design_id",
+            mapOf("design_id" to designBranch.designId.intValue),
+        ) { rs, _ ->
+            assertEquals(0, rs.getInt("count_in_design"), "design objects are fully cleaned up from live table")
+        }
+    }
+
+    @Test
+    fun `publication in main of object created in design succeeds even if origin object has been cancelled`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
+        mainOfficialContext.insert(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment).id
+        val locationTrack = designDraftContext.insert(locationTrack(trackNumber), alignment)
+        locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
+        locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
+
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
+        locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
+        locationTrackService.cancel(designBranch, locationTrack.id)
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
+        publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
+        assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
+        jdbc.query(
+            "select count(*) count_in_design from layout.location_track where design_id = :design_id",
+            mapOf("design_id" to designBranch.designId.intValue),
+        ) { rs, _ ->
+            assertEquals(0, rs.getInt("count_in_design"), "design objects are fully cleaned up from live table")
+        }
+    }
+
+    private fun publishManualPublication(
+        layoutBranch: LayoutBranch = MainBranch.instance,
+        message: FreeTextWithNewLines = FreeTextWithNewLines.of("in $layoutBranch"),
+        trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
+        referenceLines: List<IntId<ReferenceLine>> = listOf(),
+        locationTracks: List<IntId<LocationTrack>> = listOf(),
+        switches: List<IntId<LayoutSwitch>> = listOf(),
+        kmPosts: List<IntId<LayoutKmPost>> = listOf(),
+    ) =
+        publicationService.publishManualPublication(
+            layoutBranch,
+            PublicationRequest(
+                publicationRequestIds(trackNumbers, locationTracks, referenceLines, switches, kmPosts),
+                message,
+            ),
+        )
 
     data class PublicationGroupTestData(
         val sourceLocationTrackId: IntId<LocationTrack>,

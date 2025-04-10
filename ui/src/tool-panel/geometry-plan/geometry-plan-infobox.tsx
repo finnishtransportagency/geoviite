@@ -104,6 +104,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                 <InfoboxField
                     qaId="geometry-plan-name"
                     label={t('tool-panel.geometry-plan.name')}
+                    className={styles['geometry-plan-tool-panel__long']}
                     value={planHeader.name}
                 />
                 <InfoboxField
@@ -113,15 +114,15 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                 />
                 <InfoboxField
                     qaId="geometry-plan-project"
-                    label={t('tool-panel.geometry-plan.project')}>
-                    <span className={styles['geometry-plan-tool-panel__long']}>
-                        {planHeader.project.name}
-                    </span>
+                    label={t('tool-panel.geometry-plan.project')}
+                    className={styles['geometry-plan-tool-panel__long']}>
+                    {planHeader.project.name}
                 </InfoboxField>
-                <InfoboxField qaId="geometry-plan-file" label={t('tool-panel.geometry-plan.file')}>
-                    <span className={styles['geometry-plan-tool-panel__long']}>
-                        {planHeader.fileName}
-                    </span>
+                <InfoboxField
+                    qaId="geometry-plan-file"
+                    label={t('tool-panel.geometry-plan.file')}
+                    className={styles['geometry-plan-tool-panel__long']}>
+                    {planHeader.fileName}
                 </InfoboxField>
                 <InfoboxField
                     qaId="geometry-plan-phase"

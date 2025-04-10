@@ -240,7 +240,7 @@ constructor(
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
             source = overrideParameters?.source ?: plan.source,
-            planApplicability = extraInfoParameters?.planApplicability ?: plan.planApplicability,
+            planApplicability = extraInfoParameters?.planApplicability,
         )
     }
 

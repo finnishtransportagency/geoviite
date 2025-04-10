@@ -872,6 +872,107 @@ class GeocodingTest {
         assertNull(result.geocodingContext.referenceLineAddresses)
     }
 
+    @Test
+    fun `geocoding survives contact with terrible zigzag alignment`() {
+        val terribleZigzag = listOf(0.0, 5.0, 3.0, 7.0, 4.0, 10.0)
+        val terribleZigzagAlignment =
+            alignment(
+                terribleZigzag.zipWithNext { start, end ->
+                    segment(Point(start.toDouble(), 0.0), Point(end.toDouble(), 0.0))
+                }
+            )
+        val risingZigzagAlignment =
+            alignment(
+                terribleZigzag.zip(terribleZigzag.indices).zipWithNext { (start, i), (end, _) ->
+                    segment(Point(start.toDouble(), i * 1.0), Point(end.toDouble(), (i + 1) * 1.0))
+                }
+            )
+
+        val context =
+            GeocodingContext.create(
+                    trackNumber = TrackNumber("001"),
+                    startAddress = TrackMeter(KmNumber(10), 100),
+                    referenceLineGeometry = terribleZigzagAlignment,
+                    kmPosts = listOf(),
+                )
+                .geocodingContext
+
+        // the zigzag is so horrible that what the implementation actually does on it doesn't matter very much; but
+        // at least the start and end addresses ought to be reasonable
+        val risingAddresses = context.getAddressPoints(risingZigzagAlignment)!!
+        assertEquals(0.0, risingAddresses.startPoint.point.x)
+        assertEquals(10.0, risingAddresses.endPoint.point.x)
+
+        val terribleAddresses = context.getAddressPoints(terribleZigzagAlignment)!!
+        assertEquals(0.0, terribleAddresses.startPoint.point.x)
+        assertEquals(10.0, terribleAddresses.endPoint.point.x)
+    }
+
+    @Test
+    fun `getTrackLocations() can handle reverse order hits with very close addresses`() {
+        val referenceLineAlignment =
+            alignment(
+                segment(Point(0.0, 100.0), Point(10.0, 100.0)), // reference line is convex toward track
+                segment(Point(10.0, 100.0), Point(20.0, 99.9)),
+            )
+        val locationTrackAlignment = alignment(segment(Point(0.0, 0.0), Point(20.0, 0.0)))
+
+        val context =
+            GeocodingContext.create(
+                    trackNumber = TrackNumber("001"),
+                    startAddress = TrackMeter(KmNumber(0), 0),
+                    referenceLineGeometry = referenceLineAlignment,
+                    kmPosts = listOf(),
+                )
+                .geocodingContext
+
+        val overallAddresses = (0..20).map { meter -> TrackMeter(KmNumber(0), meter) }
+        val singleOverall =
+            overallAddresses.map { address -> context.getTrackLocation(locationTrackAlignment, address) }
+        val multiOverall = context.getTrackLocations(locationTrackAlignment, overallAddresses)
+        assertEquals(singleOverall, multiOverall)
+
+        val aroundBumpAddresses =
+            (-10..10).map { milli ->
+                TrackMeter(KmNumber(0), BigDecimal("0.001") * milli.toBigDecimal() + 10.toBigDecimal())
+            }
+
+        val singleAroundBump =
+            aroundBumpAddresses.map { address -> context.getTrackLocation(locationTrackAlignment, address) }
+        val multiAroundBump = context.getTrackLocations(locationTrackAlignment, aroundBumpAddresses)
+        assertEquals(singleAroundBump, multiAroundBump)
+        // Track addresses can hit a location track out of order. Note that since we're checking only successive lines,
+        // we only see one bump, even though in this case the bump is steep enough that actually *all* addresses after
+        // the bump hit before all addresses before it
+        assertEquals(
+            listOf((0..9).map { true }, listOf(false), (0..8).map { true }).flatten(),
+            singleAroundBump.zipWithNext { a, b -> a!!.point.m < b!!.point.m },
+        )
+    }
+
+    @Test
+    fun `getAddressPoints() handles overly convex reference line without crashing`() {
+        val referenceLineAlignment =
+            alignment(
+                segment(Point(0.0, 99.0), Point(5.0, 100.0)),
+                segment(Point(5.0, 100.0), Point(15.0, 100.0)),
+                segment(Point(15.0, 100.0), Point(20.0, 99.0)),
+            )
+        val locationTrackAlignment = alignment(segment(Point(0.0, 0.0), Point(20.0, 0.0)))
+        val context =
+            GeocodingContext.create(
+                    trackNumber = TrackNumber("001"),
+                    startAddress = TrackMeter(KmNumber(0), 0),
+                    referenceLineGeometry = referenceLineAlignment,
+                    kmPosts = listOf(),
+                )
+                .geocodingContext
+        val addressPoints = context.getAddressPoints(locationTrackAlignment)!!
+        // the reference line is broken enough that we can't say much about it at all, but at least we can say this
+        assertTrue(addressPoints.midPoints.all { it.address > addressPoints.startPoint.address })
+        assertTrue(addressPoints.midPoints.all { it.address < addressPoints.endPoint.address })
+    }
+
     private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {
         assertEquals(
             expected.size,

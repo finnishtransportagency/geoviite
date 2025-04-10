@@ -431,28 +431,37 @@ class LocationTrackService(
         cropEndKm: KmNumber?,
     ): List<GeometryPlanHeader> {
         val cropStart = cropStartKm?.let { TrackMeter(cropStartKm, 0) } ?: trackStart
-        val cropEnd =
-            cropEndKm?.let {
-                geocodingContext.referencePoints
-                    .find { it.kmNumber > cropEndKm }
-                    ?.let { referencePoint -> TrackMeter(referencePoint.kmNumber, 0) }
-            } ?: trackEnd
+        val cropEnd = getCropEndForPlanHeaderSearch(cropEndKm, trackEnd, geocodingContext)
 
-        return if (cropStart > trackEnd || cropEnd < trackStart) {
+        return if (cropEnd == null || cropStart > trackEnd || cropEnd < trackStart) {
             emptyList()
         } else {
             val cropStartM =
-                requireNotNull(
-                    geocodingContext.getTrackLocation(alignment, cropStart.coerceIn(trackStart, trackEnd))?.point?.m
-                )
+                geocodingContext.getTrackLocation(alignment, cropStart.coerceIn(trackStart, trackEnd))?.point?.m
             val cropEndM =
-                requireNotNull(
-                    geocodingContext.getTrackLocation(alignment, cropEnd.coerceIn(trackStart, trackEnd))?.point?.m
-                )
+                geocodingContext.getTrackLocation(alignment, cropEnd.coerceIn(trackStart, trackEnd))?.point?.m
 
-            alignmentService.getOverlappingPlanHeaders(alignment, polygonBufferSize, cropStartM, cropEndM)
+            if (cropStartM == null || cropEndM == null) listOf()
+            else {
+                alignmentService.getOverlappingPlanHeaders(alignment, polygonBufferSize, cropStartM, cropEndM)
+            }
         }
     }
+
+    private fun getCropEndForPlanHeaderSearch(
+        cropEndKm: KmNumber?,
+        trackEnd: TrackMeter,
+        geocodingContext: GeocodingContext,
+    ): TrackMeter? =
+        if (cropEndKm == null) trackEnd
+        else
+            geocodingContext.referencePoints
+                .indexOfFirst { it.kmNumber == cropEndKm }
+                .let { endKmIndex ->
+                    if (endKmIndex == -1) null
+                    else if (endKmIndex == geocodingContext.referencePoints.lastIndex) trackEnd
+                    else TrackMeter(geocodingContext.referencePoints[endKmIndex + 1].kmNumber, 0)
+                }
 
     private fun getSwitchIdAtStart(alignment: LayoutAlignment, locationTrack: LocationTrack) =
         if (alignment.segments.firstOrNull()?.startJointNumber == null) locationTrack.topologyStartSwitch?.switchId
