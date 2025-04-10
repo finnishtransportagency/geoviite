@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import styles from './preview-view.scss';
 import { useTranslation } from 'react-i18next';
-import { useLoader, useTwoPartEffect } from 'utils/react-utils';
+import { dispatchPrevIfObjectsEqual, useLoader, useTwoPartEffect } from 'utils/react-utils';
 import {
     getCalculatedChanges,
     getPublicationCandidates,
@@ -74,6 +74,7 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { previewViewAreaSelectTool } from 'map/tools/preview-view-area-select-tool';
+import { prevIfObjectsEqual } from 'utils/object-utils';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -223,7 +224,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     : candidate;
             });
 
-            setPublicationCandidates(candidatesWithUpdatedStage);
+            setPublicationCandidates(dispatchPrevIfObjectsEqual(candidatesWithUpdatedStage));
             props.setStagedPublicationCandidateReferences(candidatesWithUpdatedStage);
 
             setShowPreview(true);
@@ -326,8 +327,9 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                             ),
                     );
 
-                    setPublicationCandidates(updatedCandidates);
+                    setPublicationCandidates(dispatchPrevIfObjectsEqual(updatedCandidates));
                     props.setStagedPublicationCandidateReferences(updatedCandidates);
+
                     Snackbar.success('publish.revert-success');
                 }
             })
@@ -349,7 +351,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     stageTransform(newStage),
                 );
 
-                setPublicationCandidates(updatedCandidates);
+                setPublicationCandidates(dispatchPrevIfObjectsEqual(updatedCandidates));
                 props.setStagedPublicationCandidateReferences(updatedCandidates);
             },
         [publicationCandidates],
@@ -365,7 +367,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             stageTransform(newStage),
         );
 
-        setPublicationCandidates(updatedCandidates);
+        setPublicationCandidates(dispatchPrevIfObjectsEqual(updatedCandidates));
         props.setStagedPublicationCandidateReferences(updatedCandidates);
     };
 
@@ -388,7 +390,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             stageTransform(newStage),
         );
 
-        setPublicationCandidates(updatedCandidates);
+        setPublicationCandidates(dispatchPrevIfObjectsEqual(updatedCandidates));
         props.setStagedPublicationCandidateReferences(updatedCandidates);
     };
 
@@ -452,9 +454,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         if (design === 'MAIN') return;
         return cancelPublicationCandidate(publicationCandidate, design).then(() => {
             Snackbar.success('publish.cancellation-success');
-            setPublicationCandidates((publicationCandidates) =>
-                publicationCandidates.filter((pc) => pc.id !== publicationCandidate.id),
-            );
+            setPublicationCandidates((publicationCandidates) => {
+                const filteredCandidates = publicationCandidates.filter(
+                    (pc) => pc.id !== publicationCandidate.id,
+                );
+
+                return prevIfObjectsEqual(publicationCandidates, filteredCandidates);
+            });
         });
     };
 
@@ -463,7 +469,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             (candidate) => candidate.stage === PublicationStage.UNSTAGED,
         );
 
-        setPublicationCandidates(updatedCandidates);
+        setPublicationCandidates(dispatchPrevIfObjectsEqual(updatedCandidates));
         props.setStagedPublicationCandidateReferences(updatedCandidates);
     };
 
