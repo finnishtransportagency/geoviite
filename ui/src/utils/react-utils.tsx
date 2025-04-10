@@ -2,6 +2,7 @@ import * as React from 'react';
 import { DependencyList, EffectCallback, ForwardedRef, useEffect, useRef, useState } from 'react';
 import { debounce } from 'ts-debounce';
 import { ValueOf } from './type-utils';
+import { prevIfObjectsEqual } from 'utils/object-utils';
 
 /**
  * To load/get something asynchronously and to set that into state
@@ -311,11 +312,14 @@ export function useRateLimitedEffect(
             lastFireTime.current = now;
             return effect();
         } else {
-            nextWakeup.current = setTimeout(() => {
-                lastFireTime.current = Date.now();
-                lastDestructor.current = effect();
-                nextWakeup.current = undefined;
-            }, waitBetweenCalls - (now - lastFireTime.current));
+            nextWakeup.current = setTimeout(
+                () => {
+                    lastFireTime.current = Date.now();
+                    lastDestructor.current = effect();
+                    nextWakeup.current = undefined;
+                },
+                waitBetweenCalls - (now - lastFireTime.current),
+            );
             return () => {
                 if (lastDestructor.current !== undefined) {
                     lastDestructor.current();
@@ -364,19 +368,26 @@ export function useSetState<T>(
     return [set, addToSet, deleteFromSet, setSet];
 }
 
+export function dispatchPrevIfObjectsEqual<T>(next: T) {
+    return (prev: T) => prevIfObjectsEqual(prev, next);
+}
+
 type PropsType = Record<string, unknown>;
 
 export function useTraceProps(componentName: string, props: PropsType) {
     const prev = useRef(props);
 
     useEffect(() => {
-        const changedProps = Object.entries(props).reduce((acc, [k, v]) => {
-            if (prev.current[k] !== v) {
-                acc[k] = { old: prev.current[k], new: v };
-            }
+        const changedProps = Object.entries(props).reduce(
+            (acc, [k, v]) => {
+                if (prev.current[k] !== v) {
+                    acc[k] = { old: prev.current[k], new: v };
+                }
 
-            return acc;
-        }, {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } });
+                return acc;
+            },
+            {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } },
+        );
 
         if (Object.keys(changedProps).length > 0) {
             console.log(`[${componentName}] Changed props:`, changedProps);
