@@ -45,7 +45,7 @@ type VerticalGeometryDiagramProps = {
     height: number;
 };
 
-export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = ({
+const VerticalGeometryDiagramM: React.FC<VerticalGeometryDiagramProps> = ({
     kmHeights,
     geometry,
     visibleStartM,
@@ -257,3 +257,5 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
         </div>
     );
 };
+
+export const VerticalGeometryDiagram = React.memo(VerticalGeometryDiagramM);

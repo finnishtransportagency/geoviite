@@ -49,21 +49,27 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
         [],
     );
 
-    const alignmentId: VerticalGeometryDiagramAlignmentId | undefined =
-        selectedAlignment === undefined
-            ? undefined
-            : 'locationTrackId' in selectedAlignment
-              ? { ...selectedAlignment, layoutContext: state.layoutContext }
-              : selectedAlignment;
+    const alignmentId: VerticalGeometryDiagramAlignmentId | undefined = React.useMemo(
+        () =>
+            selectedAlignment === undefined
+                ? undefined
+                : 'locationTrackId' in selectedAlignment
+                  ? { ...selectedAlignment, layoutContext: state.layoutContext }
+                  : selectedAlignment,
+        [selectedAlignment, state.layoutContext],
+    );
 
-    const setVisibleExtentM = function (startM: number | undefined, endM: number | undefined) {
-        if (startM !== undefined && endM !== undefined && alignmentId !== undefined) {
-            trackLayoutDelegates.onVerticalGeometryDiagramAlignmentVisibleExtentChange({
-                alignmentId,
-                extent: [startM, endM],
-            });
-        }
-    };
+    const setVisibleExtentM = React.useCallback(
+        function (startM: number | undefined, endM: number | undefined) {
+            if (startM !== undefined && endM !== undefined && alignmentId !== undefined) {
+                trackLayoutDelegates.onVerticalGeometryDiagramAlignmentVisibleExtentChange({
+                    alignmentId,
+                    extent: [startM, endM],
+                });
+            }
+        },
+        [trackLayoutDelegates, alignmentId],
+    );
 
     return (
         <>
