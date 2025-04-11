@@ -35,7 +35,7 @@ import {
     SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { first } from 'utils/array-utils';
+import { first, reuseListElements } from 'utils/array-utils';
 import {
     PublicationCandidate,
     PublicationCandidateReference,
@@ -57,7 +57,6 @@ import {
     planDownloadReducers,
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
-import { objectEquals } from 'utils/object-utils';
 
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
@@ -430,11 +429,11 @@ const trackLayoutSlice = createSlice({
                 filterByPublicationStage(action.payload, PublicationStage.STAGED),
             );
 
-            if (
-                !objectEquals(stagedCandidateReferences, state.stagedPublicationCandidateReferences)
-            ) {
-                state.stagedPublicationCandidateReferences = stagedCandidateReferences;
-            }
+            state.stagedPublicationCandidateReferences = reuseListElements(
+                stagedCandidateReferences,
+                state.stagedPublicationCandidateReferences,
+                (candidate) => candidate.id,
+            );
         },
 
         onHighlightItems: function (
