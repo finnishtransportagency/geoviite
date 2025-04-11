@@ -1,8 +1,9 @@
 import {
     AreaSelection,
-    PlanDownloadAssetAndExtremities,
     DownloadablePlan,
+    PlanDownloadAssetAndExtremities,
     PlanDownloadAssetId,
+    PlanDownloadAssetType,
     TrackNumberAssetAndExtremities,
 } from 'map/plan-download/plan-download-store';
 import { GeometryPlanHeader, PlanApplicability } from 'geometry/geometry-model';
@@ -99,7 +100,7 @@ const fetchTrackNumberAndExtremities = async (
         ? await getReferenceLineStartAndEnd(referenceLine.id, layoutContext)
         : undefined;
     return trackNumber && startAndEnd
-        ? { type: 'TRACK_NUMBER', asset: trackNumber, startAndEnd }
+        ? { type: PlanDownloadAssetType.TRACK_NUMBER, asset: trackNumber, startAndEnd }
         : undefined;
 };
 
@@ -116,7 +117,7 @@ const fetchLocationTrackAndExtremities = async (
           )
         : undefined;
     return locationTrack && startAndEnd
-        ? { type: 'LOCATION_TRACK', asset: locationTrack, startAndEnd }
+        ? { type: PlanDownloadAssetType.LOCATION_TRACK, asset: locationTrack, startAndEnd }
         : undefined;
 };
 

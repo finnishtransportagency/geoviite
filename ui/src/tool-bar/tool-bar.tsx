@@ -53,7 +53,12 @@ import { getLayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-
 import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
-import { SearchDropdown, SearchItemValue, SearchType } from 'tool-bar/search-dropdown';
+import {
+    SearchDropdown,
+    SearchItemType,
+    SearchItemValue,
+    SearchType,
+} from 'tool-bar/search-dropdown';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;
@@ -166,7 +171,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         }
 
         switch (item.type) {
-            case 'operatingPointSearchItem': {
+            case SearchItemType.OPERATING_POINT: {
                 const operatingPointArea = calculateBoundingBoxToShowAroundLocation(
                     item.operatingPoint.location,
                     MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
@@ -176,7 +181,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 return;
             }
 
-            case 'locationTrackSearchItem':
+            case SearchItemType.LOCATION_TRACK:
                 item.locationTrack.boundingBox && showArea(item.locationTrack.boundingBox);
                 return onSelect({
                     locationTracks: [item.locationTrack.id],
@@ -184,7 +189,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     switches: [],
                 });
 
-            case 'switchSearchItem':
+            case SearchItemType.SWITCH:
                 if (item.layoutSwitch.joints.length > 0) {
                     const center = centerForBoundingBox(
                         boundingBoxAroundPoints(
@@ -202,7 +207,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                       })
                     : undefined;
 
-            case 'trackNumberSearchItem':
+            case SearchItemType.TRACK_NUMBER:
                 getTrackNumberReferenceLine(item.trackNumber.id, layoutContext).then(
                     (referenceLine) => {
                         if (referenceLine?.boundingBox) {
