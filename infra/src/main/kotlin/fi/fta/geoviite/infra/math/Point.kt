@@ -1,7 +1,12 @@
 package fi.fta.geoviite.infra.math
 
 import java.math.BigDecimal
-import kotlin.math.*
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sin
 
 /** Returns the point that lies in the given direction (radians) at given distance from the given start-point */
 fun pointInDirection(fromPoint: IPoint, distance: Double, direction: Double): Point {
@@ -137,6 +142,10 @@ fun parsePointPair(value: String): Pair<Double, Double> {
     val values = value.split("_").map(String::toDouble)
     if (values.size != 2) throw IllegalArgumentException("Invalid point (expected 2 numbers): \"$value\"")
     return values[0] to values[1]
+}
+
+fun dotProduct(v1: IPoint, v2: IPoint): Double {
+    return v1.x * v2.x + v1.y * v2.y
 }
 
 interface IPoint3DM : IPoint {
