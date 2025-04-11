@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
@@ -93,7 +92,6 @@ class PublicationServiceIT
 @Autowired
 constructor(
     val publicationService: PublicationService,
-    val publicationValidationService: PublicationValidationService,
     val publicationLogService: PublicationLogService,
     val publicationTestSupportService: PublicationTestSupportService,
     val publicationDao: PublicationDao,
@@ -169,8 +167,16 @@ constructor(
 
         val switch = mainDraftContext.save(switch())
 
-        val segment = segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch.id)
-        val track1 = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumber.id, segment))
+        val track1 =
+            mainDraftContext.save(
+                locationTrack(trackNumber.id),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                    )
+                ),
+            )
         val track2 = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumber.id, name = "TEST-1"))
 
         val referenceLine = mainDraftContext.saveReferenceLine(referenceLineAndAlignment(trackNumber.id))
@@ -204,8 +210,12 @@ constructor(
             listOf(mainOfficialContext.createLayoutTrackNumber().id, mainOfficialContext.createLayoutTrackNumber().id)
         val locationTracks =
             trackNumberIds.map { trackNumberId ->
-                val segment = segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch.id)
-                mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
+                val edge =
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                    )
+                mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(edge))
             }
 
         val publicationResult =
@@ -1120,12 +1130,14 @@ constructor(
 
         val locationTrack =
             testDraftContext
-                .saveLocationTrack(
-                    locationTrackAndGeometry(
-                        trackNumber,
-                        segment(Point(0.0, 0.0), Point(10.0, 10.0))
-                            .copy(startJointNumber = JointNumber(1), switchId = switch),
-                    )
+                .save(
+                    locationTrack(trackNumber),
+                    trackGeometry(
+                        edge(
+                            startInnerSwitch = switchLinkYV(switch, 1),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+                        )
+                    ),
                 )
                 .id
 
@@ -1405,8 +1417,11 @@ constructor(
         val switch = mainOfficialContext.save(switch()).id
         mainOfficialContext.save(
             locationTrack(trackNumber),
-            trackGeometryOfSegments(
-                segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(startJointNumber = JointNumber(1), switchId = switch)
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(switch, 1),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                )
             ),
         )
         val designBranch = testDBService.createDesignBranch()

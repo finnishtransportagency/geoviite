@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
@@ -17,19 +16,23 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateSystem
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.linking.switches.cropAlignment
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
+import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
+import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.printCsv
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.stream.Collectors
+import org.springframework.transaction.annotation.Transactional
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
 
@@ -184,10 +187,9 @@ class LayoutTrackNumberService(
         boundingBox: BoundingBox?,
     ): List<AlignmentPlanSection> {
         return get(layoutContext, trackNumberId)?.let { trackNumber ->
-            val referenceLine =
-                referenceLineService.getByTrackNumber(layoutContext, trackNumberId)
-                    ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
+            val referenceLine = referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId)
             val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
+
             if (geocodingContext != null && referenceLine.alignmentVersion != null) {
                 alignmentService.getGeometryMetadataSections(
                     referenceLine.alignmentVersion,
@@ -199,6 +201,27 @@ class LayoutTrackNumberService(
                 null
             }
         } ?: listOf()
+    }
+
+    @Transactional(readOnly = true)
+    fun getReferenceLinePolygon(
+        layoutContext: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>,
+        startKm: KmNumber?,
+        endKm: KmNumber?,
+        bufferSize: Double = ALIGNMENT_POLYGON_BUFFER,
+    ): List<IPoint> {
+        val (_, alignment) = referenceLineService.getByTrackNumberWithAlignmentOrThrow(layoutContext, trackNumberId)
+        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(layoutContext, trackNumberId))
+        geocodingContext.referenceLineGeometry
+
+        return if (!cropIsWithinReferenceLine(startKm, endKm, geocodingContext)) {
+            emptyList()
+        } else {
+            getCropMRange(geocodingContext, Range(0.0, alignment.length), startKm, endKm)?.let { cropRange ->
+                toPolygon(cropAlignment(alignment.segmentsWithM, cropRange))
+            } ?: emptyList()
+        }
     }
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
@@ -364,3 +387,21 @@ private fun getKmPostDistances(
         }
         kmPost to distance
     }
+
+private fun getCropMRange(
+    context: GeocodingContext,
+    origRange: Range<Double>,
+    startKm: KmNumber?,
+    endKm: KmNumber?,
+): Range<Double>? {
+    val start = startKm?.let { context.referencePoints.find { it.kmNumber >= startKm } }?.distance
+    val end = endKm?.let { context.referencePoints.find { it.kmNumber > endKm } }?.distance
+    return if (start != null && start >= origRange.max || end != null && end <= origRange.min) {
+        null
+    } else {
+        Range(
+            start?.coerceIn(origRange.min, origRange.max) ?: origRange.min,
+            end?.coerceIn(origRange.min, origRange.max) ?: origRange.max,
+        )
+    }
+}

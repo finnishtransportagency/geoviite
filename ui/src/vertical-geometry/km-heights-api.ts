@@ -177,6 +177,7 @@ function getQueryableRange(
 export function useAlignmentHeights(
     alignmentId: VerticalGeometryDiagramAlignmentId | undefined,
     changeTimes: ChangeTimes,
+    geocodingChangeTime: TimeStamp,
     startM: number | undefined,
     endM: number | undefined,
     tickLength: number,
@@ -189,8 +190,7 @@ export function useAlignmentHeights(
             : getMaxTimestamp(
                   changeTimes.geometryPlan,
                   changeTimes.layoutLocationTrack,
-                  changeTimes.layoutReferenceLine,
-                  changeTimes.layoutKmPost,
+                  geocodingChangeTime,
               );
     const renderedRange = useRef({ alignmentId, startM, endM, tickLength, changeTime });
     renderedRange.current = { alignmentId, startM, endM, tickLength, changeTime };

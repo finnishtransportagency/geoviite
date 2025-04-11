@@ -24,3 +24,9 @@ create index edge_segment_geometry_element_ix on layout.edge_segment (geometry_a
 
 drop index if exists layout.location_track_version_change_ix;
 create index location_track_version_change_ix on layout.location_track_version (change_time, change_user);
+
+drop index if exists layout.edge_start_location_ix;
+create index edge_start_location_ix on layout.edge using gist (start_location);
+
+drop index if exists layout.edge_end_location_ix;
+create index edge_end_location_ix on layout.edge using gist (end_location);

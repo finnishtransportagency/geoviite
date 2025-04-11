@@ -1,0 +1,153 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.plan-download-popup {
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+
+    position: absolute;
+    overflow: hidden;
+    z-index: 10;
+
+    top: 103px;
+    right: 434px;
+    width: 358px;
+
+    background-color: rgba(vayla-design.$color-white-default, 0.95);
+    border-radius: 4px;
+
+    &__radio-container {
+        margin-bottom: 6px;
+    }
+
+    &__area-title {
+        display: inline-flex;
+        justify-content: space-between;
+        flex-grow: 1;
+    }
+
+    &__field-label--error {
+        color: vayla-design.$color-red-dark;
+    }
+
+    &__area-grid {
+        display: grid;
+        grid-template-columns: 2fr 3fr;
+        align-items: center;
+    }
+
+    &-accordion {
+        padding: 12px 0 8px 20px;
+        display: flex;
+        flex-grow: 1;
+    }
+
+    &-chevron .icon {
+        transition: transform 254ms;
+    }
+
+    &-chevron--visible .icon {
+        transform: rotate(90deg);
+    }
+
+    &__close {
+        cursor: pointer;
+    }
+
+    &__title-content {
+        display: flex;
+        justify-content: space-between;
+        flex-grow: 1;
+
+        &--disabled {
+            color: vayla-design.$color-black-lighter;
+        }
+    }
+
+    &__title-buttons {
+        padding: 6px 6px 8px 0px;
+    }
+
+    &__title-container {
+        background-color: vayla-design.$color-white-dark;
+        margin: 0;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+        display: flex;
+        justify-content: space-between;
+    }
+
+    &__title {
+        @include vayla-design.typography-sub-heading;
+
+        padding: 6px 8px;
+        margin: 0;
+        display: flex;
+        gap: 6px;
+        flex-grow: 1;
+    }
+
+    &__content {
+        @include vayla-design.typography-caption;
+        backdrop-filter: blur(3px);
+
+        padding: 8px 16px;
+    }
+
+    &__plans-container {
+        border: 1px solid vayla-design.$color-white-darker;
+        border-radius: 4px;
+        padding: 10px;
+
+        height: 300px;
+        overflow: auto;
+        list-style: none;
+        margin-top: 0;
+        margin-bottom: 8px;
+    }
+
+    &__plan-row {
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        margin-bottom: 4px;
+        gap: 8px;
+        height: 32px;
+
+        &--disabled {
+            color: vayla-design.$color-black-lighter;
+        }
+    }
+
+    &__plan-name {
+        flex-grow: 1;
+        overflow: hidden;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        font-weight: 400;
+
+        > span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        &--has-subheader {
+            white-space: pre;
+        }
+    }
+
+    &__plan-name-subheader {
+        font-size: 10px;
+        color: vayla-design.$color-black-lighter;
+        font-weight: 400;
+    }
+
+    &__plan-icon {
+        min-width: 12px;
+        text-align: center;
+    }
+
+    &__buttons {
+        > .button:not(:last-child) {
+            margin-right: 8px;
+        }
+    }
+}

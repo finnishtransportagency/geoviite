@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -18,11 +19,15 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.TopologyLinkFindingSwitch
+import fi.fta.geoviite.infra.linking.switches.cropAlignment
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
+import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
@@ -36,11 +41,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -117,27 +122,8 @@ class LocationTrackService(
                 topologicalConnectivity = request.topologicalConnectivity,
                 ownerId = request.ownerId,
             )
-
-        // TODO: GVT-2928 do we need to recalc topology? I think not, since:
-        // a) the data on the track itself does not affect topology
-        // b) we don't need to delete track-switch links on track delete, right?
-        //   - they are now in the nodes, which don't maintain referential integrity: draft switch delete wont break it
-        //   - deleted tracks can refer to whatever and that should be fine
+        if (request.state == LocationTrackState.DELETED) clearDuplicateReferences(branch, id)
         return saveDraft(branch, locationTrack, originalGeometry)
-        //        return if (locationTrack.state != LocationTrackState.DELETED) {
-        //            saveDraft(
-        //                branch,
-        //                fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack,
-        // originalAlignment),
-        //            )
-        //        } else {
-        //            clearDuplicateReferences(branch, id)
-        //            val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
-        //            val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
-        //            val newTrack = fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack,
-        // newAlignment)
-        //            saveDraft(branch, newTrack, newAlignment)
-        //        }
     }
 
     @Transactional
@@ -148,19 +134,8 @@ class LocationTrackService(
     ): LayoutRowVersion<LocationTrack> {
         val (originalTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
         val locationTrack = originalTrack.copy(state = state)
-        // TODO: GVT-2928 do we need to recalc topology? I think not, (see above)
+        if (state == LocationTrackState.DELETED) clearDuplicateReferences(branch, id)
         return saveDraft(branch, locationTrack, originalGeometry)
-        //
-        //        return if (locationTrack.state != LocationTrackState.DELETED) {
-        //            saveDraft(branch, locationTrack)
-        //        } else {
-        //            clearDuplicateReferences(branch, id)
-        //            val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
-        //            val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
-        //            val newTrack = fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack,
-        // newAlignment)
-        //            saveDraft(branch, newTrack, newAlignment)
-        //        }
     }
 
     @Transactional(readOnly = true)
@@ -204,39 +179,6 @@ class LocationTrackService(
             }
         }
 
-    //    @Transactional
-    //    fun saveDraft(
-    //        branch: LayoutBranch,
-    //        draftAsset: LocationTrack,
-    //        geometry: LocationTrackGeometry,
-    //    ): LayoutRowVersion<LocationTrack> {
-    //        return saveDraftInternal(branch, draftAsset, geometry)
-    //    }
-
-    //    @Deprecated("")
-    //    @Transactional
-    //    fun saveDraft(
-    //        branch: LayoutBranch,
-    //        draftAsset: LocationTrack,
-    //        alignment: LayoutAlignment,
-    //    ): LayoutRowVersion<LocationTrack> {
-    //        val alignmentVersion =
-    //            // If we're creating a new row or starting a draft, we duplicate the alignment to not
-    //            // edit any original
-    //            if (draftAsset.dataType == TEMP || draftAsset.isOfficial) {
-    //                alignmentService.saveAsNew(alignment)
-    //            }
-    //            // Ensure that we update the correct one.
-    //            else if (draftAsset.getAlignmentVersionOrThrow().id != alignment.id) {
-    //                alignmentService.save(
-    //                    alignment.copy(id = draftAsset.getAlignmentVersionOrThrow().id, dataType = STORED)
-    //                )
-    //            } else {
-    //                alignmentService.save(alignment)
-    //            }
-    //        return saveDraftInternal(branch, draftAsset.copy(alignmentVersion = alignmentVersion))
-    //    }
-    //
     @Transactional
     fun insertExternalId(branch: LayoutBranch, id: IntId<LocationTrack>, oid: Oid<LocationTrack>) =
         dao.insertExternalId(id, branch, oid)
@@ -337,15 +279,6 @@ class LocationTrackService(
         return dao.getMany(layoutContext, ids).let(::associateWithGeometries)
     }
 
-    //    @Deprecated("")
-    //    @Transactional(readOnly = true)
-    //    fun getManyWithAlignments(
-    //        layoutContext: LayoutContext,
-    //        ids: List<IntId<LocationTrack>>,
-    //    ): List<Pair<LocationTrack, LayoutAlignment>> {
-    //        return dao.getMany(layoutContext, ids).let(::associateWithAlignments)
-    //    }
-    //
     @Transactional(readOnly = true)
     fun getWithGeometryOrThrow(
         layoutContext: LayoutContext,
@@ -354,15 +287,6 @@ class LocationTrackService(
         return getWithGeometryInternalOrThrow(layoutContext, id)
     }
 
-    //    @Deprecated("")
-    //    @Transactional(readOnly = true)
-    //    fun getWithAlignmentOrThrow(
-    //        layoutContext: LayoutContext,
-    //        id: IntId<LocationTrack>,
-    //    ): Pair<LocationTrack, LayoutAlignment> {
-    //        return getWithAlignmentInternalOrThrow(layoutContext, id)
-    //    }
-    //
     @Transactional(readOnly = true)
     fun getWithGeometry(
         layoutContext: LayoutContext,
@@ -439,6 +363,55 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
+    fun getTrackPolygon(
+        layoutContext: LayoutContext,
+        locationTrackId: IntId<LocationTrack>,
+        cropStart: KmNumber?,
+        cropEnd: KmNumber?,
+        bufferSize: Double = ALIGNMENT_POLYGON_BUFFER,
+    ): List<IPoint> {
+        val locationTrack = getOrThrow(layoutContext, locationTrackId)
+        val context = requireNotNull(geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId))
+        val geometry = alignmentDao.fetch(locationTrack.versionOrThrow)
+
+        val startAndEnd = getStartAndEnd(layoutContext, listOf(locationTrackId)).first()
+        val trackStart = startAndEnd.start?.address
+        val trackEnd = startAndEnd.end?.address
+
+        return if (trackStart == null || trackEnd == null || !cropIsWithinReferenceLine(cropStart, cropEnd, context)) {
+            emptyList()
+        } else {
+            getMRange(geometry, context, trackStart, trackEnd, cropStart, cropEnd)?.let { cropRange ->
+                toPolygon(cropAlignment(geometry.segmentsWithM, cropRange))
+            } ?: emptyList()
+        }
+    }
+
+    private fun getMRange(
+        geometry: LocationTrackGeometry,
+        geocodingContext: GeocodingContext,
+        trackStart: TrackMeter,
+        trackEnd: TrackMeter,
+        cropStartKm: KmNumber?,
+        cropEndKm: KmNumber?,
+    ): Range<Double>? {
+        val cropStart = cropStartKm?.let { km -> TrackMeter(km, 0) } ?: trackStart
+        val cropEnd =
+            cropEndKm
+                ?.let { km -> geocodingContext.referencePoints.find { it.kmNumber > km } }
+                ?.let { referencePoint -> TrackMeter(referencePoint.kmNumber, 0) } ?: trackEnd
+        return if (cropStart > trackEnd || cropEnd < trackStart) {
+            null
+        } else {
+            fun getM(address: TrackMeter): Double =
+                requireNotNull(
+                    geocodingContext.getTrackLocation(geometry, address.coerceIn(trackStart, trackEnd))?.point?.m
+                )
+            Range(getM(cropStart), getM(cropEnd))
+        }
+    }
+
+    @Transactional(readOnly = true)
     fun getFullDescriptions(
         layoutContext: LayoutContext,
         locationTracks: List<LocationTrack>,
@@ -461,21 +434,22 @@ class LocationTrackService(
         return locationTracks.zip(startAndEndSwitchIds) { locationTrack, startAndEndSwitch ->
             val startSwitchName = startAndEndSwitch.first?.let(::getSwitchShortName)
             val endSwitchName = startAndEndSwitch.second?.let(::getSwitchShortName)
+            val trimmedDescriptionBase = locationTrack.descriptionBase.toString().trim()
 
             when (locationTrack.descriptionSuffix) {
-                LocationTrackDescriptionSuffix.NONE -> FreeText(locationTrack.descriptionBase.toString())
+                LocationTrackDescriptionSuffix.NONE -> FreeText(trimmedDescriptionBase)
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER ->
                     FreeText(
-                        "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
+                        "${trimmedDescriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
                     )
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ->
-                    FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
+                    FreeText("${trimmedDescriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ->
                     FreeText(
-                        "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
+                        "${trimmedDescriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
                     )
             }
         }
@@ -631,6 +605,59 @@ class LocationTrackService(
     private fun fetchSwitchAtEndById(layoutContext: LayoutContext, id: IntId<LayoutSwitch>): LayoutSwitchIdAndName? =
         switchDao.get(layoutContext, id)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
 
+    @Transactional
+    fun recalculateTopology(switch: LayoutSwitch, layoutContext: LayoutContext): List<LayoutRowVersion<LocationTrack>> {
+        val jointLocations = switch.joints.filter { j -> j.role != SwitchJointRole.MATH }.map { j -> j.location }
+        return recalculateTopology(jointLocations, layoutContext)
+    }
+
+    @Transactional
+    fun recalculateTopology(
+        locations: List<IPoint>,
+        layoutContext: LayoutContext,
+    ): List<LayoutRowVersion<LocationTrack>> =
+        locations
+            // Combine the nodes in each location separately
+            .map { location -> resolveNodeReplacementsAt(location, layoutContext) }
+            // Combine all node-swaps into a single map to generate only one change per track
+            .let { replacements ->
+                replacements
+                    .flatMap { map -> map.entries }
+                    .associate { e -> e.toPair() }
+                    // TODO: GVT-2928 Do we need to worry about the same node being found replaced multiple times?
+                    .also { combined -> require(replacements.sumOf { r -> r.size } == combined.size) }
+            }
+            .let(::replaceNodesOnTracks)
+            .map { (newTrack, newGeometry) -> dao.save(newTrack, newGeometry) }
+
+    fun resolveNodeReplacementsAt(location: IPoint, layoutContext: LayoutContext): Map<NodeConnection, LayoutNode> {
+        val connections = alignmentDao.getNodeConnectionsNear(location, layoutContext)
+        val replacements = combineEligibleNodes(connections.map { c -> c.node })
+        return connections
+            .mapNotNull { connection ->
+                replacements[connection.node]?.let { replacement -> connection to replacement }
+            }
+            .associate { it }
+    }
+
+    fun replaceNodesOnTracks(
+        reconnected: Map<NodeConnection, LayoutNode>
+    ): List<Pair<LocationTrack, LocationTrackGeometry>> =
+        // Resolve by-track to handle cases where multiple nodes are swapped at once
+        reconnected
+            .flatMap { (c, _) -> c.trackVersions }
+            .distinct()
+            .map { version ->
+                val (track, geometry) = getWithGeometry(version)
+                val nodeChanges: Map<LayoutNode, LayoutNode> =
+                    reconnected
+                        .filter { (connection, _) -> connection.trackVersions.contains(version) }
+                        .map { (connection, replacementNode) -> connection.node to replacementNode }
+                        .associate { it }
+                val newGeometry = geometry.withCombinationNodes(nodeChanges)
+                track to newGeometry
+            }
+
     private fun fetchNearbyLocationTracksWithGeometries(
         layoutContext: LayoutContext,
         targetPoint: LayoutPoint,
@@ -640,44 +667,6 @@ class LocationTrackService(
             .filter { (track, geometry) -> geometry.isNotEmpty && track.exists }
     }
 
-    //    private fun fetchNearbyLocationTracksWithAlignments(
-    //        layoutContext: LayoutContext,
-    //        targetPoint: LayoutPoint,
-    //    ): List<Pair<LocationTrack, LayoutAlignment>> {
-    //        return dao.fetchVersionsNear(layoutContext, boundingBoxAroundPoint(targetPoint, 1.0))
-    //            .map { version -> getWithAlignmentInternal(version) }
-    //            .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.exists }
-    //    }
-
-    //    // TODO: GVT-2928 Topology calculation in node-edge model
-    //    // This should only check for topology links: switch-links for continuing tracks at start & end
-    //    // In the new model, that is written into the locationtrackgeometry first/last node
-    //    @Deprecated("Topology calculation must change due to node model")
-    //    @Transactional
-    //    fun fetchNearbyTracksAndCalculateLocationTrackTopology(
-    //        layoutContext: LayoutContext,
-    //        track: LocationTrack,
-    //        alignment: LayoutAlignment,
-    //        startChanged: Boolean = false,
-    //        endChanged: Boolean = false,
-    //    ): LocationTrack {
-    //        val nearbyTracksAroundStart =
-    //            alignment.start
-    //                ?.let { point -> fetchNearbyLocationTracksWithAlignments(layoutContext, point) }
-    //                ?.filter { (nearbyLocationTrack, _) -> nearbyLocationTrack.id != track.id } ?: listOf()
-    //        val nearbyTracksAroundEnd =
-    //            alignment.end
-    //                ?.let { point -> fetchNearbyLocationTracksWithAlignments(layoutContext, point) }
-    //                ?.filter { (nearbyLocationTrack, _) -> nearbyLocationTrack.id != track.id } ?: listOf()
-    //        return calculateLocationTrackTopology(
-    //            track = track,
-    //            alignment = alignment,
-    //            startChanged = startChanged,
-    //            endChanged = endChanged,
-    //            nearbyTracks = NearbyTracks(aroundStart = nearbyTracksAroundStart, aroundEnd = nearbyTracksAroundEnd),
-    //        )
-    //    }
-    //
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
         return dao.fetchLocationTrackOwners()
     }
@@ -754,20 +743,7 @@ class LocationTrackService(
     ): LayoutRowVersion<LocationTrack> {
         val (track, geometry) = fetchAndCheckForMerging(fromBranch, id)
         return dao.save(asMainDraft(track), geometry)
-        //        .also { savedVersion ->
-        //            alignmentDao.copyLocationTrackGeometry(track.versionOrThrow, savedVersion)
-        //        }
-        //        return dao.save(
-        //            asMainDraft(track.copy(alignmentVersion =
-        // alignmentService.duplicate(track.getAlignmentVersionOrThrow())))
-        //        )
     }
-
-    //    override fun cancelInternal(asset: LocationTrack, designBranch: DesignBranch) =
-    //        cancelled(
-    //            asset.copy(alignmentVersion = alignmentService.duplicate(asset.getAlignmentVersionOrThrow())),
-    //            designBranch.designId,
-    //        )
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 

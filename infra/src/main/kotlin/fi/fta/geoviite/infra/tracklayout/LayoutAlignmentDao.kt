@@ -10,19 +10,19 @@ import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import kotlin.math.abs
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Propagation
-import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -31,7 +31,8 @@ const val GEOMETRY_CACHE_SIZE = 500000L
 
 data class MapSegmentProfileInfo<T>(val id: IntId<T>, val mRange: Range<Double>, val hasProfile: Boolean)
 
-@Transactional(readOnly = true)
+data class NodeConnection(val node: DbLayoutNode, val trackVersions: List<LayoutRowVersion<LocationTrack>>)
+
 @Component
 class LayoutAlignmentDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
@@ -57,22 +58,21 @@ class LayoutAlignmentDao(
 
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-    fun getNode(id: IntId<LayoutNode>): DbLayoutNode =
-        nodesCache.get(id) {
-            val node = fetchNodes(id).single()
-            nodeIdsByHash[node.contentHash] = id
-            node
-        }
+    fun getNode(id: IntId<LayoutNode>): DbLayoutNode = requireNotNull(getNodes(listOf(id))[id])
+
+    fun getNodes(ids: Iterable<IntId<LayoutNode>>): Map<IntId<LayoutNode>, DbLayoutNode> =
+        nodesCache.getAll(ids) { nonCached -> fetchNodes(nonCached).also(::cacheHashValues) }
 
     fun preloadNodes(): Int {
-        val nodes = fetchNodes(id = null)
-        nodesCache.putAll(nodes.associateBy(DbLayoutNode::id))
-        nodeIdsByHash.putAll(nodes.associate { n -> n.contentHash to n.id })
-        return nodes.size
+        return fetchNodes(ids = null).also(nodesCache::putAll).also(::cacheHashValues).size
     }
 
-    private fun fetchNodes(id: IntId<LayoutNode>?): List<DbLayoutNode> {
+    private fun cacheHashValues(nodes: Map<IntId<LayoutNode>, DbLayoutNode>) {
+        nodeIdsByHash.putAll(nodes.entries.associate { (id, node) -> node.contentHash to id })
+    }
+
+    private fun fetchNodes(ids: Set<IntId<LayoutNode>>?): Map<IntId<LayoutNode>, DbLayoutNode> {
+        if (ids?.isEmpty() == true) return emptyMap()
         val sql =
             """
             select
@@ -91,10 +91,10 @@ class LayoutAlignmentDao(
               from layout.node_port port_a
                 left join layout.node_port port_b on port_a.node_id = port_b.node_id and port_b.port = 'B'
             where port_a.port = 'A'
-              and (:id::int is null or port_a.node_id = :id)
+              and (:ids::int[] is null or port_a.node_id = any(:ids))
         """
                 .trimIndent()
-        val params = mapOf("id" to id?.intValue)
+        val params = mapOf("ids" to ids?.map { id -> id.intValue }?.toTypedArray())
 
         fun getTrackBoundary(rs: ResultSet, prefix: String): TrackBoundary? =
             rs.getIntIdOrNull<LocationTrack>("${prefix}_boundary_location_track_id")?.let { id ->
@@ -110,25 +110,29 @@ class LayoutAlignmentDao(
                 )
             }
 
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            val dbId = rs.getIntId<LayoutNode>("node_id")
-            val type = rs.getEnum<LayoutNodeType>("node_type")
-            when (type) {
-                LayoutNodeType.TRACK_BOUNDARY ->
-                    DbTrackBoundaryNode(
-                        id = dbId,
-                        portA = requireNotNull(getTrackBoundary(rs, "a")) { "Node must have at least one port" },
-                        portB = getTrackBoundary(rs, "b"),
-                    )
-                LayoutNodeType.SWITCH -> {
-                    DbSwitchNode(
-                        id = dbId,
-                        portA = requireNotNull(getSwitchLink(rs, "a")) { "Node must have at least one port" },
-                        portB = getSwitchLink(rs, "b"),
-                    )
-                }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val dbId = rs.getIntId<LayoutNode>("node_id")
+                val type = rs.getEnum<LayoutNodeType>("node_type")
+                dbId to
+                    when (type) {
+                        LayoutNodeType.TRACK_BOUNDARY ->
+                            DbTrackBoundaryNode(
+                                id = dbId,
+                                portA =
+                                    requireNotNull(getTrackBoundary(rs, "a")) { "Node must have at least one port" },
+                                portB = getTrackBoundary(rs, "b"),
+                            )
+                        LayoutNodeType.SWITCH -> {
+                            DbSwitchNode(
+                                id = dbId,
+                                portA = requireNotNull(getSwitchLink(rs, "a")) { "Node must have at least one port" },
+                                portB = getSwitchLink(rs, "b"),
+                            )
+                        }
+                    }
             }
-        }
+            .associate { it }
     }
 
     @Transactional
@@ -159,7 +163,6 @@ class LayoutAlignmentDao(
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutNode>("id") }.single()
     }
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun getEdge(id: IntId<LayoutEdge>): DbLayoutEdge =
         edgesCache.get(id) {
             val edge = fetchEdges(ids = listOf(id), active = false).values.single()
@@ -327,7 +330,6 @@ class LayoutAlignmentDao(
         }
     }
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetch(trackVersion: LayoutRowVersion<LocationTrack>): DbLocationTrackGeometry =
         locationTrackGeometryCache.get(trackVersion) { version ->
             fetchLocationTrackGeometry(version, false)[trackVersion]
@@ -376,6 +378,7 @@ class LayoutAlignmentDao(
                 )
             }
             .associateBy(DbLocationTrackGeometry::trackRowVersion)
+            .also { logger.daoAccess(AccessType.FETCH, LocationTrackGeometry::class, trackVersion ?: "ALL") }
     }
 
     @Transactional
@@ -406,58 +409,23 @@ class LayoutAlignmentDao(
             ps.setInt(5, index)
             ps.setBigDecimal(6, roundTo6Decimals(m.min))
         }
+        logger.daoAccess(AccessType.INSERT, LocationTrackGeometry::class, trackVersion)
     }
 
-    //    fun copyLocationTrackGeometry(from: LayoutRowVersion<LocationTrack>, to: LayoutRowVersion<LocationTrack>) {
-    //        val sql =
-    //            """
-    //            insert into layout.location_track_version_edge(
-    //                location_track_id,
-    //                location_track_layout_context_id,
-    //                location_track_version,
-    //                edge_id,
-    //                edge_index,
-    //                start_m
-    //            ) select
-    //                :to_id,
-    //                :to_context_id,
-    //                :to_version,
-    //                edge_id,
-    //                edge_index,
-    //                start_m
-    //                from layout.location_track_version_edge
-    //                where location_track_id = :from_id
-    //                  and location_track_layout_context_id = :from_context_id
-    //                  and location_track_version = :from_version
-    //        """
-    //                .trimIndent()
-    //        val params =
-    //            mapOf(
-    //                "from_id" to from.id.intValue,
-    //                "from_context_id" to from.context.toSqlString(),
-    //                "from_version" to from.version,
-    //                "to_id" to to.id.intValue,
-    //                "to_context_id" to to.context.toSqlString(),
-    //                "to_version" to to.version,
-    //            )
-    //        jdbcTemplate.update(sql, params)
-    //    }
-    //
     fun preloadLocationTrackGeometries(): Int {
         val geoms = fetchLocationTrackGeometry(trackVersion = null, active = true)
         locationTrackGeometryCache.putAll(geoms)
         return geoms.size
     }
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment =
         if (cacheEnabled) alignmentsCache.get(alignmentVersion, ::fetchInternal) else fetchInternal(alignmentVersion)
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+    @Transactional(readOnly = true)
     fun fetchMany(versions: List<RowVersion<LayoutAlignment>>): Map<RowVersion<LayoutAlignment>, LayoutAlignment> =
         versions.associateWith(this::fetch)
 
-    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+    @Transactional(readOnly = true)
     fun getMany(
         versions: List<LayoutRowVersion<LocationTrack>>
     ): Map<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> = versions.associateWith(this::fetch)
@@ -530,21 +498,13 @@ class LayoutAlignmentDao(
                     }
                 alignmentData to segment
             }
-        val groupedByAlignment = alignmentAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s })
-        val alignments =
-            groupedByAlignment.entries
-                .parallelStream()
-                .map { (alignmentData, segmentDatas) ->
-                    alignmentData.version to
-                        LayoutAlignment(
-                            id = alignmentData.version.id,
-                            segments = createSegments(segmentDatas.filterNotNull()),
-                        )
-                }
-                .collect(Collectors.toList())
-                .associate { it }
-        alignmentsCache.putAll(alignments)
-        return alignments.size
+        val groupedByAlignment = alignmentAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s }).entries
+        groupedByAlignment.parallelStream().forEach { (alignmentData, segmentDatas) ->
+            alignmentsCache.get(alignmentData.version) { _ ->
+                LayoutAlignment(id = alignmentData.version.id, segments = createSegments(segmentDatas.filterNotNull()))
+            }
+        }
+        return groupedByAlignment.size
     }
 
     @Transactional
@@ -621,6 +581,62 @@ class LayoutAlignmentDao(
         val deletedRowId = getOne(id, jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutAlignment>("id") })
         logger.daoAccess(AccessType.DELETE, LayoutAlignment::class, deletedRowId)
         return deletedRowId
+    }
+
+    // TODO: what happens when both ends of an edge are close to the point?
+    // TODO: Note, that other edges may also connect to the ends of the short one
+    // TODO: We likely need to not connect nodes that are connected to such an edge
+    fun getNodeConnectionsNear(location: IPoint, context: LayoutContext, distance: Double = 1.0): List<NodeConnection> {
+        val sql =
+            """
+            select
+              lt.id,
+              lt.layout_context_id,
+              lt.version,
+              e.start_node_id,
+              e.end_node_id,
+              postgis.st_dwithin(start_location, postgis.st_point(:x, :y, :srid), :distance) as start_is_within,
+              postgis.st_dwithin(end_location, postgis.st_point(:x, :y, :srid), :distance) end_is_within
+              from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+                inner join layout.location_track_version_edge ltve
+                           on ltve.location_track_id = lt.id
+                             and ltve.location_track_layout_context_id = lt.layout_context_id
+                             and ltve.location_track_version = lt.version
+                inner join layout.edge e on ltve.edge_id = e.id
+              where lt.state != 'DELETED'
+                and (postgis.st_dwithin(start_location, postgis.st_point(:x, :y, :srid), :distance)
+                  or postgis.st_dwithin(end_location, postgis.st_point(:x, :y, :srid), :distance)
+                )
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "x" to location.x,
+                "y" to location.y,
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+                "distance" to distance,
+                "srid" to LAYOUT_SRID.code,
+            )
+        val connections =
+            jdbcTemplate
+                .query(sql, params) { rs, _ ->
+                    val trackVersion = rs.getLayoutRowVersion<LocationTrack>("id", "layout_context_id", "version")
+                    listOfNotNull(
+                        produceIf(rs.getBoolean("start_is_within")) {
+                            rs.getIntId<LayoutNode>("start_node_id") to trackVersion
+                        },
+                        produceIf(rs.getBoolean("end_is_within")) {
+                            rs.getIntId<LayoutNode>("end_node_id") to trackVersion
+                        },
+                    )
+                }
+                .flatten()
+                .groupBy({ it.first }, { it.second })
+        val nodes = fetchNodes(connections.keys)
+        return connections
+            .map { (nodeId, entries) -> NodeConnection(requireNotNull(nodes[nodeId]), entries.distinct()) }
+            .also { logger.daoAccess(AccessType.FETCH, NodeConnection::class, it.map { c -> c.node.id }) }
     }
 
     // TODO: GVT-2932 This should not care about tracks any more, but keep the track-alignments while still validating
@@ -1305,7 +1321,7 @@ class LayoutAlignmentDao(
                         resolution = rs.getInt("resolution"),
                     )
                 }
-            parseGeometries(rowResults)
+            rowResults.parallelStream().collect(Collectors.toMap(GeometryRowResult::id, ::parseGeometry))
         } else mapOf()
     }
 
@@ -1342,7 +1358,8 @@ class LayoutAlignmentDao(
                     resolution = rs.getInt("resolution"),
                 )
             }
-        segmentGeometryCache.putAll(parseGeometries(rowResults))
+
+        rowResults.parallelStream().forEach { row -> segmentGeometryCache.get(row.id) { _ -> parseGeometry(row) } }
         return rowResults.size
     }
 
@@ -1401,17 +1418,12 @@ data class GeometryRowResult(
     val resolution: Int,
 )
 
-private fun parseGeometries(rowResults: List<GeometryRowResult>): Map<IntId<SegmentGeometry>, SegmentGeometry> =
-    rowResults
-        .parallelStream()
-        .map { row ->
-            SegmentGeometry(
-                id = row.id,
-                segmentPoints = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
-                resolution = row.resolution,
-            )
-        }
-        .collect(Collectors.toMap({ g -> g.id as IntId }, { it }))
+private fun parseGeometry(row: GeometryRowResult): SegmentGeometry =
+    SegmentGeometry(
+        id = row.id,
+        segmentPoints = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
+        resolution = row.resolution,
+    )
 
 private fun getSegmentPointsWkt(
     rs: ResultSet,

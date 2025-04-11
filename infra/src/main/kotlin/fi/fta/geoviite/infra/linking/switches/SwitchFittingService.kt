@@ -180,7 +180,7 @@ private data class PossibleSegment(
 private fun findSuggestedSwitchJointMatches(
     joint: SwitchStructureJoint,
     locationTrack: LocationTrack,
-    alignment: CroppedAlignment,
+    alignment: CroppedTrackGeometry,
     tolerance: Double,
 ): List<FittedSwitchJointMatch> {
     val jointLocation = joint.location
@@ -246,7 +246,7 @@ private fun findSuggestedSwitchJointMatches(
 }
 
 private fun findPossiblyMatchableSegments(
-    alignment: CroppedAlignment,
+    alignment: CroppedTrackGeometry,
     jointLocation: Point,
     tolerance: Double,
 ): List<PossibleSegment> {
@@ -310,7 +310,7 @@ fun takeSegmentLineMatches(
 
 private fun findSuggestedSwitchJointMatches(
     joints: List<SwitchStructureJoint>,
-    locationTrackAlignment: Pair<LocationTrack, CroppedAlignment>,
+    locationTrackAlignment: Pair<LocationTrack, CroppedTrackGeometry>,
     tolerance: Double,
 ): List<FittedSwitchJointMatch> {
     return joints.flatMap { joint ->
@@ -326,7 +326,7 @@ private fun findSuggestedSwitchJointMatches(
 fun fitSwitch(
     jointsInLayoutSpace: List<SwitchStructureJoint>,
     switchStructure: SwitchStructure,
-    alignments: List<Pair<LocationTrack, CroppedAlignment>>,
+    alignments: List<Pair<LocationTrack, CroppedTrackGeometry>>,
     locationAccuracy: LocationAccuracy?,
 ): FittedSwitch {
     val jointMatchTolerance = 0.2 // TODO: There could be tolerance per joint point in switch structure
@@ -344,14 +344,14 @@ fun fitSwitch(
             .filter { it.value.isNotEmpty() }
 
     val endJoints = getEndJoints(matchesByLocationTrack)
-    val matchByJoint = getBestMatchByJoint(matchesByLocationTrack, endJoints)
+    val matchesByJoint = getBestMatchesByJoint(matchesByLocationTrack, endJoints)
     val jointsWithoutMatches =
         jointsInLayoutSpace
-            .filterNot { matchByJoint.containsKey(it) }
+            .filterNot { matchesByJoint.containsKey(it) }
             .associateWith { emptyList<FittedSwitchJointMatch>() }
 
     val suggestedJoints =
-        (matchByJoint + jointsWithoutMatches).map { (joint, matches) ->
+        (matchesByJoint + jointsWithoutMatches).map { (joint, matches) ->
             FittedSwitchJoint(
                 number = joint.number,
                 location = joint.location,
@@ -363,10 +363,10 @@ fun fitSwitch(
     return FittedSwitch(switchStructure = switchStructure, joints = suggestedJoints)
 }
 
-private fun getBestMatchByJoint(
+private fun getBestMatchesByJoint(
     matchesByLocationTrack: Map<LocationTrack, List<FittedSwitchJointMatch>>,
     endJoints: Map<LocationTrack, Pair<SwitchStructureJoint, SwitchStructureJoint>>,
-) =
+): Map<SwitchStructureJoint, List<FittedSwitchJointMatch>> =
     matchesByLocationTrack
         .flatMap { (lt, matches) ->
             matches
@@ -378,9 +378,34 @@ private fun getBestMatchByJoint(
                         isLastJoint = endJoints[lt]?.second == joint,
                     )
                 }
-                .mapNotNull { filteredMatches -> filteredMatches.minByOrNull { it.distance } }
+                .flatMap { filteredMatches ->
+                    findSegmentBoundaryMatch(filteredMatches)
+                        ?: listOfNotNull(filteredMatches.minByOrNull { it.distance })
+                }
         }
         .groupBy { it.switchJoint }
+
+private fun findSegmentBoundaryMatch(filteredMatches: List<FittedSwitchJointMatch>): List<FittedSwitchJointMatch>? {
+    // extremely short segments might cause any number of weird matches, so disambiguate
+    val nearestEndMatch =
+        filteredMatches.filter { it.matchType == SuggestedSwitchJointMatchType.END }.minByOrNull { it.distance }
+
+    val startMatchAfterNearestEndMatch =
+        if (nearestEndMatch == null) null
+        else
+            filteredMatches.find {
+                it.matchType == SuggestedSwitchJointMatchType.START &&
+                    it.segmentIndex == nearestEndMatch.segmentIndex + 1
+            }
+    return if (startMatchAfterNearestEndMatch == null || nearestEndMatch == null) null
+    else
+        listOf(
+            // force same m-value on both sides, to avoid misplaced segment ends causing the
+            // matches' m-value orders and segment index orders to contradict
+            nearestEndMatch.copy(m = startMatchAfterNearestEndMatch.m),
+            startMatchAfterNearestEndMatch,
+        )
+}
 
 private fun getBestMatchesForJoint(
     jointMatches: List<FittedSwitchJointMatch>,
@@ -638,7 +663,7 @@ private fun findTransformations(
 
 fun fitSwitch(
     transformation: SwitchPositionTransformation,
-    tracks: List<Pair<LocationTrack, CroppedAlignment>>,
+    tracks: List<Pair<LocationTrack, CroppedTrackGeometry>>,
     switchStructure: SwitchStructure,
     locationAccuracy: LocationAccuracy?,
 ): FittedSwitch {
@@ -817,7 +842,7 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
 }
 
 private fun getOriginallyLinkedAlignmentsJoints(
-    alignments: List<CroppedAlignment>,
+    alignments: List<CroppedTrackGeometry>,
     switchId: IntId<LayoutSwitch>,
 ): Set<Pair<IntId<LocationTrack>, JointNumber>> =
     alignments
@@ -837,18 +862,21 @@ private data class TrackIntersection(
 )
 
 /** Returns a copy of the alignment filtering out points that do not locate in the given bounding box. */
-fun cropPoints(geometry: DbLocationTrackGeometry, bbox: BoundingBox): CroppedAlignment =
+fun cropPoints(geometry: DbLocationTrackGeometry, bbox: BoundingBox): CroppedTrackGeometry =
     cropPoints(geometry.trackRowVersion.id, geometry, bbox, 0)
 
-fun cropPoints(trackId: IntId<LocationTrack>, geometry: LocationTrackGeometry, bbox: BoundingBox): CroppedAlignment =
-    cropPoints(trackId, geometry, bbox, 0)
+fun cropPoints(
+    trackId: IntId<LocationTrack>,
+    geometry: LocationTrackGeometry,
+    bbox: BoundingBox,
+): CroppedTrackGeometry = cropPoints(trackId, geometry, bbox, 0)
 
 fun cropPoints(
     trackId: IntId<LocationTrack>,
     geometry: LocationTrackGeometry,
     bbox: BoundingBox,
     underlyingAlignmentCropStartSegmentIndex: Int,
-): CroppedAlignment {
+): CroppedTrackGeometry {
     val filteredSegments =
         geometry.segmentsWithM.mapIndexedNotNull { segmentIndex, (segment, m) ->
             if (bbox.intersects(segment.boundingBox)) {
@@ -861,7 +889,7 @@ fun cropPoints(
                 } else null
             } else null
         }
-    return CroppedAlignment(
+    return CroppedTrackGeometry(
         underlyingAlignmentCropStartSegmentIndex + (filteredSegments.firstOrNull()?.first ?: 0),
         filteredSegments.map { it.second.first },
         filteredSegments.map { it.second.second },
@@ -869,8 +897,7 @@ fun cropPoints(
     )
 }
 
-// TODO: GVT-2927 switches are now in nodes -> this should be edge-based, instead of segments
-data class CroppedAlignment(
+data class CroppedTrackGeometry(
     val cropStartSegmentIndex: Int,
     override val segments: List<LayoutSegment>,
     override val segmentMValues: List<Range<Double>>,
@@ -882,7 +909,45 @@ data class CroppedAlignment(
     override fun toLog(): String = logFormat("id" to id, "segments" to segmentMValues)
 }
 
+data class CroppedAlignment(
+    val cropStartSegmentIndex: Int,
+    override val segments: List<LayoutSegment>,
+    override val segmentMValues: List<Range<Double>>,
+) : IAlignment {
+    companion object {
+        val empty = CroppedAlignment(0, emptyList(), emptyList())
+    }
+
+    override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.mapNotNull(ISegment::boundingBox)) }
+
+    override fun toLog(): String = logFormat("segments" to segmentMValues)
+}
+
 fun cropNothing(geometry: DbLocationTrackGeometry) = cropNothing(geometry.trackRowVersion.id, geometry)
 
 fun cropNothing(trackId: IntId<LocationTrack>, geometry: LocationTrackGeometry) =
-    CroppedAlignment(0, geometry.segments, geometry.segmentMValues, trackId)
+    CroppedTrackGeometry(0, geometry.segments, geometry.segmentMValues, trackId)
+
+fun cropAlignment(segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>, cropRange: Range<Double>): CroppedAlignment {
+    if (segmentsWithM.isEmpty()) return CroppedAlignment.empty
+    val origRange = Range(segmentsWithM.first().second.min, segmentsWithM.last().second.max)
+    val newSegments =
+        when {
+            !origRange.overlaps(cropRange) -> listOf()
+            cropRange.contains(origRange) -> segmentsWithM
+            else -> {
+                segmentsWithM.mapNotNull { (s, m) ->
+                    when {
+                        cropRange.contains(m) -> s to m
+                        cropRange.overlaps(m) -> {
+                            val newRange = Range(maxOf(m.min, cropRange.min), minOf(m.max, cropRange.max))
+                            s.slice(Range(newRange.min - m.min, newRange.max - m.min)) to newRange
+                        }
+
+                        else -> null
+                    }
+                }
+            }
+        }
+    return CroppedAlignment(0, newSegments.map { (s, _) -> s }, newSegments.map { (_, m) -> m })
+}

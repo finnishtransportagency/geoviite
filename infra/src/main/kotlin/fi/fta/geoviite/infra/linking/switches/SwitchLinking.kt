@@ -76,7 +76,7 @@ data class SwitchLinkingTrackLinks(
         check(topologyJoint == null || segmentJoints.isEmpty()) {
             "Switch linking track link links both to segment and topology"
         }
-        check(segmentJoints.zipWithNext { a, b -> a.m < b.m }.all { it }) {
+        check(segmentJoints.zipWithNext { a, b -> a.m <= b.m }.all { it }) {
             "Switch linking track link segment joints should be m-ordered"
         }
     }

@@ -154,7 +154,18 @@ fun boundingPolygonPointsByConvexHull(points: List<IPoint>, srid: Srid): List<Po
     val coordinates = points.map { p -> toJtsCoordinate(p, crs) }.toTypedArray()
     val geometryFactory = GeometryFactory(PrecisionModel(PrecisionModel.FLOATING), CRS.lookupEpsgCode(crs, false))
     val convexHull = ConvexHull(coordinates, geometryFactory).convexHull
-    return convexHull.coordinates.map { c -> toGvtPoint(c, crs) }
+    return (if (convexHull.area == 0.0) convexHull.buffer(0.001) else convexHull).coordinates.map { c ->
+        toGvtPoint(c, crs)
+    }
+}
+
+fun bufferedPolygonForLineStringPoints(points: List<IPoint>, buffer: Double, srid: Srid): List<IPoint> {
+    val crs = crs(srid)
+    val lineString = toJtsLineString(points)
+    val buffered = lineString.buffer(buffer)
+    return toJtsPolygon(buffered.coordinates.map { c -> toGvtPoint(c, crs) }.toList()).coordinates.map { c ->
+        toGvtPoint(c, crs)
+    }
 }
 
 class CoordinateTransformationException(message: String, cause: Throwable? = null) : Exception(message, cause) {

@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -139,6 +140,19 @@ class ReferenceLineService(
     fun getByTrackNumber(layoutContext: LayoutContext, trackNumberId: IntId<LayoutTrackNumber>): ReferenceLine? {
         return dao.getByTrackNumber(layoutContext, trackNumberId)
     }
+
+    fun getByTrackNumberOrThrow(layoutContext: LayoutContext, trackNumberId: IntId<LayoutTrackNumber>): ReferenceLine {
+        return getByTrackNumber(layoutContext, trackNumberId)
+            ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
+    }
+
+    @Transactional(readOnly = true)
+    fun getByTrackNumberWithAlignmentOrThrow(
+        layoutContext: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>,
+    ): Pair<ReferenceLine, LayoutAlignment> =
+        dao.fetchVersionByTrackNumberId(layoutContext, trackNumberId)?.let(::getWithAlignmentInternal)
+            ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
 
     @Transactional(readOnly = true)
     fun getByTrackNumberWithAlignment(

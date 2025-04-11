@@ -10,11 +10,14 @@ import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
+import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
@@ -50,6 +53,7 @@ class LocationTrackController(
     private val searchService: LayoutSearchService,
     private val publicationValidationService: PublicationValidationService,
     private val switchLinkingService: SwitchLinkingService,
+    private val geometryService: GeometryService,
 ) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -252,6 +256,21 @@ class LocationTrackController(
     ): List<AlignmentPlanSection> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return locationTrackService.getMetadataSections(context, id, boundingBox)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/overlapping-plans")
+    fun getOverlappingPlanHeaders(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") id: IntId<LocationTrack>,
+        @RequestParam("startKm") startKmNumber: KmNumber? = null,
+        @RequestParam("endKm") endKmNumber: KmNumber? = null,
+    ): List<GeometryPlanHeader> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return locationTrackService
+            .getTrackPolygon(context, id, startKmNumber, endKmNumber)
+            .let(geometryService::getOverlappingPlanHeaders)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

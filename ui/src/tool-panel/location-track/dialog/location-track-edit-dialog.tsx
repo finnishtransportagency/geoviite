@@ -342,7 +342,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     };
 
     const fullDescription = () => {
-        const base = state.locationTrack?.descriptionBase ?? '';
+        const base = state.locationTrack?.descriptionBase?.trim() ?? '';
         const suffix = descriptionSuffix(locationTrackDescriptionSuffixMode ?? 'NONE');
         return suffix ? `${base} ${suffix}` : base;
     };

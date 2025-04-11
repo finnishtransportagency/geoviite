@@ -24,16 +24,16 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.math.roundTo6Decimals
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
+import fi.fta.geoviite.infra.util.processFlattened
+import fi.fta.geoviite.infra.util.processNonNulls
 import fi.fta.geoviite.infra.util.toCsvDate
 import java.math.BigDecimal
 import java.time.Instant
-import java.util.stream.Collectors
 import kotlin.math.tan
 
 private const val VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX = "data-products.vertical-geometry.csv"
@@ -157,15 +157,17 @@ fun toVerticalGeometryListing(
     getTransformation: (srid: Srid) -> Transformation,
     getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
 ): List<VerticalGeometryListing> {
-    val linkedElementIds =
-        collectLinkedElements(geometry.segments, geocodingContext, startAddress, endAddress).mapNotNull { it.elementId }
+    val linkedElements = collectLinkedElements(geometry, geocodingContext, startAddress, endAddress)
     val headersAndAlignments =
-        linkedElementIds.map(::getAlignmentId).distinct().associateWith(getPlanHeaderAndAlignment)
+        linkedElements.mapNotNull { l -> l.alignmentId }.distinct().associateWith(getPlanHeaderAndAlignment)
 
     val listing =
-        linkedElementIds
-            .flatMap { elementId ->
-                val (planHeader, geometryAlignment) = headersAndAlignments.getValue(getAlignmentId(elementId))
+        linkedElements
+            .filter { it.elementId != null }
+            .flatMap { linked ->
+                val elementId = requireNotNull(linked.elementId)
+                val alignmentId = requireNotNull(linked.alignmentId)
+                val (planHeader, geometryAlignment) = headersAndAlignments.getValue(alignmentId)
                 val elementRange = Range(geometryAlignment.getElementStationRangeWithinAlignment(elementId))
 
                 val (curvedProfileSegments, linearProfileSegments) =
@@ -196,31 +198,41 @@ fun toVerticalGeometryListing(
             .distinctBy { it.first }
             .map { it.second }
 
-    fun getAlignmentStation(maybeAddress: TrackMeter?) =
-        maybeAddress?.let { address -> geocodingContext?.getTrackLocation(geometry, address)?.point?.m }
+    val entryLayoutStations =
+        if (geocodingContext == null) null else getEntryLayoutStations(listing, geocodingContext, geometry)
 
-    return listing
-        .parallelStream()
-        .map { entry ->
-            entry.copy(
-                overlapsAnother =
-                    listing
-                        .filter { overlapCandidate ->
-                            entry.start.address != null &&
-                                entry.end.address != null &&
-                                overlapCandidate.start.address != null &&
-                                overlapCandidate.end.address != null &&
-                                entry.start.address <= overlapCandidate.end.address &&
-                                entry.end.address >= overlapCandidate.start.address
-                        }
-                        .size > 1,
-                layoutStartStation = getAlignmentStation(entry.start.address),
-                layoutPointStation = getAlignmentStation(entry.point.address),
-                layoutEndStation = getAlignmentStation(entry.end.address),
-            )
-        }
-        .collect(Collectors.toList())
+    return listing.mapIndexed { entryIndex, entry ->
+        entry.copy(
+            overlapsAnother =
+                listing
+                    .filter { overlapCandidate ->
+                        entry.start.address != null &&
+                            entry.end.address != null &&
+                            overlapCandidate.start.address != null &&
+                            overlapCandidate.end.address != null &&
+                            entry.start.address <= overlapCandidate.end.address &&
+                            entry.end.address >= overlapCandidate.start.address
+                    }
+                    .size > 1,
+            layoutStartStation = entryLayoutStations?.get(entryIndex)?.get(0),
+            layoutPointStation = entryLayoutStations?.get(entryIndex)?.get(1),
+            layoutEndStation = entryLayoutStations?.get(entryIndex)?.get(2),
+        )
+    }
 }
+
+private fun getEntryLayoutStations(
+    listing: List<VerticalGeometryListing>,
+    geocodingContext: GeocodingContext,
+    layoutAlignment: LocationTrackGeometry,
+): List<List<Double?>> =
+    processFlattened(listing.map { entry -> listOf(entry.start.address, entry.point.address, entry.end.address) }) {
+        addresses ->
+        processNonNulls(addresses) { nonNullAddresses ->
+                geocodingContext.getTrackLocations(layoutAlignment, nonNullAddresses)
+            }
+            .map { addressPoint -> addressPoint?.point?.m }
+    }
 
 private fun toVerticalGeometry(
     planHeader: GeometryPlanHeader,

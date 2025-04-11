@@ -15,6 +15,8 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
+import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
@@ -25,9 +27,6 @@ import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.toResponse
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -37,12 +36,16 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @GeoviiteController("/track-layout/track-numbers")
 class LayoutTrackNumberController(
     private val trackNumberService: LayoutTrackNumberService,
     private val publicationValidationService: PublicationValidationService,
     private val localizationService: LocalizationService,
+    private val geometryService: GeometryService,
 ) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -125,6 +128,20 @@ class LayoutTrackNumberController(
     ): List<AlignmentPlanSection> {
         val context = LayoutContext.of(branch, publicationState)
         return trackNumberService.getMetadataSections(context, id, boundingBox)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/overlapping-plans")
+    fun getOverlappingPlanHeaders(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
+        @RequestParam("startKm") startKmNumber: KmNumber? = null,
+        @RequestParam("endKm") endKmNumber: KmNumber? = null,
+    ): List<GeometryPlanHeader> {
+        val context = LayoutContext.of(branch, publicationState)
+        return trackNumberService.getReferenceLinePolygon(context, id, startKmNumber, endKmNumber)
+            .let(geometryService::getOverlappingPlanHeaders)
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)

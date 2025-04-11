@@ -79,6 +79,8 @@ type SelectionPanelProps = {
     splittingState: SplittingState | undefined;
     grouping: GeometryPlanGrouping;
     visibleSources: PlanSource[];
+    planDownloadPopupOpen: boolean;
+    togglePlanDownloadPopupOpen: (payload: boolean) => void;
 };
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
@@ -109,6 +111,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     splittingState,
     grouping,
     visibleSources,
+    planDownloadPopupOpen,
+    togglePlanDownloadPopupOpen,
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -260,6 +264,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     disabled={!!splittingState}
                     grouping={grouping}
                     visibleSources={visibleSources}
+                    planDownloadPopupOpen={planDownloadPopupOpen}
+                    togglePlanDownloadPopupOpen={togglePlanDownloadPopupOpen}
                 />
             </PrivilegeRequired>
             <section>

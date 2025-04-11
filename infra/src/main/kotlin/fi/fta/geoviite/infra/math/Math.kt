@@ -38,10 +38,10 @@ fun interpolate(value1: Double, value2: Double, portion: Double): Double =
     if (value1.isFinite() && value2.isFinite()) value1 + (value2 - value1) * portion
     else throw IllegalArgumentException("Cannot interpolate between $value1 and $value2")
 
-fun interpolate(value1: IPoint, value2: IPoint, portion: Double): Point =
+fun interpolateToPoint(value1: IPoint, value2: IPoint, portion: Double): Point =
     Point(x = interpolate(value1.x, value2.x, portion), y = interpolate(value1.y, value2.y, portion))
 
-fun interpolate(value1: SegmentPoint, value2: SegmentPoint, portion: Double) =
+fun interpolateToSegmentPoint(value1: SegmentPoint, value2: SegmentPoint, portion: Double) =
     SegmentPoint(
         x = interpolate(value1.x, value2.x, portion),
         y = interpolate(value1.y, value2.y, portion),
@@ -50,7 +50,7 @@ fun interpolate(value1: SegmentPoint, value2: SegmentPoint, portion: Double) =
         cant = interpolate(value1.cant, value2.cant, portion),
     )
 
-fun interpolate(value1: AlignmentPoint, value2: AlignmentPoint, portion: Double) =
+fun interpolateToAlignmentPoint(value1: AlignmentPoint, value2: AlignmentPoint, portion: Double) =
     AlignmentPoint(
         x = interpolate(value1.x, value2.x, portion),
         y = interpolate(value1.y, value2.y, portion),

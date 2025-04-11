@@ -3,12 +3,15 @@ package fi.fta.geoviite.infra.map
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.geography.bufferedPolygonForLineStringPoints
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
@@ -129,6 +132,20 @@ fun <T> toAlignmentPolyLine(
     bbox: BoundingBox? = null,
     includeSegmentEndPoints: Boolean,
 ) = AlignmentPolyLine(id, type, simplify(alignment, resolution, bbox, includeSegmentEndPoints))
+
+const val ALIGNMENT_POLYGON_BUFFER = 10.0
+const val ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION = 100
+
+fun toPolygon(alignment: IAlignment, polygonBufferSize: Double = ALIGNMENT_POLYGON_BUFFER): List<IPoint> {
+    val simplifiedAlignment =
+        simplify(
+            alignment = alignment,
+            resolution = ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION,
+            bbox = null,
+            includeSegmentEndPoints = true,
+        )
+    return bufferedPolygonForLineStringPoints(simplifiedAlignment, polygonBufferSize, LAYOUT_SRID)
+}
 
 fun simplify(
     alignment: IAlignment,

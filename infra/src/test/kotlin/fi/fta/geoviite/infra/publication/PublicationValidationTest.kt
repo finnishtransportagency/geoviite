@@ -31,6 +31,7 @@ import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
+import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -394,9 +395,8 @@ class PublicationValidationTest {
 
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
         // the correct error range is hard to calculate because it depends on how lines get
-        // projected; this at least
-        // seems OK though
-        assertSingleAddressPointErrorRangeDescription(geocode, "0000+0006..0000+0008")
+        // projected; this at least seems OK though
+        assertSingleAddressPointErrorRangeDescription(geocode, "0000+0006..0000+0008, 0000+0008..0000+0013")
     }
 
     @Test
@@ -900,6 +900,7 @@ class PublicationValidationTest {
         TrackSwitchLink(
             SwitchLink(switch.id as IntId, joint.number, switchStructureYV60_300_1_9()),
             toAlignmentPoint(joint.location),
+            TrackSwitchLinkType.INNER,
         )
 
     private fun toAlignmentPoint(point: Point, m: Double = 0.0) = AlignmentPoint(point.x, point.y, null, m, null)

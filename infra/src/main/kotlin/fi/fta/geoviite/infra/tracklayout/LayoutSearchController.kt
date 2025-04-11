@@ -22,6 +22,13 @@ data class TrackLayoutSearchResult(
     val operatingPoints: List<RatkoOperatingPoint>,
 )
 
+enum class TrackLayoutSearchedAssetType {
+    LOCATION_TRACK,
+    SWITCH,
+    TRACK_NUMBER,
+    OPERATING_POINT,
+}
+
 @GeoviiteController("/track-layout/search")
 class LayoutSearchController(private val searchService: LayoutSearchService) {
 
@@ -33,8 +40,15 @@ class LayoutSearchController(private val searchService: LayoutSearchService) {
         @RequestParam("searchTerm", required = true) searchTerm: FreeText,
         @RequestParam("limitPerResultType", required = true) limitPerResultType: Int,
         @RequestParam("locationTrackSearchScope", required = false) locationTrackSearchScope: IntId<LocationTrack>?,
+        @RequestParam("types", required = true) types: List<TrackLayoutSearchedAssetType>,
     ): TrackLayoutSearchResult {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return searchService.searchAssets(layoutContext, searchTerm, limitPerResultType, locationTrackSearchScope)
+        return searchService.searchAssets(
+            layoutContext,
+            searchTerm,
+            limitPerResultType,
+            locationTrackSearchScope,
+            types,
+        )
     }
 }

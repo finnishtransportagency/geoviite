@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.CompanyName
@@ -71,10 +72,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.transaction.support.TransactionTemplate
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -284,7 +285,7 @@ class TestDBService(
 
     final fun fetchWithGeometry(
         rowVersion: LayoutRowVersion<LocationTrack>
-    ): Pair<LocationTrack, LocationTrackGeometry> =
+    ): Pair<LocationTrack, DbLocationTrackGeometry> =
         fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.versionOrThrow) }
 
     fun deleteFromTables(schema: String, vararg tables: String) {
@@ -327,7 +328,11 @@ class TestDBService(
             is LayoutTrackNumber -> trackNumberDao.save(asset)
             is LocationTrack ->
                 locationTrackDao.save(asset, asset.version?.let(alignmentDao::fetch) ?: LocationTrackGeometry.empty)
-            is ReferenceLine -> referenceLineDao.save(asset)
+            is ReferenceLine ->
+                referenceLineDao.save(
+                    asset.takeIf { it.alignmentVersion != null }
+                        ?: asset.copy(alignmentVersion = alignmentDao.insert(alignment()))
+                )
             is LayoutKmPost -> kmPostDao.save(asset)
             is LayoutSwitch -> switchDao.save(asset)
         }
@@ -523,9 +528,10 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     fun createLayoutTrackNumberAndReferenceLine(
         lineAlignment: LayoutAlignment = alignment(),
         trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
+        startAddress: TrackMeter = TrackMeter.ZERO,
     ): LayoutRowVersion<LayoutTrackNumber> =
         createLayoutTrackNumber(trackNumber).also { tnResponse ->
-            save(referenceLine(trackNumberId = tnResponse.id), lineAlignment)
+            save(referenceLine(trackNumberId = tnResponse.id, startAddress = startAddress), lineAlignment)
         }
 
     fun createLayoutTrackNumbers(count: Int): List<LayoutRowVersion<LayoutTrackNumber>> =
@@ -582,7 +588,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                                 jointPositions.zipWithNext().map { (from, to) ->
                                     edge(
                                         startInnerSwitch = switchLinkYV(switchId, from.first.intValue),
-                                        startOuterSwitch = switchLinkYV(switchId, to.first.intValue),
+                                        endInnerSwitch = switchLinkYV(switchId, to.first.intValue),
                                         segments = listOf(segment(toSegmentPoints(from.second, to.second))),
                                     )
                                 }

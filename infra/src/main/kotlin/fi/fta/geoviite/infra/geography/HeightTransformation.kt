@@ -21,7 +21,7 @@ fun transformHeightValue(
     return when (verticalCoordinateSystem) {
         VerticalCoordinateSystem.N2000 -> height
         VerticalCoordinateSystem.N60 -> {
-            val triangle = heightTriangles.find { t -> t.contains(point) }
+            val triangle = findHeightTriangleContainingPoint(heightTriangles, point)
             if (triangle != null) interpolateHeightAtGivenPoint(triangle, point, height)
             else {
                 fi.fta.geoviite.infra.inframodel.logger.error("triangles=$heightTriangles point=$point")

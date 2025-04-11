@@ -33,6 +33,7 @@ import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.closestPointProportionOnLine
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.interpolate
+import fi.fta.geoviite.infra.math.interpolateToSegmentPoint
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.pointDistanceToLine
@@ -377,7 +378,7 @@ interface ISegmentGeometry {
                     PointSeekResult(pointAfter, indexAfter, true)
                 } else {
                     val portion = (segmentM - pointBefore.m) / (pointAfter.m - pointBefore.m)
-                    PointSeekResult(interpolate(pointBefore, pointAfter, portion), indexAfter, false)
+                    PointSeekResult(interpolateToSegmentPoint(pointBefore, pointAfter, portion), indexAfter, false)
                 }
             } ?: PointSeekResult(pointAfter, indexAfter, true)
         }

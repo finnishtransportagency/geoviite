@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -770,24 +770,26 @@ class PublicationDao(
               switch_external_id.external_id as switch_oid
               from publication.publication
                 join publication.location_track plt on publication.id = plt.publication_id
-                join lateral
-                (select 'new' as change_side, topology_start_switch_id, topology_end_switch_id, alignment_id, alignment_version
-                   from layout.location_track_version ltv
-                   where plt.location_track_id = ltv.id
-                     and plt.layout_context_id = ltv.layout_context_id
-                     and plt.location_track_version = ltv.version
-                 union all
-                 select 'old', topology_start_switch_id, topology_end_switch_id, alignment_id, alignment_version
-                   from layout.location_track_version ltv
-                   where plt.location_track_id = ltv.id
-                     and plt.layout_context_id = ltv.layout_context_id
-                     and plt.location_track_version = ltv.version + 1
-                     and not ltv.draft) ltvs on (true)
-                join lateral
-                (select distinct switch_id from layout.location_track_version_switch_view ltvs
-                    where ltvs.location_track_id = plt.location_track_id
-                      and ltvs.location_track_layout_context_id = plt.layout_context_id
-                      and ltvs.location_track_version = plt.location_track_version) switch_ids on (true)
+                join lateral (
+                  select 'new' as change_side, ltv.id, ltv.layout_context_id, ltv.version
+                    from layout.location_track_version ltv
+                    where plt.location_track_id = ltv.id
+                      and plt.layout_context_id = ltv.layout_context_id
+                      and plt.location_track_version = ltv.version
+                  union all
+                  select 'old' as change_side, ltv.id, ltv.layout_context_id, ltv.version
+                    from layout.location_track_version ltv
+                    where plt.location_track_id = ltv.id
+                      and plt.layout_context_id = ltv.layout_context_id
+                      and plt.location_track_version = ltv.version + 1
+                      and not ltv.draft
+                ) ltv on (true)
+                join lateral (
+                  select distinct switch_id from layout.location_track_version_switch_view ltvs
+                    where ltvs.location_track_id = ltv.id
+                      and ltvs.location_track_layout_context_id = ltv.layout_context_id
+                      and ltvs.location_track_version = ltv.version
+                ) switch_ids on (true)
                 join layout.switch_version on switch_ids.switch_id = switch_version.id and not switch_version.draft
                   and switch_version.design_id is null
                 left join layout.switch_external_id

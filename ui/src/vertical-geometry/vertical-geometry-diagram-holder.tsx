@@ -2,7 +2,7 @@ import * as React from 'react';
 import { VerticalGeometryDiagram } from 'vertical-geometry/vertical-geometry-diagram';
 import { useAlignmentHeights } from 'vertical-geometry/km-heights-api';
 import { ChangeTimes } from 'common/common-slice';
-import { VerticalGeometryDiagramDisplayItem, VerticalGeometryItem } from 'geometry/geometry-model';
+import { VerticalGeometryDiagramDisplayItem } from 'geometry/geometry-model';
 import {
     getGeometryPlanVerticalGeometry,
     getLocationTrackLinkingSummary,
@@ -24,12 +24,15 @@ import { useTranslation } from 'react-i18next';
 import {
     planAlignmentKey,
     VerticalGeometryDiagramAlignmentId,
+    VerticalGeometryDiagramGeometryAlignmentId,
+    VerticalGeometryDiagramLayoutAlignmentId,
     VisibleExtentLookup,
 } from 'vertical-geometry/store';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { useUserHasPrivilege } from 'store/hooks';
 import { VIEW_GEOMETRY_FILE } from 'user/user-model';
 import { useResizeObserver } from 'utils/use-resize-observer';
+import { TimeStamp } from 'common/common-model';
 
 type VerticalGeometryDiagramHolderProps = {
     alignmentId: VerticalGeometryDiagramAlignmentId;
@@ -64,22 +67,25 @@ async function getStartAndEnd(
           );
 }
 
-async function getVerticalGeometry(
-    changeTimes: ChangeTimes,
-    alignmentId: VerticalGeometryDiagramAlignmentId,
-): Promise<VerticalGeometryItem[] | undefined> {
-    return 'planId' in alignmentId
-        ? getGeometryPlanVerticalGeometry(changeTimes.geometryPlan, alignmentId.planId).then(
-              (geometries) => geometries?.filter((g) => g.alignmentId === alignmentId.alignmentId),
-          )
-        : getLocationTrackVerticalGeometry(
-              changeTimes.layoutLocationTrack,
-              alignmentId.layoutContext,
-              alignmentId.locationTrackId,
-              undefined,
-              undefined,
-          );
-}
+const getVerticalGeometryForGeometryPlan = (
+    changeTime: TimeStamp,
+    alignmentId: VerticalGeometryDiagramGeometryAlignmentId,
+) =>
+    getGeometryPlanVerticalGeometry(changeTime, alignmentId.planId).then((geometries) =>
+        geometries?.filter((g) => g.alignmentId === alignmentId.alignmentId),
+    );
+
+const getVerticalGeometryForLayoutAlignment = (
+    changeTime: TimeStamp,
+    alignmentId: VerticalGeometryDiagramLayoutAlignmentId,
+) =>
+    getLocationTrackVerticalGeometry(
+        changeTime,
+        alignmentId.layoutContext,
+        alignmentId.locationTrackId,
+        undefined,
+        undefined,
+    );
 
 export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHolderProps> = ({
     alignmentId,
@@ -112,9 +118,16 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
         minimumApproximateHorizontalTickWidthPx,
     );
 
+    const geocodingChangeTime = getMaxTimestamp(
+        changeTimes.layoutTrackNumber,
+        changeTimes.layoutReferenceLine,
+        changeTimes.layoutKmPost,
+    );
+
     const kmHeights = useAlignmentHeights(
         alignmentAndExtents?.alignmentId,
         changeTimes,
+        geocodingChangeTime,
         alignmentAndExtents?.startM,
         alignmentAndExtents?.endM,
         horizontalTickLengthMeters,
@@ -148,7 +161,16 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                   );
 
         const geometryPromise = canLoadGeometry
-            ? getVerticalGeometry(changeTimes, alignmentId)
+            ? 'planId' in alignmentId
+                ? getVerticalGeometryForGeometryPlan(changeTimes.geometryPlan, alignmentId)
+                : getVerticalGeometryForLayoutAlignment(
+                      getMaxTimestamp(
+                          changeTimes.layoutLocationTrack,
+                          changeTimes.geometryPlan,
+                          geocodingChangeTime,
+                      ),
+                      alignmentId,
+                  )
             : Promise.resolve([]);
 
         const startEndPromise = getStartAndEnd(changeTimes, alignmentId);
@@ -205,7 +227,12 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
         return () => {
             shouldUpdate = false;
         };
-    }, [alignmentId, changeTimes.layoutLocationTrack, changeTimes.geometryPlan]);
+    }, [
+        alignmentId,
+        changeTimes.layoutLocationTrack,
+        changeTimes.geometryPlan,
+        geocodingChangeTime,
+    ]);
 
     useResizeObserver({
         ref,

@@ -3,16 +3,19 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Range
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
 class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
+
     fun update(alignment: LayoutAlignment) = dao.update(alignment)
 
     fun saveAsNew(alignment: LayoutAlignment): RowVersion<LayoutAlignment> = save(asNew(alignment))
@@ -95,3 +98,18 @@ private fun toPlanSectionPoint(point: IPoint, alignment: IAlignment, context: Ge
 
 private fun asNew(alignment: LayoutAlignment): LayoutAlignment =
     if (alignment.dataType == TEMP) alignment else alignment.copy(id = StringId(), dataType = TEMP)
+
+fun cropIsWithinReferenceLine(
+    startKmNumber: KmNumber?,
+    endKmNumber: KmNumber?,
+    geocodingContext: GeocodingContext,
+): Boolean =
+    geocodingContext.kmRange?.let { contextRange ->
+        when {
+            startKmNumber == null && endKmNumber == null -> true
+            startKmNumber == null -> requireNotNull(endKmNumber) >= contextRange.min
+            endKmNumber == null -> startKmNumber <= contextRange.max
+            startKmNumber > endKmNumber -> false
+            else -> Range(startKmNumber, endKmNumber).overlaps(contextRange)
+        }
+    } ?: false

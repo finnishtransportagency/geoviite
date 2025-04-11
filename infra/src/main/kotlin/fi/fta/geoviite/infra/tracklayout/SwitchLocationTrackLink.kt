@@ -165,8 +165,8 @@ fun buildDuplicateIndexRanges(matches: List<Pair<Int, Int>>): List<IntRange> {
 }
 
 fun collectSplitPoints(geometry: LocationTrackGeometry): List<SplitPoint> {
-    // TODO: GVT-2941 This might be more complex than needed, but it retains the old logic
-    // TODO: GVT-2941 Compare to main: it includes all segment links + some endpoint link which is more complex
+    // TODO: GVT-2941 This might be more complex than needed, but it retains the old logic from pre-graph-model
+    // Compare to main: it includes all segment links + some endpoint link which is more complex
     // Would it be fine to just include all inner links + topology link if it's a presentation joint?
     // Currently the logic takes the topology link only if the inner link doesn't override it as "main link"
 

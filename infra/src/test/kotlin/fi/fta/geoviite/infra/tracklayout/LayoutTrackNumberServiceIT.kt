@@ -12,16 +12,27 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
+import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
+import fi.fta.geoviite.infra.geometry.line
+import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import java.math.BigDecimal
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -41,11 +52,15 @@ constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val kmPostDao: LayoutKmPostDao,
+    private val coordinateTransformationService: CoordinateTransformationService,
+    private val geometryDao: GeometryDao,
+    private val geometryService: GeometryService,
 ) : DBTestBase() {
 
     @BeforeEach
     fun cleanup() {
         testDBService.clearLayoutTables()
+        testDBService.clearGeometryTables()
     }
 
     @Test
@@ -405,6 +420,253 @@ constructor(
         val tn3 = mainDraftContext.save(trackNumber(number = TrackNumber("arst"))).id
         val rl3 = mainOfficialContext.save(referenceLine(tn3), alignment).id
         assertEquals(rl3, mainDraftContext.fetch(tn3)!!.referenceLineId)
+    }
+
+    @Test
+    fun `overlapping plan search finds plans that are within 10m of alignment`() {
+        val tn = TrackNumber("001")
+
+        val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val a2 = geometryAlignment(line(Point(20.0, 0.0), Point(30.0, 0.0)))
+        val a3 = geometryAlignment(line(Point(40.0, 0.0), Point(50.0, 0.0)))
+        val a4 = geometryAlignment(line(Point(60.0, 0.0), Point(70.0, 0.0)))
+        val a5 = geometryAlignment(line(Point(80.0, 0.0), Point(90.0, 0.0)))
+        val a6 = geometryAlignment(line(Point(40.0, 20.0), Point(50.0, 20.0)))
+        val a7 = geometryAlignment(line(Point(40.0, -10.0), Point(50.0, -10.0)))
+
+        val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
+
+        val plan1EndsBeforeAlignment =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a1),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a1), tf),
+            )
+        val plan2EndsWithinAlignmentBuffer =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a2),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a2), tf),
+            )
+        val plan3CompletelyWithin =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a3),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a3), tf),
+            )
+        val plan4TouchesEndOfAlignmentBuffer =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a4),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
+            )
+        val plan5StartsAfterAlignmentEnd =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a5),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a5), tf),
+            )
+        val plan6TooFarToTheSide =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a6),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a6), tf),
+            )
+        val plan7TouchesBufferFromSide =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a7),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a7), tf),
+            )
+        val plan8Hidden =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a4),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
+            )
+        geometryDao.setPlanHidden(plan8Hidden.id, true)
+
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(
+                    alignment(segment(Point(32.0, 0.0), Point(50.0, 0.0))),
+                    startAddress = TrackMeter(KmNumber(0), BigDecimal(32.0)),
+                )
+                .id
+
+        val overlapping =
+            trackNumberService
+                .getReferenceLinePolygon(mainOfficialContext.context, trackNumberId, null, null, 10.0)
+                .let(geometryService::getOverlappingPlanHeaders)
+                .map { it.id }
+
+        assertEquals(4, overlapping.size)
+        assertContains(overlapping, plan2EndsWithinAlignmentBuffer.id)
+        assertContains(overlapping, plan3CompletelyWithin.id)
+        assertContains(overlapping, plan4TouchesEndOfAlignmentBuffer.id)
+        assertContains(overlapping, plan7TouchesBufferFromSide.id)
+    }
+
+    @Test
+    fun `overlapping plan search cropping works correctly in a happy case`() {
+        val tn = TrackNumber("001")
+
+        val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(900.0, 0.0)))
+        val a2 = geometryAlignment(line(Point(500.0, 0.0), Point(995.0, 0.0)))
+        val a3 = geometryAlignment(line(Point(1200.0, 0.0), Point(1500.0, 0.0)))
+        val a4 = geometryAlignment(line(Point(1800.0, 0.0), Point(3200.0, 0.0)))
+        val a5 = geometryAlignment(line(Point(3010.0, 0.0), Point(4000.0, 0.0)))
+        val a6 = geometryAlignment(line(Point(3500.0, 0.0), Point(4000.0, 0.0)))
+
+        val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
+
+        val plan1EndsBeforeStartKm =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a1),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a1), tf),
+            )
+        val plan2EndsBeforeStartKmButWithinBuffer =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a2),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a2), tf),
+            )
+        val plan3IsCompletelyWithinKmRange =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a3),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a3), tf),
+            )
+        val plan4StartsWithinKmRangeButEndsAfter =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a4),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
+            )
+        val plan5TouchesEndKmWhenBufferIsIncluded =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a5),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a5), tf),
+            )
+        val plan6IsPastEndOfEndKm =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a6),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a6), tf),
+            )
+
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
+                .id
+
+        val kmPost1 =
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(1), roughLayoutLocation = Point(0.0, 0.0))
+            )
+        val kmPost2 =
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(1000.0, 0.0))
+            )
+        val kmPost3 =
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(2000.0, 0.0))
+            )
+        val kmPost4 =
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(3000.0, 0.0))
+            )
+
+        val overlapping =
+            trackNumberService
+                .getReferenceLinePolygon(
+                    mainOfficialContext.context,
+                    trackNumberId,
+                    kmPost2.kmNumber,
+                    kmPost3.kmNumber,
+                    10.0,
+                )
+                .let(geometryService::getOverlappingPlanHeaders)
+                .map { it.id }
+        assertEquals(4, overlapping.size)
+        assertContains(overlapping, plan2EndsBeforeStartKmButWithinBuffer.id)
+        assertContains(overlapping, plan3IsCompletelyWithinKmRange.id)
+        assertContains(overlapping, plan4StartsWithinKmRangeButEndsAfter.id)
+        assertContains(overlapping, plan5TouchesEndKmWhenBufferIsIncluded.id)
+    }
+
+    @Test
+    fun `overlapping plan search cropping works correctly in different edge cases`() {
+        val tn = TrackNumber("001")
+
+        val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(500.0, 0.0)))
+        val a2 = geometryAlignment(line(Point(1000.0, 0.0), Point(4000.0, 0.0)))
+        val a3 = geometryAlignment(line(Point(5000.0, 0.0), Point(7000.0, 0.0)))
+
+        val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
+
+        val plan1EndsBeforeLocationTrackStart =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a1),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a1), tf),
+            )
+        val plan2IsWithinLocationTrack =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a2),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a2), tf),
+            )
+        val plan3IsPastEndOfEndKm =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a3),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a3), tf),
+            )
+
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(
+                    alignment(segment(Point(1500.0, 0.0), Point(4000.0, 0.0))),
+                    startAddress = TrackMeter(KmNumber(1), BigDecimal(500.0)),
+                )
+                .id
+
+        mainOfficialContext.save(
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(1), roughLayoutLocation = Point(1000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(2000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(3000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(4000.0, 0.0))
+        )
+
+        fun getOverlappingPlans(start: KmNumber?, end: KmNumber?): List<GeometryPlanHeader> =
+            trackNumberService
+                .getReferenceLinePolygon(mainOfficialContext.context, trackNumberId, start, end, 10.0)
+                .let(geometryService::getOverlappingPlanHeaders)
+
+        val overlappingEntireTrackNumber = getOverlappingPlans(KmNumber(0), KmNumber(6)).map { it.id }
+        Assertions.assertEquals(1, overlappingEntireTrackNumber.size)
+        assertContains(overlappingEntireTrackNumber, plan2IsWithinLocationTrack.id)
+
+        val withinPlanAreaButNotWithinTrackNumber = getOverlappingPlans(KmNumber(0), KmNumber(0)).map { it.id }
+        Assertions.assertEquals(0, withinPlanAreaButNotWithinTrackNumber.size)
+
+        val startIsBeforeTrackNumberAndEndIsNull = getOverlappingPlans(KmNumber(1), null).map { it.id }
+        Assertions.assertEquals(1, startIsBeforeTrackNumberAndEndIsNull.size)
+
+        val endIsAfterTrackNumberEndAndStartIsNull = getOverlappingPlans(null, KmNumber(5)).map { it.id }
+        Assertions.assertEquals(1, endIsAfterTrackNumberEndAndStartIsNull.size)
+
+        val startIsAfterTrackNumberEndAndEndIsNull = getOverlappingPlans(KmNumber(5), null).map { it.id }
+        Assertions.assertEquals(0, startIsAfterTrackNumberEndAndEndIsNull.size)
     }
 
     private fun assertVersionReferences(

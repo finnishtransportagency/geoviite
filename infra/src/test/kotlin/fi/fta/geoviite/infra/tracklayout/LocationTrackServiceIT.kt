@@ -4,13 +4,24 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
+import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
+import fi.fta.geoviite.infra.geometry.line
+import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -45,14 +56,16 @@ constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val splitService: SplitService,
     private val splitTestDataService: SplitTestDataService,
+    private val geometryDao: GeometryDao,
+    private val coordinateTransformationService: CoordinateTransformationService,
+    private val geometryService: GeometryService,
 ) : DBTestBase() {
 
     @BeforeEach
     fun setup() {
         splitTestDataService.clearSplits()
-        locationTrackDao.deleteDrafts(LayoutBranch.main)
-        alignmentDao.deleteOrphanedAlignments()
-        switchDao.deleteDrafts(LayoutBranch.main)
+        testDBService.clearLayoutTables()
+        testDBService.clearGeometryTables()
     }
 
     @Test
@@ -213,295 +226,342 @@ constructor(
     }
 
     @Test
-    fun updateTopologyFindsSwitchStartConnectionInTheMiddleOfAlignment() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switchId = insertAndFetchDraft(switch(draft = true)).id as IntId
+    fun `Topology recalculate works`() {
+        val switch1 =
+            testDBService.fetch(
+                mainDraftContext.createSwitch(
+                    joints =
+                        listOf(
+                            switchJoint(1, Point(10.0, 0.0)),
+                            switchJoint(5, Point(20.0, 0.0)),
+                            switchJoint(2, Point(30.0, 0.0)),
+                        )
+                )
+            )
+        val switch2 =
+            testDBService.fetch(
+                mainDraftContext.createSwitch(
+                    joints =
+                        listOf(
+                            switchJoint(1, Point(30.0, 0.0)),
+                            switchJoint(5, Point(40.0, 0.0)),
+                            switchJoint(2, Point(50.0, 0.0)),
+                        )
+                )
+            )
 
-        val (_, _) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(10.0, 0.0)),
-                    segment(Point(10.0, 0.0), Point(20.0, 0.0))
-                        .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(2)),
-                    segment(Point(20.0, 0.0), Point(30.0, 0.0)),
+        // Track1 has the switch1 connected: |-----1-5-2|
+        val track1 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(switch1.id as IntId, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch1.id as IntId, 1),
+                        endInnerSwitch = switchLinkYV(switch1.id as IntId, 5),
+                        segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch1.id as IntId, 5),
+                        endInnerSwitch = switchLinkYV(switch1.id as IntId, 2),
+                        segments = listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
+                    ),
                 ),
             )
 
-        val (track, alignment) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(segment(Point(10.2, 0.0), Point(10.2, 20.2))),
+        // Track 2 has no switch but ends at track1 location for joint 1 -> should get topologically connected at end
+        val track2 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(edge(listOf(segment(Point(10.0, 10.0), Point(10.0, 0.0))))),
             )
-        assertEquals(null, track.topologyStartSwitch)
-        assertEquals(null, track.topologyEndSwitch)
-        // TODO: GVT-2928 topology links are now just the end-nodes and should be dealt like other nodes
-        TODO()
-        //        val updatedTrack =
-        //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-        //                MainLayoutContext.draft,
-        //                track,
-        //                alignment,
-        //            )
-        //        assertEquals(TopologyLocationTrackSwitch(switchId, JointNumber(1)), updatedTrack.topologyStartSwitch)
-        //        assertEquals(null, updatedTrack.topologyEndSwitch)
+
+        // Track 3 starts where track1 ends and has a switch of its own: |2-5-1------| -> the nodes should get combined
+        val track3 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch2.id as IntId, 2),
+                        endInnerSwitch = switchLinkYV(switch2.id as IntId, 5),
+                        segments = listOf(segment(Point(30.0, 0.0), Point(40.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch2.id as IntId, 5),
+                        endInnerSwitch = switchLinkYV(switch2.id as IntId, 1),
+                        segments = listOf(segment(Point(40.0, 0.0), Point(50.0, 0.0))),
+                    ),
+                    edge(
+                        startOuterSwitch = switchLinkYV(switch2.id as IntId, 1),
+                        segments = listOf(segment(Point(50.0, 0.0), Point(100.0, 0.0))),
+                    ),
+                ),
+            )
+
+        val changedTrackVersions = locationTrackService.recalculateTopology(switch1, MainLayoutContext.draft)
+
+        val newTrack1 = testDBService.fetchWithGeometry(changedTrackVersions.first { it.id == track1.id })
+        assertEquals(
+            listOf(
+                // Own inner links remain
+                TrackSwitchLink(
+                    switchLinkYV(switch1.id as IntId, 1),
+                    alignmentPoint(10.0, 0.0, m = 10.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(switch1.id as IntId, 5),
+                    alignmentPoint(20.0, 0.0, m = 20.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(switch1.id as IntId, 2),
+                    alignmentPoint(30.0, 0.0, m = 30.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                // Topology link added to the end
+                TrackSwitchLink(
+                    switchLinkYV(switch2.id as IntId, 2),
+                    alignmentPoint(30.0, 0.0, m = 30.0),
+                    TrackSwitchLinkType.OUTER,
+                ),
+            ),
+            newTrack1.second.trackSwitchLinks,
+        )
+
+        val newTrack2 = testDBService.fetchWithGeometry(changedTrackVersions.first { it.id == track2.id })
+        assertEquals(
+            listOf(
+                // No own links, add topology link to the end
+                TrackSwitchLink(
+                    switchLinkYV(switch1.id as IntId, 1),
+                    alignmentPoint(10.0, 0.0, m = 10.0),
+                    TrackSwitchLinkType.OUTER,
+                )
+            ),
+            newTrack2.second.trackSwitchLinks,
+        )
+
+        val newTrack3 = testDBService.fetchWithGeometry(changedTrackVersions.first { it.id == track3.id })
+        assertEquals(
+            listOf(
+                // Added topology link at start
+                TrackSwitchLink(
+                    switchLinkYV(switch1.id as IntId, 2),
+                    alignmentPoint(30.0, 0.0, m = 0.0),
+                    TrackSwitchLinkType.OUTER,
+                ),
+                // Own inner links remain
+                TrackSwitchLink(
+                    switchLinkYV(switch2.id as IntId, 2),
+                    alignmentPoint(30.0, 0.0, m = 0.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(switch2.id as IntId, 5),
+                    alignmentPoint(40.0, 0.0, m = 10.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(switch2.id as IntId, 1),
+                    alignmentPoint(50.0, 0.0, m = 20.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+            ),
+            newTrack3.second.trackSwitchLinks,
+        )
     }
 
     @Test
-    fun updateTopologyFindsSwitchEndConnectionInTheMiddleOfAlignment() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switchId = insertAndFetchDraft(switch(draft = true)).id as IntId
+    fun `Topology recalculation does not connect an unrelated track to a combination node`() {
+        val switch1 =
+            testDBService.fetch(
+                mainDraftContext.createSwitch(
+                    joints = listOf(switchJoint(1, Point(10.0, 0.0)), switchJoint(2, Point(20.0, 0.0)))
+                )
+            )
+        val switch2 =
+            testDBService.fetch(
+                mainDraftContext.createSwitch(
+                    joints = listOf(switchJoint(2, Point(0.0, 0.0)), switchJoint(1, Point(10.0, 0.0)))
+                )
+            )
 
-        val (_, _) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(10.0, 0.0)),
-                    segment(Point(10.0, 0.0), Point(20.0, 0.0))
-                        .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(2)),
-                    segment(Point(20.0, 0.0), Point(30.0, 0.0)),
+        val track1 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch1.id as IntId, 1),
+                        endInnerSwitch = switchLinkYV(switch1.id as IntId, 2),
+                        segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                    )
+                ),
+            )
+        // Track 2 is not connected to anything but starts at the same location
+        val track2 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(edge(segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 10.0))))),
+            )
+        val track3 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch2.id as IntId, 2),
+                        endInnerSwitch = switchLinkYV(switch2.id as IntId, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                    )
                 ),
             )
 
-        val (track, alignment) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(segment(Point(20.2, -20.0), Point(20.2, 0.2))),
-            )
-        assertEquals(null, track.topologyStartSwitch)
-        assertEquals(null, track.topologyEndSwitch)
-        // TODO: GVT-2928 topology links are now just the end-nodes and should be dealt like other nodes
-        TODO()
-        //        val updatedTrack =
-        //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-        //                MainLayoutContext.draft,
-        //                track,
-        //                alignment,
-        //            )
-        //        assertEquals(null, updatedTrack.topologyStartSwitch)
-        //        assertEquals(TopologyLocationTrackSwitch(switchId, JointNumber(2)), updatedTrack.topologyEndSwitch)
+        val changedTrackVersions = locationTrackService.recalculateTopology(switch1, MainLayoutContext.draft)
+
+        val newTrack1 = testDBService.fetchWithGeometry(changedTrackVersions.first { it.id == track1.id })
+        assertEquals(
+            listOf(
+                TrackSwitchLink(
+                    switchLinkYV(switch2.id as IntId, 1),
+                    alignmentPoint(10.0, 0.0, m = 0.0),
+                    TrackSwitchLinkType.OUTER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(switch1.id as IntId, 1),
+                    alignmentPoint(10.0, 0.0, m = 0.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(switch1.id as IntId, 2),
+                    alignmentPoint(20.0, 0.0, m = 10.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+            ),
+            newTrack1.second.trackSwitchLinks,
+        )
+
+        // Track 2 should not get changed
+        assertNull(changedTrackVersions.find { it.id == track2.id })
+
+        val newTrack3 = testDBService.fetchWithGeometry(changedTrackVersions.first { it.id == track3.id })
+        assertEquals(
+            listOf(
+                TrackSwitchLink(
+                    switchLinkYV(switch2.id as IntId, 2),
+                    alignmentPoint(0.0, 0.0, m = 0.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(switch2.id as IntId, 1),
+                    alignmentPoint(10.0, 0.0, m = 10.0),
+                    TrackSwitchLinkType.INNER,
+                ),
+                TrackSwitchLink(
+                    switchLinkYV(switch1.id as IntId, 1),
+                    alignmentPoint(10.0, 0.0, m = 10.0),
+                    TrackSwitchLinkType.OUTER,
+                ),
+            ),
+            newTrack3.second.trackSwitchLinks,
+        )
     }
 
     @Test
-    fun updateTopologyDoesntFindSwitchConnectionForTrackCrossingOverSwitch() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switchId = insertAndFetchDraft(switch(draft = true)).id as IntId
-
-        val (_, _) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(
-                    segment(Point(1000.0, 1000.0), Point(1010.0, 1000.0)),
-                    segment(Point(1010.0, 1000.0), Point(1020.0, 1000.0))
-                        .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(2)),
-                    segment(Point(1020.0, 1000.0), Point(1030.0, 1000.0)),
+    fun `Topology recalculation does not generate unnecessary changes`() {
+        val switch =
+            testDBService.fetch(
+                mainDraftContext.createSwitch(
+                    joints = listOf(switchJoint(1, Point(10.0, 0.0)), switchJoint(2, Point(20.0, 0.0)))
+                )
+            )
+        val track1 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id as IntId, 1),
+                        endInnerSwitch = switchLinkYV(switch.id as IntId, 2),
+                        segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                    )
                 ),
             )
-
-        val (track, alignment) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(segment(Point(1010.0, 990.0), Point(1010.0, 1000.0), Point(1010.0, 1010.0))),
+        val track2 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))))),
             )
-        assertEquals(null, track.topologyStartSwitch)
-        assertEquals(null, track.topologyEndSwitch)
-        // TODO: GVT-2928 topology links are now just the end-nodes and should be dealt like other nodes
-        TODO()
-        //        val updatedTrack =
-        //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-        //                MainLayoutContext.draft,
-        //                track,
-        //                alignment,
-        //            )
-        //        assertEquals(null, updatedTrack.topologyStartSwitch)
-        //        assertEquals(null, updatedTrack.topologyEndSwitch)
+
+        val changedTrackVersions = locationTrackService.recalculateTopology(switch, MainLayoutContext.draft)
+        // There's no need to change track1 -> only track2 should be updated
+        assertEquals(listOf(track2.next()), changedTrackVersions)
     }
 
     @Test
-    fun updateTopologyDoesntFindSwitchConnectionForTrackFartherAway() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switchId = insertAndFetchDraft(switch(draft = true)).id as IntId
+    fun `Topology recalculation connects a three-way track combination to the same combination node`() {
+        val switch1 =
+            testDBService.fetch(
+                mainDraftContext.createSwitch(
+                    joints =
+                        listOf(
+                            switchJoint(1, Point(10.0, 0.0)),
+                            switchJoint(2, Point(20.0, 0.0)),
+                            switchJoint(3, Point(20.0, 10.0)),
+                        )
+                )
+            )
+        val switch2 =
+            testDBService.fetch(
+                mainDraftContext.createSwitch(
+                    joints = listOf(switchJoint(2, Point(0.0, 0.0)), switchJoint(1, Point(10.0, 0.0)))
+                )
+            )
 
-        val (_, _) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(10.0, 0.0)),
-                    segment(Point(10.0, 0.0), Point(20.0, 0.0))
-                        .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(2)),
-                    segment(Point(20.0, 0.0), Point(30.0, 0.0)),
+        val track1 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch1.id as IntId, 1),
+                        endInnerSwitch = switchLinkYV(switch1.id as IntId, 2),
+                        segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                    )
+                ),
+            )
+        val track2 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch1.id as IntId, 1),
+                        endInnerSwitch = switchLinkYV(switch1.id as IntId, 3),
+                        segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 10.0))),
+                    )
+                ),
+            )
+        val track3 =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch2.id as IntId, 2),
+                        endInnerSwitch = switchLinkYV(switch2.id as IntId, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                    )
                 ),
             )
 
-        val (track, alignment) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(segment(Point(12.0, 0.0), Point(22.0, 0.0))),
-            )
-        assertEquals(null, track.topologyStartSwitch)
-        assertEquals(null, track.topologyEndSwitch)
-        // TODO: GVT-2928 topology links are now just the end-nodes and should be dealt like other nodes
-        TODO()
-        //        val updatedTrack =
-        //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-        //                MainLayoutContext.draft,
-        //                track,
-        //                alignment,
-        //            )
-        //        assertEquals(null, updatedTrack.topologyStartSwitch)
-        //        assertEquals(null, updatedTrack.topologyEndSwitch)
-    }
+        val changedTrackVersions = locationTrackService.recalculateTopology(switch1, MainLayoutContext.draft)
 
-    @Test
-    fun updateTopologyFindsSwitchConnectionFromOtherTopology() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switchId1 = insertAndFetchDraft(switch(draft = true)).id as IntId
-        val switchId2 = insertAndFetchDraft(switch(draft = true)).id as IntId
-
-        val (_, _) =
-            insertAndFetchDraft(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(switchId1, JointNumber(3)),
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchId2, JointNumber(5)),
-                    draft = true,
-                ),
-                trackGeometryOfSegments(segment(Point(2000.0, 2000.0), Point(2010.0, 2010.0))),
-            )
-
-        val (track1, alignment1) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(segment(Point(2000.0, 2000.0), Point(2022.0, 2000.0))),
-            )
-        assertEquals(null, track1.topologyStartSwitch)
-        assertEquals(null, track1.topologyEndSwitch)
-
-        // TODO: GVT-2928 topology links are now just the end-nodes and should be dealt like other nodes
-        TODO()
-        //        val updatedTrack1 =
-        //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-        //                MainLayoutContext.draft,
-        //                track1,
-        //                alignment1,
-        //            )
-        //        assertEquals(TopologyLocationTrackSwitch(switchId1, JointNumber(3)),
-        // updatedTrack1.topologyStartSwitch)
-        //        assertEquals(null, updatedTrack1.topologyEndSwitch)
-        //
-        //        val (track2, alignment2) =
-        //            insertAndFetchDraft(
-        //                locationTrack(trackNumberId, draft = true),
-        //                alignment(segment(Point(2009.9, 2010.0), Point(1990.0, 1990.0))),
-        //            )
-        //        assertEquals(null, track2.topologyStartSwitch)
-        //        assertEquals(null, track2.topologyEndSwitch)
-        //
-        //        val updatedTrack2 =
-        //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-        //                MainLayoutContext.draft,
-        //                track2,
-        //                alignment2,
-        //            )
-        //        assertEquals(TopologyLocationTrackSwitch(switchId2, JointNumber(5)),
-        // updatedTrack2.topologyStartSwitch)
-        //        assertEquals(null, updatedTrack2.topologyEndSwitch)
-        //
-        //        val (track3, alignment3) =
-        //            insertAndFetchDraft(
-        //                locationTrack(trackNumberId, draft = true),
-        //                alignment(segment(Point(1990.0, 1990.0), Point(1999.9, 2000.0))),
-        //            )
-        //        assertEquals(null, track3.topologyStartSwitch)
-        //        assertEquals(null, track3.topologyEndSwitch)
-        //
-        //        val updatedTrack3 =
-        //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-        //                MainLayoutContext.draft,
-        //                track3,
-        //                alignment3,
-        //            )
-        //        assertEquals(null, updatedTrack3.topologyStartSwitch)
-        //        assertEquals(TopologyLocationTrackSwitch(switchId1, JointNumber(3)), updatedTrack3.topologyEndSwitch)
-        //
-        //        val (track4, alignment4) =
-        //            insertAndFetchDraft(
-        //                locationTrack(trackNumberId, draft = true),
-        //                alignment(segment(Point(2020.0, 2020.0), Point(2010.1, 2009.9))),
-        //            )
-        //        assertEquals(null, track4.topologyStartSwitch)
-        //        assertEquals(null, track4.topologyEndSwitch)
-        //
-        //        val updatedTrack4 =
-        //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-        //                MainLayoutContext.draft,
-        //                track4,
-        //                alignment4,
-        //            )
-        //        assertEquals(null, updatedTrack4.topologyStartSwitch)
-        //        assertEquals(TopologyLocationTrackSwitch(switchId2, JointNumber(5)), updatedTrack4.topologyEndSwitch)
-    }
-
-    @Test
-    fun updateTopologyDoesntLoseCurrentConnectionIfNothingIsFound() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switchId1 = insertAndFetchDraft(switch(draft = true)).id as IntId
-        val switchId2 = insertAndFetchDraft(switch(draft = true)).id as IntId
-
-        val (track, alignment) =
-            insertAndFetchDraft(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(switchId1, JointNumber(3)),
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchId2, JointNumber(5)),
-                    draft = true,
-                ),
-                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-            )
-        // TODO: GVT-2928 topology links are now just the end-nodes and should be dealt like other nodes
-        TODO()
-        //        val updated =
-        //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-        //                MainLayoutContext.draft,
-        //                track,
-        //                alignment,
-        //            )
-        //        assertEquals(track.topologyStartSwitch, updated.topologyStartSwitch)
-        //        assertEquals(track.topologyEndSwitch, updated.topologyEndSwitch)
-    }
-
-    @Test
-    fun updateTopologyFindsSwitchConnectionFromOtherTopologyEnd() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switchId = insertAndFetchDraft(switch(draft = true)).id as IntId
-
-        val (_, _) =
-            insertAndFetchDraft(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(3)),
-                    draft = true,
-                ),
-                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-            )
-
-        val (track, alignment) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(22.0, 0.0))),
-            )
-        assertEquals(null, track.topologyStartSwitch)
-        assertEquals(null, track.topologyEndSwitch)
-        // TODO: GVT-2928 topology links are now just the end-nodes and should be dealt like other nodes
-        TODO()
-        //        val updatedTrack =
-        //            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-        //                MainLayoutContext.draft,
-        //                track,
-        //                alignment,
-        //            )
-        //        assertEquals(TopologyLocationTrackSwitch(switchId, JointNumber(3)), updatedTrack.topologyStartSwitch)
-        //        assertEquals(null, updatedTrack.topologyEndSwitch)
+        val newTrack1 = testDBService.fetchWithGeometry(changedTrackVersions.first { it.id == track1.id })
+        val newTrack2 = testDBService.fetchWithGeometry(changedTrackVersions.first { it.id == track2.id })
+        val newTrack3 = testDBService.fetchWithGeometry(changedTrackVersions.first { it.id == track3.id })
+        assertEquals(true, newTrack1.second.startNode?.node?.containsJoint(switch1.id as IntId, JointNumber(1)))
+        assertEquals(true, newTrack1.second.startNode?.node?.containsJoint(switch2.id as IntId, JointNumber(1)))
+        assertEquals(newTrack1.second.startNode?.node, newTrack2.second.startNode?.node)
+        assertEquals(newTrack1.second.startNode?.node, newTrack3.second.endNode?.node)
     }
 
     @Test
@@ -713,6 +773,59 @@ constructor(
     }
 
     @Test
+    fun `getFullDescriptions() trims out extra whitespaces in descriptionBase`() {
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val switch1 = mainDraftContext.save(switch(name = "ABC V123"))
+        val switch2 = mainDraftContext.save(switch(name = "QUX V456"))
+        val track1 =
+            mainDraftContext
+                .save(
+                    locationTrack(
+                        trackNumberId,
+                        description = "    track 1  ",
+                        descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
+                    ),
+                    trackGeometry(
+                        edge(
+                            startOuterSwitch = switchLinkYV(switch1.id, 1),
+                            endInnerSwitch = switchLinkYV(switch2.id, 1),
+                            segments =
+                                listOf(
+                                    segment(Point(0.0, 0.0), Point(1.0, 1.0)),
+                                    segment(Point(1.0, 1.0), Point(2.0, 2.0)),
+                                ),
+                        )
+                    ),
+                )
+                .id
+        val track2 =
+            mainDraftContext
+                .save(
+                    locationTrack(
+                        trackNumberId,
+                        description = " track 2  ",
+                        descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
+                    ),
+                    trackGeometry(
+                        edge(
+                            startInnerSwitch = switchLinkYV(switch2.id, 1),
+                            segments = listOf(segment(Point(2.0, 2.0), Point(3.0, 3.0))),
+                        )
+                    ),
+                )
+                .id
+        val descriptions =
+            locationTrackService
+                .getFullDescriptions(
+                    MainLayoutContext.draft,
+                    listOf(track1, track2).map { mainDraftContext.fetch(it)!! },
+                    LocalizationLanguage.FI,
+                )
+                .map { it.toString() }
+        assertEquals(listOf("track 1 V123 - V456", "track 2"), descriptions)
+    }
+
+    @Test
     fun `deleteDraft deletes duplicate references if track is only draft, but not if official exists`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
@@ -729,6 +842,261 @@ constructor(
 
         assertNull(mainDraftContext.fetch(onlyDraftDuplicate)!!.duplicateOf)
         assertEquals(officialReal.id, mainDraftContext.fetch(officialDuplicate)!!.duplicateOf)
+    }
+
+    @Test
+    fun `overlapping plan search finds plans that are within 10m of alignment`() {
+        val tn = TrackNumber("001")
+        val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val a2 = geometryAlignment(line(Point(20.0, 0.0), Point(30.0, 0.0)))
+        val a3 = geometryAlignment(line(Point(40.0, 0.0), Point(50.0, 0.0)))
+        val a4 = geometryAlignment(line(Point(60.0, 0.0), Point(70.0, 0.0)))
+        val a5 = geometryAlignment(line(Point(80.0, 0.0), Point(90.0, 0.0)))
+        val a6 = geometryAlignment(line(Point(40.0, 20.0), Point(50.0, 20.0)))
+        val a7 = geometryAlignment(line(Point(40.0, -10.0), Point(50.0, -10.0)))
+
+        val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
+
+        val plan1EndsBeforeAlignment =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a1),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a1), tf),
+            )
+        val plan2EndsWithinAlignmentBuffer =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a2),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a2), tf),
+            )
+        val plan3CompletelyWithin =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a3),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a3), tf),
+            )
+        val plan4TouchesEndOfAlignmentBuffer =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a4),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
+            )
+        val plan5StartsAfterAlignmentEnd =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a5),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a5), tf),
+            )
+        val plan6TooFarToTheSide =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a6),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a6), tf),
+            )
+        val plan7TouchesBufferFromSide =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a7),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a7), tf),
+            )
+        val plan8Hidden =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a4),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
+            )
+        geometryDao.setPlanHidden(plan8Hidden.id, true)
+
+        val (track, _) =
+            mainOfficialContext.save(
+                locationTrack(
+                    mainOfficialContext
+                        .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                        .id,
+                    draft = false,
+                ),
+                trackGeometryOfSegments(segment(Point(32.0, 0.0), Point(50.0, 0.0))),
+            )
+
+        val overlapping =
+            locationTrackService
+                .getTrackPolygon(mainOfficialContext.context, track.id, null, null, 10.0)
+                .let(geometryService::getOverlappingPlanHeaders)
+                .map { it.id }
+
+        assertEquals(4, overlapping.size)
+        assertContains(overlapping, plan2EndsWithinAlignmentBuffer.id)
+        assertContains(overlapping, plan3CompletelyWithin.id)
+        assertContains(overlapping, plan4TouchesEndOfAlignmentBuffer.id)
+        assertContains(overlapping, plan7TouchesBufferFromSide.id)
+    }
+
+    @Test
+    fun `overlapping plan search cropping works correctly in a happy case`() {
+        val tn = TrackNumber("001")
+
+        val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(900.0, 0.0)))
+        val a2 = geometryAlignment(line(Point(500.0, 0.0), Point(995.0, 0.0)))
+        val a3 = geometryAlignment(line(Point(1200.0, 0.0), Point(1500.0, 0.0)))
+        val a4 = geometryAlignment(line(Point(1800.0, 0.0), Point(3200.0, 0.0)))
+        val a5 = geometryAlignment(line(Point(3010.0, 0.0), Point(4000.0, 0.0)))
+        val a6 = geometryAlignment(line(Point(3500.0, 0.0), Point(4000.0, 0.0)))
+
+        val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
+
+        val plan1EndsBeforeStartKm =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a1),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a1), tf),
+            )
+        val plan2EndsBeforeStartKmButWithinBuffer =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a2),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a2), tf),
+            )
+        val plan3IsCompletelyWithinKmRange =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a3),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a3), tf),
+            )
+        val plan4StartsWithinKmRangeButEndsAfter =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a4),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
+            )
+        val plan5TouchesEndKmWhenBufferIsIncluded =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a5),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a5), tf),
+            )
+        val plan6IsPastEndOfEndKm =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a6),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a6), tf),
+            )
+
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
+                .id
+        val (track, _) =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId, draft = false),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(4000.0, 0.0))),
+            )
+
+        val kmPost1 =
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(1), roughLayoutLocation = Point(0.0, 0.0))
+            )
+        val kmPost2 =
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(1000.0, 0.0))
+            )
+        val kmPost3 =
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(2000.0, 0.0))
+            )
+        val kmPost4 =
+            mainOfficialContext.saveAndFetch(
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(3000.0, 0.0))
+            )
+
+        val overlapping =
+            locationTrackService
+                .getTrackPolygon(mainOfficialContext.context, track.id, kmPost2.kmNumber, kmPost3.kmNumber, 10.0)
+                .let(geometryService::getOverlappingPlanHeaders)
+                .map { it.id }
+        assertEquals(4, overlapping.size)
+        assertContains(overlapping, plan2EndsBeforeStartKmButWithinBuffer.id)
+        assertContains(overlapping, plan3IsCompletelyWithinKmRange.id)
+        assertContains(overlapping, plan4StartsWithinKmRangeButEndsAfter.id)
+        assertContains(overlapping, plan5TouchesEndKmWhenBufferIsIncluded.id)
+    }
+
+    @Test
+    fun `overlapping plan search cropping works correctly in different edge cases`() {
+        val tn = TrackNumber("001")
+
+        val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(2000.0, 0.0)))
+        val a2 = geometryAlignment(line(Point(3000.0, 0.0), Point(4000.0, 0.0)))
+        val a3 = geometryAlignment(line(Point(5000.0, 0.0), Point(7000.0, 0.0)))
+
+        val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
+
+        val plan1EndsBeforeLocationTrackStart =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a1),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a1), tf),
+            )
+        val plan2IsWithinLocationTrack =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a2),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a2), tf),
+            )
+        val plan3IsPastEndOfEndKm =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a3),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a3), tf),
+            )
+
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(2000.0, 0.0), Point(5000.0, 0.0))))
+                .id
+        val (track, _) =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId),
+                trackGeometryOfSegments(segment(Point(3200.0, 0.0), Point(3800.0, 0.0))),
+            )
+
+        mainOfficialContext.save(
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(2000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(3000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(4000.0, 0.0))
+        )
+
+        fun getOverlappingPlans(start: KmNumber?, end: KmNumber?): List<GeometryPlanHeader> =
+            locationTrackService
+                .getTrackPolygon(mainOfficialContext.context, track.id, start, end, 10.0)
+                .let(geometryService::getOverlappingPlanHeaders)
+
+        val overlappingEntireTrackNumber = getOverlappingPlans(KmNumber(0), KmNumber(6)).map { it.id }
+        assertEquals(1, overlappingEntireTrackNumber.size)
+        assertContains(overlappingEntireTrackNumber, plan2IsWithinLocationTrack.id)
+
+        val withinPlanAreaButNotWithinTrackNumber = getOverlappingPlans(KmNumber(0), KmNumber(0)).map { it.id }
+        assertEquals(0, withinPlanAreaButNotWithinTrackNumber.size)
+
+        val withinPlanAreaAndTrackNumberButNotWithinLocationTrack =
+            getOverlappingPlans(KmNumber(2), KmNumber(2)).map { it.id }
+        assertEquals(0, withinPlanAreaAndTrackNumberButNotWithinLocationTrack.size)
+
+        val startIsWithinTrackNumberButWithinLocationTrackAndEndIsNull =
+            getOverlappingPlans(KmNumber(2), null).map { it.id }
+        assertEquals(1, startIsWithinTrackNumberButWithinLocationTrackAndEndIsNull.size)
+
+        val endIsAfterTrackNumberEndAndStartIsNull = getOverlappingPlans(null, KmNumber(5)).map { it.id }
+        assertEquals(1, endIsAfterTrackNumberEndAndStartIsNull.size)
+
+        val endIsBeforeLocationTrackStartButWithinTrackNumber = getOverlappingPlans(null, KmNumber(2)).map { it.id }
+        assertEquals(0, endIsBeforeLocationTrackStartButWithinTrackNumber.size)
+
+        val startIsAfterTrackNumberEndAndEndIsNull = getOverlappingPlans(KmNumber(5), null).map { it.id }
+        assertEquals(0, startIsAfterTrackNumberEndAndEndIsNull.size)
     }
 
     private fun insertAndFetchDraft(switch: LayoutSwitch): LayoutSwitch =
