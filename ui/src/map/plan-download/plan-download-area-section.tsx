@@ -49,8 +49,10 @@ const inferDropdownItemValue = (
                 locationTrack: downloadAsset.asset,
                 type: SearchItemType.LOCATION_TRACK,
             };
-        default:
+        case undefined:
             return undefined;
+        default:
+            return exhaustiveMatchingGuard(downloadAsset);
     }
 };
 
