@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
     LocationTrackItemValue,
     SearchDropdown,
+    SearchItemType,
     SearchItemValue,
     SearchType,
     TrackNumberItemValue,
@@ -11,6 +12,7 @@ import { LayoutContext } from 'common/common-model';
 import {
     AreaSelection,
     PlanDownloadAsset,
+    PlanDownloadAssetType,
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
 import {
@@ -27,9 +29,32 @@ import { Radio } from 'vayla-design-lib/radio/radio';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { error } from 'geoviite-design-lib/snackbar/snackbar';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type AreaSelectionType = 'TRACK_METERS' | 'MAINTENANCE_AREA' | 'MAP_AREA';
 const ASSET_SEARCH_TYPES = [SearchType.TRACK_NUMBER, SearchType.LOCATION_TRACK];
+
+const inferDropdownItemValue = (
+    downloadAsset: PlanDownloadAsset | undefined,
+): TrackNumberItemValue | LocationTrackItemValue | undefined => {
+    switch (downloadAsset?.type) {
+        case PlanDownloadAssetType.TRACK_NUMBER:
+            return {
+                trackNumber: downloadAsset.asset,
+                type: SearchItemType.TRACK_NUMBER,
+            };
+        case PlanDownloadAssetType.LOCATION_TRACK:
+            return {
+                locationTrack: downloadAsset.asset,
+                type: SearchItemType.LOCATION_TRACK,
+            };
+        case undefined:
+            return undefined;
+        default:
+            return exhaustiveMatchingGuard(downloadAsset);
+    }
+};
 
 export const PlanDownloadAreaSection: React.FC<{
     layoutContext: LayoutContext;
@@ -58,18 +83,22 @@ export const PlanDownloadAreaSection: React.FC<{
     };
 
     const onItemSelected = (item: SearchItemValue) => {
-        if (item) {
-            if (item.type === 'trackNumberSearchItem') {
-                updateProp('asset', {
+        switch (item.type) {
+            case SearchItemType.TRACK_NUMBER:
+                return updateProp('asset', {
                     id: item.trackNumber.id,
-                    type: 'TRACK_NUMBER',
+                    type: PlanDownloadAssetType.TRACK_NUMBER,
                 });
-            } else if (item.type === 'locationTrackSearchItem') {
-                updateProp('asset', {
+            case SearchItemType.LOCATION_TRACK:
+                return updateProp('asset', {
                     id: item.locationTrack.id,
-                    type: 'LOCATION_TRACK',
+                    type: PlanDownloadAssetType.LOCATION_TRACK,
                 });
-            }
+            case SearchItemType.SWITCH:
+            case SearchItemType.OPERATING_POINT:
+                return error(t('plan-download.unsupported-result-type', { type: item.type }));
+            default:
+                return exhaustiveMatchingGuard(item);
         }
     };
     const hasEndBeforeStartError = getVisibleErrorsByProp(
@@ -81,23 +110,21 @@ export const PlanDownloadAreaSection: React.FC<{
     const labelClasses = (hasErrors: boolean) =>
         createClassName(hasErrors && styles['plan-download-popup__field-label--error']);
 
-    const value: TrackNumberItemValue | LocationTrackItemValue | undefined =
-        selectedAsset?.type === 'TRACK_NUMBER'
-            ? {
-                  trackNumber: selectedAsset.asset,
-                  type: 'trackNumberSearchItem',
-              }
-            : selectedAsset?.type === 'LOCATION_TRACK'
-              ? {
-                    locationTrack: selectedAsset.asset,
-                    type: 'locationTrackSearchItem',
-                }
-              : undefined;
+    const selectedDropdownValue = inferDropdownItemValue(selectedAsset);
 
     const getName = (item: SearchItemValue) => {
-        if (item.type === 'locationTrackSearchItem') return item.locationTrack.name;
-        else if (item.type === 'trackNumberSearchItem') return item.trackNumber.number;
-        else return '';
+        switch (item.type) {
+            case SearchItemType.TRACK_NUMBER:
+                return item.trackNumber.number;
+            case SearchItemType.LOCATION_TRACK:
+                return item.locationTrack.name;
+            case SearchItemType.SWITCH:
+            case SearchItemType.OPERATING_POINT:
+                console.error('Unsupported item type', item.type);
+                return '';
+            default:
+                return exhaustiveMatchingGuard(item);
+        }
     };
     const errors = state.validationIssues.filter(filterErrors);
     const warnings = state.validationIssues.filter(filterWarnings);
@@ -132,7 +159,7 @@ export const PlanDownloadAreaSection: React.FC<{
                                         onItemSelected={onItemSelected}
                                         onBlur={() => onCommitField('asset')}
                                         hasError={hasErrors(state.committedFields, errors, 'asset')}
-                                        value={value}
+                                        value={selectedDropdownValue}
                                         getName={getName}
                                     />
                                 </div>

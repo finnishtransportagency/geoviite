@@ -15,9 +15,16 @@ import { LayoutContext } from 'common/common-model';
 import { debounceAsync } from 'utils/async-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 
+export enum SearchItemType {
+    LOCATION_TRACK = 'LOCATION_TRACK',
+    SWITCH = 'SWITCH',
+    TRACK_NUMBER = 'TRACK_NUMBER',
+    OPERATING_POINT = 'OPERATING_POINT',
+}
+
 export type LocationTrackItemValue = {
     locationTrack: LayoutLocationTrack;
-    type: 'locationTrackSearchItem';
+    type: SearchItemType.LOCATION_TRACK;
 };
 
 function createLocationTrackOptionItem(
@@ -26,7 +33,7 @@ function createLocationTrackOptionItem(
 ): Item<LocationTrackItemValue> {
     return dropdownOption(
         {
-            type: 'locationTrackSearchItem',
+            type: SearchItemType.LOCATION_TRACK,
             locationTrack: locationTrack,
         } as const,
         `${locationTrack.name}, ${description}`,
@@ -36,13 +43,13 @@ function createLocationTrackOptionItem(
 
 type SwitchItemValue = {
     layoutSwitch: LayoutSwitch;
-    type: 'switchSearchItem';
+    type: SearchItemType.SWITCH;
 };
 
 function createSwitchOptionItem(layoutSwitch: LayoutSwitch): Item<SwitchItemValue> {
     return dropdownOption(
         {
-            type: 'switchSearchItem',
+            type: SearchItemType.SWITCH,
             layoutSwitch: layoutSwitch,
         } as const,
         layoutSwitch.name,
@@ -52,7 +59,7 @@ function createSwitchOptionItem(layoutSwitch: LayoutSwitch): Item<SwitchItemValu
 
 export type TrackNumberItemValue = {
     trackNumber: LayoutTrackNumber;
-    type: 'trackNumberSearchItem';
+    type: SearchItemType.TRACK_NUMBER;
 };
 
 function createTrackNumberOptionItem(
@@ -60,7 +67,7 @@ function createTrackNumberOptionItem(
 ): Item<TrackNumberItemValue> {
     return dropdownOption(
         {
-            type: 'trackNumberSearchItem',
+            type: SearchItemType.TRACK_NUMBER,
             trackNumber: layoutTrackNumber,
         } as const,
         layoutTrackNumber.number,
@@ -70,7 +77,7 @@ function createTrackNumberOptionItem(
 
 type OperatingPointItemValue = {
     operatingPoint: OperatingPoint;
-    type: 'operatingPointSearchItem';
+    type: SearchItemType.OPERATING_POINT;
 };
 
 function createOperatingPointOptionItem(
@@ -79,7 +86,7 @@ function createOperatingPointOptionItem(
     return dropdownOption(
         {
             operatingPoint: operatingPoint,
-            type: 'operatingPointSearchItem',
+            type: SearchItemType.OPERATING_POINT,
         } as const,
         `${operatingPoint.name}, ${operatingPoint.abbreviation}`,
         `operating-point-${operatingPoint.name}`,

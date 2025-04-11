@@ -9,7 +9,7 @@ import {
     useReferenceLines,
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
-import { PlanDownloadAssetId } from 'map/plan-download/plan-download-store';
+import { PlanDownloadAssetId, PlanDownloadAssetType } from 'map/plan-download/plan-download-store';
 import { brand } from 'common/brand';
 
 type SelectionPanelContainerProps = {
@@ -51,12 +51,12 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
     const initialSelectionForPlanDownload: () => PlanDownloadAssetId | undefined = () => {
         if (state.selectedToolPanelTab?.type === 'TRACK_NUMBER') {
             return {
-                type: 'TRACK_NUMBER',
+                type: PlanDownloadAssetType.TRACK_NUMBER,
                 id: brand(state.selectedToolPanelTab.id),
             };
         } else if (state.selectedToolPanelTab?.type === 'LOCATION_TRACK') {
             return {
-                type: 'LOCATION_TRACK',
+                type: PlanDownloadAssetType.LOCATION_TRACK,
                 id: brand(state.selectedToolPanelTab.id),
             };
         }
