@@ -53,25 +53,29 @@ export type DownloadablePlan = {
     kmNumberRange: KmNumberRange | undefined;
 };
 
+export enum PlanDownloadAssetType {
+    TRACK_NUMBER = 'TRACK_NUMBER',
+    LOCATION_TRACK = 'LOCATION_TRACK',
+}
 export type PlanDownloadAssetId =
     | {
           id: LayoutTrackNumberId;
-          type: 'TRACK_NUMBER';
+          type: PlanDownloadAssetType.TRACK_NUMBER;
       }
-    | { id: LocationTrackId; type: 'LOCATION_TRACK' };
+    | { id: LocationTrackId; type: PlanDownloadAssetType.LOCATION_TRACK };
 
 type WithExtremities = {
     startAndEnd: AlignmentStartAndEnd;
 };
 export type TrackNumberAsset = {
     asset: LayoutTrackNumber;
-    type: 'TRACK_NUMBER';
+    type: PlanDownloadAssetType.TRACK_NUMBER;
 };
 export type TrackNumberAssetAndExtremities = TrackNumberAsset & WithExtremities;
 
 export type LocationTrackAsset = {
     asset: LayoutLocationTrack;
-    type: 'LOCATION_TRACK';
+    type: PlanDownloadAssetType.LOCATION_TRACK;
 };
 export type LocationTrackAssetAndExtremities = LocationTrackAsset & WithExtremities;
 
@@ -117,9 +121,9 @@ const validateAreaSelection = (state: PlanDownloadState): FieldValidationIssue<A
               }
             : undefined;
     const alignmentType =
-        state.areaSelection.asset?.type === 'LOCATION_TRACK'
+        state.areaSelection.asset?.type === PlanDownloadAssetType.LOCATION_TRACK
             ? 'location-track'
-            : state.areaSelection.asset?.type === 'TRACK_NUMBER'
+            : state.areaSelection.asset?.type === PlanDownloadAssetType.TRACK_NUMBER
               ? 'track-number'
               : undefined;
 

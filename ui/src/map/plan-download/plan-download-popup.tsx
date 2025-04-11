@@ -103,6 +103,8 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
     }, [assetAndStartAndEnd]);
 
     const [linkedPlans, planFetchStatus] = useLoaderWithStatus<DownloadablePlan[]>(
+        // NOTE: This operates using main-official by design. The popup can be visible in non-main-offical contexts
+        // (even if it is mostly disabled), and we don't want it to fetch plans in those contexts
         () => fetchDownloadablePlans(planDownloadState.areaSelection, officialMainLayoutContext()),
         [
             planDownloadState.areaSelection.asset,

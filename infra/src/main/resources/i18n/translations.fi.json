@@ -1360,7 +1360,8 @@
         "invalid-track-meter": "Tarkista ratakilometrin muoto",
         "end-before-start": "Ratakilometrin loppu on ennen alkua",
         "outside-track-number-range": "Ratakilometri ei osu ratanumeron alueelle ({{start}}-{{end}})",
-        "outside-location-track-range": "Ratakilometri ei osu raiteen alueelle ({{start}}-{{end}})"
+        "outside-location-track-range": "Ratakilometri ei osu raiteen alueelle ({{start}}-{{end}})",
+        "unsupported-result-type": "Tyyppi {{type}} ei ole tuettu"
     },
     "preview-view": {
         "unstaged-changes-title": "Muutokset ({{amount}} kpl)",
