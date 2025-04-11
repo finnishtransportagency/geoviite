@@ -115,15 +115,37 @@ const TrackMeterRange: React.FC<TrackMeterRangeProps> = ({ start, end }) => {
     );
 };
 
-export const AlignmentPlanSectionInfoboxContent: React.FC<
-    AlignmentPlanSectionInfoboxContentProps
-> = ({ sections, onHighlightSection }) => {
+const PlanVisibilityToggle: React.FC<{
+    section: AlignmentPlanSection;
+    isVisible: boolean;
+    togglePlanVisibility: (
+        planId: GeometryPlanId,
+        alignmentId: GeometryAlignmentId | undefined,
+    ) => void;
+}> = ({ section, isVisible, togglePlanVisibility }) => {
+    const planId = section.planId;
+
+    return (
+        <div
+            className={styles['alignment-plan-section-infobox__navigation-plan-visibility-toggle']}>
+            {planId && section.isLinked && (
+                <Eye
+                    visibility={isVisible}
+                    onVisibilityToggle={() => {
+                        togglePlanVisibility(planId, section.alignmentId);
+                    }}
+                />
+            )}
+        </div>
+    );
+};
+
+const AlignmentPlanSectionInfoboxContentM: React.FC<AlignmentPlanSectionInfoboxContentProps> = ({
+    sections,
+    onHighlightSection,
+}) => {
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const visiblePlans = useTrackLayoutAppSelector((state) => state.selection.visiblePlans);
-
-    function isVisible(planId: GeometryPlanId) {
-        return visiblePlans.some((plan) => plan.id === planId);
-    }
 
     function togglePlanVisibility(
         planId: GeometryPlanId,
@@ -160,28 +182,6 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
         }
     };
 
-    const PlanVisibilityToggle: React.FC<{
-        section: AlignmentPlanSection;
-    }> = ({ section }) => {
-        const planId = section.planId;
-
-        return (
-            <div
-                className={
-                    styles['alignment-plan-section-infobox__navigation-plan-visibility-toggle']
-                }>
-                {planId && section.isLinked && (
-                    <Eye
-                        visibility={isVisible(planId)}
-                        onVisibilityToggle={() => {
-                            togglePlanVisibility(planId, section.alignmentId);
-                        }}
-                    />
-                )}
-            </div>
-        );
-    };
-
     return (
         <React.Fragment>
             <InfoboxList>
@@ -208,7 +208,13 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                     'infobox__list-cell--strong',
                                     styles['alignment-plan-section-infobox__navigation'],
                                 )}>
-                                <PlanVisibilityToggle section={section} />
+                                <PlanVisibilityToggle
+                                    section={section}
+                                    togglePlanVisibility={togglePlanVisibility}
+                                    isVisible={visiblePlans.some(
+                                        (plan) => plan.id === section.planId,
+                                    )}
+                                />
                                 <TrackMeterRange start={section.start} end={section.end} />
                             </div>
                         }
@@ -218,3 +224,5 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
         </React.Fragment>
     );
 };
+
+export const AlignmentPlanSectionInfoboxContent = React.memo(AlignmentPlanSectionInfoboxContentM);

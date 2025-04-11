@@ -209,4 +209,4 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     );
 };
 
-export default LocationTrackInfobox;
+export default React.memo(LocationTrackInfobox);
