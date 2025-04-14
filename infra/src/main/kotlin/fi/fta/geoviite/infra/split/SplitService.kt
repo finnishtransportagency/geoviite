@@ -238,7 +238,7 @@ class SplitService(
                 listOf(
                     validationError(
                         "$VALIDATION_SPLIT.track-is-cancelled",
-                        "name" to context.getDraftLocationTrack(trackId)?.name,
+                        "name" to context.getCandidateLocationTrack(trackId)?.name,
                     )
                 )
             } else listOf()

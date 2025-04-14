@@ -1474,7 +1474,8 @@
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava ratanumero ei ole luonnos",
                 "reference-line": {
                     "not-published": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa",
-                    "cancelled": "Ratanumeron pituusmittauslinja on peruttu suunnitelmasta"
+                    "cancelled": "Ratanumeron pituusmittauslinja on peruttu suunnitelmasta",
+                    "cancelled-from-track-number": "Ratanumeron luomisen peruminen suunnitelmasta vaatii myös pituusmittauslinjan luomisen perumisen"
                 },
                 "location-track": {
                     "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen raiteita: {{locationTracks}}"
