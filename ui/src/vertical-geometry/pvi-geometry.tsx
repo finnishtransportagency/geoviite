@@ -11,11 +11,21 @@ import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { TrackMeter } from 'common/common-model';
 import { expectDefined } from 'utils/type-utils';
 
+export interface PviGeometryProps {
+    geometry: VerticalGeometryDiagramDisplayItem[];
+    kmHeights: TrackKmHeights[];
+    coordinates: Coordinates;
+    drawTangentArrows: boolean;
+}
+
 const minimumSpacePxForPviPointSideLabels = 14;
 const minimumSpacePxForPviPointTopLabel = 16;
 const minimumSpaceForTangentArrowLabel = 14;
 
 const pviAssistLineHeightPx = 40;
+
+const diamondHeightPx = 5;
+const diamondWidthPx = 2;
 
 function tangentArrow(
     left: boolean,
@@ -254,50 +264,125 @@ const PointAddressText: React.FC<{
     x: number;
     y: number;
     address: TrackMeter;
-}> = ({ x, y, address }) => {
-    return (
-        <text
-            className={styles['vertical-geometry-diagram__text-stroke-wide']}
-            transform={`translate(${x},${y}) rotate(-90) scale(0.7)`}>
-            KM {formatTrackMeterWithoutMeters(address)}
-        </text>
-    );
-};
+}> = ({ x, y, address }) => (
+    <text
+        className={styles['vertical-geometry-diagram__text-stroke-wide']}
+        transform={`translate(${x},${y})  rotate(-90) scale(0.7)`}>
+        KM {formatTrackMeterWithoutMeters(address)}
+    </text>
+);
 
-const PointHeightText: React.FC<{
-    x: number;
-    y: number;
-    height: number;
-}> = ({ x, y, height }) => {
-    return (
-        <text
-            className={styles['vertical-geometry-diagram__text-stroke-wide']}
-            transform={`translate(${x},${y}) rotate(-90) scale(0.7)`}>
-            kt={height.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-        </text>
-    );
-};
+const PointHeightText: React.FC<{ x: number; y: number; height: number }> = ({ height, x, y }) => (
+    <text
+        className={styles['vertical-geometry-diagram__text-stroke-wide']}
+        transform={`translate(${x},${y}) rotate(-90) scale(0.7)`}>
+        kt={height.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+    </text>
+);
 
-const PointRadiusText: React.FC<{
-    x: number;
-    y: number;
-    radius: number;
-}> = ({ x, y, radius }) => {
-    return (
-        <text
-            className={styles['vertical-geometry-diagram__text-stroke-wide']}
-            transform={`translate(${x},${y}) rotate(-90) scale(0.6)`}>
-            S={radius}
-        </text>
-    );
-};
+const PointRadiusText: React.FC<{ x: number; y: number; radius: number }> = ({ x, y, radius }) => (
+    <text
+        className={styles['vertical-geometry-diagram__text-stroke-wide']}
+        transform={`translate(${x},${y}) rotate(-90) scale(0.6)`}>
+        S={radius}
+    </text>
+);
 
-export interface PviGeometryProps {
+function getMinimumSpaceAroundPoint(
+    index: number,
+    geometry: VerticalGeometryDiagramDisplayItem[],
+    coordinates: Coordinates,
+): number {
+    const geo = expectDefined(geometry[index]);
+    const maybePreviousGeo = index === 0 ? undefined : geometry[index - 1];
+    const maybeNextGeo = index === geometry.length - 1 ? undefined : geometry[index + 1];
+
+    return (
+        Math.min(
+            ...[
+                maybePreviousGeo && maybePreviousGeo.point
+                    ? geo.point.station - maybePreviousGeo.point.station
+                    : undefined,
+
+                maybeNextGeo && maybeNextGeo.point
+                    ? maybeNextGeo.point.station - geo.point.station
+                    : undefined,
+            ].filter(filterNotEmpty),
+        ) * coordinates.mMeterLengthPxOverM
+    );
+}
+
+const PviArrow: React.FC<{ x: number; bottomY: number; topY: number }> = ({ x, bottomY, topY }) => (
+    <>
+        <line x1={x} x2={x} y1={bottomY} y2={topY} stroke="black" fill="none" />
+        <polyline
+            points={polylinePoints([
+                [x, topY],
+                [x - diamondWidthPx, topY - diamondHeightPx],
+                [x, topY - 2 * diamondHeightPx],
+                [x + diamondWidthPx, topY - diamondHeightPx],
+                [x, topY],
+            ])}
+            fill="black"
+            stroke="black"
+        />
+    </>
+);
+
+const PviPoint: React.FC<{
     geometry: VerticalGeometryDiagramDisplayItem[];
     kmHeights: TrackKmHeights[];
     coordinates: Coordinates;
     drawTangentArrows: boolean;
-}
+    index: number;
+}> = ({ geometry, kmHeights, coordinates, drawTangentArrows, index }) => {
+    const pviPoint = expectDefined(geometry[index]);
+
+    const x = mToX(coordinates, pviPoint.point.station);
+    // bottomY is on the height line (unless approximateHeightAt fails for whatever reason), topY is at the PVI
+    // line
+    const bottomHeight =
+        approximateHeightAtM(pviPoint.point.station, kmHeights) ?? pviPoint.point.height;
+    const bottomY = heightToY(coordinates, bottomHeight);
+    const topY = heightToY(coordinates, pviPoint.point.height) - pviAssistLineHeightPx;
+
+    const minimumSpaceAroundPointPx = getMinimumSpaceAroundPoint(index, geometry, coordinates);
+
+    const nextGeo = geometry[index + 1];
+    return (
+        <>
+            {nextGeo && (
+                <>
+                    <GeoLineDistanceAndAngleText
+                        coordinates={coordinates}
+                        geo={pviPoint}
+                        nextGeo={nextGeo}
+                    />
+                    <GeoLine coordinates={coordinates} geo={pviPoint} nextGeo={nextGeo} />,
+                </>
+            )}
+            {drawTangentArrows && (
+                <TangentArrows geo={pviPoint} coordinates={coordinates} kmHeights={kmHeights} />
+            )}
+            {minimumSpaceAroundPointPx > minimumSpacePxForPviPointSideLabels && (
+                <>
+                    {pviPoint.point.address && (
+                        <PointAddressText x={x - 8} y={topY - 4} address={pviPoint.point.address} />
+                    )}
+                    <PointHeightText x={x + 10} y={bottomY - 4} height={pviPoint.point.height} />
+                </>
+            )}
+            <PviArrow x={x} bottomY={bottomY} topY={topY} />
+            {minimumSpaceAroundPointPx > minimumSpacePxForPviPointTopLabel && (
+                <PointRadiusText
+                    x={x + diamondWidthPx}
+                    y={topY - diamondHeightPx - 10}
+                    radius={pviPoint.radius}
+                />
+            )}
+        </>
+    );
+};
 
 export const PviGeometry: React.FC<PviGeometryProps> = ({
     geometry,
@@ -310,8 +395,6 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
     if (!firstItem) {
         return <React.Fragment />;
     }
-    const pvis: React.JSX.Element[] = [];
-    let pviKey = 0;
 
     const leftmostPviInViewR = geometry.findIndex(
         (s) => s.point && s.point.station >= coordinates.startM,
@@ -323,136 +406,24 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
     const rightPviI =
         pastRightmostPviInViewR === -1 ? geometry.length - 1 : pastRightmostPviInViewR;
 
-    if (leftPviI === 0 && firstItem.start && firstItem.point) {
-        pvis.push(
-            <LeftMostStartingLine
-                key={pviKey++}
-                coordinates={coordinates}
-                verticalGeometryItem={firstItem}
-            />,
-        );
-    }
-
-    if (rightPviI === geometry.length - 1 && lastItem) {
-        pvis.push(
-            <RightMostEndingLine
-                key={pviKey++}
-                coordinates={coordinates}
-                verticalGeometryItem={lastItem}
-            />,
-        );
-    }
-
-    geometry.every((geo, index) => {
-        if (index === geometry.length - 1) return false;
-        const nextGeo = expectDefined(geometry[index + 1]);
-
-        if (!geo.point || !geo.end || !nextGeo.point) {
-            return true;
-        }
-
-        pvis.push(
-            <GeoLineDistanceAndAngleText
-                key={pviKey++}
-                coordinates={coordinates}
-                geo={geo}
-                nextGeo={nextGeo}
-            />,
-        );
-        pvis.push(<GeoLine key={pviKey++} coordinates={coordinates} geo={geo} nextGeo={nextGeo} />);
-        return true;
-    });
-
-    for (let i = leftPviI; i <= rightPviI; i++) {
-        const geo = geometry[i];
-        if (!geo?.point) {
-            continue;
-        }
-
-        const x = mToX(coordinates, geo.point.station);
-        // bottomY is on the height line (unless approximateHeightAt fails for whatever reason), topY is at the PVI
-        // line
-        const bottomHeight = approximateHeightAtM(geo.point.station, kmHeights) ?? geo.point.height;
-        const bottomY = heightToY(coordinates, bottomHeight);
-        const topY = heightToY(coordinates, geo.point.height) - pviAssistLineHeightPx;
-
-        const diamondHeight = 5;
-        const diamondWidth = 2;
-
-        const maybePreviousGeo = i === 0 ? undefined : geometry[i - 1];
-        const maybeNextGeo = i === geometry.length - 1 ? undefined : geometry[i + 1];
-
-        const minimumSpaceAroundPointPx =
-            Math.min(
-                ...[
-                    maybePreviousGeo && maybePreviousGeo.point
-                        ? geo.point.station - maybePreviousGeo.point.station
-                        : undefined,
-
-                    maybeNextGeo && maybeNextGeo.point
-                        ? maybeNextGeo.point.station - geo.point.station
-                        : undefined,
-                ].filter(filterNotEmpty),
-            ) * coordinates.mMeterLengthPxOverM;
-
-        if (drawTangentArrows) {
-            pvis.push(
-                <TangentArrows
-                    key={pviKey++}
-                    geo={geo}
-                    coordinates={coordinates}
+    return (
+        <>
+            {leftPviI === 0 && firstItem.start && firstItem.point && (
+                <LeftMostStartingLine coordinates={coordinates} verticalGeometryItem={firstItem} />
+            )}
+            {rightPviI === geometry.length - 1 && lastItem && (
+                <RightMostEndingLine coordinates={coordinates} verticalGeometryItem={lastItem} />
+            )}
+            {Array.from([...Array(rightPviI - leftPviI)].keys()).map((index) => (
+                <PviPoint
+                    key={expectDefined(geometry[index + leftPviI]).id}
+                    geometry={geometry}
                     kmHeights={kmHeights}
-                />,
-            );
-        }
-
-        if (minimumSpaceAroundPointPx > minimumSpacePxForPviPointSideLabels) {
-            if (geo.point.address) {
-                pvis.push(
-                    <PointAddressText
-                        key={pviKey++}
-                        x={x - 8}
-                        y={topY - 4}
-                        address={geo.point.address}
-                    />,
-                );
-            }
-
-            pvis.push(
-                <PointHeightText
-                    key={pviKey++}
-                    x={x + 10}
-                    y={bottomY - 4}
-                    height={geo.point.height}
-                />,
-            );
-        }
-
-        pvis.push(
-            <line key={pviKey++} x1={x} x2={x} y1={bottomY} y2={topY} stroke="black" fill="none" />,
-        );
-
-        const diamondPoints = polylinePoints([
-            [x, topY],
-            [x - diamondWidth, topY - diamondHeight],
-            [x, topY - 2 * diamondHeight],
-            [x + diamondWidth, topY - diamondHeight],
-            [x, topY],
-        ]);
-
-        pvis.push(<polyline key={pviKey++} points={diamondPoints} fill="black" stroke="black" />);
-
-        if (minimumSpaceAroundPointPx > minimumSpacePxForPviPointTopLabel) {
-            pvis.push(
-                <PointRadiusText
-                    key={pviKey++}
-                    x={x + diamondWidth}
-                    y={topY - diamondHeight - 10}
-                    radius={geo.radius}
-                />,
-            );
-        }
-    }
-
-    return <>{pvis}</>;
+                    coordinates={coordinates}
+                    drawTangentArrows={drawTangentArrows}
+                    index={index + leftPviI}
+                />
+            ))}
+        </>
+    );
 };
