@@ -381,7 +381,17 @@ constructor(
                     listOf()
                 }
 
-            referenceIssues + geocodingIssues
+            val duplicateNumberIssues =
+                if (kmPost.trackNumberId == null || trackNumberNumber == null) listOf()
+                else
+                    validateKmPostNumberDuplication(
+                        kmPost,
+                        trackNumberNumber,
+                        context.getKmPostsByTrackNumber(kmPost.trackNumberId),
+                        context.target.type,
+                    )
+
+            referenceIssues + geocodingIssues + duplicateNumberIssues
         }
 
     private fun validateSwitch(

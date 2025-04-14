@@ -90,19 +90,14 @@ fun validateTrackNumberNumberDuplication(
     trackNumber: LayoutTrackNumber,
     duplicates: List<LayoutTrackNumber>,
     validationTargetType: ValidationTargetType,
-): List<LayoutValidationIssue> {
-    return if (trackNumber.exists) {
-        validateNameDuplication(
-            VALIDATION_TRACK_NUMBER,
-            validationTargetType,
-            duplicates.any { d -> d.id != trackNumber.id && d.isOfficial },
-            duplicates.any { d -> d.id != trackNumber.id && d.isDraft },
-            "trackNumber" to trackNumber.number,
-        )
-    } else {
-        emptyList()
-    }
-}
+): List<LayoutValidationIssue> =
+    validateNameDuplication(
+        VALIDATION_TRACK_NUMBER,
+        validationTargetType,
+        duplicates.any { d -> d.id != trackNumber.id && d.isOfficial },
+        duplicates.any { d -> d.id != trackNumber.id && d.isDraft },
+        "trackNumber" to trackNumber.number,
+    )
 
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,
@@ -116,11 +111,7 @@ fun validateKmPostReferences(
             cancelledOrNotPublishedKey("$VALIDATION_KM_POST.track-number", trackNumberIsCancelled) to
                 localizationParams("trackNumber" to trackNumberNumber)
         },
-        // if the reference line doesn't exist, geocoding context validation doesn't happen, and
-        // that would cause duplicate km post validation to also be skipped, which then would let us
-        // get into a state where we hit the duplicate database constraint on km posts instead,
-        // hence this check also has to be fatal
-        validateWithParams(referenceLine != null, FATAL) {
+        validateWithParams(referenceLine != null) {
             "$VALIDATION_KM_POST.reference-line.not-published" to localizationParams("trackNumber" to trackNumberNumber)
         },
         validateWithParams(!kmPost.exists || trackNumber == null || trackNumber.state.isLinkable()) {
@@ -131,6 +122,23 @@ fun validateKmPostReferences(
             "$VALIDATION_KM_POST.track-number.not-official" to localizationParams("trackNumber" to trackNumber?.number)
         },
     )
+
+fun validateKmPostNumberDuplication(
+    kmPost: LayoutKmPost,
+    trackNumber: TrackNumber,
+    sameTrackNumberKmPosts: List<LayoutKmPost>,
+    validationTargetType: ValidationTargetType,
+): List<LayoutValidationIssue> {
+    val duplicates = sameTrackNumberKmPosts.filter { it.id != kmPost.id && it.kmNumber == kmPost.kmNumber }
+    return validateNameDuplication(
+        VALIDATION_KM_POST,
+        validationTargetType,
+        duplicates.any { it.isOfficial },
+        duplicates.any { it.isDraft },
+        "kmNumber" to kmPost.kmNumber,
+        "trackNumber" to trackNumber.toString(),
+    )
+}
 
 fun validateSwitchLocationTrackLinkReferences(
     switchExists: Boolean,

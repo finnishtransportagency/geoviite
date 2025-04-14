@@ -1507,7 +1507,9 @@
                 "reference-line": {
                     "null": "Tasakilometripisteen pituusmittauslinja ei ole mukana julkaisussa"
                 },
-                "duplicate-km-number": "Ratanumerolla ei voi olla kahta tasakilometripistettä samalla tunnuksella. Tunnus on jo käytössä tällä ratanumerolla."
+                "duplicate-name-official": "Ratanumerolla {{trackNumber}} on jo kilometri tunnuksella {{kmNumber}}",
+                "duplicate-name-draft": "Muutosjoukossa on monta tasakilometripistettä tunnuksella {{kmNumber}} ratanumerolla {{trackNumber}}",
+                "duplicate-name-draft-in-main": "Ratanumerolla {{trackNumber}} on jo luotu luonnostilassa kilometri tunnuksella {{kmNumber}}."
             },
             "reference-line": {
                 "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
