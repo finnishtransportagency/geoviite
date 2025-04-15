@@ -533,6 +533,21 @@ constructor(
         assertEquals(3, publicationDao.getPreviouslyPublishedDesignVersion(pub5, someDesign))
     }
 
+    @Test
+    fun `Publication has a generated uuid`() {
+        val publication =
+            publicationDao
+                .createPublication(
+                    MainLayoutContext.official.branch,
+                    FreeTextWithNewLines.of("test publication"),
+                    PublicationCause.MANUAL,
+                    parentId = null,
+                )
+                .let(publicationDao::getPublication)
+
+        assertTrue(publication.uuid.toString().isNotEmpty())
+    }
+
     private fun insertAndCheck(
         trackNumber: LayoutTrackNumber
     ): Pair<LayoutRowVersion<LayoutTrackNumber>, LayoutTrackNumber> {
