@@ -1,17 +1,24 @@
 package fi.fta.geoviite.infra.configuration
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_DEV_PATH
 import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_PATH
 import fi.fta.geoviite.infra.authorization.AUTH_FLAG_API_GEOMETRY
 =======
 import fi.fta.geoviite.infra.authorization.TODO_FLAG_API_GEOMETRY
 >>>>>>> 47ba0067e (wip: Multi swagger works)
+=======
+import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_DEV_PATH
+import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_PATH
+import fi.fta.geoviite.infra.authorization.AUTH_FLAG_API_GEOMETRY
+>>>>>>> 621880efa (wip)
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.annotation.Order
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy.STATELESS
@@ -24,6 +31,7 @@ class SecurityConfiguration {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Bean
+    @Order(100)
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
         logger.info("Configuring HTTP Security")
         return http
@@ -41,7 +49,7 @@ class SecurityConfiguration {
             // Set permissions on endpoints
             .authorizeHttpRequests { auth ->
                 auth
-                    // Dynamically generated openapi paths.
+                    // Dynamically generated openapi path auths.
                     .requestMatchers(OPENAPI_GEOVIITE_PATH, OPENAPI_GEOVIITE_DEV_PATH)
                     .hasAuthority(AUTH_FLAG_API_GEOMETRY)
                     // All others
