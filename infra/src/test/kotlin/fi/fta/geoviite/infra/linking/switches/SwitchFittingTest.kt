@@ -21,6 +21,7 @@ data class TrackForSwitchFitting(
 ) {
     val locationTrackId = locationTrack.id as IntId
     val trackAndGeometry = locationTrack to geometry
+    val length = geometry.length
 
     fun startPoint(): IPoint {
         return requireNotNull(geometry.start)
@@ -46,6 +47,67 @@ data class TrackForSwitchFitting(
         return expandTrackFromEnd(locationTrack, geometry, length).let { (locationTrack, geometry) ->
             this.copy(locationTrack = locationTrack, geometry = geometry)
         }
+    }
+
+    fun moveForward(distance: Double): TrackForSwitchFitting {
+        return moveTrackForward(locationTrack, geometry, distance).let { (locationTrack, geometry) ->
+            this.copy(locationTrack = locationTrack, geometry = geometry)
+        }
+    }
+
+    fun withSwitchJointAtEnd(
+        switchId: IntId<LayoutSwitch>,
+        switchStructure: SwitchStructureData,
+        jointNumber: Int,
+        direction: EdgeDirection = EdgeDirection.Along,
+    ): TrackForSwitchFitting {
+        return withSwitchJoint(length, switchId, switchStructure, jointNumber, direction)
+    }
+
+    fun withSwitchJointAtStart(
+        switchId: IntId<LayoutSwitch>,
+        switchStructure: SwitchStructureData,
+        jointNumber: Int,
+        direction: EdgeDirection = EdgeDirection.Along,
+    ): TrackForSwitchFitting {
+        return withSwitchJoint(0.0, switchId, switchStructure, jointNumber, direction)
+    }
+
+    fun withSwitchJoint(
+        mValue: Double,
+        switchId: IntId<LayoutSwitch>,
+        switchStructure: SwitchStructureData,
+        jointNumber: Int,
+        direction: EdgeDirection = EdgeDirection.Along,
+    ): TrackForSwitchFitting {
+        return withSwitchJoint(
+                locationTrack,
+                geometry,
+                mValue,
+                switchId,
+                switchStructure,
+                JointNumber(jointNumber),
+                direction,
+            )
+            .let { (locationTrack, geometry) -> this.copy(locationTrack = locationTrack, geometry = geometry) }
+    }
+
+    fun withTopologicalStartSwitch(
+        switchId: IntId<LayoutSwitch>,
+        switchStructure: SwitchStructureData,
+        jointNumber: Int,
+    ): TrackForSwitchFitting {
+        return withTopologicalStartSwitch(locationTrack, geometry, switchId, switchStructure, JointNumber(jointNumber))
+            .let { (locationTrack, geometry) -> this.copy(locationTrack = locationTrack, geometry = geometry) }
+    }
+
+    fun withTopologicalEndSwitch(
+        switchId: IntId<LayoutSwitch>,
+        switchStructure: SwitchStructureData,
+        jointNumber: Int,
+    ): TrackForSwitchFitting {
+        return withTopologicalEndSwitch(locationTrack, geometry, switchId, switchStructure, JointNumber(jointNumber))
+            .let { (locationTrack, geometry) -> this.copy(locationTrack = locationTrack, geometry = geometry) }
     }
 }
 
