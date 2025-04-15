@@ -178,31 +178,31 @@ export function sumPaddings(p1: string, p2: string) {
 
 export function substituteLayoutStationsForGeometryStations(
     geometryItem: VerticalGeometryItem,
-): VerticalGeometryDiagramDisplayItem {
-    return {
-        ...geometryItem,
+): VerticalGeometryDiagramDisplayItem | undefined {
+    return geometryItem.layoutPointStation === undefined
+        ? undefined
+        : {
+              ...geometryItem,
 
-        start: geometryItem.layoutStartStation
-            ? {
-                  ...geometryItem.start,
-                  station: geometryItem.layoutStartStation,
-              }
-            : undefined,
+              start: geometryItem.layoutStartStation
+                  ? {
+                        ...geometryItem.start,
+                        station: geometryItem.layoutStartStation,
+                    }
+                  : undefined,
 
-        point: geometryItem.layoutPointStation
-            ? {
+              point: {
                   ...geometryItem.point,
                   station: geometryItem.layoutPointStation,
-              }
-            : undefined,
+              },
 
-        end: geometryItem.layoutEndStation
-            ? {
-                  ...geometryItem.end,
-                  station: geometryItem.layoutEndStation,
-              }
-            : undefined,
-    };
+              end: geometryItem.layoutEndStation
+                  ? {
+                        ...geometryItem.end,
+                        station: geometryItem.layoutEndStation,
+                    }
+                  : undefined,
+          };
 }
 
 export function processPlanGeometries(geometry: VerticalGeometryItem[], staStart: number) {
@@ -223,6 +223,7 @@ export function processLayoutGeometries(
 
     return geometry
         .map(substituteLayoutStationsForGeometryStations)
+        .filter(filterNotEmpty)
         .filter(
             (geom) =>
                 (geom.start?.station &&

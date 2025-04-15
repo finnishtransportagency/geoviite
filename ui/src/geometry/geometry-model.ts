@@ -344,6 +344,6 @@ export type VerticalGeometryDiagramDisplayItem = Omit<
     'layoutStartStation' | 'layoutPointStation' | 'layoutEndStation' | 'start' | 'point' | 'end'
 > & {
     start: CircularCurve | undefined;
-    point: StationPoint | undefined;
+    point: StationPoint;
     end: CircularCurve | undefined;
 };

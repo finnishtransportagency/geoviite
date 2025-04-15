@@ -1,8 +1,9 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { SnappedPoint } from 'vertical-geometry/snapped-point';
 import { Coordinates } from 'vertical-geometry/coordinates';
 import { formatTrackMeter, formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import styles from './vertical-geometry-diagram.scss';
+import { useResizeObserver } from 'utils/use-resize-observer';
 
 interface HeightTooltipProps {
     point: SnappedPoint;
@@ -25,13 +26,16 @@ export const HeightTooltip: React.FC<HeightTooltipProps> = ({
     const [width, setWidth] = useState(0);
     const [height, setHeight] = useState(0);
 
-    useLayoutEffect(() => {
-        const boundingClientRect = ref.current?.getBoundingClientRect();
-        if (boundingClientRect) {
-            setWidth(boundingClientRect.width);
-            setHeight(boundingClientRect.height);
-        }
-    }, [coordinates, point, parentElementRect]);
+    useResizeObserver({
+        ref,
+        onResize: () => {
+            const boundingClientRect = ref.current?.getBoundingClientRect();
+            if (boundingClientRect) {
+                setWidth(boundingClientRect.width);
+                setHeight(boundingClientRect.height);
+            }
+        },
+    });
 
     return (
         <div
