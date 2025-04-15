@@ -49,16 +49,19 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
         1000,
         [locationTrackId, layoutContext.publicationState, layoutContext.branch, viewportDep],
     );
-    const onHighlightSection: OnHighlightSection = (section) =>
-        onHighlightItem(
-            section === undefined
-                ? undefined
-                : {
-                      ...section,
-                      id: locationTrackId,
-                      type: 'LOCATION_TRACK',
-                  },
-        );
+    const onHighlightSection: OnHighlightSection = React.useCallback(
+        (section) =>
+            onHighlightItem(
+                section === undefined
+                    ? undefined
+                    : {
+                          ...section,
+                          id: locationTrackId,
+                          type: 'LOCATION_TRACK',
+                      },
+            ),
+        [onHighlightItem, locationTrackId],
+    );
 
     return (
         <Infobox
