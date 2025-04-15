@@ -1,5 +1,8 @@
 package fi.fta.geoviite.infra.configuration
 
+import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_DEV_PATH
+import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_PATH
+import fi.fta.geoviite.infra.authorization.AUTH_FLAG_API_GEOMETRY
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
@@ -32,7 +35,15 @@ class SecurityConfiguration {
             // Set session management to stateless
             .sessionManagement { it.sessionCreationPolicy(STATELESS) }
             // Set permissions on endpoints
-            .authorizeHttpRequests { it.anyRequest().authenticated() }
+            .authorizeHttpRequests { auth ->
+                auth
+                    // Dynamically generated openapi paths.
+                    .requestMatchers(OPENAPI_GEOVIITE_PATH, OPENAPI_GEOVIITE_DEV_PATH)
+                    .hasAuthority(AUTH_FLAG_API_GEOMETRY)
+                    // All others
+                    .anyRequest()
+                    .authenticated()
+            }
             .build()
     }
 }
