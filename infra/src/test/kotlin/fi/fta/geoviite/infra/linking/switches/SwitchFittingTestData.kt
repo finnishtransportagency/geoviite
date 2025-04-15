@@ -216,7 +216,7 @@ fun withSwitchJoint(
     switchId: IntId<LayoutSwitch>,
     switchStructure: SwitchStructureData,
     jointNumber: JointNumber,
-    direction: EdgeDirection = EdgeDirection.Along,
+    direction: RelativeDirection = RelativeDirection.Along,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val edgeAtM = geometry.getEdgeAtMOrThrow(mValue)
     val jointOnEdge =

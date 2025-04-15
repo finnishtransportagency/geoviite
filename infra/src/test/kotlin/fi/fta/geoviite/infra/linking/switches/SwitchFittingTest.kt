@@ -59,7 +59,7 @@ data class TrackForSwitchFitting(
         switchId: IntId<LayoutSwitch>,
         switchStructure: SwitchStructureData,
         jointNumber: Int,
-        direction: EdgeDirection = EdgeDirection.Along,
+        direction: RelativeDirection = RelativeDirection.Along,
     ): TrackForSwitchFitting {
         return withSwitchJoint(length, switchId, switchStructure, jointNumber, direction)
     }
@@ -68,7 +68,7 @@ data class TrackForSwitchFitting(
         switchId: IntId<LayoutSwitch>,
         switchStructure: SwitchStructureData,
         jointNumber: Int,
-        direction: EdgeDirection = EdgeDirection.Along,
+        direction: RelativeDirection = RelativeDirection.Along,
     ): TrackForSwitchFitting {
         return withSwitchJoint(0.0, switchId, switchStructure, jointNumber, direction)
     }
@@ -78,7 +78,7 @@ data class TrackForSwitchFitting(
         switchId: IntId<LayoutSwitch>,
         switchStructure: SwitchStructureData,
         jointNumber: Int,
-        direction: EdgeDirection = EdgeDirection.Along,
+        direction: RelativeDirection = RelativeDirection.Along,
     ): TrackForSwitchFitting {
         return withSwitchJoint(
                 locationTrack,
