@@ -148,7 +148,8 @@ interface IAlignment : Loggable {
         return if (!bbox.intersects(boundingBox)) {
             listOf() // Shortcut: if it doesn't hit the alignment, it won't hit segments either
         } else if (boundingBox != null && bbox.contains(boundingBox!!)) {
-            segmentsWithM // Shortcut 2: if bbox includes the whole alignment bbox, return all segments
+            segmentsWithM // Shortcut 2: if bbox includes the whole alignment bbox, return all
+            // segments
         } else {
             segmentsWithM.filter { (s, _) -> s.boundingBox.intersects(bbox) }
         }
@@ -510,6 +511,38 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
 
     fun toAlignmentPoint(segmentStartM: Double, segmentPoint: SegmentPoint) =
         segmentPoint.toAlignmentPoint(segmentStartM)
+}
+
+fun splitSegments(
+    splitPositionM: Double,
+    segments: List<Pair<LayoutSegment, Range<Double>>>,
+): Pair<List<LayoutSegment>, List<LayoutSegment>> {
+    val head = 0
+    val tail = 1
+
+    val segmentsWithHeadInfo =
+        segments.flatMap { (segment, segmentMRange) ->
+            if (splitPositionM < segmentMRange.min)
+            // segment belongs to tail
+            listOf(segment to tail)
+            else if (splitPositionM >= segmentMRange.max)
+            // segment belongs to head
+            listOf(segment to head)
+            else {
+                // split segment into two
+                val splitPositionOnSegment = splitPositionM - segmentMRange.min
+                val newSegments = segment.splitAtM(splitPositionOnSegment, 0.001) // TODO: tolerance
+                listOfNotNull(
+                    newSegments.first to head,
+                    newSegments.second?.let { latterSegment -> latterSegment to tail },
+                )
+            }
+        }
+    val segmentGroups = segmentsWithHeadInfo.groupBy({ (_, headInfo) -> headInfo }, { (segment, _) -> segment })
+    val headGroup = segmentGroups[head] ?: listOf()
+    val tailGroup = segmentGroups[tail] ?: listOf()
+
+    return headGroup to tailGroup
 }
 
 data class PointSeekResult<T : IPoint3DM>(val point: T, val index: Int, val isSnapped: Boolean)

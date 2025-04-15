@@ -31,10 +31,10 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class SwitchLinkingTest {
     private var testLayoutSwitchId = IntId<LayoutSwitch>(0)
@@ -233,8 +233,10 @@ class SwitchLinkingTest {
 
     @Test
     fun shouldClearSwitchTopologyLinkingFromLocationTrackStart() {
-        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry, but...
-        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the same as
+        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry,
+        // but...
+        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the
+        // same as
         // TODO: LocationTrackGeometry.withoutSwitch
         val locationTrackWithStartLink =
             locationTrack(
@@ -251,8 +253,10 @@ class SwitchLinkingTest {
 
     @Test
     fun shouldClearSwitchTopologyLinkingFromLocationTrackEnd() {
-        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry, but...
-        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the same as
+        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry,
+        // but...
+        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the
+        // same as
         // TODO: LocationTrackGeometry.withoutSwitch
         val locationTrackWithEndLink =
             locationTrack(
@@ -269,8 +273,10 @@ class SwitchLinkingTest {
 
     @Test
     fun shouldClearSwitchLinkingInfoFromAlignment() {
-        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry, but...
-        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the same as
+        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry,
+        // but...
+        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the
+        // same as
         // TODO: LocationTrackGeometry.withoutSwitch
         val (origLocationTrack, origAlignment) =
             locationTrackWithTwoSwitches(
@@ -855,6 +861,193 @@ class SwitchLinkingTest {
             getSwitchBoundsFromTracks(listOf(track1, track2, track3).map { (_, geom) -> geom }, switchId),
         )
     }
+
+    /* Testicaset
+    Vaihteen jointtien sijaintien etsiminen
+
+    Vaihteen alignment kahdella edgellä (eli limittäiset vaihteet)
+    - tästä on kaksi eri tapausta
+        - edgeillä on sama raide, jolloin vaihdealueelle jää vaihdepiste
+        - edgeillä on eri raide
+     */
+    //
+
+    @Test
+    fun `Should link fitted switch to edges in simple and clean case`() {
+        // track A   track B
+        //  2 |    / 3
+        //    |   /
+        //  5 |  /
+        //    | /
+        //  1 |/ 1
+        //
+        val switchStructure = YV60_300_1_9_O()
+        val switchId = IntId<LayoutSwitch>(1)
+
+        // in this test tracks don't need to match switch structure geometrically,
+        // but it might be easier to follow the test this way
+        val trackA = createTrack(switchStructure, asJointNumbers(1, 5, 2))
+        val trackB = createTrack(switchStructure, asJointNumbers(1, 3))
+        val allTracks = listOf(trackA.trackAndGeometry, trackB.trackAndGeometry)
+
+        // manually defined fitted switch, m-values don't need to match to switch structure
+        val fittedSwitch =
+            fittedSwitch(
+                switchStructure,
+                fittedJointMatch(trackA, 1, 0.0),
+                fittedJointMatch(trackA, 5, 16.0),
+                fittedJointMatch(trackA, 2, 30.0),
+                fittedJointMatch(trackB, 1, 0.0),
+                fittedJointMatch(trackB, 3, 32.567),
+            )
+
+        val linkedTracks = linkFittedSwitch(switchId, fittedSwitch, nearbyTracks = allTracks)
+
+        // validate
+        assertSwitchNodeExists(linkedTracks, trackA.locationTrackId, switchId = switchId, joint = 1, mValue = 0.0)
+        assertSwitchNodeExists(linkedTracks, trackA.locationTrackId, switchId = switchId, joint = 5, mValue = 16.0)
+        assertSwitchNodeExists(linkedTracks, trackA.locationTrackId, switchId = switchId, joint = 2, mValue = 30.0)
+        assertJointsOnSequentialEdges(
+            linkedTracks,
+            trackA.locationTrackId,
+            switchId = switchId,
+            joints = listOf(1, 5, 2),
+        )
+
+        assertSwitchNodeExists(linkedTracks, trackB.locationTrackId, switchId = switchId, joint = 1, mValue = 0.0)
+        assertSwitchNodeExists(linkedTracks, trackB.locationTrackId, switchId = switchId, joint = 3, mValue = 32.567)
+        assertJointsOnSequentialEdges(linkedTracks, trackB.locationTrackId, switchId = switchId, joints = listOf(1, 3))
+    }
+
+    @Test
+    fun `Should adjust joint position in switch linking to handle overlapping switches`() {
+        // Diverging tracks are somewhat irrelevant in this test and are therefore ignored.
+        //
+        //     track A    track B
+        //  ├──────────┼──────────┤
+        //             1     5    2   existing switch
+        //  1     5     2             new switch
+        //
+        //  Joint 2 of new switch overlaps area of the existing switch. Joint 2 should be
+        //  moved to the end of track A.
+        //
+        val switchStructure = YV60_300_1_9_O()
+        val existingSwitchId = IntId<LayoutSwitch>(1)
+        val newSwitchId = IntId<LayoutSwitch>(2)
+        val overlappingLength = 1.0
+
+        // in this test tracks don't need to match switch structure geometrically,
+        // but might help debugging
+        val trackA =
+            createTrack(switchStructure, asJointNumbers(1, 5, 2), "track A")
+                .withTopologicalEndSwitch(existingSwitchId, switchStructure, 1)
+        val trackB =
+            createTrack(switchStructure, asJointNumbers(1, 5, 2), "track B")
+                .moveForward(trackA.length) // this is unnecessary for the test, but might help debugging
+                .withSwitchJointAtStart(existingSwitchId, switchStructure, 1)
+        val allTracks = listOf(trackA.trackAndGeometry, trackB.trackAndGeometry)
+
+        // manually defined fitted switch, m-values don't need to match to switch structure
+        // but are relevant for geometry checks
+        val fittedSwitch =
+            fittedSwitch(
+                switchStructure,
+                fittedJointMatch(trackA, 1, 0.0),
+                fittedJointMatch(trackA, 5, trackA.length / 2),
+                // NOTE! joint 2 exists on track B
+                fittedJointMatch(trackB, 2, overlappingLength),
+            )
+
+        val linkedTracks = linkFittedSwitch(newSwitchId, fittedSwitch, nearbyTracks = allTracks)
+
+        // validate
+        assertSwitchNodeExists(linkedTracks, trackA.locationTrackId, switchId = newSwitchId, joint = 1, mValue = 0.0)
+        assertSwitchNodeExists(
+            linkedTracks,
+            trackA.locationTrackId,
+            switchId = newSwitchId,
+            joint = 5,
+            mValue = trackA.length / 2,
+        )
+        assertSwitchNodeExists(
+            linkedTracks,
+            trackA.locationTrackId,
+            switchId = newSwitchId,
+            joint = 2,
+            mValue = trackA.length, // joint 2 should be moved to the end of track A
+        )
+        assertJointsOnSequentialEdges(
+            linkedTracks,
+            trackA.locationTrackId,
+            switchId = newSwitchId,
+            joints = listOf(1, 5, 2),
+        )
+    }
+
+    //    @Test
+    //    fun `foo test`() {
+    //        val yv = YV54_200_1_9_V()
+    //        val joint3 = (yv.joints.find { j -> j.number == JointNumber(3) })!!
+    //        val joint2 = (yv.joints.find { j -> j.number == JointNumber(2) })!!
+    //        val joint5 = (yv.joints.find { j -> j.number == JointNumber(5) })!!
+    //
+    //        val locationTrackId = IntId<LocationTrack>(1)
+    //        val startNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.START)
+    //        val endNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.END)
+    //        val segments = listOf(segment(Point(0.0, 0.0), joint3.location))
+    //        val startEdgeNode = TmpEdgeNode(NodePortType.A, startNode)
+    //        val endEdgeNode = TmpEdgeNode(NodePortType.A, endNode)
+    //        val curveEdge = TmpLayoutEdge(startEdgeNode, endEdgeNode, segments)
+    //
+    //        val locationTrackId2 = IntId<LocationTrack>(2)
+    //        val startNode2 = TmpTrackBoundaryNode(locationTrackId2, TrackBoundaryType.START)
+    //        val endNode2 = TmpTrackBoundaryNode(locationTrackId2, TrackBoundaryType.END)
+    //        val segments2 = listOf(segment(Point(0.0, 0.0), Point(50.0, 0.0)))
+    //        val startEdgeNode2 = TmpEdgeNode(NodePortType.A, startNode2)
+    //        val endEdgeNode2 = TmpEdgeNode(NodePortType.A, endNode2)
+    //        val straightEdge = TmpLayoutEdge(startEdgeNode2, endEdgeNode2, segments2)
+    //
+    //        val switchId = IntId<LayoutSwitch>(10)
+    //        val linkedCurveEdges =
+    //            linkJointsToEdge(
+    //                switchId,
+    //                curveEdge,
+    //                listOf(
+    //                    JointOnEdge(locationTrackId, curveEdge, 0.0, switchId,
+    // SwitchJointRole.MAIN, JointNumber(1)),
+    //                    SwitchJointPositionOnEdge(
+    //                        curveEdge,
+    //                        lineLength(Point(0.0, 0.0), joint3.location),
+    //                        switchId,
+    //                        SwitchJointRole.CONNECTION,
+    //                        JointNumber(3),
+    //                    ),
+    //                ),
+    //            )
+    //        val linkedStraightEdges =
+    //            linkJointsToEdge(
+    //                straightEdge,
+    //                listOf(
+    //                    SwitchJointPositionOnEdge(straightEdge, 0.0, switchId,
+    // SwitchJointRole.MAIN, JointNumber(1)),
+    //                    SwitchJointPositionOnEdge(
+    //                        straightEdge,
+    //                        lineLength(Point(0.0, 0.0), joint5.location),
+    //                        switchId,
+    //                        SwitchJointRole.MATH,
+    //                        JointNumber(5),
+    //                    ),
+    //                    SwitchJointPositionOnEdge(
+    //                        straightEdge,
+    //                        lineLength(Point(0.0, 0.0), joint2.location),
+    //                        switchId,
+    //                        SwitchJointRole.CONNECTION,
+    //                        JointNumber(2),
+    //                    ),
+    //                ),
+    //            )
+    //    }
+
 }
 
 private fun getJoint(switchSuggestion: FittedSwitch, jointNumber: Int) =
@@ -887,4 +1080,54 @@ private fun assertJointMatchExists(
     if (matchType != null)
         assertEquals(matchType, match.matchType, "match type for joint $jointNumber on track $locationTrackId")
     assertEquals(segmentIndex, match.segmentIndex, "segment index for joint $jointNumber on track $locationTrackId")
+}
+
+fun assertTrackAndGeometry(
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    locationTrackId: DomainId<LocationTrack>,
+): Pair<LocationTrack, LocationTrackGeometry> {
+    val trackAndGeometry = tracks.firstOrNull { (locationTrack, _) -> locationTrack.id == locationTrackId }
+    assertNotNull(trackAndGeometry, "Tracks do not contain location track $locationTrackId")
+    return trackAndGeometry
+}
+
+fun assertSwitchNodeExists(
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    locationTrackId: DomainId<LocationTrack>,
+    switchId: IntId<LayoutSwitch>,
+    joint: Int,
+    mValue: Double,
+) {
+    val (locationTrack, geometry) = assertTrackAndGeometry(tracks, locationTrackId)
+    val switchNode = geometry.nodes.firstOrNull { node -> node.containsInnerSwitch(switchId) }
+    assertNotNull(switchNode, "Location track ${locationTrack.name} nodes do not contain switch $switchId")
+    val jointNodeAndLocation =
+        geometry.nodesWithLocation.firstOrNull { (node, _) -> node.containsInnerJoint(switchId, JointNumber(joint)) }
+    assertNotNull(
+        jointNodeAndLocation,
+        "Location track ${locationTrack.name} nodes do not contain switch $switchId with joint $joint",
+    )
+    val (_, location) = jointNodeAndLocation
+    assertEquals(mValue, location.m, 0.001, "Node for joint $joint M-value is not matching")
+}
+
+fun assertJointsOnSequentialEdges(
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    locationTrackId: DomainId<LocationTrack>,
+    switchId: IntId<LayoutSwitch>,
+    joints: List<Int>,
+) {
+    val (locationTrack, geometry) = assertTrackAndGeometry(tracks, locationTrackId)
+    val nodeIndexes =
+        joints.map { joint ->
+            val nodeIndex =
+                geometry.nodes.indexOfFirst { node -> node.containsInnerJoint(switchId, JointNumber(joint)) }
+            assertTrue(
+                nodeIndex != -1,
+                "Location track ${locationTrack.name} nodes do not contain switch $switchId with joint $joint",
+            )
+            nodeIndex
+        }
+    val isContinuous = nodeIndexes.zipWithNext { index1, index2 -> index1 + 1 == index2 }.all { it }
+    assertTrue(isContinuous, "Joints $joints are not in continuous edges, node indexes: $nodeIndexes")
 }

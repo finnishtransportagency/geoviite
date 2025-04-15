@@ -204,6 +204,10 @@ data class SwitchStructureAlignment(val jointNumbers: List<JointNumber>, val ele
         require(jointNumbers.isNotEmpty()) { "Switch structure alignment must have some joints" }
         require(elements.isNotEmpty()) { "Switch structure alignment must have some elements" }
     }
+
+    fun length(): Double {
+        return elements.sumOf { element -> lineLength(element.start, element.end) }
+    }
 }
 
 interface ISwitchStructure {
