@@ -242,10 +242,13 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
         },
     });
 
-    function onMove(startM: number, endM: number) {
-        setAlignmentAndExtents({ alignmentId, startM, endM });
-        setSavedVisibleExtentM(startM, endM);
-    }
+    const onMove = React.useCallback(
+        function onMove(startM: number, endM: number) {
+            setAlignmentAndExtents({ alignmentId, startM, endM });
+            setSavedVisibleExtentM(startM, endM);
+        },
+        [setAlignmentAndExtents, setSavedVisibleExtentM, alignmentId],
+    );
 
     return (
         <div ref={ref} className={styles['vertical-geometry-diagram-holder']}>
