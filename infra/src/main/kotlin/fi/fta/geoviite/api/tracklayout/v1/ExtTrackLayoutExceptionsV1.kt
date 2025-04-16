@@ -33,3 +33,9 @@ class ExtGeocodingFailedV1(
     cause: Throwable? = null,
     localizedMessageKey: String = "ext-api.track-layout.v1.error.geocoding-failed",
 ) : ExtApiExceptionV1(HttpStatus.INTERNAL_SERVER_ERROR, "geocoding failed: $message", cause, localizedMessageKey)
+
+class ExtTrackNumberNotFoundV1(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "ext-api.track-layout.v1.error.track-number-not-found",
+) : ExtApiExceptionV1(HttpStatus.INTERNAL_SERVER_ERROR, "track number not found: $message", cause, localizedMessageKey)
