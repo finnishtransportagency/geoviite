@@ -38,7 +38,7 @@ data class ExtLocationTrackResponseV1(
 @Schema(name = "Vastaus: Muutettu sijaintiraide")
 data class ExtModifiedLocationTrackResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
-    @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>?,
+    @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
     @JsonProperty("sijaintiraide") val locationTrack: ExtLocationTrackV1,
 )
 
