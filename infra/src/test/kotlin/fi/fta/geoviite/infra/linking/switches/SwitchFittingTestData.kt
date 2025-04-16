@@ -56,11 +56,15 @@ fun createTrack(
     return TrackForSwitchFitting(jointNumbers, locationTrack, geometry)
 }
 
+fun locationTrackIdByName(name: String): IntId<LocationTrack> {
+    return IntId(Math.abs(name.hashCode()))
+}
+
 fun createTrack(
     segmentEndPoints: List<Pair<IPoint, IPoint>>,
     trackName: String,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val locationTrackId = IntId<LocationTrack>(trackName.hashCode())
+    val locationTrackId = locationTrackIdByName(trackName)
     val startNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.START)
     val endNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.END)
     val (_, segments) =
@@ -255,7 +259,7 @@ fun withSwitchJoint(
     jointNumber: JointNumber,
     direction: RelativeDirection = RelativeDirection.Along,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val edgeAtM = geometry.getEdgeAtMOrThrow(mValue)
+    val (edgeAtM, mRange) = geometry.getEdgeAtMOrThrow(mValue)
     val jointOnEdge =
         JointOnEdge(
             locationTrackId = locationTrack.id as IntId,
@@ -263,7 +267,7 @@ fun withSwitchJoint(
             jointNumber = jointNumber,
             jointRole = SwitchJointRole.of(asSwitchStructure(switchStructure), jointNumber),
             edge = edgeAtM,
-            m = mValue,
+            m = mValue - mRange.min,
             direction = direction,
         )
 

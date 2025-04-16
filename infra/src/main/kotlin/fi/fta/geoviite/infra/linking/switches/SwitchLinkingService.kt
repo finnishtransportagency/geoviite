@@ -1210,14 +1210,14 @@ fun mapFittedSwitchToEdges(
             joint.matches.map { match ->
                 val (locationTrack, geometry) =
                     nearbyTracks.first { (locationTrack, _) -> locationTrack.id == match.locationTrackId }
-                val edge = geometry.getEdgeAtMOrThrow(match.m)
+                val (edge, mRange) = geometry.getEdgeAtMOrThrow(match.m)
                 JointOnEdge(
                     locationTrackId = locationTrack.id as IntId,
                     geometry = geometry,
                     jointNumber = match.switchJoint.number,
                     jointRole = SwitchJointRole.of(fittedSwitch.switchStructure, joint.number),
                     edge = edge,
-                    m = match.m,
+                    m = match.m - mRange.min,
                     direction = RelativeDirection.Along, // TODO: Suunta pitäisi saada fitted switchiltä
                 )
             }
@@ -1508,9 +1508,13 @@ fun clearSwitchFromTracks(
     tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): List<Pair<LocationTrack, LocationTrackGeometry>> {
     return tracks.map { (locationTrack, geometry) ->
-        val edgesWithoutSwitch = geometry.edges.map { edge -> edge.withoutSwitch(switchId) }
-        val newGeometry = TmpLocationTrackGeometry(edgesWithoutSwitch)
-        locationTrack to newGeometry
+        if (geometry.nodes.any { node -> node.containsSwitch(switchId) }) {
+            val edgesWithoutSwitch = geometry.edges.map { edge -> edge.withoutSwitch(switchId) }
+            val newGeometry = TmpLocationTrackGeometry(combineEdges(edgesWithoutSwitch))
+            locationTrack to newGeometry
+        } else {
+            locationTrack to geometry
+        }
     }
 }
 
@@ -1518,16 +1522,26 @@ fun linkFittedSwitch(
     switchId: IntId<LayoutSwitch>,
     fittedSwitch: FittedSwitch,
     nearbyTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
-    // TODO: +tällä hetkellä kytkeytyvät raiteet, joista pitää poistaa viittaukset
+    tracksContainingSwitch: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): List<Pair<LocationTrack, LocationTrackGeometry>> {
-    val tracksWithoutSwitch = clearSwitchFromTracks(switchId, nearbyTracks)
-    val locationTracks = tracksWithoutSwitch.map { (locationTrack, _) -> locationTrack }
-    val locationTracksById = locationTracks.associateBy { locationTrack -> locationTrack.id }
-    val jointsOnEdges = mapFittedSwitchToEdges(fittedSwitch, tracksWithoutSwitch)
+    val farawayTracks =
+        tracksContainingSwitch.filter { (locationTrack, _) ->
+            val isNearbyTrack = nearbyTracks.any { (nearbyTrack, _) -> nearbyTrack.id == locationTrack.id }
+            !isNearbyTrack
+        }
+    val farawayTracksWithoutSwitch = clearSwitchFromTracks(switchId, farawayTracks)
+
+    val nearbyTracksWithoutSwitch = clearSwitchFromTracks(switchId, nearbyTracks)
+    val jointsOnEdges = mapFittedSwitchToEdges(fittedSwitch, nearbyTracksWithoutSwitch)
     val adjustedJointsOnEdges = adjustJointPositions(fittedSwitch, jointsOnEdges)
     val validatedJoints = filterValidJointsOnEdge(fittedSwitch.switchStructure, adjustedJointsOnEdges, nearbyTracks)
     val jointsOnSingleEdge = mergeJointsOnEdgesIntoSingleEdge(validatedJoints) // Onko tarpeen
     val jointsByEdge = jointsOnSingleEdge.groupBy { joint -> joint.edge }
+
+    val locationTracksById =
+        nearbyTracksWithoutSwitch
+            .map { (locationTrack, _) -> locationTrack }
+            .associateBy { locationTrack -> locationTrack.id }
     val linkedGeometryByLocationTrack =
         jointsByEdge.map { (edge, joints) ->
             val locationTrack = requireNotNull(locationTracksById[joints.first().locationTrackId])
@@ -1537,5 +1551,5 @@ fun linkFittedSwitch(
             locationTrack to newGeometry
         }
     // topologialinkitys tähän
-    return linkedGeometryByLocationTrack
+    return linkedGeometryByLocationTrack + farawayTracksWithoutSwitch
 }

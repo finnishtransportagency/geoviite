@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.asSwitchStructure
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.IPoint
@@ -11,6 +12,7 @@ import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.createMainContext
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -19,9 +21,18 @@ data class TrackForSwitchFitting(
     val locationTrack: LocationTrack,
     val geometry: LocationTrackGeometry,
 ) {
+    val name = locationTrack.name
     val locationTrackId = locationTrack.id as IntId
     val trackAndGeometry = locationTrack to geometry
     val length = geometry.length
+
+    fun asNew(name: String): TrackForSwitchFitting {
+        val newId = locationTrackIdByName(name)
+        return copy(
+            locationTrack =
+                locationTrack.copy(contextData = createMainContext(newId, false), name = AlignmentName(name))
+        )
+    }
 
     fun startPoint(): IPoint {
         return requireNotNull(geometry.start)

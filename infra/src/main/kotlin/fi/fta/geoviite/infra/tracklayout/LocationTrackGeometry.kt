@@ -99,7 +99,8 @@ sealed class LocationTrackGeometry : IAlignment {
     @get:JsonIgnore
     val trackSwitchLinks: List<TrackSwitchLink> by lazy {
         edgesWithM.flatMapIndexed { i, (e, m) ->
-            // Init-block ensures that edges are connected: previous edge end node is the next edge start node
+            // Init-block ensures that edges are connected: previous edge end node is the next edge
+            // start node
             val start = e.firstSegmentStart.toAlignmentPoint(m.min)
             val startSwitches: List<TrackSwitchLink> =
                 listOfNotNull(
@@ -200,13 +201,13 @@ sealed class LocationTrackGeometry : IAlignment {
             }
         )
 
-    fun getEdgeAtMOrThrow(m: Double): LayoutEdge {
+    fun getEdgeAtMOrThrow(m: Double): Pair<LayoutEdge, Range<Double>> {
         return requireNotNull(getEdgeAtM(m)) { "Geometry does not contain edge at m $m" }
     }
 
-    fun getEdgeAtM(m: Double): LayoutEdge? {
+    fun getEdgeAtM(m: Double): Pair<LayoutEdge, Range<Double>>? {
         // TODO: optimize
-        return edgesWithM.firstOrNull { (_, mRange) -> mRange.contains(m) }?.first
+        return edgesWithM.firstOrNull { (_, mRange) -> mRange.contains(m) }
     }
 
     fun mergeEdges(edgesToMerge: List<LayoutEdge>): LocationTrackGeometry {
@@ -782,7 +783,8 @@ fun verifySwitchNode(portA: SwitchLink, portB: SwitchLink?) {
         "Switch node cannot have two connections to the same switch (1 joint of a switch in 1 location): portA=$portA portB=$portB"
     }
     //        require(portA.id != portB?.id || portA.jointNumber != portB.jointNumber) {
-    //    "Switch node cannot have two identical ports (they should be the same single port): portA=$portA portB=$portB"
+    //    "Switch node cannot have two identical ports (they should be the same single port):
+    // portA=$portA portB=$portB"
     // }
 }
 
@@ -811,10 +813,12 @@ private fun comparePorts(port1: NodePort?, port2: NodePort?): Int =
     }
 
 fun combineEligibleNodes(nodes: List<LayoutNode>): Map<LayoutNode, LayoutNode> {
-    // Match targets in priority order for deterministic results in case multiple combinations are possible
+    // Match targets in priority order for deterministic results in case multiple combinations are
+    // possible
     val targets = nodes.toSortedSet(nodeCombinationPriority)
     return nodes
-        // Do the combinations in priority order to produce any high-priority combination nodes for further attempts
+        // Do the combinations in priority order to produce any high-priority combination nodes for
+        // further attempts
         .sortedWith(nodeCombinationPriority)
         // Double-port nodes cannot be further connected
         .filter { node -> node.ports.size == 1 }
@@ -823,7 +827,8 @@ fun combineEligibleNodes(nodes: List<LayoutNode>): Map<LayoutNode, LayoutNode> {
             targets
                 // Since we're combining a single-port node -> there can only be port A
                 .firstNotNullOfOrNull { other -> tryToCombinePortToNode(node.portA, other) }
-                // If the best match is a combination-switch node, there's multiple switches to connect to
+                // If the best match is a combination-switch node, there's multiple switches to
+                // connect to
                 // For a track boundary, we couldn't know which one to use -> don't connect at all
                 ?.takeIf { newNode -> node.type != TRACK_BOUNDARY || newNode.type != SWITCH || newNode.portB == null }
                 ?.also(targets::add)
@@ -837,7 +842,8 @@ private fun tryToCombinePortToNode(ownPort: NodePort, otherNode: LayoutNode): La
         // Switch link can be connected to any other switch link that is either:
         // * A single-switch node with a link to a different switch
         // * A double-switch node where one of the links is this one (switch & joint)
-        // Note: this might create multiple tmp-nodes for the same link-combination, but they will be joined upon saving
+        // Note: this might create multiple tmp-nodes for the same link-combination, but they will
+        // be joined upon saving
         is SwitchLink -> {
             val otherA = otherNode.portA as? SwitchLink
             val otherB = otherNode.portB as? SwitchLink
