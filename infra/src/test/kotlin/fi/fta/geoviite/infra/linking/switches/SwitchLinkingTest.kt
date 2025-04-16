@@ -33,10 +33,10 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class SwitchLinkingTest {
     private var testLayoutSwitchId = IntId<LayoutSwitch>(0)
@@ -1209,6 +1209,90 @@ class SwitchLinkingTest {
     }
 
     @Test
+    fun `Should adjust and accept partial joint sequence in switch linking`() {
+        // RR-type switches contain partial joint sequences.
+        //
+        //               4 /
+        //                /
+        //               /
+        //    1        5/       2
+        //  ─────────────┼───────────
+        //   track A  /    track B
+        //           /
+        //        3 /
+        //       track C
+        //
+        // End of the track A is slightly off but in adjustment tolerance.
+        // Joints 1 and 5 should be linked to track A
+        // Joints 5 and 2 should be linked to track B
+        // Joints 3, 5 and 4 should be linked to track C
+        //
+        val switchStructure = RR54_1_9()
+        val newSwitchId = IntId<LayoutSwitch>(2)
+
+        // in this test tracks don't need to match switch structure geometrically,
+        // but might help debugging
+        val trackA = createTrack(switchStructure, asJointNumbers(1, 5), "track A")
+        val trackB = createTrack(switchStructure, asJointNumbers(5, 2), "track B")
+        val trackC = createTrack(switchStructure, asJointNumbers(3, 5, 4), "track C")
+        val allTracks = listOf(trackA.trackAndGeometry, trackB.trackAndGeometry, trackC.trackAndGeometry)
+
+        // manually defined fitted switch, m-values don't need to match to switch structure
+        // but are relevant for geometry checks
+        val fittedSwitch =
+            fittedSwitch(
+                switchStructure,
+                // track A
+                fittedJointMatch(trackA, 1, 0.0),
+                fittedJointMatch(trackA, 5, trackA.length),
+                // track B
+                fittedJointMatch(trackB, 5, 0.0),
+                fittedJointMatch(trackB, 2, trackB.length),
+                // track C
+                fittedJointMatch(trackC, 3, 0.0),
+                fittedJointMatch(trackC, 5, trackC.length / 2),
+                fittedJointMatch(trackC, 4, trackC.length),
+            )
+
+        val linkedTracks = linkFittedSwitch(newSwitchId, fittedSwitch, nearbyTracks = allTracks)
+
+        // validate
+        assertSwitchNodeExists(
+            linkedTracks,
+            trackA.locationTrackId,
+            switchId = newSwitchId,
+            jointsWithM =
+                listOf( //
+                    1 to 0.0,
+                    5 to trackA.length,
+                ),
+        )
+
+        assertSwitchNodeExists(
+            linkedTracks,
+            trackB.locationTrackId,
+            switchId = newSwitchId,
+            jointsWithM =
+                listOf( //
+                    5 to 0.0,
+                    2 to trackB.length,
+                ),
+        )
+
+        assertSwitchNodeExists(
+            linkedTracks,
+            trackC.locationTrackId,
+            switchId = newSwitchId,
+            jointsWithM =
+                listOf( //
+                    3 to 0.0,
+                    5 to trackC.length / 2,
+                    4 to trackC.length,
+                ),
+        )
+    }
+
+    @Test
     fun `Should ignore partial joint sequences which do not end at inner joint`() {
         // RR-type switches contain partial joint sequences.
         //
@@ -1222,9 +1306,19 @@ class SwitchLinkingTest {
         //        3 /
         //       track C
         //
-        //  Joints 3, 5 and 4 should be linked to track C.
-        //  As joint 2 is on track B and is too far away to be moved to the end of track A,
-        //  any joints shouldn't be linked to track A, because track A is not ending at joint 5.
+        // End of the track A is so far away from joint 2 that joint 2 cannot be moved to end of
+        // track A, and therefore sequence 1-5-2 cannot be formed.
+        //
+        // End of the track A is so far away from joint 5 that joint 5 cannot be moved to end of
+        // track A, and therefore sequence 5-2 cannot be formed.
+        //
+        // Joints 1 and 5 are on track A, but track A does not end at joint 5, and therefore
+        // sequence 1-5 is not valid. This is because node between track A and B could be another
+        // switch node and that other switch would then be connected directly to joint 5, without
+        // joint 2, and therefore it would be impossible to find a route, because it would be
+        // unknown how routing is entering the switch.
+        //
+        // Joints 3, 5 and 4 should be linked to track C.
         //
         val switchStructure = RR54_1_9()
         val newSwitchId = IntId<LayoutSwitch>(2)
