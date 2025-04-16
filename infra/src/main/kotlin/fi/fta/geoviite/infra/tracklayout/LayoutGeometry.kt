@@ -547,6 +547,8 @@ fun splitSegments(
 
 data class PointSeekResult<T : IPoint3DM>(val point: T, val index: Int, val isSnapped: Boolean)
 
+data class SegmentHash(val value: Int)
+
 // TODO: GVT-2935 this will become reference-line only version: remove switch links & rename...
 // ... or maybe just re-combine with LayoutEdgeSegment, as that doesn't have switches either
 data class LayoutSegment(
@@ -571,6 +573,8 @@ data class LayoutSegment(
             "Segment cannot link to switch joints if it doesn't link to a switch: switchId=$switchId startJoint=$startJointNumber endJoint=$endJointNumber"
         }
     }
+
+    val contentHash by lazy {}
 
     fun slice(segmentStartM: Double, fromIndex: Int, toIndex: Int): Pair<LayoutSegment, Range<Double>>? {
         return if (fromIndex >= toIndex) {

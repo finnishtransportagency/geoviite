@@ -15,9 +15,11 @@ import fi.fta.geoviite.infra.geometry.PlanLayoutService
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -125,17 +127,23 @@ constructor(
     private fun saveAndUpdateTopology(
         branch: LayoutBranch,
         track: LocationTrack,
-        oldGeometry: LocationTrackGeometry,
+        oldGeometry: DbLocationTrackGeometry,
         newGeometry: LocationTrackGeometry,
     ): LayoutRowVersion<LocationTrack> {
         val changedTopologyPoints =
             listOfNotNull(
-                newGeometry.firstSegmentStart.takeIf { startChanged(oldGeometry, newGeometry) },
-                newGeometry.lastSegmentEnd.takeIf { endChanged(oldGeometry, newGeometry) },
-            )
-        val saved = locationTrackService.saveDraft(branch, track, newGeometry)
-        val changedTopologies = locationTrackService.recalculateTopology(changedTopologyPoints, branch.draft)
-        return changedTopologies.find { it.id == saved.id } ?: saved
+                    newGeometry.firstSegmentStart.takeIf { startChanged(oldGeometry, newGeometry) },
+                    newGeometry.lastSegmentEnd.takeIf { endChanged(oldGeometry, newGeometry) },
+                )
+                .map { MultiPoint(it) }
+        return if (changedTopologyPoints.isEmpty()) {
+            locationTrackService.saveDraft(branch, track, newGeometry)
+        } else {
+            locationTrackService
+                .recalculateTopology(branch.draft, listOf(track to newGeometry), changedTopologyPoints)
+                .map { (t, g) -> locationTrackService.saveDraft(branch, t, g) }
+                .first { it.id == track.id }
+        }
     }
 
     private fun startChanged(oldAlignment: IAlignment, newAlignment: IAlignment) =

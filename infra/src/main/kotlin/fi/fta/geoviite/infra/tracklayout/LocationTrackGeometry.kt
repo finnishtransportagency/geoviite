@@ -66,8 +66,7 @@ sealed class LocationTrackGeometry : IAlignment {
 
     @get:JsonIgnore
     open val nodes: List<LayoutNode> by lazy {
-        // Init-block ensures that edges are connected: previous edge end node is the next edge
-        // start node
+        // Init-block ensures that edges are connected: previous edge end is the next edge start
         edges.flatMapIndexed { i, e ->
             if (i == edges.lastIndex) listOf(e.startNode.node, e.endNode.node) else listOf(e.startNode.node)
         }
@@ -76,8 +75,7 @@ sealed class LocationTrackGeometry : IAlignment {
     @get:JsonIgnore
     open val nodesWithLocation: List<Pair<LayoutNode, AlignmentPoint>> by lazy {
         edgesWithM.flatMapIndexed { i, (e, m) ->
-            // Init-block ensures that edges are connected: previous edge end node is the next edge
-            // start node
+            // Init-block ensures that edges are connected: previous edge end is the next edge start
             if (i == edges.lastIndex) {
                 listOf(
                     e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min),
@@ -120,6 +118,9 @@ sealed class LocationTrackGeometry : IAlignment {
 
     fun getSwitchLocation(switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
         trackSwitchLinks.firstOrNull { tsl -> tsl.link.matches(switchId, jointNumber) }?.location
+
+    fun getSwitchLocations(switchId: IntId<LayoutSwitch>) =
+        trackSwitchLinks.filter { tsl -> tsl.link.id == switchId }.map { tsl -> tsl.link to tsl.location }
 
     @get:JsonIgnore
     open val startNode: EdgeNode?
@@ -187,18 +188,19 @@ sealed class LocationTrackGeometry : IAlignment {
 
     fun withoutSwitch(switchId: IntId<LayoutSwitch>): LocationTrackGeometry {
         val newEdges = edges.map { e -> e.withoutSwitch(switchId) }
-        return if (newEdges == edges) this else TmpLocationTrackGeometry(combineEdges(newEdges))
+        // TODO: GVT-2928 there's no need to swap boundary nodes for placeholder here, but combineedges does that
+        return this.takeIf { newEdges == edges } ?: TmpLocationTrackGeometry(combineEdges(newEdges))
     }
 
-    fun withCombinationNodes(nodeChanges: Map<LayoutNode, LayoutNode>) =
-        TmpLocationTrackGeometry(
-            edges.mapIndexed { index, edge ->
-                val startReplacement = edge.takeIf { index == 0 }?.startNode?.node?.let { nodeChanges[it] }
-                val endReplacement = edge.takeIf { index == edges.lastIndex }?.endNode?.node?.let { nodeChanges[it] }
-                edge.takeIf { startReplacement == null && endReplacement == null }
-                    ?: edge.withCombinationNodes(startReplacement, endReplacement)
-            }
-        )
+    fun withNodeReplacements(nodeSwaps: Map<NodeHash, LayoutNode>): LocationTrackGeometry =
+        this.takeIf { nodes.none { nodeSwaps.containsKey(it.contentHash) } }
+            ?: TmpLocationTrackGeometry(
+                edges.mapIndexed { i, edge ->
+                    val newStart = edge.takeIf { i == 0 }?.startNode?.node?.let { nodeSwaps[it.contentHash] }
+                    val newEnd = edge.takeIf { i == edges.lastIndex }?.endNode?.node?.let { nodeSwaps[it.contentHash] }
+                    edge.takeIf { newStart == null && newEnd == null } ?: edge.withCombinationNodes(newStart, newEnd)
+                }
+            )
 
     fun getEdgeAtMOrThrow(m: Double): LayoutEdge {
         return requireNotNull(getEdgeAtM(m)) { "Geometry does not contain edge at m $m" }
@@ -315,6 +317,21 @@ data class DbLocationTrackGeometry(
         this.takeIf { trackRowVersion.id == id } ?: TmpLocationTrackGeometry(edges.map { it.withLocationTrackId(id) })
 }
 
+data class EdgeHash private constructor(val value: Int) {
+    companion object {
+        fun of(start: EdgeNode, end: EdgeNode, segments: List<LayoutSegment>): EdgeHash =
+            EdgeHash(Objects.hash(edgeNodeHash(start), edgeNodeHash(end), segmentsHash(segments)))
+
+        private fun edgeNodeHash(edgeNode: EdgeNode): Int =
+            Objects.hash(edgeNode.portConnection, edgeNode.node.contentHash)
+
+        private fun segmentsHash(segments: List<LayoutSegment>): Int = Objects.hash(segments.map(::segmentHash))
+
+        // TODO: GVT-2928 should we implement segment.contentHash to avoid segmentgeometry tmp id affecting the result?
+        private fun segmentHash(segment: LayoutSegment): Int = segment.hashCode()
+    }
+}
+
 sealed class LayoutEdge : IAlignment {
     abstract val startNode: EdgeNode
     abstract val endNode: EdgeNode
@@ -347,7 +364,7 @@ sealed class LayoutEdge : IAlignment {
             "An edge must have segments, so it must have a bounding box"
         }
     }
-    @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(startNode.contentHash, endNode.contentHash, segments) }
+    @get:JsonIgnore val contentHash: EdgeHash by lazy { EdgeHash.of(startNode, endNode, segments) }
 
     fun withSegments(newSegments: List<LayoutSegment>) = TmpLayoutEdge(startNode, endNode, newSegments)
 
@@ -521,8 +538,6 @@ sealed class EdgeNode {
     fun containsJoint(switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
         node.containsJoint(switchId, jointNumber)
 
-    @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(portConnection, node.contentHash) }
-
     fun withoutSwitch(switchId: IntId<LayoutSwitch>): EdgeNode =
         if (containsSwitch(switchId)) {
             val remainingSwitch = switches.singleOrNull { it.id != switchId }
@@ -571,6 +586,12 @@ enum class NodePortType {
         get() = if (this == A) B else A
 }
 
+data class NodeHash private constructor(val value: Int) {
+    companion object {
+        fun of(portA: NodePort, portB: NodePort?): NodeHash = NodeHash(Objects.hash(portA, portB))
+    }
+}
+
 sealed class LayoutNode {
     abstract val portA: NodePort
     abstract val portB: NodePort?
@@ -604,7 +625,7 @@ sealed class LayoutNode {
             inNodeOrder(link1, link2).let { (portA, portB) -> TmpTrackBoundaryNode(portA, portB) }
     }
 
-    @get:JsonIgnore val contentHash: Int by lazy { Objects.hash(portA, portB) }
+    @get:JsonIgnore val contentHash: NodeHash by lazy { NodeHash.of(portA, portB) }
 }
 
 sealed class DbLayoutNode : LayoutNode() {
@@ -713,7 +734,7 @@ data class SwitchLink(val id: IntId<LayoutSwitch>, val jointRole: SwitchJointRol
  * - Edges without a switch between them are combined into a single edge
  * - If either of the edges points to a switch between them, both edges are linked to it
  * - If edges point to having different switches between them, a new combined node is placed there
- * - Track boundaries are replaced by placeholders so as to not point to a different track
+ * - Track boundaries are replaced by placeholders so as not to point to a different track
  */
 fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
     if (edges.isEmpty()) return edges
@@ -791,66 +812,3 @@ fun verifyTrackBoundaryNode(portA: TrackBoundary, portB: TrackBoundary?) {
         "Track boundary node cannot connect twice to the same track: portA=$portA portB=$portB"
     }
 }
-
-private val nodeCombinationPriority =
-    Comparator<LayoutNode> { o1, o2 ->
-        o1.type.ordinal.compareTo(o2.type.ordinal).takeIf { it != 0 }
-            ?: (-(o1.ports.size.compareTo(o2.ports.size))).takeIf { it != 0 }
-            ?: comparePorts(o1.portA, o2.portA).takeIf { it != 0 }
-            ?: comparePorts(o1.portB, o2.portB)
-    }
-
-private fun comparePorts(port1: NodePort?, port2: NodePort?): Int =
-    when {
-        port1 == null && port2 == null -> 0
-        port1 == null -> 1
-        port2 == null -> -1
-        port1.isBefore(port2) -> -1
-        port2.isBefore(port1) -> 1
-        else -> 0
-    }
-
-fun combineEligibleNodes(nodes: List<LayoutNode>): Map<LayoutNode, LayoutNode> {
-    // Match targets in priority order for deterministic results in case multiple combinations are possible
-    val targets = nodes.toSortedSet(nodeCombinationPriority)
-    return nodes
-        // Do the combinations in priority order to produce any high-priority combination nodes for further attempts
-        .sortedWith(nodeCombinationPriority)
-        // Double-port nodes cannot be further connected
-        .filter { node -> node.ports.size == 1 }
-        // Combine with the first eligible option
-        .mapNotNull { node ->
-            targets
-                // Since we're combining a single-port node -> there can only be port A
-                .firstNotNullOfOrNull { other -> tryToCombinePortToNode(node.portA, other) }
-                // If the best match is a combination-switch node, there's multiple switches to connect to
-                // For a track boundary, we couldn't know which one to use -> don't connect at all
-                ?.takeIf { newNode -> node.type != TRACK_BOUNDARY || newNode.type != SWITCH || newNode.portB == null }
-                ?.also(targets::add)
-                ?.let(node::to)
-        }
-        .associate { it }
-}
-
-private fun tryToCombinePortToNode(ownPort: NodePort, otherNode: LayoutNode): LayoutNode? =
-    when (ownPort) {
-        // Switch link can be connected to any other switch link that is either:
-        // * A single-switch node with a link to a different switch
-        // * A double-switch node where one of the links is this one (switch & joint)
-        // Note: this might create multiple tmp-nodes for the same link-combination, but they will be joined upon saving
-        is SwitchLink -> {
-            val otherA = otherNode.portA as? SwitchLink
-            val otherB = otherNode.portB as? SwitchLink
-            when {
-                otherA == null -> null
-                otherB == null -> otherA.takeIf { it.id != ownPort.id }?.let { LayoutNode.of(ownPort, it) }
-                else -> otherNode.takeIf { otherA == ownPort || otherB == ownPort }
-            }
-        }
-        // Track boundary can be connected to any switch link node or an existing boundary-combo
-        is TrackBoundary ->
-            otherNode.takeIf { it.type == SWITCH || (it.ports.size == 2 && it.containsBoundary(ownPort)) }
-        // Empty ports don't have sufficient information for combination, but this should
-        // anyhow only be done after the track is stored, so the case should never happen
-        is EmptyPort -> throw IllegalArgumentException("Empty port cannot be combined")
-    }

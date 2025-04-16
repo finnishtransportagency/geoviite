@@ -18,6 +18,10 @@ import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
+import fi.fta.geoviite.infra.linking.NodeReplacementTarget
+import fi.fta.geoviite.infra.linking.mergeNodeCombinations
+import fi.fta.geoviite.infra.linking.mergeNodeConnections
+import fi.fta.geoviite.infra.linking.resolveNodeCombinations
 import fi.fta.geoviite.infra.linking.switches.TopologyLinkFindingSwitch
 import fi.fta.geoviite.infra.linking.switches.cropAlignment
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -26,6 +30,7 @@ import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
 import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
@@ -49,6 +54,7 @@ import org.springframework.transaction.support.TransactionTemplate
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
+const val TOPOLOGY_CALC_DISTANCE = 1.0
 
 @GeoviiteService
 class LocationTrackService(
@@ -606,57 +612,62 @@ class LocationTrackService(
         switchDao.get(layoutContext, id)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
 
     @Transactional
-    fun recalculateTopology(switch: LayoutSwitch, layoutContext: LayoutContext): List<LayoutRowVersion<LocationTrack>> {
-        val jointLocations = switch.joints.filter { j -> j.role != SwitchJointRole.MATH }.map { j -> j.location }
-        return recalculateTopology(jointLocations, layoutContext)
+    fun recalculateTopology(
+        layoutContext: LayoutContext,
+        changedTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+        switchId: IntId<LayoutSwitch>,
+    ): List<Pair<LocationTrack, LocationTrackGeometry>> {
+        val jointLocations: List<MultiPoint> =
+            changedTracks
+                .flatMap { (_, geometry) -> geometry.getSwitchLocations(switchId) }
+                .filter { (link, _) -> link.jointRole != SwitchJointRole.MATH }
+                .groupBy({ (link, _) -> link }, { (_, location) -> location.toPoint() })
+                .map { (_, locations) -> MultiPoint(locations.distinct()) }
+        return recalculateTopology(layoutContext, changedTracks, jointLocations)
     }
 
     @Transactional
     fun recalculateTopology(
-        locations: List<IPoint>,
         layoutContext: LayoutContext,
-    ): List<LayoutRowVersion<LocationTrack>> =
-        locations
-            // Combine the nodes in each location separately
-            .map { location -> resolveNodeReplacementsAt(location, layoutContext) }
-            // Combine all node-swaps into a single map to generate only one change per track
-            .let { replacements ->
-                replacements
-                    .flatMap { map -> map.entries }
-                    .associate { e -> e.toPair() }
-                    // TODO: GVT-2928 Do we need to worry about the same node being found replaced multiple times?
-                    .also { combined -> require(replacements.sumOf { r -> r.size } == combined.size) }
+        changedTracksTmp: List<Pair<LocationTrack, LocationTrackGeometry>>,
+        locations: List<MultiPoint>,
+    ): List<Pair<LocationTrack, LocationTrackGeometry>> {
+        val changedTracks =
+            changedTracksTmp.map { (track, geometry) ->
+                val trackId = requireNotNull(track.id as? IntId) { "A track must have a stored ID for node combining." }
+                track to geometry.withLocationTrackId(trackId)
             }
-            .let(::replaceNodesOnTracks)
-            .map { (newTrack, newGeometry) -> dao.save(newTrack, newGeometry) }
+        val combinations =
+            locations
+                .map { target -> collectNodeConnectionsNear(layoutContext, changedTracks, target) }
+                .map(::resolveNodeCombinations)
+                .let(::mergeNodeCombinations)
 
-    fun resolveNodeReplacementsAt(location: IPoint, layoutContext: LayoutContext): Map<NodeConnection, LayoutNode> {
-        val connections = alignmentDao.getNodeConnectionsNear(location, layoutContext)
-        val replacements = combineEligibleNodes(connections.map { c -> c.node })
-        return connections
-            .mapNotNull { connection ->
-                replacements[connection.node]?.let { replacement -> connection to replacement }
-            }
-            .associate { it }
+        // Include the replacements on changedTracks, even if they have the node in a different location
+        // This also ensures that all argument tracks are also in the result list for easier saving
+        val allTracks = (combinations.targetTracks + changedTracks).distinctBy { it.first.id }
+        return allTracks.map { (track, geom) -> track to geom.withNodeReplacements(combinations.replacements) }
     }
 
-    fun replaceNodesOnTracks(
-        reconnected: Map<NodeConnection, LayoutNode>
-    ): List<Pair<LocationTrack, LocationTrackGeometry>> =
-        // Resolve by-track to handle cases where multiple nodes are swapped at once
-        reconnected
-            .flatMap { (c, _) -> c.trackVersions }
-            .distinct()
-            .map { version ->
-                val (track, geometry) = getWithGeometry(version)
-                val nodeChanges: Map<LayoutNode, LayoutNode> =
-                    reconnected
-                        .filter { (connection, _) -> connection.trackVersions.contains(version) }
-                        .map { (connection, replacementNode) -> connection.node to replacementNode }
-                        .associate { it }
-                val newGeometry = geometry.withCombinationNodes(nodeChanges)
-                track to newGeometry
+    private fun collectNodeConnectionsNear(
+        layoutContext: LayoutContext,
+        changedTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+        target: MultiPoint,
+    ): List<NodeReplacementTarget> {
+        val changedTrackIds = changedTracks.mapNotNull { (t, _) -> t.id as? IntId }.toSet()
+        val dbConnections =
+            alignmentDao
+                .getNodeConnectionsNear(layoutContext, target, TOPOLOGY_CALC_DISTANCE)
+                .mapNotNull { c -> c.filterOut(changedTrackIds) }
+                .map { c -> NodeReplacementTarget(c.node, c.trackVersions.map(::getWithGeometry)) }
+        val changedTrackConnections =
+            changedTracks.flatMap { (track, geometry) ->
+                geometry.nodesWithLocation
+                    .filter { (_, location) -> target.isWithinDistance(location, TOPOLOGY_CALC_DISTANCE) }
+                    .map { (node, _) -> NodeReplacementTarget(node, track, geometry) }
             }
+        return mergeNodeConnections(dbConnections + changedTrackConnections)
+    }
 
     private fun fetchNearbyLocationTracksWithGeometries(
         layoutContext: LayoutContext,
