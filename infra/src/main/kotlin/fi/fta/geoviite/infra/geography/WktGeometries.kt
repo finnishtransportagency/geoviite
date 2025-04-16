@@ -11,6 +11,7 @@ private const val POINT_SEPARATOR = ","
 private const val COORDINATE_SEPARATOR = " "
 
 private const val POINT_TYPE_2D = "POINT"
+private const val MULTIPOINT_TYPE_2D = "MULTIPOINT"
 private const val LINESTRING_TYPE_2D = "LINESTRING"
 private const val LINESTRING_TYPE_3DM = "LINESTRING M"
 private const val POLYGON_TYPE_2D = "POLYGON"
@@ -42,6 +43,11 @@ fun create3DMLineString(coordinates: List<IPoint3DM>): String {
 fun create2DPolygonString(coordinates: List<IPoint>): String {
     val content = coordinates.joinToString(POINT_SEPARATOR) { c -> point2DToString(c) }
     return "$POLYGON_TYPE_2D${addParenthesis(content, 2)}"
+}
+
+fun create2DMultiPoint(points: List<IPoint>): String {
+    val content = points.joinToString(POINT_SEPARATOR) { c -> addParenthesis(point2DToString(c)) }
+    return "$MULTIPOINT_TYPE_2D${addParenthesis(content)}"
 }
 
 private fun point2DToString(coordinate: IPoint): String = "${coordinate.x}$COORDINATE_SEPARATOR${coordinate.y}"
