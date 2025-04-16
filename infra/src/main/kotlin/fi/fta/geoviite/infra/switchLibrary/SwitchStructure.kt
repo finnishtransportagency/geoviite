@@ -240,6 +240,14 @@ interface ISwitchStructure {
     fun getJointLocation(jointNumber: JointNumber): Point {
         return getJoint(jointNumber).location
     }
+
+    fun isInnerJoint(jointNumber: JointNumber): Boolean {
+        return alignments.any { alignment ->
+            val jointIndex = alignment.jointNumbers.indexOf(jointNumber)
+            val isInner = jointIndex>0 && jointIndex<alignment.jointNumbers.lastIndex
+            isInner
+        }
+    }
 }
 
 data class SwitchStructure(

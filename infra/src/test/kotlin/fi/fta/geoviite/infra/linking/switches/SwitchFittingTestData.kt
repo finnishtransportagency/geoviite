@@ -34,18 +34,23 @@ fun createTrack(
     switchStructure: SwitchStructureData,
     jointNumbers: List<JointNumber>,
     name: String? = null,
+    skipValidation: Boolean = false,
 ): TrackForSwitchFitting {
-    val switchAlignment =
-        requireNotNull(
-            switchStructure.alignments.firstOrNull { switchAlignment ->
-                switchAlignment.jointNumbers.containsAll(jointNumbers) &&
-                    jointNumbers.containsAll(switchAlignment.jointNumbers)
+    val jointSequences =
+        asSwitchStructure(switchStructure).let { switchStructure ->
+            getSwitchAlignmentJointSequences(switchStructure) + getPartialSwitchAlignmentJointSequences(switchStructure)
+        }
+    if (!skipValidation) {
+        require(
+            jointSequences.any { jointSequence ->
+                jointSequence == jointNumbers || jointSequence.reversed() == jointNumbers
             }
         ) {
             "Switch alignment does not exists by joints $jointNumbers"
         }
+    }
     val segmentEndPoints =
-        switchAlignment.elements.map { element -> element.start to element.end }.map { (p1, p2) -> (p1) to (p2) }
+        jointNumbers.map { jointNumber -> switchStructure.getJointLocation(jointNumber) }.zipWithNext()
     val trackName = name ?: jointNumbers.map { it.intValue }.joinToString("-")
     val (locationTrack, geometry) = createTrack(segmentEndPoints, trackName)
     return TrackForSwitchFitting(jointNumbers, locationTrack, geometry)
@@ -133,6 +138,38 @@ fun cutFromStart(
             else {
                 // is partly included
                 val newSegments = splitSegments(cutPosition, edge.segmentsWithM).second
+                edge.withSegments(newSegments)
+            }
+        }
+    var newGeometry = TmpLocationTrackGeometry(newEdges)
+    val newLocationTrack =
+        locationTrack(
+            trackNumberId = locationTrack.trackNumberId,
+            geometry = newGeometry,
+            id = locationTrack.id as IntId,
+            name = locationTrack.name.toString(),
+        )
+
+    return newLocationTrack to newGeometry
+}
+
+fun cutFromEnd(
+    locationTrack: LocationTrack,
+    geometry: LocationTrackGeometry,
+    length: Double,
+): Pair<LocationTrack, LocationTrackGeometry> {
+    val cutPosition = geometry.length - length
+    val newEdges =
+        geometry.edgesWithM.mapNotNull { (edge, range) ->
+            if (cutPosition <= range.min)
+            // is fully included
+            edge
+            else if (cutPosition >= range.max)
+            // is fully excluded
+            null
+            else {
+                // is partly included
+                val newSegments = splitSegments(cutPosition, edge.segmentsWithM).first
                 edge.withSegments(newSegments)
             }
         }

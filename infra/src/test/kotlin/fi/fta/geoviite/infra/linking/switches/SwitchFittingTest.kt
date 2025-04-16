@@ -37,6 +37,12 @@ data class TrackForSwitchFitting(
         }
     }
 
+    fun cutFromEnd(length: Double): TrackForSwitchFitting {
+        return cutFromEnd(locationTrack, geometry, length).let { (locationTrack, geometry) ->
+            this.copy(locationTrack = locationTrack, geometry = geometry)
+        }
+    }
+
     fun expandFromStart(length: Double): TrackForSwitchFitting {
         return expandTrackFromStart(locationTrack, geometry, length).let { (locationTrack, geometry) ->
             this.copy(locationTrack = locationTrack, geometry = geometry)
