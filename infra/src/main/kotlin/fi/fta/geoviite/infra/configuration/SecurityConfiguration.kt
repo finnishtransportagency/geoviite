@@ -1,18 +1,8 @@
 package fi.fta.geoviite.infra.configuration
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_DEV_PATH
 import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_PATH
 import fi.fta.geoviite.infra.authorization.AUTH_FLAG_API_GEOMETRY
-=======
-import fi.fta.geoviite.infra.authorization.TODO_FLAG_API_GEOMETRY
->>>>>>> 47ba0067e (wip: Multi swagger works)
-=======
-import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_DEV_PATH
-import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_PATH
-import fi.fta.geoviite.infra.authorization.AUTH_FLAG_API_GEOMETRY
->>>>>>> 621880efa (wip)
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
