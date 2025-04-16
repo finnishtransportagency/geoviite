@@ -19,37 +19,19 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestParam
 
 @PreAuthorize(AUTH_API_GEOMETRY)
-@GeoviiteExtApiController([])
+@GeoviiteExtApiController(["/geoviite/paikannuspohja/v1", "/geoviite/dev/paikannuspohja/v1"])
 @Tag(name = "Rataverkon paikannuspohja V1")
-class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocationTrackServiceV1) {
+class ExtLocationTrackControllerV1(
+    private val extLocationTrackService: ExtLocationTrackServiceV1,
+    private val extLocationTrackGeometryService: ExtLocationTrackGeometryServiceV1,
+) {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    //    @GetMapping(
-    //        "/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}",
-    //        "/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/",
-    //    )
-    //    fun singleTrackCenterLineGeometry(
-    //        @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: ApiRequestStringV1,
-    //        @RequestParam(TRACK_NETWORK_VERSION) trackNetworkVersion: ApiRequestStringV1?,
-    //        @RequestParam(MODIFICATIONS_FROM_VERSION) modificationsFromVersion: ApiRequestStringV1?,
-    //        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: ApiRequestStringV1?,
-    //    ): CenterLineGeometryResponseV1 {
-    //        val translation = localizationService.getLocalization(LocalizationLanguage.FI)
-    //
-    //        val (validationErrors, validRequest) =
-    //            LocationTrackRequestV1(locationTrackOid, coordinateSystem).let(centerLineGeometryService::validate)
-    //
-    //        return validRequest?.let { processValidatedRequest(translation, validRequest) }
-    //            ?: createErrorResponse(translation, validationErrors)
-    //    }
-
-    @GetMapping(
-        "/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}",
-        "/geoviite/dev/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}",
-    )
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}", "/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
     fun extGetLocationTrack(
         @Parameter(description = LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
@@ -57,13 +39,14 @@ class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocat
         @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
     ): ExtLocationTrackResponseV1 {
-        return extLocationTrackService.locationTrackResponse(oid, trackNetworkVersion, coordinateSystem ?: LAYOUT_SRID)
+        return extLocationTrackService.createLocationTrackResponse(
+            oid,
+            trackNetworkVersion,
+            coordinateSystem ?: LAYOUT_SRID,
+        )
     }
 
-    @GetMapping(
-        "/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}",
-        params = [MODIFICATIONS_FROM_VERSION],
-    )
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}", params = [MODIFICATIONS_FROM_VERSION])
     fun extGetLocationTrackModifications(
         @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
         @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
@@ -71,7 +54,7 @@ class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocat
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackResponseV1> {
         return extLocationTrackService
-            .locationTrackModificationResponse(
+            .createLocationTrackModificationResponse(
                 locationTrackOid,
                 modificationsFromVersion,
                 trackNetworkVersion,
@@ -80,7 +63,7 @@ class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocat
             ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
     }
 
-    @GetMapping("/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria")
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria")
     fun extGetLocationTrackGeometry(
         @PathVariable(LOCATION_TRACK_OID_PARAM) oid: Oid<LocationTrack>,
         @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>? = null,
@@ -89,7 +72,7 @@ class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocat
         @RequestParam(TRACK_KILOMETER_START_PARAM, required = false) trackKmStart: KmNumber? = null,
         @RequestParam(TRACK_KILOMETER_END_PARAM, required = false) trackKmEnd: KmNumber? = null,
     ): ExtLocationTrackGeometryResponseV1 {
-        return extLocationTrackService.locationTrackGeometryResponse(
+        return extLocationTrackGeometryService.createGeometryResponse(
             oid,
             trackNetworkVersion,
             resolution,
@@ -98,10 +81,7 @@ class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocat
         )
     }
 
-    @GetMapping(
-        "/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria",
-        params = [MODIFICATIONS_FROM_VERSION],
-    )
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria", params = [MODIFICATIONS_FROM_VERSION])
     fun extGetLocationTrackGeometryModifications(
         @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
         @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
@@ -110,9 +90,9 @@ class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocat
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid = LAYOUT_SRID,
         @RequestParam(TRACK_KILOMETER_START_PARAM, required = false) trackKmStart: KmNumber? = null,
         @RequestParam(TRACK_KILOMETER_END_PARAM, required = false) trackKmEnd: KmNumber? = null,
-    ): ResponseEntity<ExtModifiedLocationTrackGeometryResponseV1> {
-        return extLocationTrackService
-            .locationTrackGeometryModificationResponse(
+    ): ResponseEntity<ExtLocationTrackModifiedGeometryResponseV1> {
+        return extLocationTrackGeometryService
+            .createGeometryModificationResponse(
                 locationTrackOid,
                 modificationsFromVersion,
                 trackNetworkVersion,
