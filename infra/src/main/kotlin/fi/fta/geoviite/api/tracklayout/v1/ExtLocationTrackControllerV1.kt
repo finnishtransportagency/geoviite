@@ -31,7 +31,7 @@ class ExtLocationTrackControllerV1(
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}", "/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
     fun extGetLocationTrack(
         @Parameter(description = LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
@@ -46,7 +46,7 @@ class ExtLocationTrackControllerV1(
         )
     }
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}", params = [MODIFICATIONS_FROM_VERSION])
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset", params = [MODIFICATIONS_FROM_VERSION])
     fun extGetLocationTrackModifications(
         @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
         @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
@@ -81,7 +81,10 @@ class ExtLocationTrackControllerV1(
         )
     }
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria", params = [MODIFICATIONS_FROM_VERSION])
+    @GetMapping(
+        "/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria/muutokset",
+        params = [MODIFICATIONS_FROM_VERSION],
+    )
     fun extGetLocationTrackGeometryModifications(
         @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
         @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
