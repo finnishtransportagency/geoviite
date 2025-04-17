@@ -40,14 +40,17 @@ geoviite:
     static-url: '/rata-vkm/static/**'
     static-resources: 'classpath:/static/frameconverter/'
     url-path-prefixes:
+      - /geoviite
       - /rata-vkm
 
 springdoc:
+  enable-default-api-docs: false
   api-docs:
-    path: /rata-vkm/v3/api-docs
+    enabled: true
+    path: /geoviite/v3/api-docs
   swagger-ui:
     enabled: true
-    url: /rata-vkm/static/openapi-rata-vkm-v1.yml
-    path: /rata-vkm/swagger-ui.html
-    config-url: /rata-vkm/v3/api-docs/swagger-config
+    path: /swagger-ui.html
     defaultModelsExpandDepth: -1
+    query-config-enabled: true
+
