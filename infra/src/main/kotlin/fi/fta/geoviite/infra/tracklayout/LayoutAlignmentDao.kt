@@ -703,19 +703,21 @@ class LayoutAlignmentDao(
                 """
                     .trimIndent()
             ids.chunked(10_000)
+                .parallelStream()
                 .flatMap { idsChunk ->
                     val params = mapOf("ids" to idsChunk.map(IntId<SegmentGeometry>::intValue))
-                    jdbcTemplate.query(sql, params) { rs, _ ->
-                        GeometryRowResult(
-                            id = rs.getIntId("id"),
-                            wktString = rs.getString("geometry_wkt"),
-                            heightString = rs.getString("height_values"),
-                            cantString = rs.getString("cant_values"),
-                            resolution = rs.getInt("resolution"),
-                        )
-                    }
+                    jdbcTemplate
+                        .query(sql, params) { rs, _ ->
+                            GeometryRowResult(
+                                id = rs.getIntId("id"),
+                                wktString = rs.getString("geometry_wkt"),
+                                heightString = rs.getString("height_values"),
+                                cantString = rs.getString("cant_values"),
+                                resolution = rs.getInt("resolution"),
+                            )
+                        }
+                        .stream()
                 }
-                .parallelStream()
                 .collect(Collectors.toMap(GeometryRowResult::id, ::parseGeometry))
         } else mapOf()
     }
