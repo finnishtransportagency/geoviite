@@ -78,7 +78,7 @@ data class TrackForSwitchFitting(
         jointNumber: Int,
         direction: RelativeDirection = RelativeDirection.Along,
     ): TrackForSwitchFitting {
-        return withSwitchJoint(length, switchId, switchStructure, jointNumber, direction)
+        return withSwitchJointAtM(length, switchId, switchStructure, jointNumber, direction)
     }
 
     fun withSwitchJointAtStart(
@@ -87,17 +87,17 @@ data class TrackForSwitchFitting(
         jointNumber: Int,
         direction: RelativeDirection = RelativeDirection.Along,
     ): TrackForSwitchFitting {
-        return withSwitchJoint(0.0, switchId, switchStructure, jointNumber, direction)
+        return withSwitchJointAtM(0.0, switchId, switchStructure, jointNumber, direction)
     }
 
-    fun withSwitchJoint(
+    fun withSwitchJointAtM(
         mValue: Double,
         switchId: IntId<LayoutSwitch>,
         switchStructure: SwitchStructureData,
         jointNumber: Int,
         direction: RelativeDirection = RelativeDirection.Along,
     ): TrackForSwitchFitting {
-        return withSwitchJoint(
+        return withSwitchJointAtM(
                 locationTrack,
                 geometry,
                 mValue,

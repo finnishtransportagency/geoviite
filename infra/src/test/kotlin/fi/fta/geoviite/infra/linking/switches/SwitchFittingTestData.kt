@@ -250,7 +250,7 @@ fun moveTrackForward(
     return newLocationTrack to newGeometry
 }
 
-fun withSwitchJoint(
+fun withSwitchJointAtM(
     locationTrack: LocationTrack,
     geometry: LocationTrackGeometry,
     mValue: Double,

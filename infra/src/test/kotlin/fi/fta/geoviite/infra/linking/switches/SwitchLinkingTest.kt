@@ -948,7 +948,7 @@ class SwitchLinkingTest {
             createTrack(switchStructure, asJointNumbers(1, 5, 2), "track C")
                 .moveForward(trackA.length + trackB.length)
                 .withSwitchJointAtStart(newSwitchId, switchStructure, 1)
-                .withSwitchJoint(16.0, newSwitchId, switchStructure, 5)
+                .withSwitchJointAtM(16.0, newSwitchId, switchStructure, 5)
                 .withSwitchJointAtEnd(newSwitchId, switchStructure, 2)
         val nearbyTracks = listOf(trackA.trackAndGeometry, trackB.trackAndGeometry)
         val farawayTracks = listOf(trackC.trackAndGeometry)
