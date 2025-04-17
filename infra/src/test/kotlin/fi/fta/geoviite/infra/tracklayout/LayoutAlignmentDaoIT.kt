@@ -16,6 +16,8 @@ import fi.fta.geoviite.infra.geometry.infraModelFile
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.linking.DbNodeConnection
+import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
@@ -399,8 +401,14 @@ constructor(
         val switchLink2 = switchLinkYV(IntId(2), 2)
         val switchLink3 = switchLinkYV(IntId(3), 3)
 
-        assertEquals(emptyList(), alignmentDao.getNodeConnectionsNear(track1Start, MainLayoutContext.official, 1.0))
-        assertEquals(emptyList(), alignmentDao.getNodeConnectionsNear(track1Start, MainLayoutContext.draft, 1.0))
+        assertEquals(
+            emptyList(),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(track1Start), 1.0),
+        )
+        assertEquals(
+            emptyList(),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.draft, MultiPoint(track1Start), 1.0),
+        )
 
         val (track1, geometry1) =
             testDBService.fetchWithGeometry(
@@ -437,26 +445,26 @@ constructor(
 
         // Only track1 has something at this point (the track start)
         assertEquals(
-            listOf(NodeConnection(geometry1.nodes[0], listOf(track1.versionOrThrow))),
-            alignmentDao.getNodeConnectionsNear(track1Start, MainLayoutContext.official),
+            listOf(DbNodeConnection(geometry1.nodes[0], listOf(track1.versionOrThrow))),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(track1Start), 1.0),
         )
         // Both track1 & track 2 go through the crossing point
         assertEquals(
             listOf(
-                NodeConnection(geometry1.nodes[1], listOf(track1.versionOrThrow)),
-                NodeConnection(geometry2.nodes[1], listOf(track2.versionOrThrow)),
+                DbNodeConnection(geometry1.nodes[1], listOf(track1.versionOrThrow)),
+                DbNodeConnection(geometry2.nodes[1], listOf(track2.versionOrThrow)),
             ),
-            alignmentDao.getNodeConnectionsNear(crossingPoint, MainLayoutContext.official),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(crossingPoint), 1.0),
         )
         // In official context, only track 1 is at the end-point
         assertEquals(
-            listOf(NodeConnection(geometry1.nodes[2], listOf(track1.versionOrThrow))),
-            alignmentDao.getNodeConnectionsNear(track1End, MainLayoutContext.official),
+            listOf(DbNodeConnection(geometry1.nodes[2], listOf(track1.versionOrThrow))),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(track1End), 1.0),
         )
         // In draft context, also track 3 starts from the same node
         assertEquals(
-            listOf(NodeConnection(geometry1.nodes[2], listOf(track1.versionOrThrow, track3.versionOrThrow))),
-            alignmentDao.getNodeConnectionsNear(track1End, MainLayoutContext.draft),
+            listOf(DbNodeConnection(geometry1.nodes[2], listOf(track1.versionOrThrow, track3.versionOrThrow))),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.draft, MultiPoint(track1End), 1.0),
         )
     }
 

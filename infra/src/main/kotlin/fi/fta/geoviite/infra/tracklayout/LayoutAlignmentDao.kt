@@ -7,10 +7,12 @@ import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.linking.DbNodeConnection
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
@@ -31,19 +33,17 @@ const val GEOMETRY_CACHE_SIZE = 500000L
 
 data class MapSegmentProfileInfo<T>(val id: IntId<T>, val mRange: Range<Double>, val hasProfile: Boolean)
 
-data class NodeConnection(val node: DbLayoutNode, val trackVersions: List<LayoutRowVersion<LocationTrack>>)
-
 @Component
 class LayoutAlignmentDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") val cacheEnabled: Boolean,
 ) : DaoBase(jdbcTemplateParam) {
 
-    private val nodeIdsByHash: ConcurrentHashMap<Int, IntId<LayoutNode>> = ConcurrentHashMap()
+    private val nodeIdsByHash: ConcurrentHashMap<NodeHash, IntId<LayoutNode>> = ConcurrentHashMap()
     private val nodesCache: Cache<IntId<LayoutNode>, DbLayoutNode> =
         Caffeine.newBuilder().maximumSize(NODE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
-    private val edgeIdsByHash: ConcurrentHashMap<Int, IntId<LayoutEdge>> = ConcurrentHashMap()
+    private val edgeIdsByHash: ConcurrentHashMap<EdgeHash, IntId<LayoutEdge>> = ConcurrentHashMap()
     private val edgesCache: Cache<IntId<LayoutEdge>, DbLayoutEdge> =
         Caffeine.newBuilder().maximumSize(EDGE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
@@ -583,36 +583,38 @@ class LayoutAlignmentDao(
         return deletedRowId
     }
 
-    // TODO: what happens when both ends of an edge are close to the point?
-    // TODO: Note, that other edges may also connect to the ends of the short one
-    // TODO: We likely need to not connect nodes that are connected to such an edge
-    fun getNodeConnectionsNear(location: IPoint, context: LayoutContext, distance: Double = 1.0): List<NodeConnection> {
+    fun getNodeConnectionsNear(context: LayoutContext, target: IPoint, distance: Double): List<DbNodeConnection> =
+        getNodeConnectionsNear(context, MultiPoint(target), distance)
+
+    fun getNodeConnectionsNear(context: LayoutContext, target: MultiPoint, distance: Double): List<DbNodeConnection> {
         val sql =
             """
+            with
+              target as (select postgis.st_setsrid(postgis.st_geomfromtext(:target_wkt), :srid) location)
             select
               lt.id,
               lt.layout_context_id,
               lt.version,
               e.start_node_id,
               e.end_node_id,
-              postgis.st_dwithin(start_location, postgis.st_point(:x, :y, :srid), :distance) as start_is_within,
-              postgis.st_dwithin(end_location, postgis.st_point(:x, :y, :srid), :distance) end_is_within
+              postgis.st_dwithin(start_location, target.location, :distance) as start_is_within,
+              postgis.st_dwithin(end_location, target.location, :distance) end_is_within
               from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
-                inner join layout.location_track_version_edge ltve
+                            inner join layout.location_track_version_edge ltve
                            on ltve.location_track_id = lt.id
                              and ltve.location_track_layout_context_id = lt.layout_context_id
                              and ltve.location_track_version = lt.version
                 inner join layout.edge e on ltve.edge_id = e.id
+                ,target
               where lt.state != 'DELETED'
-                and (postgis.st_dwithin(start_location, postgis.st_point(:x, :y, :srid), :distance)
-                  or postgis.st_dwithin(end_location, postgis.st_point(:x, :y, :srid), :distance)
+                and (postgis.st_dwithin(start_location, target.location, :distance)
+                  or postgis.st_dwithin(end_location, target.location, :distance)
                 )
         """
                 .trimIndent()
         val params =
             mapOf(
-                "x" to location.x,
-                "y" to location.y,
+                "target_wkt" to target.toWkt(),
                 "publication_state" to context.state.name,
                 "design_id" to context.branch.designId?.intValue,
                 "distance" to distance,
@@ -635,8 +637,8 @@ class LayoutAlignmentDao(
                 .groupBy({ it.first }, { it.second })
         val nodes = fetchNodes(connections.keys)
         return connections
-            .map { (nodeId, entries) -> NodeConnection(requireNotNull(nodes[nodeId]), entries.distinct()) }
-            .also { logger.daoAccess(AccessType.FETCH, NodeConnection::class, it.map { c -> c.node.id }) }
+            .map { (nodeId, entries) -> DbNodeConnection(requireNotNull(nodes[nodeId]), entries.distinct()) }
+            .also { logger.daoAccess(AccessType.FETCH, DbNodeConnection::class, it.map { c -> c.node.id }) }
     }
 
     // TODO: GVT-2932 This should not care about tracks any more, but keep the track-alignments while still validating
