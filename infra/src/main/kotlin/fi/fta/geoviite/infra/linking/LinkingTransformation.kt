@@ -264,6 +264,7 @@ fun slice(
         }
     }
 
+// TODO: GVT-2928 unifiy geometry slice/splice with the functions in LocationTrackGeometry.split(..)
 fun slice(
     geometry: LocationTrackGeometry,
     mRange: Range<Double>,
