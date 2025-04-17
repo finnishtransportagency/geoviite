@@ -702,36 +702,31 @@ class LayoutAlignmentDao(
                   where id in (:ids)
                 """
                     .trimIndent()
-            val params = mapOf("ids" to ids.map(IntId<SegmentGeometry>::intValue))
-            val rowResults =
-                jdbcTemplate.query(sql, params) { rs, _ ->
-                    GeometryRowResult(
-                        id = rs.getIntId("id"),
-                        wktString = rs.getString("geometry_wkt"),
-                        heightString = rs.getString("height_values"),
-                        cantString = rs.getString("cant_values"),
-                        resolution = rs.getInt("resolution"),
-                    )
+            ids.chunked(10_000)
+                .parallelStream()
+                .flatMap { idsChunk ->
+                    val params = mapOf("ids" to idsChunk.map(IntId<SegmentGeometry>::intValue))
+                    jdbcTemplate
+                        .query(sql, params) { rs, _ ->
+                            GeometryRowResult(
+                                id = rs.getIntId("id"),
+                                wktString = rs.getString("geometry_wkt"),
+                                heightString = rs.getString("height_values"),
+                                cantString = rs.getString("cant_values"),
+                                resolution = rs.getInt("resolution"),
+                            )
+                        }
+                        .stream()
                 }
-            rowResults.parallelStream().collect(Collectors.toMap(GeometryRowResult::id, ::parseGeometry))
+                .collect(Collectors.toMap(GeometryRowResult::id, ::parseGeometry))
         } else mapOf()
     }
 
-    fun preloadSegmentGeometries(): Int {
+    private fun fetchAllLiveSegmentGeometryIds(): List<IntId<SegmentGeometry>> {
         val sql =
             """
           select 
-            geom.id,
-            postgis.st_astext(geom.geometry) as geometry_wkt,
-            geom.resolution,
-            case 
-              when geom.height_values is null then null 
-              else array_to_string(geom.height_values, ',', 'null') 
-            end as height_values,
-            case 
-              when geom.cant_values is null then null 
-              else array_to_string(geom.cant_values, ',', 'null') 
-            end as cant_values
+            geom.id
           from layout.segment_geometry geom
           where exists(
             select *
@@ -740,21 +735,14 @@ class LayoutAlignmentDao(
             where geom.id = sv.geometry_id
           )
         """
-                .trimIndent()
 
-        val rowResults =
-            jdbcTemplate.query(sql) { rs, _ ->
-                GeometryRowResult(
-                    id = rs.getIntId("id"),
-                    wktString = rs.getString("geometry_wkt"),
-                    heightString = rs.getString("height_values"),
-                    cantString = rs.getString("cant_values"),
-                    resolution = rs.getInt("resolution"),
-                )
-            }
+        return jdbcTemplate.query(sql) { rs, _ -> rs.getIntId<SegmentGeometry>("id") }
+    }
 
-        rowResults.parallelStream().forEach { row -> segmentGeometryCache.get(row.id) { _ -> parseGeometry(row) } }
-        return rowResults.size
+    fun preloadSegmentGeometries(): Int {
+        val ids = fetchAllLiveSegmentGeometryIds()
+        segmentGeometryCache.getAll(ids, ::fetchSegmentGeometriesInternal)
+        return ids.size
     }
 }
 
