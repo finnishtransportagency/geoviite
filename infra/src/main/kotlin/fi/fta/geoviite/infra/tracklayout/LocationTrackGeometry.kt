@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.linking.splitSegments
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
@@ -482,8 +483,7 @@ private fun mergeEdgeWithPeers(
         // Between nodes: split the edge, dividing segments between previous/next
         // The node comes in the middle, connecting the two edges
         else -> {
-            // TODO: GVT-2928 provide snap to splitting to avoid adding a point right next to an existing one
-            val (preSegments, postSegments) = splitSegments(target.length * 0.5, target.segmentsWithM)
+            val (preSegments, postSegments) = splitSegments(target.segmentsWithM, target.length * 0.5, snapDistance)
             Triple(
                 TmpLayoutEdge(
                     startNode = previous.startNode,

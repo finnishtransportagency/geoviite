@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.linking.slice
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -149,7 +150,6 @@ interface IAlignment : Loggable {
             listOf() // Shortcut: if it doesn't hit the alignment, it won't hit segments either
         } else if (boundingBox != null && bbox.contains(boundingBox!!)) {
             segmentsWithM // Shortcut 2: if bbox includes the whole alignment bbox, return all
-            // segments
         } else {
             segmentsWithM.filter { (s, _) -> s.boundingBox.intersects(bbox) }
         }
@@ -420,10 +420,10 @@ data class SegmentGeometry(
     fun withPoints(segmentPoints: List<SegmentPoint>): SegmentGeometry =
         copy(segmentPoints = fixSegmentGeometryMValues(segmentPoints), id = StringId())
 
-    fun splitAtSegmentM(segmentM: Double, tolerance: Double): Pair<SegmentGeometry, SegmentGeometry?> =
+    fun splitAtSegmentM(segmentM: Double, snapDistance: Double): Pair<SegmentGeometry, SegmentGeometry?> =
         if (segmentM !in 0.0..length) this to null
         else {
-            val pointAtM = seekPointAtSegmentM(segmentM, tolerance)
+            val pointAtM = seekPointAtSegmentM(segmentM, snapDistance)
             if (pointAtM.isSnapped && (pointAtM.index <= 0 || pointAtM.index >= segmentPoints.lastIndex)) {
                 this to null
             } else {
@@ -513,41 +513,7 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
         segmentPoint.toAlignmentPoint(segmentStartM)
 }
 
-fun splitSegments(
-    splitPositionM: Double,
-    segments: List<Pair<LayoutSegment, Range<Double>>>,
-): Pair<List<LayoutSegment>, List<LayoutSegment>> {
-    val head = 0
-    val tail = 1
-
-    val segmentsWithHeadInfo =
-        segments.flatMap { (segment, segmentMRange) ->
-            if (splitPositionM < segmentMRange.min)
-            // segment belongs to tail
-            listOf(segment to tail)
-            else if (splitPositionM >= segmentMRange.max)
-            // segment belongs to head
-            listOf(segment to head)
-            else {
-                // split segment into two
-                val splitPositionOnSegment = splitPositionM - segmentMRange.min
-                val newSegments = segment.splitAtM(splitPositionOnSegment, 0.001) // TODO: tolerance
-                listOfNotNull(
-                    newSegments.first to head,
-                    newSegments.second?.let { latterSegment -> latterSegment to tail },
-                )
-            }
-        }
-    val segmentGroups = segmentsWithHeadInfo.groupBy({ (_, headInfo) -> headInfo }, { (segment, _) -> segment })
-    val headGroup = segmentGroups[head] ?: listOf()
-    val tailGroup = segmentGroups[tail] ?: listOf()
-
-    return headGroup to tailGroup
-}
-
 data class PointSeekResult<T : IPoint3DM>(val point: T, val index: Int, val isSnapped: Boolean)
-
-data class SegmentHash(val value: Int)
 
 // TODO: GVT-2935 this will become reference-line only version: remove switch links & rename...
 // ... or maybe just re-combine with LayoutEdgeSegment, as that doesn't have switches either
@@ -573,8 +539,6 @@ data class LayoutSegment(
             "Segment cannot link to switch joints if it doesn't link to a switch: switchId=$switchId startJoint=$startJointNumber endJoint=$endJointNumber"
         }
     }
-
-    val contentHash by lazy {}
 
     fun slice(segmentStartM: Double, fromIndex: Int, toIndex: Int): Pair<LayoutSegment, Range<Double>>? {
         return if (fromIndex >= toIndex) {
@@ -617,8 +581,8 @@ data class LayoutSegment(
     private fun withGeometry(geometry: SegmentGeometry, newSourceStart: Double?): LayoutSegment =
         copy(geometry = geometry, sourceStart = newSourceStart)
 
-    fun splitAtM(segmentM: Double, tolerance: Double): Pair<LayoutSegment, LayoutSegment?> {
-        val (startGeom, endGeom) = geometry.splitAtSegmentM(segmentM, tolerance)
+    fun splitAtM(segmentM: Double, snapDistance: Double): Pair<LayoutSegment, LayoutSegment?> {
+        val (startGeom, endGeom) = geometry.splitAtSegmentM(segmentM, snapDistance)
         return if (endGeom == null) {
             this to null
         } else {
