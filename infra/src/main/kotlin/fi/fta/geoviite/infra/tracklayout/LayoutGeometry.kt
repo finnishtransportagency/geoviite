@@ -195,7 +195,7 @@ interface IAlignment : Loggable {
             }
 
     fun getSegmentAtM(m: Double): Pair<ISegment, Range<Double>>? =
-        getSegmentIndexAtM(m).takeIf { i -> i >= 0 }?.let(segmentsWithM::get)
+        getSegmentIndexAtM(m).takeIf { i -> i >= 0 }?.let { i -> segments[i] to segmentMValues[i] }
 
     fun findClosestSegmentIndex(target: IPoint): Int? {
         return approximateClosestSegmentIndex(target)?.let { approximation ->

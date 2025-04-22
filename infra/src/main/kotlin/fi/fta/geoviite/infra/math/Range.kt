@@ -4,7 +4,7 @@ data class Range<T : Comparable<T>>(val min: T, val max: T) {
     constructor(range: ClosedFloatingPointRange<T>) : this(range.start, range.endInclusive)
 
     init {
-        if (min > max) throw IllegalArgumentException("Range min cannot be greater than max: min=$min max=$max")
+        require(min <= max) { "Range min cannot be greater than max: min=$min max=$max" }
     }
 
     fun contains(value: T) = value in min..max

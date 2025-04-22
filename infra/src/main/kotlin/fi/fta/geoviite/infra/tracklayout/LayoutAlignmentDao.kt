@@ -17,14 +17,14 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import kotlin.math.abs
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -212,10 +212,14 @@ class LayoutAlignmentDao(
                 .trimIndent()
         val params = mapOf("ids" to ids?.map { id -> id.intValue }?.toTypedArray(), "active" to active)
 
+        // TODO: GVT-1727 Optimize these multi fetches:
+        // - Only collect SegmentData objects from .query (remove switch stuff as that is no longer needed)
+        // - Only collect nodeId+port pairs for edge nodes
+        // - Bulk-fetch all segment geometries and nodes in one go
+        // - Build the actual edges
         fun getPort(rs: ResultSet, prefix: String) =
             DbEdgeNode(
                 portConnection = rs.getEnum("${prefix}_node_port"),
-                // TODO: GVT-1727 fetch with single query or just trust in the cache?
                 node = getNode(rs.getIntId("${prefix}_node_id")),
             )
 

@@ -50,6 +50,8 @@ sealed class LocationTrackGeometry : IAlignment {
     override val segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>
         get() = segments.zip(segmentMValues)
 
+    fun getSegmentWithM(index: Int) = segments[index] to segmentMValues[index]
+
     // All edges have segments, all segments have points
     @get:JsonIgnore
     val isEmpty: Boolean
@@ -62,8 +64,6 @@ sealed class LocationTrackGeometry : IAlignment {
     @get:JsonIgnore
     open val edgesWithM: List<Pair<LayoutEdge, Range<Double>>>
         get() = edges.zip(edgeMs)
-
-    // TODO: GVT-1727 Use streams instead of lists here?
 
     @get:JsonIgnore
     open val nodes: List<LayoutNode> by lazy {
@@ -189,7 +189,6 @@ sealed class LocationTrackGeometry : IAlignment {
 
     fun withoutSwitch(switchId: IntId<LayoutSwitch>): LocationTrackGeometry {
         val newEdges = edges.map { e -> e.withoutSwitch(switchId) }
-        // TODO: GVT-2928 there's no need to swap boundary nodes for placeholder here, but combineedges does that
         return this.takeIf { newEdges == edges } ?: TmpLocationTrackGeometry(combineEdges(newEdges))
     }
 
@@ -201,10 +200,17 @@ sealed class LocationTrackGeometry : IAlignment {
         return requireNotNull(getEdgeAtM(m)) { "Geometry does not contain edge at m $m" }
     }
 
-    fun getEdgeAtM(m: Double): LayoutEdge? {
-        // TODO: optimize
-        return edgesWithM.firstOrNull { (_, mRange) -> mRange.contains(m) }?.first
-    }
+    fun getEdgeAtM(m: Double): LayoutEdge? =
+        edgeMs
+            .binarySearch { mRange ->
+                when {
+                    m < mRange.min -> -1
+                    m > mRange.max -> 1
+                    else -> 0
+                }
+            }
+            .takeIf { it >= 0 }
+            ?.let(edges::getOrNull)
 
     fun mergeEdges(edgesToMerge: List<LayoutEdge>): LocationTrackGeometry {
         val newEdges =
@@ -322,7 +328,8 @@ data class EdgeHash private constructor(val value: Int) {
 
         private fun segmentsHash(segments: List<LayoutSegment>): Int = Objects.hash(segments.map(::segmentHash))
 
-        // TODO: GVT-2928 should we implement segment.contentHash to avoid segmentgeometry tmp id affecting the result?
+        // Note: the segment hash isn't similarly stable by content as node hash is:
+        // this will change after save & read
         private fun segmentHash(segment: LayoutSegment): Int = segment.hashCode()
     }
 }
@@ -838,7 +845,6 @@ data class SwitchLink(val id: IntId<LayoutSwitch>, val jointRole: SwitchJointRol
  * - Edges without a switch between them are combined into a single edge
  * - If either of the edges points to a switch between them, both edges are linked to it
  * - If edges point to having different switches between them, a new combined node is placed there
- * - Track boundaries are replaced by placeholders so as not to point to a different track
  */
 fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
     if (edges.isEmpty()) return edges
