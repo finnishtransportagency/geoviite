@@ -31,7 +31,16 @@
         "track-layout": {
             "v1": {
                 "error": {
-                    "oid-not-found": "Pyynnön OID-tunnuksen perusteella ei löydetty kohdetta."
+                    "oid-not-found": "Pyynnön OID-tunnuksen perusteella ei löydetty kohdetta.",
+                    "client-error": "Pyyntö oli tunnistamattomalla tavalla virheellinen (HTTP {{koodi}}).",
+                    "server-error": "Pyynnön käsittely epäonnistui palvelimella (HTTP {{koodi}}).",
+                    "unauthorized": "Pyyntöön ei ollut oikeutta.",
+                    "bad-request": {
+                        "invalid-path": "{{metodi}} Pyynnön polku oli virheellinen",
+                        "missing-parameter": "Pyynnöstä puuttui parametri: {{parametri}} ({{tyyppi}})",
+                        "conversion-failed": "Pyynnön argumentin tyyppi oli virheellinen (tavoitetyyppi: '{{tavoitetyyppi}}')",
+                        "conversion-failed-detailed": "Pyynnön argumentti {{nimi}} oli virheellinen: (tavoitetyyppi: '{{tavoitetyyppi}}') (tarkenne: {{parametri}})"
+                    }
                 },
                 "center-line": {
                     "error": {

@@ -215,7 +215,7 @@ class InvalidUiVersionException(cause: Throwable? = null) :
         localizedMessageKey = "error.bad-request.invalid-version",
     )
 
-class ExtApiExceptionV1(
+class ExtApiClientExceptionV1(
     message: String,
     cause: Throwable? = null,
     error: FrameConverterErrorV1,

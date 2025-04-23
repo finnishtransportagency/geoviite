@@ -102,10 +102,15 @@ constructor(
     ): ExtModifiedLocationTrackResponseV1? {
         val layoutContext = MainLayoutContext.official
 
-        val earlierPublication = publicationDao.fetchPublicationByUuid(modificationsFromVersion).let(::requireNotNull)
+        val earlierPublication =
+            publicationDao
+                .fetchPublicationByUuid(modificationsFromVersion)
+                .let(::requireNotNull) // TODO Improve error handling
         val laterPublication =
-            trackNetworkVersion?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull) }
-                ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+            trackNetworkVersion?.let { uuid ->
+                publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull)
+            } // TODO Improve error handling
+            ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         return if (earlierPublication == laterPublication) {
             logger.info(
@@ -123,18 +128,18 @@ constructor(
                     layoutContext.branch,
                     locationTrackId,
                     earlierPublication.publicationTime,
-                )
+                ) // TODO Improve error handling
 
             val laterLocationTrackVersion =
                 locationTrackDao.fetchOfficialVersionAtMomentOrThrow(
                     layoutContext.branch,
                     locationTrackId,
                     laterPublication.publicationTime,
-                )
+                ) // TODO Improve error handling
 
             if (earlierLocationTrackVersion == laterLocationTrackVersion) {
                 logger.info(
-                    "location track version was the same for " +
+                    "location track version was the same for locationTrackId=$locationTrackId, " +
                         "earlierPublication=${earlierPublication.id}, laterPublication=${laterPublication.id}"
                 )
                 return null
