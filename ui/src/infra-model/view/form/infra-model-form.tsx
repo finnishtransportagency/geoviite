@@ -137,8 +137,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [layoutTrackNumberList, setLayoutTrackNumberList] = React.useState<TrackNumber[]>();
     const [customTrackNumber, setCustomTrackNumber] = React.useState<TrackNumber>();
     const [project, setProject] = React.useState<Project>();
-    const [projectNameSuggestion, setProjectNameSuggestion] = React.useState<string>('');
-    const [authorNameSuggestion, setAuthorNameSuggestion] = React.useState<string>('');
+    const [projectNameSuggestion, setProjectNameSuggestion] = React.useState<string>();
+    const [authorNameSuggestion, setAuthorNameSuggestion] = React.useState<string>();
     const [trackNumberNameSuggestion, setTrackNumberNameSuggestion] = React.useState<string>();
     const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
     const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || [];
