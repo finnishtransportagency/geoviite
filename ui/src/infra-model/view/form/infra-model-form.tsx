@@ -137,6 +137,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [layoutTrackNumberList, setLayoutTrackNumberList] = React.useState<TrackNumber[]>();
     const [customTrackNumber, setCustomTrackNumber] = React.useState<TrackNumber>();
     const [project, setProject] = React.useState<Project>();
+    const [projectNameSuggestion, setProjectNameSuggestion] = React.useState<string>('');
+    const [authorNameSuggestion, setAuthorNameSuggestion] = React.useState<string>('');
+    const [trackNumberNameSuggestion, setTrackNumberNameSuggestion] = React.useState<string>();
     const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
     const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || [];
 
@@ -256,6 +259,21 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         setShowNewTrackNumberDialog(false);
         changeInOverrideParametersField(tn, 'trackNumber');
     }
+
+    const addProject = (nameSuggestion: string) => {
+        setProjectNameSuggestion(nameSuggestion);
+        setShowNewProjectDialog(true);
+    };
+
+    const addAuthor = (nameSuggestion: string) => {
+        setAuthorNameSuggestion(nameSuggestion);
+        setShowNewAuthorDialog(true);
+    };
+
+    const addTrackNumber = (nameSuggestion: string) => {
+        setTrackNumberNameSuggestion(nameSuggestion);
+        setShowNewTrackNumberDialog(true);
+    };
 
     return (
         <React.Fragment>
@@ -394,7 +412,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                                     'authorId',
                                                 );
                                         }}
-                                        onAddClick={() => setShowNewAuthorDialog(true)}
+                                        onAddClick={addAuthor}
                                     />
                                 }
                             />
@@ -417,7 +435,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                 setProject={(projectId) =>
                                     changeInOverrideParametersField(projectId, 'projectId')
                                 }
-                                onAddProject={() => setShowNewProjectDialog(true)}
+                                onAddProject={addProject}
                             />
                         )}
                     </FormgroupField>
@@ -474,7 +492,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             onChange={(tn) =>
                                                 changeInOverrideParametersField(tn, 'trackNumber')
                                             }
-                                            onAddClick={() => setShowNewTrackNumberDialog(true)}
+                                            onAddClick={addTrackNumber}
                                             onAddClickTitle={t('im-form.set-manual-track-number')}
                                             onAddClickIcon={Icons.Edit}
                                         />
@@ -639,6 +657,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
             {showNewAuthorDialog && (
                 <NewAuthorDialog
+                    nameSuggestion={authorNameSuggestion}
                     authors={authorsIncludingFromPlan()}
                     onClose={() => setShowNewAuthorDialog(false)}
                     onSave={(author) => {
@@ -649,16 +668,19 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
             {showNewProjectDialog && (
                 <NewProjectDialog
+                    nameSuggestion={projectNameSuggestion}
                     onClose={() => setShowNewProjectDialog(false)}
                     onSave={(projectId) => {
                         setShowNewProjectDialog(false);
                         changeInOverrideParametersField(projectId, 'projectId');
                         updateProjectChangeTime();
-                    }}></NewProjectDialog>
+                    }}
+                />
             )}
 
             {showNewTrackNumberDialog && (
                 <ManualTrackNumberDialog
+                    nameSuggestion={trackNumberNameSuggestion}
                     onSave={selectCustomTrackNumber}
                     onClose={() => setShowNewTrackNumberDialog(false)}
                 />

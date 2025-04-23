@@ -15,29 +15,42 @@ import { isEqualWithoutWhitespace } from 'utils/string-utils';
 import { useLoader } from 'utils/react-utils';
 
 type NewProjectDialogProps = {
+    nameSuggestion: string | undefined;
     onClose: () => void;
     onSave: (projectId: ProjectId) => void;
 };
 
-export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onSave }) => {
+export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
+    nameSuggestion,
+    onClose,
+    onSave,
+}) => {
     const { t } = useTranslation();
-    const [projectName, setProjectName] = React.useState<string>('');
+    const [projectName, setProjectName] = React.useState<string>(nameSuggestion ?? '');
     const [canSave, setCanSave] = React.useState<boolean>(false);
     const [duplicateName, setDuplicateName] = React.useState<boolean>(false);
     const [saveInProgress, setSaveInProgress] = React.useState<boolean>(false);
+    const nameFieldRef = React.useRef<HTMLInputElement>(null);
     const projects = useLoader(getProjects, []);
 
-    const debouncer = React.useCallback(
-        debounce((newName: string) => {
-            const existingProject = projects?.find((project) =>
-                isEqualWithoutWhitespace(project.name, newName),
-            );
+    function validateName(newName: string): void {
+        const existingProject = projects?.find((project) =>
+            isEqualWithoutWhitespace(project.name, newName),
+        );
 
-            if (existingProject) setDuplicateName(true);
-            else if (newName) setCanSave(true);
+        if (existingProject) setDuplicateName(true);
+        else if (newName) setCanSave(true);
+    }
+
+    const validateNameDebounced = React.useCallback(
+        debounce((newName: string) => {
+            validateName(newName);
         }, 300),
         [projects],
     );
+
+    React.useEffect(() => nameFieldRef?.current?.focus(), []);
+    React.useEffect(() => validateName(projectName), [projects]);
 
     const getErrorMessage = () => (duplicateName ? [t('im-form.duplicate-project-name')] : []);
 
@@ -45,7 +58,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onS
         setProjectName(name);
         setCanSave(false);
         setDuplicateName(false);
-        debouncer(name);
+        validateNameDebounced(name);
     };
 
     const saveProject = () => {
@@ -90,6 +103,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onS
                             onChange={(e) => onNameChange(e.target.value)}
                             disabled={saveInProgress}
                             hasError={duplicateName}
+                            ref={nameFieldRef}
                             wide
                         />
                     }

@@ -13,16 +13,21 @@ import { brand } from 'common/brand';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 
 type ManualTrackNumberDialogProps = {
+    nameSuggestion: string | undefined;
     onSave: (trackNumber: TrackNumber) => void;
     onClose: () => void;
 };
 
 export const ManualTrackNumberDialog: React.FC<ManualTrackNumberDialogProps> = ({
+    nameSuggestion,
     onSave,
     onClose,
 }) => {
     const { t } = useTranslation();
-    const [trackNumber, setTrackNumber] = useState('');
+    const [trackNumber, setTrackNumber] = useState(nameSuggestion ?? '');
+    const nameFieldRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => nameFieldRef?.current?.focus(), []);
 
     const saveEnabled = trackNumber.length > 1;
     const onClickSave = () => {
@@ -52,6 +57,7 @@ export const ManualTrackNumberDialog: React.FC<ManualTrackNumberDialogProps> = (
                             maxLength={100}
                             onChange={(e) => setTrackNumber(e.target.value)}
                             wide
+                            ref={nameFieldRef}
                         />
                     }
                 />
