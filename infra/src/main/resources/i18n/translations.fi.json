@@ -2034,7 +2034,10 @@
         "license": "Lisenssi"
     },
     "dropdown": {
-        "add-new": "Lisää uusi"
+        "add-new": "Lisää uusi",
+        "unselected": "Ei valittu",
+        "no-options": "Ei vaihtoehtoja",
+        "loading": "Ladataan"
     },
     "privilege": {
         "view-basic": "Geoviitteen käyttö",
