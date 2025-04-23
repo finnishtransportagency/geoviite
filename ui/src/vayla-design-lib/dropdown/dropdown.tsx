@@ -72,7 +72,7 @@ export type DropdownProps<TItemValue> = {
     onBlur?: () => void;
     onFocus?: () => void;
     hasError?: boolean;
-    onAddClick?: () => void;
+    onAddClick?: (searchTerm: string) => void;
     onAddClickTitle?: string;
     onAddClickIcon?: IconComponent;
     wideList?: boolean;
@@ -366,13 +366,13 @@ export const Dropdown = function <TItemValue>({
                         <li
                             className={getItemClassName(undefined, -1)}
                             onClick={unselect}
-                            title={props.unselectText || 'Ei valittu'}
+                            title={props.unselectText || t('dropdown.unselected')}
                             ref={optionFocusIndex === -1 ? focusedOptionRef : undefined}>
                             <span className={styles['dropdown__list-item-icon']}>
                                 <Icons.Selected size={IconSize.SMALL} />
                             </span>
                             <span className={styles['dropdown__list-item-text']}>
-                                {props.unselectText || 'Ei valittu'}
+                                {props.unselectText || t('dropdown.unselected')}
                             </span>
                         </li>
                     )}
@@ -401,7 +401,7 @@ export const Dropdown = function <TItemValue>({
                                 styles['dropdown__list-item'],
                                 styles['dropdown__list-item--no-options'],
                             )}>
-                            Ei vaihtoehtoja
+                            {t('dropdown.no-options')}
                         </li>
                     )}
                     {isLoading && (
@@ -411,7 +411,7 @@ export const Dropdown = function <TItemValue>({
                                 styles['dropdown__list-item'],
                                 styles['dropdown__list-item--loading'],
                             )}>
-                            Ladataan
+                            {t('dropdown.loading')}
                             <span className={styles['dropdown__loading-indicator']} />
                         </li>
                     )}
@@ -423,7 +423,7 @@ export const Dropdown = function <TItemValue>({
                             icon={props.onAddClickIcon ?? Icons.Append}
                             wide
                             onClick={() => {
-                                props.onAddClick && props.onAddClick();
+                                props.onAddClick && props.onAddClick(valueShownInInput);
                             }}>
                             {props.onAddClickTitle ?? t('dropdown.add-new')}
                         </Button>
