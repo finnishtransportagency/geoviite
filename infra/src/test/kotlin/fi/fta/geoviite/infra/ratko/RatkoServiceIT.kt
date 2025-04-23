@@ -1605,6 +1605,7 @@ constructor(
             PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
         )
         trackNumberService.cancel(designBranch, trackNumber.id)
+        referenceLineService.cancel(designBranch, referenceLine.id)
         locationTrackService.cancel(designBranch, locationTrack.id)
         switchService.cancel(designBranch, switch.id)
         publicationService.publishManualPublication(
@@ -1690,6 +1691,7 @@ constructor(
         fakeRatko.hostPushedRouteNumber("1.1.1.1.2")
 
         trackNumberService.cancel(designBranch, trackNumber.id)
+        referenceLineService.cancel(designBranch, referenceLine.id)
         locationTrackService.cancel(designBranch, locationTrack.id)
         switchService.cancel(designBranch, switch.id)
 
