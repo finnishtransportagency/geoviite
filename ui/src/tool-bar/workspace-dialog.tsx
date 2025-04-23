@@ -81,6 +81,8 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
         .map((e) => t(`workspace-dialog.${e}`))
         .concat(designNameNotUnique ? [t('workspace-dialog.name-not-unique')] : []);
 
+    React.useEffect(() => nameInputRef?.current?.focus());
+
     return (
         <Dialog
             className={styles['workspace-dialog']}
