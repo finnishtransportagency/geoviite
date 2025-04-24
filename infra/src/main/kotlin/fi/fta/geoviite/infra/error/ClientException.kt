@@ -22,7 +22,7 @@ interface HasLocalizedMessage {
     val localizationParams: LocalizationParams
 }
 
-sealed class ClientException(
+open class ClientException(
     val status: HttpStatus,
     message: String,
     cause: Throwable? = null,

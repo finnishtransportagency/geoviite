@@ -118,7 +118,7 @@ constructor(
         val publication =
             trackNetworkVersion?.let { uuid ->
                 publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw ExtTrackNetworkVersionNotFound("uuid=$uuid not found")
+                    ?: throw ExtTrackNetworkVersionNotFound("fetch failed, uuid=$uuid")
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrack =
@@ -158,12 +158,12 @@ constructor(
 
         val previousPublication =
             publicationDao.fetchPublicationByUuid(modificationsFromVersion)
-                ?: throw ExtTrackNetworkVersionNotFound("uuid=$modificationsFromVersion not found")
+                ?: throw ExtTrackNetworkVersionNotFound("fetch failed, uuid=$modificationsFromVersion")
 
         val nextPublication =
             trackNetworkVersion?.let { uuid ->
                 publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw ExtTrackNetworkVersionNotFound("uuid=$uuid not found")
+                    ?: throw ExtTrackNetworkVersionNotFound("fetch failed, uuid=$uuid")
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrack =
