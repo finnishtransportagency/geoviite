@@ -28,7 +28,7 @@ export const LocationTrackSplitRelinkingNotice: React.FC<
             {switchRelinkingLoadingState === LoaderStatus.Ready &&
                 switchRelinkingErrors &&
                 switchRelinkingErrors.length > 0 && (
-                    <MessageBox type={hasCriticalErrors ? 'ERROR' : 'INFO'}>
+                    <MessageBox type={hasCriticalErrors ? 'ERROR' : 'WARNING'}>
                         {hasCriticalErrors
                             ? t('tool-panel.location-track.splitting.relink-critical-errors')
                             : t('tool-panel.location-track.splitting.relink-message')}

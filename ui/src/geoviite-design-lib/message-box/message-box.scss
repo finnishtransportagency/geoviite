@@ -2,9 +2,12 @@
 
 .message-box {
     @include vayla-design.typography-caption;
-    background-color: vayla-design.$color-lemon-light;
     color: vayla-design.$color-black-default;
     overflow: hidden;
+
+    &--warning {
+        background-color: vayla-design.$color-lemon-light;
+    }
 
     &--error {
         background-color: vayla-design.$color-red-lighter;

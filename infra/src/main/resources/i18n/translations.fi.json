@@ -185,6 +185,10 @@
     "design": {
         "duplicate-name": "Nimi {{name}} on jo käytössä"
     },
+    "gk-location-transform": {
+        "location-converted": "Sijainti muunnettu koordinaatistosta {{originalCrs}}",
+        "original-crs": "Alkuperäinen koordinaatisto {{originalCrs}}"
+    },
     "enum": {
         "PlanPhase": {
             "RAILWAY_PLAN": "Ratasuunnitelma, RaS",
@@ -1896,9 +1900,7 @@
             "source-manual": "Operaattorin asettama",
             "source-none": "-",
             "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)",
-            "out-of-bounds": "Sijainti ei ole laskettavissa",
-            "location-converted": "Sijainti muunnettu koordinaatistosta {{originalCrs}}",
-            "original-crs": "Alkuperäinen koordinaatisto {{originalCrs}}"
+            "out-of-bounds": "Sijainti ei ole laskettavissa"
         }
     },
     "km-post-delete-dialog": {

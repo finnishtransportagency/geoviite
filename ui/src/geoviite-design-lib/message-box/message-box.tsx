@@ -3,7 +3,7 @@ import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import styles from './message-box.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
-type MessageBoxType = 'INFO' | 'ERROR';
+type MessageBoxType = 'INFO' | 'WARNING' | 'ERROR';
 
 type MessageBoxProps = {
     children?: React.ReactNode;
@@ -15,14 +15,16 @@ type MessageBoxProps = {
 export const MessageBox: React.FC<MessageBoxProps> = ({
     children,
     pop,
-    type = 'INFO',
+    type = 'WARNING',
 }: MessageBoxProps) => {
+    const showingWarning = type === 'WARNING';
     const showingError = type === 'ERROR';
 
     const classes = createClassName(
         styles['message-box'],
         pop !== undefined && styles['message-box--poppable'],
         pop && styles['message-box--popped'],
+        showingWarning && styles['message-box--warning'],
         showingError && styles['message-box--error'],
     );
 

@@ -2,13 +2,13 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import * as React from 'react';
 import Infobox from 'tool-panel/infobox/infobox';
 import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
-import InfoboxContent from 'tool-panel/infobox/infobox-content';
+import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { getPlanLinkStatus, linkKmPost } from 'linking/linking-api';
 import { GeometryKmPostId, GeometryPlanId } from 'geometry/geometry-model';
-import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, Srid, TimeStamp } from 'common/common-model';
 import { LinkingStatusLabel } from 'geoviite-design-lib/linking-status/linking-status-label';
 import { LinkingKmPost } from 'linking/linking-model';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
@@ -33,6 +33,11 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 import { createEmptyItemCollections } from 'selection/selection-store';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { compareByField } from 'utils/array-utils';
+import { isFromAnotherGk, isGk } from 'tool-panel/km-post/dialog/km-post-edit-store';
+import { GeometryKmPostNonGkSourceWarning } from 'tool-panel/km-post/geometry-km-post-non-gk-source-warning';
+import { GeometryKmPostDifferentGkSourceWarning } from 'tool-panel/km-post/geometry-km-post-different-gk-source-warning';
+import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -57,6 +62,45 @@ function createSelectAction() {
             kmPosts: [kmPostId],
         });
 }
+
+type GkSource = 'SAME' | 'DIFFERENT' | 'NOT_GK';
+
+const DifferingGkSourceWarning: React.FC<{ planSrid: Srid; kmPostSrid: Srid }> = ({
+    planSrid,
+    kmPostSrid,
+}) => {
+    let gkSource: GkSource;
+    if (!isGk(planSrid)) {
+        gkSource = 'NOT_GK';
+    } else if (isFromAnotherGk(planSrid, kmPostSrid)) {
+        gkSource = 'DIFFERENT';
+    } else {
+        gkSource = 'SAME';
+    }
+
+    switch (gkSource) {
+        case 'NOT_GK':
+            return (
+                <InfoboxContentSpread>
+                    <MessageBox>
+                        <GeometryKmPostNonGkSourceWarning originalSrid={planSrid} />
+                    </MessageBox>
+                </InfoboxContentSpread>
+            );
+        case 'DIFFERENT':
+            return (
+                <InfoboxContentSpread>
+                    <MessageBox type={'INFO'}>
+                        <GeometryKmPostDifferentGkSourceWarning originalSrid={planSrid} />
+                    </MessageBox>
+                </InfoboxContentSpread>
+            );
+        case 'SAME':
+            return <React.Fragment />;
+        default:
+            return exhaustiveMatchingGuard(gkSource);
+    }
+};
 
 const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> = ({
     geometryKmPost,
@@ -204,7 +248,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                             }
                         />
                     )}
-                    {!linkingState && (
+                    {!linkingState ? (
                         <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
@@ -226,9 +270,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                 </Button>
                             </InfoboxButtons>
                         </PrivilegeRequired>
-                    )}
-
-                    {linkingState && (
+                    ) : (
                         <React.Fragment>
                             <div
                                 className={
@@ -296,6 +338,13 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                     ))}
                                 </ul>
                             </div>
+                            {geometryPlan?.units?.coordinateSystemSrid &&
+                                geometryKmPost.gkLocation?.location.srid && (
+                                    <DifferingGkSourceWarning
+                                        planSrid={geometryPlan.units.coordinateSystemSrid}
+                                        kmPostSrid={geometryKmPost.gkLocation.location.srid}
+                                    />
+                                )}
 
                             <InfoboxButtons>
                                 <Button
