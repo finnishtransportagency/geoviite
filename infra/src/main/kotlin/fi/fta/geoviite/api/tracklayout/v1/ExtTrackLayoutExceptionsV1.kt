@@ -2,16 +2,14 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException
+import fi.fta.geoviite.infra.error.ClientException
 import fi.fta.geoviite.infra.error.ErrorDescription
 import fi.fta.geoviite.infra.error.ErrorPriority
 import fi.fta.geoviite.infra.error.ExtApiErrorResponseV1
 import fi.fta.geoviite.infra.error.GeoviiteErrorResponse
 import fi.fta.geoviite.infra.error.HasLocalizedMessage
-import fi.fta.geoviite.infra.localization.LocalizationKey
-import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
-import java.lang.RuntimeException
 import org.springframework.core.convert.ConversionFailedException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -24,21 +22,7 @@ import org.springframework.web.servlet.NoHandlerFoundException
 
 private const val ERROR_KEY_BASE = "ext-api.track-layout.v1.error"
 
-sealed class ExtApiExceptionV1(
-    val status: HttpStatus,
-    message: String,
-    cause: Throwable? = null,
-    override val localizationKey: LocalizationKey,
-    override val localizationParams: LocalizationParams = LocalizationParams.empty,
-) : RuntimeException(message, cause), HasLocalizedMessage {
-    constructor(
-        status: HttpStatus,
-        message: String,
-        cause: Throwable?,
-        localizedMessageKey: String,
-        localizedMessageParams: LocalizationParams = LocalizationParams.empty,
-    ) : this(status, message, cause, LocalizationKey(localizedMessageKey), localizedMessageParams)
-}
+typealias ExtApiExceptionV1 = ClientException
 
 class ExtOidNotFoundExceptionV1(
     message: String,
@@ -56,19 +40,13 @@ class ExtTrackNumberNotFoundV1(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = "$ERROR_KEY_BASE.track-number-not-found",
-) : ExtApiExceptionV1(HttpStatus.INTERNAL_SERVER_ERROR, "track number not found: $message", cause, localizedMessageKey)
+) : ExtApiExceptionV1(HttpStatus.BAD_REQUEST, "track number not found: $message", cause, localizedMessageKey)
 
 class ExtTrackNetworkVersionNotFound(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = "$ERROR_KEY_BASE.track-network-version-not-found",
-) :
-    ExtApiExceptionV1(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        "track network version not found: $message",
-        cause,
-        localizedMessageKey,
-    )
+) : ExtApiExceptionV1(HttpStatus.BAD_REQUEST, "track network version not found: $message", cause, localizedMessageKey)
 
 fun createExtApiErrorResponseV1(
     correlationId: String,
