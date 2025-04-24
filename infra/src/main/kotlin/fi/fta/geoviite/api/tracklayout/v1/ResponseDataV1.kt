@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 
 data class ExtLocationTrackTypeV1(val locationTrackType: LocationTrackType) {
-
     @JsonValue
     override fun toString(): String {
         return when (locationTrackType) {
