@@ -36,7 +36,7 @@ import { compareByField } from 'utils/array-utils';
 import { isFromAnotherGk, isGk } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { GeometryKmPostNonGkSourceWarning } from 'tool-panel/km-post/geometry-km-post-non-gk-source-warning';
 import { GeometryKmPostDifferentGkSourceWarning } from 'tool-panel/km-post/geometry-km-post-different-gk-source-warning';
-import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type GeometryKmPostLinkingInfoboxProps = {
@@ -90,7 +90,7 @@ const DifferingGkSourceWarning: React.FC<{ planSrid: Srid; kmPostSrid: Srid }> =
         case 'DIFFERENT':
             return (
                 <InfoboxContentSpread>
-                    <MessageBox type={'INFO'}>
+                    <MessageBox type={MessageBoxType.GHOST}>
                         <GeometryKmPostDifferentGkSourceWarning originalSrid={planSrid} />
                     </MessageBox>
                 </InfoboxContentSpread>

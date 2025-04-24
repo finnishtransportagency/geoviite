@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LoaderStatus } from 'utils/react-utils';
-import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
@@ -28,7 +28,8 @@ export const LocationTrackSplitRelinkingNotice: React.FC<
             {switchRelinkingLoadingState === LoaderStatus.Ready &&
                 switchRelinkingErrors &&
                 switchRelinkingErrors.length > 0 && (
-                    <MessageBox type={hasCriticalErrors ? 'ERROR' : 'WARNING'}>
+                    <MessageBox
+                        type={hasCriticalErrors ? MessageBoxType.ERROR : MessageBoxType.INFO}>
                         {hasCriticalErrors
                             ? t('tool-panel.location-track.splitting.relink-critical-errors')
                             : t('tool-panel.location-track.splitting.relink-message')}
