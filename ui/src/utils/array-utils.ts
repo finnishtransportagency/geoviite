@@ -1,6 +1,6 @@
 import { TimeStamp } from 'common/common-model';
 import { expectDefined } from 'utils/type-utils';
-import equal from 'fast-deep-equal';
+import { objectEquals } from 'utils/object-utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type EmptyObject = {};
@@ -320,7 +320,7 @@ export function reuseListElements<T>(
     newContent: readonly T[],
     oldElements: T[],
     extractKey: (e: T) => Primitive,
-    equals: (a: T, b: T) => boolean = equal,
+    equals: (a: T, b: T) => boolean = objectEquals,
 ): T[] {
     const oldInstances = indexIntoKeyedMapWithDuplicateCounts(oldElements, extractKey, equals);
 
