@@ -52,8 +52,8 @@ data class ExtLocationTrackV1(
     @JsonProperty("tila") val locationTrackState: ExtLocationTrackStateV1,
     @JsonProperty("kuvaus") val locationTrackDescription: FreeText,
     @JsonProperty("omistaja") val locationTrackOwner: MetaDataName,
-    @JsonProperty("alkusijainti") val startLocation: ExtCenterLineGeometryPointV1,
-    @JsonProperty("loppusijainti") val endLocation: ExtCenterLineGeometryPointV1,
+    @JsonProperty("alkusijainti") val startLocation: ExtAddressPointV1,
+    @JsonProperty("loppusijainti") val endLocation: ExtAddressPointV1,
     @JsonProperty("koordinaatisto") val coordinateSystem: Srid,
 )
 
@@ -212,8 +212,8 @@ constructor(
             locationTrackDescription = locationTrackDescription,
             locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
             coordinateSystem = coordinateSystem,
-            startLocation = ExtCenterLineGeometryPointV1.of(startLocation),
-            endLocation = ExtCenterLineGeometryPointV1.of(endLocation),
+            startLocation = ExtAddressPointV1.of(startLocation),
+            endLocation = ExtAddressPointV1.of(endLocation),
             trackNumberName = trackNumberName,
             trackNumberOid = trackNumberOid,
         )

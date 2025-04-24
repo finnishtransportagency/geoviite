@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import io.swagger.v3.oas.annotations.media.Schema
-import java.math.BigDecimal
 import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -37,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired
 @Schema(name = "Vastaus: Sijaintiraidegeometria")
 data class ExtLocationTrackGeometryResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
+    @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: Oid<LocationTrack>,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
@@ -44,25 +44,51 @@ data class ExtLocationTrackGeometryResponseV1(
 data class ExtLocationTrackModifiedGeometryResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
+    @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: Oid<LocationTrack>,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
 @Schema(name = "Osoitepiste")
-data class ExtCenterLineGeometryPointV1( // TODO Rename
-    val x: Double,
-    val y: Double,
-    @JsonProperty("ratakilometri") val kmNumber: KmNumber,
-    @JsonProperty("ratametri") val trackMeter: BigDecimal,
-) {
+data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataosoite") val trackAddress: String) {
     companion object {
-        fun of(addressPoint: AddressPoint): ExtCenterLineGeometryPointV1 {
-            return ExtCenterLineGeometryPointV1(
+        fun of(addressPoint: AddressPoint): ExtAddressPointV1 {
+            return ExtAddressPointV1(
                 addressPoint.point.x,
                 addressPoint.point.y,
-                addressPoint.address.kmNumber,
-                addressPoint.address.meters,
+                addressPoint.address.formatFixedDecimals(3),
             )
         }
+    }
+}
+
+@Schema(name = "Osoiteväli")
+data class ExtCenterLineTrackIntervalV1(
+    @JsonProperty("alku") val startAddress: String,
+    @JsonProperty("loppu") val endAddress: String,
+    @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
+)
+
+// TODO Are all of the following ones necessary?
+enum class IntervalType : Comparable<IntervalType> {
+    REMOVAL,
+    ADDITION,
+}
+
+data class ExtTrackInterval(val trackRange: Range<Double>, val type: IntervalType)
+
+data class IntervalEvent(val trackM: Double, val type: IntervalType, val state: IntervalState)
+
+enum class IntervalState {
+    START,
+    END,
+}
+
+data class ExtTrackKilometerIntervalV1(val start: KmNumber?, val inclusiveEnd: KmNumber?) {
+    fun containsKmEndInclusive(kmNumber: KmNumber): Boolean {
+        val startsAfterStartKmFilter = start == null || kmNumber >= start
+        val endsBeforeEndKmFilter = inclusiveEnd == null || kmNumber <= inclusiveEnd
+
+        return startsAfterStartKmFilter && endsBeforeEndKmFilter
     }
 }
 
@@ -90,24 +116,25 @@ constructor(
         val layoutContext = MainLayoutContext.official
 
         val publication =
-            trackNetworkVersion?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull) }
-                ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+            trackNetworkVersion?.let { uuid ->
+                publicationDao.fetchPublicationByUuid(uuid)
+                    ?: throw ExtTrackNetworkVersionNotFound("uuid=$uuid not found")
+            } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrack =
             extLocationTrackService.getLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
                 ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
 
         val geocodingContextCacheKey =
-            geocodingDao
-                .getLayoutGeocodingContextCacheKey(
-                    layoutContext.branch,
-                    locationTrack.trackNumberId,
-                    publication.publicationTime,
-                )
-                .let(::requireNotNull)
+            geocodingDao.getLayoutGeocodingContextCacheKey(
+                layoutContext.branch,
+                locationTrack.trackNumberId,
+                publication.publicationTime,
+            ) ?: throw ExtGeocodingFailedV1("could not get geocoding context cache key")
 
         return ExtLocationTrackGeometryResponseV1(
             trackNetworkVersion = publication.uuid,
+            locationTrackOid = oid,
             trackIntervals =
                 getExtLocationTrackGeometry(
                     locationTrack.getAlignmentVersionOrThrow(),
@@ -129,10 +156,15 @@ constructor(
     ): ExtLocationTrackModifiedGeometryResponseV1? {
         val layoutContext = MainLayoutContext.official
 
-        val previousPublication = publicationDao.fetchPublicationByUuid(modificationsFromVersion).let(::requireNotNull)
+        val previousPublication =
+            publicationDao.fetchPublicationByUuid(modificationsFromVersion)
+                ?: throw ExtTrackNetworkVersionNotFound("uuid=$modificationsFromVersion not found")
+
         val nextPublication =
-            trackNetworkVersion?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull) }
-                ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+            trackNetworkVersion?.let { uuid ->
+                publicationDao.fetchPublicationByUuid(uuid)
+                    ?: throw ExtTrackNetworkVersionNotFound("uuid=$uuid not found")
+            } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrack =
             extLocationTrackService.getLocationTrackByOidAtMoment(oid, layoutContext, nextPublication.publicationTime)
@@ -150,6 +182,7 @@ constructor(
         return ExtLocationTrackModifiedGeometryResponseV1(
             modificationsFromVersion = previousPublication.uuid,
             trackNetworkVersion = nextPublication.uuid,
+            locationTrackOid = oid,
             trackIntervals =
                 getModifiedLocationTrackGeometry(
                     locationTrack.id as IntId, // TODO Only id needed
@@ -157,8 +190,8 @@ constructor(
                     nextPublication.publicationTime,
                     newerGeocodingContextCacheKey,
                     resolution,
-                    // TODO coordinateSystem
-                    // TODO trackIntervalFilter
+                    coordinateSystem,
+                    trackIntervalFilter,
                 ),
         )
     }
@@ -171,23 +204,20 @@ constructor(
         coordinateSystem: Srid,
     ): List<ExtCenterLineTrackIntervalV1> {
         val alignmentAddresses =
-            geocodingService
-                .getAddressPoints(geocodingContextCacheKey, locationTrackAlignmentVersion, resolution)
-                .let(::requireNotNull)
+            geocodingService.getAddressPoints(geocodingContextCacheKey, locationTrackAlignmentVersion, resolution)
+                ?: throw ExtGeocodingFailedV1("could not get address points")
 
         val filteredPoints =
             alignmentAddresses.allPoints.filter { trackIntervalFilter.containsKmEndInclusive(it.address.kmNumber) }
 
-        // TODO no errors needed here
-        val (convertedMidPoints, conversionErrors) =
-            convertAddressPointsToRequestCoordinateSystem(coordinateSystem, filteredPoints)
-
-        // TODO This doesn't create changed intervals just yet
         return listOf(
             ExtCenterLineTrackIntervalV1(
                 startAddress = alignmentAddresses.startPoint.address.toString(),
                 endAddress = alignmentAddresses.endPoint.address.toString(),
-                addressPoints = convertedMidPoints?.map(ExtCenterLineGeometryPointV1::of) ?: emptyList(),
+                addressPoints =
+                    filteredPoints
+                        .map { addressPoint -> layoutAddressPointToCoordinateSystem(addressPoint, coordinateSystem) }
+                        .map(ExtAddressPointV1::of),
             )
         )
     }
@@ -198,6 +228,8 @@ constructor(
         newerMoment: Instant,
         newerGeocodingContextCacheKey: GeocodingContextCacheKey,
         resolution: Resolution,
+        coordinateSystem: Srid,
+        trackIntervalFilter: ExtTrackKilometerIntervalV1, // TODO Not implemented yet
     ): List<ExtCenterLineTrackIntervalV1> {
         val layoutContext = MainLayoutContext.official
 
@@ -214,23 +246,35 @@ constructor(
         val changedGeometryRanges = getChangedGeometryRanges(earlierAlignment.segments, newerAlignment.segments)
 
         val addressPoints =
-            geocodingService
-                .getAddressPoints(newerGeocodingContextCacheKey, newerTrack.getAlignmentVersionOrThrow(), resolution)
-                .let(::requireNotNull) // TODO Better error
+            geocodingService.getAddressPoints(
+                newerGeocodingContextCacheKey,
+                newerTrack.getAlignmentVersionOrThrow(),
+                resolution,
+            ) ?: throw ExtGeocodingFailedV1("could not get address points")
 
         val geocodingContext =
-            geocodingCacheService
-                .getGeocodingContext(newerGeocodingContextCacheKey)
-                .let(::requireNotNull) // TODO Better error
+            geocodingCacheService.getGeocodingContext(newerGeocodingContextCacheKey)
+                ?: throw ExtGeocodingFailedV1("could not get geocoding context")
 
-        // TODO Coordinate system conversion missing
         return groupAddressPointsByTrackRange(mergeIntervals(changedGeometryRanges), addressPoints.allPoints).map {
             (interval, addressPoints) ->
+
+            // TODO This seems a little weird, having to geocode the start and endpoints?
+            val startAddress =
+                geocodingContext.getAddress(interval.trackRange.min)
+                    ?: throw ExtGeocodingFailedV1("could not get min address, m=${interval.trackRange.min}")
+
+            val endAddress =
+                geocodingContext.getAddress(interval.trackRange.min)
+                    ?: throw ExtGeocodingFailedV1("could not get max address, m=${interval.trackRange.max}")
+
             ExtCenterLineTrackIntervalV1(
-                // TODO This seems a little weird, having to geocode the start and endpoints?
-                startAddress = geocodingContext.getAddress(interval.trackRange.min).let(::requireNotNull).toString(),
-                endAddress = geocodingContext.getAddress(interval.trackRange.max).let(::requireNotNull).toString(),
-                addressPoints = addressPoints.map(ExtCenterLineGeometryPointV1::of),
+                startAddress = startAddress.toString(),
+                endAddress = endAddress.toString(),
+                addressPoints =
+                    addressPoints
+                        .map { addressPoint -> layoutAddressPointToCoordinateSystem(addressPoint, coordinateSystem) }
+                        .map(ExtAddressPointV1::of),
             )
         }
     }
@@ -348,6 +392,18 @@ private fun groupAddressPointsByTrackRange(
 }
 
 fun layoutAddressPointToCoordinateSystem(addressPoint: AddressPoint, targetCoordinateSystem: Srid): AddressPoint {
-    val convertedPoint = transformNonKKJCoordinate(LAYOUT_SRID, targetCoordinateSystem, addressPoint.point)
-    return addressPoint.copy(point = addressPoint.point.copy(x = convertedPoint.x, y = convertedPoint.y))
+    return convertAddressPointCoordinateSystem(LAYOUT_SRID, targetCoordinateSystem, addressPoint)
+}
+
+private fun convertAddressPointCoordinateSystem(
+    sourceCoordinateSystem: Srid,
+    targetCoordinateSystem: Srid,
+    addressPoint: AddressPoint,
+): AddressPoint {
+    return if (sourceCoordinateSystem == LAYOUT_SRID && targetCoordinateSystem == LAYOUT_SRID) {
+        addressPoint
+    } else {
+        val convertedPoint = transformNonKKJCoordinate(LAYOUT_SRID, targetCoordinateSystem, addressPoint.point)
+        addressPoint.copy(point = addressPoint.point.copy(x = convertedPoint.x, y = convertedPoint.y))
+    }
 }

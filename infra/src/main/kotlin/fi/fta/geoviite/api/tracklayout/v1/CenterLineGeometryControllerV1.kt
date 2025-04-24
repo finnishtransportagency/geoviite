@@ -1,19 +1,12 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
-import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
-import fi.fta.geoviite.infra.localization.LocalizationService
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.security.access.prepost.PreAuthorize
-
-@PreAuthorize(AUTH_API_GEOMETRY)
-@GeoviiteExtApiController([])
-class CenterLineGeometryControllerV1(
-    private val centerLineGeometryService: CenterLineGeometryServiceV1,
-    private val localizationService: LocalizationService,
-) {
-    val logger: Logger = LoggerFactory.getLogger(this::class.java)
+// @PreAuthorize(AUTH_API_GEOMETRY)
+// @GeoviiteExtApiController([])
+// class CenterLineGeometryControllerV1(
+//    private val centerLineGeometryService: CenterLineGeometryServiceV1,
+//    private val localizationService: LocalizationService,
+// ) {
+//    val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     //    @GetMapping(
     //        "/geoviite/paikannuspohja/v1/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria",
@@ -76,7 +69,7 @@ class CenterLineGeometryControllerV1(
     //        val (responseOk, processingErrors) = centerLineGeometryService.process(request)
     //        return responseOk ?: createErrorResponse(translation, processingErrors)
     //    }
-}
+// }
 //
 // private fun createErrorResponse(
 //    translation: Translation,

@@ -51,7 +51,8 @@
                         "invalid-track-kilometer-end": "Pyyntö sisälsi virheellisen ratakilometri_loppu-asetuksen.",
                         "invalid-change-time": "Pyyntö sisälsi virheellisen muutosaika-asetuksen. Sallitut arvot ovat ISO 8601-formaatissa olevia UTC-aikalemoja, esim. 2025-01-01T01:00:00.000Z.",
                         "invalid-address-point-interval": "Pyyntö sisälsi virheellisen osoitepistevali-asetuksen. Sallitut arvot ovat '0.25', '1.0'.",
-                        "output-coordinate-transformation-failed": "Palautusarvojen koordinaattimuunnos ei onnistunut."
+                        "output-coordinate-transformation-failed": "Palautusarvojen koordinaattimuunnos ei onnistunut.",
+                        "invalid-track-network-version": "Pyyntö sisälsi virheellisen rataverkon versiotunnisteen."
                     }
                 }
             }

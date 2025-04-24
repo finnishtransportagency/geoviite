@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterLocationTrackTypeV1
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterStringV1
+import fi.fta.geoviite.api.tracklayout.v1.ExtResolutionV1
 import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
@@ -165,6 +166,8 @@ class WebConfig(
             logger.info("Registering frame converter converters")
             registry.addStringConstructorConverter(::FrameConverterStringV1)
             registry.addStringConstructorConverter { FrameConverterLocationTrackTypeV1.fromValue(it) }
+
+            registry.addStringConstructorConverter { ExtResolutionV1.fromValue(it) }
         }
     }
 
