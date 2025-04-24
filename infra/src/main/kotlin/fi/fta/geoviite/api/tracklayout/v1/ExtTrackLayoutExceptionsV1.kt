@@ -58,6 +58,18 @@ class ExtTrackNumberNotFoundV1(
     localizedMessageKey: String = "$ERROR_KEY_BASE.track-number-not-found",
 ) : ExtApiExceptionV1(HttpStatus.INTERNAL_SERVER_ERROR, "track number not found: $message", cause, localizedMessageKey)
 
+class ExtTrackNetworkVersionNotFound(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "$ERROR_KEY_BASE.track-network-version-not-found",
+) :
+    ExtApiExceptionV1(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        "track network version not found: $message",
+        cause,
+        localizedMessageKey,
+    )
+
 fun createExtApiErrorResponseV1(
     correlationId: String,
     status: HttpStatus,
