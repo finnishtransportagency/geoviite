@@ -396,7 +396,11 @@ class LocationTrackService(
         cropStart: KmNumber?,
         cropEnd: KmNumber?,
     ): List<GeometryPlanHeader> {
-        val locationTrack = getOrThrow(layoutContext, locationTrackId)
+        val locationTrack = get(layoutContext, locationTrackId)
+        if (locationTrack == null) {
+            return emptyList()
+        }
+
         val context = requireNotNull(geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId))
         val alignment = alignmentDao.fetch(requireNotNull(locationTrack.alignmentVersion))
 

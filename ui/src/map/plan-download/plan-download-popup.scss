@@ -28,6 +28,10 @@
         color: vayla-design.$color-red-dark;
     }
 
+    &__field-label--disabled {
+        color: vayla-design.$color-black-lighter;
+    }
+
     &__area-grid {
         display: grid;
         grid-template-columns: 2fr 3fr;

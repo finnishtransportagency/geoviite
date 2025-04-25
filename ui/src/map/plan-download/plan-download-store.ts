@@ -26,6 +26,9 @@ import {
     PlanSource,
 } from 'geometry/geometry-model';
 import { isValidKmNumber } from 'tool-panel/km-post/dialog/km-post-edit-store';
+import { brand } from 'common/brand';
+import { ToolPanelAsset } from 'tool-panel/tool-panel';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type AreaSelection = {
     asset: PlanDownloadAssetId | undefined;
@@ -57,6 +60,7 @@ export enum PlanDownloadAssetType {
     TRACK_NUMBER = 'TRACK_NUMBER',
     LOCATION_TRACK = 'LOCATION_TRACK',
 }
+
 export type PlanDownloadAssetId =
     | {
           id: LayoutTrackNumberId;
@@ -94,6 +98,33 @@ export const initialPlanDownloadStateFromSelection = (
             asset: selectedAsset,
         },
     };
+};
+
+export const planDownloadAssetIdFromToolPanelAsset = (
+    selectedAsset: ToolPanelAsset,
+): PlanDownloadAssetId | undefined => {
+    switch (selectedAsset.type) {
+        case 'TRACK_NUMBER':
+            return {
+                type: PlanDownloadAssetType.TRACK_NUMBER,
+                id: brand(selectedAsset.id),
+            };
+        case 'LOCATION_TRACK':
+            return {
+                type: PlanDownloadAssetType.LOCATION_TRACK,
+                id: brand(selectedAsset.id),
+            };
+        case 'GEOMETRY_PLAN':
+        case 'GEOMETRY_ALIGNMENT':
+        case 'GEOMETRY_KM_POST':
+        case 'GEOMETRY_SWITCH':
+        case 'GEOMETRY_SWITCH_SUGGESTION':
+        case 'KM_POST':
+        case 'SWITCH':
+            return undefined;
+        default:
+            return exhaustiveMatchingGuard(selectedAsset.type);
+    }
 };
 
 export const initialPlanDownloadState: PlanDownloadState = {
