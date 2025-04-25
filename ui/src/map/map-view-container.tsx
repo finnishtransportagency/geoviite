@@ -46,6 +46,8 @@ const getTrackLayoutProps = (): MapViewProps => {
         mapLayerMenuGroups: store.map.layerMenu,
         onMapLayerChange: delegates.onLayerMenuItemChange,
         onStopPlanDownload: delegates.onStopPlanDownload,
+        selectedDesignId: store.designId,
+        layoutContextMode: store.layoutContextMode,
     };
 };
 

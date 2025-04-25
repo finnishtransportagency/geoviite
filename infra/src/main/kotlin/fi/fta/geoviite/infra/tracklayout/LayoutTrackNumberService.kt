@@ -209,8 +209,12 @@ class LayoutTrackNumberService(
         startKmNumber: KmNumber?,
         endKmNumber: KmNumber?,
     ): List<GeometryPlanHeader> {
-        val alignmentVersion =
-            requireNotNull(referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId).alignmentVersion)
+        val referenceLine = referenceLineService.getByTrackNumber(layoutContext, trackNumberId)
+        if (referenceLine == null) {
+            return emptyList()
+        }
+
+        val alignmentVersion = requireNotNull(referenceLine.alignmentVersion)
         val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(layoutContext, trackNumberId))
 
         if (!cropIsWithinReferenceLine(startKmNumber, endKmNumber, geocodingContext)) {

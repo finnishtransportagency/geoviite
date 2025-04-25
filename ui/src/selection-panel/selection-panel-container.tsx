@@ -9,8 +9,7 @@ import {
     useReferenceLines,
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
-import { PlanDownloadAssetId, PlanDownloadAssetType } from 'map/plan-download/plan-download-store';
-import { brand } from 'common/brand';
+import { initialSelectionForPlanDownload } from 'map/plan-download/plan-download-store';
 
 type SelectionPanelContainerProps = {
     setSwitchToOfficialDialogOpen: (open: boolean) => void;
@@ -48,28 +47,15 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         changeTimes.layoutKmPost,
     );
 
-    const initialSelectionForPlanDownload: () => PlanDownloadAssetId | undefined = () => {
-        if (state.selectedToolPanelTab?.type === 'TRACK_NUMBER') {
-            return {
-                type: PlanDownloadAssetType.TRACK_NUMBER,
-                id: brand(state.selectedToolPanelTab.id),
-            };
-        } else if (state.selectedToolPanelTab?.type === 'LOCATION_TRACK') {
-            return {
-                type: PlanDownloadAssetType.LOCATION_TRACK,
-                id: brand(state.selectedToolPanelTab.id),
-            };
-        }
-        return undefined;
-    };
-
     const togglePlanDownload = () => {
         if (state.planDownloadState) {
             delegates.onStopPlanDownload();
         } else if (state.layoutContext.publicationState === 'DRAFT') {
             setSwitchToOfficialDialogOpen(true);
         } else {
-            delegates.onStartPlanDownload(initialSelectionForPlanDownload());
+            delegates.onStartPlanDownload(
+                initialSelectionForPlanDownload(state?.selectedToolPanelTab),
+            );
         }
     };
 

@@ -26,6 +26,8 @@ import {
     PlanSource,
 } from 'geometry/geometry-model';
 import { isValidKmNumber } from 'tool-panel/km-post/dialog/km-post-edit-store';
+import { brand } from 'common/brand';
+import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 export type AreaSelection = {
     asset: PlanDownloadAssetId | undefined;
@@ -94,6 +96,23 @@ export const initialPlanDownloadStateFromSelection = (
             asset: selectedAsset,
         },
     };
+};
+
+export const initialSelectionForPlanDownload = (
+    selectedAsset: ToolPanelAsset | undefined,
+): PlanDownloadAssetId | undefined => {
+    if (selectedAsset?.type === 'TRACK_NUMBER') {
+        return {
+            type: PlanDownloadAssetType.TRACK_NUMBER,
+            id: brand(selectedAsset.id),
+        };
+    } else if (selectedAsset?.type === 'LOCATION_TRACK') {
+        return {
+            type: PlanDownloadAssetType.LOCATION_TRACK,
+            id: brand(selectedAsset.id),
+        };
+    }
+    return undefined;
 };
 
 export const initialPlanDownloadState: PlanDownloadState = {
