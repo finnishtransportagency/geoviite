@@ -108,7 +108,10 @@ export const PlanDownloadAreaSection: React.FC<{
     ).includes('end-before-start');
 
     const labelClasses = (hasErrors: boolean) =>
-        createClassName(hasErrors && styles['plan-download-popup__field-label--error']);
+        createClassName(
+            hasErrors && styles['plan-download-popup__field-label--error'],
+            disabled && styles['plan-download-popup__field-label--disabled'],
+        );
 
     const selectedDropdownValue = inferDropdownItemValue(selectedAsset);
 
