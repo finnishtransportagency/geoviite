@@ -6,7 +6,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { useTrackLayoutAppSelector } from 'store/hooks';
-import { initialSelectionForPlanDownload } from 'map/plan-download/plan-download-store';
+import { planDownloadAssetIdFromToolPanelAsset } from 'map/plan-download/plan-download-store';
 
 type ConfirmMoveToMainOfficialDialogContainerProps = {
     onClose: () => void;
@@ -17,15 +17,14 @@ export const ConfirmMoveToMainOfficialDialogContainer: React.FC<
 > = ({ onClose }) => {
     const delegates = createDelegates(TrackLayoutActions);
     const state = useTrackLayoutAppSelector((state) => state);
+    const initialAsset = state.selectedToolPanelTab
+        ? planDownloadAssetIdFromToolPanelAsset(state.selectedToolPanelTab)
+        : undefined;
 
     return (
         <ConfirmMoveToMainOfficialDialog
             moveToMainOfficial={() => delegates.onLayoutContextModeChange('MAIN_OFFICIAL')}
-            openPlanDownloadDialog={() =>
-                delegates.onStartPlanDownload(
-                    initialSelectionForPlanDownload(state?.selectedToolPanelTab),
-                )
-            }
+            openPlanDownloadDialog={() => delegates.onStartPlanDownload(initialAsset)}
             onClose={onClose}
         />
     );

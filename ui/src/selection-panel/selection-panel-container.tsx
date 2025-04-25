@@ -9,7 +9,7 @@ import {
     useReferenceLines,
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
-import { initialSelectionForPlanDownload } from 'map/plan-download/plan-download-store';
+import { planDownloadAssetIdFromToolPanelAsset } from 'map/plan-download/plan-download-store';
 
 type SelectionPanelContainerProps = {
     setSwitchToOfficialDialogOpen: (open: boolean) => void;
@@ -53,9 +53,10 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         } else if (state.layoutContext.publicationState === 'DRAFT') {
             setSwitchToOfficialDialogOpen(true);
         } else {
-            delegates.onStartPlanDownload(
-                initialSelectionForPlanDownload(state?.selectedToolPanelTab),
-            );
+            const initialAsset = state.selectedToolPanelTab
+                ? planDownloadAssetIdFromToolPanelAsset(state.selectedToolPanelTab)
+                : undefined;
+            delegates.onStartPlanDownload(initialAsset);
         }
     };
 

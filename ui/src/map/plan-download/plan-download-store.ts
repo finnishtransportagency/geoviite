@@ -28,6 +28,7 @@ import {
 import { isValidKmNumber } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { brand } from 'common/brand';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type AreaSelection = {
     asset: PlanDownloadAssetId | undefined;
@@ -59,6 +60,7 @@ export enum PlanDownloadAssetType {
     TRACK_NUMBER = 'TRACK_NUMBER',
     LOCATION_TRACK = 'LOCATION_TRACK',
 }
+
 export type PlanDownloadAssetId =
     | {
           id: LayoutTrackNumberId;
@@ -98,21 +100,31 @@ export const initialPlanDownloadStateFromSelection = (
     };
 };
 
-export const initialSelectionForPlanDownload = (
-    selectedAsset: ToolPanelAsset | undefined,
+export const planDownloadAssetIdFromToolPanelAsset = (
+    selectedAsset: ToolPanelAsset,
 ): PlanDownloadAssetId | undefined => {
-    if (selectedAsset?.type === 'TRACK_NUMBER') {
-        return {
-            type: PlanDownloadAssetType.TRACK_NUMBER,
-            id: brand(selectedAsset.id),
-        };
-    } else if (selectedAsset?.type === 'LOCATION_TRACK') {
-        return {
-            type: PlanDownloadAssetType.LOCATION_TRACK,
-            id: brand(selectedAsset.id),
-        };
+    switch (selectedAsset.type) {
+        case 'TRACK_NUMBER':
+            return {
+                type: PlanDownloadAssetType.TRACK_NUMBER,
+                id: brand(selectedAsset.id),
+            };
+        case 'LOCATION_TRACK':
+            return {
+                type: PlanDownloadAssetType.LOCATION_TRACK,
+                id: brand(selectedAsset.id),
+            };
+        case 'GEOMETRY_PLAN':
+        case 'GEOMETRY_ALIGNMENT':
+        case 'GEOMETRY_KM_POST':
+        case 'GEOMETRY_SWITCH':
+        case 'GEOMETRY_SWITCH_SUGGESTION':
+        case 'KM_POST':
+        case 'SWITCH':
+            return undefined;
+        default:
+            return exhaustiveMatchingGuard(selectedAsset.type);
     }
-    return undefined;
 };
 
 export const initialPlanDownloadState: PlanDownloadState = {
