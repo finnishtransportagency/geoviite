@@ -124,6 +124,10 @@ export const GK_FIN_COORDINATE_SYSTEMS: [Srid, string][] = [...Array(13)].map(
         return [srid, projection];
     },
 );
+export const isGk = (srid: Srid): boolean =>
+    GK_FIN_COORDINATE_SYSTEMS.some(([gkSrid]) => gkSrid === srid);
+export const isFromAnotherGk = (srid1: Srid, srid2: Srid): boolean =>
+    isGk(srid1) && isGk(srid2) && srid1 !== srid2;
 
 export const isWithinEastingMargin = (point: GeometryPoint): boolean => {
     const wgs84Point = pointToWgs84(point);

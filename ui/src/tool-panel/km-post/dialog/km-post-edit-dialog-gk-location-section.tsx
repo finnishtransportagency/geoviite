@@ -10,12 +10,14 @@ import {
     actions,
     GK_FIN_COORDINATE_SYSTEMS,
     gkLocationSource,
+    isFromAnotherGk,
+    isGk,
     isWithinEastingMargin,
     KmPostEditState,
     parseGk,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { KmPostEditFields } from 'linking/linking-model';
-import { useCoordinateSystem, useCoordinateSystems } from 'track-layout/track-layout-react-utils';
+import { useCoordinateSystems } from 'track-layout/track-layout-react-utils';
 import { KmPostGkLocationSource, LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
@@ -27,6 +29,8 @@ import { Switch } from 'vayla-design-lib/switch/switch';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import proj4 from 'proj4';
+import { GeometryKmPostNonGkSourceWarning } from 'tool-panel/km-post/geometry-km-post-non-gk-source-warning';
+import { GeometryKmPostDifferentGkSourceWarning } from 'tool-panel/km-post/geometry-km-post-different-gk-source-warning';
 
 type KmPostEditDialogGkLocationSectionProps = {
     state: KmPostEditState;
@@ -88,10 +92,6 @@ const gkLocationSourceTranslationKey = (
 };
 
 const TransformedFromNonGkWarning: React.FC<{ originalSrid: Srid }> = ({ originalSrid }) => {
-    const { t } = useTranslation();
-
-    const originalCoordinateSystem = useCoordinateSystem(originalSrid);
-
     const className = createClassName(
         styles['km-post-edit-dialog__crs-transform-notice'],
         styles['km-post-edit-dialog__crs-transform-notice--warning'],
@@ -99,33 +99,18 @@ const TransformedFromNonGkWarning: React.FC<{ originalSrid: Srid }> = ({ origina
 
     return (
         <span className={className}>
-            {t('km-post-dialog.gk-location.location-converted', {
-                originalCrs: originalCoordinateSystem
-                    ? formatWithSrid(originalCoordinateSystem)
-                    : '',
-            })}
+            <GeometryKmPostNonGkSourceWarning originalSrid={originalSrid} />
             <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />
         </span>
     );
 };
 
-const TransformedGkWarning: React.FC<{ originalSrid: Srid }> = ({ originalSrid }) => {
-    const { t } = useTranslation();
-
-    const originalCoordinateSystem = useCoordinateSystem(originalSrid);
-
-    return (
-        <span className={styles['km-post-edit-dialog__crs-transform-notice']}>
-            {t('km-post-dialog.gk-location.location-converted', {
-                originalCrs: originalCoordinateSystem
-                    ? formatWithSrid(originalCoordinateSystem)
-                    : '',
-            })}
-
-            <Icons.Info size={IconSize.SMALL} color={IconColor.INHERIT} />
-        </span>
-    );
-};
+const TransformedGkWarning: React.FC<{ originalSrid: Srid }> = ({ originalSrid }) => (
+    <span className={styles['km-post-edit-dialog__crs-transform-notice']}>
+        <GeometryKmPostDifferentGkSourceWarning originalSrid={originalSrid} />
+        <Icons.Info size={IconSize.SMALL} color={IconColor.INHERIT} />
+    </span>
+);
 
 export const KmPostEditDialogGkLocationSection: React.FC<
     KmPostEditDialogGkLocationSectionProps
@@ -151,14 +136,12 @@ export const KmPostEditDialogGkLocationSection: React.FC<
 
     const coordinateSystems = useCoordinateSystems(GK_FIN_COORDINATE_SYSTEMS.map(([srid]) => srid));
     const isFromNonGkPlan =
-        gkSource === 'FROM_GEOMETRY' &&
-        geometryPlanSrid !== undefined &&
-        !GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === geometryPlanSrid);
+        gkSource === 'FROM_GEOMETRY' && geometryPlanSrid !== undefined && !isGk(geometryPlanSrid);
     const isFromDifferentGk =
         gkSource === 'FROM_GEOMETRY' &&
-        geometryPlanSrid !== undefined &&
-        geometryPlanSrid !== state.kmPost.gkSrid &&
-        !!GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === geometryPlanSrid);
+        !!state.kmPost.gkSrid &&
+        !!geometryPlanSrid &&
+        isFromAnotherGk(state.kmPost.gkSrid, geometryPlanSrid);
 
     const withinMargin = gkLocation ? isWithinEastingMargin(gkLocation) : false;
 

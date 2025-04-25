@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
-import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export const LocationTrackSplittingErrorNotice: React.FC<{
@@ -9,7 +9,7 @@ export const LocationTrackSplittingErrorNotice: React.FC<{
 }> = ({ msg }) => {
     return (
         <InfoboxContentSpread>
-            <MessageBox type={'ERROR'}>{msg}</MessageBox>
+            <MessageBox type={MessageBoxType.ERROR}>{msg}</MessageBox>
         </InfoboxContentSpread>
     );
 };
@@ -38,7 +38,7 @@ export const LocationTrackSplittingDuplicateTrackNotPublishedErrorNotice: React.
     const { t } = useTranslation();
     return (
         <InfoboxContentSpread>
-            <MessageBox type={'ERROR'}>
+            <MessageBox type={MessageBoxType.ERROR}>
                 <div>
                     {t('tool-panel.location-track.splitting.validation.duplicate-not-published', {
                         duplicateName: draftDuplicateName,

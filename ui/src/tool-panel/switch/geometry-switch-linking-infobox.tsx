@@ -36,7 +36,7 @@ import { GeometrySwitchLinkingInfoboxVisibilities } from 'track-layout/track-lay
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
-import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
 import { useUserHasPrivilege } from 'store/hooks';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_LAYOUT_DRAFT } from 'user/user-model';
@@ -302,7 +302,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                             {linkingState.switchSource === 'PREDEFINED' &&
                                 layoutSwitch?.stateCategory === 'NOT_EXISTING' && (
                                     <InfoboxContentSpread>
-                                        <MessageBox type={'ERROR'}>
+                                        <MessageBox type={MessageBoxType.ERROR}>
                                             {t('tool-panel.switch.layout.cant-link-deleted')}
                                         </MessageBox>
                                     </InfoboxContentSpread>
