@@ -27,7 +27,22 @@ describe('mapLazy', () => {
     });
 });
 
-describe('updateSet', () => {
+describe('reuseListElements', () => {
+    test('can add elements', () => {
+        expect(reuseListElements([1, 2, 3], [1, 2], (n) => n)).toStrictEqual([1, 2, 3]);
+        expect(reuseListElements([1, 2, 3], [1, 2], (_) => 0)).toStrictEqual([1, 2, 3]);
+    });
+
+    test('can replace elements', () => {
+        expect(reuseListElements([1, 2, 4], [1, 2, 3], (n) => n)).toStrictEqual([1, 2, 4]);
+        expect(reuseListElements([1, 2, 4], [1, 2, 3], (_) => 0)).toStrictEqual([1, 2, 4]);
+    });
+
+    test('can remove elements', () => {
+        expect(reuseListElements([1, 2], [1, 2, 3], (n) => n)).toStrictEqual([1, 2]);
+        expect(reuseListElements([1, 2], [1, 2, 3], (_) => 0)).toStrictEqual([1, 2]);
+    });
+
     test('returns original set if nothing changed', () => {
         const a = [1, 2, 3];
         const changed = reuseListElements(

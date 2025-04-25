@@ -324,7 +324,7 @@ export function reuseListElements<T>(
 ): T[] {
     const oldInstances = indexIntoKeyedMapWithDuplicateCounts(oldElements, extractKey, equals);
 
-    let mustReturnNew = false;
+    let mustReturnNew = newContent.length !== oldElements.length;
     const newSet = newContent.map((newElement) => {
         const oldOnKey = oldInstances.get(extractKey(newElement));
         if (oldOnKey === undefined) {
