@@ -19,7 +19,7 @@ ja muihin raiteisiin.
 Graafin käsitteistö poikkeaa muusta paikannuspohjan käsitteistöstä siinä että sen solmut ja kaaret eivät versioidu kuten
 muut rataverkon oliot, vaan ovat muuttumattomia (immutable). Sekä solmut että kaaret on määritelty niin että niiden data
 yksilöi ne täysin, eli samansisältöinen solmu tai kaari on sama solmu tai kaari. Tämän ansiosta eri paikannuspohjan
-konteksteissa luodut viitteet samoihin haarautumiskohtiin ovat myös tietokannassa sama solmu ja graafi pysyy kytkettynä
+konteksteissa luodut viitteet tiettyyn vaihdepisteeseen päätyvät viittaamaan samaan solmuun ja graafi pysyy kytkettynä
 vaikka raiteita luodaan ja muokataan eri paikannuspohjan konteksteissa.
 
 Sen sijaan sijaintiraiteen geometria (LocationTrackGeometry) versioituu sijaintiraiteen itsensä (LocationTrack) mukana
@@ -105,10 +105,10 @@ siten ole enää osa kyseistä rataverkon tilaa.
 ### Kaaret (LayoutEdge)
 
 Kaari kuvaa tiettyä geometriaa joka yhdistää kaksi solmua toisiinsa. Vastaavasti kuin solmut, kaaret ovat itsessään
-muuttumattomia. Toisin sanoen, kaari ei voi muuttua eri solmujen väliksi vaan solmun vaihtuessa syntyy uusi kaari.
+muuttumattomia. Toisin sanoen, kaari ei voi muuttua eri solmujen väliksi vaan solmujen vaihtuessa syntyy uusi kaari.
 Myös itse geometria, joka yhdistää samat kaksi solmua on muuttumaton, eli eri muotoinen kaari on identiteetiltään eri
-kaari. Koska kaari on muuttumaton, useampi eri raide tai raideversio voi huoletta viitata samaan kaareen jos niiden
-geometriat ovat identtiset.
+kaari. Muuttumattomuudesta johtuen useampi eri raide tai raideversio voi huoletta viitata samaan kaareen jos niiden
+geometriat ovat identtiset. Tämä on tyypillistä esimerkiksi saman raiteen eri versioilla tai duplikaattiraiteilla.
 
 Geoviitteen tietomallissa kaaren kytkentä solmuun on kääritty EdgeNode-olioon, joka kuvaa liittyvän solmun ID:n lisäksi
 portin, eli puolen jolta kaari kiinnittyy solmuun. Se tarjoaa koodissa käsitteen "sisä" (inner) ja "ulko" (outer)
