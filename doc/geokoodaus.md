@@ -75,7 +75,7 @@ Alla oleva kuva havainnollistaa koordinaatin osoitteen laskentaa. Algoritmi toim
 ## Raiteen osoitepisteiden tuottaminen (RATKOn malli)
 
 RATKOn mallissa raiteen pisteet kuvataan osoitepisteinä, joissa on tasametri-osoitteet yhdistettynä niitä vastaaviin
-raiteen koordinaatteihin. Siksi geoviitteen täytyy laskea nuo tasametripisteet kun raiteen geometria välitetään ratkoon.
+raiteen koordinaatteihin. Siksi Geoviitteen täytyy laskea nuo tasametripisteet kun raiteen geometria välitetään ratkoon.
 Huomattavaa on, että RATKO haluaa nimenomaa tasametripisteet, eli pisteet joiden osoitteet ovat tasalukuja, ei pisteitä
 metrin välein itse raiteelta. Pisteet tuotetaan projisoimalla ne pituusmittauslinjalta raidetta kohden, vastaavasti kuin
 yllä kohdassa Geokoodaus raiteelle.
