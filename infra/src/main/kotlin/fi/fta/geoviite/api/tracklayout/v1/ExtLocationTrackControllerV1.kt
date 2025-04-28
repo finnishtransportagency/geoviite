@@ -71,7 +71,7 @@ class ExtLocationTrackControllerV1(
     fun extGetLocationTrackGeometry(
         @PathVariable(LOCATION_TRACK_OID_PARAM) oid: Oid<LocationTrack>,
         @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>? = null,
-        @RequestParam(ADDRESS_POINT_RESOLUTION, required = false) resolution: ExtResolutionV1? = null,
+        @RequestParam(ADDRESS_POINT_RESOLUTION, required = false) extResolution: ExtResolutionV1? = null,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid? = null,
         @RequestParam(TRACK_KILOMETER_START_PARAM, required = false) trackKmStart: KmNumber? = null,
         @RequestParam(TRACK_KILOMETER_END_PARAM, required = false) trackKmEnd: KmNumber? = null,
@@ -79,7 +79,7 @@ class ExtLocationTrackControllerV1(
         return extLocationTrackGeometryService.createGeometryResponse(
             oid,
             trackNetworkVersion,
-            resolution?.toResolution() ?: Resolution.ONE_METER,
+            extResolution?.toResolution() ?: Resolution.ONE_METER,
             coordinateSystem ?: LAYOUT_SRID,
             ExtTrackKilometerIntervalV1(trackKmStart, trackKmEnd),
         )
@@ -93,7 +93,7 @@ class ExtLocationTrackControllerV1(
         @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
         @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
         @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>? = null,
-        @RequestParam(ADDRESS_POINT_RESOLUTION, required = false) resolution: ExtResolutionV1? = null,
+        @RequestParam(ADDRESS_POINT_RESOLUTION, required = false) extResolution: ExtResolutionV1? = null,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid? = null,
         @RequestParam(TRACK_KILOMETER_START_PARAM, required = false) trackKmStart: KmNumber? = null,
         @RequestParam(TRACK_KILOMETER_END_PARAM, required = false) trackKmEnd: KmNumber? = null,
@@ -103,7 +103,7 @@ class ExtLocationTrackControllerV1(
                 locationTrackOid,
                 modificationsFromVersion,
                 trackNetworkVersion,
-                resolution?.toResolution() ?: Resolution.ONE_METER,
+                extResolution?.toResolution() ?: Resolution.ONE_METER,
                 coordinateSystem ?: LAYOUT_SRID,
                 ExtTrackKilometerIntervalV1(trackKmStart, trackKmEnd),
             )

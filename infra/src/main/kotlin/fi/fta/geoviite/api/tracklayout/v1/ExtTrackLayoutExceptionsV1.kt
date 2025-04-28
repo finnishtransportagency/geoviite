@@ -57,26 +57,22 @@ fun createExtApiErrorResponseV1(
     val headers = HttpHeaders()
     headers.contentType = MediaType.APPLICATION_JSON
 
-    val messageRows =
+    val errorMessageChain =
         when {
             status.is5xxServerError -> describeHttpStatus(translation, status).let(::listOf)
 
             else -> causeChain.mapNotNull { ex -> describeException(translation, ex) }
         }
 
-    val description =
-        messageRows.minByOrNull { errorDescription -> errorDescription.priority }
+    val prioritizedErrorMessage =
+        errorMessageChain.minByOrNull { errorDescription -> errorDescription.priority }
             ?: describeHttpStatus(translation, status)
 
-    val body =
-        ExtApiErrorResponseV1(
-            messageRows = messageRows.map { m -> m.message },
-            localizationKey = description.localizationKey,
-            localizationParams = description.localizationParams,
-            correlationId = correlationId,
-        )
-
-    return ResponseEntity(body, headers, status)
+    return ResponseEntity(
+        ExtApiErrorResponseV1(errorMessage = prioritizedErrorMessage.message, correlationId = correlationId),
+        headers,
+        status,
+    )
 }
 
 private fun describeHttpStatus(translation: Translation, status: HttpStatus): ErrorDescription {

@@ -16,9 +16,7 @@ data class ApiErrorResponse(
 ) : GeoviiteErrorResponse()
 
 data class ExtApiErrorResponseV1(
-    @JsonProperty("viestirivit") val messageRows: List<String>,
-    @JsonProperty("virhetunnus") val localizationKey: LocalizationKey,
-    @JsonProperty("parametrit") val localizationParams: LocalizationParams,
+    @JsonProperty("virheviesti") val errorMessage: String,
     @JsonProperty("korrelaatiotunnus") val correlationId: String,
     @JsonProperty("aikaleima") val timestamp: Instant = Instant.now(),
 ) : GeoviiteErrorResponse()
