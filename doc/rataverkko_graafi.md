@@ -7,9 +7,9 @@ graafialgoritmeissa, kuten reitityksessä.
 
 ## Tietosisältö
 
-Graafimalli koostuu solmuista (LayoutNode) ja kaarista (LayoutEdge). Solmut vaihdepisteitä tai raiteiden päitä ja kaaret
-geometrioita, jotka yhdistävät ne. Yhdessä ne muodostavat rataverkon graafin, jota voidaan käyttää esimerkiksi
-reititykseen tai mallintamaan rataosuuksia yli useiden raiteiden.
+Graafimalli koostuu solmuista (LayoutNode) ja kaarista (LayoutEdge). Solmut ovat käytännössä vaihdepisteitä tai
+raiteiden päitä ja kaaret geometrioita, jotka yhdistävät ne. Yhdessä ne muodostavat rataverkon graafin, jota voidaan
+käyttää esimerkiksi reititykseen tai mallintamaan rataosuuksia yli useiden raiteiden.
 
 Itse raiteet koostuvat tietystä kokoelmasta kaaria ja siten myös solmuja. Solmujen kautta ne kytkeytyvät vaihteisiin
 ja muihin raiteisiin.
@@ -60,13 +60,19 @@ on osa viitatun vaihteen sisäistä geometriaa, eli se on samalla myös vaihteen
 uupuu, se on aina B-portti ja A on puolestaan aina määritelty.
 
 Molemmat portit ovat solmulla käytössä tilanteessa, jossa 2 vaihdetta ovat raiteella aivan peräkkäin. Tällöin molemmilla
-vaihteilla on vaihdepiste samassa solmussa. Alla oleva kuva esittää tällaista tilannetta. Solmuja on vain yksi, ja sen
-identiteetti on eri kuin pelkän yksittäisen vaihteen identiteetit. Molemmista päistä tulevat kaaret kytkeytyvät samaan
-solmuun, mutta eri portteihin sen mukaan kumman vaihteen puolelta ne tulevat. Solmun määritelmään kuuluu että A ja B
-valikoidaan deterministisesti niin että kahden vaihdepisteen yhdistelmä on aina sama solmu. Käytännössä tämä tehdään
-järjestämällä portit sisällön (ID, joint, role) mukaan.
+vaihteilla on joku vaihdepiste samassa sijainnissa ja siten samassa solmussa. Alla oleva kuva esittää tällaista
+tilannetta.
 
 ![](images/yhdistelmasolmu.png)
+
+Solmujen yhdistelmä on oma erillinen solmunsa, eli jos ennen yhdistymistä molemmille vaihdepisteille oli omat erilliset
+solmunsa, yhdistelmä luodaan uutena ja se vaihdetaan aiempien yksittäisten solmujen tilalle. Solmuun liittyvät kaaret
+kytkeytyvät saman solmun eri portteihin sen mukaan kumman vaihteen puolelta ne tulevat. On huomionarvoista että solmu
+itsessään ei voi tietää missä järjestyksessä sen sisältämät vaihdepisteet ovat läpi kulkevan raiteen kannalta, vaan
+solmu joka luodaan raiteelle vaihdepisteille `[(id=1,joint=1), (id=2,joint=2)]` on oltava sama solmu joka luotaisi jos
+vaihtet kohdattaisi päinvastaisessa järjestyksessä `[(id=2,joint=2), (id=1,joint=1)]`. Tämä on toteuttu niin että solmun
+sisällössä portit järjestetään aina deterministisesti porteiksi A ja B, ja kaaret kytketään sen itsensä näkökulmasta
+sisemmän vaihdepisteen portiin.
 
 Solmulla ei ole omaa sijaintia, vaan sille saadaan sijainti katsomalla kaaria jotka siihen päättyvät. Koska geometriat
 voivat tulla eri lähteistä, tämä ei välttämättä ole täysin yksiselitteinen kaikissa tilanteissa, eli eri raideversioilla
