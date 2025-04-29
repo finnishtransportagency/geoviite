@@ -1786,7 +1786,7 @@ constructor(
             designOfficialContext
                 .insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
-        trackNumberService.cancel(designBranch, trackNumber)
+        referenceLineService.cancel(designBranch, referenceLine)
         designDraftContext.insert(designOfficialContext.fetch(trackNumber)!!)
         val validateBoth =
             publicationValidationService.validatePublicationCandidates(
@@ -1877,6 +1877,7 @@ constructor(
         val kmPost = designOfficialContext.insert(kmPost(trackNumber, KmNumber(1), Point(1.0, 0.0))).id
         designDraftContext.insert(designOfficialContext.fetch(kmPost)!!)
         trackNumberService.cancel(designBranch, trackNumber)
+        referenceLineService.cancel(designBranch, referenceLine)
         val validateTrackNumber =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
