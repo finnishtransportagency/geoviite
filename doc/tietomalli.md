@@ -267,9 +267,17 @@ classDiagram
 Geoviitteen toinen esitysmuoto on paikannuspohja (kuvassa vasemmalla), joka on koko rataverkon kartalla esitettävä
 muoto. Paikannuspohjaa ylläpidetään Geoviitteessä ja tarkat geometriat toimivat yhtenä sen pohjatiedon lähteenä. Tässä
 esitysmuodossa kukin raide on mukana kerran ja kokonaisuutena (poikkeuksena duplikaattiraiteet) ja ne kaikki on tuotu
-samaan koordinaatistoon yhtenäistä esitystä varten. Muunnoksista ja yhtenäiskoordinaatistosta johtuen, paikannuspohjan
-tarkkuus ei ole yhtä hyvä kuin alkuperäisissä geometrioissa. Toisaalta, koska se on koottu yhdeksi kokonaisuudeksi,
-paikannuspohja tarjoaa eheän esityksen koko rataverkosta ja sen sijainneista.
+samaan koordinaatistoon yhtenäistä esitystä varten.
+
+Muunnoksista ja yhtenäiskoordinaatistosta johtuen, paikannuspohjan tarkkuus ei ole yhtä hyvä kuin alkuperäisissä
+geometrioissa. Toisaalta, koska se on koottu yhdeksi kokonaisuudeksi, paikannuspohja tarjoaa eheän esityksen koko
+rataverkosta ja sen sijainneista.
+
+Yhdestä paikannuspohjan käsitteestä voi olla monta versiota eri paikannuspohjan konteksteissa. Koska paikannuspohjan
+sisältämät käsitteet viittaavat toisiinsa vain ID:llä, nuo viitteet säilyy käsitteen siirtyessä kontekstista toiseen.
+Toisaalta käsitteet tulee aina hakea kontekstitiedon kera, sillä pelkälle ID:lle on olemassa useampi voimassaoleva
+versio. Tässä dokumentissa kuvataan käsitteitä vain yhden konteksin näkökulmasta. Paikannuspohjan kontekstit on kuvattu
+tarkemmin dokumentissa [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md).
 
 ### Segmenttigeometriat
 
@@ -278,6 +286,11 @@ muodostetaan linkittämällä keskilinjan elementtejä yhdestä tai useammasta l
 sinällään ole erityisen kiinnostava käyttäjän kannalta, mutta se kertoo tietyn keskiviivan osan metatiedot, esimerkiksi
 lähdesuunnitelman josta se on linkitetty. Segmenttien jaottelu on siis pituuden puolesta mielivaltainen, mutta kukin
 segmentti on metatiedoiltaan yhtenevä geometrian pätkä.
+
+Segmenttigeometrioiden tallennuksessa on optimointi, joka varmistaa että itse geometria (linestring) tallennetaan vain
+kerran vaikka se olisi useammalla segmentillä. Tämä perustuu geometriataulun uniikkiin hash-avaimeen ja tapahtuu
+automaattisesti kun geometria tallennetaan. Tässä on kuitenkin se hyödyllinen ominaisuus että jos tallennetun segmentin
+geometryId on sama kuin toisella segmentillä, ne voidaan tietää identtisiksi ilman tarvetta vertailla pisteitä.
 
 ### Ratanumeron tietomalli
 
