@@ -476,7 +476,7 @@ export const SwitchEditDialog = ({
             </Dialog>
             {showStructureChangeConfirmationDialog && (
                 <Dialog
-                    title={t('switch-dialog.confirmation-title')}
+                    title={t('switch-dialog.structure-change-confirmation-title')}
                     variant={DialogVariant.DARK}
                     allowClose={false}
                     footerContent={
@@ -492,14 +492,13 @@ export const SwitchEditDialog = ({
                             </Button>
                         </div>
                     }>
-                    <p>{t('switch-dialog.changed-switch-structure-warning')}</p>
                     <p>
                         <span className={styles['switch-edit-dialog__warning']}>
                             <Icons.StatusError color={IconColor.INHERIT} />
                         </span>{' '}
-                        {t('switch-dialog.switch-will-be-unlinked')}{' '}
-                        {t('switch-dialog.confirm-switch-save')}
+                        {t('switch-dialog.switch-will-be-unlinked')}
                     </p>
+                    <p>{t('switch-dialog.confirm-switch-save')}</p>
                 </Dialog>
             )}
             {showDeleteOfficialConfirmDialog && (
@@ -528,7 +527,7 @@ export const SwitchEditDialog = ({
                     <div>
                         <div className={styles['switch-edit-dialog__warning']}>
                             <Icons.StatusError color={IconColor.INHERIT} />{' '}
-                            {t('switch-dialog.switch-will-be-unlinked')}
+                            {t('switch-dialog.deleted-switch-will-be-unlinked')}
                         </div>
                         <div className={'dialog__text'}>
                             {t('switch-dialog.confirm-switch-delete')}

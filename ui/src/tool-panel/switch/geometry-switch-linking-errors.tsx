@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
 import styles from 'tool-panel/switch/switch-infobox.scss';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { SwitchStructure } from 'common/common-model';
 import { SwitchTypeMatch } from 'linking/linking-utils';
 
@@ -26,15 +26,19 @@ export const GeometrySwitchLinkingErrors: React.FC<GeometrySwitchLinkingErrorsPr
     return (
         <InfoboxContentSpread>
             <MessageBox
+                type={MessageBoxType.ERROR}
                 pop={
                     selectedLayoutSwitchStructure !== undefined &&
                     switchTypeMatch === SwitchTypeMatch.Invalid
                 }>
                 <div className={styles['geometry-switch-infobox__switch-type-warning-msg']}>
-                    {t('tool-panel.switch.geometry.cannot-link-invalid-switch-type', {
-                        suggestedType: suggestedSwitchStructure.type,
-                        selectedType: selectedLayoutSwitchStructure?.type,
-                    })}
+                    <Trans
+                        i18nKey="tool-panel.switch.geometry.cannot-link-invalid-switch-type"
+                        values={{
+                            suggestedType: suggestedSwitchStructure.type,
+                            selectedType: selectedLayoutSwitchStructure?.type,
+                        }}
+                    />
                 </div>
             </MessageBox>
             <MessageBox
@@ -43,10 +47,13 @@ export const GeometrySwitchLinkingErrors: React.FC<GeometrySwitchLinkingErrorsPr
                     switchTypeMatch === SwitchTypeMatch.Similar
                 }>
                 <div className={styles['geometry-switch-infobox__switch-type-warning-msg']}>
-                    {t('tool-panel.switch.geometry.switch-type-differs-warning', {
-                        suggestedType: suggestedSwitchStructure.type,
-                        selectedType: selectedLayoutSwitchStructure?.type,
-                    })}
+                    <Trans
+                        i18nKey={'tool-panel.switch.geometry.switch-type-differs-warning'}
+                        values={{
+                            suggestedType: suggestedSwitchStructure.type,
+                            selectedType: selectedLayoutSwitchStructure?.type,
+                        }}
+                    />
                 </div>
                 <div className={styles['geometry-switch-infobox__switch-type-confirm']}>
                     <Checkbox
