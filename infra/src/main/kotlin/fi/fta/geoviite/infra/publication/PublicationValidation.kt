@@ -56,22 +56,30 @@ const val MAX_LAYOUT_METER_LENGTH = 2.0
 const val MAX_KM_POST_OFFSET = 10.0
 
 fun validateTrackNumberReferences(
-    trackNumber: LayoutTrackNumber,
+    trackNumberExists: Boolean,
+    trackNumberIsCancelled: Boolean,
     referenceLine: ReferenceLine?,
     kmPosts: List<LayoutKmPost>,
     locationTracks: List<LocationTrack>,
 ): List<LayoutValidationIssue> =
     listOfNotNull(
-        validate(referenceLine != null) { "$VALIDATION_TRACK_NUMBER.reference-line.not-published" },
+        referenceLine?.let {
+            validate(trackNumberExists || !trackNumberIsCancelled) {
+                "$VALIDATION_TRACK_NUMBER.reference-line.cancelled-from-track-number"
+            }
+        },
+        validate(!trackNumberExists || referenceLine != null) {
+            "$VALIDATION_TRACK_NUMBER.reference-line.not-published"
+        },
         locationTracks.filter(LocationTrack::exists).let { existingTracks ->
-            validateWithParams(trackNumber.exists || existingTracks.isEmpty()) {
+            validateWithParams(trackNumberExists || existingTracks.isEmpty()) {
                 val existingNames = existingTracks.joinToString(", ") { track -> track.name }
                 "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted" to
                     localizationParams("locationTracks" to existingNames)
             }
         },
         kmPosts.filter(LayoutKmPost::exists).let { existingKmPosts ->
-            validateWithParams(trackNumber.exists || existingKmPosts.isEmpty()) {
+            validateWithParams(trackNumberExists || existingKmPosts.isEmpty()) {
                 val existingNames = existingKmPosts.joinToString(", ") { post -> post.kmNumber.toString() }
                 "$VALIDATION_TRACK_NUMBER.km-post.reference-deleted" to localizationParams("kmPosts" to existingNames)
             }
@@ -101,10 +109,12 @@ fun validateKmPostReferences(
     trackNumber: LayoutTrackNumber?,
     referenceLine: ReferenceLine?,
     trackNumberNumber: TrackNumber?,
+    trackNumberIsCancelled: Boolean,
 ): List<LayoutValidationIssue> =
     listOfNotNull(
         validateWithParams(trackNumber != null) {
-            "$VALIDATION_KM_POST.track-number.not-published" to localizationParams("trackNumber" to trackNumberNumber)
+            cancelledOrNotPublishedKey("$VALIDATION_KM_POST.track-number", trackNumberIsCancelled) to
+                localizationParams("trackNumber" to trackNumberNumber)
         },
         // if the reference line doesn't exist, geocoding context validation doesn't happen, and
         // that would cause duplicate km post validation to also be skipped, which then would let us
@@ -123,14 +133,15 @@ fun validateKmPostReferences(
     )
 
 fun validateSwitchLocationTrackLinkReferences(
-    switch: LayoutSwitch,
+    switchExists: Boolean,
+    switchIsCancelled: Boolean,
     locationTracks: List<LocationTrack>,
 ): List<LayoutValidationIssue> {
     return listOfNotNull(
         locationTracks.filter(LocationTrack::exists).let { existingTracks ->
-            validateWithParams(switch.exists || existingTracks.isEmpty()) {
+            validateWithParams(switchExists || existingTracks.isEmpty()) {
                 val existingNames = existingTracks.joinToString(", ") { track -> track.name }
-                "$VALIDATION_SWITCH.location-track.reference-deleted" to
+                "$VALIDATION_SWITCH.location-track.${if (switchIsCancelled) "cancelled"  else "reference-deleted"}" to
                     localizationParams("locationTracks" to existingNames)
             }
         }
@@ -600,7 +611,7 @@ fun validateDuplicateOfState(
                 // Non-null reference, but the duplicateOf track doesn't exist in validation context
                 validateWithParams(locationTrack.duplicateOf == null) {
                     cancelledOrNotPublishedKey(
-                        "$VALIDATION_LOCATION_TRACK.duplicate-of.",
+                        "$VALIDATION_LOCATION_TRACK.duplicate-of",
                         duplicateOfLocationTrackIsCancelled,
                     ) to duplicateNameParams
                 }
@@ -651,7 +662,7 @@ fun validateReferenceLineReference(
     val numberParams = localizationParams("trackNumber" to trackNumberNumber)
     return listOfNotNull(
         validateWithParams(trackNumber != null) {
-            cancelledOrNotPublishedKey("$VALIDATION_REFERENCE_LINE.track-number.", trackNumberIsCancelled) to
+            cancelledOrNotPublishedKey("$VALIDATION_REFERENCE_LINE.track-number", trackNumberIsCancelled) to
                 numberParams
         },
         validateWithParams(trackNumber == null || referenceLine.trackNumberId == trackNumber.id) {
@@ -669,7 +680,7 @@ fun validateLocationTrackReference(
     return if (trackNumber == null) {
         listOf(
             validationError(
-                cancelledOrNotPublishedKey("$VALIDATION_LOCATION_TRACK.track-number.", trackNumberIsCancelled),
+                cancelledOrNotPublishedKey("$VALIDATION_LOCATION_TRACK.track-number", trackNumberIsCancelled),
                 "trackNumber" to trackNumberName,
             )
         )
@@ -692,7 +703,10 @@ data class SegmentSwitch(
     val switch: LayoutSwitch?,
     val switchStructure: SwitchStructure?,
     val segments: List<LayoutSegment>,
+    val switchIsCancelled: Boolean,
 )
+
+data class TopologySwitch(val switch: LayoutSwitch?, val name: SwitchName, val switchIsCancelled: Boolean)
 
 fun validateSegmentSwitchReferences(
     locationTrack: LocationTrack,
@@ -706,7 +720,12 @@ fun validateSegmentSwitchReferences(
         val nameLocalizationParams = localizationParams("switch" to segmentSwitch.switchName)
 
         if (switch == null || switchStructure == null) {
-            listOf(validationError("$VALIDATION_LOCATION_TRACK.switch.not-published", nameLocalizationParams))
+            listOf(
+                validationError(
+                    cancelledOrNotPublishedKey("$VALIDATION_LOCATION_TRACK.switch", segmentSwitch.switchIsCancelled),
+                    nameLocalizationParams,
+                )
+            )
         } else {
             val stateErrors: List<LayoutValidationIssue> =
                 listOfNotNull(
@@ -750,13 +769,17 @@ fun validateSegmentSwitchReferences(
 
 fun validateTopologicallyConnectedSwitchReferences(
     locationTrack: LocationTrack,
-    topologicallyConnectedSwitches: List<Pair<SwitchName, LayoutSwitch?>>,
+    topologicallyConnectedSwitches: List<TopologySwitch>,
 ): List<LayoutValidationIssue> =
-    topologicallyConnectedSwitches.mapNotNull { (name, switch) ->
-        val nameParams = localizationParams("switch" to name)
-        if (switch == null) {
-            validationError("$VALIDATION_LOCATION_TRACK.switch.not-published", nameParams)
+    topologicallyConnectedSwitches.mapNotNull { topoSwitch ->
+        val nameParams = localizationParams("switch" to topoSwitch.name)
+        if (topoSwitch.switch == null) {
+            validationError(
+                cancelledOrNotPublishedKey("$VALIDATION_LOCATION_TRACK.switch", topoSwitch.switchIsCancelled),
+                nameParams,
+            )
         } else {
+            val switch = topoSwitch.switch
             validateWithParams(!locationTrack.exists || switch.stateCategory.isLinkable()) {
                 "$VALIDATION_LOCATION_TRACK.switch.state-category.${switch.stateCategory}" to nameParams
             }
@@ -1078,4 +1101,4 @@ fun validationWarning(key: String, params: LocalizationParams): LayoutValidation
     LayoutValidationIssue(WARNING, LocalizationKey(key), params)
 
 private fun cancelledOrNotPublishedKey(keyPrefix: String, cancelled: Boolean) =
-    "$keyPrefix${if (cancelled) "cancelled" else "not-published"}"
+    "$keyPrefix${if (cancelled) ".cancelled" else ".not-published"}"

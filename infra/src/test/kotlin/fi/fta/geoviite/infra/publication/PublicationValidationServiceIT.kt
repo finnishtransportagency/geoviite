@@ -1681,7 +1681,8 @@ constructor(
         locationTrackService.cancel(designBranch, branchingTrack)
 
         // .. but if the location tracks are cancelled, then the switch will see the branching
-        // alignment is no longer connected
+        // alignment is no longer connected. Both the switch and the branching alignment should be blamed, but the
+        // through track is innocent.
         val validateCancellation =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
@@ -1698,6 +1699,22 @@ constructor(
             ),
             validateCancellation.validatedAsPublicationUnit.switches[0].issues,
         )
+        assertContains(
+            validateCancellation.validatedAsPublicationUnit.locationTracks.find { it.id == branchingTrack }!!.issues,
+            LayoutValidationIssue(
+                localizationKey =
+                    LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected"),
+                type = LayoutValidationIssueType.WARNING,
+                params = LocalizationParams(mapOf("switch" to "some switch", "alignments" to "1-3")),
+            ),
+        )
+        // cancelling the edit to the through track is fine, as it was already correctly linked in main
+        assertFalse(
+            validateCancellation.validatedAsPublicationUnit.locationTracks
+                .find { it.id == throughTrack }!!
+                .issues
+                .any { it.localizationKey.toString().contains("linkage") }
+        )
     }
 
     @Test
@@ -1713,6 +1730,200 @@ constructor(
                 localizationKey = LocalizationKey("validation.layout.switch.duplicate-oid"),
                 type = LayoutValidationIssueType.ERROR,
                 params = LocalizationParams(mapOf()),
+            ),
+        )
+    }
+
+    @Test
+    fun `reference line validation notices cancellation of its track number's creation`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val trackNumber = designOfficialContext.insert(trackNumber()).id
+        val referenceLine =
+            designOfficialContext
+                .insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
+        trackNumberService.cancel(designBranch, trackNumber)
+        designDraftContext.insert(designOfficialContext.fetch(referenceLine)!!)
+        val validateTrackNumber =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(trackNumbers = listOf(trackNumber)),
+            )
+        val validateReferenceLine =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(referenceLines = listOf(referenceLine)),
+            )
+        val validateBoth =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine)),
+            )
+        assertEquals(
+            listOf("validation.layout.track-number.reference-line.cancelled-from-track-number"),
+            validateBoth.validatedAsPublicationUnit.trackNumbers[0].issues.map { it.localizationKey.toString() },
+        )
+        assertEquals(
+            listOf("validation.layout.reference-line.track-number.cancelled"),
+            validateBoth.validatedAsPublicationUnit.referenceLines[0].issues.map { it.localizationKey.toString() },
+        )
+        assertEquals(
+            listOf("validation.layout.track-number.reference-line.cancelled-from-track-number"),
+            validateTrackNumber.validatedAsPublicationUnit.trackNumbers[0].issues.map { it.localizationKey.toString() },
+        )
+        assertEquals(0, validateReferenceLine.validatedAsPublicationUnit.referenceLines[0].issues.size)
+    }
+
+    @Test
+    fun `track number validation notices cancellation of its reference line's creation`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val trackNumber = designOfficialContext.insert(trackNumber()).id
+        val referenceLine =
+            designOfficialContext
+                .insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
+        referenceLineService.cancel(designBranch, referenceLine)
+        designDraftContext.insert(designOfficialContext.fetch(trackNumber)!!)
+        val validateBoth =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine)),
+            )
+        val validateReferenceLine =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(referenceLines = listOf(referenceLine)),
+            )
+        val validateTrackNumber =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(trackNumbers = listOf(trackNumber)),
+            )
+        // reference line is cancelled (implicitly as part of the track number's cancellation), but the track number's
+        // cancellation has then been overwritten, meaning that publishing the reference line should fail
+        assertEquals(
+            listOf("validation.layout.track-number.reference-line.not-published"),
+            validateBoth.validatedAsPublicationUnit.trackNumbers[0].issues.map { it.localizationKey.toString() },
+        )
+        assertEquals(
+            listOf("validation.layout.reference-line.track-number.cancelled"),
+            validateBoth.validatedAsPublicationUnit.referenceLines[0].issues.map { it.localizationKey.toString() },
+        )
+        assertEquals(
+            listOf("validation.layout.reference-line.track-number.cancelled"),
+            validateReferenceLine.validatedAsPublicationUnit.referenceLines[0].issues.map {
+                it.localizationKey.toString()
+            },
+        )
+        assertEquals(0, validateTrackNumber.validatedAsPublicationUnit.trackNumbers[0].issues.size)
+    }
+
+    @Test
+    fun `track number created in main can have design edit cancelled independently of reference line`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val referenceLine =
+            mainOfficialContext
+                .insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
+        designDraftContext.insert(mainOfficialContext.fetch(trackNumber)!!)
+        designDraftContext.insert(mainOfficialContext.fetch(referenceLine)!!)
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine)),
+        )
+        trackNumberService.cancel(designBranch, trackNumber)
+        designDraftContext.insert(designOfficialContext.fetch(referenceLine)!!)
+        val validateTrackNumber =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(trackNumbers = listOf(trackNumber)),
+            )
+        val validateReferenceLine =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(referenceLines = listOf(referenceLine)),
+            )
+        val validateBoth =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine)),
+            )
+        // track number and reference line were created in main, hence cancelling the track number's edit without
+        // the reference line's edit is fine
+        assertEquals(0, validateTrackNumber.validatedAsPublicationUnit.trackNumbers[0].issues.size)
+        assertEquals(0, validateReferenceLine.validatedAsPublicationUnit.referenceLines[0].issues.size)
+        assertEquals(0, validateBoth.validatedAsPublicationUnit.trackNumbers[0].issues.size)
+        assertEquals(0, validateBoth.validatedAsPublicationUnit.referenceLines[0].issues.size)
+    }
+
+    @Test
+    fun `km posts notice their track number's cancellation`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val trackNumberNumber = trackNumber()
+        val trackNumber = designOfficialContext.insert(trackNumberNumber).id
+        val referenceLine =
+            designOfficialContext
+                .insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
+        val kmPost = designOfficialContext.insert(kmPost(trackNumber, KmNumber(1), Point(1.0, 0.0))).id
+        designDraftContext.insert(designOfficialContext.fetch(kmPost)!!)
+        trackNumberService.cancel(designBranch, trackNumber)
+        referenceLineService.cancel(designBranch, referenceLine)
+        val validateTrackNumber =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine)),
+            )
+        val validateKmPost =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(kmPosts = listOf(kmPost)),
+            )
+        val validateBoth =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(
+                    trackNumbers = listOf(trackNumber),
+                    kmPosts = listOf(kmPost),
+                    referenceLines = listOf(referenceLine),
+                ),
+            )
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    localizationKey = LocalizationKey("validation.layout.track-number.km-post.reference-deleted"),
+                    type = LayoutValidationIssueType.ERROR,
+                    params = LocalizationParams(mapOf("kmPosts" to "0001")),
+                )
+            ),
+            validateTrackNumber.validatedAsPublicationUnit.trackNumbers[0].issues,
+        )
+        assertEquals(0, validateKmPost.validatedAsPublicationUnit.kmPosts[0].issues.size)
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    localizationKey = LocalizationKey("validation.layout.track-number.km-post.reference-deleted"),
+                    type = LayoutValidationIssueType.ERROR,
+                    params = LocalizationParams(mapOf("kmPosts" to "0001")),
+                )
+            ),
+            validateBoth.validatedAsPublicationUnit.trackNumbers[0].issues,
+        )
+        assertContains(
+            validateBoth.validatedAsPublicationUnit.kmPosts[0].issues,
+            LayoutValidationIssue(
+                localizationKey = LocalizationKey("validation.layout.km-post.track-number.cancelled"),
+                type = LayoutValidationIssueType.ERROR,
+                params = LocalizationParams(mapOf("trackNumber" to trackNumberNumber.number.toString())),
             ),
         )
     }
