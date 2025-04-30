@@ -2,63 +2,43 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.util.FreeText
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 
-@Schema(name = "Vastaus: Sijaintiraide")
-data class ExtLocationTrackResponseV1(
+@Schema(name = "Vastaus: Sijaintiraidejoukko")
+data class ExtLocationTrackCollectionResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
-    @JsonProperty("sijaintiraide") val locationTrack: ExtLocationTrackV1,
+    @JsonProperty("sijaintiraiteet") val locationTrackCollection: List<ExtLocationTrackV1>,
 )
 
-@Schema(name = "Vastaus: Muutettu sijaintiraide")
-data class ExtModifiedLocationTrackResponseV1(
+@Schema(name = "Vastaus: Muutettu sijaintiraidejoukko")
+data class ExtModifiedLocationTrackCollectionResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
-    @JsonProperty("sijaintiraide") val locationTrack: ExtLocationTrackV1,
-)
-
-@Schema(name = "Sijaintiraide")
-data class ExtLocationTrackV1(
-    @JsonProperty("ratanumero") val trackNumberName: TrackNumber,
-    @JsonProperty("ratanumero_oid") val trackNumberOid: Oid<LayoutTrackNumber>,
-    @JsonProperty("oid") val locationTrackOid: Oid<LocationTrack>,
-    @JsonProperty("sijaintiraidetunnus") val locationTrackName: AlignmentName,
-    @JsonProperty("tyyppi") val locationTrackType: ExtLocationTrackTypeV1,
-    @JsonProperty("tila") val locationTrackState: ExtLocationTrackStateV1,
-    @JsonProperty("kuvaus") val locationTrackDescription: FreeText,
-    @JsonProperty("omistaja") val locationTrackOwner: MetaDataName,
-    @JsonProperty("alkusijainti") val startLocation: ExtAddressPointV1,
-    @JsonProperty("loppusijainti") val endLocation: ExtAddressPointV1,
-    @JsonProperty("koordinaatisto") val coordinateSystem: Srid,
+    @JsonProperty("sijaintiraiteet") val locationTrackCollection: List<ExtLocationTrackV1>,
 )
 
 @GeoviiteService
-class ExtLocationTrackServiceV1
+class ExtLocationTrackCollectionServiceV1
 @Autowired
 constructor(
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
@@ -69,28 +49,35 @@ constructor(
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun createLocationTrackResponse(
-        oid: Oid<LocationTrack>,
+    fun createLocationTrackCollectionResponse(
         trackNetworkVersion: Uuid<Publication>?,
         coordinateSystem: Srid,
     ): ExtLocationTrackResponseV1 {
         val layoutContext = MainLayoutContext.official
 
-        val publication =
-            trackNetworkVersion?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull) }
-                ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+        val locationTracks =
+            when (trackNetworkVersion) {
+                null -> {
+                    publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single().let {
+                        newestPublication ->
+                        locationTrackDao.list(layoutContext, includeDeleted = false)
+                    }
+                }
+                else -> {
+                    trackNetworkVersion
+                        .let { uuid -> publicationDao.fetchPublicationByUuid(uuid) }
+                        .let(::requireNotNull)
+                        .let { specifiedPublication ->
+                            locationTrackDao.listPublishedLocationTracksAtMoment(specifiedPublication.publicationTime)
+                        }
+                }
+            }
 
-        val locationTrack =
-            getLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
-                ?: throw ExtOidNotFoundExceptionV1(
-                    "location track lookup failed for " +
-                        "oid=$oid, layoutContext=$layoutContext, publicationId=${publication.id}"
-                )
+        val locationTrackStartAndEnd = locationTrackService.getStartAndEnd()
 
-        return ExtLocationTrackResponseV1(
+        return extLocationTrack(
             trackNetworkVersion = publication.uuid,
-            locationTrack =
-                getExtLocationTrack(oid, locationTrack, layoutContext, publication.publicationTime, coordinateSystem),
+            locationTrackCollection = locationTracks.map { locationTrack -> },
         )
     }
 
@@ -160,13 +147,14 @@ constructor(
         }
     }
 
-    fun getExtLocationTrack(
-        oid: Oid<LocationTrack>,
-        locationTrack: LocationTrack,
+    fun getLocationTrackCollection(
         layoutContext: LayoutContext,
         moment: Instant,
         coordinateSystem: Srid,
     ): ExtLocationTrackV1 {
+
+        val asd = locationTrackService.getStartAndEnd(layoutContext)
+
         val alignmentAddresses =
             geocodingService.getAddressPoints(layoutContext, locationTrack.id as IntId)
                 ?: throw ExtGeocodingFailedV1("address points not found, locationTrackId=${locationTrack.id}")
@@ -209,8 +197,7 @@ constructor(
             locationTrackName = locationTrack.name,
             locationTrackType = ExtLocationTrackTypeV1(locationTrack.type),
             locationTrackState = ExtLocationTrackStateV1(locationTrack.state),
-            locationTrackDescription =
-                locationTrackDescription, // TODO This is not correct as it can change based on version.
+            locationTrackDescription = locationTrackDescription,
             locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
             coordinateSystem = coordinateSystem,
             startLocation = ExtAddressPointV1.of(startLocation),
@@ -218,18 +205,5 @@ constructor(
             trackNumberName = trackNumberName,
             trackNumberOid = trackNumberOid,
         )
-    }
-
-    fun getLocationTrackByOidAtMoment(
-        oid: Oid<LocationTrack>,
-        layoutContext: LayoutContext,
-        moment: Instant,
-    ): LocationTrack? {
-        return locationTrackDao
-            .lookupByExternalId(oid)
-            ?.let { layoutRowId ->
-                locationTrackDao.fetchOfficialVersionAtMoment(layoutContext.branch, layoutRowId.id, moment)
-            }
-            ?.let(locationTrackDao::fetch)
     }
 }

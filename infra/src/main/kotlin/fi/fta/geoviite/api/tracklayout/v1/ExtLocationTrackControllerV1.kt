@@ -31,9 +31,18 @@ const val EXT_TRACK_LAYOUT_BASE_PATH = "/geoviite"
 class ExtLocationTrackControllerV1(
     private val extLocationTrackService: ExtLocationTrackServiceV1,
     private val extLocationTrackGeometryService: ExtLocationTrackGeometryServiceV1,
+    private val extLocationTrackCollectionService: ExtLocationTrackCollectionServiceV1,
 ) {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    @GetMapping("/sijaintiraiteet")
+    fun extGetAllLocationTracks(
+        @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
+    ): ExtLocationTrackCollectionResponseV1 {
+        return extLocationTrackCollectionService.createLocationTrackCollectionResponse()
+    }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
     fun extGetLocationTrack(

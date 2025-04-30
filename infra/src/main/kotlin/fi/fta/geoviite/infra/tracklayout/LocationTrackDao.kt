@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -545,6 +546,27 @@ class LocationTrackDao(
         return trackNumberIds.associateWith { trackNumberId ->
             versions.filter { (tnId, _) -> tnId == trackNumberId }.map { (_, trackVersions) -> trackVersions }
         }
+    }
+
+    fun listPublishedLocationTracksAtMoment(moment: Instant): List<LocationTrack> {
+        val sql =
+            """
+              select distinct on (id) id, design_id, draft, version
+              from layout.location_track_version
+              where change_time <= :moment::timestampz
+                and not deleted
+                and not draft
+                and design_id is null
+              order by id, change_time desc
+            )
+        """
+                .trimIndent()
+
+        return jdbcTemplate
+            .query(sql, mapOf("moment" to moment)) { rs, _ ->
+                rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
+            }
+            .map(::fetch)
     }
 
     // TODO Remove?
