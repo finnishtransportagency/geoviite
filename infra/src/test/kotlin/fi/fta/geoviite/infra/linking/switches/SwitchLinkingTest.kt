@@ -33,10 +33,10 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class SwitchLinkingTest {
     private var testLayoutSwitchId = IntId<LayoutSwitch>(0)
@@ -1424,71 +1424,6 @@ class SwitchLinkingTest {
                 ),
         )
     }
-
-    //    @Test
-    //    fun `foo test`() {
-    //        val yv = YV54_200_1_9_V()
-    //        val joint3 = (yv.joints.find { j -> j.number == JointNumber(3) })!!
-    //        val joint2 = (yv.joints.find { j -> j.number == JointNumber(2) })!!
-    //        val joint5 = (yv.joints.find { j -> j.number == JointNumber(5) })!!
-    //
-    //        val locationTrackId = IntId<LocationTrack>(1)
-    //        val startNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.START)
-    //        val endNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.END)
-    //        val segments = listOf(segment(Point(0.0, 0.0), joint3.location))
-    //        val startEdgeNode = TmpEdgeNode(NodePortType.A, startNode)
-    //        val endEdgeNode = TmpEdgeNode(NodePortType.A, endNode)
-    //        val curveEdge = TmpLayoutEdge(startEdgeNode, endEdgeNode, segments)
-    //
-    //        val locationTrackId2 = IntId<LocationTrack>(2)
-    //        val startNode2 = TmpTrackBoundaryNode(locationTrackId2, TrackBoundaryType.START)
-    //        val endNode2 = TmpTrackBoundaryNode(locationTrackId2, TrackBoundaryType.END)
-    //        val segments2 = listOf(segment(Point(0.0, 0.0), Point(50.0, 0.0)))
-    //        val startEdgeNode2 = TmpEdgeNode(NodePortType.A, startNode2)
-    //        val endEdgeNode2 = TmpEdgeNode(NodePortType.A, endNode2)
-    //        val straightEdge = TmpLayoutEdge(startEdgeNode2, endEdgeNode2, segments2)
-    //
-    //        val switchId = IntId<LayoutSwitch>(10)
-    //        val linkedCurveEdges =
-    //            linkJointsToEdge(
-    //                switchId,
-    //                curveEdge,
-    //                listOf(
-    //                    JointOnEdge(locationTrackId, curveEdge, 0.0, switchId,
-    // SwitchJointRole.MAIN, JointNumber(1)),
-    //                    SwitchJointPositionOnEdge(
-    //                        curveEdge,
-    //                        lineLength(Point(0.0, 0.0), joint3.location),
-    //                        switchId,
-    //                        SwitchJointRole.CONNECTION,
-    //                        JointNumber(3),
-    //                    ),
-    //                ),
-    //            )
-    //        val linkedStraightEdges =
-    //            linkJointsToEdge(
-    //                straightEdge,
-    //                listOf(
-    //                    SwitchJointPositionOnEdge(straightEdge, 0.0, switchId,
-    // SwitchJointRole.MAIN, JointNumber(1)),
-    //                    SwitchJointPositionOnEdge(
-    //                        straightEdge,
-    //                        lineLength(Point(0.0, 0.0), joint5.location),
-    //                        switchId,
-    //                        SwitchJointRole.MATH,
-    //                        JointNumber(5),
-    //                    ),
-    //                    SwitchJointPositionOnEdge(
-    //                        straightEdge,
-    //                        lineLength(Point(0.0, 0.0), joint2.location),
-    //                        switchId,
-    //                        SwitchJointRole.CONNECTION,
-    //                        JointNumber(2),
-    //                    ),
-    //                ),
-    //            )
-    //    }
-
 }
 
 private fun getJoint(switchSuggestion: FittedSwitch, jointNumber: Int) =
@@ -1610,6 +1545,12 @@ fun assertSwitchNodeExists(
     jointsWithM.forEach { (jointNumber, mValue) ->
         assertSwitchNodeExists(tracks, locationTrackId, switchId, jointNumber, mValue)
     }
+    assertJointsOnSequentialEdges(
+        tracks,
+        locationTrackId,
+        switchId,
+        jointsWithM.map { (jointNumber, _) -> jointNumber },
+    )
 }
 
 fun assertSwitchNodeExists(
@@ -1651,4 +1592,30 @@ fun assertJointsOnSequentialEdges(
         }
     val isContinuous = nodeIndexes.zipWithNext { index1, index2 -> index1 + 1 == index2 }.all { it }
     assertTrue(isContinuous, "Joints $joints are not in continuous edges, node indexes: $nodeIndexes")
+}
+
+fun assertTopologicalConnectionAtStart(
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    locationTrackId: DomainId<LocationTrack>,
+    switchId: IntId<LayoutSwitch>,
+    jointNumber: Int,
+) {
+    val (locationTrack, geometry) = assertTrackAndGeometry(tracks, locationTrackId)
+    assertNotNull(geometry.startNode)
+    assertTrue(geometry.startNode?.node?.containsOuterJoint(switchId, JointNumber(jointNumber)) ?: false) {
+        "location track ${locationTrack.name} does not contain topology connection for switch: $switchId and joint: $jointNumber"
+    }
+}
+
+fun assertTopologicalConnectionAtEnd(
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    locationTrackId: DomainId<LocationTrack>,
+    switchId: IntId<LayoutSwitch>,
+    jointNumber: Int,
+) {
+    val (locationTrack, geometry) = assertTrackAndGeometry(tracks, locationTrackId)
+    assertNotNull(geometry.startNode)
+    assertTrue(geometry.endNode?.switchOut?.id == switchId) {
+        "location track ${locationTrack.name} does not contain topology connection for switch: $switchId and joint: $jointNumber"
+    }
 }

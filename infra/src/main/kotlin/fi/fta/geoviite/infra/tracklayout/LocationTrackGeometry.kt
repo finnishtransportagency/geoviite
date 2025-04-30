@@ -189,7 +189,8 @@ sealed class LocationTrackGeometry : IAlignment {
 
     fun withoutSwitch(switchId: IntId<LayoutSwitch>): LocationTrackGeometry {
         val newEdges = edges.map { e -> e.withoutSwitch(switchId) }
-        // TODO: GVT-2928 there's no need to swap boundary nodes for placeholder here, but combineedges does that
+        // TODO: GVT-2928 there's no need to swap boundary nodes for placeholder here, but
+        // combineedges does that
         return this.takeIf { newEdges == edges } ?: TmpLocationTrackGeometry(combineEdges(newEdges))
     }
 
@@ -328,7 +329,8 @@ data class EdgeHash private constructor(val value: Int) {
 
         private fun segmentsHash(segments: List<LayoutSegment>): Int = Objects.hash(segments.map(::segmentHash))
 
-        // TODO: GVT-2928 should we implement segment.contentHash to avoid segmentgeometry tmp id affecting the result?
+        // TODO: GVT-2928 should we implement segment.contentHash to avoid segmentgeometry tmp id
+        // affecting the result?
         private fun segmentHash(segment: LayoutSegment): Int = segment.hashCode()
     }
 }
@@ -615,6 +617,9 @@ sealed class LayoutNode {
 
     fun containsInnerJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
         portA.let { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
+
+    fun containsOuterJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
+        portB.let { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
 
     abstract val type: LayoutNodeType
 

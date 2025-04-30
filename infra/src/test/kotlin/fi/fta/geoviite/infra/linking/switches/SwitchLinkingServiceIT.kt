@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.MeasurementMethod
@@ -31,6 +32,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -1640,6 +1642,85 @@ constructor(
                 assertEquals(expected.m, actual.m, 0.0001)
                 assertEquals(expected.location.x, actual.location.x, 0.0001)
             }
+    }
+
+    @Test
+    fun `Switch linking finds topological connection`() {
+        // track A   track B
+        //  2 |    / 3
+        //    |   /
+        //  5 |  /
+        //    | /
+        //  1 |/ 1
+        //    T
+        //    |
+        //    |
+        // track C
+        //
+        // Track C should connect topologically to joint 1
+
+        val context = mainDraftContext
+        val switchStructure = YV60_300_1_9_O()
+        val switchId = IntId<LayoutSwitch>(1)
+
+        // in this test tracks don't need to match switch structure geometrically,
+        // but it might be easier to follow the test this way
+        val trackNumber = mainDraftContext.createLayoutTrackNumber()
+        val trackA =
+            createTrack(switchStructure, asJointNumbers(1, 5, 2), "track A").setTrackNumber(trackNumber.id).let {
+                insert(context.context, it)
+            }
+        val trackB =
+            createTrack(switchStructure, asJointNumbers(1, 3), "track B").setTrackNumber(trackNumber.id).let {
+                insert(context.context, it)
+            }
+        val trackC = createPrependingTrack(trackA, 10.0, "track C").let { insert(context.context, it) }
+
+        // manually defined fitted switch, m-values don't need to match to switch structure
+        val fittedSwitch =
+            fittedSwitch(
+                switchStructure,
+                fittedJointMatch(trackA, 1, 0.0),
+                fittedJointMatch(trackA, 5, 16.0),
+                fittedJointMatch(trackA, 2, 30.0),
+                fittedJointMatch(trackB, 1, 0.0),
+                fittedJointMatch(trackB, 3, 32.567),
+            )
+
+        val linkedTracks = switchLinkingService.linkFittedSwitch(context.context, switchId, fittedSwitch)
+
+        // validate
+        assertSwitchNodeExists(
+            linkedTracks,
+            trackA.locationTrackId,
+            switchId = switchId,
+            listOf( //
+                1 to 0.0,
+                5 to 16.0,
+                2 to 30.0,
+            ),
+        )
+        assertSwitchNodeExists(
+            linkedTracks,
+            trackB.locationTrackId,
+            switchId = switchId,
+            listOf( //
+                1 to 0.0,
+                3 to 32.567,
+            ),
+        )
+        assertTopologicalConnectionAtEnd(linkedTracks, trackC.locationTrackId, switchId = switchId, 1)
+    }
+
+    private fun insert(context: LayoutContext, track: TrackForSwitchFitting): TrackForSwitchFitting {
+        val locationTrackVersion =
+            locationTrackService.saveDraft(
+                context.branch,
+                track.locationTrack.copy(contextData = LayoutContextData.new(context, null)),
+                track.geometry,
+            )
+        val (locationTrack, geometry) = locationTrackService.getWithGeometry(locationTrackVersion)
+        return TrackForSwitchFitting(emptyList(), locationTrack, geometry)
     }
 
     private fun setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox():

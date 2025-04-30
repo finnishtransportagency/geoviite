@@ -1,7 +1,12 @@
 package fi.fta.geoviite.infra.math
 
 import java.math.BigDecimal
-import kotlin.math.*
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sin
 
 /** Returns the point that lies in the given direction (radians) at given distance from the given start-point */
 fun pointInDirection(fromPoint: IPoint, distance: Double, direction: Double): Point {
@@ -168,4 +173,8 @@ data class Point4DZM(override val x: Double, override val y: Double, override va
             "Cannot create point of: x=$x y=$y z=$z m=$m"
         }
     }
+}
+
+fun dot(p1: IPoint, p2: IPoint): Double {
+    return p1.x * p2.x + p1.y * p2.y
 }
