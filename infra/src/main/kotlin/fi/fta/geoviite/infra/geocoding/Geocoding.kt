@@ -172,7 +172,7 @@ enum class KmPostRejectedReason {
 
 enum class Resolution(val meters: Number) {
     ONE_METER(1),
-    QUARTER_METER(0.25),
+    QUARTER_METER(BigDecimal("0.25")),
 }
 
 data class GeocodingContext(
@@ -747,10 +747,17 @@ private fun createProjectionLines(
         val projectionLineSteps =
             when (resolution.meters) {
                 is Int -> (minMeter..maxMeter step resolution.meters).toList()
-                is Double ->
-                    generateSequence(minMeter.toDouble()) { currentMeter -> currentMeter + resolution.meters }
-                        .takeWhile { currentMeter -> currentMeter <= maxMeter }
+                //                is Double ->
+                //                    generateSequence(minMeter.toDouble()) { currentMeter -> currentMeter +
+                // resolution.meters }
+                //                        .takeWhile { currentMeter -> currentMeter <= maxMeter }
+                //                        .toList()
+                is BigDecimal -> {
+                    val maxMeterBigDecimals = BigDecimal(maxMeter)
+                    generateSequence(BigDecimal(minMeter)) { currentMeter -> currentMeter + resolution.meters }
+                        .takeWhile { currentMeter -> currentMeter <= maxMeterBigDecimals }
                         .toList()
+                }
 
                 else -> error("Unhandled resolution type")
             }
@@ -770,7 +777,7 @@ private fun createProjectionLines(
             val address =
                 when (meter) {
                     is Int -> TrackMeter(point.kmNumber, meter)
-                    is Double -> TrackMeter(point.kmNumber, meter.toBigDecimal())
+                    is BigDecimal -> TrackMeter(point.kmNumber, meter)
 
                     else -> error("Unhandled meter number type")
                 }

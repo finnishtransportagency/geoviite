@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.error.ErrorPriority
 import fi.fta.geoviite.infra.error.ExtApiErrorResponseV1
 import fi.fta.geoviite.infra.error.GeoviiteErrorResponse
 import fi.fta.geoviite.infra.error.HasLocalizedMessage
+import fi.fta.geoviite.infra.error.ServerException
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import org.springframework.core.convert.ConversionFailedException
@@ -22,31 +23,26 @@ import org.springframework.web.servlet.NoHandlerFoundException
 
 private const val ERROR_KEY_BASE = "ext-api.track-layout.v1.error"
 
-typealias ExtApiExceptionV1 = ClientException
-
 class ExtOidNotFoundExceptionV1(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = "$ERROR_KEY_BASE.oid-not-found",
-) : ExtApiExceptionV1(HttpStatus.NOT_FOUND, "oid not found: $message", cause, localizedMessageKey)
+) : ClientException(HttpStatus.NOT_FOUND, "oid not found: $message", cause, localizedMessageKey)
 
-class ExtGeocodingFailedV1(
-    message: String,
-    cause: Throwable? = null,
-    localizedMessageKey: String = "$ERROR_KEY_BASE.geocoding-failed",
-) : ExtApiExceptionV1(HttpStatus.INTERNAL_SERVER_ERROR, "geocoding failed: $message", cause, localizedMessageKey)
+class ExtGeocodingFailedV1(message: String, cause: Throwable? = null) :
+    ServerException("geocoding failed: $message", cause)
 
 class ExtTrackNumberNotFoundV1(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = "$ERROR_KEY_BASE.track-number-not-found",
-) : ExtApiExceptionV1(HttpStatus.BAD_REQUEST, "track number not found: $message", cause, localizedMessageKey)
+) : ClientException(HttpStatus.BAD_REQUEST, "track number not found: $message", cause, localizedMessageKey)
 
 class ExtTrackNetworkVersionNotFound(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = "$ERROR_KEY_BASE.track-network-version-not-found",
-) : ExtApiExceptionV1(HttpStatus.BAD_REQUEST, "track network version not found: $message", cause, localizedMessageKey)
+) : ClientException(HttpStatus.BAD_REQUEST, "track network version not found: $message", cause, localizedMessageKey)
 
 fun createExtApiErrorResponseV1(
     correlationId: String,
