@@ -564,6 +564,7 @@ function createAlignmentFeatures(
 function overlappingPoint(
     layoutPoint: LinkPoint,
     geometryPoint: LinkPoint,
+    metersPerPixel: number,
 ): ClusterPoint | undefined {
     const distance = getPlanarDistanceUnwrapped(
         geometryPoint.x,
@@ -571,16 +572,21 @@ function overlappingPoint(
         layoutPoint.x,
         layoutPoint.y,
     );
-    const buffer = 0.01;
-    return distance <= buffer
-        ? {
-              id: geometryPoint.id + layoutPoint.id,
-              x: geometryPoint.x,
-              y: geometryPoint.y,
-              layoutPoint: layoutPoint,
-              geometryPoint: geometryPoint,
-          }
-        : undefined;
+    const distanceInPixels = distance / metersPerPixel;
+    const maxClusteringDistance = 0.01;
+    const maxClusteringDistanceInPixels = 10;
+    if (distance <= maxClusteringDistance && distanceInPixels <= maxClusteringDistanceInPixels) {
+        // When looked from far away, only cluster points that are close to each other in meters.
+        // When looked very closely, do not cluster points.
+        return {
+            id: geometryPoint.id + layoutPoint.id,
+            x: geometryPoint.x,
+            y: geometryPoint.y,
+            layoutPoint: layoutPoint,
+            geometryPoint: geometryPoint,
+        };
+    }
+    return undefined;
 }
 
 function createConnectingLineFeature(start: LinkPoint, end: LinkPoint): Feature<LineString> {
@@ -616,13 +622,14 @@ function createLinkingAlignmentFeatures(
 function getClusterPoints(
     layoutPoints: LinkPoint[],
     geometryPoints: LinkPoint[],
+    metersPerPixel: number,
 ): [ClusterPoint[], LinkPoint[]] {
     const clusterPoints: ClusterPoint[] = [];
     const overlappingPoints: LinkPoint[] = [];
 
     layoutPoints.forEach((layoutPoint) => {
         geometryPoints.forEach((geometryPoint) => {
-            const clusterPoint = overlappingPoint(layoutPoint, geometryPoint);
+            const clusterPoint = overlappingPoint(layoutPoint, geometryPoint, metersPerPixel);
 
             if (clusterPoint) {
                 clusterPoints.push(clusterPoint);
@@ -642,9 +649,14 @@ function createLinkingGeometryWithAlignmentFeatures(
     showDots: boolean,
     layoutPoints: LinkPoint[],
     geometryPoints: LinkPoint[],
+    metersPerPixel: number,
 ): Feature<OlPoint | LineString>[] {
     const features: Feature<OlPoint | LineString>[] = [];
-    const [clusterPoints, overlappingPoints] = getClusterPoints(layoutPoints, geometryPoints);
+    const [clusterPoints, overlappingPoints] = getClusterPoints(
+        layoutPoints,
+        geometryPoints,
+        metersPerPixel,
+    );
     const highlightedLayoutPoint = first(selection.highlightedItems.layoutLinkPoints);
     const highlightedGeometryPoint = first(selection.highlightedItems.geometryLinkPoints);
 
@@ -916,6 +928,7 @@ const createFeatures = (
     data: LinkingData,
     selection: Selection,
     drawLinkingDots: boolean,
+    metersPerPixel: number,
 ): Feature<LineString | OlPoint>[] => {
     switch (data.type) {
         case LinkingType.LinkingAlignment:
@@ -976,6 +989,7 @@ const createFeatures = (
                 drawLinkingDots,
                 data.layoutPoints,
                 data.geometryPoints,
+                metersPerPixel,
             );
 
         case 'empty':
@@ -1120,12 +1134,12 @@ export function createAlignmentLinkingLayer(
     selection: Selection,
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
-    resolution: number,
+    metersPerPixel: number,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const drawLinkingDots = resolution <= LINKING_DOTS;
+    const drawLinkingDots = metersPerPixel <= LINKING_DOTS;
     const loadSegmentEndPoints = drawLinkingDots;
 
     const dataPromise = getLinkingData(
@@ -1138,7 +1152,7 @@ export function createAlignmentLinkingLayer(
     );
 
     loadLayerData(source, isLatest, onLoadingData, dataPromise, (data) =>
-        createFeatures(data, selection, drawLinkingDots),
+        createFeatures(data, selection, drawLinkingDots, metersPerPixel),
     );
 
     return {
@@ -1156,7 +1170,7 @@ export function createAlignmentLinkingLayer(
                 // be very disturbing.
                 const allowInterpolatedLinkPoints =
                     linkingState?.type === LinkingType.LinkingAlignment;
-                return searchItems(source, hitArea, resolution, allowInterpolatedLinkPoints);
+                return searchItems(source, hitArea, metersPerPixel, allowInterpolatedLinkPoints);
             }
         },
     };
