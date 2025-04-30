@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -1926,6 +1927,104 @@ constructor(
                 params = LocalizationParams(mapOf("trackNumber" to trackNumberNumber.number.toString())),
             ),
         )
+    }
+
+    @Test
+    fun `track number numbers are checked for uniqueness upon merge, even if any are deleted`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(40.0, 0.0)))
+        mainOfficialContext.insert(
+            referenceLine(mainOfficialContext.insert(trackNumber(TrackNumber("100"))).id),
+            alignment,
+        )
+        mainOfficialContext.insert(
+            referenceLine(mainOfficialContext.insert(trackNumber(TrackNumber("200"))).id),
+            alignment,
+        )
+        mainOfficialContext.insert(
+            referenceLine(mainOfficialContext.insert(trackNumber(TrackNumber("300"), state = LayoutState.DELETED)).id),
+            alignment,
+        )
+        mainOfficialContext.insert(
+            referenceLine(mainOfficialContext.insert(trackNumber(TrackNumber("400"), state = LayoutState.DELETED)).id),
+            alignment,
+        )
+        val tn1 = designOfficialContext.insert(trackNumber(TrackNumber("100"))).id
+        val rl1 = designOfficialContext.insert(referenceLine(tn1), alignment).id
+        val tn2 = designOfficialContext.insert(trackNumber(TrackNumber("200"), state = LayoutState.DELETED)).id
+        val rl2 = designOfficialContext.insert(referenceLine(tn2), alignment).id
+        val tn3 = designOfficialContext.insert(trackNumber(TrackNumber("300"))).id
+        val rl3 = designOfficialContext.insert(referenceLine(tn3), alignment).id
+        val tn4 = designOfficialContext.insert(trackNumber(TrackNumber("400"), state = LayoutState.DELETED)).id
+        val rl4 = designOfficialContext.insert(referenceLine(tn4), alignment).id
+
+        val validation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(MergeFromDesign(designBranch)),
+                publicationRequestIds(
+                    trackNumbers = listOf(tn1, tn2, tn3, tn4),
+                    referenceLines = listOf(rl1, rl2, rl3, rl4),
+                ),
+            )
+        validation.validatedAsPublicationUnit.trackNumbers.forEach { tn ->
+            assertContains(
+                tn.issues,
+                LayoutValidationIssue(
+                    type = LayoutValidationIssueType.FATAL,
+                    localizationKey = LocalizationKey("validation.layout.track-number.duplicate-name-official"),
+                    params = LocalizationParams(mapOf("trackNumber" to tn.number.toString())),
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `km post km numbers are checked for uniqueness upon merge, even if any are deleted`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val trackNumber = trackNumber()
+        val trackNumberId = mainOfficialContext.insert(trackNumber).id
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(40.0, 0.0)))
+        mainOfficialContext.insert(referenceLine(trackNumberId), alignment).id
+
+        mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(1), Point(1.0, 0.0)))
+        mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(2), Point(2.0, 0.0)))
+        mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(3), Point(3.0, 0.0), state = LayoutState.DELETED))
+        mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(4), Point(4.0, 0.0), state = LayoutState.DELETED))
+        val kp1 = designOfficialContext.insert(kmPost(trackNumberId, KmNumber(1), Point(1.0, 0.0))).id
+        val kp2 =
+            designOfficialContext
+                .insert(kmPost(trackNumberId, KmNumber(2), Point(2.0, 0.0), state = LayoutState.DELETED))
+                .id
+        val kp3 = designOfficialContext.insert(kmPost(trackNumberId, KmNumber(3), Point(3.0, 0.0))).id
+        val kp4 =
+            designOfficialContext
+                .insert(kmPost(trackNumberId, KmNumber(4), Point(4.0, 0.0), state = LayoutState.DELETED))
+                .id
+
+        val validation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(MergeFromDesign(designBranch)),
+                publicationRequestIds(kmPosts = listOf(kp1, kp2, kp3, kp4)),
+            )
+
+        validation.validatedAsPublicationUnit.kmPosts.forEach { kmPost ->
+            assertContains(
+                kmPost.issues,
+                LayoutValidationIssue(
+                    type = LayoutValidationIssueType.FATAL,
+                    localizationKey = LocalizationKey("validation.layout.km-post.duplicate-name-official"),
+                    params =
+                        LocalizationParams(
+                            mapOf(
+                                "kmNumber" to kmPost.kmNumber.toString(),
+                                "trackNumber" to trackNumber.number.toString(),
+                            )
+                        ),
+                ),
+            )
+        }
     }
 
     private fun getTopologicalSwitchConnectionTestCases(
