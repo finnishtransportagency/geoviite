@@ -1,28 +1,48 @@
 {
     "ext-api": {
-        "error": {
-            "features-not-found": "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
-            "missing-x-coordinate": "Pyyntö ei sisältänyt x-koordinaattia.",
-            "missing-y-coordinate": "Pyyntö ei sisältänyt y-koordinaattia.",
-            "missing-track-kilometer": "Pyyntö ei sisältänyt ratakilometriä.",
-            "missing-track-meter": "Pyyntö ei sisältänyt ratametriä.",
-            "missing-track-number": "Pyyntö ei sisältänyt ratanumeroa.",
-            "unsupported-request-type": "Pyyntötyyppiä ei tueta.",
-            "search-radius-undefined": "Pyyntö sisälsi hakusääteen ilman arvoa (sade=null).",
-            "search-radius-under-range": "Pyyntö sisälsi pienemmän hakusäteen kuin sallittu minimiarvo (1.0).",
-            "search-radius-over-range": "Pyyntö sisälsi suuremman hakusäteen kuin sallittu maksimiarvo (1000.0).",
-            "address-geocoding-failed": "Rataosoitteen geokoodaus epäonnistui.",
-            "invalid-track-number-name": "Pyyntö sisälsi virheellisen ratanumero-asetuksen.",
-            "invalid-track-number-oid": "Pyyntö sisälsi virheellisen ratanumero_oid-asetuksen.",
-            "invalid-location-track-name": "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
-            "invalid-location-track-oid": "Pyyntö sisälsi virheellisen sijaintiraide_oid-asetuksen.",
-            "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
-            "invalid-track-address": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen).",
-            "no-track-number-search-condition": "Pyyntö ei sisältänyt hakuehtoa ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid.",
-            "both-name-and-oid-for-track-number": "Pyyntö sisälsi useamman kuin yhden hakuehdon ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid.",
-            "too-many-requests": "Kutsu sisälsi liian monta muunnospyyntöä. Yhdessä kutsussa saa olla korkeintaan 1000 muunnosta.",
-            "track-number-not-found": "Pyynnön ratanumeroa ei löydetty.",
-            "input-coordinate-transformation-failed": "Koordinaattimuunnos ei onnistunut. Onko koordinaatisto järkevä syötekoordinaatille?"
+        "frame-converter": {
+            "v1": {
+                "error": {
+                    "features-not-found": "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
+                    "missing-x-coordinate": "Pyyntö ei sisältänyt x-koordinaattia.",
+                    "missing-y-coordinate": "Pyyntö ei sisältänyt y-koordinaattia.",
+                    "missing-track-kilometer": "Pyyntö ei sisältänyt ratakilometriä.",
+                    "missing-track-meter": "Pyyntö ei sisältänyt ratametriä.",
+                    "missing-track-number": "Pyyntö ei sisältänyt ratanumeroa.",
+                    "unsupported-request-type": "Pyyntötyyppiä ei tueta.",
+                    "search-radius-undefined": "Pyyntö sisälsi hakusääteen ilman arvoa (sade=null).",
+                    "search-radius-under-range": "Pyyntö sisälsi pienemmän hakusäteen kuin sallittu minimiarvo (1.0).",
+                    "search-radius-over-range": "Pyyntö sisälsi suuremman hakusäteen kuin sallittu maksimiarvo (1000.0).",
+                    "address-geocoding-failed": "Rataosoitteen geokoodaus epäonnistui.",
+                    "invalid-track-number-name": "Pyyntö sisälsi virheellisen ratanumero-asetuksen.",
+                    "invalid-track-number-oid": "Pyyntö sisälsi virheellisen ratanumero_oid-asetuksen.",
+                    "invalid-location-track-name": "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
+                    "invalid-location-track-oid": "Pyyntö sisälsi virheellisen sijaintiraide_oid-asetuksen.",
+                    "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
+                    "invalid-track-address": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratametri yhdistelmä oli virheellinen).",
+                    "no-track-number-search-condition": "Pyyntö ei sisältänyt hakuehtoa ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid.",
+                    "both-name-and-oid-for-track-number": "Pyyntö sisälsi useamman kuin yhden hakuehdon ratanumerolle. Sisällytä muunnospyyntöön yksi kentistä: ratanumero, ratanumero_oid.",
+                    "too-many-requests": "Kutsu sisälsi liian monta muunnospyyntöä. Yhdessä kutsussa saa olla korkeintaan 1000 muunnosta.",
+                    "track-number-not-found": "Pyynnön ratanumeroa ei löydetty.",
+                    "input-coordinate-transformation-failed": "Koordinaattimuunnos ei onnistunut. Onko koordinaatisto järkevä syötekoordinaatille?"
+                }
+            }
+        },
+        "track-layout": {
+            "v1": {
+                "error": {
+                    "oid-not-found": "Pyynnön OID-tunnuksen perusteella ei löydetty kohdetta.",
+                    "client-error": "Pyyntö oli tunnistamattomalla tavalla virheellinen (HTTP {{koodi}}).",
+                    "server-error": "Pyynnön käsittely epäonnistui palvelimella (HTTP {{koodi}}).",
+                    "unauthorized": "Pyyntöön ei ollut oikeutta.",
+                    "bad-request": {
+                        "invalid-path": "{{metodi}} Pyynnön polku oli virheellinen",
+                        "missing-parameter": "Pyynnöstä puuttui parametri: {{parametri}} ({{tyyppi}})",
+                        "conversion-failed": "Pyynnön argumentin tyyppi oli virheellinen (tavoitetyyppi: '{{tavoitetyyppi}}')",
+                        "conversion-failed-detailed": "Pyynnön argumentti {{nimi}} oli virheellinen: (tavoitetyyppi: '{{tavoitetyyppi}}') (tarkenne: {{parametri}})"
+                    }
+                }
+            }
         }
     },
     "error": {
