@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.error.ExtApiClientExceptionV1
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.logging.apiResult
 import fi.fta.geoviite.infra.util.Either
@@ -162,7 +161,7 @@ constructor(
 
     private inline fun <reified Request : FrameConverterRequestV1> assertRequestType(requests: List<*>): List<Request> {
         if (requests.any { it !is Request }) {
-            throw ExtApiClientExceptionV1(
+            throw FrameConverterExceptionV1(
                 message = "Unsupported request type",
                 error = FrameConverterErrorV1.UnsupportedRequestType,
             )
@@ -173,7 +172,7 @@ constructor(
 
     private fun <T : FrameConverterRequestV1> assertRequestSize(requests: List<T>) {
         if (requests.size > maxBatchRequests) {
-            throw ExtApiClientExceptionV1(
+            throw FrameConverterExceptionV1(
                 message = "Too many requests in batch: maxCount=$maxBatchRequests",
                 error = FrameConverterErrorV1.TooManyRequests,
             )

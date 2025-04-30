@@ -1,6 +1,16 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
+import fi.fta.geoviite.infra.error.ClientException
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationParams
+import org.springframework.http.HttpStatus.BAD_REQUEST
+
+class FrameConverterExceptionV1(
+    message: String,
+    cause: Throwable? = null,
+    error: FrameConverterErrorV1,
+    localizationParams: LocalizationParams = LocalizationParams.empty,
+) : ClientException(BAD_REQUEST, "Invalid request: $message", cause, error.localizationKey, localizationParams)
 
 enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     TooManyRequests("too-many-requests"),
