@@ -436,7 +436,7 @@ class SplitService(
 
         val savedSplitTargetLocationTracks =
             targetResults.map { result ->
-                val response = saveTargetTrack(branch, result)
+                val response = locationTrackService.saveDraft(branch, result.locationTrack, result.geometry)
                 val (resultTrack, resultGeometry) = locationTrackService.getWithGeometry(response)
                 result.copy(locationTrack = resultTrack, geometry = resultGeometry)
             }
@@ -491,22 +491,6 @@ class SplitService(
             locationTrackService.saveDraft(branch, track, geometry)
         }
     }
-
-    private fun saveTargetTrack(branch: LayoutBranch, target: SplitTargetResult): LayoutRowVersion<LocationTrack> =
-        locationTrackService.saveDraft(
-            branch = branch,
-            track = target.locationTrack,
-            params = target.geometry,
-            // TODO: GVT-2928 Topology calculation in node-edge model
-            // TODO: GVT-2928 There should be no need for re-calcs as the edges already connect to correct nodes
-            //                    locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-            //                        layoutContext = branch.draft,
-            //                        track = target.locationTrack,
-            //                        alignment = target.geometry,
-            //                        startChanged = true,
-            //                        endChanged = true,
-            //                    ),
-        )
 
     private fun collectSplitTargetParams(
         branch: LayoutBranch,

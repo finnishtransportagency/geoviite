@@ -163,28 +163,6 @@ class LocationTrackService(
         params: LocationTrackGeometry,
     ): LayoutRowVersion<LocationTrack> = saveDraftInternal(branch, asDraft(branch, track), params)
 
-    // TODO: GVT-1926 Is this needed? temporarily private until we know
-    //    @Transactional
-    private fun saveDraft(branch: LayoutBranch, draftAsset: LocationTrack): LayoutRowVersion<LocationTrack> =
-        saveDraft(
-            branch,
-            draftAsset,
-            getSourceVersion(draftAsset)?.let(alignmentDao::fetch) ?: LocationTrackGeometry.empty,
-        )
-
-    private fun getSourceVersion(track: LocationTrack): LayoutRowVersion<LocationTrack>? =
-        track.contextData.layoutAssetId.let { id ->
-            when (id) {
-                // Edited from a row that is already a draft
-                is StoredAssetId -> id.version
-                // Edited by creating the draft from another context
-                is EditedAssetId -> id.sourceRowVersion
-                // Completely new item without geometry
-                is TemporaryAssetId -> null
-                is IdentifiedAssetId -> error("Unexpected layout asset ID type when saving location track: $id")
-            }
-        }
-
     @Transactional
     fun insertExternalId(branch: LayoutBranch, id: IntId<LocationTrack>, oid: Oid<LocationTrack>) =
         dao.insertExternalId(id, branch, oid)
@@ -193,13 +171,7 @@ class LocationTrackService(
     override fun publish(
         branch: LayoutBranch,
         version: LayoutRowVersion<LocationTrack>,
-    ): PublicationResultVersions<LocationTrack> {
-        val publishedVersion = publishInternal(branch, version)
-        // Some of the versions may get deleted in publication -> delete any alignments they left
-        // behind
-        alignmentDao.deleteOrphanedAlignments()
-        return publishedVersion
-    }
+    ): PublicationResultVersions<LocationTrack> = publishInternal(branch, version)
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<LocationTrack>): LayoutRowVersion<LocationTrack> {

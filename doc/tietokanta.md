@@ -12,7 +12,7 @@ Metatietoja tai versiotauluja ei ole tarkoitus koskaan muuttaa sovelluksesta, va
 tietokantatriggereillä.
 
 Versiotauluun jää aina asumaan kaikki aiemmat tilat joissa rivi on ollut, joten tiedon muuttaminen tai poistaminen
-päätaulusta ei hävitä sitä peruuttamattomasti. Lähes kaikille geoviitteen tauluille on siis olemassa myös versiotaulu,
+päätaulusta ei hävitä sitä peruuttamattomasti. Lähes kaikille Geoviitteen tauluille on siis olemassa myös versiotaulu,
 mutta ne eivät näy alla olevissa kuvissa, sillä se vain tuplaisi kuvien koon.
 
 Versiotaulujen data on sovelluksen kannalta muuttumatonta, eli sinne vain lisätään rivejä aina kun päätaulua
@@ -103,7 +103,7 @@ Tarkempaa kuvausta julkaisuprosessista löytyy kuvauksesta [Julkaisut](julkaisut
 
 ### Integrations
 
-Integrations-skema sisältää geoviitteen integraatiohin liittyvän tilan, eli niiden lukkotaulun ja ratko-integraation
+Integrations-skema sisältää Geoviitteen integraatiohin liittyvän tilan, eli niiden lukkotaulun ja ratko-integraation
 operaatioiden tilaa kuvaavat taulut (`ratko_push`). Ratko-integraation tiloja kuvaava malli löytyy
 kuvauksesta [Julkaisut](julkaisut.md).
 

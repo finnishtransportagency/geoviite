@@ -4,8 +4,10 @@ import fi.fta.geoviite.infra.asSwitchStructure
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.linking.slice
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.EdgeNode
@@ -24,7 +26,6 @@ import fi.fta.geoviite.infra.tracklayout.TmpTrackBoundaryNode
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.tracklayout.splitSegments
 
 fun asJointNumbers(vararg joints: Int): List<JointNumber> {
     return joints.map { joint -> JointNumber(joint) }
@@ -141,7 +142,7 @@ fun cutFromStart(
             null
             else {
                 // is partly included
-                val newSegments = splitSegments(cutPosition, edge.segmentsWithM).second
+                val newSegments = slice(edge.segmentsWithM, Range(cutPosition, edge.length))
                 edge.withSegments(newSegments)
             }
         }

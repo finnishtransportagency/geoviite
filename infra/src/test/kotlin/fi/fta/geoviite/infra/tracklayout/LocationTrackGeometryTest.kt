@@ -315,6 +315,157 @@ class LocationTrackGeometryTest {
     }
 
     @Test
+    fun `Node replacement works when edge needs to get merged with previous`() {
+        val geometry =
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(IntId(1), 2),
+                    endInnerSwitch = switchLinkYV(IntId(1), 1),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                ),
+                edge(
+                    startOuterSwitch = switchLinkYV(IntId(1), 1),
+                    endOuterSwitch = switchLinkYV(IntId(2), 1),
+                    segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                ),
+            )
+        val node1 = TmpSwitchNode(switchLinkYV(IntId(1), 2), null)
+        val node2 = TmpSwitchNode(switchLinkYV(IntId(1), 1), null)
+        val node3 = TmpSwitchNode(switchLinkYV(IntId(2), 1), null)
+        assertEquals(listOf(node1, node2, node3), geometry.nodes)
+
+        val combined23 = TmpSwitchNode(switchLinkYV(IntId(1), 1), switchLinkYV(IntId(2), 1))
+
+        val result =
+            geometry.withNodeReplacements(mapOf(node2.contentHash to combined23, node3.contentHash to combined23))
+        assertEquals(listOf(node1, combined23), result.nodes)
+        assertMatches(
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(IntId(1), 2),
+                    endInnerSwitch = switchLinkYV(IntId(1), 1),
+                    endOuterSwitch = switchLinkYV(IntId(2), 1),
+                    segments =
+                        listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)), segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                )
+            ),
+            result,
+        )
+    }
+
+    @Test
+    fun `Node replacement works when edge needs to get merged with next`() {
+        val geometry =
+            trackGeometry(
+                edge(
+                    startOuterSwitch = switchLinkYV(IntId(1), 1),
+                    endOuterSwitch = switchLinkYV(IntId(2), 1),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                ),
+                edge(
+                    startInnerSwitch = switchLinkYV(IntId(2), 1),
+                    endInnerSwitch = switchLinkYV(IntId(2), 2),
+                    segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                ),
+            )
+        val node1 = TmpSwitchNode(switchLinkYV(IntId(1), 1), null)
+        val node2 = TmpSwitchNode(switchLinkYV(IntId(2), 1), null)
+        val node3 = TmpSwitchNode(switchLinkYV(IntId(2), 2), null)
+        assertEquals(listOf(node1, node2, node3), geometry.nodes)
+
+        val combined12 = TmpSwitchNode(switchLinkYV(IntId(1), 1), switchLinkYV(IntId(2), 1))
+
+        val result =
+            geometry.withNodeReplacements(mapOf(node1.contentHash to combined12, node2.contentHash to combined12))
+        assertEquals(listOf(combined12, node3), result.nodes)
+        assertMatches(
+            trackGeometry(
+                edge(
+                    startOuterSwitch = switchLinkYV(IntId(1), 1),
+                    startInnerSwitch = switchLinkYV(IntId(2), 1),
+                    endInnerSwitch = switchLinkYV(IntId(2), 2),
+                    segments =
+                        listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)), segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                )
+            ),
+            result,
+        )
+    }
+
+    @Test
+    fun `Node replacement works when edge needs to get split and merged both ways`() {
+        val geometry =
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(IntId(1), 2),
+                    endInnerSwitch = switchLinkYV(IntId(1), 1),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                ),
+                edge(
+                    startOuterSwitch = switchLinkYV(IntId(1), 1),
+                    endOuterSwitch = switchLinkYV(IntId(2), 1),
+                    segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                ),
+                edge(
+                    startInnerSwitch = switchLinkYV(IntId(2), 1),
+                    endInnerSwitch = switchLinkYV(IntId(2), 2),
+                    segments = listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
+                ),
+            )
+        val node1 = TmpSwitchNode(switchLinkYV(IntId(1), 2), null)
+        val node2 = TmpSwitchNode(switchLinkYV(IntId(1), 1), null)
+        val node3 = TmpSwitchNode(switchLinkYV(IntId(2), 1), null)
+        val node4 = TmpSwitchNode(switchLinkYV(IntId(2), 2), null)
+        assertEquals(listOf(node1, node2, node3, node4), geometry.nodes)
+
+        val combined23 = TmpSwitchNode(switchLinkYV(IntId(1), 1), switchLinkYV(IntId(2), 1))
+
+        val result =
+            geometry.withNodeReplacements(mapOf(node2.contentHash to combined23, node3.contentHash to combined23))
+        assertEquals(listOf(node1, combined23, node4), result.nodes)
+        assertMatches(
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(IntId(1), 2),
+                    endInnerSwitch = switchLinkYV(IntId(1), 1),
+                    endOuterSwitch = switchLinkYV(IntId(2), 1),
+                    segments =
+                        listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)), segment(Point(10.0, 0.0), Point(15.0, 0.0))),
+                ),
+                edge(
+                    startOuterSwitch = switchLinkYV(IntId(1), 1),
+                    startInnerSwitch = switchLinkYV(IntId(2), 1),
+                    endInnerSwitch = switchLinkYV(IntId(2), 2),
+                    segments =
+                        listOf(segment(Point(15.0, 0.0), Point(20.0, 0.0)), segment(Point(20.0, 0.0), Point(30.0, 0.0))),
+                ),
+            ),
+            result,
+        )
+    }
+
+    @Test
+    fun `Node replacement does nothing if node merging would connect track ends to each other`() {
+        val geometry =
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(IntId(1), 1),
+                    endInnerSwitch = switchLinkYV(IntId(2), 1),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+                )
+            )
+        val startNode = TmpSwitchNode(switchLinkYV(IntId(1), 1), null)
+        val endNode = TmpSwitchNode(switchLinkYV(IntId(2), 1), null)
+        assertEquals(listOf(startNode, endNode), geometry.nodes)
+
+        val combined = TmpSwitchNode(switchLinkYV(IntId(1), 1), switchLinkYV(IntId(2), 1))
+
+        val result =
+            geometry.withNodeReplacements(mapOf(startNode.contentHash to combined, endNode.contentHash to combined))
+        assertEquals(geometry, result)
+    }
+
+    @Test
     fun `combineEdges works`() {
         val segments1 = listOf(segment(Point(0.0, 0.0), Point(2.0, 0.0)))
         val segments2 = listOf(segment(Point(2.0, 0.0), Point(4.0, 0.0)))

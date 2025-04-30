@@ -46,12 +46,12 @@ validation, kts. [Julkaisu](julkaisu.md)), jonka avulla varmistetaan että julka
 kokonaisuuden. Tässä varmistetaan myös että virallisesta paikannuspohjasta ei voida viitata pelkästään luonnoksena
 olevaan käsitteeseen.
 
-## Suunniteltu paikannupohja (Design Layout)
+## Suunniteltu paikannuspohja (Design Layout)
 
 Suunniteltuja paikannuspohjia voi olla monta, sillä ne koostuvat erillisistä suunnitelmista jotka tarjoavat itsenäiset
 joukot suunniteltuja muutoksia. Käyttäjän kannalta ne toimivat pitkälti kuten luonnospaikannuspohja, mutta ne
 ovat kukin omia erillisiä kontekstejaan. Suunniteltu paikannuspohja rakentuu aina virallisen paikannuspohjan päälle,
-eikä siis ole mitenkään tietoinen varsinaisen paikannupohjan luonnoskontekstista.
+eikä siis ole mitenkään tietoinen varsinaisen paikannuspohjan luonnoskontekstista.
 
 Suunnitelmilla on myös omat luonnosversionsa ja niistä tehdään omia julkaisujaan, jotka siis menevät julkaistuksi
 suunnitelmaksi, ei varsinaiseen paikannuspohjaan. Vasta julkaistu suunnitelma viedään Ratkoon suunniltuina käsitteinä,

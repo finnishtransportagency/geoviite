@@ -52,14 +52,14 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.processFlattened
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -774,7 +774,7 @@ private fun getHeightAtTickInLayoutAlignment(
 ): Double? {
     val point = tick.addressPoint.point
     val segmentIndex = tick.segmentIndex ?: geometry.getSegmentIndexAtM(point.m)
-    val (segment, segmentM) = geometry.segmentsWithM[segmentIndex]
+    val (segment, segmentM) = geometry.getSegmentWithM(segmentIndex)
     val source = segmentSources[segmentIndex]
 
     val distanceInSegment = point.m - segmentM.min

@@ -69,78 +69,10 @@ fun linkLayoutGeometrySection(
     geometryMRange: Range<Double>,
 ): LayoutAlignment = splice(layoutAlignment, layoutMRange, createAlignmentGeometry(geometryAlignment, geometryMRange))
 
-// {
-//    val segments =
-//        if (layoutMRange.min == layoutMRange.max) {
-//            extendSegmentsWithGeometry(layoutAlignment, layoutMRange.min, geometryAlignment, geometryMRange)
-//        } else {
-//            replaceSegmentsWithGeometry(layoutAlignment, layoutMRange, geometryAlignment, geometryMRange)
-//        }
-//    return tryCreateLinkedAlignment(layoutAlignment, segments)
-// }
-
-// private fun createEdgeSegments(geometryAlignment: PlanLayoutAlignment, mRange: Range<Double>): List<LayoutSegment> =
-//    slice(geometryAlignment, mRange, ALIGNMENT_LINKING_SNAP)
-
 private fun createAlignmentGeometry(
     geometryAlignment: PlanLayoutAlignment,
     mRange: Range<Double>,
 ): List<LayoutSegment> = slice(geometryAlignment, mRange, ALIGNMENT_LINKING_SNAP)
-
-// private fun extendSegmentsWithGeometry(
-//    layoutAlignment: LayoutAlignment,
-//    layoutM: Double,
-//    geometryAlignment: PlanLayoutAlignment,
-//    geometryMInterval: Range<Double>,
-// ): List<LayoutSegment> {
-//    val addedSegments = slice(geometryAlignment, geometryMInterval, ALIGNMENT_LINKING_SNAP)
-//    return when (getExtensionDirection(layoutAlignment.length, layoutM)) {
-//        ExtensionDirection.START -> {
-//            val gap = createLinkingSegment(lastPoint(addedSegments), firstPoint(layoutAlignment.segments))
-//            addedSegments + listOfNotNull(gap) + layoutAlignment.segments
-//        }
-//        ExtensionDirection.END -> {
-//            val gap = createLinkingSegment(lastPoint(layoutAlignment.segments), firstPoint(addedSegments))
-//            layoutAlignment.segments + listOfNotNull(gap) + addedSegments
-//        }
-//    }
-// }
-
-// private fun createExtensionSegments(
-//    layoutLength: Double,
-//    geometryAlignment: PlanLayoutAlignment,
-//    geometryMInterval: Range<Double>,
-// ) {
-//    val addedSegments = slice(geometryAlignment, geometryMInterval, ALIGNMENT_LINKING_SNAP)
-//    return if (isSame(0.0, layoutM, ALIGNMENT_LINKING_SNAP)) {
-//        val gap = createLinkingSegment(lastPoint(addedSegments), firstPoint(layoutAlignment.segments))
-//        addedSegments + listOfNotNull(gap) + layoutAlignment.segments
-//    } else if (isSame(layoutAlignment.length, layoutM, ALIGNMENT_LINKING_SNAP)) {
-//        val gap = createLinkingSegment(lastPoint(layoutAlignment.segments), firstPoint(addedSegments))
-//        layoutAlignment.segments + listOfNotNull(gap) + addedSegments
-//    } else {
-//        throw LinkingFailureException("Alignment cannot be extended with selected m-values")
-//    }
-// }
-
-// private fun replaceSegmentsWithGeometry(
-//    layoutAlignment: LayoutAlignment,
-//    layoutMInterval: Range<Double>,
-//    geometryAlignment: PlanLayoutAlignment,
-//    geometryMInterval: Range<Double>,
-// ): List<LayoutSegment> {
-//    val startSegments = slice(layoutAlignment, Range(0.0, layoutMInterval.min))
-//    val geometrySegments = createAlignmentGeometry(geometryAlignment, geometryMInterval)
-//    val endSegments = slice(layoutAlignment, Range(layoutMInterval.max, layoutAlignment.length))
-//
-//    val startGap = createLinkingSegment(lastPoint(startSegments), firstPoint(geometrySegments))
-//    val endGap = createLinkingSegment(lastPoint(geometrySegments), firstPoint(endSegments))
-//
-//    val combinedSegments =
-//        (startSegments + listOfNotNull(startGap) + geometrySegments + listOfNotNull(endGap) + endSegments)
-//    val affectedSwitchIds = getSwitchIdsInside(layoutAlignment, layoutMInterval)
-//    return removeSwitches(combinedSegments, affectedSwitchIds)
-// }
 
 private fun createLinkingSegment(start: IPoint?, end: IPoint?, tolerance: Double = LAYOUT_M_DELTA): LayoutSegment? {
     if (start == null || end == null) return null
@@ -248,6 +180,18 @@ fun slice(
     snapDistance: Double = ALIGNMENT_LINKING_SNAP,
 ): List<LayoutSegment> = slice(alignment.segmentsWithM, mRange, snapDistance)
 
+fun splitSegments(
+    segments: List<Pair<LayoutSegment, Range<Double>>>,
+    splitPositionM: Double,
+    snapDistance: Double = ALIGNMENT_LINKING_SNAP,
+): Pair<List<LayoutSegment>, List<LayoutSegment>> =
+    if (segments.isEmpty()) emptyList<LayoutSegment>() to emptyList()
+    else {
+        val head = slice(segments, Range(0.0, splitPositionM), snapDistance)
+        val tail = slice(segments, Range(splitPositionM, segments.last().second.max), snapDistance)
+        head to tail
+    }
+
 fun slice(
     segmentsWithM: List<Pair<ISegment, Range<Double>>>,
     mRange: Range<Double>,
@@ -311,15 +255,3 @@ fun getSwitchIdsOutside(alignment: LayoutAlignment, mRange: Range<Double>) =
 @Deprecated("In layout graph model, this is no-longer needed")
 private fun getSwitchIds(alignment: LayoutAlignment, predicate: (Range<Double>) -> Boolean) =
     alignment.segmentsWithM.mapNotNull { (s, m) -> if (predicate(m)) s.switchId else null }.toSet()
-
-// enum class ExtensionDirection {
-//    START,
-//    END,
-// }
-//
-// private fun getExtensionDirection(layoutLength: Double, layoutM: Double): ExtensionDirection =
-//    when {
-//        isSame(0.0, layoutM, ALIGNMENT_LINKING_SNAP) -> ExtensionDirection.START
-//        isSame(layoutLength, layoutM, ALIGNMENT_LINKING_SNAP) -> ExtensionDirection.END
-//        else -> throw LinkingFailureException("Alignment cannot be extended with selected m-values")
-//    }
