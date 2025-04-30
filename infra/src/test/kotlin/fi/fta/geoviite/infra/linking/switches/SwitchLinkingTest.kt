@@ -33,10 +33,10 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class SwitchLinkingTest {
     private var testLayoutSwitchId = IntId<LayoutSwitch>(0)
@@ -864,16 +864,6 @@ class SwitchLinkingTest {
         )
     }
 
-    /* Testicaset
-    Vaihteen jointtien sijaintien etsiminen
-
-    Vaihteen alignment kahdella edgellä (eli limittäiset vaihteet)
-    - tästä on kaksi eri tapausta
-        - edgeillä on sama raide, jolloin vaihdealueelle jää vaihdepiste
-        - edgeillä on eri raide
-     */
-    //
-
     @Test
     fun `Should link fitted switch to edges in simple and clean case`() {
         // track A   track B
@@ -1064,7 +1054,7 @@ class SwitchLinkingTest {
         //  1      5      2           new switch
         //
         //  Joint 2 of new switch overlaps area of the existing switch but is too far away
-        //  from intended position to be moved.
+        //  from intended position to be adjusted.
         //
         val switchStructure = YV60_300_1_9_O()
         val existingSwitchId = IntId<LayoutSwitch>(1)
@@ -1270,7 +1260,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `Should adjust and accept partial joint sequence in switch linking`() {
+    fun `Should adjust joints and accept partial joint sequence in switch linking`() {
         // RR-type switches contain partial joint sequences.
         //
         //               4 /
