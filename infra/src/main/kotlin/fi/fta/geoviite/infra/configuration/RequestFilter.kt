@@ -12,7 +12,7 @@ import correlationId
 import currentUser
 import currentUserRole
 import fi.fta.geoviite.api.configuration.ExtApiConfiguration
-import fi.fta.geoviite.api.tracklayout.v1.extTrackLayoutApiBasePathV1
+import fi.fta.geoviite.api.tracklayout.v1.EXT_TRACK_LAYOUT_BASE_PATH
 import fi.fta.geoviite.infra.SpringContextUtility
 import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.authorization.AuthName
@@ -460,7 +460,7 @@ fun inferRequestType(request: WebRequest): GeoviiteRequestType {
     val servletRequest = request as? ServletWebRequest
 
     return when {
-        servletRequest != null && servletRequest.request.requestURI.startsWith(extTrackLayoutApiBasePathV1) -> {
+        servletRequest != null && servletRequest.request.requestURI.startsWith(EXT_TRACK_LAYOUT_BASE_PATH) -> {
             GeoviiteRequestType.ExtApiV1
         }
 

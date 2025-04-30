@@ -21,11 +21,11 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
-const val extTrackLayoutApiBasePathV1 = "/geoviite"
+const val EXT_TRACK_LAYOUT_BASE_PATH = "/geoviite"
 
 @PreAuthorize(AUTH_API_GEOMETRY)
 @GeoviiteExtApiController(
-    ["$extTrackLayoutApiBasePathV1/paikannuspohja/v1", "$extTrackLayoutApiBasePathV1/dev/paikannuspohja/v1"]
+    ["$EXT_TRACK_LAYOUT_BASE_PATH/paikannuspohja/v1", "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1"]
 )
 @Tag(name = "Rataverkon paikannuspohja V1")
 class ExtLocationTrackControllerV1(
