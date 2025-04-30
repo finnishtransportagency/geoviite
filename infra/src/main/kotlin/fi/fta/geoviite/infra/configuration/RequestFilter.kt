@@ -212,7 +212,7 @@ constructor(
                 createErrorResponse(
                     logger = log,
                     exception = ex,
-                    requestType = inferRequestType(request as WebRequest),
+                    requestType = (request as? WebRequest)?.let(::inferRequestType) ?: GeoviiteRequestType.Other,
                     translation = localizationService.getLocalization(LocalizationLanguage.FI),
                 )
 
