@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.linking.slice
+import fi.fta.geoviite.infra.linking.splitSegments
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
@@ -174,7 +175,7 @@ fun cutFromEnd(
             null
             else {
                 // is partly included
-                val newSegments = splitSegments(cutPosition, edge.segmentsWithM).first
+                val newSegments = splitSegments(edge.segmentsWithM, cutPosition).first
                 edge.withSegments(newSegments)
             }
         }

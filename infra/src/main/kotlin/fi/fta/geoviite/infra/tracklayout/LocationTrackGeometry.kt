@@ -201,17 +201,17 @@ sealed class LocationTrackGeometry : IAlignment {
         return requireNotNull(getEdgeAtM(m)) { "Geometry does not contain edge at m $m" }
     }
 
-    fun getEdgeAtM(m: Double): LayoutEdge? =
+    fun getEdgeAtM(m: Double): Pair<LayoutEdge, Range<Double>>? =
         edgeMs
             .binarySearch { mRange ->
                 when {
-                    m < mRange.min -> -1
-                    m > mRange.max -> 1
+                    m < mRange.min -> 1
+                    m > mRange.max -> -1
                     else -> 0
                 }
             }
             .takeIf { it >= 0 }
-            ?.let(edges::getOrNull)
+            ?.let(edgesWithM::getOrNull)
 
     fun mergeEdges(edgesToMerge: List<LayoutEdge>): LocationTrackGeometry {
         val newEdges =
@@ -411,7 +411,8 @@ private fun processNodeReplacements(
     var next: LayoutEdge? = edges.getOrNull(1)
     var index = 0
     while (current != null) {
-        // The replacement may result in the current edge getting merged with the next or previous one
+        // The replacement may result in the current edge getting merged with the next or previous
+        // one
         val (editedPrevious, editedCurrent, editedNext) = replaceNodes(previous, current, next, replacements)
 
         // Move the edit-window forward, maintaining partially edited edges

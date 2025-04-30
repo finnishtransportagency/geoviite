@@ -33,10 +33,10 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class SwitchLinkingTest {
     private var testLayoutSwitchId = IntId<LayoutSwitch>(0)
@@ -865,7 +865,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `Should link fitted switch to edges in simple and clean case`() {
+    fun `should link fitted switch to edges in simple and clean case`() {
         // track A   track B
         //  2 |    / 3
         //    |   /
@@ -912,7 +912,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `Should clear switch from old location when linking into new location`() {
+    fun `should clear switch from old location when linking into new location`() {
         // Diverging tracks are somewhat irrelevant in this test and are therefore ignored.
         //
         //     track A      track B      track C
@@ -973,7 +973,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `Should adjust joint position in switch linking to handle overlapping switches`() {
+    fun `should adjust joint position in switch linking to handle overlapping switches`() {
         // Diverging tracks are somewhat irrelevant in this test and are therefore ignored.
         //
         //     track A    track B
@@ -1045,7 +1045,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `Should not adjust joint position in switch linking if they are too far away from intended position`() {
+    fun `should not adjust joint position in switch linking if they are too far away from intended position`() {
         // Diverging tracks are somewhat irrelevant in this test and are therefore ignored.
         //
         //     track A    track B
@@ -1094,7 +1094,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `Should adjust joint positions at both ends in switch linking to handle overlapping switches`() {
+    fun `should adjust joint positions at both ends in switch linking to handle overlapping switches`() {
         // Diverging tracks are somewhat irrelevant in this test and are therefore ignored.
         //
         //     track C    track A   track B
@@ -1177,7 +1177,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `Should accept partial joint sequence in switch linking`() {
+    fun `should accept partial joint sequence in switch linking`() {
         // RR-type switches contain partial joint sequences.
         //
         //               4 /
@@ -1260,7 +1260,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `Should adjust joints and accept partial joint sequence in switch linking`() {
+    fun `should adjust joints and accept partial joint sequence in switch linking`() {
         // RR-type switches contain partial joint sequences.
         //
         //               4 /
@@ -1344,7 +1344,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `Should ignore partial joint sequences which do not end at inner joint`() {
+    fun `should ignore partial joint sequences which do not end at inner joint`() {
         // RR-type switches contain partial joint sequences.
         //
         //               4 /
