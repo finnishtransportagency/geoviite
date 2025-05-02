@@ -705,8 +705,7 @@ constructor(
         val updatedOnTrack = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
         val createdOnTrack = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
         // bump in reference line was after 10 m, so the addresses of the first 9 points (separate
-        // of start point) on
-        // the track don't move, but the rest do
+        // of start point) on the track don't move, but the rest do
         assertEquals(40, createdOnTrack[0].size)
         assertEquals(39, updatedOnTrack[0].size)
         assertEquals(
