@@ -1588,16 +1588,18 @@ constructor(
     fun `inherited publications gain their main publication's ID as parent ID`() {
         val designBranch = testDBService.createDesignBranch()
 
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 1.0))
         val referenceLine =
-            mainOfficialContext.insert(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment).id
-        val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber), alignment).id
+            mainOfficialContext
+                .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment(segment))
+                .id
+        val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment)).id
         locationTrackDao.insertExternalId(locationTrack, designBranch, Oid("1.2.3.4.5"))
 
-        mainDraftContext.insert(
+        mainDraftContext.save(
             mainOfficialContext.fetch(referenceLine)!!.copy(startAddress = TrackMeter("0123+0123")),
-            alignment,
+            alignment(segment),
         )
         val mainPublicationResult = publishManualPublication(referenceLines = listOf(referenceLine))
         val designPublications = publicationDao.list(LayoutBranchType.DESIGN)
@@ -1614,10 +1616,12 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
-        mainOfficialContext.insert(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment).id
-        val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber), alignment)
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 1.0))
+        mainOfficialContext
+            .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment(segment))
+            .id
+        val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
         locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
         locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
         designDraftContext.copyFrom(locationTrack)
@@ -1640,10 +1644,12 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
-        mainOfficialContext.insert(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment).id
-        val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber), alignment)
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 1.0))
+        mainOfficialContext
+            .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment(segment))
+            .id
+        val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
         locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
         locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
         designDraftContext.copyFrom(locationTrack)
@@ -1667,10 +1673,12 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
-        mainOfficialContext.insert(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment).id
-        val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber), alignment)
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 1.0))
+        mainOfficialContext
+            .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment(segment))
+            .id
+        val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
         locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
         locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
         designDraftContext.copyFrom(locationTrack)
@@ -1694,10 +1702,12 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
-        mainOfficialContext.insert(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment).id
-        val locationTrack = designDraftContext.insert(locationTrack(trackNumber), alignment)
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 1.0))
+        mainOfficialContext
+            .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment(segment))
+            .id
+        val locationTrack = designDraftContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
         locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
         locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
 

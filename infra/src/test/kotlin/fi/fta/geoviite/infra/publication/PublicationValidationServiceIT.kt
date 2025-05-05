@@ -1767,13 +1767,13 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
-        val trackNumber = designOfficialContext.insert(trackNumber()).id
+        val trackNumber = designOfficialContext.save(trackNumber()).id
         val referenceLine =
             designOfficialContext
-                .insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
         trackNumberService.cancel(designBranch, trackNumber)
-        designDraftContext.insert(designOfficialContext.fetch(referenceLine)!!)
+        designDraftContext.save(designOfficialContext.fetch(referenceLine)!!)
         val validateTrackNumber =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
@@ -1809,13 +1809,13 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
-        val trackNumber = designOfficialContext.insert(trackNumber()).id
+        val trackNumber = designOfficialContext.save(trackNumber()).id
         val referenceLine =
             designOfficialContext
-                .insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
         referenceLineService.cancel(designBranch, referenceLine)
-        designDraftContext.insert(designOfficialContext.fetch(trackNumber)!!)
+        designDraftContext.save(designOfficialContext.fetch(trackNumber)!!)
         val validateBoth =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
@@ -1855,19 +1855,19 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
         val referenceLine =
             mainOfficialContext
-                .insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
-        designDraftContext.insert(mainOfficialContext.fetch(trackNumber)!!)
-        designDraftContext.insert(mainOfficialContext.fetch(referenceLine)!!)
+        designDraftContext.save(mainOfficialContext.fetch(trackNumber)!!)
+        designDraftContext.save(mainOfficialContext.fetch(referenceLine)!!)
         publicationTestSupportService.publish(
             designBranch,
             publicationRequestIds(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine)),
         )
         trackNumberService.cancel(designBranch, trackNumber)
-        designDraftContext.insert(designOfficialContext.fetch(referenceLine)!!)
+        designDraftContext.save(designOfficialContext.fetch(referenceLine)!!)
         val validateTrackNumber =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
@@ -1897,13 +1897,13 @@ constructor(
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
         val trackNumberNumber = trackNumber()
-        val trackNumber = designOfficialContext.insert(trackNumberNumber).id
+        val trackNumber = designOfficialContext.save(trackNumberNumber).id
         val referenceLine =
             designOfficialContext
-                .insert(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
-        val kmPost = designOfficialContext.insert(kmPost(trackNumber, KmNumber(1), Point(1.0, 0.0))).id
-        designDraftContext.insert(designOfficialContext.fetch(kmPost)!!)
+        val kmPost = designOfficialContext.save(kmPost(trackNumber, KmNumber(1), Point(1.0, 0.0))).id
+        designDraftContext.save(designOfficialContext.fetch(kmPost)!!)
         trackNumberService.cancel(designBranch, trackNumber)
         referenceLineService.cancel(designBranch, referenceLine)
         val validateTrackNumber =
@@ -1961,30 +1961,24 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(40.0, 0.0)))
-        mainOfficialContext.insert(
-            referenceLine(mainOfficialContext.insert(trackNumber(TrackNumber("100"))).id),
+        mainOfficialContext.save(referenceLine(mainOfficialContext.save(trackNumber(TrackNumber("100"))).id), alignment)
+        mainOfficialContext.save(referenceLine(mainOfficialContext.save(trackNumber(TrackNumber("200"))).id), alignment)
+        mainOfficialContext.save(
+            referenceLine(mainOfficialContext.save(trackNumber(TrackNumber("300"), state = LayoutState.DELETED)).id),
             alignment,
         )
-        mainOfficialContext.insert(
-            referenceLine(mainOfficialContext.insert(trackNumber(TrackNumber("200"))).id),
+        mainOfficialContext.save(
+            referenceLine(mainOfficialContext.save(trackNumber(TrackNumber("400"), state = LayoutState.DELETED)).id),
             alignment,
         )
-        mainOfficialContext.insert(
-            referenceLine(mainOfficialContext.insert(trackNumber(TrackNumber("300"), state = LayoutState.DELETED)).id),
-            alignment,
-        )
-        mainOfficialContext.insert(
-            referenceLine(mainOfficialContext.insert(trackNumber(TrackNumber("400"), state = LayoutState.DELETED)).id),
-            alignment,
-        )
-        val tn1 = designOfficialContext.insert(trackNumber(TrackNumber("100"))).id
-        val rl1 = designOfficialContext.insert(referenceLine(tn1), alignment).id
-        val tn2 = designOfficialContext.insert(trackNumber(TrackNumber("200"), state = LayoutState.DELETED)).id
-        val rl2 = designOfficialContext.insert(referenceLine(tn2), alignment).id
-        val tn3 = designOfficialContext.insert(trackNumber(TrackNumber("300"))).id
-        val rl3 = designOfficialContext.insert(referenceLine(tn3), alignment).id
-        val tn4 = designOfficialContext.insert(trackNumber(TrackNumber("400"), state = LayoutState.DELETED)).id
-        val rl4 = designOfficialContext.insert(referenceLine(tn4), alignment).id
+        val tn1 = designOfficialContext.save(trackNumber(TrackNumber("100"))).id
+        val rl1 = designOfficialContext.save(referenceLine(tn1), alignment).id
+        val tn2 = designOfficialContext.save(trackNumber(TrackNumber("200"), state = LayoutState.DELETED)).id
+        val rl2 = designOfficialContext.save(referenceLine(tn2), alignment).id
+        val tn3 = designOfficialContext.save(trackNumber(TrackNumber("300"))).id
+        val rl3 = designOfficialContext.save(referenceLine(tn3), alignment).id
+        val tn4 = designOfficialContext.save(trackNumber(TrackNumber("400"), state = LayoutState.DELETED)).id
+        val rl4 = designOfficialContext.save(referenceLine(tn4), alignment).id
 
         val validation =
             publicationValidationService.validatePublicationCandidates(
@@ -2011,23 +2005,23 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
         val trackNumber = trackNumber()
-        val trackNumberId = mainOfficialContext.insert(trackNumber).id
+        val trackNumberId = mainOfficialContext.save(trackNumber).id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(40.0, 0.0)))
-        mainOfficialContext.insert(referenceLine(trackNumberId), alignment).id
+        mainOfficialContext.save(referenceLine(trackNumberId), alignment).id
 
-        mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(1), Point(1.0, 0.0)))
-        mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(2), Point(2.0, 0.0)))
-        mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(3), Point(3.0, 0.0), state = LayoutState.DELETED))
-        mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(4), Point(4.0, 0.0), state = LayoutState.DELETED))
-        val kp1 = designOfficialContext.insert(kmPost(trackNumberId, KmNumber(1), Point(1.0, 0.0))).id
+        mainOfficialContext.save(kmPost(trackNumberId, KmNumber(1), Point(1.0, 0.0)))
+        mainOfficialContext.save(kmPost(trackNumberId, KmNumber(2), Point(2.0, 0.0)))
+        mainOfficialContext.save(kmPost(trackNumberId, KmNumber(3), Point(3.0, 0.0), state = LayoutState.DELETED))
+        mainOfficialContext.save(kmPost(trackNumberId, KmNumber(4), Point(4.0, 0.0), state = LayoutState.DELETED))
+        val kp1 = designOfficialContext.save(kmPost(trackNumberId, KmNumber(1), Point(1.0, 0.0))).id
         val kp2 =
             designOfficialContext
-                .insert(kmPost(trackNumberId, KmNumber(2), Point(2.0, 0.0), state = LayoutState.DELETED))
+                .save(kmPost(trackNumberId, KmNumber(2), Point(2.0, 0.0), state = LayoutState.DELETED))
                 .id
-        val kp3 = designOfficialContext.insert(kmPost(trackNumberId, KmNumber(3), Point(3.0, 0.0))).id
+        val kp3 = designOfficialContext.save(kmPost(trackNumberId, KmNumber(3), Point(3.0, 0.0))).id
         val kp4 =
             designOfficialContext
-                .insert(kmPost(trackNumberId, KmNumber(4), Point(4.0, 0.0), state = LayoutState.DELETED))
+                .save(kmPost(trackNumberId, KmNumber(4), Point(4.0, 0.0), state = LayoutState.DELETED))
                 .id
 
         val validation =
