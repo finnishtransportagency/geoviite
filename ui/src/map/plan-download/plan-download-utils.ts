@@ -8,7 +8,7 @@ import {
 } from 'map/plan-download/plan-download-store';
 import { GeometryPlanHeader, PlanApplicability } from 'geometry/geometry-model';
 import { compareKmNumberStrings, LayoutContext } from 'common/common-model';
-import { expectDefined } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 import {
     getLocationTrack,
     getLocationTrackStartAndEnd,
@@ -62,22 +62,25 @@ export async function fetchDownloadablePlans(
     areaSelection: AreaSelection,
     layoutContext: LayoutContext,
 ): Promise<DownloadablePlan[]> {
-    if (areaSelection.asset?.type === 'LOCATION_TRACK') {
-        return await getPlansLinkedToLocationTrack(
-            layoutContext,
-            areaSelection.asset.id,
-            areaSelection.startTrackMeter,
-            areaSelection.endTrackMeter,
-        ).then((plans) => plans.map(toDownloadablePlan));
-    } else if (areaSelection.asset?.type === 'TRACK_NUMBER') {
-        return await getPlansLinkedToTrackNumber(
-            layoutContext,
-            areaSelection.asset.id,
-            areaSelection.startTrackMeter,
-            areaSelection.endTrackMeter,
-        ).then((plans) => plans.map(toDownloadablePlan));
-    } else {
-        return [];
+    switch (areaSelection.asset?.type) {
+        case PlanDownloadAssetType.LOCATION_TRACK:
+            return await getPlansLinkedToLocationTrack(
+                layoutContext,
+                areaSelection.asset.id,
+                areaSelection.startTrackMeter,
+                areaSelection.endTrackMeter,
+            ).then((plans) => plans.map(toDownloadablePlan));
+        case PlanDownloadAssetType.TRACK_NUMBER:
+            return await getPlansLinkedToTrackNumber(
+                layoutContext,
+                areaSelection.asset.id,
+                areaSelection.startTrackMeter,
+                areaSelection.endTrackMeter,
+            ).then((plans) => plans.map(toDownloadablePlan));
+        case undefined:
+            return [];
+        default:
+            return exhaustiveMatchingGuard(areaSelection.asset);
     }
 }
 

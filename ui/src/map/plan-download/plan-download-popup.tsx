@@ -4,7 +4,7 @@ import styles from './plan-download-popup.scss';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
-import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
+import { KmNumber, LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import {
     DownloadablePlan,
     PlanDownloadAsset,
@@ -30,14 +30,11 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PlanDownloadPopupSection } from 'map/plan-download/plan-download-popup-section';
 import { createPortal } from 'react-dom';
 
-const trackMeterRange = (start: string | undefined, end: string | undefined) => {
-    const startOrUndefined = start ? start : undefined;
-    const endOrUndefined = end ? end : undefined;
-
-    if (startOrUndefined && endOrUndefined) return `${start}-${end}`;
-    if (startOrUndefined) return `${start}-`;
-    if (endOrUndefined) return `-${end}`;
-    return '';
+const kmNumberRange = (start: KmNumber | undefined, end: KmNumber | undefined) => {
+    if (start && end) return `${start}-${end}`;
+    else if (start) return `${start}-`;
+    else if (end) return `-${end}`;
+    else return '';
 };
 
 type LocationSpecifierProps = {
@@ -56,10 +53,10 @@ export const LocationSpecifier: React.FC<LocationSpecifierProps> = ({
         : selectedAsset.type === 'LOCATION_TRACK'
           ? `${t('plan-download.location-track')} ${selectedAsset.asset.name}`
           : `${t('plan-download.track-number')} ${selectedAsset.asset.number}`;
-    const trackMeter = trackMeterRange(startTrackMeter, endTrackMeter);
+    const kmNumberString = kmNumberRange(startTrackMeter, endTrackMeter);
     return (
         <React.Fragment>
-            {!selectedAsset ? '' : !trackMeter ? base : `${base}, ${trackMeter}`}
+            {!selectedAsset ? '' : !kmNumberString ? base : `${base}, ${kmNumberString}`}
         </React.Fragment>
     );
 };
