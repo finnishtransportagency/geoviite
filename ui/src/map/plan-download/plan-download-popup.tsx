@@ -4,7 +4,7 @@ import styles from './plan-download-popup.scss';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
-import { kmNumberIsValid, LayoutContext, officialMainLayoutContext } from 'common/common-model';
+import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import {
     DownloadablePlan,
     PlanDownloadAsset,
@@ -30,9 +30,9 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PlanDownloadPopupSection } from 'map/plan-download/plan-download-popup-section';
 import { createPortal } from 'react-dom';
 
-const trackMeterRange = (start: string, end: string) => {
-    const startOrUndefined = kmNumberIsValid(start) ? start : undefined;
-    const endOrUndefined = kmNumberIsValid(end) ? end : undefined;
+const trackMeterRange = (start: string | undefined, end: string | undefined) => {
+    const startOrUndefined = start ? start : undefined;
+    const endOrUndefined = end ? end : undefined;
 
     if (startOrUndefined && endOrUndefined) return `${start}-${end}`;
     if (startOrUndefined) return `${start}-`;
@@ -42,8 +42,8 @@ const trackMeterRange = (start: string, end: string) => {
 
 type LocationSpecifierProps = {
     selectedAsset: PlanDownloadAsset | undefined;
-    startTrackMeter: string;
-    endTrackMeter: string;
+    startTrackMeter: string | undefined;
+    endTrackMeter: string | undefined;
 };
 export const LocationSpecifier: React.FC<LocationSpecifierProps> = ({
     selectedAsset,

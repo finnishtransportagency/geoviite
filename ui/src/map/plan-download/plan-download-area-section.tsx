@@ -8,10 +8,11 @@ import {
     SearchType,
     TrackNumberItemValue,
 } from 'tool-bar/search-dropdown';
-import { LayoutContext } from 'common/common-model';
+import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import {
     AreaSelection,
     PlanDownloadAsset,
+    PlanDownloadAssetAndExtremities,
     PlanDownloadAssetType,
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
@@ -27,10 +28,12 @@ import { createClassName } from 'vayla-design-lib/utils';
 import styles from 'map/plan-download/plan-download-popup.scss';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
-import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { error } from 'geoviite-design-lib/snackbar/snackbar';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { useLoader } from 'utils/react-utils';
+import { getKmPostsOnTrackNumber } from 'track-layout/layout-km-post-api';
+import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 
 type AreaSelectionType = 'TRACK_METERS' | 'MAINTENANCE_AREA' | 'MAP_AREA';
 const ASSET_SEARCH_TYPES = [SearchType.TRACK_NUMBER, SearchType.LOCATION_TRACK];
@@ -58,7 +61,7 @@ const inferDropdownItemValue = (
 
 export const PlanDownloadAreaSection: React.FC<{
     layoutContext: LayoutContext;
-    selectedAsset: PlanDownloadAsset | undefined;
+    selectedAsset: PlanDownloadAssetAndExtremities | undefined;
     state: PlanDownloadState;
     onUpdateProp: <TKey extends keyof AreaSelection>(
         propEdit: PropEdit<AreaSelection, TKey>,
@@ -70,6 +73,27 @@ export const PlanDownloadAreaSection: React.FC<{
     const { t } = useTranslation();
     const [areaSelectionType, setAreaSelectionType] =
         React.useState<AreaSelectionType>('TRACK_METERS');
+    const kmPostsOnTrackNumber =
+        useLoader(async () => {
+            const trackNumberId =
+                selectedAsset?.type === PlanDownloadAssetType.TRACK_NUMBER
+                    ? selectedAsset.asset.id
+                    : selectedAsset?.type === PlanDownloadAssetType.LOCATION_TRACK
+                      ? selectedAsset?.asset.trackNumberId
+                      : undefined;
+            const kmPosts = trackNumberId
+                ? await getKmPostsOnTrackNumber(officialMainLayoutContext(), trackNumberId)
+                : [];
+            const startKm = selectedAsset?.startAndEnd?.start?.address?.kmNumber;
+            const endKm = selectedAsset?.startAndEnd?.end?.address?.kmNumber;
+            return startKm && endKm
+                ? kmPosts.filter((kmPost) => kmPost.kmNumber >= startKm && kmPost.kmNumber <= endKm)
+                : kmPosts;
+        }, [selectedAsset?.asset.id, selectedAsset?.type])?.map((km) => ({
+            name: km.kmNumber,
+            value: km.kmNumber,
+            qaId: `km-${km.kmNumber}`,
+        })) || [];
 
     const updateProp = <TKey extends keyof AreaSelection>(
         key: TKey,
@@ -188,13 +212,13 @@ export const PlanDownloadAreaSection: React.FC<{
                                         )}>
                                         {t('plan-download.start-km')}
                                     </label>
-                                    <TextField
+                                    <Dropdown
                                         qa-id="plan-download-start-km"
                                         disabled={disabled}
+                                        options={kmPostsOnTrackNumber}
                                         value={state.areaSelection.startTrackMeter}
-                                        onChange={(e) =>
-                                            updateProp('startTrackMeter', e.target.value)
-                                        }
+                                        canUnselect={true}
+                                        onChange={(e) => updateProp('startTrackMeter', e)}
                                         onBlur={() => onCommitField('startTrackMeter')}
                                         hasError={
                                             hasEndBeforeStartError ||
@@ -232,13 +256,13 @@ export const PlanDownloadAreaSection: React.FC<{
                                         )}>
                                         {t('plan-download.end-km')}
                                     </label>
-                                    <TextField
+                                    <Dropdown
                                         qa-id="plan-download-end-km"
                                         disabled={disabled}
+                                        options={kmPostsOnTrackNumber}
                                         value={state.areaSelection.endTrackMeter}
-                                        onChange={(e) =>
-                                            updateProp('endTrackMeter', e.target.value)
-                                        }
+                                        canUnselect={true}
+                                        onChange={(e) => updateProp('endTrackMeter', e)}
                                         onBlur={() => onCommitField('endTrackMeter')}
                                         hasError={hasErrors(
                                             state.committedFields,

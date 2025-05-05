@@ -606,7 +606,7 @@ const trackLayoutSlice = createSlice({
         ) => {
             state.geometryPlanViewSettings.visibleSources = sources;
         },
-        onStartPlanDownload: (
+        onOpenPlanDownloadPopup: (
             state: TrackLayoutState,
             { payload: asset }: PayloadAction<PlanDownloadAssetId | undefined>,
         ): void => {
@@ -616,7 +616,7 @@ const trackLayoutSlice = createSlice({
                 state.planDownloadState = initialPlanDownloadStateFromSelection(asset);
             }
         },
-        onStopPlanDownload: (state: TrackLayoutState): void => {
+        onClosePlanDownloadPopup: (state: TrackLayoutState): void => {
             state.planDownloadState = undefined;
         },
     },

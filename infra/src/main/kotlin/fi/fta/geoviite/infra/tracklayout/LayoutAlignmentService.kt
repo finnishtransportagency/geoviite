@@ -110,9 +110,9 @@ class LayoutAlignmentService(private val layoutAlignmentDao: LayoutAlignmentDao,
 
                 if (sRange.contains(mRange)) {
                     s.slice(mRange)
-                } else if (sRange.contains(startMOnAlignment)) {
+                } else if (sRange.contains(startMOnAlignment) && startMOnAlignment < sRange.max) {
                     s.slice(Range(startMOnAlignment, s.endM))
-                } else if (sRange.contains(endMOnAlignment)) {
+                } else if (sRange.contains(endMOnAlignment) && endMOnAlignment > sRange.min) {
                     s.slice(Range(s.startM, endMOnAlignment))
                 } else if (mRange.overlaps(sRange)) {
                     s

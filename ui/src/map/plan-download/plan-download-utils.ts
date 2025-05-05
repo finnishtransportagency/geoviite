@@ -7,7 +7,7 @@ import {
     TrackNumberAssetAndExtremities,
 } from 'map/plan-download/plan-download-store';
 import { GeometryPlanHeader, PlanApplicability } from 'geometry/geometry-model';
-import { compareKmNumberStrings, kmNumberIsValid, LayoutContext } from 'common/common-model';
+import { compareKmNumberStrings, LayoutContext } from 'common/common-model';
 import { expectDefined } from 'utils/type-utils';
 import {
     getLocationTrack,
@@ -62,26 +62,19 @@ export async function fetchDownloadablePlans(
     areaSelection: AreaSelection,
     layoutContext: LayoutContext,
 ): Promise<DownloadablePlan[]> {
-    const startKm = kmNumberIsValid(areaSelection.startTrackMeter)
-        ? areaSelection.startTrackMeter
-        : undefined;
-    const endKm = kmNumberIsValid(areaSelection.endTrackMeter)
-        ? areaSelection.endTrackMeter
-        : undefined;
-
     if (areaSelection.asset?.type === 'LOCATION_TRACK') {
         return await getPlansLinkedToLocationTrack(
             layoutContext,
             areaSelection.asset.id,
-            startKm,
-            endKm,
+            areaSelection.startTrackMeter,
+            areaSelection.endTrackMeter,
         ).then((plans) => plans.map(toDownloadablePlan));
     } else if (areaSelection.asset?.type === 'TRACK_NUMBER') {
         return await getPlansLinkedToTrackNumber(
             layoutContext,
             areaSelection.asset.id,
-            startKm,
-            endKm,
+            areaSelection.startTrackMeter,
+            areaSelection.endTrackMeter,
         ).then((plans) => plans.map(toDownloadablePlan));
     } else {
         return [];

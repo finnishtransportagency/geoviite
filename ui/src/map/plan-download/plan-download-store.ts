@@ -13,11 +13,7 @@ import {
     PropEdit,
     validate,
 } from 'utils/validation-utils';
-import {
-    compareKmNumberStrings,
-    isKmNumberWithinRange,
-    kmNumberIsValid,
-} from 'common/common-model';
+import { compareKmNumberStrings, isKmNumberWithinRange, KmNumber } from 'common/common-model';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     GeometryPlanId,
@@ -25,15 +21,14 @@ import {
     PlanApplicability,
     PlanSource,
 } from 'geometry/geometry-model';
-import { isValidKmNumber } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { brand } from 'common/brand';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, isNil } from 'utils/type-utils';
 
 export type AreaSelection = {
     asset: PlanDownloadAssetId | undefined;
-    startTrackMeter: string;
-    endTrackMeter: string;
+    startTrackMeter: KmNumber | undefined;
+    endTrackMeter: KmNumber | undefined;
     alignmentStartAndEnd: AlignmentStartAndEnd | undefined;
 };
 
@@ -131,8 +126,8 @@ export const initialPlanDownloadState: PlanDownloadState = {
     openPopupSection: 'AREA',
     areaSelection: {
         asset: undefined,
-        startTrackMeter: '',
-        endTrackMeter: '',
+        startTrackMeter: undefined,
+        endTrackMeter: undefined,
         alignmentStartAndEnd: undefined,
     },
     selectedPlans: [],
@@ -166,26 +161,8 @@ const validateAreaSelection = (state: PlanDownloadState): FieldValidationIssue<A
                   reason: 'mandatory-field',
               }),
               validate(
-                  state.areaSelection.startTrackMeter === '' ||
-                      kmNumberIsValid(state.areaSelection.startTrackMeter),
-                  {
-                      type: FieldValidationIssueType.ERROR,
-                      field: 'startTrackMeter',
-                      reason: 'invalid-track-meter',
-                  },
-              ),
-              validate(
-                  state.areaSelection.endTrackMeter === '' ||
-                      kmNumberIsValid(state.areaSelection.endTrackMeter),
-                  {
-                      type: FieldValidationIssueType.ERROR,
-                      field: 'endTrackMeter',
-                      reason: 'invalid-track-meter',
-                  },
-              ),
-              validate(
-                  !kmNumberIsValid(state.areaSelection.endTrackMeter) ||
-                      !kmNumberIsValid(state.areaSelection.startTrackMeter) ||
+                  isNil(state.areaSelection.startTrackMeter) ||
+                      isNil(state.areaSelection.endTrackMeter) ||
                       compareKmNumberStrings(
                           state.areaSelection.startTrackMeter,
                           state.areaSelection.endTrackMeter,
@@ -199,7 +176,7 @@ const validateAreaSelection = (state: PlanDownloadState): FieldValidationIssue<A
               validate(
                   !state.areaSelection.alignmentStartAndEnd ||
                       !alignmentStartAndEndRange ||
-                      !isValidKmNumber(state.areaSelection.startTrackMeter) ||
+                      isNil(state.areaSelection.startTrackMeter) ||
                       isKmNumberWithinRange(
                           state.areaSelection.startTrackMeter,
                           alignmentStartAndEndRange,
@@ -217,7 +194,7 @@ const validateAreaSelection = (state: PlanDownloadState): FieldValidationIssue<A
               validate(
                   !state.areaSelection.alignmentStartAndEnd ||
                       !alignmentStartAndEndRange ||
-                      !isValidKmNumber(state.areaSelection.endTrackMeter) ||
+                      isNil(state.areaSelection.endTrackMeter) ||
                       isKmNumberWithinRange(
                           state.areaSelection.endTrackMeter,
                           alignmentStartAndEndRange,
@@ -249,6 +226,12 @@ export const planDownloadReducers = {
     ) {
         state.areaSelection[propEdit.key] = propEdit.value;
         state.validationIssues = validateAreaSelection(state);
+
+        // start/endTrackMeter are no longer valid if asset is changed
+        if (propEdit.key === 'asset') {
+            state.areaSelection.startTrackMeter = undefined;
+            state.areaSelection.endTrackMeter = undefined;
+        }
 
         if (
             isPropEditFieldCommitted(
