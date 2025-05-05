@@ -37,7 +37,7 @@ class ExtLocationTrackControllerV1(
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping("/sijaintiraiteet")
-    fun extGetAllLocationTracks(
+    fun extGetLocationTrackCollection(
         @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
     ): ExtLocationTrackCollectionResponseV1 {
@@ -45,6 +45,21 @@ class ExtLocationTrackControllerV1(
             trackNetworkVersion = trackNetworkVersion,
             coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
         )
+    }
+
+    @GetMapping("/sijaintiraiteet/muutokset", params = [MODIFICATIONS_FROM_VERSION])
+    fun extGetLocationTrackCollectionModifications(
+        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
+        @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
+    ): ResponseEntity<ExtModifiedLocationTrackCollectionResponseV1> {
+        return extLocationTrackCollectionService
+            .createLocationTrackCollectionModificationResponse(
+                modificationsFromVersion = modificationsFromVersion,
+                trackNetworkVersion = trackNetworkVersion,
+                coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
+            )
+            ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")

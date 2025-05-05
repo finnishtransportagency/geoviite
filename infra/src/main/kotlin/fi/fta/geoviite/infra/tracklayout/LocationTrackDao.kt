@@ -555,7 +555,7 @@ class LocationTrackDao(
               select distinct on (id) id, design_id, draft, version
               from layout.location_track_version
               where change_time <= :change_time
-                and not deleted -- TODO Halutaanko poistetut? 
+                and not deleted
                 and not draft
                 and design_id is null
               order by id, change_time desc

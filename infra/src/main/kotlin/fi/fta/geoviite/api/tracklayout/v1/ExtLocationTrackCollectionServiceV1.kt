@@ -4,20 +4,20 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
-import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
-import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.Instant
+import kotlin.collections.get
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,7 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired
 data class ExtLocationTrackCollectionResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
-    @JsonProperty("sijaintiraiteet") val locationTrackCollection: List<ExtLocationTrackV1>,
+    @JsonProperty(LOCATION_TRACK_COLLECTION) val locationTrackCollection: List<ExtLocationTrackV1>,
 )
 
 @Schema(name = "Vastaus: Muutettu sijaintiraidejoukko")
@@ -34,7 +34,7 @@ data class ExtModifiedLocationTrackCollectionResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
     @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
-    @JsonProperty("sijaintiraiteet") val locationTrackCollection: List<ExtLocationTrackV1>,
+    @JsonProperty(LOCATION_TRACK_COLLECTION) val locationTrackCollection: List<ExtLocationTrackV1>,
 )
 
 @GeoviiteService
@@ -42,7 +42,6 @@ class ExtLocationTrackCollectionServiceV1
 @Autowired
 constructor(
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
-    private val geocodingService: GeocodingService,
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
     private val publicationDao: PublicationDao,
@@ -56,7 +55,6 @@ constructor(
         val lang = LocalizationLanguage.FI
         val layoutContext = MainLayoutContext.official
 
-        // TODO This should probably just be two different functions
         val (publication, locationTracks) =
             when (trackNetworkVersion) {
                 null -> {
@@ -78,8 +76,89 @@ constructor(
                 }
             }
 
-        val moment = publication.publicationTime
+        return ExtLocationTrackCollectionResponseV1(
+            trackNetworkVersion = publication.uuid,
+            coordinateSystem = coordinateSystem,
+            locationTrackCollection =
+                extGetLocationTrackCollection(
+                    layoutContext,
+                    locationTracks,
+                    coordinateSystem,
+                    publication.publicationTime,
+                    lang,
+                ),
+        )
+    }
 
+    fun createLocationTrackCollectionModificationResponse(
+        modificationsFromVersion: Uuid<Publication>,
+        trackNetworkVersion: Uuid<Publication>?,
+        coordinateSystem: Srid,
+    ): ExtModifiedLocationTrackCollectionResponseV1? {
+        val lang = LocalizationLanguage.FI
+        val layoutContext = MainLayoutContext.official
+
+        val fromPublication =
+            publicationDao
+                .fetchPublicationByUuid(modificationsFromVersion)
+                .let(::requireNotNull) // TODO Improve error handling
+
+        val toPublication =
+            trackNetworkVersion?.let { uuid ->
+                publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull)
+            } // TODO Improve error handling
+            ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+
+        return if (fromPublication == toPublication) {
+            logger.info(
+                "there cannot be any differences if the requested publication ids are the same " +
+                    "publication=${fromPublication.id}"
+            )
+            null
+        } else {
+
+            val modifiedLocationTracks =
+                publicationDao
+                    .fetchPublishedLocationTracksAfterMoment(
+                        fromPublication.publicationTime,
+                        toPublication.publicationTime,
+                    )
+                    .map { locationTrackId ->
+                        locationTrackDao
+                            .getOfficialAtMoment(layoutContext.branch, locationTrackId, toPublication.publicationTime)
+                            .let(::requireNotNull)
+                    }
+
+            if (modifiedLocationTracks.isEmpty()) {
+                logger.info(
+                    "There were no modified location tracks between publications ${fromPublication.id} -> ${toPublication.id}"
+                )
+                null
+            } else {
+                return ExtModifiedLocationTrackCollectionResponseV1(
+                    modificationsFromVersion = modificationsFromVersion,
+                    trackNetworkVersion = toPublication.uuid,
+                    coordinateSystem = coordinateSystem,
+                    locationTrackCollection =
+                        extGetLocationTrackCollection(
+                            layoutContext,
+                            modifiedLocationTracks,
+                            coordinateSystem,
+                            toPublication.publicationTime,
+                            lang,
+                        ),
+                )
+            }
+        }
+    }
+
+    fun extGetLocationTrackCollection(
+        layoutContext: LayoutContext,
+        locationTracks: List<LocationTrack>,
+        coordinateSystem: Srid,
+        moment: Instant,
+        lang: LocalizationLanguage,
+    ): List<ExtLocationTrackV1> {
         val locationTrackIds = locationTracks.map { locationTrack -> locationTrack.id as IntId }
         val distinctTrackNumberIds = locationTracks.map { locationTrack -> locationTrack.trackNumberId }.distinct()
 
@@ -104,7 +183,7 @@ constructor(
             locationTrackService.getFullDescriptionsAtMoment(layoutContext, locationTracks, lang, moment)
 
         val locationTrackStartsAndEnds =
-            locationTrackService.getStartAndEndAtMoment(layoutContext, locationTrackIds, publication.publicationTime)
+            locationTrackService.getStartAndEndAtMoment(layoutContext, locationTrackIds, moment)
 
         require(locationTracks.size == locationTrackDescriptions.size) {
             "locationTracks.size=${locationTracks.size} != locationTrackDescriptions.size=${locationTrackDescriptions.size}"
@@ -114,126 +193,47 @@ constructor(
             "locationTracks.size=${locationTracks.size} != locationTrackStartsAndEnds.size=${locationTrackStartsAndEnds.size}"
         }
 
-        return ExtLocationTrackCollectionResponseV1(
-            trackNetworkVersion = publication.uuid,
-            coordinateSystem = coordinateSystem,
-            locationTrackCollection =
-                locationTracks.mapIndexed { index, locationTrack ->
-                    val locationTrackDescription = locationTrackDescriptions[index]
-                    val startAndEnd = locationTrackStartsAndEnds[index]
-
-                    val (startLocation, endLocation) =
-                        when (coordinateSystem) {
-                            LAYOUT_SRID -> startAndEnd.start to startAndEnd.end
-                            else -> {
-                                val start =
-                                    startAndEnd.start?.let { start ->
-                                        convertAlignmentEndPointCoordinateSystem(LAYOUT_SRID, coordinateSystem, start)
-                                    }
-
-                                val end =
-                                    startAndEnd.end?.let { end ->
-                                        convertAlignmentEndPointCoordinateSystem(LAYOUT_SRID, coordinateSystem, end)
-                                    }
-
-                                start to end
-                            }
-                        }
-
-                    ExtLocationTrackV1(
-                        locationTrackOid =
-                            externalLocationTrackIds[locationTrack.id]?.oid
-                                ?: throw ExtOidNotFoundExceptionV1(
-                                    "location track oid not found, locationTrackId=${locationTrack.id}"
-                                ),
-                        locationTrackName = locationTrack.name,
-                        locationTrackType = ExtLocationTrackTypeV1(locationTrack.type),
-                        locationTrackState = ExtLocationTrackStateV1(locationTrack.state),
-                        locationTrackDescription = locationTrackDescription,
-                        locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
-                        startLocation = startLocation?.let(ExtAddressPointV1::of),
-                        endLocation = endLocation?.let(ExtAddressPointV1::of),
-                        trackNumberName =
-                            trackNumbers[locationTrack.trackNumberId]?.number
-                                ?: throw ExtTrackNumberNotFoundV1(
-                                    "track number was not found for " +
-                                        "branch=${layoutContext.branch}, trackNumberId=${locationTrack.trackNumberId}, moment=$moment"
-                                ),
-                        trackNumberOid =
-                            externalTrackNumberIds[locationTrack.trackNumberId]?.oid
-                                ?: throw ExtOidNotFoundExceptionV1(
-                                    "track number oid not found, layoutTrackNumberId=${locationTrack.trackNumberId}"
-                                ),
+        return locationTracks.mapIndexed { index, locationTrack ->
+            val locationTrackOid =
+                externalLocationTrackIds[locationTrack.id]?.oid
+                    ?: throw ExtOidNotFoundExceptionV1(
+                        "location track oid not found, locationTrackId=${locationTrack.id}"
                     )
-                },
-        )
-    }
 
-    //    fun createLocationTrackModificationResponse(
-    //        oid: Oid<LocationTrack>,
-    //        modificationsFromVersion: Uuid<Publication>,
-    //        trackNetworkVersion: Uuid<Publication>?,
-    //        coordinateSystem: Srid,
-    //    ): ExtModifiedLocationTrackResponseV1? {
-    //        val layoutContext = MainLayoutContext.official
-    //
-    //        val earlierPublication =
-    //            publicationDao
-    //                .fetchPublicationByUuid(modificationsFromVersion)
-    //                .let(::requireNotNull) // TODO Improve error handling
-    //        val laterPublication =
-    //            trackNetworkVersion?.let { uuid ->
-    //                publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull)
-    //            } // TODO Improve error handling
-    //            ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
-    //
-    //        return if (earlierPublication == laterPublication) {
-    //            logger.info(
-    //                "there cannot be any differences if the requested publication ids are the same " +
-    //                    "publication=${earlierPublication.id}"
-    //            )
-    //            null
-    //        } else {
-    //            val locationTrackId =
-    //                locationTrackDao.lookupByExternalId(oid)?.id
-    //                    ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
-    //
-    //            val earlierLocationTrackVersion =
-    //                locationTrackDao.fetchOfficialVersionAtMomentOrThrow(
-    //                    layoutContext.branch,
-    //                    locationTrackId,
-    //                    earlierPublication.publicationTime,
-    //                ) // TODO Improve error handling
-    //
-    //            val laterLocationTrackVersion =
-    //                locationTrackDao.fetchOfficialVersionAtMomentOrThrow(
-    //                    layoutContext.branch,
-    //                    locationTrackId,
-    //                    laterPublication.publicationTime,
-    //                ) // TODO Improve error handling
-    //
-    //            if (earlierLocationTrackVersion == laterLocationTrackVersion) {
-    //                logger.info(
-    //                    "location track version was the same for locationTrackId=$locationTrackId, " +
-    //                        "earlierPublication=${earlierPublication.id}, laterPublication=${laterPublication.id}"
-    //                )
-    //                return null
-    //            } else {
-    //                return ExtModifiedLocationTrackResponseV1(
-    //                    modificationsFromVersion = modificationsFromVersion,
-    //                    trackNetworkVersion = laterPublication.uuid,
-    //                    locationTrack =
-    //                        getExtLocationTrack(
-    //                            oid,
-    //                            locationTrackDao.fetch(laterLocationTrackVersion),
-    //                            MainLayoutContext.official,
-    //                            laterPublication.publicationTime,
-    //                            coordinateSystem,
-    //                        ),
-    //                )
-    //            }
-    //        }
-    //    }
+            val locationTrackDescription = locationTrackDescriptions[index]
+            val (startLocation, endLocation) =
+                layoutAlignmentStartAndEndToCoordinateSystem(coordinateSystem, locationTrackStartsAndEnds[index]).let {
+                    startAndEnd ->
+                    startAndEnd.start to startAndEnd.end
+                }
+
+            val trackNumberName =
+                trackNumbers[locationTrack.trackNumberId]?.number
+                    ?: throw ExtTrackNumberNotFoundV1(
+                        "track number was not found for " +
+                            "branch=${layoutContext.branch}, trackNumberId=${locationTrack.trackNumberId}, moment=$moment"
+                    )
+
+            val trackNumberOid =
+                externalTrackNumberIds[locationTrack.trackNumberId]?.oid
+                    ?: throw ExtOidNotFoundExceptionV1(
+                        "track number oid not found, layoutTrackNumberId=${locationTrack.trackNumberId}"
+                    )
+
+            ExtLocationTrackV1(
+                locationTrackOid = locationTrackOid,
+                locationTrackName = locationTrack.name,
+                locationTrackType = ExtLocationTrackTypeV1(locationTrack.type),
+                locationTrackState = ExtLocationTrackStateV1(locationTrack.state),
+                locationTrackDescription = locationTrackDescription,
+                locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
+                startLocation = startLocation?.let(ExtAddressPointV1::of),
+                endLocation = endLocation?.let(ExtAddressPointV1::of),
+                trackNumberName = trackNumberName,
+                trackNumberOid = trackNumberOid,
+            )
+        }
+    }
 
     //    fun getLocationTrackCollection(
     //        layoutContext: LayoutContext,
@@ -296,14 +296,4 @@ constructor(
     //            trackNumberOid = trackNumberOid,
     //        )
     //    }
-}
-
-private fun convertAlignmentEndPointCoordinateSystem(
-    sourceCoordinateSystem: Srid,
-    targetCoordinateSystem: Srid,
-    alignmentEndPoint: AlignmentEndPoint,
-): AlignmentEndPoint {
-    val convertedPoint =
-        transformNonKKJCoordinate(sourceCoordinateSystem, targetCoordinateSystem, alignmentEndPoint.point)
-    return alignmentEndPoint.copy(point = alignmentEndPoint.point.copy(x = convertedPoint.x, y = convertedPoint.y))
 }

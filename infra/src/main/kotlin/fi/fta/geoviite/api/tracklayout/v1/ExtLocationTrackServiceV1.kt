@@ -11,7 +11,10 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.publication.Publication
@@ -33,7 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired
 data class ExtLocationTrackResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
-    @JsonProperty("sijaintiraide") val locationTrack: ExtLocationTrackV1,
+    @JsonProperty(LOCATION_TRACK_PARAM) val locationTrack: ExtLocationTrackV1,
 )
 
 @Schema(name = "Vastaus: Muutettu sijaintiraide")
@@ -41,15 +44,15 @@ data class ExtModifiedLocationTrackResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
     @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
-    @JsonProperty("sijaintiraide") val locationTrack: ExtLocationTrackV1,
+    @JsonProperty(LOCATION_TRACK_PARAM) val locationTrack: ExtLocationTrackV1,
 )
 
 @Schema(name = "Sijaintiraide")
 data class ExtLocationTrackV1(
+    @JsonProperty("sijaintiraide_oid") val locationTrackOid: Oid<LocationTrack>,
+    @JsonProperty("sijaintiraidetunnus") val locationTrackName: AlignmentName,
     @JsonProperty("ratanumero") val trackNumberName: TrackNumber,
     @JsonProperty("ratanumero_oid") val trackNumberOid: Oid<LayoutTrackNumber>,
-    @JsonProperty("oid") val locationTrackOid: Oid<LocationTrack>,
-    @JsonProperty("sijaintiraidetunnus") val locationTrackName: AlignmentName,
     @JsonProperty("tyyppi") val locationTrackType: ExtLocationTrackTypeV1,
     @JsonProperty("tila") val locationTrackState: ExtLocationTrackStateV1,
     @JsonProperty("kuvaus") val locationTrackDescription: FreeText,
@@ -76,6 +79,7 @@ constructor(
         coordinateSystem: Srid,
     ): ExtLocationTrackResponseV1 {
         val layoutContext = MainLayoutContext.official
+        val lang = LocalizationLanguage.FI
 
         val publication =
             trackNetworkVersion?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull) }
@@ -92,7 +96,14 @@ constructor(
             trackNetworkVersion = publication.uuid,
             coordinateSystem = coordinateSystem,
             locationTrack =
-                getExtLocationTrack(oid, locationTrack, layoutContext, publication.publicationTime, coordinateSystem),
+                getExtLocationTrack(
+                    oid,
+                    locationTrack,
+                    layoutContext,
+                    publication.publicationTime,
+                    coordinateSystem,
+                    lang,
+                ),
         )
     }
 
@@ -103,21 +114,22 @@ constructor(
         coordinateSystem: Srid,
     ): ExtModifiedLocationTrackResponseV1? {
         val layoutContext = MainLayoutContext.official
+        val lang = LocalizationLanguage.FI
 
-        val earlierPublication =
+        val fromPublication =
             publicationDao
                 .fetchPublicationByUuid(modificationsFromVersion)
                 .let(::requireNotNull) // TODO Improve error handling
-        val laterPublication =
+        val toPublication =
             trackNetworkVersion?.let { uuid ->
                 publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull)
             } // TODO Improve error handling
             ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
-        return if (earlierPublication == laterPublication) {
+        return if (fromPublication == toPublication) {
             logger.info(
                 "there cannot be any differences if the requested publication ids are the same " +
-                    "publication=${earlierPublication.id}"
+                    "publication=${fromPublication.id}"
             )
             null
         } else {
@@ -125,38 +137,39 @@ constructor(
                 locationTrackDao.lookupByExternalId(oid)?.id
                     ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
 
-            val earlierLocationTrackVersion =
+            val fromLocationTrackVersion =
                 locationTrackDao.fetchOfficialVersionAtMomentOrThrow(
                     layoutContext.branch,
                     locationTrackId,
-                    earlierPublication.publicationTime,
+                    fromPublication.publicationTime,
                 ) // TODO Improve error handling
 
-            val laterLocationTrackVersion =
+            val toLocationTrackVersion =
                 locationTrackDao.fetchOfficialVersionAtMomentOrThrow(
                     layoutContext.branch,
                     locationTrackId,
-                    laterPublication.publicationTime,
+                    toPublication.publicationTime,
                 ) // TODO Improve error handling
 
-            if (earlierLocationTrackVersion == laterLocationTrackVersion) {
+            if (fromLocationTrackVersion == toLocationTrackVersion) {
                 logger.info(
                     "location track version was the same for locationTrackId=$locationTrackId, " +
-                        "earlierPublication=${earlierPublication.id}, laterPublication=${laterPublication.id}"
+                        "earlierPublication=${fromPublication.id}, laterPublication=${toPublication.id}"
                 )
                 return null
             } else {
                 return ExtModifiedLocationTrackResponseV1(
                     modificationsFromVersion = modificationsFromVersion,
-                    trackNetworkVersion = laterPublication.uuid,
+                    trackNetworkVersion = toPublication.uuid,
                     coordinateSystem = coordinateSystem,
                     locationTrack =
                         getExtLocationTrack(
                             oid,
-                            locationTrackDao.fetch(laterLocationTrackVersion),
+                            locationTrackDao.fetch(toLocationTrackVersion),
                             MainLayoutContext.official,
-                            laterPublication.publicationTime,
+                            toPublication.publicationTime,
                             coordinateSystem,
+                            lang,
                         ),
                 )
             }
@@ -169,11 +182,8 @@ constructor(
         layoutContext: LayoutContext,
         moment: Instant,
         coordinateSystem: Srid,
+        lang: LocalizationLanguage,
     ): ExtLocationTrackV1 {
-        val alignmentAddresses =
-            geocodingService.getAddressPoints(layoutContext, locationTrack.id as IntId)
-                ?: throw ExtGeocodingFailedV1("address points not found, locationTrackId=${locationTrack.id}")
-
         val trackNumberName =
             layoutTrackNumberDao
                 .fetchOfficialVersionAtMoment(layoutContext.branch, locationTrack.trackNumberId, moment)
@@ -192,31 +202,24 @@ constructor(
                 )
 
         val (startLocation, endLocation) =
-            when (coordinateSystem) {
-                LAYOUT_SRID -> alignmentAddresses.startPoint to alignmentAddresses.endPoint
-                else -> {
-                    val start = layoutAddressPointToCoordinateSystem(alignmentAddresses.startPoint, coordinateSystem)
-                    val end = layoutAddressPointToCoordinateSystem(alignmentAddresses.endPoint, coordinateSystem)
-
-                    start to end
-                }
-            }
+            locationTrackService
+                .getStartAndEndAtMoment(layoutContext, listOf(locationTrack.id as IntId), moment)
+                .first()
+                .let { startAndEnd -> layoutAlignmentStartAndEndToCoordinateSystem(coordinateSystem, startAndEnd) }
+                .let { startAndEnd -> startAndEnd.start to startAndEnd.end }
 
         val locationTrackDescription =
-            locationTrackService
-                .getFullDescriptions(layoutContext, listOf(locationTrack), LocalizationLanguage.FI)
-                .first()
+            locationTrackService.getFullDescriptionsAtMoment(layoutContext, listOf(locationTrack), lang, moment).first()
 
         return ExtLocationTrackV1(
             locationTrackOid = oid,
             locationTrackName = locationTrack.name,
             locationTrackType = ExtLocationTrackTypeV1(locationTrack.type),
             locationTrackState = ExtLocationTrackStateV1(locationTrack.state),
-            locationTrackDescription =
-                locationTrackDescription, // TODO This is not correct as it can change based on version.
+            locationTrackDescription = locationTrackDescription,
             locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
-            startLocation = ExtAddressPointV1.of(startLocation),
-            endLocation = ExtAddressPointV1.of(endLocation),
+            startLocation = startLocation?.let(ExtAddressPointV1::of),
+            endLocation = endLocation?.let(ExtAddressPointV1::of),
             trackNumberName = trackNumberName,
             trackNumberOid = trackNumberOid,
         )
@@ -234,4 +237,36 @@ constructor(
             }
             ?.let(locationTrackDao::fetch)
     }
+}
+
+internal fun <T> layoutAlignmentStartAndEndToCoordinateSystem(
+    coordinateSystem: Srid,
+    startAndEnd: AlignmentStartAndEnd<T>,
+): AlignmentStartAndEnd<T> {
+    return when (coordinateSystem) {
+        LAYOUT_SRID -> startAndEnd
+        else -> {
+            val start =
+                startAndEnd.start?.let { start ->
+                    convertAlignmentEndPointCoordinateSystem(LAYOUT_SRID, coordinateSystem, start)
+                }
+
+            val end =
+                startAndEnd.end?.let { end ->
+                    convertAlignmentEndPointCoordinateSystem(LAYOUT_SRID, coordinateSystem, end)
+                }
+
+            startAndEnd.copy(start = start, end = end)
+        }
+    }
+}
+
+private fun convertAlignmentEndPointCoordinateSystem(
+    sourceCoordinateSystem: Srid,
+    targetCoordinateSystem: Srid,
+    alignmentEndPoint: AlignmentEndPoint,
+): AlignmentEndPoint {
+    val convertedPoint =
+        transformNonKKJCoordinate(sourceCoordinateSystem, targetCoordinateSystem, alignmentEndPoint.point)
+    return alignmentEndPoint.copy(point = alignmentEndPoint.point.copy(x = convertedPoint.x, y = convertedPoint.y))
 }

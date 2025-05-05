@@ -2176,19 +2176,23 @@ class PublicationDao(
         return fetchPublicationIdByUuid(uuid)?.let(::getPublication)
     }
 
-    fun fetchPublishedLocationTrackIdsInClosedInterval(
-        inclusiveStart: Instant,
-        inclusiveEnd: Instant,
+    fun fetchPublishedLocationTracksAfterMoment(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
     ): List<IntId<LocationTrack>> {
         val sql =
             """
             select distinct location_track_id
             from publication.location_track plt
               join publication.publication publication on plt.publication_id = publication.id
-            where publication.publication_time between :start_time::timestampz and :end_time::timestampz;
+            where publication.publication_time > :start_time and publication.publication_time <= :end_time;
         """
 
-        val params = mapOf("start_time" to inclusiveStart, "end_time" to inclusiveEnd)
+        val params =
+            mapOf(
+                "start_time" to Timestamp.from(exclusiveStartMoment),
+                "end_time" to Timestamp.from(inclusiveEndMoment),
+            )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("location_track_id") }
     }
 }
