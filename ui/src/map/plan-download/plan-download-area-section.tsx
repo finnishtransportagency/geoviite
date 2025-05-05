@@ -59,6 +59,19 @@ const inferDropdownItemValue = (
     }
 };
 
+const getPopupAssetTrackNumberId = (downloadAsset: PlanDownloadAsset | undefined) => {
+    switch (downloadAsset?.type) {
+        case PlanDownloadAssetType.TRACK_NUMBER:
+            return downloadAsset.asset.id;
+        case PlanDownloadAssetType.LOCATION_TRACK:
+            return downloadAsset.asset.trackNumberId;
+        case undefined:
+            return undefined;
+        default:
+            return exhaustiveMatchingGuard(downloadAsset);
+    }
+};
+
 export const PlanDownloadAreaSection: React.FC<{
     layoutContext: LayoutContext;
     selectedAsset: PlanDownloadAssetAndExtremities | undefined;
@@ -75,17 +88,14 @@ export const PlanDownloadAreaSection: React.FC<{
         React.useState<AreaSelectionType>('TRACK_METERS');
     const kmPostsOnTrackNumber =
         useLoader(async () => {
-            const trackNumberId =
-                selectedAsset?.type === PlanDownloadAssetType.TRACK_NUMBER
-                    ? selectedAsset.asset.id
-                    : selectedAsset?.type === PlanDownloadAssetType.LOCATION_TRACK
-                      ? selectedAsset?.asset.trackNumberId
-                      : undefined;
+            const trackNumberId = getPopupAssetTrackNumberId(selectedAsset);
+
             const kmPosts = trackNumberId
                 ? await getKmPostsOnTrackNumber(officialMainLayoutContext(), trackNumberId)
                 : [];
             const startKm = selectedAsset?.startAndEnd?.start?.address?.kmNumber;
             const endKm = selectedAsset?.startAndEnd?.end?.address?.kmNumber;
+            
             return startKm && endKm
                 ? kmPosts.filter((kmPost) => kmPost.kmNumber >= startKm && kmPost.kmNumber <= endKm)
                 : kmPosts;
