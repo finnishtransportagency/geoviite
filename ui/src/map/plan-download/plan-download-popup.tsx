@@ -126,8 +126,10 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
     const togglePlanForDownload = (id: GeometryPlanId, selected: boolean) => {
         delegates.togglePlanForDownload({ id, selected });
     };
-    const selectPlanInToolPanel = (id: GeometryPlanId) =>
+    const selectPlanInToolPanel = (id: GeometryPlanId) => {
         delegates.onSelect({ geometryPlans: [id] });
+        delegates.setToolPanelTab({ id, type: 'GEOMETRY_PLAN' });
+    };
 
     const plans = filterPlans(
         linkedPlans ?? [],

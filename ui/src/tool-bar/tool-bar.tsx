@@ -59,12 +59,14 @@ import {
     SearchItemValue,
     SearchType,
 } from 'tool-bar/search-dropdown';
+import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
+    setToolPanelTab: (tab: ToolPanelAsset) => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     onOpenPreview: () => void;
     showArea: (area: BoundingBox) => void;
@@ -83,6 +85,7 @@ export type ToolbarParams = {
 
 export const ToolBar: React.FC<ToolbarParams> = ({
     onSelect,
+    setToolPanelTab,
     onUnselect,
     onOpenPreview,
     showArea,
@@ -178,16 +181,19 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 );
 
                 showArea(operatingPointArea);
-                return;
+                break;
             }
 
             case SearchItemType.LOCATION_TRACK:
                 item.locationTrack.boundingBox && showArea(item.locationTrack.boundingBox);
-                return onSelect({
+
+                onSelect({
                     locationTracks: [item.locationTrack.id],
                     trackNumbers: [],
                     switches: [],
                 });
+                setToolPanelTab({ id: item.locationTrack.id, type: 'LOCATION_TRACK' });
+                break;
 
             case SearchItemType.SWITCH:
                 if (item.layoutSwitch.joints.length > 0) {
@@ -199,13 +205,15 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
                     showArea(bbox);
                 }
-                return !splittingState
-                    ? onSelect({
-                          switches: [item.layoutSwitch.id],
-                          locationTracks: [],
-                          trackNumbers: [],
-                      })
-                    : undefined;
+                if (!splittingState) {
+                    onSelect({
+                        switches: [item.layoutSwitch.id],
+                        locationTracks: [],
+                        trackNumbers: [],
+                    });
+                }
+                setToolPanelTab({ id: item.layoutSwitch.id, type: 'SWITCH' });
+                break;
 
             case SearchItemType.TRACK_NUMBER:
                 getTrackNumberReferenceLine(item.trackNumber.id, layoutContext).then(
@@ -216,14 +224,17 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     },
                 );
 
-                return onSelect({
+                onSelect({
                     trackNumbers: [item.trackNumber.id],
                     locationTracks: [],
                     switches: [],
                 });
+                setToolPanelTab({ id: item.trackNumber.id, type: 'TRACK_NUMBER' });
+                break;
 
             default:
-                return exhaustiveMatchingGuard(item);
+                exhaustiveMatchingGuard(item);
+                break;
         }
     }
 
