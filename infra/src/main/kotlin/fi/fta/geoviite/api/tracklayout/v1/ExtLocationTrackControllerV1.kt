@@ -23,11 +23,13 @@ import org.springframework.web.bind.annotation.RequestParam
 
 const val EXT_TRACK_LAYOUT_BASE_PATH = "/geoviite"
 
+const val EXT_LOCATION_TRACK_TAG_V1 = "Sijaintiraide"
+const val EXT_LOCATION_TRACK_COLLECTION_TAG_V1 = "Sijaintiraidekokoelma"
+
 @PreAuthorize(AUTH_API_GEOMETRY)
 @GeoviiteExtApiController(
     ["$EXT_TRACK_LAYOUT_BASE_PATH/paikannuspohja/v1", "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1"]
 )
-@Tag(name = "Rataverkon paikannuspohja V1")
 class ExtLocationTrackControllerV1(
     private val extLocationTrackService: ExtLocationTrackServiceV1,
     private val extLocationTrackGeometryService: ExtLocationTrackGeometryServiceV1,
@@ -37,6 +39,7 @@ class ExtLocationTrackControllerV1(
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping("/sijaintiraiteet")
+    @Tag(name = EXT_LOCATION_TRACK_COLLECTION_TAG_V1)
     fun extGetLocationTrackCollection(
         @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
@@ -48,6 +51,7 @@ class ExtLocationTrackControllerV1(
     }
 
     @GetMapping("/sijaintiraiteet/muutokset", params = [MODIFICATIONS_FROM_VERSION])
+    @Tag(name = EXT_LOCATION_TRACK_COLLECTION_TAG_V1)
     fun extGetLocationTrackCollectionModifications(
         @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
         @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
@@ -63,6 +67,7 @@ class ExtLocationTrackControllerV1(
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
+    @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
     fun extGetLocationTrack(
         @Parameter(description = LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
@@ -78,6 +83,7 @@ class ExtLocationTrackControllerV1(
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset", params = [MODIFICATIONS_FROM_VERSION])
+    @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
     fun extGetLocationTrackModifications(
         @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
         @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
@@ -95,6 +101,7 @@ class ExtLocationTrackControllerV1(
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria")
+    @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
     fun extGetLocationTrackGeometry(
         @PathVariable(LOCATION_TRACK_OID_PARAM) oid: Oid<LocationTrack>,
         @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>? = null,
@@ -116,6 +123,7 @@ class ExtLocationTrackControllerV1(
         "/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria/muutokset",
         params = [MODIFICATIONS_FROM_VERSION],
     )
+    @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
     fun extGetLocationTrackGeometryModifications(
         @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
         @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
