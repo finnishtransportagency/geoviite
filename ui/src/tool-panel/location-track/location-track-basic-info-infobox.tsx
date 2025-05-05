@@ -33,6 +33,7 @@ import { first } from 'utils/array-utils';
 import { LocationTrackState } from 'geoviite-design-lib/location-track-state/location-track-state';
 import { LocationTrackOid } from 'track-layout/oid';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 type LocationTrackBasicInfoInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -55,6 +56,7 @@ export const LocationTrackBasicInfoInfoboxContainer: React.FC<
             {...props}
             changeTimes={changeTimes}
             onSelect={delegates.onSelect}
+            setToolPanelTab={delegates.setToolPanelTab}
             showArea={delegates.showArea}
         />
     );
@@ -62,6 +64,7 @@ export const LocationTrackBasicInfoInfoboxContainer: React.FC<
 
 type LocationTrackBasicInfoInfoboxProps = LocationTrackBasicInfoInfoboxContainerProps & {
     onSelect: (items: OnSelectOptions) => void;
+    setToolPanelTab: (tab: ToolPanelAsset) => void;
     showArea: (area: BoundingBox) => void;
     changeTimes: ChangeTimes;
 };
@@ -77,6 +80,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
     editingDisabled,
     editingDisabledReason,
     onSelect,
+    setToolPanelTab,
     showArea,
 }) => {
     const { t } = useTranslation();
@@ -93,11 +97,12 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
             const switchId = sw.id;
             return (
                 <AnchorLink
-                    onClick={() =>
+                    onClick={() => {
                         onSelect({
                             switches: [switchId],
-                        })
-                    }>
+                        });
+                        setToolPanelTab({ id: switchId, type: 'SWITCH' });
+                    }}>
                     {sw.name}
                 </AnchorLink>
             );
@@ -178,9 +183,9 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                     label={
                         locationTrack.duplicateOf
                             ? t('tool-panel.location-track.duplicate-of')
-                            : extraInfo?.duplicates?.length ?? 0 > 0
-                            ? t('tool-panel.location-track.has-duplicates')
-                            : t('tool-panel.location-track.not-a-duplicate')
+                            : (extraInfo?.duplicates?.length ?? 0 > 0)
+                              ? t('tool-panel.location-track.has-duplicates')
+                              : t('tool-panel.location-track.not-a-duplicate')
                     }
                     value={
                         <LocationTrackInfoboxDuplicateOf
