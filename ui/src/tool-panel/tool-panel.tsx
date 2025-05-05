@@ -469,10 +469,15 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
     const lockedAsset = getLockedAsset();
 
-    const activeTab =
-        tabs.find((t) => isSameAsset(t.asset, lockedAsset)) ??
-        tabs.find((t) => isSameAsset(t.asset, selectedAsset)) ??
-        first(tabs);
+    const getActiveTab = () => {
+        const lockedTab = tabs.find((t) => isSameAsset(t.asset, lockedAsset));
+        const selectedTab = tabs.find((t) => isSameAsset(t.asset, selectedAsset));
+        const firstTab = first(tabs);
+
+        return lockedTab ?? selectedTab ?? firstTab;
+    };
+
+    const activeTab = getActiveTab();
     return (
         <div className="tool-panel">
             {tabs.length > 1 && (

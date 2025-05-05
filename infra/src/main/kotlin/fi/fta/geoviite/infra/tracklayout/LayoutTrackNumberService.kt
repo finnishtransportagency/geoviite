@@ -198,34 +198,32 @@ class LayoutTrackNumberService(
         polygonBufferSize: Double,
         startKmNumber: KmNumber?,
         endKmNumber: KmNumber?,
-    ): List<GeometryPlanHeader> {
-        val referenceLine = referenceLineService.getByTrackNumber(layoutContext, trackNumberId)
-        if (referenceLine == null) {
-            return emptyList()
-        }
+    ): List<GeometryPlanHeader> =
+        referenceLineService.getByTrackNumber(layoutContext, trackNumberId)?.let { referenceLine ->
+            val alignmentVersion =
+                requireNotNull(referenceLine.alignmentVersion) { "Reference line must have an alignment" }
 
-        val alignmentVersion = requireNotNull(referenceLine.alignmentVersion)
-        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(layoutContext, trackNumberId))
-
-        if (!cropIsWithinReferenceLine(startKmNumber, endKmNumber, geocodingContext)) {
-            return emptyList()
-        } else if (startKmNumber == null && endKmNumber == null) {
-            return alignmentService.getOverlappingPlanHeaders(
-                alignment = layoutAlignmentDao.fetch(alignmentVersion),
-                polygonBufferSize = polygonBufferSize,
-                cropStartM = null,
-                cropEndM = null,
-            )
-        } else {
-            val (cropStartM, cropEndM) = getCropMValues(geocodingContext, startKmNumber, endKmNumber)
-            return alignmentService.getOverlappingPlanHeaders(
-                alignment = layoutAlignmentDao.fetch(alignmentVersion),
-                polygonBufferSize = polygonBufferSize,
-                cropStartM = cropStartM,
-                cropEndM = cropEndM,
-            )
-        }
-    }
+            geocodingService.getGeocodingContext(layoutContext, trackNumberId)?.let { geocodingContext ->
+                if (!cropIsWithinReferenceLine(startKmNumber, endKmNumber, geocodingContext)) {
+                    emptyList()
+                } else if (startKmNumber == null && endKmNumber == null) {
+                    alignmentService.getOverlappingPlanHeaders(
+                        alignment = layoutAlignmentDao.fetch(alignmentVersion),
+                        polygonBufferSize = polygonBufferSize,
+                        cropStartM = null,
+                        cropEndM = null,
+                    )
+                } else {
+                    val (cropStartM, cropEndM) = getCropMValues(geocodingContext, startKmNumber, endKmNumber)
+                    alignmentService.getOverlappingPlanHeaders(
+                        alignment = layoutAlignmentDao.fetch(alignmentVersion),
+                        polygonBufferSize = polygonBufferSize,
+                        cropStartM = cropStartM,
+                        cropEndM = cropEndM,
+                    )
+                }
+            }
+        } ?: emptyList()
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 

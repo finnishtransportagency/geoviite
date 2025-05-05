@@ -116,7 +116,7 @@ export type MapViewProps = {
     onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
-    onStopPlanDownload: () => void;
+    onClosePlanDownloadPopup: () => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
@@ -201,7 +201,7 @@ const MapView: React.FC<MapViewProps> = ({
     onRemoveGeometryLinkPoint,
     onShownLayerItemsChange,
     onHighlightItems,
-    onStopPlanDownload,
+    onClosePlanDownloadPopup,
     onClickLocation,
     onMapLayerChange,
     mapLayerMenuGroups,
@@ -838,7 +838,7 @@ const MapView: React.FC<MapViewProps> = ({
             )}
             {!inPreviewView && !isSelectingDesign && planDownloadState && (
                 <PlanDownloadPopup
-                    onClose={() => onStopPlanDownload()}
+                    onClose={() => onClosePlanDownloadPopup()}
                     layoutContext={layoutContext}
                 />
             )}

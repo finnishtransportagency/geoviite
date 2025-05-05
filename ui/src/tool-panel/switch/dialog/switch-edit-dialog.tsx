@@ -496,7 +496,7 @@ export const SwitchEditDialog = ({
                         <span className={styles['switch-edit-dialog__warning']}>
                             <Icons.StatusError color={IconColor.INHERIT} />
                         </span>{' '}
-                        {t('switch-dialog.switch-will-be-unlinked')}
+                        {t('switch-dialog.structure-change-unlink')}
                     </p>
                     <p>{t('switch-dialog.confirm-switch-save')}</p>
                 </Dialog>
@@ -527,7 +527,7 @@ export const SwitchEditDialog = ({
                     <div>
                         <div className={styles['switch-edit-dialog__warning']}>
                             <Icons.StatusError color={IconColor.INHERIT} />{' '}
-                            {t('switch-dialog.deleted-switch-will-be-unlinked')}
+                            {t('switch-dialog.deleted-switch-unlink')}
                         </div>
                         <div className={'dialog__text'}>
                             {t('switch-dialog.confirm-switch-delete')}

@@ -42,6 +42,8 @@ import { GeometryPlanFilterMenuContainer } from 'selection-panel/geometry-plan-p
 import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
@@ -231,15 +233,17 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     }/${planHeaderCount})`}{' '}
                 </span>
 
-                <div>
-                    <Button
-                        size={ButtonSize.SMALL}
-                        variant={ButtonVariant.GHOST}
-                        isPressed={planDownloadPopupOpen}
-                        onClick={() => togglePlanDownloadPopupOpen(!planDownloadPopupOpen)}
-                        icon={Icons.Download}
-                    />
-                </div>
+                <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
+                    <div>
+                        <Button
+                            size={ButtonSize.SMALL}
+                            variant={ButtonVariant.GHOST}
+                            isPressed={planDownloadPopupOpen}
+                            onClick={() => togglePlanDownloadPopupOpen(!planDownloadPopupOpen)}
+                            icon={Icons.Download}
+                        />
+                    </div>
+                </PrivilegeRequired>
                 <GeometryPlanFilterMenuContainer />
                 <Eye
                     disabled={disabled || planHeadersDisplayableInPanel.length === 0}

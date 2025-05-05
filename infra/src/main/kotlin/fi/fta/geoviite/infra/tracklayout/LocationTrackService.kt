@@ -395,35 +395,37 @@ class LocationTrackService(
         polygonBufferSize: Double,
         cropStart: KmNumber?,
         cropEnd: KmNumber?,
-    ): List<GeometryPlanHeader> {
-        val locationTrack = get(layoutContext, locationTrackId)
-        if (locationTrack == null) {
-            return emptyList()
-        }
+    ): List<GeometryPlanHeader> =
+        get(layoutContext, locationTrackId)?.let { locationTrack ->
+            geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId)?.let { context ->
+                val alignment = alignmentDao.fetch(requireNotNull(locationTrack.alignmentVersion))
 
-        val context = requireNotNull(geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId))
-        val alignment = alignmentDao.fetch(requireNotNull(locationTrack.alignmentVersion))
+                val startAndEnd = getStartAndEnd(layoutContext, listOf(locationTrackId)).first()
+                val trackStart = startAndEnd.start?.address
+                val trackEnd = startAndEnd.end?.address
 
-        val startAndEnd = getStartAndEnd(layoutContext, listOf(locationTrackId)).first()
-        val trackStart = startAndEnd.start?.address
-        val trackEnd = startAndEnd.end?.address
-
-        return if (trackStart == null || trackEnd == null || !cropIsWithinReferenceLine(cropStart, cropEnd, context)) {
-            emptyList()
-        } else if (cropStart == null && cropEnd == null) {
-            alignmentService.getOverlappingPlanHeaders(alignment, polygonBufferSize, cropStartM = null, cropEndM = null)
-        } else {
-            getPlanHeadersOverlappingCroppedLocationTrack(
-                alignment,
-                context,
-                polygonBufferSize,
-                trackStart,
-                trackEnd,
-                cropStart,
-                cropEnd,
-            )
-        }
-    }
+                if (trackStart == null || trackEnd == null || !cropIsWithinReferenceLine(cropStart, cropEnd, context)) {
+                    emptyList()
+                } else if (cropStart == null && cropEnd == null) {
+                    alignmentService.getOverlappingPlanHeaders(
+                        alignment,
+                        polygonBufferSize,
+                        cropStartM = null,
+                        cropEndM = null,
+                    )
+                } else {
+                    getPlanHeadersOverlappingCroppedLocationTrack(
+                        alignment,
+                        context,
+                        polygonBufferSize,
+                        trackStart,
+                        trackEnd,
+                        cropStart,
+                        cropEnd,
+                    )
+                }
+            }
+        } ?: emptyList()
 
     private fun getPlanHeadersOverlappingCroppedLocationTrack(
         alignment: LayoutAlignment,

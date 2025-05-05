@@ -45,7 +45,7 @@ const getTrackLayoutProps = (): MapViewProps => {
         visibleLayerNames: store.map.visibleLayers,
         mapLayerMenuGroups: store.map.layerMenu,
         onMapLayerChange: delegates.onLayerMenuItemChange,
-        onStopPlanDownload: delegates.onStopPlanDownload,
+        onClosePlanDownloadPopup: delegates.onClosePlanDownloadPopup,
         selectedDesignId: store.designId,
         layoutContextMode: store.layoutContextMode,
     };
@@ -72,7 +72,7 @@ const getInfraModelProps = (): MapViewProps => {
         onSetLayoutClusterLinkPoint: emptyFn,
         onSetLayoutPoint: emptyFn,
         onShownLayerItemsChange: emptyFn,
-        onStopPlanDownload: emptyFn,
+        onClosePlanDownloadPopup: emptyFn,
         onViewportUpdate: delegates.onViewportChange,
         layoutContext: officialMainLayoutContext(),
         selection: store.selection,

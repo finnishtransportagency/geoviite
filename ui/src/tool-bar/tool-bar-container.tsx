@@ -18,6 +18,7 @@ export const ToolBarContainer: React.FC = () => {
             showArea={delegates.showArea}
             onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
+            setToolPanelTab={delegates.setToolPanelTab}
             onOpenPreview={() => delegates.onLayoutModeChange('PREVIEW')}
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}
