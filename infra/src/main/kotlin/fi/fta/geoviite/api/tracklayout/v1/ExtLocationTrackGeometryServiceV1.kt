@@ -50,7 +50,7 @@ data class ExtLocationTrackModifiedGeometryResponseV1(
 )
 
 @Schema(name = "Osoitepiste")
-data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataosoite") val trackAddress: String) {
+data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataosoite") val trackAddress: String?) {
     companion object {
         fun of(addressPoint: AddressPoint): ExtAddressPointV1 {
             return ExtAddressPointV1(
@@ -64,8 +64,7 @@ data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataos
             return ExtAddressPointV1(
                 alignmentEndPoint.point.x,
                 alignmentEndPoint.point.y,
-                alignmentEndPoint.address?.formatFixedDecimals(3)
-                    ?: "invalid", // TODO This default should not exist and is only used for due to bad data for testing
+                alignmentEndPoint.address?.formatFixedDecimals(3),
             )
         }
     }
@@ -413,7 +412,8 @@ private fun convertAddressPointCoordinateSystem(
     return if (sourceCoordinateSystem == LAYOUT_SRID && targetCoordinateSystem == LAYOUT_SRID) {
         addressPoint
     } else {
-        val convertedPoint = transformNonKKJCoordinate(LAYOUT_SRID, targetCoordinateSystem, addressPoint.point)
+        val convertedPoint =
+            transformNonKKJCoordinate(sourceCoordinateSystem, targetCoordinateSystem, addressPoint.point)
         addressPoint.copy(point = addressPoint.point.copy(x = convertedPoint.x, y = convertedPoint.y))
     }
 }

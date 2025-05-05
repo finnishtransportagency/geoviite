@@ -504,11 +504,48 @@ class LocationTrackService(
                     getSwitchIdAtStart(alignment, locationTrack) to getSwitchIdAtEnd(alignment, locationTrack)
                 } ?: (null to null)
             }
+
         val switches =
             switchDao
                 .getMany(layoutContext, startAndEndSwitchIds.flatMap { listOfNotNull(it.first, it.second) })
                 .associateBy { switch -> switch.id }
 
+        return formatLocationTrackDescriptions(lang, locationTracks, startAndEndSwitchIds, switches)
+    }
+
+    @Transactional(readOnly = true)
+    fun getFullDescriptionsAtMoment(
+        layoutContext: LayoutContext,
+        locationTracks: List<LocationTrack>,
+        lang: LocalizationLanguage,
+        moment: Instant,
+    ): List<FreeText> {
+        val startAndEndSwitchIds =
+            locationTracks.map { locationTrack ->
+                locationTrack.alignmentVersion?.let { alignmentVersion ->
+                    val alignment = alignmentDao.fetch(alignmentVersion)
+                    getSwitchIdAtStart(alignment, locationTrack) to getSwitchIdAtEnd(alignment, locationTrack)
+                } ?: (null to null)
+            }
+
+        val switches =
+            startAndEndSwitchIds
+                .flatMap { listOfNotNull(it.first, it.second) }
+                .map { switchId ->
+                    // TODO Batchable
+                    switchDao.getOfficialAtMoment(layoutContext.branch, switchId, moment).let(::requireNotNull)
+                }
+                .associateBy { switch -> switch.id }
+
+        return formatLocationTrackDescriptions(lang, locationTracks, startAndEndSwitchIds, switches)
+    }
+
+    private fun formatLocationTrackDescriptions(
+        lang: LocalizationLanguage,
+        locationTracks: List<LocationTrack>,
+        startAndEndSwitchIds: List<Pair<IntId<LayoutSwitch>?, IntId<LayoutSwitch>?>>,
+        switches: Map<DomainId<LayoutSwitch>, LayoutSwitch?>,
+    ): List<FreeText> {
         fun getSwitchShortName(switchId: IntId<LayoutSwitch>) = switches[switchId]?.shortName
         val translation = localizationService.getLocalization(lang)
 

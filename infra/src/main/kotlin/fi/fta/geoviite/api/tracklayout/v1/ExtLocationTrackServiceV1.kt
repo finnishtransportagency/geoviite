@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired
 @Schema(name = "Vastaus: Sijaintiraide")
 data class ExtLocationTrackResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
+    @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
     @JsonProperty("sijaintiraide") val locationTrack: ExtLocationTrackV1,
 )
 
@@ -39,6 +40,7 @@ data class ExtLocationTrackResponseV1(
 data class ExtModifiedLocationTrackResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
+    @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
     @JsonProperty("sijaintiraide") val locationTrack: ExtLocationTrackV1,
 )
 
@@ -52,9 +54,8 @@ data class ExtLocationTrackV1(
     @JsonProperty("tila") val locationTrackState: ExtLocationTrackStateV1,
     @JsonProperty("kuvaus") val locationTrackDescription: FreeText,
     @JsonProperty("omistaja") val locationTrackOwner: MetaDataName,
-    @JsonProperty("alkusijainti") val startLocation: ExtAddressPointV1,
-    @JsonProperty("loppusijainti") val endLocation: ExtAddressPointV1,
-    @JsonProperty("koordinaatisto") val coordinateSystem: Srid,
+    @JsonProperty("alkusijainti") val startLocation: ExtAddressPointV1?,
+    @JsonProperty("loppusijainti") val endLocation: ExtAddressPointV1?,
 )
 
 @GeoviiteService
@@ -89,6 +90,7 @@ constructor(
 
         return ExtLocationTrackResponseV1(
             trackNetworkVersion = publication.uuid,
+            coordinateSystem = coordinateSystem,
             locationTrack =
                 getExtLocationTrack(oid, locationTrack, layoutContext, publication.publicationTime, coordinateSystem),
         )
@@ -147,6 +149,7 @@ constructor(
                 return ExtModifiedLocationTrackResponseV1(
                     modificationsFromVersion = modificationsFromVersion,
                     trackNetworkVersion = laterPublication.uuid,
+                    coordinateSystem = coordinateSystem,
                     locationTrack =
                         getExtLocationTrack(
                             oid,
@@ -212,7 +215,6 @@ constructor(
             locationTrackDescription =
                 locationTrackDescription, // TODO This is not correct as it can change based on version.
             locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
-            coordinateSystem = coordinateSystem,
             startLocation = ExtAddressPointV1.of(startLocation),
             endLocation = ExtAddressPointV1.of(endLocation),
             trackNumberName = trackNumberName,
