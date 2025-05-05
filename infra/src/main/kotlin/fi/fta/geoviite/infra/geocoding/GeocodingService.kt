@@ -78,6 +78,20 @@ class GeocodingService(
         }
     }
 
+    fun getLazyGeocodingContextsAtMoment(
+        layoutContext: LayoutContext,
+        moment: Instant,
+    ): (IntId<LayoutTrackNumber>) -> GeocodingContext? {
+        val contexts: MutableMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext>> = mutableMapOf()
+        return { trackNumberId ->
+            contexts
+                .computeIfAbsent(trackNumberId) {
+                    Optional.ofNullable(getGeocodingContextAtMoment(layoutContext.branch, it, moment))
+                }
+                .getOrNull()
+        }
+    }
+
     fun getTrackLocation(
         layoutContext: LayoutContext,
         locationTrack: LocationTrack,

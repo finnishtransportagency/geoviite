@@ -169,6 +169,25 @@ class LocationTrackService(
         }
     }
 
+    // TODO This can be combined a little bit to the above non-moment based getStartAndEnd
+    fun getStartAndEndAtMoment(
+        context: LayoutContext,
+        ids: List<IntId<LocationTrack>>,
+        moment: Instant,
+    ): List<AlignmentStartAndEnd<LocationTrack>> {
+        val tracksAndAlignments =
+            ids.map { locationTrackId -> // TODO Batchable
+                    dao.getOfficialAtMoment(context.branch, locationTrackId, moment).let(::requireNotNull)
+                }
+                .let(::associateWithAlignments)
+
+        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(context, moment)
+
+        return tracksAndAlignments.map { (track, alignment) ->
+            AlignmentStartAndEnd.of(track.id as IntId, alignment, getGeocodingContext(track.trackNumberId))
+        }
+    }
+
     @Transactional
     override fun saveDraft(branch: LayoutBranch, draftAsset: LocationTrack): LayoutRowVersion<LocationTrack> =
         super.saveDraft(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)))

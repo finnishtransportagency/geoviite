@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
+import java.sql.Timestamp
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
@@ -553,17 +554,16 @@ class LocationTrackDao(
             """
               select distinct on (id) id, design_id, draft, version
               from layout.location_track_version
-              where change_time <= :moment::timestampz
-                and not deleted
+              where change_time <= :change_time
+                and not deleted -- TODO Halutaanko poistetut? 
                 and not draft
                 and design_id is null
               order by id, change_time desc
-            )
         """
                 .trimIndent()
 
         return jdbcTemplate
-            .query(sql, mapOf("moment" to moment)) { rs, _ ->
+            .query(sql, mapOf("change_time" to Timestamp.from(moment))) { rs, _ ->
                 rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
             }
             .map(::fetch)

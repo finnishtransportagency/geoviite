@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingCacheService
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
@@ -56,6 +57,15 @@ data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataos
                 addressPoint.point.x,
                 addressPoint.point.y,
                 addressPoint.address.formatFixedDecimals(3),
+            )
+        }
+
+        fun of(alignmentEndPoint: AlignmentEndPoint): ExtAddressPointV1 {
+            return ExtAddressPointV1(
+                alignmentEndPoint.point.x,
+                alignmentEndPoint.point.y,
+                alignmentEndPoint.address?.formatFixedDecimals(3)
+                    ?: "invalid", // TODO This default should not exist and is only used for due to bad data for testing
             )
         }
     }

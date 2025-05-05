@@ -41,7 +41,10 @@ class ExtLocationTrackControllerV1(
         @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
     ): ExtLocationTrackCollectionResponseV1 {
-        return extLocationTrackCollectionService.createLocationTrackCollectionResponse()
+        return extLocationTrackCollectionService.createLocationTrackCollectionResponse(
+            trackNetworkVersion = trackNetworkVersion,
+            coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
+        )
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
