@@ -12,9 +12,10 @@ export type ValueOf<T> = T[keyof T];
 export type GetElementType<T> = T extends (infer TItem)[] ? TItem : never;
 
 type GetStringKeyTypes<TKeys> = TKeys extends string ? TKeys : never;
-type EnsureAllKeys<TAllKeys, TGivenKeys> = Exclude<TAllKeys, TGivenKeys> extends never
-    ? TGivenKeys
-    : `Key '${GetStringKeyTypes<Exclude<TAllKeys, TGivenKeys>>}' is missing!`;
+type EnsureAllKeys<TAllKeys, TGivenKeys> =
+    Exclude<TAllKeys, TGivenKeys> extends never
+        ? TGivenKeys
+        : `Key '${GetStringKeyTypes<Exclude<TAllKeys, TGivenKeys>>}' is missing!`;
 
 /**
  * This function provides type checking to make sure that the given

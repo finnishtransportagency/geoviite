@@ -38,6 +38,7 @@ import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.util.Either
 import fi.fta.geoviite.infra.util.Left
 import fi.fta.geoviite.infra.util.Right
+import fi.fta.geoviite.infra.util.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.processSortedBy
 import java.math.BigDecimal
@@ -587,22 +588,6 @@ fun splitRange(range: ClosedRange<TrackMeter>, splits: List<ClosedRange<TrackMet
         if (range.start >= allowedRange.endInclusive || range.endInclusive <= allowedRange.start) null
         else maxOf(range.start, allowedRange.start)..minOf(range.endInclusive, allowedRange.endInclusive)
     }
-
-fun <T, R : Comparable<R>> getIndexRangeForRangeInOrderedList(
-    things: List<T>,
-    rangeStart: R,
-    rangeEnd: R,
-    compare: (thing: T, rangeEnd: R) -> Int,
-): IntRange? {
-    if (rangeEnd < rangeStart) {
-        return null
-    }
-    val startInsertionPoint = things.binarySearch { t -> compare(t, rangeStart) }
-    val endInsertionPoint = things.binarySearch { t -> compare(t, rangeEnd) }
-    val start = if (startInsertionPoint < 0) -startInsertionPoint - 1 else startInsertionPoint
-    val end = if (endInsertionPoint < 0) -endInsertionPoint - 2 else endInsertionPoint
-    return start..end
-}
 
 fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
     things: List<T>,

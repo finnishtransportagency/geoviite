@@ -26,6 +26,7 @@ import { isEqualIgnoreCase } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 
 type WorkspaceDialogProps = {
+    nameSuggestion?: string;
     existingDesign?: LayoutDesign;
     onCancel: () => void;
     onSave: (id: LayoutDesignId | undefined, saveRequest: LayoutDesignSaveRequest) => void;
@@ -48,6 +49,7 @@ function validateDesignName(name: string, committed: boolean): string[] {
 }
 
 export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
+    nameSuggestion,
     existingDesign,
     onCancel,
     onSave,
@@ -58,8 +60,9 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
     const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
         existingDesign ? new Date(existingDesign?.estimatedCompletion) : undefined,
     );
-    const [name, setName] = React.useState<string>(existingDesign?.name ?? '');
+    const [name, setName] = React.useState<string>(nameSuggestion ?? existingDesign?.name ?? '');
     const [nameCommitted, setNameCommitted] = React.useState<boolean>(false);
+    const nameInputRef = React.useRef<HTMLInputElement>(null);
 
     const [allDesigns, allDesignsFetchStatus] = useLoaderWithStatus(
         () => getLayoutDesigns(getChangeTimes().layoutDesign),
@@ -77,6 +80,8 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
     const allErrors = designNameErrors
         .map((e) => t(`workspace-dialog.${e}`))
         .concat(designNameNotUnique ? [t('workspace-dialog.name-not-unique')] : []);
+
+    React.useEffect(() => nameInputRef?.current?.focus(), []);
 
     return (
         <Dialog
@@ -125,6 +130,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                                 qa-id={'workspace-dialog-name'}
                                 hasError={allErrors.length > 0}
                                 onBlur={() => setNameCommitted(true)}
+                                ref={nameInputRef}
                             />
                         }
                         errors={allErrors}

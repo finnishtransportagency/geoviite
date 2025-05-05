@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -96,15 +95,6 @@ class LayoutTrackNumberService(
         referenceLineService.deleteDraftByTrackNumberId(branch, id)
         return deleteDraft(branch, id).id
     }
-
-    @Transactional
-    override fun cancel(branch: DesignBranch, id: IntId<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber>? =
-        dao.get(branch.official, id)?.let { trackNumber ->
-            referenceLineService.getByTrackNumber(branch.official, trackNumber.id as IntId)?.let {
-                referenceLineService.cancel(branch, it.id as IntId)
-            }
-            super.cancel(branch, id)
-        }
 
     fun idMatches(
         layoutContext: LayoutContext,
@@ -211,11 +201,14 @@ class LayoutTrackNumberService(
         endKm: KmNumber?,
         bufferSize: Double = ALIGNMENT_POLYGON_BUFFER,
     ): List<IPoint> {
-        val (_, alignment) = referenceLineService.getByTrackNumberWithAlignmentOrThrow(layoutContext, trackNumberId)
-        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(layoutContext, trackNumberId))
-        geocodingContext.referenceLineGeometry
+        val alignment = referenceLineService.getByTrackNumberWithAlignment(layoutContext, trackNumberId)?.second
+        val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
 
-        return if (!cropIsWithinReferenceLine(startKm, endKm, geocodingContext)) {
+        return if (
+            alignment == null ||
+                geocodingContext == null ||
+                !cropIsWithinReferenceLine(startKm, endKm, geocodingContext)
+        ) {
             emptyList()
         } else {
             getCropMRange(geocodingContext, Range(0.0, alignment.length), startKm, endKm)?.let { cropRange ->

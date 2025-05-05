@@ -33,7 +33,7 @@ import {
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
 import { BoundingBox, Point } from 'model/geometry';
 import { PlacingSwitch } from 'linking/linking-model';
-import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
 import { translateSwitchTrapPoint } from 'utils/enum-localization-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { SwitchInfoboxTrackMeters } from 'tool-panel/switch/switch-infobox-track-meters';
@@ -374,7 +374,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                     {t('tool-panel.switch.layout.switch-placing-help')}
                                 </MessageBox>
                             ) : (
-                                <MessageBox type={'ERROR'}>
+                                <MessageBox type={MessageBoxType.ERROR}>
                                     {t('tool-panel.switch.layout.cant-link-deleted')}
                                 </MessageBox>
                             )}

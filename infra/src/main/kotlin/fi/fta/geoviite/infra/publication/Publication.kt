@@ -72,6 +72,7 @@ data class PropKey(val key: LocalizationKey, val params: LocalizationParams = Lo
 
 open class Publication(
     open val id: IntId<Publication>,
+    open val uuid: Uuid<Publication>,
     open val publicationTime: Instant,
     open val publicationUser: UserName,
     open val message: FreeTextWithNewLines,
@@ -87,7 +88,11 @@ data object PublishedInMain : PublishedInBranch() {
     override val branch = LayoutBranch.main
 }
 
-data class PublishedInDesign(val designBranch: DesignBranch, @JsonIgnore val designVersion: Int) : PublishedInBranch() {
+data class PublishedInDesign(
+    val designBranch: DesignBranch,
+    @JsonIgnore val designVersion: Int,
+    val parentPublicationId: IntId<Publication>?,
+) : PublishedInBranch() {
     override val branch = designBranch
 }
 
@@ -162,6 +167,7 @@ data class PublishedIndirectChanges(
 
 data class PublicationDetails(
     override val id: IntId<Publication>,
+    override val uuid: Uuid<Publication>,
     override val publicationTime: Instant,
     override val publicationUser: UserName,
     override val message: FreeTextWithNewLines,
@@ -176,7 +182,7 @@ data class PublicationDetails(
     val ratkoPushTime: Instant?,
     val indirectChanges: PublishedIndirectChanges,
     val split: SplitHeader?,
-) : Publication(id, publicationTime, publicationUser, message, layoutBranch, cause) {
+) : Publication(id, uuid, publicationTime, publicationUser, message, layoutBranch, cause) {
     val allPublishedTrackNumbers = trackNumbers + indirectChanges.trackNumbers
     val allPublishedLocationTracks = locationTracks + indirectChanges.locationTracks
     val allPublishedSwitches = switches + indirectChanges.switches
@@ -338,7 +344,7 @@ data class PublicationRequestIds(
 data class PublicationRequest(val content: PublicationRequestIds, val message: FreeTextWithNewLines)
 
 data class PublicationResult(
-    val publicationId: IntId<Publication>?,
+    val publicationId: IntId<Publication>,
     val trackNumbers: List<PublicationResultVersions<LayoutTrackNumber>>,
     val referenceLines: List<PublicationResultVersions<ReferenceLine>>,
     val locationTracks: List<PublicationResultVersions<LocationTrack>>,
@@ -703,6 +709,7 @@ data class PreparedPublicationRequest(
     val calculatedChanges: CalculatedChanges,
     val message: FreeTextWithNewLines,
     val cause: PublicationCause,
+    val parentId: IntId<Publication>?,
 )
 
 data class PublicationResultVersions<T : LayoutAsset<T>>(

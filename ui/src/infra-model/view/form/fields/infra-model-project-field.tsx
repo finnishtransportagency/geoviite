@@ -11,7 +11,7 @@ import { compareNamed } from 'common/common-model';
 type ProjectDropdownProps = {
     id: ProjectId;
     setProject: (id: ProjectId) => void;
-    onAddProject: () => void;
+    onAddProject: (nameSuggestion: string) => void;
 };
 
 export const ProjectDropdown: React.FC<ProjectDropdownProps> = ({

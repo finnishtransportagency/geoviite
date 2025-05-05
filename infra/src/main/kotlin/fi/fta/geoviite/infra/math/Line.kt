@@ -115,4 +115,9 @@ data class Line(val start: IPoint, val end: IPoint) {
 
     val length
         get() = lineLength(start, end)
+
+    fun expand(fromStart: Double, fromEnd: Double): Line {
+        val v = (end - start).normalized()
+        return Line(start - v * fromStart, end + v * fromEnd)
+    }
 }

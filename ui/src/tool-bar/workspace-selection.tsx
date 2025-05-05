@@ -54,6 +54,7 @@ export const DesignSelection: React.FC<DesignSelectionProps> = ({ designId, onDe
     const { t } = useTranslation();
     const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] = React.useState(false);
     const [savingWorkspace, setSavingWorkspace] = React.useState(false);
+    const [workspaceNameSuggestion, setWorkspaceNameSuggestion] = React.useState<string>();
     const selectWorkspaceDropdownRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
@@ -67,7 +68,10 @@ export const DesignSelection: React.FC<DesignSelectionProps> = ({ designId, onDe
 
     const canAddDesigns = useUserHasPrivilege(EDIT_LAYOUT);
 
-    const onAddClick = () => setShowCreateWorkspaceDialog(true);
+    const onAddClick = (nameSuggestion: string | undefined) => {
+        setWorkspaceNameSuggestion(nameSuggestion);
+        setShowCreateWorkspaceDialog(true);
+    };
 
     async function handleInsertLayoutDesign(request: LayoutDesignSaveRequest) {
         const designId = await insertLayoutDesign(request);
@@ -105,6 +109,7 @@ export const DesignSelection: React.FC<DesignSelectionProps> = ({ designId, onDe
 
             {showCreateWorkspaceDialog && (
                 <WorkspaceDialog
+                    nameSuggestion={workspaceNameSuggestion}
                     onCancel={() => setShowCreateWorkspaceDialog(false)}
                     onSave={(_, request) => {
                         setSavingWorkspace(true);

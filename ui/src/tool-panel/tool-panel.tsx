@@ -1,5 +1,5 @@
 import * as React from 'react';
-import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
+import GeometryPlanInfobox from 'tool-panel/geometry-plan/geometry-plan-infobox';
 import {
     GeometryAlignmentId,
     GeometryKmPostId,
@@ -175,6 +175,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         changeTimes.layoutKmPost,
         changeTimes.layoutTrackNumber,
         changeTimes.split,
+        changeTimes.geometryPlan,
         planIds,
         geometryKmPostIds,
         geometrySwitchIds,
@@ -414,15 +415,13 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         verticalGeometryDiagramVisible,
     ]);
 
-    function changeTab(tab: ToolPanelAsset) {
-        let lockToAsset;
-
+    const getLockedAsset = (): ToolPanelAsset | undefined => {
         if (linkingState?.type === LinkingType.LinkingAlignment) {
             const tabTypeToFind = linkingStateLayoutAlignmentTabType(
                 linkingState.layoutAlignment.type,
             );
 
-            lockToAsset = tabs.find(
+            return tabs.find(
                 (t) =>
                     t.asset.type === tabTypeToFind &&
                     t.asset.id === linkingState.layoutAlignment.id,
@@ -432,13 +431,13 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
             linkingState?.type === LinkingType.UnknownAlignment
         ) {
-            lockToAsset = tabs.find(
+            return tabs.find(
                 (t) =>
                     t.asset.type === 'GEOMETRY_ALIGNMENT' &&
                     t.asset.id === linkingState.geometryAlignmentId,
             )?.asset;
         } else if (linkingState?.type === LinkingType.LinkingSwitch) {
-            lockToAsset = tabs.find((t) => {
+            return tabs.find((t) => {
                 return (
                     ((t.asset.type === 'GEOMETRY_SWITCH' ||
                         t.asset.type === 'GEOMETRY_SWITCH_SUGGESTION') &&
@@ -447,38 +446,45 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 );
             })?.asset;
         } else if (linkingState?.type === LinkingType.LinkingKmPost) {
-            lockToAsset = tabs.find((t) => {
+            return tabs.find((t) => {
                 return (
                     t.asset.type === 'GEOMETRY_KM_POST' &&
                     t.asset.id === linkingState.geometryKmPostId
                 );
             })?.asset;
         } else if (splittingState) {
-            lockToAsset = tabs.find(
+            return tabs.find(
                 (t) =>
                     t.asset.type === 'LOCATION_TRACK' &&
                     t.asset.id === splittingState.originLocationTrack.id,
             )?.asset;
         }
+        return undefined;
+    };
 
-        setSelectedAsset(lockToAsset ? lockToAsset : tab);
+    function changeTab(tab: ToolPanelAsset) {
+        const lockToAsset = getLockedAsset();
+        if (!lockToAsset) setSelectedAsset(tab);
     }
 
-    const anyTabSelected = tabs.some((t) => isSameAsset(t.asset, selectedAsset));
+    const lockedAsset = getLockedAsset();
+
+    const activeTab =
+        tabs.find((t) => isSameAsset(t.asset, lockedAsset)) ??
+        tabs.find((t) => isSameAsset(t.asset, selectedAsset)) ??
+        first(tabs);
     return (
         <div className="tool-panel">
             {tabs.length > 1 && (
                 <div className="tool-panel__tab-bar" qa-id="tool-panel-tabs">
                     {tabs.map((t, tabIndex) => {
-                        const selected = anyTabSelected
-                            ? isSameAsset(t.asset, selectedAsset)
-                            : tabIndex === 0;
+                        const active = activeTab ? t.asset === activeTab.asset : tabIndex === 0;
                         return (
                             <TabHeader
                                 className={'tool-panel__tab-header'}
                                 size={TabHeaderSize.Small}
                                 key={t.asset.type + '_' + t.asset.id}
-                                selected={selected}
+                                selected={active}
                                 onClick={() => changeTab(t.asset)}>
                                 {t.title}
                             </TabHeader>
@@ -486,9 +492,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     })}
                 </div>
             )}
-            {anyTabSelected
-                ? tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element
-                : first(tabs)?.element}
+            {activeTab?.element}
             <LocationTrackTaskListContainer />
         </div>
     );

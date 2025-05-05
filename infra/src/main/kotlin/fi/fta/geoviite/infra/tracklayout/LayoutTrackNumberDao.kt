@@ -248,7 +248,6 @@ class LayoutTrackNumberDao(
                 select id, design_id, draft, version, number
                 from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
                 where number in (:numbers)
-                  and state != 'DELETED'
             """
                     .trimIndent()
             val params =

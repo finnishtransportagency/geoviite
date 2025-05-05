@@ -5,8 +5,8 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
-import fi.fta.geoviite.infra.geocoding.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.util.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.util.processFlattened
 import java.math.BigDecimal
 

@@ -105,7 +105,6 @@ class LayoutKmPostDao(
                 where (id in (:km_post_ids_to_publish)) is distinct from true
               ) km_post
             where track_number_id in (:track_number_ids)
-              and km_post.state != 'DELETED'
             order by km_post.track_number_id, km_post.km_number
         """
                 .trimIndent()

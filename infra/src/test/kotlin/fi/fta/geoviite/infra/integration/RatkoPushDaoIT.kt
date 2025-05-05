@@ -263,6 +263,7 @@ constructor(
                 layoutBranch = layoutBranch,
                 message = FreeTextWithNewLines.of(message),
                 cause = PublicationCause.MANUAL,
+                parentId = null,
             )
             .also { publicationId ->
                 val calculatedChanges =

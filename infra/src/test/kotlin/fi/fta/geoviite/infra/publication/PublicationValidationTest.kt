@@ -893,6 +893,7 @@ class PublicationValidationTest {
             switch = if (!switchDraft || switchInPublication) switch else null,
             switchStructure = structure,
             indexedLinks = listOf(0 to toTrackSwitchLink(switch, joint1), 1 to toTrackSwitchLink(switch, joint2)),
+            switchIsCancelled = false,
         )
     }
 
@@ -933,7 +934,13 @@ class PublicationValidationTest {
     ) =
         assertContainsError(
             hasError,
-            validateTrackNumberReferences(trackNumber, referenceLine, kmPosts, locationTracks),
+            validateTrackNumberReferences(
+                trackNumberExists = trackNumber.exists,
+                trackNumberIsCancelled = trackNumber.isCancelled,
+                referenceLine,
+                kmPosts,
+                locationTracks,
+            ),
             error,
         )
 
@@ -947,7 +954,13 @@ class PublicationValidationTest {
     ) =
         assertContainsError(
             hasError,
-            validateKmPostReferences(kmPost, trackNumber, referenceLine, trackNumberNumber),
+            validateKmPostReferences(
+                kmPost,
+                trackNumber,
+                referenceLine,
+                trackNumberNumber,
+                trackNumberIsCancelled = false,
+            ),
             error,
         )
 

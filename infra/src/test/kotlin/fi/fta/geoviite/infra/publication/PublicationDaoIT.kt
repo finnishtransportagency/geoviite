@@ -244,7 +244,12 @@ constructor(
                 indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList()),
             )
         val publicationId =
-            publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of(""), PublicationCause.MANUAL)
+            publicationDao.createPublication(
+                LayoutBranch.main,
+                FreeTextWithNewLines.of(""),
+                PublicationCause.MANUAL,
+                parentId = null,
+            )
         publicationDao.insertCalculatedChanges(
             publicationId,
             changes,
@@ -277,7 +282,8 @@ constructor(
     @Test
     fun `Publication message is stored and fetched correctly`() {
         val message = FreeTextWithNewLines.of("Test")
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, message, PublicationCause.MANUAL)
+        val publicationId =
+            publicationDao.createPublication(LayoutBranch.main, message, PublicationCause.MANUAL, parentId = null)
         assertEquals(message, publicationDao.getPublication(publicationId).message)
     }
 
@@ -408,17 +414,29 @@ constructor(
     fun `fetchLatestPublicationDetails lists design publications in design mode`() {
         val someDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("one")))
         val anotherDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("two")))
-        publicationDao.createPublication(someDesign, FreeTextWithNewLines.of("in someDesign"), PublicationCause.MANUAL)
-        publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("in main"), PublicationCause.MANUAL)
+        publicationDao.createPublication(
+            someDesign,
+            FreeTextWithNewLines.of("in someDesign"),
+            PublicationCause.MANUAL,
+            parentId = null,
+        )
+        publicationDao.createPublication(
+            LayoutBranch.main,
+            FreeTextWithNewLines.of("in main"),
+            PublicationCause.MANUAL,
+            parentId = null,
+        )
         publicationDao.createPublication(
             anotherDesign,
             FreeTextWithNewLines.of("in anotherDesign"),
             PublicationCause.MANUAL,
+            parentId = null,
         )
         publicationDao.createPublication(
             LayoutBranch.main,
             FreeTextWithNewLines.of("again in main"),
             PublicationCause.MANUAL,
+            parentId = null,
         )
         assertEquals(
             listOf("in anotherDesign", "in someDesign"),
@@ -438,6 +456,7 @@ constructor(
                 DesignBranch.of(someDesign),
                 FreeTextWithNewLines.of("pub 1"),
                 PublicationCause.MANUAL,
+                parentId = null,
             )
         layoutDesignDao.update(someDesign, layoutDesign(name = "bar"))
         val pub2 =
@@ -445,6 +464,7 @@ constructor(
                 DesignBranch.of(someDesign),
                 FreeTextWithNewLines.of("pub 2"),
                 PublicationCause.MANUAL,
+                parentId = null,
             )
         layoutDesignDao.update(someDesign, layoutDesign(name = "spam"))
         val pub3 =
@@ -452,24 +472,42 @@ constructor(
                 DesignBranch.of(someDesign),
                 FreeTextWithNewLines.of("pub 3"),
                 PublicationCause.MANUAL,
+                parentId = null,
             )
         val pub4 =
             publicationDao.createPublication(
                 DesignBranch.of(someDesign),
                 FreeTextWithNewLines.of("pub 4"),
                 PublicationCause.MANUAL,
+                parentId = null,
             )
         val pub5 =
             publicationDao.createPublication(
                 DesignBranch.of(someDesign),
                 FreeTextWithNewLines.of("pub 5"),
                 PublicationCause.MANUAL,
+                parentId = null,
             )
         assertEquals(null, publicationDao.getPreviouslyPublishedDesignVersion(pub1, someDesign))
         assertEquals(1, publicationDao.getPreviouslyPublishedDesignVersion(pub2, someDesign))
         assertEquals(2, publicationDao.getPreviouslyPublishedDesignVersion(pub3, someDesign))
         assertEquals(3, publicationDao.getPreviouslyPublishedDesignVersion(pub4, someDesign))
         assertEquals(3, publicationDao.getPreviouslyPublishedDesignVersion(pub5, someDesign))
+    }
+
+    @Test
+    fun `Publication has a generated uuid`() {
+        val publication =
+            publicationDao
+                .createPublication(
+                    MainLayoutContext.official.branch,
+                    FreeTextWithNewLines.of("test publication"),
+                    PublicationCause.MANUAL,
+                    parentId = null,
+                )
+                .let(publicationDao::getPublication)
+
+        assertTrue(publication.uuid.toString().isNotEmpty())
     }
 
     private fun insertAndCheck(

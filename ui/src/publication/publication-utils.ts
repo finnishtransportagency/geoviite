@@ -13,6 +13,7 @@ import { currentDay } from 'utils/date-utils';
 import { candidateIdAndTypeMatches } from 'preview/preview-view-filters';
 import { brand } from 'common/brand';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { mapLazy } from 'utils/array-utils';
 
 export const defaultPublicationSearch: PublicationSearch = {
     startDate: subMonths(currentDay, 1).toISOString(),
@@ -24,7 +25,7 @@ export const conditionallyUpdateCandidates = (
     condition: (candidate: PublicationCandidate) => boolean,
     transform: (candidate: PublicationCandidate) => PublicationCandidate,
 ): PublicationCandidate[] => {
-    return publicationCandidates.map((candidate): PublicationCandidate => {
+    return mapLazy(publicationCandidates, (candidate): PublicationCandidate => {
         return condition(candidate) ? transform(candidate) : candidate;
     });
 };
@@ -32,11 +33,14 @@ export const conditionallyUpdateCandidates = (
 export const stageTransform = (
     newStage: PublicationStage,
 ): ((candidate: PublicationCandidate) => PublicationCandidate) => {
-    return (candidate): PublicationCandidate => ({
-        ...candidate,
-        stage: newStage,
-        validationState: 'IN_PROGRESS',
-    });
+    return (candidate): PublicationCandidate =>
+        candidate.stage === newStage
+            ? candidate
+            : {
+                  ...candidate,
+                  stage: newStage,
+                  validationState: 'IN_PROGRESS',
+              };
 };
 
 export type PublicationAssetChangeAmounts = {

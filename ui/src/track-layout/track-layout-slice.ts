@@ -35,7 +35,7 @@ import {
     SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { first } from 'utils/array-utils';
+import { first, reuseListElements } from 'utils/array-utils';
 import {
     PublicationCandidate,
     PublicationCandidateReference,
@@ -53,7 +53,7 @@ import { brand } from 'common/brand';
 import {
     initialPlanDownloadState,
     initialPlanDownloadStateFromSelection,
-    SelectedPlanDownloadAsset,
+    PlanDownloadAssetId,
     planDownloadReducers,
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
@@ -425,13 +425,15 @@ const trackLayoutSlice = createSlice({
             state: TrackLayoutState,
             action: PayloadAction<PublicationCandidate[]>,
         ): void {
-            const stagedCandidates = filterByPublicationStage(
-                action.payload,
-                PublicationStage.STAGED,
+            const stagedCandidateReferences = asPublicationCandidateReferences(
+                filterByPublicationStage(action.payload, PublicationStage.STAGED),
             );
 
-            state.stagedPublicationCandidateReferences =
-                asPublicationCandidateReferences(stagedCandidates);
+            state.stagedPublicationCandidateReferences = reuseListElements(
+                stagedCandidateReferences,
+                state.stagedPublicationCandidateReferences,
+                (candidate) => candidate.id,
+            );
         },
 
         onHighlightItems: function (
@@ -606,20 +608,12 @@ const trackLayoutSlice = createSlice({
         },
         onStartPlanDownload: (
             state: TrackLayoutState,
-            { payload: idAndType }: PayloadAction<SelectedPlanDownloadAsset | undefined>,
+            { payload: asset }: PayloadAction<PlanDownloadAssetId | undefined>,
         ): void => {
-            if (!idAndType) {
+            if (!asset) {
                 state.planDownloadState = initialPlanDownloadState;
-            } else if (idAndType.type === 'TRACK_NUMBER') {
-                state.planDownloadState = initialPlanDownloadStateFromSelection(
-                    undefined,
-                    idAndType.id,
-                );
             } else {
-                state.planDownloadState = initialPlanDownloadStateFromSelection(
-                    idAndType.id,
-                    undefined,
-                );
+                state.planDownloadState = initialPlanDownloadStateFromSelection(asset);
             }
         },
         onStopPlanDownload: (state: TrackLayoutState): void => {

@@ -1,6 +1,8 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
     AlignmentStartAndEnd,
+    LayoutLocationTrack,
+    LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
@@ -24,10 +26,12 @@ import {
     PlanSource,
 } from 'geometry/geometry-model';
 import { isValidKmNumber } from 'tool-panel/km-post/dialog/km-post-edit-store';
+import { brand } from 'common/brand';
+import { ToolPanelAsset } from 'tool-panel/tool-panel';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type AreaSelection = {
-    trackNumber: LayoutTrackNumberId | undefined;
-    locationTrack: LocationTrackId | undefined;
+    asset: PlanDownloadAssetId | undefined;
     startTrackMeter: string;
     endTrackMeter: string;
     alignmentStartAndEnd: AlignmentStartAndEnd | undefined;
@@ -52,30 +56,81 @@ export type DownloadablePlan = {
     kmNumberRange: KmNumberRange | undefined;
 };
 
-export type SelectedPlanDownloadAsset =
+export enum PlanDownloadAssetType {
+    TRACK_NUMBER = 'TRACK_NUMBER',
+    LOCATION_TRACK = 'LOCATION_TRACK',
+}
+
+export type PlanDownloadAssetId =
     | {
           id: LayoutTrackNumberId;
-          type: 'TRACK_NUMBER';
+          type: PlanDownloadAssetType.TRACK_NUMBER;
       }
-    | { id: LocationTrackId; type: 'LOCATION_TRACK' };
+    | { id: LocationTrackId; type: PlanDownloadAssetType.LOCATION_TRACK };
+
+type WithExtremities = {
+    startAndEnd: AlignmentStartAndEnd;
+};
+export type TrackNumberAsset = {
+    asset: LayoutTrackNumber;
+    type: PlanDownloadAssetType.TRACK_NUMBER;
+};
+export type TrackNumberAssetAndExtremities = TrackNumberAsset & WithExtremities;
+
+export type LocationTrackAsset = {
+    asset: LayoutLocationTrack;
+    type: PlanDownloadAssetType.LOCATION_TRACK;
+};
+export type LocationTrackAssetAndExtremities = LocationTrackAsset & WithExtremities;
+
+export type PlanDownloadAssetAndExtremities =
+    | TrackNumberAssetAndExtremities
+    | LocationTrackAssetAndExtremities;
+export type PlanDownloadAsset = TrackNumberAsset | LocationTrackAsset;
 
 export const initialPlanDownloadStateFromSelection = (
-    locationTrackId: LocationTrackId | undefined,
-    trackNumberId: LayoutTrackNumberId | undefined,
-): PlanDownloadState => ({
-    ...initialPlanDownloadState,
-    areaSelection: {
-        ...initialPlanDownloadState.areaSelection,
-        locationTrack: locationTrackId,
-        trackNumber: trackNumberId,
-    },
-});
+    selectedAsset: PlanDownloadAssetId | undefined,
+): PlanDownloadState => {
+    return {
+        ...initialPlanDownloadState,
+        areaSelection: {
+            ...initialPlanDownloadState.areaSelection,
+            asset: selectedAsset,
+        },
+    };
+};
+
+export const planDownloadAssetIdFromToolPanelAsset = (
+    selectedAsset: ToolPanelAsset,
+): PlanDownloadAssetId | undefined => {
+    switch (selectedAsset.type) {
+        case 'TRACK_NUMBER':
+            return {
+                type: PlanDownloadAssetType.TRACK_NUMBER,
+                id: brand(selectedAsset.id),
+            };
+        case 'LOCATION_TRACK':
+            return {
+                type: PlanDownloadAssetType.LOCATION_TRACK,
+                id: brand(selectedAsset.id),
+            };
+        case 'GEOMETRY_PLAN':
+        case 'GEOMETRY_ALIGNMENT':
+        case 'GEOMETRY_KM_POST':
+        case 'GEOMETRY_SWITCH':
+        case 'GEOMETRY_SWITCH_SUGGESTION':
+        case 'KM_POST':
+        case 'SWITCH':
+            return undefined;
+        default:
+            return exhaustiveMatchingGuard(selectedAsset.type);
+    }
+};
 
 export const initialPlanDownloadState: PlanDownloadState = {
     openPopupSection: 'AREA',
     areaSelection: {
-        trackNumber: undefined,
-        locationTrack: undefined,
+        asset: undefined,
         startTrackMeter: '',
         endTrackMeter: '',
         alignmentStartAndEnd: undefined,
@@ -96,19 +151,20 @@ const validateAreaSelection = (state: PlanDownloadState): FieldValidationIssue<A
                   max: state.areaSelection.alignmentStartAndEnd.end.address.kmNumber,
               }
             : undefined;
-    const alignmentType = state.areaSelection.locationTrack ? 'location-track' : 'track-number';
+    const alignmentType =
+        state.areaSelection.asset?.type === PlanDownloadAssetType.LOCATION_TRACK
+            ? 'location-track'
+            : state.areaSelection.asset?.type === PlanDownloadAssetType.TRACK_NUMBER
+              ? 'track-number'
+              : undefined;
 
     return state.openPopupSection === 'AREA'
         ? [
-              validate(
-                  state.areaSelection.trackNumber !== undefined ||
-                      state.areaSelection.locationTrack !== undefined,
-                  {
-                      type: FieldValidationIssueType.ERROR,
-                      field: 'trackNumber',
-                      reason: 'mandatory-field',
-                  },
-              ),
+              validate(state.areaSelection.asset !== undefined, {
+                  type: FieldValidationIssueType.ERROR,
+                  field: 'asset',
+                  reason: 'mandatory-field',
+              }),
               validate(
                   state.areaSelection.startTrackMeter === '' ||
                       kmNumberIsValid(state.areaSelection.startTrackMeter),

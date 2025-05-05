@@ -185,6 +185,10 @@
     "design": {
         "duplicate-name": "Nimi {{name}} on jo käytössä"
     },
+    "gk-location-transform": {
+        "location-converted": "Sijainti muunnettu koordinaatistosta {{originalCrs}}",
+        "original-crs": "Alkuperäinen koordinaatisto {{originalCrs}}"
+    },
     "enum": {
         "PlanPhase": {
             "RAILWAY_PLAN": "Ratasuunnitelma, RaS",
@@ -584,8 +588,8 @@
                 "is-linked": "Linkitetty",
                 "start-setup": "Aloita linkitys",
                 "select-switch-msg": "Valitse vaihde, johon linkitetään",
-                "cannot-link-invalid-switch-type": "Valitun vaihteen tyyppi:\n{{selectedType}}\n\neroaa liikaa oletetusta vaihteen tyyppistä:\n{{suggestedType}}\n\nVaihdetta ei voi linkittää.",
-                "switch-type-differs-warning": "Valitun vaihteen tyyppi:\n{{suggestedType}}\n\neroaa oletetusta vaihteen tyyppistä:\n{{selectedType}}",
+                "cannot-link-invalid-switch-type": "Paikannuspohjan vaihteen tyyppi <strong>{{selectedType}}</strong> eroaa liikaa geometriavaihteen tyypistä <strong>{{suggestedType}}</strong>.<br><br>Vaihdetta ei voi linkittää.",
+                "switch-type-differs-warning": "Linkitettävän geometriavaihteen tyyppi <strong>{{suggestedType}}</strong> eroaa paikannuspohjan vaihteen tyypistä <strong>{{selectedType}}</strong>.<br/><br/>Paikannuspohjan vaihteen tyyppinä säilyy <strong>{{selectedType}}</strong>.",
                 "switch-type-confirm-msg": "Linkitä tyyppierosta huolimatta",
                 "zoom-closer": "Zoomaa lähemmäksi nähdäksesi vaihteen pisteet.",
                 "cancel": "Peruuta",
@@ -1362,7 +1366,8 @@
         "invalid-track-meter": "Tarkista ratakilometrin muoto",
         "end-before-start": "Ratakilometrin loppu on ennen alkua",
         "outside-track-number-range": "Ratakilometri ei osu ratanumeron alueelle ({{start}}-{{end}})",
-        "outside-location-track-range": "Ratakilometri ei osu raiteen alueelle ({{start}}-{{end}})"
+        "outside-location-track-range": "Ratakilometri ei osu raiteen alueelle ({{start}}-{{end}})",
+        "unsupported-result-type": "Tyyppi {{type}} ei ole tuettu"
     },
     "preview-view": {
         "unstaged-changes-title": "Muutokset ({{amount}} kpl)",
@@ -1475,7 +1480,8 @@
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava ratanumero ei ole luonnos",
                 "reference-line": {
                     "not-published": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa",
-                    "cancelled": "Ratanumeron pituusmittauslinja on peruttu suunnitelmasta"
+                    "cancelled": "Ratanumeron pituusmittauslinja on peruttu suunnitelmasta",
+                    "cancelled-from-track-number": "Ratanumeron luomisen peruminen suunnitelmasta vaatii myös pituusmittauslinjan luomisen perumisen"
                 },
                 "location-track": {
                     "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen raiteita: {{locationTracks}}"
@@ -1503,7 +1509,9 @@
                 "reference-line": {
                     "null": "Tasakilometripisteen pituusmittauslinja ei ole mukana julkaisussa"
                 },
-                "duplicate-km-number": "Ratanumerolla ei voi olla kahta tasakilometripistettä samalla tunnuksella. Tunnus on jo käytössä tällä ratanumerolla."
+                "duplicate-name-official": "Ratanumerolla {{trackNumber}} on jo kilometri tunnuksella {{kmNumber}}",
+                "duplicate-name-draft": "Muutosjoukossa on monta tasakilometripistettä tunnuksella {{kmNumber}} ratanumerolla {{trackNumber}}",
+                "duplicate-name-draft-in-main": "Ratanumerolla {{trackNumber}} on jo luotu luonnostilassa kilometri tunnuksella {{kmNumber}}."
             },
             "reference-line": {
                 "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
@@ -1897,9 +1905,7 @@
             "source-manual": "Operaattorin asettama",
             "source-none": "-",
             "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)",
-            "out-of-bounds": "Sijainti ei ole laskettavissa",
-            "location-converted": "Sijainti muunnettu koordinaatistosta {{originalCrs}}",
-            "original-crs": "Alkuperäinen koordinaatisto {{originalCrs}}"
+            "out-of-bounds": "Sijainti ei ole laskettavissa"
         }
     },
     "km-post-delete-dialog": {
@@ -1947,11 +1953,11 @@
         "title-edit": "Muokkaa vaihteen tietoja",
         "modified-successfully": "Vaihteen tiedot päivitetty",
         "modify-failed": "Vaihteen päivittäminen epäonnistui",
-        "confirmation-title": "Vaihteen päivittäminen",
+        "structure-change-confirmation-title": "Vaihdetyypin muuttaminen",
         "confirmation-delete-title": "Vaihteen poistaminen paikannuspohjasta",
         "deleted-state-warning": "Poistettu-tilainen vaihde ei voi olla osa paikannuspohjaa.",
-        "changed-switch-structure-warning": "Vaihteen vaihdetyyppiä on muokattu.",
-        "switch-will-be-unlinked": "Poistettaessa myös vaihteeseen liittyvät sijaintiraidelinkitykset puretaan, eivätkä ne palaudu automaattisesti, vaikka vaihteen tila palautettaisiin alkuperäiseksi.",
+        "switch-will-be-unlinked": "Vaihteen tyyppiä muutettaessa vaihteeseen liittyvät sijaintiraidelinkitykset puretaan. Linkitykset eivät palaudu automaattisesti, vaikka vaihteen tyyppi palautettaisiin alkuperäiseksi.",
+        "deleted-switch-will-be-unlinked": "Poistettaessa myös vaihteeseen liittyvät sijaintiraidelinkitykset puretaan. Linkitykset eivät palaudu automaattisesti, vaikka vaihteen tila palautettaisiin alkuperäiseksi.",
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
         "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",
@@ -2035,7 +2041,10 @@
         "license": "Lisenssi"
     },
     "dropdown": {
-        "add-new": "Lisää uusi"
+        "add-new": "Lisää uusi",
+        "unselected": "Ei valittu",
+        "no-options": "Ei vaihtoehtoja",
+        "loading": "Ladataan"
     },
     "privilege": {
         "view-basic": "Geoviitteen käyttö",

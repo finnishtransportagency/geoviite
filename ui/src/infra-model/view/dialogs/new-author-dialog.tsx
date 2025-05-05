@@ -14,29 +14,45 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { isEqualWithoutWhitespace } from 'utils/string-utils';
 
 type NewAuthorDialogProps = {
-    authors?: Author[];
+    nameSuggestion: string | undefined;
+    authors: Author[];
     onClose: () => void;
     onSave: (author: Author) => void;
 };
 
-export const NewAuthorDialog: React.FC<NewAuthorDialogProps> = ({ authors, onClose, onSave }) => {
+export const NewAuthorDialog: React.FC<NewAuthorDialogProps> = ({
+    nameSuggestion,
+    authors,
+    onClose,
+    onSave,
+}) => {
     const { t } = useTranslation();
-    const [authorName, setAuthorName] = React.useState<string>('');
+    const [authorName, setAuthorName] = React.useState<string>(nameSuggestion || '');
     const [canSave, setCanSave] = React.useState<boolean>(false);
     const [duplicateName, setDuplicateName] = React.useState<boolean>(false);
     const [saveInProgress, setSaveInProgress] = React.useState<boolean>(false);
+    const nameFieldRef = React.useRef<HTMLInputElement>(null);
 
-    const debouncer = React.useCallback(
+    function validateName(newName: string): void {
+        const existingAuthor = authors?.find((author) =>
+            isEqualWithoutWhitespace(author.companyName, newName),
+        );
+
+        if (existingAuthor) setDuplicateName(true);
+        else if (newName) setCanSave(true);
+    }
+
+    const validateNameDebounced = React.useCallback(
         debounce((newName: string) => {
-            const existingAuthor = authors?.find((author) =>
-                isEqualWithoutWhitespace(author.companyName, newName),
-            );
-
-            if (existingAuthor) setDuplicateName(true);
-            else if (newName) setCanSave(true);
+            validateName(newName);
         }, 300),
         [authors],
     );
+
+    React.useEffect(() => {
+        validateName(authorName);
+        nameFieldRef?.current?.focus();
+    }, []);
 
     const getErrorMessage = () => (duplicateName ? [t('im-form.duplicate-author-name')] : []);
 
@@ -45,7 +61,7 @@ export const NewAuthorDialog: React.FC<NewAuthorDialogProps> = ({ authors, onClo
         setCanSave(false);
         setDuplicateName(false);
 
-        debouncer(name);
+        validateNameDebounced(name);
     };
 
     const saveAuthor = () => {
@@ -89,6 +105,7 @@ export const NewAuthorDialog: React.FC<NewAuthorDialogProps> = ({ authors, onClo
                             onChange={(e) => onNameChange(e.target.value)}
                             disabled={saveInProgress}
                             hasError={duplicateName}
+                            ref={nameFieldRef}
                             wide
                         />
                     }

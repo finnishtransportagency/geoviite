@@ -1,5 +1,6 @@
 import { TimeStamp } from 'common/common-model';
 import { expectDefined } from 'utils/type-utils';
+import { objectEquals } from 'utils/object-utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type EmptyObject = {};
@@ -134,10 +135,6 @@ export function deduplicateById<T, TId>(items: T[], getItemId: (item: T) => TId)
         }
     });
     return [...x.values()];
-}
-
-export function arraysEqual<T>(arr1: T[], arr2: T[]) {
-    return JSON.stringify(arr1) === JSON.stringify(arr2);
 }
 
 export const compareByFields = <
@@ -306,3 +303,95 @@ export const objectEntries = <T extends object>(obj: T) =>
     Object.entries(obj) as {
         [K in keyof T]-?: [K, T[K]];
     }[keyof T][];
+
+type Primitive = string | boolean | number;
+
+/**
+ * Returns an array with newContent's content, reusing existing instances from oldElements as much as possible, and
+ * returning oldElements itself if there are no changes at all. newContent and oldElements are treated as sets, so,
+ * ignoring ordering.
+ *
+ * @param newContent Returned list will have the same content as this one.
+ * @param oldElements Returned list will retain instances from this list, where equal to an element of newContent.
+ * @param extractKey Used as a hashCode(): Returning the same key for distinct elements is harmless.
+ * @param equals Defaults to a deep equality check.
+ */
+export function reuseListElements<T>(
+    newContent: readonly T[],
+    oldElements: T[],
+    extractKey: (e: T) => Primitive,
+    equals: (a: T, b: T) => boolean = objectEquals,
+): T[] {
+    const oldInstances = indexIntoKeyedMapWithDuplicateCounts(oldElements, extractKey, equals);
+
+    let mustReturnNew = newContent.length !== oldElements.length;
+    const newSet = newContent.map((newElement) => {
+        const oldOnKey = oldInstances.get(extractKey(newElement));
+        if (oldOnKey === undefined) {
+            mustReturnNew = true;
+            return newElement;
+        } else {
+            const index = oldOnKey.findIndex((oldElement) => equals(oldElement[0], newElement));
+            if (index === -1) {
+                mustReturnNew = true;
+                return newElement;
+            } else {
+                const oldElement = expectDefined(oldOnKey[index]);
+                const remainingDuplicates = --oldElement[1];
+                if (remainingDuplicates < 0) {
+                    mustReturnNew = true;
+                }
+                return oldElement[0];
+            }
+        }
+    });
+
+    return mustReturnNew ? newSet : oldElements;
+}
+
+const indexIntoKeyedMapWithDuplicateCounts = <T>(
+    elements: readonly T[],
+    extractKey: (e: T) => Primitive,
+    equals: (a: T, b: T) => boolean,
+): Map<Primitive, [T, number][]> =>
+    elements.reduce(
+        (map, element) => addToMapWithDuplicateCount(extractKey, equals, map, element),
+        new Map(),
+    );
+
+function addToMapWithDuplicateCount<T>(
+    extractKey: (e: T) => Primitive,
+    equals: (a: T, b: T) => boolean,
+    map: Map<Primitive, [T, number][]>,
+    obj: T,
+): Map<Primitive, [T, number][]> {
+    const key = extractKey(obj);
+    if (map.has(key)) {
+        const onKey = expectDefined(map.get(key));
+        const index = onKey.findIndex((elementOnKey) => equals(obj, elementOnKey[0]));
+        if (index === -1) {
+            onKey.push([obj, 1]);
+        } else {
+            expectDefined(onKey[index])[1]++;
+        }
+    } else {
+        map.set(key, [[obj, 1]]);
+    }
+    return map;
+}
+
+/**
+ * map the given transform() function over the list, but if no element actually changed (by triple-equals), return
+ * the original list instance.
+ */
+export function mapLazy<T>(list: T[], transform: (element: T, index: number) => T): T[] {
+    let changed = false;
+    const newList = list.map((element, index) => {
+        const result = transform(element, index);
+        if (result !== element) {
+            changed = true;
+        }
+        return result;
+    });
+    return changed ? newList : list;
+}

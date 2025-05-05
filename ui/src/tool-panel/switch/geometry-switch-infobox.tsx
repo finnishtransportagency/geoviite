@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import SwitchHand from 'geoviite-design-lib/switch/switch-hand';
 import { GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';
 import { usePlanHeader } from 'track-layout/track-layout-react-utils';
-import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
+import GeometryPlanInfobox from 'tool-panel/geometry-plan/geometry-plan-infobox';
 import { useLoader } from 'utils/react-utils';
 import { getGeometrySwitch, getGeometrySwitchLayout } from 'geometry/geometry-api';
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';

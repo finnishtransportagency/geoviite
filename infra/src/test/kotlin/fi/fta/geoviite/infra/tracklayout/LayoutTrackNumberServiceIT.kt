@@ -375,33 +375,6 @@ constructor(
     }
 
     @Test
-    fun `cancelling a track number cancels its reference line as well`() {
-        val designBranch = testDBService.createDesignBranch()
-        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-
-        val trackNumber = mainOfficialContext.save(trackNumber())
-        val referenceLine = mainOfficialContext.saveReferenceLine(referenceLineAndAlignment(trackNumber.id))
-
-        val firstTrackNumberDraft =
-            trackNumberService.saveDraft(designBranch, mainOfficialContext.fetch(trackNumber.id)!!)
-        val firstReferenceLineDraft =
-            referenceLineService.saveDraft(designBranch, mainOfficialContext.fetch(referenceLine.id)!!)
-        val designOfficialTrackNumber = trackNumberService.publish(designBranch, firstTrackNumberDraft).published
-        val designOfficialReferenceLine = referenceLineService.publish(designBranch, firstReferenceLineDraft).published
-
-        // before cancelling the design change: design-official version is visible in draft context
-        assertEquals(designOfficialTrackNumber, designDraftContext.fetchVersion(trackNumber.id))
-        assertEquals(designOfficialReferenceLine, designDraftContext.fetchVersion(referenceLine.id))
-
-        trackNumberService.cancel(designBranch, trackNumber.id)
-
-        // after cancelling the design change: cancellation hides design-official version in draft
-        // context, leaving main-official version visible
-        assertEquals(trackNumber, designDraftContext.fetchVersion(trackNumber.id))
-        assertEquals(referenceLine, designDraftContext.fetchVersion(referenceLine.id))
-    }
-
-    @Test
     fun `draft track number can find reference line in any above context`() {
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)

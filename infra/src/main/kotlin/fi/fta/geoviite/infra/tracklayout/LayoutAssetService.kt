@@ -118,23 +118,24 @@ abstract class LayoutAssetService<
 
         val completedVersion =
             (draft.contextData as? MainDraftContextData)?.originBranch?.let { originBranch ->
-                if (originBranch is DesignBranch) {
-                    val designOfficial = dao.fetchVersion(originBranch.official, draftVersion.id)
-                    // TODO these are not currently actually guaranteed! User could merge and then
-                    // cancel an object.
-                    requireNotNull(designOfficial) {
-                        "Expected published object $draftVersion's to find an object looking for its origin in $originBranch"
-                    }
-                    require(designOfficial.context == originBranch.official) {
-                        "Expected published object $draftVersion's origin object to be in $originBranch"
-                    }
-                    val completedVersion = dao.save(completed(dao.fetch(designOfficial)), publishedSaveParams)
-                    originBranch to completedVersion
-                } else null
+                completeMergeToMain(draftVersion.id, originBranch, publishedSaveParams)
             }
 
         return PublicationResultVersions(published = publicationVersion, completed = completedVersion)
     }
+
+    private fun completeMergeToMain(
+        id: IntId<ObjectType>,
+        originBranch: LayoutBranch,
+        saveParams: SaveParamsType,
+    ): Pair<DesignBranch, LayoutRowVersion<ObjectType>>? =
+        if (originBranch is DesignBranch) {
+            val designOfficial = dao.fetchVersion(originBranch.official, id)
+            if (designOfficial != null && designOfficial.context == originBranch.official) {
+                val completedVersion = dao.save(completed(dao.fetch(designOfficial)), saveParams)
+                originBranch to completedVersion
+            } else null
+        } else null
 
     protected fun fetchAndCheckForMerging(
         fromBranch: DesignBranch,

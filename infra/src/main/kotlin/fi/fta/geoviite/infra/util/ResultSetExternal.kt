@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.common.parseLayoutContextSqlString
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.parse2DPolygon
@@ -108,6 +109,10 @@ fun <T> ResultSet.getIntIdOrNull(name: String): IntId<T>? = getIntOrNull(name)?.
 fun <T> ResultSet.getStringId(name: String): StringId<T> = verifyNotNull(name, ::getStringIdOrNull)
 
 fun <T> ResultSet.getStringIdOrNull(name: String): StringId<T>? = getString(name)?.let(::StringId)
+
+fun <T> ResultSet.getUuid(name: String): Uuid<T> = verifyNotNull(name, ::getUuidOrNull)
+
+fun <T> ResultSet.getUuidOrNull(name: String): Uuid<T>? = getString(name)?.let(::Uuid)
 
 fun <T> ResultSet.getOid(name: String): Oid<T> = verifyNotNull(name, ::getOidOrNull)
 
@@ -424,9 +429,14 @@ fun ResultSet.getPublicationStateOrNull(draftFlagName: String): PublicationState
 fun ResultSet.getLayoutBranch(designIdName: String): LayoutBranch =
     getIntIdOrNull<LayoutDesign>(designIdName).let { id -> if (id == null) LayoutBranch.main else DesignBranch.of(id) }
 
-fun ResultSet.getPublicationPublishedIn(designIdName: String, designVersionName: String): PublishedInBranch =
+fun ResultSet.getPublicationPublishedIn(
+    designIdName: String,
+    designVersionName: String,
+    parentIdName: String,
+): PublishedInBranch =
     getIntIdOrNull<LayoutDesign>(designIdName).let { id ->
-        if (id == null) PublishedInMain else PublishedInDesign(DesignBranch.of(id), getInt(designVersionName))
+        if (id == null) PublishedInMain
+        else PublishedInDesign(DesignBranch.of(id), getInt(designVersionName), getIntIdOrNull(parentIdName))
     }
 
 // no getLayoutBranchOrNull, as we couldn't distinguish between when to return the main branch and

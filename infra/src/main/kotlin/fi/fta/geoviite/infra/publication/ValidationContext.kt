@@ -146,7 +146,13 @@ class ValidationContext(
         getReferenceLineIdByTrackNumber(trackNumberId)?.let(::getReferenceLine)
 
     fun getReferenceLineIdByTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): IntId<ReferenceLine>? =
-        getTrackNumber(trackNumberId)?.referenceLineId
+        // the track number candidate might be a cancellation, in which case getTrackNumber hides it; but we still need
+        // to check referential integrity. Thankfully a track number's referenceLineId is itself immutable, so this
+        // can't give a wrong one.
+        (getTrackNumber(trackNumberId) ?: getCandidateTrackNumber(trackNumberId))?.referenceLineId
+
+    fun getTrackNumberIdByReferenceLine(referenceLineId: IntId<ReferenceLine>): IntId<LayoutTrackNumber>? =
+        (getReferenceLine(referenceLineId) ?: getCandidateReferenceLine(referenceLineId))?.trackNumberId
 
     fun getKmPostsByTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): List<LayoutKmPost> =
         trackNumberKmPosts
@@ -165,7 +171,8 @@ class ValidationContext(
         getSwitchTrackLinks(id)?.mapNotNull(::getLocationTrackWithGeometry) ?: emptyList()
 
     fun getPotentiallyAffectedSwitchIds(trackId: IntId<LocationTrack>): List<IntId<LayoutSwitch>> {
-        val track = getLocationTrack(trackId)
+        val track =
+            if (locationTrackIsCancelled(trackId)) getCandidateLocationTrack(trackId) else getLocationTrack(trackId)
         val draftLinks = track?.switchIds ?: emptyList()
         val officialLinks =
             if (track == null || track.isDraft) {
@@ -190,16 +197,16 @@ class ValidationContext(
                 val switch = getSwitch(switchId)
                 val name = switch?.name ?: getCandidateSwitch(switchId)?.name
                 val structure = switch?.switchStructureId?.let(switchLibraryService::getSwitchStructure)
-                SwitchTrackLinking(switchId, name, switch, structure, links)
+                SwitchTrackLinking(switchId, name, switch, structure, links, switchIsCancelled(switchId))
             }
 
-    //    fun getTopologicallyConnectedSwitches(track: LocationTrack): List<Pair<SwitchName, LayoutSwitch?>> =
-    //        listOfNotNull(track.topologyStartSwitch?.switchId, track.topologyEndSwitch?.switchId).map { switchId ->
-    //            val switch = getSwitch(switchId)
-    //            // If there's no draft either, we have a referential integrity error
-    //            val name = switch?.name ?: requireNotNull(getCandidateSwitch(switchId)).name
-    //            name to switch
-    //        }
+//    fun getTopologicallyConnectedSwitches(track: LocationTrack): List<TopologySwitch> =
+//        listOfNotNull(track.topologyStartSwitch?.switchId, track.topologyEndSwitch?.switchId).map { switchId ->
+//            val switch = getSwitch(switchId)
+//            // If there's no draft either, we have a referential integrity error
+//            val name = switch?.name ?: requireNotNull(getCandidateSwitch(switchId)).name
+//            TopologySwitch(switch, name, switchIsCancelled(switchId))
+//        }
 
     fun getPublicationSplits(): List<Split> =
         allUnfinishedSplits.filter { split -> publicationSet.containsSplit(split.id) }
@@ -349,13 +356,20 @@ class ValidationContext(
         trackNumberDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }
     }
 
+    fun getCandidateReferenceLine(id: IntId<ReferenceLine>) =
+        allCandidateReferenceLines[id]?.let(referenceLineDao::fetch)
+
+    private val allCandidateReferenceLines: Map<IntId<ReferenceLine>, LayoutRowVersion<ReferenceLine>> by lazy {
+        referenceLineDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }
+    }
+
     fun getCandidateSwitch(id: IntId<LayoutSwitch>) = allCandidateSwitches[id]?.let(switchDao::fetch)
 
     private val allCandidateSwitches: Map<IntId<LayoutSwitch>, LayoutRowVersion<LayoutSwitch>> by lazy {
         switchDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }
     }
 
-    fun getDraftLocationTrack(id: IntId<LocationTrack>) = allDraftLocationTracks[id]?.let(locationTrackDao::fetch)
+    fun getCandidateLocationTrack(id: IntId<LocationTrack>) = allDraftLocationTracks[id]?.let(locationTrackDao::fetch)
 
     private val allDraftLocationTracks: Map<IntId<LocationTrack>, LayoutRowVersion<LocationTrack>> by lazy {
         locationTrackDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }

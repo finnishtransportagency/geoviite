@@ -30,7 +30,7 @@ import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
 import { GeometryPlanLayout, LAYOUT_SRID, LayoutGraphLevel } from 'track-layout/track-layout-model';
-import { LayoutContext } from 'common/common-model';
+import { LayoutContext, LayoutContextMode, LayoutDesignId } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
@@ -128,6 +128,8 @@ export type MapViewProps = {
     customActiveMapTool?: MapTool;
     designPublicationMode?: DesignPublicationMode;
     mapTools?: MapToolWithButton[];
+    layoutContextMode?: LayoutContextMode;
+    selectedDesignId?: LayoutDesignId;
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -216,6 +218,8 @@ const MapView: React.FC<MapViewProps> = ({
     customActiveMapTool,
     designPublicationMode,
     mapTools,
+    layoutContextMode,
+    selectedDesignId,
 }: MapViewProps) => {
     const { t } = useTranslation();
     // State to store OpenLayers map object between renders
@@ -241,6 +245,7 @@ const MapView: React.FC<MapViewProps> = ({
     };
     const isLoading = () => [...map.visibleLayers].some((l) => layersLoadingData.includes(l));
     const inPreviewView = !!designPublicationMode;
+    const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
 
     const mapLayers = [...map.visibleLayers].sort().join();
 
@@ -848,7 +853,7 @@ const MapView: React.FC<MapViewProps> = ({
                     <Spinner />
                 </div>
             )}
-            {!inPreviewView && planDownloadState && (
+            {!inPreviewView && !isSelectingDesign && planDownloadState && (
                 <PlanDownloadPopup
                     onClose={() => onStopPlanDownload()}
                     layoutContext={layoutContext}

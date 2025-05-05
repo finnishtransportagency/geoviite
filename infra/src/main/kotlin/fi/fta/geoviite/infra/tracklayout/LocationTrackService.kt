@@ -348,9 +348,13 @@ class LocationTrackService(
         cropEnd: KmNumber?,
         bufferSize: Double = ALIGNMENT_POLYGON_BUFFER,
     ): List<IPoint> {
-        val locationTrack = getOrThrow(layoutContext, locationTrackId)
-        val context = requireNotNull(geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId))
-        val geometry = alignmentDao.fetch(locationTrack.versionOrThrow)
+        val locationTrack = get(layoutContext, locationTrackId)
+        val context =
+            locationTrack?.trackNumberId?.let { tnId -> geocodingService.getGeocodingContext(layoutContext, tnId) }
+        val geometry = locationTrack?.version?.let(alignmentDao::fetch)
+        if (context == null || geometry == null) {
+            return emptyList()
+        }
 
         val startAndEnd = getStartAndEnd(layoutContext, listOf(locationTrackId)).first()
         val trackStart = startAndEnd.start?.address
@@ -381,11 +385,11 @@ class LocationTrackService(
         return if (cropStart > trackEnd || cropEnd < trackStart) {
             null
         } else {
-            fun getM(address: TrackMeter): Double =
-                requireNotNull(
-                    geocodingContext.getTrackLocation(geometry, address.coerceIn(trackStart, trackEnd))?.point?.m
-                )
-            Range(getM(cropStart), getM(cropEnd))
+            fun getM(address: TrackMeter): Double? =
+                geocodingContext.getTrackLocation(geometry, address.coerceIn(trackStart, trackEnd))?.point?.m
+            val start = getM(cropStart)
+            val end = getM(cropEnd)
+            if (start != null && end != null) Range(start, end) else null
         }
     }
 
