@@ -1143,7 +1143,7 @@ constructor(
         assertContains(overlappingEntireTrackNumber, plan2IsWithinLocationTrack.id)
 
         val endAddressPastLocationTrackAddressingEnd = getOverlappingPlans(KmNumber(0), KmNumber(6)).map { it.id }
-        assertEquals(0, endAddressPastLocationTrackAddressingEnd.size)
+        assertEquals(1, endAddressPastLocationTrackAddressingEnd.size)
 
         val withinPlanAreaButNotWithinTrackNumber = getOverlappingPlans(KmNumber(0), KmNumber(0)).map { it.id }
         assertEquals(0, withinPlanAreaButNotWithinTrackNumber.size)
@@ -1157,7 +1157,7 @@ constructor(
         assertEquals(1, startIsWithinTrackNumberButWithinLocationTrackAndEndIsNull.size)
 
         val endIsAfterTrackNumberEndAndStartIsNull = getOverlappingPlans(null, KmNumber(5)).map { it.id }
-        assertEquals(0, endIsAfterTrackNumberEndAndStartIsNull.size)
+        assertEquals(1, endIsAfterTrackNumberEndAndStartIsNull.size)
 
         val endIsBeforeLocationTrackStartButWithinTrackNumber = getOverlappingPlans(null, KmNumber(2)).map { it.id }
         assertEquals(0, endIsBeforeLocationTrackStartButWithinTrackNumber.size)

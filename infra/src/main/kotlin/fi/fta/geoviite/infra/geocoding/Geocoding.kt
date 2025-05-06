@@ -41,12 +41,12 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.processSortedBy
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
 import kotlin.math.abs
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 data class AddressPoint(val point: AlignmentPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
@@ -125,6 +125,7 @@ data class GeocodingReferencePoint(
     val intersectType: IntersectType,
 ) {
     val distanceRounded = roundTo3Decimals(distance)
+    val address = TrackMeter(kmNumber, meters)
 }
 
 data class AddressAndM(val address: TrackMeter, val m: Double, val intersectType: IntersectType)
@@ -212,29 +213,27 @@ data class GeocodingContext(
         referencePoints.takeIf { it.isNotEmpty() }?.let { Range(it.first().kmNumber, it.last().kmNumber) }
     }
 
+    val endAddress =
+        TrackMeter(
+            kmNumber = referencePoints.last().kmNumber,
+            meters =
+                referenceLineGeometry.length - referencePoints.last().let { p -> p.distance - p.meters.toDouble() },
+            decimals = startAddress.decimalCount(),
+        )
+
     val startProjection: ProjectionLine? by lazy {
-        val meters = referencePoints.first().meters
-        if (!TrackMeter.isMetersValid(meters)) null
-        else {
-            val address = TrackMeter(referencePoints.first().kmNumber, referencePoints.first().meters)
-            val projectionLine = polyLineEdges.first().crossSectionAt(0.0)
-            ProjectionLine(address, projectionLine, 0.0, polyLineEdges.first().referenceDirection)
-        }
+        val projectionLine = polyLineEdges.first().crossSectionAt(0.0)
+        ProjectionLine(startAddress, projectionLine, 0.0, polyLineEdges.first().referenceDirection)
     }
 
     val endProjection: ProjectionLine? by lazy {
-        val meters = referenceLineGeometry.length - referencePoints.last().let { p -> p.distance - p.meters.toDouble() }
-        if (!TrackMeter.isMetersValid(meters)) null
-        else {
-            val address = TrackMeter(referencePoints.last().kmNumber, meters, referencePoints.first().meters.scale())
-            val projectionLine = polyLineEdges.last().crossSectionAt(referenceLineGeometry.length)
-            ProjectionLine(
-                address,
-                projectionLine,
-                referenceLineGeometry.length,
-                polyLineEdges.last().referenceDirection,
-            )
-        }
+        val projectionLine = polyLineEdges.last().crossSectionAt(referenceLineGeometry.length)
+        ProjectionLine(
+            endAddress,
+            projectionLine,
+            referenceLineGeometry.length,
+            polyLineEdges.last().referenceDirection,
+        )
     }
 
     fun preload() {

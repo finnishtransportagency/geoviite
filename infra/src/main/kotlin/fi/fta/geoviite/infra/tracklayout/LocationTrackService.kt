@@ -46,11 +46,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -369,28 +369,36 @@ class LocationTrackService(
         }
     }
 
-    private fun getMRange(
+    fun getMRange(
         geometry: LocationTrackGeometry,
         geocodingContext: GeocodingContext,
         trackStart: TrackMeter,
         trackEnd: TrackMeter,
         cropStartKm: KmNumber?,
         cropEndKm: KmNumber?,
-    ): Range<Double>? {
-        val cropStart = cropStartKm?.let { km -> TrackMeter(km, 0) } ?: trackStart
-        val cropEnd =
-            cropEndKm
-                ?.let { km -> geocodingContext.referencePoints.find { it.kmNumber > km } }
-                ?.let { referencePoint -> TrackMeter(referencePoint.kmNumber, 0) } ?: trackEnd
-        return if (cropStart > trackEnd || cropEnd < trackStart) {
-            null
-        } else {
-            fun getM(address: TrackMeter): Double? =
-                geocodingContext.getTrackLocation(geometry, address.coerceIn(trackStart, trackEnd))?.point?.m
-            val start = getM(cropStart)
-            val end = getM(cropEnd)
+    ): Range<Double>? =
+        getAddressRange(geocodingContext, trackStart, trackEnd, cropStartKm, cropEndKm)?.let { range ->
+            val start = geocodingContext.getTrackLocation(geometry, range.min)?.point?.m
+            val end = geocodingContext.getTrackLocation(geometry, range.max)?.point?.m
             if (start != null && end != null) Range(start, end) else null
         }
+
+    fun getAddressRange(
+        geocodingContext: GeocodingContext,
+        trackStart: TrackMeter,
+        trackEnd: TrackMeter,
+        startKm: KmNumber?,
+        endKm: KmNumber?,
+    ): Range<TrackMeter>? {
+        val rangeStart =
+            startKm
+                ?.let { km -> geocodingContext.referencePoints.find { it.kmNumber >= km }?.address ?: trackEnd }
+                ?.coerceAtLeast(trackStart) ?: trackStart
+        val rangeEnd =
+            endKm
+                ?.let { km -> geocodingContext.referencePoints.find { it.kmNumber > km }?.address }
+                ?.coerceAtMost(trackEnd) ?: trackEnd
+        return if (rangeStart < rangeEnd) Range(rangeStart, rangeEnd) else null
     }
 
     @Transactional(readOnly = true)
