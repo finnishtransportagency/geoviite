@@ -81,10 +81,6 @@ class WebConfig(
                 .setCacheControl(CacheControl.noCache().mustRevalidate())
                 .resourceChain(true)
                 .addResolver(PathResourceResolver())
-
-            //            registry
-            //                .addResourceHandler("/geoviite/swagger-ui/**")
-            //                .addResourceLocations("classpath:/META-INF/resources/swagger-ui/")
         }
 
         if (extApiEnabled && extApiStaticUrl.isNotEmpty() && extApiStaticResourcesPath.isNotEmpty()) {

@@ -200,13 +200,8 @@ data class GeocodingContext(
 
     private val polyLineEdges: List<PolyLineEdge> by lazy { getPolyLineEdges(referenceLineGeometry) }
 
-    private val projectionLinesOneMeter: List<ProjectionLine> by lazy { createProjectionLines(Resolution.ONE_METER) }
-    private val projectionLinesQuarterMeter: List<ProjectionLine> by lazy {
-        createProjectionLines(Resolution.QUARTER_METER)
-    }
-
-    val projectionLines: Map<Resolution, List<ProjectionLine>> =
-        mapOf(Resolution.ONE_METER to projectionLinesOneMeter, Resolution.QUARTER_METER to projectionLinesQuarterMeter)
+    val projectionLines: Map<Resolution, Lazy<List<ProjectionLine>>> =
+        enumValues<Resolution>().associateWith { resolution -> lazy { createProjectionLines(resolution) } }
 
     private fun createProjectionLines(resolution: Resolution): List<ProjectionLine> {
         require(isSame(polyLineEdges.last().endM, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
@@ -290,8 +285,9 @@ data class GeocodingContext(
         else
             projectionLines
                 .getValue(resolution)
+                .value
                 .binarySearch { line -> line.address.compareTo(address) }
-                .let { index -> projectionLines[resolution]?.getOrNull(index) }
+                .let { index -> projectionLines[resolution]?.value?.getOrNull(index) }
     }
 
     companion object {
@@ -578,7 +574,9 @@ data class GeocodingContext(
             .filterNotNull()
 
     private fun getProjectionLinesForRange(range: ClosedRange<TrackMeter>, resolution: Resolution) =
-        getSublistForRangeInOrderedList(projectionLines.getValue(resolution), range) { p, e -> p.address.compareTo(e) }
+        getSublistForRangeInOrderedList(projectionLines.getValue(resolution).value, range) { p, e ->
+            p.address.compareTo(e)
+        }
 
     fun getSwitchPoints(alignment: LayoutAlignment): List<AddressPoint> {
         val locations =
@@ -607,7 +605,7 @@ data class GeocodingContext(
         kms: Set<KmNumber>,
         resolution: Resolution = Resolution.ONE_METER,
     ): List<ClosedRange<TrackMeter>> {
-        if (projectionLines.getValue(resolution).isEmpty()) return listOf()
+        if (projectionLines.getValue(resolution).value.isEmpty()) return listOf()
         val addressRanges = getKmRanges(kms).mapNotNull { kmRange -> toAddressRange(kmRange, resolution) }
         return splitRange(range, addressRanges)
     }
@@ -633,7 +631,7 @@ data class GeocodingContext(
      * not include decimal meters after the last even meter, even though such addresses can be calculated
      */
     private fun toAddressRange(kmRange: ClosedRange<KmNumber>, resolution: Resolution): ClosedRange<TrackMeter>? {
-        val projectionLinesResolution = projectionLines.getValue(resolution)
+        val projectionLinesResolution = projectionLines.getValue(resolution).value
         val startAddress = projectionLinesResolution.find { l -> l.address.kmNumber == kmRange.start }?.address
         val endAddress = projectionLinesResolution.findLast { l -> l.address.kmNumber == kmRange.endInclusive }?.address
         return if (startAddress != null && endAddress != null) startAddress..endAddress else null

@@ -82,8 +82,7 @@ constructor(
         val locationTrack =
             locationTrackService.getLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
                 ?: throw ExtOidNotFoundExceptionV1(
-                    "location track lookup failed for " +
-                        "oid=$oid, layoutContext=$layoutContext, publicationId=${publication.id}"
+                    "location track lookup failed for oid=$oid, layoutContext=$layoutContext, publicationId=${publication.id}"
                 )
 
         return ExtLocationTrackResponseV1(
@@ -150,13 +149,13 @@ constructor(
                         "'to' version fetch failed, moment=${toPublication.publicationTime}, locationTrackId=$locationTrackId"
                     )
 
-            if (fromLocationTrackVersion == toLocationTrackVersion) {
+            return if (fromLocationTrackVersion == toLocationTrackVersion) {
                 logger.info(
                     "location track version was the same for locationTrackId=$locationTrackId, earlierPublication=${fromPublication.id}, laterPublication=${toPublication.id}"
                 )
-                return null
+                null
             } else {
-                return ExtModifiedLocationTrackResponseV1(
+                ExtModifiedLocationTrackResponseV1(
                     modificationsFromVersion = modificationsFromVersion,
                     trackNetworkVersion = toPublication.uuid,
                     coordinateSystem = coordinateSystem,

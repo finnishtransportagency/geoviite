@@ -131,7 +131,7 @@ class GeocodingTest {
 
     @Test
     fun cutRangeByKmsCutsToReferenceLineEnds() {
-        val endAddress = context.projectionLines.getValue(Resolution.ONE_METER).last().address
+        val endAddress = context.projectionLines.getValue(Resolution.ONE_METER).value.last().address
         assertEquals(
             listOf(startAddress..endAddress),
             context.cutRangeByKms((startAddress - 100.0)..(endAddress + 100.0), context.allKms.toSet()),
@@ -144,7 +144,7 @@ class GeocodingTest {
 
     @Test
     fun cutRangeByKmsSplitsOnMissingKm() {
-        val endAddress = context.projectionLines.getValue(Resolution.ONE_METER).last().address
+        val endAddress = context.projectionLines.getValue(Resolution.ONE_METER).value.last().address
         val km3LastAddress = getLastAddress(KmNumber(3))!!
         val km5LastAddress = getLastAddress(KmNumber(5, "A"))!!
         assertEquals(
@@ -228,7 +228,7 @@ class GeocodingTest {
     fun projectionLinesAndReverseGeocodingAgree() {
         val projections =
             (listOf(context.startProjection) +
-                context.projectionLines.getValue(Resolution.ONE_METER) +
+                context.projectionLines.getValue(Resolution.ONE_METER).value +
                 listOf(context.endProjection))
         projections.forEachIndexed { index, proj ->
             assertNotNull(proj) // not a test assert, but they should in fact be not null
@@ -389,7 +389,7 @@ class GeocodingTest {
 
         // Cached projections for 1m lines
         assertProjectionLinesMatch(
-            projectionContext.projectionLines.getValue(Resolution.ONE_METER),
+            projectionContext.projectionLines.getValue(Resolution.ONE_METER).value,
             TrackMeter(2, 100) to projectionLine(start),
             TrackMeter(2, 101) to projectionLine(start + Point(0.0, 1.0)),
             TrackMeter(2, 102) to projectionLine(start + Point(0.0, 2.0)),
@@ -996,5 +996,9 @@ class GeocodingTest {
     }
 
     private fun getLastAddress(kmNumber: KmNumber) =
-        context.projectionLines.getValue(Resolution.ONE_METER).findLast { l -> l.address.kmNumber == kmNumber }?.address
+        context.projectionLines
+            .getValue(Resolution.ONE_METER)
+            .value
+            .findLast { l -> l.address.kmNumber == kmNumber }
+            ?.address
 }
