@@ -901,6 +901,20 @@ class LocationTrackService(
     fun getExternalIdsByBranch(id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
         return mapNonNullValues(locationTrackDao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
     }
+
+    @Transactional(readOnly = true)
+    fun getLocationTrackByOidAtMoment(
+        oid: Oid<LocationTrack>,
+        layoutContext: LayoutContext,
+        moment: Instant,
+    ): LocationTrack? {
+        return locationTrackDao
+            .lookupByExternalId(oid)
+            ?.let { layoutRowId ->
+                locationTrackDao.fetchOfficialVersionAtMoment(layoutContext.branch, layoutRowId.id, moment)
+            }
+            ?.let(locationTrackDao::fetch)
+    }
 }
 
 fun collectAllSwitches(locationTrack: LocationTrack, alignment: LayoutAlignment): List<IntId<LayoutSwitch>> {

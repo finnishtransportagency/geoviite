@@ -22,14 +22,14 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 
-@Schema(name = "Vastaus: Sijaintiraidejoukko")
+@Schema(name = "Vastaus: Sijaintiraidekokoelma")
 data class ExtLocationTrackCollectionResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
     @JsonProperty(LOCATION_TRACK_COLLECTION) val locationTrackCollection: List<ExtLocationTrackV1>,
 )
 
-@Schema(name = "Vastaus: Muutettu sijaintiraidejoukko")
+@Schema(name = "Vastaus: Muutettu sijaintiraidekokoelma")
 data class ExtModifiedLocationTrackCollectionResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
@@ -99,20 +99,18 @@ constructor(
         val layoutContext = MainLayoutContext.official
 
         val fromPublication =
-            publicationDao
-                .fetchPublicationByUuid(modificationsFromVersion)
-                .let(::requireNotNull) // TODO Improve error handling
+            publicationDao.fetchPublicationByUuid(modificationsFromVersion)
+                ?: throw ExtTrackNetworkVersionNotFound("modificationsFromVersion=${modificationsFromVersion}")
 
         val toPublication =
             trackNetworkVersion?.let { uuid ->
-                publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull)
-            } // TODO Improve error handling
-            ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+                publicationDao.fetchPublicationByUuid(uuid)
+                    ?: throw ExtTrackNetworkVersionNotFound("trackNetworkVersion=${trackNetworkVersion}")
+            } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         return if (fromPublication == toPublication) {
             logger.info(
-                "there cannot be any differences if the requested publication ids are the same " +
-                    "publication=${fromPublication.id}"
+                "there cannot be any differences if the requested publication ids are the same, publicationId=${fromPublication.id}"
             )
             null
         } else {
@@ -223,8 +221,8 @@ constructor(
             ExtLocationTrackV1(
                 locationTrackOid = locationTrackOid,
                 locationTrackName = locationTrack.name,
-                locationTrackType = ExtLocationTrackTypeV1(locationTrack.type),
-                locationTrackState = ExtLocationTrackStateV1(locationTrack.state),
+                locationTrackType = ExtLocationTrackTypeV1.of(locationTrack.type),
+                locationTrackState = ExtLocationTrackStateV1.of(locationTrack.state),
                 locationTrackDescription = locationTrackDescription,
                 locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
                 startLocation = startLocation?.let(ExtAddressPointV1::of),
@@ -234,66 +232,4 @@ constructor(
             )
         }
     }
-
-    //    fun getLocationTrackCollection(
-    //        layoutContext: LayoutContext,
-    //        moment: Instant,
-    //        coordinateSystem: Srid,
-    //    ): ExtLocationTrackV1 {
-    //
-    //        val asd = locationTrackService.getStartAndEnd(layoutContext)
-    //
-    //        val alignmentAddresses =
-    //            geocodingService.getAddressPoints(layoutContext, locationTrack.id as IntId)
-    //                ?: throw ExtGeocodingFailedV1("address points not found, locationTrackId=${locationTrack.id}")
-    //
-    //        val trackNumberName =
-    //            layoutTrackNumberDao
-    //                .fetchOfficialVersionAtMoment(layoutContext.branch, locationTrack.trackNumberId, moment)
-    //                ?.let(layoutTrackNumberDao::fetch)
-    //                ?.number
-    //                ?: throw ExtTrackNumberNotFoundV1(
-    //                    "track number was not found for " +
-    //                        "branch=${layoutContext.branch}, trackNumberId=${locationTrack.trackNumberId},
-    // moment=$moment"
-    //                )
-    //
-    //        val trackNumberOid =
-    //            layoutTrackNumberDao.fetchExternalId(layoutContext.branch, locationTrack.trackNumberId)?.oid
-    //                ?: throw ExtOidNotFoundExceptionV1(
-    //                    "track number oid was not found for " +
-    //                        "branch=${layoutContext.branch}, trackNumberId=${locationTrack.trackNumberId}"
-    //                )
-    //
-    //        val (startLocation, endLocation) =
-    //            when (coordinateSystem) {
-    //                LAYOUT_SRID -> alignmentAddresses.startPoint to alignmentAddresses.endPoint
-    //                else -> {
-    //                    val start = layoutAddressPointToCoordinateSystem(alignmentAddresses.startPoint,
-    // coordinateSystem)
-    //                    val end = layoutAddressPointToCoordinateSystem(alignmentAddresses.endPoint, coordinateSystem)
-    //
-    //                    start to end
-    //                }
-    //            }
-    //
-    //        val locationTrackDescription =
-    //            locationTrackService
-    //                .getFullDescriptions(layoutContext, listOf(locationTrack), LocalizationLanguage.FI)
-    //                .first()
-    //
-    //        return ExtLocationTrackV1(
-    //            locationTrackOid = oid,
-    //            locationTrackName = locationTrack.name,
-    //            locationTrackType = ExtLocationTrackTypeV1(locationTrack.type),
-    //            locationTrackState = ExtLocationTrackStateV1(locationTrack.state),
-    //            locationTrackDescription = locationTrackDescription,
-    //            locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
-    //            coordinateSystem = coordinateSystem,
-    //            startLocation = ExtAddressPointV1.of(startLocation),
-    //            endLocation = ExtAddressPointV1.of(endLocation),
-    //            trackNumberName = trackNumberName,
-    //            trackNumberOid = trackNumberOid,
-    //        )
-    //    }
 }

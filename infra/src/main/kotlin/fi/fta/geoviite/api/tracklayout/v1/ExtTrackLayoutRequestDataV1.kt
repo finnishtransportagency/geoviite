@@ -1,25 +1,8 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.geocoding.Resolution
 import io.swagger.v3.oas.annotations.media.Schema
-
-data class ApiRequestStringV1 @JsonCreator(mode = DELEGATING) constructor(val value: String) {
-
-    init {
-        require(value.length <= MAX_LENGTH) { "String field length must be at most $MAX_LENGTH characters" }
-    }
-
-    override fun toString(): String {
-        return value
-    }
-
-    companion object {
-        const val MAX_LENGTH = 200
-    }
-}
 
 @Schema(type = "String", allowableValues = ["0.25", "1"], defaultValue = "1")
 enum class ExtResolutionV1(@JsonValue val value: String) {
