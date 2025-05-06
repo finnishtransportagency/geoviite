@@ -24,7 +24,7 @@ korvata main-officia-rivin ja olla näkyvillä design-draftiinsa.
 
 ## Virallinen paikannuspohja (Official Layout)
 
-Virallinen paikannuspohja on se data joka viedään ratkoon ja joka esittää rataverkon todellista nykytilaa parhaan
+Virallinen paikannuspohja on se data joka viedään Ratkoon ja joka esittää rataverkon todellista nykytilaa parhaan
 saatavilla olevan tiedon mukaan. Jos joku käsite on kerran ollut virallisessa paikannuspohjassa, se ei ikinä enää poistu
 täydellisesti vaan sen poistot tehdään nk. soft deletenä, eli asettamalla ne "poistettu" (Deleted) tilaan.
 

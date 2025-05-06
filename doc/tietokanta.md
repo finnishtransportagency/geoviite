@@ -1,6 +1,6 @@
 # Tietokanta
 
-Tietokanta on jaettu useisiin skemoihin, jotka kuvataan tässä erikseen. Kuvissa (generoitu per skema) ei näy viivoina
+Tietokanta on jaettu useisiin skemoihin, jotka kuvataan tässä erikseen. Kuvissa (generoitu per skeema) ei näy viivoina
 viitteet toisiin skemoihin, mutta niitä vastaavat kentät näkyy kuitenkin tauluissa.
 
 Datan merkitystä on helpompi ymmärtää katsomalla yleiskuvausta: [Geoviite tietomalli](tietomalli.md)
@@ -49,9 +49,9 @@ aikaleimalla.
 
 Versiotauluihin voidaan tarvittaessa lisätä haluttuja indeksejä suorituskykyisempiä hakuja varten.
 
-## Skemat
+## Skeemat
 
-Tietokanta-skemat ylläpidetään versioituvilla Flyway-migraatioilla:
+Tietokanta-skeemat ylläpidetään versioituvilla Flyway-migraatioilla:
 
 * Migraatiot
   versionhallinnassa: https://github.com/finnishtransportagency/geoviite/tree/main/infra/src/main/resources/db/migration
@@ -59,35 +59,35 @@ Tietokanta-skemat ylläpidetään versioituvilla Flyway-migraatioilla:
 
 ### Flyway
 
-Flyway-skema sisältää Flyway-kirjaston tuottamat migraatiotaulut, jotka ylläpitää päivityksissä tapahtuvaa migraatioiden
+Flyway-skeema sisältää Flyway-kirjaston tuottamat migraatiotaulut, jotka ylläpitää päivityksissä tapahtuvaa migraatioiden
 tilaa. Flyway-kirjasto muokkaa näitä itse tarpeen mukaan eikä niihin viitata Geoviitteen datasta. Käytännössä
 migraatiotauluun voi joskus olla tarve koskea jos migraatiot ovat päässeet virheellisenä tuotantoon, mutta tämä on
 harvinaista.
 
 ### Postgis
 
-Postgis-skema sisältää Postgresin PostGIS-laajennoksen omat rakenteet, muunmuassa koordinaattijärjestelmien tiedot. Sitä
+Postgis-skeema sisältää Postgresin PostGIS-laajennoksen omat rakenteet, muunmuassa koordinaattijärjestelmien tiedot. Sitä
 ei muokata Geoviitteestä, mutta sen metodeita käytetään laajasti ja joihinkin tauluihin voidaan viitata kun esimerkiksi
 halutaan käyttää viite-eheyttä varmistamaan toimivan koordinaattijärjestelmän käyttö.
 
 ### Common
 
-Common-skema sisältää Geoviitteen jaetut käsitteet, joita hyödynnetään sekä Geometry- että Layout- puolelta, erityisesti
+Common-skeema sisältää Geoviitteen jaetut käsitteet, joita hyödynnetään sekä Geometry- että Layout- puolelta, erityisesti
 enumeraatioita, vaihdeomistaja, ja vaihteen rakenteet (vaihdekirjasto). Lisäksi sieltä löytyy käyttäjärooleihin
 (autorisointi) liittyvät asiat, sekä geometrialaskentaan ja koordinaattimuunnoksiin liittyviä kolmioverkkoja ja
 vastaavia rakenteita.
 
 ### Geometry
 
-Geometry-skema sisältää geometriasuunnitelmat, eli alkuperäiset suunnitelmatiedostot sekä niistä jäsennetyn
+Geometry-skeema sisältää geometriasuunnitelmat, eli alkuperäiset suunnitelmatiedostot sekä niistä jäsennetyn
 geometriatietomallin. Geometriatietomalli kuvaa suunnitelmatiedoston sisällön matemaattisina määreinä (suorina, kaarina,
 siirtymäkaarina) sekä rataverkkoon liittyvinä lisätietoina kuten vaihteina. Selkeimmän kuvan siitä saa katsomalla
 kuvausta [Tietomalli](tietomalli.md).
 
 ### Layout
 
-Layout-skema sisältää paikannuspohjan, eli yhtenäiskoordinaatistoon muunnetun koko suomen rataverkon, joka on
-muodostettu linkittämällä geometrioita. Koska layout luodaan geometry-skeman sisältöjen pohjalta, layoutin osat
+Layout-skeema sisältää paikannuspohjan, eli yhtenäiskoordinaatistoon muunnetun koko suomen rataverkon, joka on
+muodostettu linkittämällä geometrioita. Koska layout luodaan geometry-skeeman sisältöjen pohjalta, layoutin osat
 viittaavat niiden lähteenä olleeseen geometria-puolen tietoon.
 Selkeimmän kuvan paikannuspohjan tietomallista saa katsomalla kuvausta [Tietomalli](tietomalli.md).
 Toisaalta paikannuspohjan eri konteksteja (luonnos/virallinen/suunnitelma)
@@ -95,20 +95,20 @@ kuvaa [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md).
 
 ### Publication
 
-Publication-skema sisältää tiedot julkaisuista, eli versioihin kytketyt viitteet siitä millaisena joukkona tieto
+Publication-skeema sisältää tiedot julkaisuista, eli versioihin kytketyt viitteet siitä millaisena joukkona tieto
 hyväksyttiin viralliseen paikannuspohjaan. Ratkoon viennit tehdään näiden pohjalta, mutta itse viennin status ei ole
-julkaisun asiaa vaan oma taulunsa integrations-skemassa.
+julkaisun asiaa vaan oma taulunsa integrations-skeemassa.
 
 Tarkempaa kuvausta julkaisuprosessista löytyy kuvauksesta [Julkaisut](julkaisut.md)
 
 ### Integrations
 
-Integrations-skema sisältää Geoviitteen integraatiohin liittyvän tilan, eli niiden lukkotaulun ja ratko-integraation
+Integrations-skeema sisältää Geoviitteen integraatiohin liittyvän tilan, eli niiden lukkotaulun ja Ratko-integraation
 operaatioiden tilaa kuvaavat taulut (`ratko_push`). Ratko-integraation tiloja kuvaava malli löytyy
 kuvauksesta [Julkaisut](julkaisut.md).
 
 ### Projektivelho
 
-Projektivelho-skema sisältää projektivelho-integraation (synkronointi-ajon) tilaa kuvaavat taulut. Lisäksi samassa
-skemassa säilytetään myös tuodut dokumentit ja niihin littyvät projektitiedot sekä tarvittavat Projektivelhon
+Projektivelho-skeema sisältää projektivelho-integraation (synkronointi-ajon) tilaa kuvaavat taulut. Lisäksi samassa
+skeemassa säilytetään myös tuodut dokumentit ja niihin littyvät projektitiedot sekä tarvittavat Projektivelhon
 nimikkeistöt (Dictionary). Näistä on tarkempaa tietoa kuvauksessa [Projektivelho](projektivelho.md)

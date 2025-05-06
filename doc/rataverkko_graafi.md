@@ -8,8 +8,8 @@ graafialgoritmeissa, kuten reitityksessä.
 ## Tietosisältö
 
 Graafimalli koostuu solmuista (LayoutNode) ja kaarista (LayoutEdge). Solmut ovat käytännössä vaihdepisteitä tai
-raiteiden päitä ja kaaret geometrioita, jotka yhdistävät ne. Yhdessä ne muodostavat rataverkon graafin, jota voidaan
-käyttää esimerkiksi reititykseen tai mallintamaan rataosuuksia yli useiden raiteiden.
+raiteiden päitä ja kaaret geometrioita, jotka yhdistävät niitä. Yhdessä solmut ja kaaret muodostavat rataverkon graafin,
+jota voidaan käyttää esimerkiksi reititykseen tai mallintamaan rataosuuksia yli useiden raiteiden.
 
 Itse raiteet koostuvat tietystä kokoelmasta kaaria ja siten myös solmuja. Solmujen kautta ne kytkeytyvät vaihteisiin
 ja muihin raiteisiin.
@@ -39,10 +39,10 @@ sisältöinen solmu (eri vaihdepiste/raiteen pää) on aina eri solmu.
 
 ![](images/yksinkertaiset_solmut.png)
 
-Yllä oleva kuva näytää solmu solmujen tietosisällön eri tyyppisille solmuille. Raiteen päätesolmut kertovat mistä
+Yllä oleva kuva esittää solmujen tietosisällön eri tyyppisille solmuille. Raiteen päätesolmut kertovat mistä
 raiteesta (virallinen ID) on kyse ja onko kyse ko. raiteen alusta vai lopusta. Tällaisessa solmussa ei ole koskaan
 vaihdetietoja, koska jos raide päättyy vaihteelle, se kytketään raiteen päätesolmun sijaan vaihdesolmuun. Kaksi
-raiteen päätysolmua on kuitenkin mahdollista kytkeä toisiinsa (yhdistelmäsolmu) tilanteessa, jossa raidetunnus vaihtuu
+raiteen päätesolmua on kuitenkin mahdollista kytkeä toisiinsa (yhdistelmäsolmu) tilanteessa, jossa raidetunnus vaihtuu
 maastossa ilman vaihdetta.
 
 Vaihteiden solmut puolestaan sisältävät viitteen vaihteeseen sekä vaihdepisteen tunnuksen (numero) ja roolin. Rooli on
@@ -69,15 +69,15 @@ Solmujen yhdistelmä on oma erillinen solmunsa, eli jos ennen yhdistymistä mole
 solmunsa, yhdistelmä luodaan uutena ja se vaihdetaan aiempien yksittäisten solmujen tilalle. Solmuun liittyvät kaaret
 kytkeytyvät saman solmun eri portteihin sen mukaan kumman vaihteen puolelta ne tulevat. On huomionarvoista että solmu
 itsessään ei voi tietää missä järjestyksessä sen sisältämät vaihdepisteet ovat läpi kulkevan raiteen kannalta, vaan
-solmu joka luodaan raiteelle vaihdepisteille `[(id=1,joint=1), (id=2,joint=2)]` on oltava sama solmu joka luotaisi jos
-vaihtet kohdattaisi päinvastaisessa järjestyksessä `[(id=2,joint=2), (id=1,joint=1)]`. Tämä on toteuttu niin että solmun
-sisällössä portit järjestetään aina deterministisesti porteiksi A ja B, ja kaaret kytketään sen itsensä näkökulmasta
-sisemmän vaihdepisteen portiin.
+solmu joka luodaan raiteelle vaihdepisteille `[(id=1,joint=1), (id=2,joint=2)]` on oltava sama solmu joka luotaisiin jos
+vaihteet kohdattaisiin päinvastaisessa järjestyksessä `[(id=2,joint=2), (id=1,joint=1)]`. Tämä on toteuttu niin että
+solmun sisällössä portit järjestetään aina deterministisesti porteiksi A ja B, ja kaaret kytketään sen itsensä
+näkökulmasta sisemmän vaihdepisteen porttiin.
 
-Solmulla ei ole omaa sijaintia, vaan sille saadaan sijainti katsomalla kaaria jotka siihen päättyvät. Koska geometriat
-voivat tulla eri lähteistä, tämä ei välttämättä ole täysin yksiselitteinen kaikissa tilanteissa, eli eri raideversioilla
-voi olla eri käsitys solmun (esim. vaihdepisteen) sijainnista. Toinen tapa saada paikannuspohjan kontekstiin ja tilaan
-sidottu sijainti solmulle on katsoa sen viittaaman vaihdepisteen tai raiteen pään sijainti.
+Solmulla ei ole omaa sijaintia, mutta sille voidaan päätellä sijainti kaarista, jotka siihen päättyvät. Koska geometriat
+voivat tulla eri lähteistä, näin määritetty sijainti ei välttämättä ole täysin yksiselitteinen kaikissa tilanteissa, eli
+eri raideversioilla voi olla eri käsitys solmun (esim. vaihdepisteen) sijainnista. Toinen tapa määrittää paikannuspohjan
+kontekstiin ja tilaan sidottu sijainti solmulle on sen viittaaman vaihdepisteen tai raiteen pään sijainnista.
 
 #### Solmujen muodostuminen linkityksessä
 
@@ -88,11 +88,11 @@ uusi ID (jos solmu oli uniikki) tai aiemman solmun ID (jos se oli jo olemassa). 
 raiteet päätyvät automaattisesti kytkeytymään graafiin oikein ilman että viittauksista tarvitsee erikseen huolehtia
 linkitettävän vaihteen osalta.
 
-Topologiakytkennät (kytkeytyminen vaihdepisteeseen "ulkoapäin") ei kuitenkaan ole osa itse linkityksen manuaalisia
-valintoja vaan se päätellään sijaintien perusteella topologian uudelleenlaskennassa itse linkityksen jälkeen. Tämä
-tapahtuu hakemalla rataverkon versiosta muuttuneiden solmujen läheltä muut solmut ja tarkastelemalla voivatko ne
+Topologiakytkennät (kytkeytyminen vaihdepisteeseen "ulkoapäin") eivät kuitenkaan ole osa itse linkityksen manuaalisia
+valintoja vaan ne päätellään solmujen sijaintien perusteella topologian uudelleenlaskennassa itse linkityksen jälkeen.
+Tämä tapahtuu hakemalla rataverkon versiosta muuttuneiden solmujen läheltä muut solmut ja tarkastelemalla voivatko ne
 kytkeytyä toisiinsa. Tässä on kaksi eri tilannetta: raiteen päättyminen lähellä vaihdepistettä tai kahden vaihdepisteen
-päätyminen lähekkäin.
+linkittyminen lähekkäin.
  
 Jos raide päättyy lähelle jotain vaihdesolmua, raiteelle vaihdetaan päätesolmun tilalle kyseinen vaihdesolmu. Tämä
 vaihto on loogisesti samanlainen riippumatta siitä syntyikö tilanne linkittämällä kyseiseen kohtaan toinen vaihde vai
@@ -122,17 +122,17 @@ kytkennöistä vaihteeseen.
 
 #### Kaarten muodostuminen linkityksessä
 
-Kuten solmuillakin, myös kaarilla data yksilöi identiteetin. Jos luodaan uusi kaari, jonka sisältö on identtinen jonkun
-olemassaolevan kaaren kanssa, kannasta palautuu tallennuksessa olemassaolevan kaaren ID. Muutoin uusi data tallentuu
-uutena kaarena ja palautetaan sen ID. Näin identtiset geometria päätyy tallentumaan vain kerran ilman että koodissa
-tarvitsee huolehtia siitä että säilytetään muutostilanteissa samat olioviitteet.
+Kuten solmuillakin, myös kaarilla data yksilöi identiteetin. Jos backend luo uuden kaaren, jonka sisältö on identtinen
+jonkun olemassaolevan kaaren kanssa, kantaan tallennus palauttaa olemassaolevan kaaren ID:n. Jos sisältö puolestaan on
+uniikki, uusi kaari tallennetaan normaalisti ja palautetaan sen ID. Näin identtiset geometria päädytään tallentamaan
+vain kerran, ilman että koodissa tarvitsee huolehtia siitä että säilytetään muutostilanteissa samat olioviitteet.
 
 ## Tarkkuustasot ja yksinkertaistus
 
 Geoviite luo graafimallin nk. nano-tarkkuustasolla, mikä tarkoittaa että jokainen vaihdepiste on oma solmunsa.
-Käytännössä ulkoisille käyttäjille tuo on kuitenkin tarpeettoman tarkka, joten graafimalli voidaan yksinkertaistaa nk.
-mikro-tarkkuustasolle, jossa kukin vaihde kuvataan yhtenä graafin haarautumispisteenä. Tätä eroa havainnollistetaan alla
-olevassa kuvassa.
+Käytännössä ulkoisille käyttäjille nano-taso on kuitenkin tarpeettoman tarkka, joten graafimalli voidaan yksinkertaistaa
+nk. mikro-tarkkuustasolle, jossa kukin vaihde kuvataan yhtenä graafin haarautumispisteenä. Tätä eroa havainnollistetaan
+alla olevassa kuvassa.
 
 ![](images/graafi_nano_mikro.png)
 
