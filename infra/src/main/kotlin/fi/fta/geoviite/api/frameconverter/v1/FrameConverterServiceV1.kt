@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
-import fi.fta.geoviite.api.formatting.splitBigDecimal
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometryPoint
 import fi.fta.geoviite.infra.aspects.GeoviiteService
@@ -42,6 +41,8 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.all
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.produceIf
+import java.math.BigDecimal
+import java.math.RoundingMode
 import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
@@ -707,6 +708,15 @@ private fun filterByLocationTrackOid(
     } else {
         locationTrackOids[locationTrack.id] == oid
     }
+}
+
+private fun splitBigDecimal(number: BigDecimal, decimalPlaces: Int = 3): Pair<Int, Int> {
+    val wholePart = number.toBigInteger().toInt()
+    val fractionalPart = number.subtract(BigDecimal(wholePart))
+    val scaledFractionalPart =
+        fractionalPart.setScale(decimalPlaces, RoundingMode.DOWN).movePointRight(decimalPlaces).toInt()
+
+    return Pair(wholePart, scaledFractionalPart)
 }
 
 private fun mapLocationTrackTypeToDomainTypeOrNull(
