@@ -12,6 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 
+const val EXT_TRACK_LAYOUT_BASE_PATH = "/geoviite"
+
 @PreAuthorize(AUTH_API_GEOMETRY)
 @GeoviiteExtApiController([])
 @Tag(name = "Rataverkon paikannuspohja V1")
