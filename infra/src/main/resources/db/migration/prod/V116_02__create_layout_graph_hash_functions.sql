@@ -26,13 +26,13 @@ $$ immutable;
 create function layout.calculate_segment_hash(
   geometry_alignment_id int,
   geometry_element_index int,
-  source_start decimal(13, 6),
+  source_start_m decimal(13, 6),
   source layout.geometry_source,
   geometry_id int
 ) returns uuid
   language sql as
 $$
-select md5(row (geometry_alignment_id, geometry_element_index, source_start, source, geometry_id)::text)::uuid
+select md5(row (geometry_alignment_id, geometry_element_index, source_start_m, source, geometry_id)::text)::uuid
 $$ immutable;
 
 create function layout.calculate_edge_hash(

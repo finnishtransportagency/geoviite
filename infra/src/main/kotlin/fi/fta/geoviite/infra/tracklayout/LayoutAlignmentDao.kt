@@ -17,14 +17,14 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors
+import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -192,7 +192,7 @@ class LayoutAlignmentDao(
               array_agg(s.segment_index order by s.segment_index) as indices,
               array_agg(s.geometry_alignment_id order by s.segment_index) as geometry_alignment_ids,
               array_agg(s.geometry_element_index order by s.segment_index) as geometry_element_indices,
-              array_agg(s.source_start order by s.segment_index) as source_start_m_values,
+              array_agg(s.source_start_m order by s.segment_index) as source_start_m_values,
               array_agg(s.source order by s.segment_index) as sources,
               array_agg(s.geometry_id order by s.segment_index) as geometry_ids
               from layout.edge e
@@ -802,7 +802,7 @@ class LayoutAlignmentDao(
                 segment.segment_index,
                 segment.geometry_id,
                 segment.source,
-                ltve.start_m + segment.start as start,
+                ltve.start_m + segment.start_m as start_m,
                 geom_alignment.id as geom_alignment_id,
                 geom_alignment.id is not null as is_linked,
                 coalesce(plan_file.plan_id, orig_metadata.plan_id) as plan_id,
@@ -836,8 +836,8 @@ class LayoutAlignmentDao(
                 max(array [edge_index, segment_index]) as max_index,
                 common.first(geometry_id order by edge_index, segment_index) as from_geom_id,
                 common.last(geometry_id order by edge_index, segment_index) as to_geom_id,
-                common.first(start order by edge_index, segment_index) as from_start_m,
-                common.last(start order by edge_index, segment_index) as to_start_m,
+                common.first(start_m order by edge_index, segment_index) as from_start_m,
+                common.last(start_m order by edge_index, segment_index) as to_start_m,
                 is_linked,
                 plan_id,
                 file_name,
@@ -1119,7 +1119,7 @@ class LayoutAlignmentDao(
               from (
                 select
                   location_track.id,
-                  ltve.start_m+edge_segment.start as start_m,
+                  ltve.start_m+edge_segment.start_m as start_m,
                   postgis.st_m(postgis.st_endpoint(segment_geometry.geometry)) as length,
                   (plan.vertical_coordinate_system is not null)
                     and exists(

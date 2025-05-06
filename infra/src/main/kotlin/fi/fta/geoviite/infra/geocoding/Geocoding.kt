@@ -174,7 +174,6 @@ enum class KmPostRejectedReason {
 
 data class GeocodingContext(
     val trackNumber: TrackNumber,
-    val startAddress: TrackMeter,
     val referenceLineGeometry: IAlignment,
     val referencePoints: List<GeocodingReferencePoint>,
     val projectionLineDistanceDeviation: Double = PROJECTION_LINE_DISTANCE_DEVIATION,
@@ -213,13 +212,12 @@ data class GeocodingContext(
         referencePoints.takeIf { it.isNotEmpty() }?.let { Range(it.first().kmNumber, it.last().kmNumber) }
     }
 
-    val endAddress =
-        TrackMeter(
-            kmNumber = referencePoints.last().kmNumber,
-            meters =
-                referenceLineGeometry.length - referencePoints.last().let { p -> p.distance - p.meters.toDouble() },
-            decimals = startAddress.decimalCount(),
-        )
+    val startAddress: TrackMeter = referencePoints.first().address
+
+    val endAddress: TrackMeter? =
+        (referenceLineGeometry.length - referencePoints.last().let { p -> p.distance - p.meters.toDouble() })
+            .takeIf(TrackMeter::isMetersValid)
+            ?.let { meters -> TrackMeter(referencePoints.last().kmNumber, meters, startAddress.decimalCount()) }
 
     val startProjection: ProjectionLine? by lazy {
         val projectionLine = polyLineEdges.first().crossSectionAt(0.0)
@@ -227,13 +225,15 @@ data class GeocodingContext(
     }
 
     val endProjection: ProjectionLine? by lazy {
-        val projectionLine = polyLineEdges.last().crossSectionAt(referenceLineGeometry.length)
-        ProjectionLine(
-            endAddress,
-            projectionLine,
-            referenceLineGeometry.length,
-            polyLineEdges.last().referenceDirection,
-        )
+        endAddress?.let { address ->
+            val projectionLine = polyLineEdges.last().crossSectionAt(referenceLineGeometry.length)
+            ProjectionLine(
+                address,
+                projectionLine,
+                referenceLineGeometry.length,
+                polyLineEdges.last().referenceDirection,
+            )
+        }
     }
 
     fun preload() {
@@ -301,7 +301,6 @@ data class GeocodingContext(
                         trackNumber = trackNumber,
                         referenceLineGeometry = referenceLineGeometry,
                         referencePoints = validReferencePoints,
-                        startAddress = startAddress,
                     ),
                 rejectedKmPosts = invalidKmPosts + kmPostsOutsideGeometry,
                 validKmPosts = validKmPosts,

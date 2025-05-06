@@ -542,8 +542,8 @@ select
   sv.segment_index - e.start_segment_index as segment_index,
   sv.geometry_alignment_id,
   sv.geometry_element_index,
-  sv.start - first_sv.start as start,
-  sv.source_start,
+  sv.start - first_sv.start as start_m,
+  sv.source_start as source_start_m,
   sv.source,
   sv.geometry_id,
   e.segment_hashes[sv.segment_index - e.start_segment_index + 1] as hash,
@@ -563,9 +563,9 @@ select
 alter table edge_segment_temp add primary key (edge_id, segment_index);
 
 insert into layout.edge_segment
-  (edge_id, segment_index, geometry_alignment_id, geometry_element_index, start, source_start, source, geometry_id, hash)
+  (edge_id, segment_index, geometry_alignment_id, geometry_element_index, start_m, source_start_m, source, geometry_id, hash)
 select
-  edge_id, segment_index, geometry_alignment_id, geometry_element_index, start, source_start, source, geometry_id, hash
+  edge_id, segment_index, geometry_alignment_id, geometry_element_index, start_m, source_start_m, source, geometry_id, hash
   from edge_segment_temp;
 
 insert into layout.initial_edge_segment_metadata (edge_id, segment_index, metadata_id)
@@ -583,7 +583,7 @@ do $$
           layout.calculate_segment_hash(
               geometry_alignment_id,
               geometry_element_index,
-              source_start,
+              source_start_m,
               source,
               geometry_id
           ) as recalculated_hash

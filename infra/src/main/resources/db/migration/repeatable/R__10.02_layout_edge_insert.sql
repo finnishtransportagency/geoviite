@@ -26,7 +26,7 @@ begin
     layout.calculate_segment_hash(
         geometry_alignment_id,
         geometry_element_index,
-        source_start,
+        source_start_m,
         source,
         geometry_id
     ) as hash,
@@ -36,7 +36,7 @@ begin
         unnest(geometry_alignment_ids) as geometry_alignment_id,
         unnest(geometry_element_indices) as geometry_element_index,
         unnest(start_m_values) as start_m,
-        unnest(source_start_m_values) as source_start,
+        unnest(source_start_m_values) as source_start_m,
         unnest(sources)::layout.geometry_source as source,
         unnest(geometry_ids) as geometry_id
     ) tmp
@@ -98,14 +98,14 @@ begin
   -- If the row was inserted (no conflict) then the id is not null -> insert the rest of the data
   if result_id is not null then
     insert into layout.edge_segment
-      (edge_id, segment_index, geometry_alignment_id, geometry_element_index, start, source_start, source, geometry_id, hash)
+      (edge_id, segment_index, geometry_alignment_id, geometry_element_index, start_m, source_start_m, source, geometry_id, hash)
     select
       result_id as edge_id,
       segment_tmp.segment_index,
       segment_tmp.geometry_alignment_id,
       segment_tmp.geometry_element_index,
       segment_tmp.start_m,
-      segment_tmp.source_start,
+      segment_tmp.source_start_m,
       segment_tmp.source,
       segment_tmp.geometry_id,
       segment_tmp.hash

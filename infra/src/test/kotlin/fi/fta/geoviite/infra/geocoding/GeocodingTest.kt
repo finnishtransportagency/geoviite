@@ -27,14 +27,14 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 const val DELTA = 0.000001
 
@@ -118,7 +118,6 @@ val kmPosts =
 val context =
     GeocodingContext(
         trackNumber,
-        startAddress,
         alignment,
         addressPoints,
         // test-data is inaccurate so allow more delta in validation
@@ -359,7 +358,6 @@ class GeocodingTest {
         val projectionContext =
             GeocodingContext(
                 trackNumber = trackNumber,
-                startAddress = startAddress,
                 referenceLineGeometry = alignment,
                 referencePoints =
                     listOf(
@@ -393,7 +391,7 @@ class GeocodingTest {
             )
             .forEach { (address, point) ->
                 val projectionLine = projectionContext.getProjectionLine(address)
-                assertNotNull(projectionLine)
+                assertNotNull(projectionLine, "Expected to find a projection line for address $address (was null)")
                 assertProjectionLineMatches(projectionLine, address, projectionLine(point))
             }
     }
@@ -527,7 +525,6 @@ class GeocodingTest {
 
         return GeocodingContext(
             trackNumber = trackNumber,
-            startAddress = startAddress,
             referenceLineGeometry = alignment,
             referencePoints = combinedReferencePoints,
         )
@@ -543,7 +540,6 @@ class GeocodingTest {
         val verticalContext =
             GeocodingContext(
                 trackNumber,
-                startAddress,
                 verticalAlignment,
                 listOf(
                     GeocodingReferencePoint(
@@ -624,7 +620,7 @@ class GeocodingTest {
                 trackGeometry(
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(1), 1),
-                        segments = listOf(segment(start + Point(0.0, 1.0), start + Point(0.0, 5.5)))
+                        segments = listOf(segment(start + Point(0.0, 1.0), start + Point(0.0, 5.5))),
                     ),
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(1), 1),
@@ -634,11 +630,12 @@ class GeocodingTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(1), 5),
                         endInnerSwitch = switchLinkYV(IntId(1), 2),
-                        segments = listOf(
-                            segment(start + Point(0.0, 15.5), start + Point(0.0, 25.5)),
-                            segment(start + Point(0.0, 25.5), start + Point(0.0, 35.5)),
-                            segment(start + Point(0.0, 35.5), start + Point(0.0, 45.5)),
-                        )
+                        segments =
+                            listOf(
+                                segment(start + Point(0.0, 15.5), start + Point(0.0, 25.5)),
+                                segment(start + Point(0.0, 25.5), start + Point(0.0, 35.5)),
+                                segment(start + Point(0.0, 35.5), start + Point(0.0, 45.5)),
+                            ),
                     ),
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(1), 2),
@@ -653,15 +650,16 @@ class GeocodingTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(2), 5),
                         endInnerSwitch = switchLinkYV(IntId(2), 2),
-                        segments = listOf(
-                            segment(start + Point(0.0, 65.5), start + Point(0.0, 75.5)),
-                            segment(start + Point(0.0, 75.5), start + Point(0.0, 85.5)),
-                        ),
+                        segments =
+                            listOf(
+                                segment(start + Point(0.0, 65.5), start + Point(0.0, 75.5)),
+                                segment(start + Point(0.0, 75.5), start + Point(0.0, 85.5)),
+                            ),
                     ),
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(2), 2),
                         segments = listOf(segment(start + Point(0.0, 85.5), start + Point(0.0, 95.5))),
-                    )
+                    ),
                 )
             )
 
@@ -692,7 +690,6 @@ class GeocodingTest {
         assertThrows<IllegalArgumentException>("Geocoding context was created with empty reference line") {
             GeocodingContext(
                 trackNumber = TrackNumber("T001"),
-                startAddress = TrackMeter(KmNumber(10), 100),
                 referenceLineGeometry = startAlignment,
                 referencePoints = emptyList(),
             )
@@ -706,7 +703,6 @@ class GeocodingTest {
         assertThrows<IllegalArgumentException>("Geocoding context was created without reference points") {
             GeocodingContext(
                 trackNumber = TrackNumber("T001"),
-                startAddress = TrackMeter(KmNumber(10), 100),
                 referenceLineGeometry = startAlignment,
                 referencePoints = emptyList(),
             )
