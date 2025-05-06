@@ -169,6 +169,24 @@ class LocationTrackService(
         }
     }
 
+    fun getStartAndEndAtMoment(
+        context: LayoutContext,
+        ids: List<IntId<LocationTrack>>,
+        moment: Instant,
+    ): List<AlignmentStartAndEnd<LocationTrack>> {
+        val tracksAndAlignments =
+            ids.map { locationTrackId -> // TODO Batchable
+                    dao.getOfficialAtMoment(context.branch, locationTrackId, moment).let(::requireNotNull)
+                }
+                .let(::associateWithAlignments)
+
+        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(context, moment)
+
+        return tracksAndAlignments.map { (track, alignment) ->
+            AlignmentStartAndEnd.of(track.id as IntId, alignment, getGeocodingContext(track.trackNumberId))
+        }
+    }
+
     @Transactional
     override fun saveDraft(branch: LayoutBranch, draftAsset: LocationTrack): LayoutRowVersion<LocationTrack> =
         super.saveDraft(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)))
@@ -490,11 +508,48 @@ class LocationTrackService(
                     getSwitchIdAtStart(alignment, locationTrack) to getSwitchIdAtEnd(alignment, locationTrack)
                 } ?: (null to null)
             }
+
         val switches =
             switchDao
                 .getMany(layoutContext, startAndEndSwitchIds.flatMap { listOfNotNull(it.first, it.second) })
                 .associateBy { switch -> switch.id }
 
+        return formatLocationTrackDescriptions(lang, locationTracks, startAndEndSwitchIds, switches)
+    }
+
+    @Transactional(readOnly = true)
+    fun getFullDescriptionsAtMoment(
+        layoutContext: LayoutContext,
+        locationTracks: List<LocationTrack>,
+        lang: LocalizationLanguage,
+        moment: Instant,
+    ): List<FreeText> {
+        val startAndEndSwitchIds =
+            locationTracks.map { locationTrack ->
+                locationTrack.alignmentVersion?.let { alignmentVersion ->
+                    val alignment = alignmentDao.fetch(alignmentVersion)
+                    getSwitchIdAtStart(alignment, locationTrack) to getSwitchIdAtEnd(alignment, locationTrack)
+                } ?: (null to null)
+            }
+
+        val switches =
+            startAndEndSwitchIds
+                .flatMap { listOfNotNull(it.first, it.second) }
+                .map { switchId ->
+                    // TODO Batchable
+                    switchDao.getOfficialAtMoment(layoutContext.branch, switchId, moment).let(::requireNotNull)
+                }
+                .associateBy { switch -> switch.id }
+
+        return formatLocationTrackDescriptions(lang, locationTracks, startAndEndSwitchIds, switches)
+    }
+
+    private fun formatLocationTrackDescriptions(
+        lang: LocalizationLanguage,
+        locationTracks: List<LocationTrack>,
+        startAndEndSwitchIds: List<Pair<IntId<LayoutSwitch>?, IntId<LayoutSwitch>?>>,
+        switches: Map<DomainId<LayoutSwitch>, LayoutSwitch?>,
+    ): List<FreeText> {
         fun getSwitchShortName(switchId: IntId<LayoutSwitch>) = switches[switchId]?.shortName
         val translation = localizationService.getLocalization(lang)
 
@@ -849,6 +904,20 @@ class LocationTrackService(
     @Transactional(readOnly = true)
     fun getExternalIdsByBranch(id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
         return mapNonNullValues(locationTrackDao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
+    }
+
+    @Transactional(readOnly = true)
+    fun getLocationTrackByOidAtMoment(
+        oid: Oid<LocationTrack>,
+        layoutContext: LayoutContext,
+        moment: Instant,
+    ): LocationTrack? {
+        return locationTrackDao
+            .lookupByExternalId(oid)
+            ?.let { layoutRowId ->
+                locationTrackDao.fetchOfficialVersionAtMoment(layoutContext.branch, layoutRowId.id, moment)
+            }
+            ?.let(locationTrackDao::fetch)
     }
 }
 
