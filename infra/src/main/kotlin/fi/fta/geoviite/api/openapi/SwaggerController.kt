@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable
 const val OPENAPI_GEOVIITE_PATH = "/geoviite/v3/api-docs/geoviite"
 const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/v3/api-docs/geoviite-dev"
 
-const val OPENAPI_RATAVKM_PATH = "/rata-vkm/dev/static/openapi-rata-vkm-v1.yml"
+const val OPENAPI_RATAVKM_PATH = "/rata-vkm/static/openapi-rata-vkm-v1.yml"
 const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/static/openapi-rata-vkm-v1.yml"
 
 val allowedResourcePrefixes = listOf("/geoviite", "/rata-vkm")
