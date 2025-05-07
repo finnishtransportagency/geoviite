@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.linking.slice
+import fi.fta.geoviite.infra.linking.splitSegments
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
@@ -35,28 +36,37 @@ fun createTrack(
     switchStructure: SwitchStructureData,
     jointNumbers: List<JointNumber>,
     name: String? = null,
+    skipValidation: Boolean = false,
 ): TrackForSwitchFitting {
-    val switchAlignment =
-        requireNotNull(
-            switchStructure.alignments.firstOrNull { switchAlignment ->
-                switchAlignment.jointNumbers.containsAll(jointNumbers) &&
-                    jointNumbers.containsAll(switchAlignment.jointNumbers)
+    val jointSequences =
+        asSwitchStructure(switchStructure).let { switchStructure ->
+            getSwitchAlignmentJointSequences(switchStructure) + getPartialSwitchAlignmentJointSequences(switchStructure)
+        }
+    if (!skipValidation) {
+        require(
+            jointSequences.any { jointSequence ->
+                jointSequence == jointNumbers || jointSequence.reversed() == jointNumbers
             }
         ) {
             "Switch alignment does not exists by joints $jointNumbers"
         }
+    }
     val segmentEndPoints =
-        switchAlignment.elements.map { element -> element.start to element.end }.map { (p1, p2) -> (p1) to (p2) }
+        jointNumbers.map { jointNumber -> switchStructure.getJointLocation(jointNumber) }.zipWithNext()
     val trackName = name ?: jointNumbers.map { it.intValue }.joinToString("-")
     val (locationTrack, geometry) = createTrack(segmentEndPoints, trackName)
     return TrackForSwitchFitting(jointNumbers, locationTrack, geometry)
+}
+
+fun locationTrackIdByName(name: String): IntId<LocationTrack> {
+    return IntId(Math.abs(name.hashCode()))
 }
 
 fun createTrack(
     segmentEndPoints: List<Pair<IPoint, IPoint>>,
     trackName: String,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val locationTrackId = IntId<LocationTrack>(trackName.hashCode())
+    val locationTrackId = locationTrackIdByName(trackName)
     val startNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.START)
     val endNode = TmpTrackBoundaryNode(locationTrackId, TrackBoundaryType.END)
     val (_, segments) =
@@ -149,6 +159,38 @@ fun cutFromStart(
     return newLocationTrack to newGeometry
 }
 
+fun cutFromEnd(
+    locationTrack: LocationTrack,
+    geometry: LocationTrackGeometry,
+    length: Double,
+): Pair<LocationTrack, LocationTrackGeometry> {
+    val cutPosition = geometry.length - length
+    val newEdges =
+        geometry.edgesWithM.mapNotNull { (edge, range) ->
+            if (cutPosition <= range.min)
+            // is fully included
+            edge
+            else if (cutPosition >= range.max)
+            // is fully excluded
+            null
+            else {
+                // is partly included
+                val newSegments = splitSegments(edge.segmentsWithM, cutPosition).first
+                edge.withSegments(newSegments)
+            }
+        }
+    var newGeometry = TmpLocationTrackGeometry(newEdges)
+    val newLocationTrack =
+        locationTrack(
+            trackNumberId = locationTrack.trackNumberId,
+            geometry = newGeometry,
+            id = locationTrack.id as IntId,
+            name = locationTrack.name.toString(),
+        )
+
+    return newLocationTrack to newGeometry
+}
+
 fun expandTrackFromEnd(
     locationTrack: LocationTrack,
     geometry: LocationTrackGeometry,
@@ -210,16 +252,16 @@ fun moveTrackForward(
     return newLocationTrack to newGeometry
 }
 
-fun withSwitchJoint(
+fun withSwitchJointAtM(
     locationTrack: LocationTrack,
     geometry: LocationTrackGeometry,
     mValue: Double,
     switchId: IntId<LayoutSwitch>,
     switchStructure: SwitchStructureData,
     jointNumber: JointNumber,
-    direction: EdgeDirection = EdgeDirection.Along,
+    direction: RelativeDirection = RelativeDirection.Along,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val edgeAtM = geometry.getEdgeAtMOrThrow(mValue)
+    val (edgeAtM, mRange) = geometry.getEdgeAtMOrThrow(mValue)
     val jointOnEdge =
         JointOnEdge(
             locationTrackId = locationTrack.id as IntId,
@@ -227,7 +269,7 @@ fun withSwitchJoint(
             jointNumber = jointNumber,
             jointRole = SwitchJointRole.of(asSwitchStructure(switchStructure), jointNumber),
             edge = edgeAtM,
-            m = mValue,
+            m = mValue - mRange.min,
             direction = direction,
         )
 

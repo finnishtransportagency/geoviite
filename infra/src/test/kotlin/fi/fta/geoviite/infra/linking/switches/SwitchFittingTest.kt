@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.asSwitchStructure
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.IPoint
@@ -9,8 +10,10 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.createMainContext
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -19,9 +22,18 @@ data class TrackForSwitchFitting(
     val locationTrack: LocationTrack,
     val geometry: LocationTrackGeometry,
 ) {
+    val name = locationTrack.name
     val locationTrackId = locationTrack.id as IntId
     val trackAndGeometry = locationTrack to geometry
     val length = geometry.length
+
+    fun asNew(name: String): TrackForSwitchFitting {
+        val newId = locationTrackIdByName(name)
+        return copy(
+            locationTrack =
+                locationTrack.copy(contextData = createMainContext(newId, false), name = AlignmentName(name))
+        )
+    }
 
     fun startPoint(): IPoint {
         return requireNotNull(geometry.start)
@@ -31,8 +43,18 @@ data class TrackForSwitchFitting(
         return geometry.getPointAtM(m)
     }
 
+    fun setTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): TrackForSwitchFitting {
+        return TrackForSwitchFitting(byJoints, locationTrack.copy(trackNumberId = trackNumberId), geometry)
+    }
+
     fun cutFromStart(length: Double): TrackForSwitchFitting {
         return cutFromStart(locationTrack, geometry, length).let { (locationTrack, geometry) ->
+            this.copy(locationTrack = locationTrack, geometry = geometry)
+        }
+    }
+
+    fun cutFromEnd(length: Double): TrackForSwitchFitting {
+        return cutFromEnd(locationTrack, geometry, length).let { (locationTrack, geometry) ->
             this.copy(locationTrack = locationTrack, geometry = geometry)
         }
     }
@@ -55,32 +77,36 @@ data class TrackForSwitchFitting(
         }
     }
 
+    fun moveBackward(distance: Double): TrackForSwitchFitting {
+        return moveForward(-distance)
+    }
+
     fun withSwitchJointAtEnd(
         switchId: IntId<LayoutSwitch>,
         switchStructure: SwitchStructureData,
         jointNumber: Int,
-        direction: EdgeDirection = EdgeDirection.Along,
+        direction: RelativeDirection = RelativeDirection.Along,
     ): TrackForSwitchFitting {
-        return withSwitchJoint(length, switchId, switchStructure, jointNumber, direction)
+        return withSwitchJointAtM(length, switchId, switchStructure, jointNumber, direction)
     }
 
     fun withSwitchJointAtStart(
         switchId: IntId<LayoutSwitch>,
         switchStructure: SwitchStructureData,
         jointNumber: Int,
-        direction: EdgeDirection = EdgeDirection.Along,
+        direction: RelativeDirection = RelativeDirection.Along,
     ): TrackForSwitchFitting {
-        return withSwitchJoint(0.0, switchId, switchStructure, jointNumber, direction)
+        return withSwitchJointAtM(0.0, switchId, switchStructure, jointNumber, direction)
     }
 
-    fun withSwitchJoint(
+    fun withSwitchJointAtM(
         mValue: Double,
         switchId: IntId<LayoutSwitch>,
         switchStructure: SwitchStructureData,
         jointNumber: Int,
-        direction: EdgeDirection = EdgeDirection.Along,
+        direction: RelativeDirection = RelativeDirection.Along,
     ): TrackForSwitchFitting {
-        return withSwitchJoint(
+        return withSwitchJointAtM(
                 locationTrack,
                 geometry,
                 mValue,
@@ -229,20 +255,25 @@ class SwitchFittingTest {
     }
 
     @Test
-    fun `XXX`() {
+    fun `Switch fitting should snap to the segments when near enough `() {
         // track A   track C
         //  2 |    / 3
         //    |   /
         //  5 |  /
         //    | /
-        //  1 ╋/ 1
+        //  1 T/ 1
         //    |
         //    |
         // track B
         //
         // In this case geometry is not optimal.
-        // Track B ends slightly after joint 1
-        // Track A continues from track B
+        // Track B ends slightly after joint 1.
+        // Track A continues from track B.
+        //
+        // There should be matches:
+        // - joint 1 for track B
+        // - joint 1, 5, 2 for track A
+        // - joint 1, 3 for track C
 
         // init data
         val switchStructure = YV60_300_1_9_O()
@@ -257,66 +288,73 @@ class SwitchFittingTest {
         val fitted = fitSwitch(targetPoint, switchStructure, listOf(trackA, trackB, trackC))
 
         // assert
-        val distance1to5 = switchJointDistance(switchStructure, 1, 5)
-        val distance1to2 = switchAlignmentLength(switchStructure, 1, 2)
-        val distance1to3 = switchAlignmentLength(switchStructure, 1, 3)
+        val distance1to5 = switchJointDistance(switchStructure, 1, 5) - positioningErrorInMeters
+        val distance1to2 = switchAlignmentLength(switchStructure, 1, 2) - positioningErrorInMeters
+        val distance1to3 = trackC.length
         assertJoint(fitted, 1, trackA.locationTrack, expectedM = 0.0)
         assertJoint(fitted, 5, trackA.locationTrack, expectedM = distance1to5)
         assertJoint(fitted, 2, trackA.locationTrack, expectedM = distance1to2)
+        assertJoint(fitted, 1, trackC.locationTrack, expectedM = 0.0)
         assertJoint(fitted, 3, trackC.locationTrack, expectedM = distance1to3)
+
+        // TODO: Selvitettävä vielä, vaikka todennäköisesti tällä ei ole juuri merkitystä.
+        /*
+        Eli track B:n osalta snäppäystä ei tällä hetkellä tapahdu, vaan getBestMatchesForJoint-funktio
+        suodattaa pois snpäpätyn matchin, jolloin jää jäljelle snäppäämätön match. Näin tapahtuu, koska tällä
+        raiteella on match vain yhteen jointtiin (numero 1), jolloin joint 1 on sekä start että end joint,
+        jolloin end tyyppinen match suodattuu pois.
+        */
+        // assertJoint(fitted, 1, trackB.locationTrack, expectedM = trackBLength)
     }
 
     @Test
-    fun `Should map fitted switch to graph model`() {
-        // init data
-        // tässä pitäisi saada ymmärrettävästi luotua tilanne, jonka fitting tuottaa
-        // TAI oikeastaan pitäisikö luoda tilanne, jossa fitted Switch on jo muutettu edge maailmaan
-        // Muutos täytyy myös testata, mutta se on varmaan melko yksinkertainen
-        // - On siinä kuitenkin itse asiassa jointtien siirtämistä yms, joten on tärkeää testata
-        // - Tai mäppäys voi olla suoraviivainen, mutta sen käsittely on jotain muuta kuin mäppäystä
-        // eli tarvitaan
-        // - jointtien sijainnit raiteilla
-        // - raiteet
-        // tulos
-        // - jointtien sijainnit edgeillä
-        /*
-        Onko tässä enää merkitystä vaihderakenteella?
-         */
-
-        // TODO: Tämä testi ei ole tällaisenään kovin mielekäs
-        // Mielenkiintoisia ovat edgen käsitelyt ennen varsinaista linkitystä
-        // - silloin testataan jalostettuun mallin mäpättyjä malleja
+    fun `Switch fitting should recognize direction of the track`() {
+        // track A   track B
+        //  2 |    / 3
+        //    ↓   /
+        //  5 |  /
+        //    | /
+        //  1 |/ 1
+        //
+        // Track A goes against switch structure alignment.
 
         // init data
         val switchStructure = YV60_300_1_9_O()
-        val track152 = createTrack(switchStructure, asJointNumbers(1, 5, 2))
-        val track13 = createTrack(switchStructure, asJointNumbers(1, 3))
+        val trackA = createTrack(switchStructure, asJointNumbers(2, 5, 1)) // Note! reverse order 2-5-1
+        val trackB = createTrack(switchStructure, asJointNumbers(1, 3))
 
-        val track152Id = track152.locationTrack.id as IntId
-        val track13Id = track13.locationTrack.id as IntId
-
-        val distance1to5 = switchJointDistance(switchStructure, 1, 5)
-        val distance1to2 = switchAlignmentLength(switchStructure, 1, 2)
-        val distance1to3 = switchAlignmentLength(switchStructure, 1, 3)
-
-        val fitted =
-            fittedSwitch(
-                YV60_300_1_9_O(),
-                fittedJointMatch(track152Id, joint = 1, m = 0.0),
-                fittedJointMatch(track152Id, joint = 5, m = distance1to5),
-                fittedJointMatch(track152Id, joint = 2, m = distance1to2),
-                fittedJointMatch(track13Id, joint = 1, m = 0.0),
-                fittedJointMatch(track13Id, joint = 3, m = distance1to3),
-            )
-
-        // map on edges
-        val fittingOnEdges =
-            mapFittedSwitchToEdges(
-                fitted,
-                listOf(track152.locationTrack to track152.geometry, track13.locationTrack to track13.geometry),
-            )
+        // fit switch
+        val targetPoint = trackA.geometry.start!!
+        val fitted = fitSwitch(targetPoint, switchStructure, listOf(trackA, trackB))
 
         // assert
+        val expectedMValueJoint2 = 0.0
+        val expectedMValueJoint5 = trackA.length - switchJointDistance(switchStructure, 1, 5)
+        val expectedMValueJoint1 = trackA.length
+        val expectedMValueJoint3 = trackB.length
+        assertJoint(
+            fitted,
+            2,
+            trackA.locationTrack,
+            expectedM = expectedMValueJoint2,
+            direction = RelativeDirection.Against,
+        )
+        assertJoint(
+            fitted,
+            5,
+            trackA.locationTrack,
+            expectedM = expectedMValueJoint5,
+            direction = RelativeDirection.Against,
+        )
+        assertJoint(
+            fitted,
+            1,
+            trackA.locationTrack,
+            expectedM = expectedMValueJoint1,
+            direction = RelativeDirection.Against,
+        )
+        assertJoint(fitted, 1, trackB.locationTrack, expectedM = 0.0)
+        assertJoint(fitted, 3, trackB.locationTrack, expectedM = expectedMValueJoint3)
     }
 }
 
@@ -340,20 +378,48 @@ fun switchJointDistance(switchStructureData: SwitchStructureData, start: Int, en
     )
 }
 
-fun assertJoint(fitted: FittedSwitch, joint: Int, track: LocationTrack, expectedM: Double) {
+fun assertJoint(
+    fitted: FittedSwitch,
+    joint: Int,
+    track: LocationTrack,
+    expectedM: Double,
+    direction: RelativeDirection = RelativeDirection.Along,
+) {
     val jointNumber = JointNumber(joint)
     val fittedJoint = fitted.joints.first { fittedJoint -> fittedJoint.number == jointNumber }
     val matches = fittedJoint.matches.filter { match -> match.locationTrackId == track.id as IntId }
     assertEquals(1, matches.count(), "Expecting one match per location track \"${track.name}\" and joint $joint")
     val match = matches.first()
-    assertEquals(expectedM, match.m, 0.001, "M-value is not matching")
+    assertEquals(
+        expectedM,
+        match.m,
+        0.001,
+        "M-value is not matching for location track \"${track.name}\" and joint $joint",
+    )
+    assertEquals(
+        direction,
+        match.direction,
+        "Direction is not matching for location track \"${track.name}\" and joint $joint",
+    )
 }
 
 fun assertMatchCount(fitted: FittedSwitch, matchCount: Int) {
     assertEquals(matchCount, fitted.joints.sumOf { joint -> joint.matches.size }, "Match count does not match!")
 }
 
-/** Utility function to hide fitting implementation details. */
+fun removeDuplicateMatches(fittedSwitch: FittedSwitch): FittedSwitch {
+    return fittedSwitch.copy(
+        joints =
+            fittedSwitch.joints.map { joint ->
+                joint.copy(
+                    matches =
+                        joint.matches.distinctBy { match -> listOf(match.locationTrackId, match.switchJoint, match.m) }
+                )
+            }
+    )
+}
+
+/** Utility function for hiding fitting implementation details. */
 fun fitSwitch(
     point: IPoint,
     switchStructure: SwitchStructureData,
@@ -369,4 +435,5 @@ fun fitSwitch(
         )
         .keys()
         .first()
+        .let(::removeDuplicateMatches)
 }

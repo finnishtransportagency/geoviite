@@ -98,7 +98,8 @@ sealed class LocationTrackGeometry : IAlignment {
     @get:JsonIgnore
     val trackSwitchLinks: List<TrackSwitchLink> by lazy {
         edgesWithM.flatMapIndexed { i, (e, m) ->
-            // Init-block ensures that edges are connected: previous edge end node is the next edge start node
+            // Init-block ensures that edges are connected: previous edge end node is the next edge
+            // start node
             val start = e.firstSegmentStart.toAlignmentPoint(m.min)
             val startSwitches: List<TrackSwitchLink> =
                 listOfNotNull(
@@ -196,21 +197,21 @@ sealed class LocationTrackGeometry : IAlignment {
         this.takeIf { nodes.none { nodeSwaps.containsKey(it.contentHash) } }
             ?: TmpLocationTrackGeometry(processNodeReplacements(nodeSwaps, edges))
 
-    fun getEdgeAtMOrThrow(m: Double): LayoutEdge {
+    fun getEdgeAtMOrThrow(m: Double): Pair<LayoutEdge, Range<Double>> {
         return requireNotNull(getEdgeAtM(m)) { "Geometry does not contain edge at m $m" }
     }
 
-    fun getEdgeAtM(m: Double): LayoutEdge? =
+    fun getEdgeAtM(m: Double): Pair<LayoutEdge, Range<Double>>? =
         edgeMs
             .binarySearch { mRange ->
                 when {
-                    m < mRange.min -> -1
-                    m > mRange.max -> 1
+                    m < mRange.min -> 1
+                    m > mRange.max -> -1
                     else -> 0
                 }
             }
             .takeIf { it >= 0 }
-            ?.let(edges::getOrNull)
+            ?.let(edgesWithM::getOrNull)
 
     fun mergeEdges(edgesToMerge: List<LayoutEdge>): LocationTrackGeometry {
         val newEdges =
@@ -410,7 +411,8 @@ private fun processNodeReplacements(
     var next: LayoutEdge? = edges.getOrNull(1)
     var index = 0
     while (current != null) {
-        // The replacement may result in the current edge getting merged with the next or previous one
+        // The replacement may result in the current edge getting merged with the next or previous
+        // one
         val (editedPrevious, editedCurrent, editedNext) = replaceNodes(previous, current, next, replacements)
 
         // Move the edit-window forward, maintaining partially edited edges
@@ -726,6 +728,9 @@ sealed class LayoutNode {
     fun containsInnerJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
         portA.let { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
 
+    fun containsOuterJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
+        portB.let { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
+
     abstract val type: LayoutNodeType
 
     companion object {
@@ -913,7 +918,8 @@ fun verifySwitchNode(portA: SwitchLink, portB: SwitchLink?) {
         "Switch node cannot have two connections to the same switch (1 joint of a switch in 1 location): portA=$portA portB=$portB"
     }
     //        require(portA.id != portB?.id || portA.jointNumber != portB.jointNumber) {
-    //    "Switch node cannot have two identical ports (they should be the same single port): portA=$portA portB=$portB"
+    //    "Switch node cannot have two identical ports (they should be the same single port):
+    // portA=$portA portB=$portB"
     // }
 }
 

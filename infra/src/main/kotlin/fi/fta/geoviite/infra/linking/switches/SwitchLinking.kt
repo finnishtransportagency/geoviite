@@ -14,16 +14,34 @@ import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 
 enum class SuggestedSwitchJointMatchType {
     START,
     END,
     LINE,
 }
+
+enum class RelativeDirection {
+    Along,
+    Against,
+}
+
+data class JointOnEdge(
+    val locationTrackId: IntId<LocationTrack>,
+    val geometry: LocationTrackGeometry,
+    val jointNumber: JointNumber,
+    val jointRole: SwitchJointRole,
+    val edge: LayoutEdge,
+    val m: Double,
+    val direction: RelativeDirection,
+)
 
 data class LayoutSwitchSaveRequest(
     val name: SwitchName,
@@ -42,6 +60,7 @@ data class FittedSwitchJointMatch(
     val matchType: SuggestedSwitchJointMatchType,
     val distance: Double,
     val distanceToAlignment: Double,
+    val direction: RelativeDirection = RelativeDirection.Along, // TODO: tämä pitäisi asettaa fitted switch luonnissa
 )
 
 data class FittedSwitchJoint(

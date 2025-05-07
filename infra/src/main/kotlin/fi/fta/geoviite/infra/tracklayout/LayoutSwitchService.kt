@@ -20,9 +20,9 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class LayoutSwitchService
@@ -155,7 +155,7 @@ constructor(
             .map { jointConnections -> jointConnections.reduceRight(LayoutSwitchJointConnection::merge) }
     }
 
-    private fun getLocationTracksLinkedToSwitch(
+    fun getLocationTracksLinkedToSwitch(
         layoutContext: LayoutContext,
         layoutSwitchId: IntId<LayoutSwitch>,
     ): List<Pair<LocationTrack, LocationTrackGeometry>> {
