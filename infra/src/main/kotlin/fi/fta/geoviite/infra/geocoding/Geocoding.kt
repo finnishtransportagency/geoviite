@@ -460,16 +460,8 @@ data class GeocodingContext(
                     val proportion =
                         -leftIntersection.segment1Portion /
                             (rightIntersection.segment1Portion - leftIntersection.segment1Portion)
-                    // we do want to use the right projection line's address in interpolation, because it
-                    // might be an end projection, or we could be doing projection lines at 0.25 meter
-                    // intervals. But if the right projection is a km start, then its meters are just 0 and we can't
-                    // use those. So:
-                    // TODO check these assumptions:
-                    // - that right.meters <= left.meters is the right way to identify a km start
-                    // - that in case the right projection is a km start, this is the right choice of meterInterval
-                    val meterInterval =
-                        if (right.address.meters > left.address.meters) right.address.meters - left.address.meters
-                        else lineLength(left.projection.start, right.projection.start).toBigDecimal()
+                    // right address can be a km start, so must interpolate between distances rather than address meters
+                    val meterInterval = (right.distance - left.distance).toBigDecimal()
                     val meters = left.address.meters + meterInterval * BigDecimal(proportion)
                     left.address.copy(meters = round(meters, decimals))
                 }
