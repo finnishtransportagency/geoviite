@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired
 data class ExtLocationTrackGeometryResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: Oid<LocationTrack>,
+    @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
@@ -37,6 +38,7 @@ data class ExtLocationTrackModifiedGeometryResponseV1(
     @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
     @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: Oid<LocationTrack>,
+    @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
@@ -117,6 +119,7 @@ constructor(
         return ExtLocationTrackGeometryResponseV1(
             trackNetworkVersion = publication.uuid,
             locationTrackOid = oid,
+            coordinateSystem = coordinateSystem,
             trackIntervals =
                 getExtLocationTrackGeometry(
                     locationTrack.getAlignmentVersionOrThrow(),
@@ -142,10 +145,13 @@ constructor(
         val filteredPoints =
             alignmentAddresses.allPoints.filter { trackIntervalFilter.containsKmEndInclusive(it.address.kmNumber) }
 
+        // TODO Check that there is a start & end point defined? (otherwise the first/last calls will throw). This
+        // should probably always be the case for a track interval?
+
         return listOf(
             ExtCenterLineTrackIntervalV1(
-                startAddress = alignmentAddresses.startPoint.address.toString(),
-                endAddress = alignmentAddresses.endPoint.address.toString(),
+                startAddress = filteredPoints.first().address.formatFixedDecimals(3),
+                endAddress = filteredPoints.last().address.formatFixedDecimals(3),
                 addressPoints =
                     filteredPoints
                         .map { addressPoint -> layoutAddressPointToCoordinateSystem(addressPoint, coordinateSystem) }
