@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.Logger
@@ -63,7 +64,7 @@ class ExtLocationTrackControllerV1(
                 trackNetworkVersion = trackNetworkVersion,
                 coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
             )
-            ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
+            .let(::toResponse)
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
@@ -97,7 +98,7 @@ class ExtLocationTrackControllerV1(
                 trackNetworkVersion,
                 coordinateSystem ?: LAYOUT_SRID,
             )
-            ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
+            .let(::toResponse)
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria")

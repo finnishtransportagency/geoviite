@@ -171,8 +171,10 @@ enum class KmPostRejectedReason {
 }
 
 enum class Resolution(val meters: Number) {
-    ONE_METER(1),
     QUARTER_METER(BigDecimal("0.25")),
+    ONE_METER(1),
+    TEN_METERS(10),
+    HUNDRED_METERS(100),
 }
 
 data class GeocodingContext(

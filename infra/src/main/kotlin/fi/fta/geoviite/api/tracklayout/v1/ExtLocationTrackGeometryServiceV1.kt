@@ -65,8 +65,8 @@ data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataos
 
 @Schema(name = "Osoiteväli")
 data class ExtCenterLineTrackIntervalV1(
-    @JsonProperty("alku") val startAddress: String,
-    @JsonProperty("loppu") val endAddress: String,
+    @JsonProperty("alku") val startAddress: ExtAddressPointV1,
+    @JsonProperty("loppu") val endAddress: ExtAddressPointV1,
     @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
 )
 
@@ -145,18 +145,35 @@ constructor(
         val filteredPoints =
             alignmentAddresses.allPoints.filter { trackIntervalFilter.containsKmEndInclusive(it.address.kmNumber) }
 
-        // TODO Check that there is a start & end point defined? (otherwise the first/last calls will throw). This
-        // should probably always be the case for a track interval?
+        return if (filteredPoints.isEmpty()) {
+            logger.info("there were no address points for the track (trackIntervalFilter=${trackIntervalFilter}")
+            emptyList()
+        } else {
+            val intervalStartPoint =
+                filteredPoints.firstOrNull() ?: throw ExtGeocodingFailedV1("interval start point was undefined")
 
-        return listOf(
-            ExtCenterLineTrackIntervalV1(
-                startAddress = filteredPoints.first().address.formatFixedDecimals(3),
-                endAddress = filteredPoints.last().address.formatFixedDecimals(3),
-                addressPoints =
-                    filteredPoints
-                        .map { addressPoint -> layoutAddressPointToCoordinateSystem(addressPoint, coordinateSystem) }
-                        .map(ExtAddressPointV1::of),
+            val intervalEndPoint =
+                filteredPoints.lastOrNull() ?: throw ExtGeocodingFailedV1("interval end point was undefined")
+
+            val intervalMidPoints =
+                if (filteredPoints.size > 2) {
+                    filteredPoints.subList(1, filteredPoints.size - 1)
+                } else {
+                    emptyList()
+                }
+
+            listOf(
+                ExtCenterLineTrackIntervalV1(
+                    startAddress = intervalStartPoint.let(ExtAddressPointV1::of),
+                    endAddress = intervalEndPoint.let(ExtAddressPointV1::of),
+                    addressPoints =
+                        intervalMidPoints
+                            .map { addressPoint ->
+                                layoutAddressPointToCoordinateSystem(addressPoint, coordinateSystem)
+                            }
+                            .map(ExtAddressPointV1::of),
+                )
             )
-        )
+        }
     }
 }

@@ -3,6 +3,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
@@ -66,13 +67,12 @@ constructor(
                 else -> {
                     trackNetworkVersion
                         .let { uuid -> publicationDao.fetchPublicationByUuid(uuid) }
-                        .let(::requireNotNull)
-                        .let { specifiedPublication ->
+                        ?.let { specifiedPublication ->
                             specifiedPublication to
                                 locationTrackDao.listPublishedLocationTracksAtMoment(
                                     specifiedPublication.publicationTime
                                 )
-                        }
+                        } ?: throw ExtTrackNetworkVersionNotFound("trackNetworkVersion=${trackNetworkVersion}")
                 }
             }
 
@@ -88,6 +88,20 @@ constructor(
                     lang,
                 ),
         )
+    }
+
+    fun collectModifiedLocationTracks(
+        branch: LayoutBranch,
+        exclusiveFromMoment: Instant,
+        inclusiveToMoment: Instant,
+    ): List<LocationTrack> {
+        return publicationDao.fetchPublishedLocationTracksAfterMoment(exclusiveFromMoment, inclusiveToMoment).map {
+            locationTrackId ->
+            locationTrackDao.getOfficialAtMoment(branch, locationTrackId, inclusiveToMoment)
+                ?: throw ExtLocationTrackNotFoundExceptionV1(
+                    "locationTrackId=$locationTrackId, moment=${toPublication.publicationTime}"
+                )
+        }
     }
 
     fun createLocationTrackCollectionModificationResponse(
@@ -114,18 +128,12 @@ constructor(
             )
             null
         } else {
-
             val modifiedLocationTracks =
-                publicationDao
-                    .fetchPublishedLocationTracksAfterMoment(
-                        fromPublication.publicationTime,
-                        toPublication.publicationTime,
-                    )
-                    .map { locationTrackId ->
-                        locationTrackDao
-                            .getOfficialAtMoment(layoutContext.branch, locationTrackId, toPublication.publicationTime)
-                            .let(::requireNotNull)
-                    }
+                collectModifiedLocationTracks(
+                    layoutContext.branch,
+                    fromPublication.publicationTime,
+                    toPublication.publicationTime,
+                )
 
             if (modifiedLocationTracks.isEmpty()) {
                 logger.info(
