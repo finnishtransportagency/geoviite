@@ -1,6 +1,10 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
 import TestGeoJsonFeatureCollection
+import fi.fta.geoviite.api.ExtApiTestDataServiceV1
+import fi.fta.geoviite.api.assertContainsErrorMessage
+import fi.fta.geoviite.api.assertNullDetailedProperties
+import fi.fta.geoviite.api.assertNullSimpleProperties
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestLayoutContext
@@ -57,7 +61,7 @@ class TrackAddressToCoordinateIT
 @Autowired
 constructor(
     mockMvc: MockMvc,
-    val frameConverterTestDataService: FrameConverterTestDataServiceV1,
+    val frameConverterTestDataService: ExtApiTestDataServiceV1,
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val locationTrackDao: LocationTrackDao,
     val locationTrackService: LocationTrackService,

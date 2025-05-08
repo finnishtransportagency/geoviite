@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.openapi
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
+import io.swagger.v3.oas.models.Paths
 import io.swagger.v3.oas.models.info.Contact
 import io.swagger.v3.oas.models.info.Info
 import org.springdoc.core.customizers.OpenApiCustomizer
@@ -47,6 +48,14 @@ class OpenApiConfig {
                     .version("1.0.0")
                     .contact(Contact().name("TODO_NAME").email("TODO_EMAIL"))
             )
+
+            // Alphabetically sort paths & components for user friendliness.
+            openApi.paths =
+                Paths().apply {
+                    openApi.paths.orEmpty().toSortedMap().forEach { (path, item) -> addPathItem(path, item) }
+                }
+
+            openApi.components?.schemas = openApi.components?.schemas?.toSortedMap()
         }
     }
 }

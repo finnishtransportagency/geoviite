@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 data class AddressPointCacheKey(
     val alignmentVersion: RowVersion<LayoutAlignment>,
     val geocodingContextCacheKey: GeocodingContextCacheKey,
+    val resolution: Resolution,
 )
 
 data class AddressPointCalculationData(
@@ -40,12 +41,13 @@ class AddressPointsCache(
     fun getAddressPointCacheKey(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
+        resolution: Resolution,
     ): AddressPointCacheKey? {
         return locationTrackDao.fetchVersion(layoutContext, locationTrackId)?.let { trackVersion ->
             val track = locationTrackDao.fetch(trackVersion)
             val contextCacheKey = geocodingDao.getLayoutGeocodingContextCacheKey(layoutContext, track.trackNumberId)
             if (track.alignmentVersion != null && contextCacheKey != null) {
-                AddressPointCacheKey(track.alignmentVersion, contextCacheKey)
+                AddressPointCacheKey(track.alignmentVersion, contextCacheKey, resolution)
             } else {
                 null
             }
@@ -66,5 +68,5 @@ class AddressPointsCache(
         }
 
     fun getAddressPoints(input: AddressPointCalculationData): AlignmentAddresses? =
-        cache.get(input.key) { input.geocodingContext.getAddressPoints(input.alignment) }
+        cache.get(input.key) { input.geocodingContext.getAddressPoints(input.alignment, input.key.resolution) }
 }

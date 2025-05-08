@@ -32,6 +32,7 @@
             "v1": {
                 "error": {
                     "oid-not-found": "Pyynnön OID-tunnuksen perusteella ei löydetty kohdetta.",
+                    "location-track-not-found": "Sijaintiraidetta ei löydetty.",
                     "client-error": "Pyyntö oli tunnistamattomalla tavalla virheellinen (HTTP {{koodi}}).",
                     "server-error": "Pyynnön käsittely epäonnistui palvelimella (HTTP {{koodi}}).",
                     "unauthorized": "Pyyntöön ei ollut oikeutta.",

@@ -28,6 +28,8 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -365,7 +367,7 @@ class LocationTrackDao(
         includeDeleted: Boolean,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
-    ): List<LocationTrack> = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).map(::fetch)
+    ) = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).map(::fetch)
 
     fun fetchVersions(
         layoutContext: LayoutContext,
@@ -545,6 +547,26 @@ class LocationTrackDao(
         return trackNumberIds.associateWith { trackNumberId ->
             versions.filter { (tnId, _) -> tnId == trackNumberId }.map { (_, trackVersions) -> trackVersions }
         }
+    }
+
+    fun listPublishedLocationTracksAtMoment(moment: Instant): List<LocationTrack> {
+        val sql =
+            """
+              select distinct on (id) id, design_id, draft, version
+              from layout.location_track_version
+              where change_time <= :change_time
+                and not deleted
+                and not draft
+                and design_id is null
+              order by id, change_time desc
+        """
+                .trimIndent()
+
+        return jdbcTemplate
+            .query(sql, mapOf("change_time" to Timestamp.from(moment))) { rs, _ ->
+                rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
+            }
+            .map(::fetch)
     }
 
     @Transactional

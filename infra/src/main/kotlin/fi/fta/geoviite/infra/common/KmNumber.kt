@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.util.StringSanitizer
 import fi.fta.geoviite.infra.util.formatForException
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.math.RoundingMode.DOWN
 import java.math.RoundingMode.HALF_UP
 import java.math.RoundingMode.UP
@@ -67,6 +68,9 @@ interface ITrackMeter : Comparable<ITrackMeter> {
     val meters: BigDecimal
 
     fun format(): String = formatTrackMeter(kmNumber, meters)
+
+    fun formatFixedDecimals(decimals: Int = 3): String =
+        formatTrackMeter(kmNumber, meters.setScale(decimals, RoundingMode.HALF_UP))
 
     fun formatDropDecimals(decimals: Int = 0): String = formatTrackMeter(kmNumber, metersFloor(decimals))
 

@@ -407,6 +407,7 @@ fun locationTrackAndAlignment(
     state: LocationTrackState = LocationTrackState.IN_USE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
+    ownerId: IntId<LocationTrackOwner> = IntId(1),
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignment(segments)
     val locationTrack =
@@ -422,6 +423,7 @@ fun locationTrackAndAlignment(
             state = state,
             topologyStartSwitch = topologyStartSwitch,
             topologyEndSwitch = topologyEndSwitch,
+            ownerId = ownerId,
         )
     return locationTrack to alignment
 }

@@ -24,7 +24,6 @@ import org.springframework.web.context.request.WebRequest
 @ControllerAdvice
 @GeoviiteService
 class ApiErrorHandler @Autowired constructor(private val localizationService: LocalizationService) {
-
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     init {
