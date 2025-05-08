@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
@@ -513,18 +512,10 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
 
 data class PointSeekResult<T : IPoint3DM>(val point: T, val index: Int, val isSnapped: Boolean)
 
-// TODO: GVT-2935 this will become reference-line only version: remove switch links & rename...
-// ... or maybe just re-combine with LayoutEdgeSegment, as that doesn't have switches either
 data class LayoutSegment(
     @JsonIgnore override val geometry: SegmentGeometry,
     override val sourceId: IndexedId<GeometryElement>?,
     override val sourceStartM: BigDecimal?,
-    @Deprecated("Switches will be removed from segments: use LocationTrackGeometry nodes")
-    val switchId: IntId<LayoutSwitch>? = null,
-    @Deprecated("Switches will be removed from segments: use LocationTrackGeometry nodes")
-    val startJointNumber: JointNumber? = null,
-    @Deprecated("Switches will be removed from segments: use LocationTrackGeometry nodes")
-    val endJointNumber: JointNumber? = null,
     override val source: GeometrySource,
 ) : ISegmentGeometry by geometry, ISegment, Loggable {
 
@@ -538,9 +529,6 @@ data class LayoutSegment(
     init {
         require(source != GENERATED || segmentPoints.size == 2) { "Generated segment can't have more than 2 points" }
         sourceStartM?.also { s -> require(s.scale() == SOURCE_START_M_SCALE) }
-        require(switchId != null || (startJointNumber == null && endJointNumber == null)) {
-            "Segment cannot link to switch joints if it doesn't link to a switch: switchId=$switchId startJoint=$startJointNumber endJoint=$endJointNumber"
-        }
     }
 
     fun slice(segmentStartM: Double, fromIndex: Int, toIndex: Int): Pair<LayoutSegment, Range<Double>>? {
@@ -594,16 +582,7 @@ data class LayoutSegment(
         }
     }
 
-    fun withoutSwitch(): LayoutSegment =
-        if (switchId == null && startJointNumber == null && endJointNumber == null) this
-        else copy(switchId = null, startJointNumber = null, endJointNumber = null)
-
-    override fun toLog(): String =
-        logFormat(
-            //    "id" to id,
-            "source" to source,
-            "geometry" to geometry.toLog(),
-        )
+    override fun toLog(): String = logFormat("source" to source, "geometry" to geometry.toLog())
 }
 
 const val LAYOUT_COORDINATE_DELTA = 0.001

@@ -23,7 +23,6 @@ import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
-import fi.fta.geoviite.infra.util.getJointNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.setUser
@@ -140,10 +139,6 @@ class LocationTrackDao(
               ltv.segment_count,            
               ltv.duplicate_of_location_track_id,
               ltv.topological_connectivity,
-              ltv.topology_start_switch_id,
-              ltv.topology_start_switch_joint_number,
-              ltv.topology_end_switch_id,
-              ltv.topology_end_switch_joint_number,
               ltv.owner_id,
               (
               select array_agg(switch_id order by switch_sort) from (
@@ -194,10 +189,6 @@ class LocationTrackDao(
               lt.segment_count,            
               lt.duplicate_of_location_track_id,
               lt.topological_connectivity,
-              lt.topology_start_switch_id,
-              lt.topology_start_switch_joint_number,
-              lt.topology_end_switch_id,
-              lt.topology_end_switch_joint_number,
               lt.owner_id,
               (
               select array_agg(switch_id order by switch_sort) from (
@@ -239,14 +230,6 @@ class LocationTrackDao(
             duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
             topologicalConnectivity = rs.getEnum("topological_connectivity"),
             ownerId = rs.getIntId("owner_id"),
-            topologyStartSwitch =
-                rs.getIntIdOrNull<LayoutSwitch>("topology_start_switch_id")?.let { id ->
-                    TopologyLocationTrackSwitch(id, rs.getJointNumber("topology_start_switch_joint_number"))
-                },
-            topologyEndSwitch =
-                rs.getIntIdOrNull<LayoutSwitch>("topology_end_switch_id")?.let { id ->
-                    TopologyLocationTrackSwitch(id, rs.getJointNumber("topology_end_switch_joint_number"))
-                },
             switchIds = rs.getIntIdArray("switch_ids"),
             contextData =
                 rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
@@ -263,8 +246,6 @@ class LocationTrackDao(
               layout_context_id,
               id,
               track_number_id,
-              alignment_id,
-              alignment_version,
               name,
               description_base,
               description_suffix,
@@ -275,10 +256,6 @@ class LocationTrackDao(
               design_id,
               duplicate_of_location_track_id,
               topological_connectivity,
-              topology_start_switch_id,
-              topology_start_switch_joint_number,
-              topology_end_switch_id,
-              topology_end_switch_joint_number,
               owner_id,
               origin_design_id,
               length,
@@ -290,8 +267,6 @@ class LocationTrackDao(
               :layout_context_id,
               :id,
               :track_number_id,
-              :alignment_id,
-              :alignment_version,
               :name,
               :description_base,
               :description_suffix::layout.location_track_description_suffix,
@@ -302,10 +277,6 @@ class LocationTrackDao(
               :design_id,
               :duplicate_of_location_track_id,
               :topological_connectivity::layout.track_topological_connectivity_type,
-              :topology_start_switch_id,
-              :topology_start_switch_joint_number,
-              :topology_end_switch_id,
-              :topology_end_switch_joint_number,
               :owner_id,
               :origin_design_id,
               :length,
@@ -324,10 +295,6 @@ class LocationTrackDao(
               design_asset_state = excluded.design_asset_state,
               duplicate_of_location_track_id = excluded.duplicate_of_location_track_id,
               topological_connectivity = excluded.topological_connectivity,
-              topology_start_switch_id = excluded.topology_start_switch_id,
-              topology_start_switch_joint_number = excluded.topology_start_switch_joint_number,
-              topology_end_switch_id = excluded.topology_end_switch_id,
-              topology_end_switch_joint_number = excluded.topology_end_switch_joint_number,
               owner_id = excluded.owner_id,
               origin_design_id = excluded.origin_design_id,
               length = excluded.length,
@@ -342,10 +309,6 @@ class LocationTrackDao(
                 "layout_context_id" to item.layoutContext.toSqlString(),
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
-                "alignment_id" to null,
-                "alignment_version" to null,
-                //                "alignment_id" to item.getAlignmentVersionOrThrow().id.intValue,
-                //                "alignment_version" to item.getAlignmentVersionOrThrow().version,
                 "name" to item.name,
                 "description_base" to item.descriptionBase,
                 "description_suffix" to item.descriptionSuffix.name,
@@ -356,10 +319,6 @@ class LocationTrackDao(
                 "design_id" to item.contextData.designId?.intValue,
                 "duplicate_of_location_track_id" to item.duplicateOf?.intValue,
                 "topological_connectivity" to item.topologicalConnectivity.name,
-                "topology_start_switch_id" to item.topologyStartSwitch?.switchId?.intValue,
-                "topology_start_switch_joint_number" to item.topologyStartSwitch?.jointNumber?.intValue,
-                "topology_end_switch_id" to item.topologyEndSwitch?.switchId?.intValue,
-                "topology_end_switch_joint_number" to item.topologyEndSwitch?.jointNumber?.intValue,
                 "owner_id" to item.ownerId.intValue,
                 "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
                 "length" to geometry.length,

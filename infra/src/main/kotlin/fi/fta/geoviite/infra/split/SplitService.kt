@@ -626,9 +626,6 @@ private fun updateSplitTargetForTransferAssets(
     return duplicateTrack.copy(
         // After split, the track is no longer duplicate
         duplicateOf = null,
-        // Topology is re-resolved after tracks and switches are updated
-        topologyStartSwitch = null,
-        topologyEndSwitch = null,
         topologicalConnectivity = topologicalConnectivityType,
     )
 }
@@ -649,9 +646,6 @@ private fun updateSplitTargetForOverwriteDuplicate(
 
             // After split, the track is no longer duplicate
             duplicateOf = null,
-            // Topology is re-resolved after tracks and switches are updated
-            topologyStartSwitch = null,
-            topologyEndSwitch = null,
             topologicalConnectivity = topologicalConnectivityType,
             state = sourceTrack.state,
             trackNumberId = sourceTrack.trackNumberId,
@@ -682,9 +676,6 @@ private fun createSplitTarget(
 
             // After split, tracks are not duplicates
             duplicateOf = null,
-            // Topology is re-resolved after tracks and switches are updated
-            topologyStartSwitch = null,
-            topologyEndSwitch = null,
             topologicalConnectivity = topologicalConnectivityType,
             state = sourceTrack.state,
             trackNumberId = sourceTrack.trackNumberId,

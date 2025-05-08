@@ -1,6 +1,3 @@
-alter table layout.location_track disable trigger version_update_trigger;
-alter table layout.location_track disable trigger version_row_trigger;
-
 -- Add these columns to location_track as alignment is going away
 alter table layout.location_track_version
   add column bounding_box postgis.geometry(polygon, 3067) null,
@@ -56,11 +53,15 @@ alter table layout.location_track
   alter column edge_count set not null,
   alter column segment_count set not null;
 
--- TODO: Drop these columns instead, but keep them for now to maintain the data for comparison
-alter table layout.location_track_version alter column alignment_id drop not null;
-alter table layout.location_track_version alter column alignment_version drop not null;
-alter table layout.location_track alter column alignment_id drop not null;
-alter table layout.location_track alter column alignment_version drop not null;
-
-alter table layout.location_track enable trigger version_row_trigger;
-alter table layout.location_track enable trigger version_update_trigger;
+-- In prod code, row delete doesn't copy the version_edge refs for the delete-row but the above columns are retained
+-- The migration produces the refs as we need them to generate the new columns
+-- To make the migration leave the data as the live code would produce it, we need to drop the refs for deleted rows
+delete
+  from layout.location_track_version_edge ltve
+  where exists(
+    select 1 from layout.location_track_version ltv
+             where ltve.location_track_id = ltv.id
+               and ltve.location_track_layout_context_id = ltv.layout_context_id
+               and ltve.location_track_version = ltv.version
+               and ltv.deleted
+  );

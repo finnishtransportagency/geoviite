@@ -47,7 +47,6 @@ create temporary table node_point_version_temp as (
           inner join layout.segment_geometry sg on sg.id = s.geometry_id
         where s.switch_id is not null
           and (s.switch_start_joint_number is not null or s.switch_end_joint_number is not null)
---           and lt.deleted = false -- TODO: ignore these, right? there wont be any edges/nodes for deleted tracks in the future?
     ),
     -- All potential locations/versions that could produce a node. Note that there will be duplicates here
     node_point as (
@@ -396,8 +395,6 @@ create temp table track_edge_version_temp as (
                   on ltv.id = node.location_track_id
                     and ltv.layout_context_id = node.location_track_layout_context_id
                     and ltv.version = node.location_track_version
-      -- TODO: GVT-2930 - we could not generate track-edges for deleted tracks, as those are identical to the previous version
-      -- If we do generate them, we need to also insert them on track deletion, as the reference is turned compared to alignment
   )
   select
     e.*,

@@ -477,9 +477,6 @@ class LayoutAlignmentDao(
             sv.geometry_alignment_id,
             sv.geometry_element_index,
             sv.source_start,
-            sv.switch_id,
-            sv.switch_start_joint_number,
-            sv.switch_end_joint_number,
             sv.source,
             sv.geometry_id
           from layout.alignment a
@@ -499,9 +496,6 @@ class LayoutAlignmentDao(
                         SegmentData(
                             sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
                             sourceStartM = rs.getBigDecimalOrNull("source_start"),
-                            switchId = rs.getIntIdOrNull("switch_id"),
-                            startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
-                            endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
                             source = rs.getEnum("source"),
                             geometryId = rs.getIntId("geometry_id"),
                         )
@@ -686,9 +680,6 @@ class LayoutAlignmentDao(
               geometry_alignment_id,
               geometry_element_index,
               source_start,
-              switch_id,
-              switch_start_joint_number,
-              switch_end_joint_number,
               source,
               geometry_id
             from layout.segment_version 
@@ -705,9 +696,6 @@ class LayoutAlignmentDao(
                 SegmentData(
                     sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
                     sourceStartM = rs.getBigDecimalOrNull("source_start"),
-                    switchId = rs.getIntIdOrNull("switch_id"),
-                    startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
-                    endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
                     source = rs.getEnum("source"),
                     geometryId = rs.getIntId("geometry_id"),
                 )
@@ -1182,14 +1170,11 @@ class LayoutAlignmentDao(
                   start,
                   geometry_alignment_id,
                   geometry_element_index,
-                  switch_id,
-                  switch_start_joint_number,
-                  switch_end_joint_number,
                   source_start,
                   source,
                   geometry_id
                 )
-                values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?) 
+                values(?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?) 
               """
                     .trimIndent()
             // This uses indexed parameters (rather than named ones),
@@ -1202,18 +1187,15 @@ class LayoutAlignmentDao(
                 ps.setDouble(4, m.min)
                 ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
                 ps.setNullableInt(6) { if (s.sourceId is IndexedId) s.sourceId.index else null }
-                ps.setNullableInt(7) { if (s.switchId is IntId) s.switchId.intValue else null }
-                ps.setNullableInt(8, s.startJointNumber?.intValue)
-                ps.setNullableInt(9, s.endJointNumber?.intValue)
-                ps.setNullableBigDecimal(10, s.sourceStartM)
-                ps.setString(11, s.source.name)
+                ps.setNullableBigDecimal(7, s.sourceStartM)
+                ps.setString(8, s.source.name)
                 val geometryId =
                     if (s.geometry.id is IntId) s.geometry.id
                     else
                         requireNotNull(newGeometryIds[s.geometry.id]) {
                             "SegmentGeometry not stored: id=${s.geometry.id}"
                         }
-                ps.setInt(12, geometryId.intValue)
+                ps.setInt(9, geometryId.intValue)
             }
         }
     }
@@ -1450,9 +1432,6 @@ private data class EdgeData(
 private data class SegmentData(
     val sourceId: IndexedId<GeometryElement>?,
     val sourceStartM: BigDecimal?,
-    val switchId: IntId<LayoutSwitch>?,
-    val startJointNumber: JointNumber?,
-    val endJointNumber: JointNumber?,
     val source: GeometrySource,
     val geometryId: IntId<SegmentGeometry>,
 )
