@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.IndexedId
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.math.IPoint
@@ -16,7 +15,6 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.PlaceHolderNodeConnection
@@ -35,11 +33,8 @@ const val ALIGNMENT_LINKING_SNAP = 0.001
 fun cutLocationTrackGeometry(geometry: LocationTrackGeometry, mRange: Range<Double>) =
     TmpLocationTrackGeometry.of(slice(geometry, mRange, ALIGNMENT_LINKING_SNAP), geometry.trackId)
 
-fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): LayoutAlignment {
-    val cutSegments = slice(alignment, mRange, ALIGNMENT_LINKING_SNAP)
-    val newSegments = removeSwitches(cutSegments, getSwitchIdsOutside(alignment, mRange))
-    return tryCreateLinkedAlignment(alignment, newSegments)
-}
+fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): LayoutAlignment =
+    tryCreateLinkedAlignment(alignment, slice(alignment, mRange, ALIGNMENT_LINKING_SNAP))
 
 fun replaceLocationTrackGeometry(
     geometryAlignment: PlanLayoutAlignment,
@@ -92,9 +87,6 @@ private fun createLinkingSegment(start: IPoint?, end: IPoint?, tolerance: Double
                 ),
             sourceId = null,
             sourceStartM = null,
-            switchId = null,
-            startJointNumber = null,
-            endJointNumber = null,
             source = GeometrySource.GENERATED,
         )
     else null
@@ -107,9 +99,6 @@ private fun toLayoutSegment(segment: ISegment): LayoutSegment =
             geometry = segment.geometry,
             sourceId = segment.sourceId as? IndexedId,
             sourceStartM = segment.sourceStartM,
-            switchId = null,
-            startJointNumber = null,
-            endJointNumber = null,
             source = segment.source,
         )
 
@@ -244,18 +233,3 @@ fun createGapIfNeeded(preceding: List<LayoutSegment>, following: List<LayoutSegm
 private fun firstPoint(segments: List<LayoutSegment>) = segments.firstOrNull()?.segmentStart
 
 private fun lastPoint(segments: List<LayoutSegment>) = segments.lastOrNull()?.segmentEnd
-
-fun removeSwitches(segments: List<LayoutSegment>, switchIds: Set<IntId<LayoutSwitch>>): List<LayoutSegment> =
-    segments.map { s -> if (switchIds.contains(s.switchId)) s.withoutSwitch() else s }
-
-@Deprecated("In layout graph model, this is no-longer needed")
-fun getSwitchIdsInside(alignment: LayoutAlignment, mRange: Range<Double>) =
-    getSwitchIds(alignment) { m -> mRange.min < m.max && mRange.max > m.min }
-
-@Deprecated("In layout graph model, this is no-longer needed")
-fun getSwitchIdsOutside(alignment: LayoutAlignment, mRange: Range<Double>) =
-    getSwitchIds(alignment) { m -> mRange.min > m.min || mRange.max < m.max }
-
-@Deprecated("In layout graph model, this is no-longer needed")
-private fun getSwitchIds(alignment: LayoutAlignment, predicate: (Range<Double>) -> Boolean) =
-    alignment.segmentsWithM.mapNotNull { (s, m) -> if (predicate(m)) s.switchId else null }.toSet()

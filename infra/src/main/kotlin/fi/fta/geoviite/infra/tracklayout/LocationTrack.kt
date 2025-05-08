@@ -67,10 +67,6 @@ data class LocationTrack(
     val segmentCount: Int,
     val duplicateOf: IntId<LocationTrack>?,
     val topologicalConnectivity: TopologicalConnectivityType,
-    @Deprecated("Topology links are now just the start/end nodes of the geometry")
-    val topologyStartSwitch: TopologyLocationTrackSwitch?,
-    @Deprecated("Topology links are now just the start/end nodes of the geometry")
-    val topologyEndSwitch: TopologyLocationTrackSwitch?,
     val ownerId: IntId<LocationTrackOwner>,
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
     @JsonIgnore val switchIds: List<IntId<LayoutSwitch>> = listOf(),
@@ -84,13 +80,6 @@ data class LocationTrack(
                 "id=$id " +
                 "length=${descriptionBase.length} " +
                 "allowed=$locationTrackDescriptionLength"
-        }
-        require(topologyStartSwitch?.switchId == null || topologyStartSwitch.switchId != topologyEndSwitch?.switchId) {
-            "LocationTrack cannot topologically connect to the same switch at both ends: " +
-                "trackId=$id " +
-                "switchId=${topologyStartSwitch?.switchId} " +
-                "startJoint=${topologyStartSwitch?.jointNumber} " +
-                "endJoint=${topologyEndSwitch?.jointNumber}"
         }
     }
 

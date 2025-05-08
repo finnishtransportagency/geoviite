@@ -80,9 +80,6 @@ class ReferenceLineService(
         draftAsset: ReferenceLine,
         alignment: LayoutAlignment,
     ): LayoutRowVersion<ReferenceLine> {
-        require(alignment.segments.all { it.switchId == null }) {
-            "Reference lines cannot have switches: id=${draftAsset.id} referenceLine=$draftAsset"
-        }
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not
             // edit any original
