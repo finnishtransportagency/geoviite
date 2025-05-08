@@ -103,6 +103,7 @@ function validateTrackNumberEdit(
               }
             : undefined,
     ];
+
     return [...mandatoryFieldErrors, ...regexErrors, ...otherErrors].filter(filterNotEmpty);
 }
 

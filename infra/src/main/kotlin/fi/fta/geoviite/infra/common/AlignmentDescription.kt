@@ -18,6 +18,7 @@ data class LocationTrackDescriptionBase @JsonCreator(mode = DELEGATING) construc
 
     init {
         sanitizer.assertSanitized(value)
+        sanitizer.assertTrimmed(value)
     }
 
     @JsonValue override fun toString(): String = value
@@ -35,6 +36,7 @@ data class TrackNumberDescription @JsonCreator(mode = DELEGATING) constructor(pr
 
     init {
         sanitizer.assertSanitized(value)
+        sanitizer.assertTrimmed(value)
     }
 
     @JsonValue override fun toString(): String = value

@@ -16,6 +16,7 @@ data class TrackNumber @JsonCreator(mode = DELEGATING) constructor(val value: St
 
     init {
         sanitizer.assertSanitized(value)
+        sanitizer.assertTrimmed(value)
     }
 
     @JsonValue override fun toString(): String = value

@@ -481,10 +481,11 @@ const hasValidGkLocation = (state: KmPostEditState): boolean =>
     isFaithfullySaveableAsFloat(state.kmPost.gkLocationY);
 
 export function isValidKmNumber(kmNumber: string): boolean {
-    if (kmNumber.length <= 4) {
-        return /^\d{4}$/.test(kmNumber);
-    } else if (kmNumber.length <= 6) {
-        return /^\d{4}[A-Z]{1,2}$/.test(kmNumber);
+    const trimmedKmNumber = kmNumber.trim();
+    if (trimmedKmNumber.length <= 4) {
+        return /^\d{4}$/.test(trimmedKmNumber);
+    } else if (trimmedKmNumber.length <= 6) {
+        return /^\d{4}[A-Z]{1,2}$/.test(trimmedKmNumber);
     }
     return false;
 }
@@ -556,9 +557,13 @@ export function kmPostSaveRequest(state: KmPostEditState): KmPostSaveRequest {
         gkSrid: _delete3,
         ...simpleFields
     } = state.kmPost;
-    const typedSimpleFields: KmPostSimpleFields = { ...simpleFields };
+    const typedSimpleFieldsWithTrimmedNumber: KmPostSimpleFields = {
+        ...simpleFields,
+        kmNumber: state.kmPost.kmNumber.trim(),
+    };
+
     return {
-        ...typedSimpleFields,
+        ...typedSimpleFieldsWithTrimmedNumber,
         gkLocation: state.gkLocationEnabled
             ? {
                   location: editingGkPointToSavePoint(state),

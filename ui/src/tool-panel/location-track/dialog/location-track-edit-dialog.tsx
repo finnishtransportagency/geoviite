@@ -243,9 +243,15 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     function save() {
         if (canSaveLocationTrack(state) && state.locationTrack) {
+            const locationTrackWithTrimmedStrings = {
+                ...state.locationTrack,
+                name: state.locationTrack.name.trim(),
+                descriptionBase: state.locationTrack.descriptionBase?.trim(),
+            };
+
             stateActions.onStartSaving();
             if (state.isNewLocationTrack) {
-                insertLocationTrack(layoutContextDraft, state.locationTrack)
+                insertLocationTrack(layoutContextDraft, locationTrackWithTrimmedStrings)
                     .then((locationTrackId) => {
                         props.onSave && props.onSave(locationTrackId);
                         Snackbar.success('location-track-dialog.created-successfully');
@@ -256,12 +262,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 updateLocationTrack(
                     layoutContextDraft,
                     state.existingLocationTrack.id,
-                    state.locationTrack,
+                    locationTrackWithTrimmedStrings,
                 )
                     .then((locationTrackId) => {
                         props.onSave && props.onSave(locationTrackId);
                         const successMessage =
-                            state.locationTrack?.state === 'DELETED'
+                            locationTrackWithTrimmedStrings.state === 'DELETED'
                                 ? 'location-track-dialog.deleted-successfully'
                                 : 'location-track-dialog.modified-successfully';
                         Snackbar.success(successMessage);
@@ -342,7 +348,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     };
 
     const fullDescription = () => {
-        const base = state.locationTrack?.descriptionBase?.trim() ?? '';
+        const base = state.locationTrack?.descriptionBase ?? '';
         const suffix = descriptionSuffix(locationTrackDescriptionSuffixMode ?? 'NONE');
         return suffix ? `${base} ${suffix}` : base;
     };

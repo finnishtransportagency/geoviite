@@ -59,6 +59,12 @@ fun assertSanitized(type: KClass<*>, stringValue: String, regex: Regex, length: 
     }
 }
 
+fun assertTrimmed(type: KClass<*>, value: String) {
+    assertInput(type, value == value.trim(), value) {
+        "Whitespace not allowed at the start or end of ${type.simpleName}: ${formatForException(value)}"
+    }
+}
+
 fun assertLength(
     type: KClass<*>,
     value: String,

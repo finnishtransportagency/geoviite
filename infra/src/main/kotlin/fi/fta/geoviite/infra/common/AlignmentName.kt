@@ -13,16 +13,15 @@ data class AlignmentName @JsonCreator(mode = DELEGATING) constructor(private val
         val allowedLength = 1..50
         val sanitizer = StringSanitizer(AlignmentName::class, ALLOWED_CHARACTERS, allowedLength)
 
-        fun ofUnsafe(value: String) = AlignmentName(sanitizer.sanitize(value))
+        fun ofUnsafe(value: String) = value.trim().let(sanitizer::sanitize).let(::AlignmentName)
     }
 
     init {
         sanitizer.assertSanitized(value)
+        sanitizer.assertTrimmed(value)
     }
 
     @JsonValue override fun toString(): String = value
 
     override fun compareTo(other: AlignmentName): Int = value.compareTo(other.value)
-
-    fun padStart(length: Int, padChar: Char) = AlignmentName(value.padStart(length, padChar))
 }
