@@ -17,7 +17,11 @@ fun gradsToRads(grads: Double): Double = PI * grads / 200
 fun radsToGrads(rads: Double): Double = 200 * rads / PI
 
 /** Direction in the center of 2 given directions (given in rads), on the side of the smaller angle. */
-fun angleAvgRads(rads1: Double, rads2: Double): Double = atan2(sin(rads1) + sin(rads2), cos(rads1) + cos(rads2))
+fun angleAvgRads(rads1: Double, rads2: Double): Double = interpolateAngleRads(rads1, rads2, 0.5)
+
+/** Interpolate between two angles, on the side of the smaller angle */
+fun interpolateAngleRads(rads1: Double, rads2: Double, proportion: Double) =
+    rotateAngle(rads1, normalizeDirectionRads(rads2 - rads1) * proportion)
 
 /**
  * Checks if an angle (agnostic of unit) is inside the closed range [start,end], noting that the angle can flip
