@@ -501,22 +501,22 @@ class LocationTrackService(
         return locationTracks.zip(startAndEndSwitchIds) { locationTrack, startAndEndSwitch ->
             val startSwitchName = startAndEndSwitch.first?.let(::getSwitchShortName)
             val endSwitchName = startAndEndSwitch.second?.let(::getSwitchShortName)
-            val trimmedDescriptionBase = locationTrack.descriptionBase.toString().trim()
+            val descriptionBase = locationTrack.descriptionBase.toString()
 
             when (locationTrack.descriptionSuffix) {
-                LocationTrackDescriptionSuffix.NONE -> FreeText(trimmedDescriptionBase)
+                LocationTrackDescriptionSuffix.NONE -> FreeText(descriptionBase)
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER ->
                     FreeText(
-                        "${trimmedDescriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
+                        "${descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
                     )
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ->
-                    FreeText("${trimmedDescriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
+                    FreeText("${descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ->
                     FreeText(
-                        "${trimmedDescriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
+                        "${descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
                     )
             }
         }

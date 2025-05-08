@@ -18,6 +18,7 @@ data class SwitchName @JsonCreator(mode = DELEGATING) constructor(private val va
 
     init {
         sanitizer.assertSanitized(value)
+        sanitizer.assertTrimmed(value)
     }
 
     @JsonValue override fun toString(): String = value

@@ -140,7 +140,10 @@ export const SwitchEditDialog = ({
 
     const conflictingSwitch = useLoader(async () => {
         if (validateSwitchName(switchName).length === 0) {
-            const switches = await getSwitchesByName(draftLayoutContext(layoutContext), switchName);
+            const switches = await getSwitchesByName(
+                draftLayoutContext(layoutContext),
+                switchName.trim(),
+            );
             return switches.find((s) => s.id !== existingSwitch?.id);
         } else {
             return undefined;
@@ -236,7 +239,7 @@ export const SwitchEditDialog = ({
     function save() {
         if (switchName && switchStateCategory && switchStructureId && switchOwnerId) {
             const newSwitch: LayoutSwitchSaveRequest = {
-                name: switchName,
+                name: switchName.trim(),
                 switchStructureId: switchStructureId,
                 stateCategory: switchStateCategory,
                 ownerId: switchOwnerId,

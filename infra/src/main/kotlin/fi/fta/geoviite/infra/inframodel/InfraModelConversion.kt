@@ -126,7 +126,7 @@ fun toGvtPlan(
     val units = parseUnits(coordinateSystem, metricUnits, coordinateSystemNameToSrid)
     val gvtSwitches = collectGeometrySwitches(switchStructuresByType, switchTypeNameAliases, infraModel.alignmentGroups)
     val trackNumberDescription = infraModel.alignmentGroups.first().name
-    val trackNumber = tryParseTrackNumber(trackNumberDescription)
+    val trackNumber = tryParseTrackNumber(trackNumberDescription.trim())
     val alignments = mutableListOf<GeometryAlignment>()
     val kmPosts = mutableListOf<GeometryKmPost>()
 
@@ -251,7 +251,7 @@ fun toGvtAlignment(
     val cant = alignment.cant?.let { c -> toGvtCant(c) }
     return GeometryAlignment(
         name =
-            tryParseAlignmentName(alignment.name)
+            tryParseAlignmentName(alignment.name.trim())
                 ?: throw InputValidationException(
                     message = "Invalid alignment name: ${formatForException(alignment.name)}",
                     type = AlignmentName::class,

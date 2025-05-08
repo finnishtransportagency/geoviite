@@ -726,60 +726,6 @@ constructor(
     }
 
     @Test
-    fun `getFullDescriptions() trims out extra whitespaces in descriptionBase`() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switch1 = mainDraftContext.insert(switch(name = "ABC V123"))
-        val switch2 = mainDraftContext.insert(switch(name = "QUX V456"))
-        val track1 =
-            mainDraftContext
-                .insert(
-                    locationTrack(
-                        trackNumberId,
-                        topologyStartSwitch = TopologyLocationTrackSwitch(switch1.id, JointNumber(1)),
-                        description = "    track 1  ",
-                        descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
-                    ),
-                    alignment(
-                        segment(Point(0.0, 0.0), Point(1.0, 1.0)),
-                        segment(
-                            Point(1.0, 1.0),
-                            Point(2.0, 2.0),
-                            switchId = switch2.id,
-                            endJointNumber = JointNumber(1),
-                        ),
-                    ),
-                )
-                .id
-        val track2 =
-            mainDraftContext
-                .insert(
-                    locationTrack(
-                        trackNumberId,
-                        description = " track 2  ",
-                        descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
-                    ),
-                    alignment(
-                        segment(
-                            Point(2.0, 2.0),
-                            Point(3.0, 3.0),
-                            switchId = switch2.id,
-                            startJointNumber = JointNumber(1),
-                        )
-                    ),
-                )
-                .id
-        val descriptions =
-            locationTrackService
-                .getFullDescriptions(
-                    MainLayoutContext.draft,
-                    listOf(track1, track2).map { mainDraftContext.fetch(it)!! },
-                    LocalizationLanguage.FI,
-                )
-                .map { it.toString() }
-        assertEquals(listOf("track 1 V123 - V456", "track 2"), descriptions)
-    }
-
-    @Test
     fun `deleteDraft deletes duplicate references if track is only draft, but not if official exists`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
