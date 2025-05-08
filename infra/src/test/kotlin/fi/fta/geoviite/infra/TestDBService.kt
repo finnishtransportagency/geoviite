@@ -327,8 +327,11 @@ class TestDBService(
     ): LayoutRowVersion<T> =
         when (asset) {
             is LayoutTrackNumber -> trackNumberDao.save(asset)
-            is LocationTrack ->
-                locationTrackDao.save(asset, asset.version?.let(alignmentDao::fetch) ?: TmpLocationTrackGeometry.empty)
+            is LocationTrack -> {
+                val trackVersion = originVersion as? LayoutRowVersion<LocationTrack>
+                val geometry = trackVersion?.let(alignmentDao::fetch) ?: TmpLocationTrackGeometry.empty
+                locationTrackDao.save(asset, geometry)
+            }
             is ReferenceLine ->
                 referenceLineDao.save(
                     asset.takeIf { it.alignmentVersion != null }
@@ -406,7 +409,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         locationTrackDao.get(context, id)?.let { track -> track to alignmentDao.fetch(track.versionOrThrow) }
 
     fun <T : LayoutAsset<T>> save(asset: T): LayoutRowVersion<T> =
-        testService.save(testService.updateContext(asset, context))
+        testService.save(testService.updateContext(asset, context), asset.version)
 
     fun saveLocationTrack(asset: Pair<LocationTrack, LocationTrackGeometry>): LayoutRowVersion<LocationTrack> =
         save(asset.first, asset.second)

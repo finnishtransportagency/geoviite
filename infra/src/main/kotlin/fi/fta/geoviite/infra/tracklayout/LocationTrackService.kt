@@ -519,7 +519,7 @@ class LocationTrackService(
             val startSplitPoint = createSplitPoint(start, startSwitchLink?.id, START, geocodingContext)
             val endSplitPoint = createSplitPoint(end, endSwitchLink?.id, END, geocodingContext)
 
-            val startSwitch = endSwitchLink?.id?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
+            val startSwitch = startSwitchLink?.id?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
             val endSwitch = endSwitchLink?.id?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
 
             val partOfUnfinishedSplit =

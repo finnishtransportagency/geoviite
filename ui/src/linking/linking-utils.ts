@@ -94,8 +94,11 @@ export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
     ss: SuggestedSwitch,
 ): LayoutSwitchJointConnection[] {
     const tracks = objectEntries(ss.trackLinks).flatMap(([locationTrackId, links]) =>
-        links.segmentJoints.map((sj) => ({
-            number: sj.number,
+        (links.suggestedLinks === undefined || links.suggestedLinks.joints.length === 1
+            ? []
+            : links.suggestedLinks.joints
+        ).map((sj) => ({
+            number: sj.jointNumber,
             locationTrackId,
             location: sj.location,
         })),
@@ -117,7 +120,11 @@ export function suggestedSwitchTopoLinksAsTopologicalJointConnections(
 ): TopologicalJointConnection[] {
     return objectEntries(
         objectEntries(ss.trackLinks)
-            .map(([id, link]) => link.topologyJoint && ([link.topologyJoint.number, id] as const))
+            .map(([id, link]) =>
+                link.suggestedLinks !== undefined && link.suggestedLinks.joints.length === 1
+                    ? ([expectDefined(link.suggestedLinks.joints[0]).jointNumber, id] as const)
+                    : undefined,
+            )
             .filter(filterNotEmpty)
             .reduce<{ [key in JointNumber]: LocationTrackId[] }>((acc, [jointNumber, id]) => {
                 acc[jointNumber] ||= [];
@@ -135,23 +142,26 @@ export function combineLocationTrackIds(
     }
 
     return Object.values(
-        locationTracks.flat().reduce((acc, locationTrack) => {
-            const jointNumber = locationTrack.jointNumber;
+        locationTracks.flat().reduce(
+            (acc, locationTrack) => {
+                const jointNumber = locationTrack.jointNumber;
 
-            if (acc[jointNumber]) {
-                acc[jointNumber] = {
-                    jointNumber: jointNumber,
-                    locationTrackIds: expectDefined(
-                        acc[jointNumber]?.locationTrackIds
-                            .concat(locationTrack.locationTrackIds)
-                            .filter(filterUnique),
-                    ),
-                };
-            } else {
-                acc[jointNumber] = locationTrack;
-            }
+                if (acc[jointNumber]) {
+                    acc[jointNumber] = {
+                        jointNumber: jointNumber,
+                        locationTrackIds: expectDefined(
+                            acc[jointNumber]?.locationTrackIds
+                                .concat(locationTrack.locationTrackIds)
+                                .filter(filterUnique),
+                        ),
+                    };
+                } else {
+                    acc[jointNumber] = locationTrack;
+                }
 
-            return acc;
-        }, {} as { [key: JointNumber]: LocationTracksEndingAtJoint }),
+                return acc;
+            },
+            {} as { [key: JointNumber]: LocationTracksEndingAtJoint },
+        ),
     );
 }

@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.math.Point
@@ -17,6 +18,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.NodeConnection
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
+import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.combineEdges
@@ -49,6 +53,7 @@ constructor(
     val locationTrackService: LocationTrackService,
     val splitTestDataService: SplitTestDataService,
 ) : DBTestBase() {
+
     // The run order of the tests in this test suite matters if the database is not cleaned before
     // each test.
     // This gave false positive results for tests.
@@ -210,12 +215,15 @@ constructor(
                 trackGeometry(combineEdges(straightEdges1 + edge1to2 + straightEdges2 + edge2To3))
             )
 
-        // Duplicate 1 starts before the main track and continues after the first switch
+        // Duplicate 1 starts before the main track and continues up to switch2
+        val duplicate1EndNode =
+            NodeConnection.switch(inner = null, outer = SwitchLink(switch2.id, SwitchJointRole.MAIN, JointNumber(1)))
         val duplicate1 =
             mainOfficialContext.save(
                 locationTrack(mainOfficialContext.createLayoutTrackNumber().id, duplicateOf = track.id),
-                trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1to2)),
+                trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1to2.withEndNode(duplicate1EndNode))),
             )
+
         // Duplicate 2 starts from the second switch and continues beyond the main track
         val duplicate2 =
             mainOfficialContext.save(
