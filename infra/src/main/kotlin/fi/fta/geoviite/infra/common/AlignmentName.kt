@@ -13,7 +13,7 @@ data class AlignmentName @JsonCreator(mode = DELEGATING) constructor(private val
         val allowedLength = 1..50
         val sanitizer = StringSanitizer(AlignmentName::class, ALLOWED_CHARACTERS, allowedLength)
 
-        fun ofUnsafe(value: String) = AlignmentName(sanitizer.sanitize(value))
+        fun ofUnsafe(value: String) = value.trim().let(sanitizer::sanitize).let(::AlignmentName)
     }
 
     init {

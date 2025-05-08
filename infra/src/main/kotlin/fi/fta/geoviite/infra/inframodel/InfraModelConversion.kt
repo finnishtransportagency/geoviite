@@ -126,7 +126,7 @@ fun toGvtPlan(
     val units = parseUnits(coordinateSystem, metricUnits, coordinateSystemNameToSrid)
     val gvtSwitches = collectGeometrySwitches(switchStructuresByType, switchTypeNameAliases, infraModel.alignmentGroups)
     val trackNumberDescription = infraModel.alignmentGroups.first().name
-    val trackNumber = tryParseTrackNumber(trackNumberDescription.trim())
+    val trackNumber = tryParseTrackNumber(trackNumberDescription)
     val alignments = mutableListOf<GeometryAlignment>()
     val kmPosts = mutableListOf<GeometryKmPost>()
 
@@ -251,7 +251,7 @@ fun toGvtAlignment(
     val cant = alignment.cant?.let { c -> toGvtCant(c) }
     return GeometryAlignment(
         name =
-            tryParseAlignmentName(alignment.name.trim())
+            tryParseAlignmentName(alignment.name)
                 ?: throw InputValidationException(
                     message = "Invalid alignment name: ${formatForException(alignment.name)}",
                     type = AlignmentName::class,
@@ -589,7 +589,7 @@ fun collectGeometrySwitches(
 
             GeometrySwitch(
                 name =
-                    tryParseSwitchName(switchName.trim())
+                    tryParseSwitchName(switchName)
                         ?: throw InputValidationException(
                             message = "Could not parse name for switch: name=${formatForException(switchName)}",
                             type = SwitchName::class,
@@ -709,7 +709,15 @@ fun getSwitchKey(element: InfraModelGeometryElement): SwitchKey? =
 fun tryParsePlanState(name: String, value: String): PlanState? =
     tryParseText(value) { v -> parseOptionalEnum<PlanState>(name, v) }
 
-fun tryParseTrackNumber(text: String): TrackNumber? = if (text == "N/A") null else tryParseText(text, ::TrackNumber)
+fun tryParseTrackNumber(text: String): TrackNumber? {
+    val trimmedText = text.trim()
+
+    return if (trimmedText == "N/A") {
+        null
+    } else {
+        tryParseText(trimmedText, ::TrackNumber)
+    }
+}
 
 fun tryParseKmNumber(text: String): KmNumber? =
     if (text == "AKM" || text == "APU") {
