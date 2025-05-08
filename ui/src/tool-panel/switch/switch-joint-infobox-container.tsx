@@ -1,9 +1,5 @@
 import * as React from 'react';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
-import {
-    suggestedSwitchJointsAsLayoutSwitchJointConnections,
-    suggestedSwitchTopoLinksAsTopologicalJointConnections,
-} from 'linking/linking-utils';
 import { SuggestedSwitch } from 'linking/linking-model';
 import { LayoutContext, SwitchStructure } from 'common/common-model';
 

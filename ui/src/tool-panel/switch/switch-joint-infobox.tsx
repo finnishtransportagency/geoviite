@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { JointNumber, LayoutContext, SwitchAlignment } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
-import { LayoutSwitchJointConnection, LocationTrackId } from 'track-layout/track-layout-model';
+import { LocationTrackId } from 'track-layout/track-layout-model';
 import {
     combineLocationTrackIds,
     getLocationTracksEndingAtJoints,
@@ -13,21 +13,18 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
 import { LocationTrackBadge } from 'geoviite-design-lib/alignment/location-track-badge';
 import styles from './switch-infobox.scss';
-import { TopologicalJointConnection } from 'linking/linking-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
+import { SuggestedSwitch } from 'linking/linking-model';
 
 type SwitchJointInfobox = {
     switchAlignments: SwitchAlignment[];
-    jointConnections: LayoutSwitchJointConnection[];
-    topologicalJointConnections?: TopologicalJointConnection[];
+    suggestedSwitch: SuggestedSwitch;
     layoutContext: LayoutContext;
     onSelectLocationTrackBadge?: (locationTrackId: LocationTrackId) => void;
 };
 
 const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     switchAlignments,
-    jointConnections,
-    topologicalJointConnections,
     layoutContext,
     onSelectLocationTrackBadge,
 }) => {

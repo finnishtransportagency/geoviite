@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.linking.splitSegments
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.EdgeNode
@@ -18,7 +19,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.NodePortType
-import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TmpEdgeNode
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.TmpTrackBoundaryNode
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someRowVersion
 
 fun asJointNumbers(vararg joints: Int): List<JointNumber> {
     return joints.map { joint -> JointNumber(joint) }
@@ -101,7 +102,7 @@ fun createPrependingTrack(track: TrackForSwitchFitting, length: Double, trackNam
     val start = points.first() - directionVector * length
     val end = points.first()
     val (locationTrack, geometry) = createTrack(listOf(start to end), trackName)
-    return TrackForSwitchFitting(listOf(), locationTrack, geometry)
+    return TrackForSwitchFitting(listOf(), locationTrack, geometry).setTrackNumber(track.locationTrack.trackNumberId)
 }
 
 fun expandTrackFromStart(
@@ -262,18 +263,14 @@ fun withSwitchJointAtM(
     direction: RelativeDirection = RelativeDirection.Along,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val (edgeAtM, mRange) = geometry.getEdgeAtMOrThrow(mValue)
-    val jointOnEdge =
-        JointOnEdge(
-            locationTrackId = locationTrack.id as IntId,
-            geometry = geometry,
+    val suggestedEdge =
+        SuggestedJoint(
             jointNumber = jointNumber,
-            jointRole = SwitchJointRole.of(asSwitchStructure(switchStructure), jointNumber),
-            edge = edgeAtM,
-            m = mValue - mRange.min,
-            direction = direction,
+            m = mValue, // - mRange.min,
         )
 
-    val linkedEdges = linkJointsToEdge(switchId, edgeAtM, listOf(jointOnEdge))
+    val linkedEdges =
+        linkJointsToEdge(switchId, SwitchStructure(someRowVersion(), switchStructure), edgeAtM, listOf(suggestedEdge))
     val newGeometry = replaceEdges(geometry, listOf(edgeAtM), linkedEdges)
     val newLocationTrack =
         locationTrack(

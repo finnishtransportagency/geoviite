@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
-import fi.fta.geoviite.infra.linking.TrackEnd
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
@@ -82,28 +81,19 @@ data class SuggestedSwitch(
     val name: SwitchName,
 )
 
-data class SwitchLinkingTopologicalTrackLink(val number: JointNumber, val trackEnd: TrackEnd)
-
 data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitchId: IntId<LayoutSwitch>)
 
-data class SwitchLinkingTrackLinks(
-    val segmentJoints: List<SwitchLinkingJoint>,
-    val topologyJoint: SwitchLinkingTopologicalTrackLink?,
-) {
-    init {
-        // linking to neither is OK; that just communicates cleaning up all links
-        check(topologyJoint == null || segmentJoints.isEmpty()) {
-            "Switch linking track link links both to segment and topology"
-        }
-        check(segmentJoints.zipWithNext { a, b -> a.m <= b.m }.all { it }) {
-            "Switch linking track link segment joints should be m-ordered"
-        }
-    }
-
-    fun isLinked(): Boolean = segmentJoints.isNotEmpty() || topologyJoint != null
+data class SwitchLinkingTrackLinks(val locationTrackVersion: Int, val suggestedLinks: SuggestedLinks?) {
+    fun isLinked(): Boolean = suggestedLinks != null
 }
 
-data class SwitchLinkingJoint(val number: JointNumber, val segmentIndex: Int, val m: Double, val location: Point)
+data class SuggestedLinks(val edgeIndex: Int, val joints: List<SuggestedJoint>) {
+    init {
+        require(edgeIndex >= 0) { "Suggested link must be on a found edge" }
+    }
+}
+
+data class SuggestedJoint(val m: Double, val jointNumber: JointNumber)
 
 data class SwitchRelinkingValidationResult(
     val id: IntId<LayoutSwitch>,
