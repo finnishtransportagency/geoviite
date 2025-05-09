@@ -194,6 +194,7 @@ constructor(
             updatedGeometry,
             switch.id as IntId,
             JointNumber(1),
+            SwitchJointRole.MAIN,
             locationTrackService = locationTrackService,
         )
 
@@ -262,6 +263,7 @@ constructor(
             updatedGeometry,
             switch.id as IntId,
             JointNumber(1),
+            SwitchJointRole.MAIN,
             locationTrackService = locationTrackService,
         )
 
@@ -338,6 +340,7 @@ constructor(
                     alignment1,
                     testData.switches[0].id as IntId,
                     JointNumber(5), // Use non-presentation joint number
+                    SwitchJointRole.MATH,
                     locationTrackService = locationTrackService,
                 )
                 .let(locationTrackService::getWithGeometry)
@@ -346,7 +349,8 @@ constructor(
             updatedLocationTrack,
             updatedGeometry,
             testData.switches[1].id as IntId,
-            JointNumber(3), // Use non-presentation joint number
+            JointNumber(3),
+            SwitchJointRole.CONNECTION,
             locationTrackService = locationTrackService,
         )
 
@@ -389,6 +393,7 @@ constructor(
                     alignment1,
                     switch.id as IntId,
                     JointNumber(1),
+                    SwitchJointRole.MAIN,
                     locationTrackService = locationTrackService,
                 )
                 .let { version ->
