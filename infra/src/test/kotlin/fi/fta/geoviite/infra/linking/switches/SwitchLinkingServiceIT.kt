@@ -178,6 +178,7 @@ constructor(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
                                 m = initAlignment.segmentMValues[1].min,
+                                1,
                             )
                         ),
                 ),
@@ -191,6 +192,7 @@ constructor(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
                                 m = initAlignment.segmentMValues[1].max,
+                                2,
                             )
                         ),
                 ),
@@ -204,6 +206,7 @@ constructor(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
                                 m = initAlignment.segmentMValues[1].max,
+                                3,
                             )
                         ),
                 ),
@@ -266,6 +269,7 @@ constructor(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
                                 m = initAlignment.segmentMValues[1].min,
+                                1,
                             )
                         ),
                 ),
@@ -279,6 +283,7 @@ constructor(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
                                 m = initAlignment.segmentMValues[1].max,
+                                5,
                             )
                         ),
                 ),
@@ -292,6 +297,7 @@ constructor(
                                 locationTrackId = locationTrackId,
                                 segmentIndex = 1,
                                 m = initAlignment.segmentMValues[1].max,
+                                3,
                             )
                         ),
                 ),
@@ -394,21 +400,21 @@ constructor(
                     LocationAccuracy.DESIGNED_GEOLOCATION,
                     matches =
                         listOf(
-                            switchLinkingAtStart(straightTrack.id, straightAlignment, 1),
-                            switchLinkingAtStart(divertingTrack.id, divertingAlignment, 0),
+                            switchLinkingAtStart(straightTrack.id, straightAlignment, 1, 1),
+                            switchLinkingAtStart(divertingTrack.id, divertingAlignment, 0, 1),
                         ),
                 ),
                 FittedSwitchJoint(
                     JointNumber(5),
                     Point(40.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtStart(straightTrack.id, straightAlignment, 2)),
+                    matches = listOf(switchLinkingAtStart(straightTrack.id, straightAlignment, 2, 5)),
                 ),
                 FittedSwitchJoint(
                     JointNumber(2),
                     Point(60.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtEnd(straightTrack.id, straightAlignment, 2)),
+                    matches = listOf(switchLinkingAtEnd(straightTrack.id, straightAlignment, 2, 2)),
                 ),
 
                 // Diverting track
@@ -416,7 +422,7 @@ constructor(
                     JointNumber(3),
                     Point(100.0, 60.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtEnd(divertingTrack.id, divertingAlignment, 0)),
+                    matches = listOf(switchLinkingAtEnd(divertingTrack.id, divertingAlignment, 0, 3)),
                 ),
             )
 
@@ -487,8 +493,9 @@ constructor(
                                 locationTrackId = testLocation.straightTrack.id as IntId,
                                 segmentIndex = 2,
                                 m = testLocation.straightTrackAlignment.segmentMValues[2].max - switchOverlapAmount,
+                                jointNumber = 1,
                             ),
-                            switchLinkingAtStart(secondDiversionTrack.id, secondDiversionAlignment, 0),
+                            switchLinkingAtStart(secondDiversionTrack.id, secondDiversionAlignment, 0, 1),
                         ),
                 ),
                 FittedSwitchJoint(
@@ -497,7 +504,12 @@ constructor(
                     LocationAccuracy.DESIGNED_GEOLOCATION,
                     matches =
                         listOf(
-                            switchLinkingAtStart(testLocation.straightTrack.id, testLocation.straightTrackAlignment, 4)
+                            switchLinkingAtStart(
+                                testLocation.straightTrack.id,
+                                testLocation.straightTrackAlignment,
+                                4,
+                                5,
+                            )
                         ),
                 ),
                 FittedSwitchJoint(
@@ -506,7 +518,7 @@ constructor(
                     LocationAccuracy.DESIGNED_GEOLOCATION,
                     matches =
                         listOf(
-                            switchLinkingAtEnd(testLocation.straightTrack.id, testLocation.straightTrackAlignment, 4)
+                            switchLinkingAtEnd(testLocation.straightTrack.id, testLocation.straightTrackAlignment, 4, 2)
                         ),
                 ),
 
@@ -517,7 +529,12 @@ constructor(
                     LocationAccuracy.DESIGNED_GEOLOCATION,
                     matches =
                         listOf(
-                            switchLinkingAtEnd(testLocation.divertingTrack.id, testLocation.divertingTrackAlignment, 0)
+                            switchLinkingAtEnd(
+                                testLocation.divertingTrack.id,
+                                testLocation.divertingTrackAlignment,
+                                0,
+                                3,
+                            )
                         ),
                 ),
             )
@@ -594,19 +611,19 @@ constructor(
                     JointNumber(1),
                     Point(21.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 3)),
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 3, 1)),
                 ),
                 FittedSwitchJoint(
                     JointNumber(5),
                     Point(40.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 8)),
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 8, 5)),
                 ),
                 FittedSwitchJoint(
                     JointNumber(2),
                     Point(60.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 9)),
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 9, 2)),
                 ),
             )
 
@@ -618,19 +635,19 @@ constructor(
                     JointNumber(1),
                     Point(0.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 0)),
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 0, 1)),
                 ),
                 FittedSwitchJoint(
                     JointNumber(5),
                     Point(10.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1)),
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1, 5)),
                 ),
                 FittedSwitchJoint(
                     JointNumber(2),
                     Point(25.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 7)),
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 7, 2)),
                 ),
             )
 
@@ -704,19 +721,19 @@ constructor(
                             JointNumber(1),
                             Point(20.0, 0.0),
                             LocationAccuracy.DESIGNED_GEOLOCATION,
-                            matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1)),
+                            matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1, 1)),
                         ),
                         FittedSwitchJoint(
                             JointNumber(5),
                             Point(40.0, 0.0),
                             LocationAccuracy.DESIGNED_GEOLOCATION,
-                            matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 2)),
+                            matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 2, 5)),
                         ),
                         FittedSwitchJoint(
                             JointNumber(2),
                             Point(60.0, 0.0),
                             LocationAccuracy.DESIGNED_GEOLOCATION,
-                            matches = listOf(switchLinkingAtEnd(testLocationTrack.id, testAlignment, 2)),
+                            matches = listOf(switchLinkingAtEnd(testLocationTrack.id, testAlignment, 2, 2)),
                         ),
                     )
 
@@ -736,6 +753,7 @@ constructor(
                                                 locationTrackId = testLocationTrack.id as IntId,
                                                 segmentIndex = 2,
                                                 m = testAlignment.segmentMValues[2].max - overlapAmount,
+                                                firstJointNumber.intValue,
                                             )
                                         ),
                                 ),
@@ -743,13 +761,29 @@ constructor(
                                     secondJointNumber,
                                     Point(80.0, 0.0),
                                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 4)),
+                                    matches =
+                                        listOf(
+                                            switchLinkingAtStart(
+                                                testLocationTrack.id,
+                                                testAlignment,
+                                                4,
+                                                secondJointNumber.intValue,
+                                            )
+                                        ),
                                 ),
                                 FittedSwitchJoint(
                                     thirdJointNumber,
                                     Point(100.0, 0.0),
                                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 5)),
+                                    matches =
+                                        listOf(
+                                            switchLinkingAtStart(
+                                                testLocationTrack.id,
+                                                testAlignment,
+                                                5,
+                                                thirdJointNumber.intValue,
+                                            )
+                                        ),
                                 ),
                             )
                     )
@@ -810,19 +844,19 @@ constructor(
                             JointNumber(1),
                             Point(20.0, 0.0),
                             LocationAccuracy.DESIGNED_GEOLOCATION,
-                            matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1)),
+                            matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1, 1)),
                         ),
                         FittedSwitchJoint(
                             JointNumber(5),
                             Point(40.0, 0.0),
                             LocationAccuracy.DESIGNED_GEOLOCATION,
-                            matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 2)),
+                            matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 2, 5)),
                         ),
                         FittedSwitchJoint(
                             JointNumber(2),
                             Point(60.0, 0.0),
                             LocationAccuracy.DESIGNED_GEOLOCATION,
-                            matches = listOf(switchLinkingAtEnd(testLocationTrack.id, testAlignment, 2)),
+                            matches = listOf(switchLinkingAtEnd(testLocationTrack.id, testAlignment, 2, 2)),
                         ),
                     )
             )
@@ -846,6 +880,7 @@ constructor(
                                 locationTrackId = testLocationTrack.id as IntId,
                                 segmentIndex = 2,
                                 m = testAlignment.segmentMValues[2].max - moreThanAllowedOverlap,
+                                1,
                             )
                         ),
                 ),
@@ -853,13 +888,13 @@ constructor(
                     JointNumber(5),
                     Point(80.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 4)),
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 4, 5)),
                 ),
                 FittedSwitchJoint(
                     JointNumber(2),
                     Point(100.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 5)),
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 5, 2)),
                 ),
             )
 
@@ -1946,12 +1981,13 @@ fun suggestedSwitchJointMatch(
     locationTrackId: IntId<LocationTrack>,
     segmentIndex: Int,
     m: Double,
+    jointNumber: Int,
 ): FittedSwitchJointMatch =
     FittedSwitchJointMatch(
         locationTrackId,
         segmentIndex,
         m,
-        SwitchStructureJoint(JointNumber(1), Point(1.0, 2.0)),
+        SwitchStructureJoint(JointNumber(jointNumber), Point(1.0, 2.0)),
         SuggestedSwitchJointMatchType.START,
         0.1,
         0.1,

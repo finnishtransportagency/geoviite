@@ -1138,42 +1138,42 @@ fun switchLinkingAtStart(
     locationTrackId: DomainId<LocationTrack>,
     alignment: LocationTrackGeometry,
     segmentIndex: Int,
-    jointNumber: Int = 1,
+    jointNumber: Int,
 ) = switchLinkingAtStart(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
 
 fun switchLinkingAtStart(
     locationTrackId: DomainId<LocationTrack>,
     segmentMs: List<Range<Double>>,
     segmentIndex: Int,
-    jointNumber: Int = 1,
+    jointNumber: Int,
 ) = switchLinkingAt(locationTrackId, segmentIndex, segmentMs[segmentIndex].min, jointNumber)
 
 fun switchLinkingAtEnd(
     locationTrackId: DomainId<LocationTrack>,
     alignment: LocationTrackGeometry,
     segmentIndex: Int,
-    jointNumber: Int = 1,
+    jointNumber: Int,
 ) = switchLinkingAtEnd(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
 
 fun switchLinkingAtEnd(
     locationTrackId: DomainId<LocationTrack>,
     segmentMs: List<Range<Double>>,
     segmentIndex: Int,
-    jointNumber: Int = 1,
+    jointNumber: Int,
 ) = switchLinkingAt(locationTrackId, segmentIndex, segmentMs[segmentIndex].max, jointNumber)
 
 fun switchLinkingAtHalf(
     locationTrackId: DomainId<LocationTrack>,
     alignment: LocationTrackGeometry,
     segmentIndex: Int,
-    jointNumber: Int = 1,
+    jointNumber: Int,
 ) = switchLinkingAtHalf(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
 
 fun switchLinkingAtHalf(
     locationTrackId: DomainId<LocationTrack>,
     segmentMs: List<Range<Double>>,
     segmentIndex: Int,
-    jointNumber: Int = 1,
+    jointNumber: Int,
 ) =
     switchLinkingAt(
         locationTrackId,
@@ -1182,7 +1182,7 @@ fun switchLinkingAtHalf(
         jointNumber,
     )
 
-fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int, m: Double, jointNumber: Int = 1) =
+fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int, m: Double, jointNumber: Int) =
     FittedSwitchJointMatch(
         locationTrackId = locationTrackId as IntId<LocationTrack>,
         segmentIndex = segmentIndex,

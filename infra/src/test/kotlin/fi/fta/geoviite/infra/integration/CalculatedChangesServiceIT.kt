@@ -1542,27 +1542,27 @@ constructor(
                             location = firstPoint(alignmentA, segIndexA).toPoint(),
                             matches =
                                 listOf(
-                                    switchLinkingAtStart(locationTrackA.id, alignmentA, segIndexA),
-                                    switchLinkingAtStart(locationTrackB.id, alignmentB, segIndexB),
+                                    switchLinkingAtStart(locationTrackA.id, alignmentA, segIndexA, 1),
+                                    switchLinkingAtStart(locationTrackB.id, alignmentB, segIndexB, 1),
                                 ),
                             locationAccuracy = null,
                         ),
                         FittedSwitchJoint(
                             number = JointNumber(5),
                             location = lastPoint(alignmentA, segIndexA).toPoint(),
-                            matches = listOf(switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA)),
+                            matches = listOf(switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA, 5)),
                             locationAccuracy = null,
                         ),
                         FittedSwitchJoint(
                             number = JointNumber(2),
                             location = lastPoint(alignmentA, segIndexA + 2).toPoint(),
-                            matches = listOf(switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA + 2)),
+                            matches = listOf(switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA + 2, 2)),
                             locationAccuracy = null,
                         ),
                         FittedSwitchJoint(
                             number = JointNumber(3),
                             location = lastPoint(alignmentB, segIndexB + 1).toPoint(),
-                            matches = listOf(switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB + 1)),
+                            matches = listOf(switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB + 1, 3)),
                             locationAccuracy = null,
                         ),
                     ),
