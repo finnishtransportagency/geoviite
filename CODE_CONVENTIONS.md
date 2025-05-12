@@ -5,22 +5,27 @@
 - Code in english
 - Commit messages in english
 - Review comments can be in a language of your choosing
+- Documentation (except for pure developer things, like this one) in Finnish
 
 ## Documentation
 
 - Use code comments where needed -- not by default
-    - Don't say in comment what the code says (don't duplicate). This is redundant:
-   ```
+    - Don't say in comment what the code already says (don't duplicate). This is redundant:
+      ```
       // Find the first X from Y, that qualifies Z
       y.xList.find(::z)
-   ```
+      ```
     - If you can replace a comment by refactorings/renamings, do that instead. For example:
-   ```
+      ```
       // Calculate the hypothenuse for the triangle width/height
-      val z = sqrt(obj.x, obj.y)
-      yXs.find { x -> z(x) }
-   ```
+      val h = sqrt(obj.x, obj.y)
+      ```
+      vs
+      ```
+      val hypothenuse = sqrt(obj.width, obj.height)
+      ```
 - Write technical documentation as .md files in the repository
+    - Unless it's about the environment (geoviite-env), in which case it should be in confluence
 - Specific instructions for particular tasks can be done as extra README_HOWTO_X.md
     - If it's a CMD instruction, write it in .sh instead. Then you don't need to read it, you can just run it.
 - Other documentation can be collected in confluence. Link to GitHub as needed.
@@ -77,7 +82,7 @@
 ### Error Handling
 
 - Don't try to catch exceptions and handle error-situations in each API function separately
-    - Instead, rely on the generic handling, detailed in `doc/virhekasittely.md`
+    - Instead, rely on the generic handling, detailed in `doc/virhekasittely.md` (in Finnish)
 
 ## Frontend Structure
 
