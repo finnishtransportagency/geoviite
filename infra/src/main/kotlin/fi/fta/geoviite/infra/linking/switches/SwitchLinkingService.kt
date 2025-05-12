@@ -54,9 +54,9 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
 import fi.fta.geoviite.infra.tracklayout.combineEdges
-import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 private val temporarySwitchId: IntId<LayoutSwitch> = IntId(-1)
 
@@ -1272,9 +1272,11 @@ fun replaceEdges(
     geometry: LocationTrackGeometry,
     edgesToReplace: List<LayoutEdge>,
     newEdges: List<LayoutEdge>,
-): LocationTrackGeometry {
-    return TmpLocationTrackGeometry(replaceEdges(originalEdges = geometry.edges, edgesToReplace, newEdges))
-}
+): LocationTrackGeometry =
+    TmpLocationTrackGeometry.of(
+        replaceEdges(originalEdges = geometry.edges, edgesToReplace, newEdges),
+        geometry.trackId,
+    )
 
 fun replaceEdges(
     originalEdges: List<LayoutEdge>,
@@ -1528,17 +1530,8 @@ fun adjustJointPositions(fittedSwitch: FittedSwitch, jointsOnEdge: List<JointOnE
 fun clearSwitchFromTracks(
     switchId: IntId<LayoutSwitch>,
     tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
-): List<Pair<LocationTrack, LocationTrackGeometry>> {
-    return tracks.map { (locationTrack, geometry) ->
-        if (geometry.nodes.any { node -> node.containsSwitch(switchId) }) {
-            val edgesWithoutSwitch = geometry.edges.map { edge -> edge.withoutSwitch(switchId) }
-            val newGeometry = TmpLocationTrackGeometry(combineEdges(edgesWithoutSwitch))
-            locationTrack to newGeometry
-        } else {
-            locationTrack to geometry
-        }
-    }
-}
+): List<Pair<LocationTrack, LocationTrackGeometry>> =
+    tracks.map { (locationTrack, geometry) -> locationTrack to geometry.withoutSwitch(switchId) }
 
 fun linkFittedSwitch(
     switchId: IntId<LayoutSwitch>,

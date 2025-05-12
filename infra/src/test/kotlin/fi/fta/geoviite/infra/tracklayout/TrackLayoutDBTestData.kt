@@ -78,7 +78,7 @@ fun moveLocationTrackPoints(
     geometry: LocationTrackGeometry,
     moveFunc: (point: AlignmentPoint) -> Point?,
 ): LocationTrackGeometry {
-    return TmpLocationTrackGeometry(
+    return TmpLocationTrackGeometry.of(
         geometry.edgesWithM.map { (edge, edgeM) ->
             val newSegments =
                 edge.segmentsWithM.map { (segment, segmentM) ->
@@ -93,7 +93,8 @@ fun moveLocationTrackPoints(
                     segment.withPoints(points = newPoints, newSourceStart = null)
                 }
             edge.withSegments(newSegments)
-        }
+        },
+        geometry.trackId,
     )
 }
 

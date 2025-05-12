@@ -30,6 +30,7 @@ import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -42,7 +43,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -151,7 +151,7 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 published.copy(name = AlignmentName("EDITED1")),
-                LocationTrackGeometry.empty,
+                TmpLocationTrackGeometry.empty,
             )
         assertEquals(publicationResponse.id, editedVersion.id)
         assertNotEquals(publicationResponse.rowId, editedVersion.rowId)
@@ -163,7 +163,7 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 editedDraft.copy(name = AlignmentName("EDITED2")),
-                LocationTrackGeometry.empty,
+                TmpLocationTrackGeometry.empty,
             )
         assertEquals(publicationResponse.id, editedVersion2.id)
         assertNotEquals(publicationResponse.rowId, editedVersion2.rowId)
@@ -474,11 +474,12 @@ constructor(
                         startInnerSwitch = switchLinkYV(switchId, 1),
                         endInnerSwitch = switchLinkYV(switchId, 2),
                         segments = listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
-                    )
+                    ),
+                    trackId = IntId(1),
                 )
         val track2 =
             locationTrack(trackNumberId, id = IntId(2)) to
-                trackGeometry(edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0)))))
+                trackGeometry(edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0)))), trackId = IntId(2))
         val changedTracks =
             locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2), switchId)
 
@@ -1193,7 +1194,7 @@ constructor(
         val (insertedTrack, insertedGeometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, insertResponse.id)
         assertMatches(insertRequest, insertedTrack)
-        assertMatches(LocationTrackGeometry.empty, insertedGeometry)
+        assertMatches(TmpLocationTrackGeometry.empty, insertedGeometry)
         return VerifiedTrack(insertResponse, insertedTrack, insertedGeometry)
     }
 

@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
@@ -229,7 +230,7 @@ class PublicationValidationTest {
 
     @Test
     fun alignmentFieldValidationCatchesLackingGeometry() {
-        assertLocationTrackFieldError(true, LocationTrackGeometry.empty, "$VALIDATION_LOCATION_TRACK.empty-segments")
+        assertLocationTrackFieldError(true, TmpLocationTrackGeometry.empty, "$VALIDATION_LOCATION_TRACK.empty-segments")
         assertLocationTrackFieldError(
             false,
             trackGeometryOfSegments(someSegment()),

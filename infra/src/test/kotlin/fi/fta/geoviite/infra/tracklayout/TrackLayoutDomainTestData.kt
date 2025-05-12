@@ -420,7 +420,7 @@ fun locationTrackAndGeometry(
 
 fun locationTrack(
     trackNumberId: IntId<LayoutTrackNumber>,
-    geometry: LocationTrackGeometry = LocationTrackGeometry.empty,
+    geometry: LocationTrackGeometry = TmpLocationTrackGeometry.empty,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
     name: String = "T001 ${locationTrackNameCounter++}",
@@ -453,7 +453,7 @@ fun locationTrack(
 
 fun locationTrack(
     trackNumberId: IntId<LayoutTrackNumber>,
-    geometry: LocationTrackGeometry = LocationTrackGeometry.empty,
+    geometry: LocationTrackGeometry = TmpLocationTrackGeometry.empty,
     contextData: LayoutContextData<LocationTrack>,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
@@ -501,15 +501,17 @@ fun trackGeometryOfSegments(vararg segments: LayoutSegment): TmpLocationTrackGeo
     trackGeometryOfSegments(segments.toList())
 
 fun trackGeometryOfSegments(segments: List<LayoutSegment>): TmpLocationTrackGeometry =
-    if (segments.isEmpty()) LocationTrackGeometry.empty
+    if (segments.isEmpty()) TmpLocationTrackGeometry.empty
     else
         trackGeometry(
             listOf(TmpLayoutEdge(startNode = PlaceHolderEdgeNode, endNode = PlaceHolderEdgeNode, segments = segments))
         )
 
-fun trackGeometry(vararg edges: LayoutEdge): TmpLocationTrackGeometry = trackGeometry(edges.toList())
+fun trackGeometry(vararg edges: LayoutEdge, trackId: IntId<LocationTrack>? = null): TmpLocationTrackGeometry =
+    trackGeometry(edges.toList(), trackId)
 
-fun trackGeometry(edges: List<LayoutEdge>): TmpLocationTrackGeometry = TmpLocationTrackGeometry(edges)
+fun trackGeometry(edges: List<LayoutEdge>, trackId: IntId<LocationTrack>? = null): TmpLocationTrackGeometry =
+    TmpLocationTrackGeometry.of(edges, trackId)
 
 fun edge(
     segments: List<LayoutSegment>,
@@ -1104,7 +1106,7 @@ fun offsetAlignment(alignment: LayoutAlignment, amount: Point) =
     alignment.copy(segments = alignment.segments.map { origSegment -> offsetSegment(origSegment, amount) })
 
 fun offsetGeometry(geometry: LocationTrackGeometry, amount: Point): LocationTrackGeometry =
-    TmpLocationTrackGeometry(edges = geometry.edges.map { edge -> offsetEdge(edge, amount) })
+    TmpLocationTrackGeometry.of(edges = geometry.edges.map { edge -> offsetEdge(edge, amount) }, geometry.trackId)
 
 fun offsetEdge(edge: LayoutEdge, amount: Point): LayoutEdge {
     val newSegments = edge.segments.map { segment -> offsetSegment(segment, amount) }

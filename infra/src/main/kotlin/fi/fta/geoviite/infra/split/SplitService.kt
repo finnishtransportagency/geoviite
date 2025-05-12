@@ -640,7 +640,7 @@ private fun updateSplitTargetForOverwriteDuplicate(
     edges: List<LayoutEdge>,
     topologicalConnectivityType: TopologicalConnectivityType,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val newGeometry = TmpLocationTrackGeometry(edges)
+    val newGeometry = TmpLocationTrackGeometry.of(edges, duplicateTrack.id as? IntId)
     val newTrack =
         duplicateTrack.copy(
             name = request.name,
@@ -673,7 +673,7 @@ private fun createSplitTarget(
     edges: List<LayoutEdge>,
     topologicalConnectivityType: TopologicalConnectivityType,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val newGeometry = TmpLocationTrackGeometry(edges)
+    val newGeometry = TmpLocationTrackGeometry.of(edges, null)
     val newTrack =
         LocationTrack(
             name = request.name,

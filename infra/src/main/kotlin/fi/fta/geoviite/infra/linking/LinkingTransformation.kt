@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.PlaceHolderEdgeNode
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
@@ -32,7 +33,7 @@ import kotlin.math.min
 const val ALIGNMENT_LINKING_SNAP = 0.001
 
 fun cutLocationTrackGeometry(geometry: LocationTrackGeometry, mRange: Range<Double>) =
-    TmpLocationTrackGeometry(slice(geometry, mRange, ALIGNMENT_LINKING_SNAP))
+    TmpLocationTrackGeometry.of(slice(geometry, mRange, ALIGNMENT_LINKING_SNAP), geometry.trackId)
 
 fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): LayoutAlignment {
     val cutSegments = slice(alignment, mRange, ALIGNMENT_LINKING_SNAP)
@@ -41,10 +42,11 @@ fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): Layout
 }
 
 fun replaceLocationTrackGeometry(
+    trackId: IntId<LocationTrack>,
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<Double>,
 ): LocationTrackGeometry = tryCreateLinkedTrackGeometry {
-    TmpLocationTrackGeometry.ofSegments(createAlignmentGeometry(geometryAlignment, geometryMRange))
+    TmpLocationTrackGeometry.ofSegments(createAlignmentGeometry(geometryAlignment, geometryMRange), trackId)
 }
 
 fun replaceLayoutGeometry(
@@ -170,8 +172,10 @@ fun splice(
     val startGap = listOfNotNull(createGapIfNeeded(startEdges.lastOrNull()?.segments ?: listOf(), added))
     val endEdges = slice(geometry, Range(mRange.max, geometry.length), snapDistance)
     val endGap = listOfNotNull(createGapIfNeeded(added, endEdges.firstOrNull()?.segments ?: listOf()))
-    val midEdge = TmpLayoutEdge.of(startGap + added + endGap)
-    return tryCreateLinkedTrackGeometry { TmpLocationTrackGeometry(combineEdges(startEdges + midEdge + endEdges)) }
+    val midEdge = TmpLayoutEdge.of(startGap + added + endGap, null)
+    return tryCreateLinkedTrackGeometry {
+        TmpLocationTrackGeometry.of(combineEdges(startEdges + midEdge + endEdges), geometry.trackId)
+    }
 }
 
 fun slice(

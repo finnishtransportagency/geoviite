@@ -61,7 +61,6 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -75,6 +74,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1165,7 +1165,7 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.targetTracks.first().first.id),
-                LocationTrackGeometry.empty,
+                TmpLocationTrackGeometry.empty,
             )
 
         val errors = validateLocationTracks(listOf(draft.id))
@@ -1209,7 +1209,7 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.sourceTrack.id),
-                LocationTrackGeometry.empty,
+                TmpLocationTrackGeometry.empty,
             )
 
         val errors = validateLocationTracks(listOf(draft.id))
@@ -1235,7 +1235,7 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.sourceTrack.id),
-                LocationTrackGeometry.empty,
+                TmpLocationTrackGeometry.empty,
             )
 
         val errors = validateLocationTracks(listOf(draft.id))
@@ -1290,7 +1290,7 @@ constructor(
     fun `km post split validation should fail on unfinished split`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val kmPostId = mainDraftContext.save(kmPost(trackNumberId = trackNumberId, km = KmNumber.ZERO)).id
-        val locationTrackResponse = mainDraftContext.save(locationTrack(trackNumberId), LocationTrackGeometry.empty)
+        val locationTrackResponse = mainDraftContext.save(locationTrack(trackNumberId), TmpLocationTrackGeometry.empty)
 
         publicationTestSupportService.saveSplit(locationTrackResponse)
 

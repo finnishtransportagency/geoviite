@@ -50,6 +50,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
@@ -1518,7 +1519,7 @@ constructor(
         val locationTrack =
             testDBService
                 .testContext(testBranch, DRAFT)
-                .save(locationTrack(trackNumber), LocationTrackGeometry.empty)
+                .save(locationTrack(trackNumber), TmpLocationTrackGeometry.empty)
                 .id
         publish(publicationService, testBranch, locationTracks = listOf(locationTrack))
         locationTrackService.mergeToMainBranch(testBranch, locationTrack)

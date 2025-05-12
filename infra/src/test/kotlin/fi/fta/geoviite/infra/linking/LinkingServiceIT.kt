@@ -47,6 +47,7 @@ import fi.fta.geoviite.infra.tracklayout.PlaceHolderEdgeNode
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TrackBoundary
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.assertMatches
@@ -63,7 +64,6 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -73,6 +73,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -394,7 +395,7 @@ constructor(
         val alignmentId = geometryDao.fetchPlan(planVersion).alignments[0].id as IntId
 
         // Create an empty base track to start editing
-        val initVersion = mainDraftContext.save(locationTrack(trackNumberId), LocationTrackGeometry.empty)
+        val initVersion = mainDraftContext.save(locationTrack(trackNumberId), TmpLocationTrackGeometry.empty)
         val id = initVersion.id
         val trackStartPort = TrackBoundary(id, TrackBoundaryType.START)
         locationTrackService.getWithGeometry(initVersion).second.let { geometry ->

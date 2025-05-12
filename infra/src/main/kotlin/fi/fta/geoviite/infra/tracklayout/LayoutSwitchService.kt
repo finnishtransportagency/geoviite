@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.linking.switches.GeoviiteSwitchOidPresence
 import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchOidPresence
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
@@ -20,9 +19,9 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class LayoutSwitchService
@@ -209,33 +208,6 @@ fun <T> compareByDistanceNullsFirst(itemAndDistance1: Pair<T, Double?>, itemAndD
         else -> compareValues(dist1, dist2)
     }
 }
-
-@Deprecated("Use LocationTrackGeometry.withoutSwitch instead")
-fun clearLinksToSwitch(
-    track: LocationTrack,
-    geometry: LocationTrackGeometry,
-    layoutSwitchId: IntId<LayoutSwitch>,
-): Pair<LocationTrack, LocationTrackGeometry> {
-    val newEdges = combineEdges(geometry.edges.map { edge -> edge.withoutSwitch(layoutSwitchId) })
-    return track to TmpLocationTrackGeometry(newEdges)
-}
-
-private fun getTopologyPoints(
-    switchId: IntId<LayoutSwitch>,
-    track: LocationTrack,
-    alignment: LayoutAlignment,
-): List<Pair<TopologyLocationTrackSwitch, Point>> =
-    listOfNotNull(
-        topologyPointOrNull(switchId, track.topologyStartSwitch, alignment.firstSegmentStart),
-        topologyPointOrNull(switchId, track.topologyEndSwitch, alignment.lastSegmentEnd),
-    )
-
-private fun topologyPointOrNull(
-    switchId: IntId<LayoutSwitch>,
-    topology: TopologyLocationTrackSwitch?,
-    location: IPoint?,
-): Pair<TopologyLocationTrackSwitch, Point>? =
-    if (topology?.switchId == switchId && location != null) topology to location.toPoint() else null
 
 fun switchFilter(
     namePart: String? = null,

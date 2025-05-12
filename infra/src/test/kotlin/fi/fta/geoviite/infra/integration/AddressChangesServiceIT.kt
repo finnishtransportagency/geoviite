@@ -33,6 +33,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.fixMValues
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -43,16 +44,16 @@ import fi.fta.geoviite.infra.tracklayout.splitSegment
 import fi.fta.geoviite.infra.tracklayout.toAlignmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import kotlin.math.ceil
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -683,7 +684,7 @@ constructor(
     }
 
     fun removeLocationTrackGeometryAndUpdate(locationTrack: LocationTrack) =
-        updateAndPublish(locationTrack, LocationTrackGeometry.empty)
+        updateAndPublish(locationTrack, TmpLocationTrackGeometry.empty)
 
     fun updateAndPublish(locationTrack: LocationTrack, geometry: LocationTrackGeometry) {
         val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry)

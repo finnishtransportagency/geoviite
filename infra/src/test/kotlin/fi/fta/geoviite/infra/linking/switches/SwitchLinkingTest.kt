@@ -18,25 +18,22 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrackWithTwoSwitches
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentPoint
-import fi.fta.geoviite.infra.tracklayout.someSegment
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtHalf
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class SwitchLinkingTest {
     private var testLayoutSwitchId = IntId<LayoutSwitch>(0)
@@ -231,77 +228,6 @@ class SwitchLinkingTest {
         assertSwitchLinkingInfoEquals(updatedAlignment.segments[0], testLayoutSwitchId, JointNumber(1), null, "first")
         assertSwitchLinkingInfoEquals(updatedAlignment.segments[1], testLayoutSwitchId, null, null, "middle")
         assertSwitchLinkingInfoEquals(updatedAlignment.segments[2], testLayoutSwitchId, null, JointNumber(2), "last")
-    }
-
-    @Test
-    fun shouldClearSwitchTopologyLinkingFromLocationTrackStart() {
-        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry,
-        // but...
-        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the
-        // same as
-        // TODO: LocationTrackGeometry.withoutSwitch
-        val locationTrackWithStartLink =
-            locationTrack(
-                trackNumberId = IntId(1),
-                topologyStartSwitch = TopologyLocationTrackSwitch(testLayoutSwitchId, JointNumber(2)),
-                topologyEndSwitch = TopologyLocationTrackSwitch(otherLayoutSwitchId, JointNumber(1)),
-                draft = false,
-            )
-        val (locationTrackWithStartLinkCleared, _) =
-            clearLinksToSwitch(locationTrackWithStartLink, trackGeometryOfSegments(someSegment()), testLayoutSwitchId)
-        assertEquals(null, locationTrackWithStartLinkCleared.topologyStartSwitch)
-        assertEquals(locationTrackWithStartLink.topologyEndSwitch, locationTrackWithStartLinkCleared.topologyEndSwitch)
-    }
-
-    @Test
-    fun shouldClearSwitchTopologyLinkingFromLocationTrackEnd() {
-        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry,
-        // but...
-        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the
-        // same as
-        // TODO: LocationTrackGeometry.withoutSwitch
-        val locationTrackWithEndLink =
-            locationTrack(
-                trackNumberId = IntId(1),
-                topologyStartSwitch = TopologyLocationTrackSwitch(otherLayoutSwitchId, JointNumber(2)),
-                topologyEndSwitch = TopologyLocationTrackSwitch(testLayoutSwitchId, JointNumber(1)),
-                draft = false,
-            )
-        val (locationTrackWithEndLinkCleared, _) =
-            clearLinksToSwitch(locationTrackWithEndLink, trackGeometryOfSegments(someSegment()), testLayoutSwitchId)
-        assertEquals(null, locationTrackWithEndLinkCleared.topologyEndSwitch)
-        assertEquals(locationTrackWithEndLink.topologyStartSwitch, locationTrackWithEndLinkCleared.topologyStartSwitch)
-    }
-
-    @Test
-    fun shouldClearSwitchLinkingInfoFromAlignment() {
-        // TODO: GVT-2915 This would be simple to fix by moving the switch links into geometry,
-        // but...
-        // TODO: we should rather remove the whole crealLinksToSwitch function and implement the
-        // same as
-        // TODO: LocationTrackGeometry.withoutSwitch
-        val (origLocationTrack, origAlignment) =
-            locationTrackWithTwoSwitches(
-                trackNumberId = IntId(0),
-                layoutSwitchId = testLayoutSwitchId,
-                otherLayoutSwitchId = otherLayoutSwitchId,
-                locationTrackId = IntId(0),
-                draft = false,
-            )
-
-        val (_, clearedAlignment) = clearLinksToSwitch(origLocationTrack, origAlignment, testLayoutSwitchId)
-
-        (1..3).forEach { i ->
-            assertSwitchLinkingInfoEquals(clearedAlignment.segments[i], null, null, null, "#$i, first switch")
-        }
-
-        (3..6).forEach { i ->
-            assertEquals(
-                origAlignment.segments[i],
-                clearedAlignment.segments[i],
-                "Segments related to another switch should be untouched",
-            )
-        }
     }
 
     @Test

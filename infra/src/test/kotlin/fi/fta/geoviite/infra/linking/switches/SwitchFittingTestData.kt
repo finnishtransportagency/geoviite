@@ -79,7 +79,7 @@ fun createTrack(
     val startEdgeNode = TmpEdgeNode(NodePortType.A, startNode)
     val endEdgeNode = TmpEdgeNode(NodePortType.A, endNode)
     val edge = TmpLayoutEdge(startEdgeNode, endEdgeNode, segments)
-    val geometry = TmpLocationTrackGeometry(listOf(edge))
+    val geometry = TmpLocationTrackGeometry.of(listOf(edge), null)
     val trackNumberId = IntId<LayoutTrackNumber>(0)
     val locationTrack =
         locationTrack(trackNumberId = trackNumberId, geometry = geometry, id = locationTrackId, name = trackName)
@@ -116,7 +116,7 @@ fun expandTrackFromStart(
     val firstEdge = geometry.edges.first()
     val newFirstEdge = TmpLayoutEdge(firstEdge.startNode, firstEdge.endNode, newSegments)
     val newEdges = listOf(newFirstEdge) + geometry.edges.drop(1)
-    val newGeometry = TmpLocationTrackGeometry(newEdges)
+    val newGeometry = TmpLocationTrackGeometry.of(newEdges, locationTrack.id as? IntId)
     val newLocationTrack =
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
@@ -147,7 +147,7 @@ fun cutFromStart(
                 edge.withSegments(newSegments)
             }
         }
-    var newGeometry = TmpLocationTrackGeometry(newEdges)
+    var newGeometry = TmpLocationTrackGeometry.of(newEdges, locationTrack.id as? IntId)
     val newLocationTrack =
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
@@ -179,7 +179,7 @@ fun cutFromEnd(
                 edge.withSegments(newSegments)
             }
         }
-    var newGeometry = TmpLocationTrackGeometry(newEdges)
+    var newGeometry = TmpLocationTrackGeometry.of(newEdges, locationTrack.id as? IntId)
     val newLocationTrack =
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
@@ -207,7 +207,7 @@ fun expandTrackFromEnd(
     val lastEdge = geometry.edges.last()
     val newLastEdge = TmpLayoutEdge(lastEdge.startNode, lastEdge.endNode, newSegments)
     val newEdges = geometry.edges.dropLast(1) + newLastEdge
-    val newGeometry = TmpLocationTrackGeometry(newEdges)
+    val newGeometry = TmpLocationTrackGeometry.of(newEdges, locationTrack.id as? IntId)
     val newLocationTrack =
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
@@ -241,7 +241,7 @@ fun moveTrackForward(
                 }
             edge.withSegments(newSegments)
         }
-    val newGeometry = TmpLocationTrackGeometry(newEdges)
+    val newGeometry = TmpLocationTrackGeometry.of(newEdges, locationTrack.id as? IntId)
     val newLocationTrack =
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,

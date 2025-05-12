@@ -386,8 +386,9 @@ class LayoutAlignmentDao(
     }
 
     @Transactional
-    fun saveLocationTrackGeometry(trackVersion: LayoutRowVersion<LocationTrack>, content: LocationTrackGeometry) {
-        val edges = content.edges.associate { e -> e.contentHash to getOrCreateEdge(e).id }
+    fun saveLocationTrackGeometry(trackVersion: LayoutRowVersion<LocationTrack>, trackGeometry: LocationTrackGeometry) {
+        val geometry = trackGeometry.withLocationTrackId(trackVersion.id)
+        val edges = geometry.edges.associate { e -> e.contentHash to getOrCreateEdge(e).id }
         val sql =
             """
             insert into layout.location_track_version_edge(
@@ -404,7 +405,7 @@ class LayoutAlignmentDao(
 
         // This uses indexed parameters (rather than named ones),
         // since named parameter template's batch-method is considerably slower
-        jdbcTemplate.batchUpdateIndexed(sql, content.edgesWithM) { ps, (index, edgeAndM) ->
+        jdbcTemplate.batchUpdateIndexed(sql, geometry.edgesWithM) { ps, (index, edgeAndM) ->
             val (edge, m) = edgeAndM
             ps.setInt(1, trackVersion.id.intValue)
             ps.setString(2, trackVersion.context.toSqlString())

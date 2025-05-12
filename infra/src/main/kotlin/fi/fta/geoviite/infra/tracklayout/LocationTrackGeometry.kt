@@ -36,10 +36,7 @@ data class TrackSwitchLink(val link: SwitchLink, val location: AlignmentPoint, v
 }
 
 sealed class LocationTrackGeometry : IAlignment {
-    companion object {
-        val empty = TmpLocationTrackGeometry(emptyList())
-    }
-
+    abstract val trackId: IntId<LocationTrack>?
     @get:JsonIgnore abstract val edges: List<LayoutEdge>
     @get:JsonIgnore val edgeMs: List<Range<Double>> by lazy { calculateEdgeMValues(edges) }
     @get:JsonIgnore override val segments: List<LayoutSegment> by lazy { edges.flatMap(LayoutEdge::segments) }
@@ -113,7 +110,9 @@ sealed class LocationTrackGeometry : IAlignment {
                         e.endNode.switchIn?.let { TrackSwitchLink(it, end, INNER) },
                         e.endNode.switchOut?.let { TrackSwitchLink(it, end, OUTER) },
                     )
-                } else emptyList()
+                } else {
+                    emptyList()
+                }
             startSwitches + endSwitches
         }
     }
@@ -172,7 +171,11 @@ sealed class LocationTrackGeometry : IAlignment {
 
     fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = switchIds.contains(switchId)
 
-    abstract fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry
+    fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry =
+        when {
+            trackId == id -> this
+            else -> TmpLocationTrackGeometry.of(edges.map { it.withLocationTrackId(id) }, id)
+        }
 
     fun getEdgeStartAndEnd(edgeIndices: IntRange): Pair<AlignmentPoint, AlignmentPoint> {
         require(edgeIndices.first >= 0 && edgeIndices.last <= edges.lastIndex) {
@@ -188,14 +191,15 @@ sealed class LocationTrackGeometry : IAlignment {
         return start to end
     }
 
-    fun withoutSwitch(switchId: IntId<LayoutSwitch>): LocationTrackGeometry {
-        val newEdges = edges.map { e -> e.withoutSwitch(switchId) }
-        return this.takeIf { newEdges == edges } ?: TmpLocationTrackGeometry(combineEdges(newEdges))
-    }
+    fun withoutSwitch(switchId: IntId<LayoutSwitch>): LocationTrackGeometry =
+        when {
+            !containsSwitch(switchId) -> this
+            else -> TmpLocationTrackGeometry.of(combineEdges(edges.map { e -> e.withoutSwitch(switchId) }), trackId)
+        }
 
     fun withNodeReplacements(nodeSwaps: Map<NodeHash, LayoutNode>): LocationTrackGeometry =
         this.takeIf { nodes.none { nodeSwaps.containsKey(it.contentHash) } }
-            ?: TmpLocationTrackGeometry(processNodeReplacements(nodeSwaps, edges))
+            ?: TmpLocationTrackGeometry.of(processNodeReplacements(nodeSwaps, edges), trackId)
 
     fun getEdgeAtMOrThrow(m: Double): Pair<LayoutEdge, Range<Double>> {
         return requireNotNull(getEdgeAtM(m)) { "Geometry does not contain edge at m $m" }
@@ -225,10 +229,12 @@ sealed class LocationTrackGeometry : IAlignment {
                         collectedEdges + newEdge to listOf()
                     } else if (edgesToMerge.contains(edge)) {
                         collectedEdges to collectedToMerge + edge
-                    } else collectedEdges + edge to collectedToMerge
+                    } else {
+                        collectedEdges + edge to collectedToMerge
+                    }
                 }
                 .first
-        return TmpLocationTrackGeometry(combineEdges(newEdges))
+        return TmpLocationTrackGeometry.of(combineEdges(newEdges), trackId)
     }
 }
 
@@ -252,21 +258,40 @@ fun verifyTrackGeometry(trackId: IntId<LocationTrack>?, edges: List<LayoutEdge>)
             "Outgoing edge cannot connect to the same node port as the incoming one: prev=${prev.endNode} next=${next.startNode}"
         }
     }
-    trackId?.let { id ->
-        edges.firstOrNull()?.startNode?.trackBoundaryIn?.also { trackBoundary ->
-            require(trackBoundary.id == id) {
-                "Track geometry start node can only be the start of said track: trackId=$id trackBoundary=$trackBoundary"
-            }
+    edges.firstOrNull()?.startNode?.trackBoundaryIn?.let { boundary ->
+        require(boundary.id == trackId) {
+            "Track geometry start node must have the correct track ID: trackId=$trackId trackBoundary=$boundary"
         }
-        edges.lastOrNull()?.endNode?.trackBoundaryIn?.also { trackBoundary ->
-            require(trackBoundary.id == id) {
-                "Track geometry end node can only be the end of said track: trackId=$id trackBoundary=$trackBoundary"
-            }
+    }
+    edges.lastOrNull()?.endNode?.trackBoundaryIn?.let { boundary ->
+        require(boundary.id == trackId) {
+            "Track geometry end node must have the correct track ID: trackId=$trackId trackBoundary=$boundary"
         }
     }
 }
 
-data class TmpLocationTrackGeometry(@get:JsonIgnore override val edges: List<LayoutEdge>) : LocationTrackGeometry() {
+data class TmpLocationTrackGeometry
+private constructor(override val edges: List<LayoutEdge>, override val trackId: IntId<LocationTrack>?) :
+    LocationTrackGeometry() {
+
+    companion object {
+        val empty = of(emptyList(), null)
+
+        /**
+         * Creates a new geometry from the given edges and track ID. Any track boundary nodes are automatically
+         * connected to the given trackId (or placeholder if not given).
+         */
+        fun of(edges: List<LayoutEdge>, trackId: IntId<LocationTrack>?): TmpLocationTrackGeometry =
+            TmpLocationTrackGeometry(edges.map { e -> e.withLocationTrackId(trackId) }, trackId)
+
+        /**
+         * Creates a new geometry from the given segments as a single edge, ending with track boundary (with given track
+         * ID, or placeholder if not given) on both sides.
+         */
+        fun ofSegments(segments: List<LayoutSegment>, trackId: IntId<LocationTrack>?): TmpLocationTrackGeometry =
+            TmpLocationTrackGeometry(listOf(TmpLayoutEdge.of(segments, trackId)), trackId)
+    }
+
     @get:JsonIgnore
     override val startNode: EdgeNode?
         get() = edges.firstOrNull()?.startNode
@@ -276,16 +301,7 @@ data class TmpLocationTrackGeometry(@get:JsonIgnore override val edges: List<Lay
         get() = edges.lastOrNull()?.endNode
 
     init {
-        verifyTrackGeometry(null, edges)
-    }
-
-    override fun withLocationTrackId(id: IntId<LocationTrack>): TmpLocationTrackGeometry {
-        val newEdges = edges.map { it.withLocationTrackId(id) }
-        return if (newEdges == edges) this else return TmpLocationTrackGeometry(newEdges)
-    }
-
-    companion object {
-        fun ofSegments(segments: List<LayoutSegment>) = TmpLocationTrackGeometry(listOf(TmpLayoutEdge.of(segments)))
+        verifyTrackGeometry(trackId, edges)
     }
 }
 
@@ -293,8 +309,11 @@ data class DbLocationTrackGeometry(
     @get:JsonIgnore val trackRowVersion: LayoutRowVersion<LocationTrack>,
     @get:JsonIgnore override val edges: List<DbLayoutEdge>,
 ) : LocationTrackGeometry() {
+    override val trackId: IntId<LocationTrack>
+        get() = trackRowVersion.id
+
     init {
-        verifyTrackGeometry(trackRowVersion.id, edges)
+        verifyTrackGeometry(trackId, edges)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -314,9 +333,6 @@ data class DbLocationTrackGeometry(
 
     override val endNode: DbEdgeNode?
         get() = edges.lastOrNull()?.endNode
-
-    override fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry =
-        this.takeIf { trackRowVersion.id == id } ?: TmpLocationTrackGeometry(edges.map { it.withLocationTrackId(id) })
 }
 
 data class EdgeHash private constructor(val value: Int) {
@@ -330,7 +346,9 @@ data class EdgeHash private constructor(val value: Int) {
         private fun segmentsHash(segments: List<LayoutSegment>): Int = Objects.hash(segments.map(::segmentHash))
 
         // Note: the segment hash isn't similarly stable by content as node hash is:
-        // this will change after save & read
+        // This can change after save & read. However, the db-function for inserting segments does
+        // normalize the hash and result in re-using any identical edge, so even at worst it's just
+        // an extra round-trip to the db.
         private fun segmentHash(segment: LayoutSegment): Int = segment.hashCode()
     }
 }
@@ -367,6 +385,7 @@ sealed class LayoutEdge : IAlignment {
             "An edge must have segments, so it must have a bounding box"
         }
     }
+
     @get:JsonIgnore val contentHash: EdgeHash by lazy { EdgeHash.of(startNode, endNode, segments) }
 
     fun withSegments(newSegments: List<LayoutSegment>) = TmpLayoutEdge(startNode, endNode, newSegments)
@@ -392,178 +411,11 @@ sealed class LayoutEdge : IAlignment {
         return this.takeIf { startNode == start && endNode == end } ?: TmpLayoutEdge(start, end, segments)
     }
 
-    fun withLocationTrackId(id: IntId<LocationTrack>): LayoutEdge {
+    fun withLocationTrackId(id: IntId<LocationTrack>?): LayoutEdge {
         val newStart = startNode.takeIf { n -> n.type != TRACK_BOUNDARY } ?: startNode.withInnerBoundary(id, START)
         val newEnd = endNode.takeIf { n -> n.type != TRACK_BOUNDARY } ?: endNode.withInnerBoundary(id, END)
         return if (newStart == startNode && newEnd == endNode) this else TmpLayoutEdge(newStart, newEnd, segments)
     }
-}
-
-private fun processNodeReplacements(
-    replacements: Map<NodeHash, LayoutNode>,
-    edges: List<LayoutEdge>,
-): List<LayoutEdge> = buildList {
-    // This is notably stateful as each change is simpler to handle as an operation, but multiple
-    // may end up affecting the same edge due to replacements sometimes merging/splitting them.
-    // We maintain an edit window of 3 edges, where the middle one is the one being processed.
-    var previous: LayoutEdge? = null
-    var current: LayoutEdge? = edges.getOrNull(0)
-    var next: LayoutEdge? = edges.getOrNull(1)
-    var index = 0
-    while (current != null) {
-        // The replacement may result in the current edge getting merged with the next or previous
-        // one
-        val (editedPrevious, editedCurrent, editedNext) = replaceNodes(previous, current, next, replacements)
-
-        // Move the edit-window forward, maintaining partially edited edges
-        index++
-        previous = editedCurrent ?: editedPrevious
-        current = editedNext
-        next = edges.getOrNull(index + 1)
-
-        // Store the edges that are done into the result list
-        if (current != null) {
-            // More yet to process -> add edges as they move out of the processing window
-            editedPrevious?.takeIf { it != previous }?.let(::add)
-        } else {
-            // We're done -> add result edges
-            editedPrevious?.let(::add)
-            editedCurrent?.let(::add)
-        }
-    }
-}
-
-private fun replaceNodes(
-    previous: LayoutEdge?,
-    current: LayoutEdge,
-    next: LayoutEdge?,
-    replacements: Map<NodeHash, LayoutNode>,
-): Triple<LayoutEdge?, LayoutEdge?, LayoutEdge?> {
-    val newStartNode = replacements[current.startNode.node.contentHash]
-    val newEndNode = replacements[current.endNode.node.contentHash]
-    val newStartHash = newStartNode?.contentHash ?: current.startNode.node.contentHash
-    val newEndHash = newEndNode?.contentHash ?: current.endNode.node.contentHash
-    return when {
-        newStartNode == null && newEndNode == null -> Triple(previous, current, next)
-        // Special case where both ends would connect to the same node -> one of them needs to go
-        newStartHash == newEndHash ->
-            mergeEdgeWithPeers(previous, current, next, requireNotNull(newStartNode ?: newEndNode))
-        newStartNode == null -> Triple(previous, current.withEndNode(requireNotNull(newEndNode)), next)
-        newEndNode == null -> Triple(previous, current.withStartNode(newStartNode), next)
-        else -> Triple(previous, current.withNodes(newStartNode, newEndNode), next)
-    }
-}
-
-private fun mergeEdgeWithPeers(
-    previous: LayoutEdge?,
-    target: LayoutEdge,
-    next: LayoutEdge?,
-    replacementNode: LayoutNode,
-    snapDistance: Double = 0.1,
-): Triple<LayoutEdge?, LayoutEdge?, LayoutEdge?> =
-    when {
-        // Can't do it: the replacements would connect track ends to each other
-        // This can happen in intermediate states if the track is short, so we can't throw
-        previous == null && next == null -> Triple(null, target, null)
-        // This is the first edge: merge it with the next one & the node becomes the start
-        previous == null -> {
-            requireNotNull(next)
-            Triple(
-                null,
-                null,
-                TmpLayoutEdge(
-                    startNode = reconnectEdgeNode(next.startNode, replacementNode),
-                    endNode = next.endNode,
-                    segments = target.segments + next.segments,
-                ),
-            )
-        }
-        // This is the last edge: merge it with the previous one & the node becomes the end
-        next == null ->
-            Triple(
-                TmpLayoutEdge(
-                    startNode = previous.startNode,
-                    endNode = reconnectEdgeNode(previous.endNode, replacementNode),
-                    segments = previous.segments + target.segments,
-                ),
-                null,
-                null,
-            )
-        // Between nodes: split the edge, dividing segments between previous/next
-        // The node comes in the middle, connecting the two edges
-        else -> {
-            val (preSegments, postSegments) = splitSegments(target.segmentsWithM, target.length * 0.5, snapDistance)
-            Triple(
-                TmpLayoutEdge(
-                    startNode = previous.startNode,
-                    endNode = reconnectEdgeNode(previous.endNode, replacementNode),
-                    segments = previous.segments + preSegments,
-                ),
-                null,
-                TmpLayoutEdge(
-                    startNode = reconnectEdgeNode(next.startNode, replacementNode),
-                    endNode = next.endNode,
-                    segments = postSegments + next.segments,
-                ),
-            )
-        }
-    }
-
-private fun reconnectEdgeNode(currentEdgeNode: EdgeNode, newNode: LayoutNode): TmpEdgeNode =
-    when {
-        currentEdgeNode.type == TRACK_BOUNDARY && newNode.type == SWITCH ->
-            TmpEdgeNode(B, newNode).also { require(newNode.portB == null) }
-
-        newNode.portA == currentEdgeNode.innerPort -> TmpEdgeNode(A, newNode)
-        newNode.portB == currentEdgeNode.innerPort -> TmpEdgeNode(B, newNode)
-        // The connection port doesn't exist on the new node -> cannot reconnect
-        // If the outer ports match, we could connect to outer.reversed, but that would be wrong:
-        // one side of the edge would be inner-switch while the other side is not
-        else -> error("Unable to replace edge node: current=$currentEdgeNode new=$newNode")
-    }
-
-fun verifyEdgeContent(edge: LayoutEdge) {
-    // TODO: GVT-2934 fix the data and re-enable this
-    // Our base data is broken so that there's bad edges like this. It's the same in original
-    // segments as well.
-    //        require(startNodeId != endNodeId) { "Start and end node must be different:
-    // start=$startNodeId
-    // end=$endNodeId" }
-    require(edge.segments.isNotEmpty()) { "LayoutEdge must have at least one segment" }
-    edge.segmentMValues.forEach { range ->
-        require(range.min.isFinite() && range.min >= 0.0) { "Invalid start m: ${range.min}" }
-        require(range.max.isFinite() && range.max >= range.min) { "Invalid end m: ${range.max}" }
-    }
-    edge.segmentMValues.zipWithNext().mapIndexed { i, (prev, next) ->
-        require(abs(prev.max - next.min) < 0.001) {
-            "Edge segment m-values should be continuous: index=$i prev=$prev next=$next"
-        }
-    }
-    edge.segments.zipWithNext().mapIndexed { i, (prev, next) ->
-        require(prev.segmentEnd.isSame(next.segmentStart, 0.001)) {
-            "Edge segments should begin where the previous one ends: index=$i prev=${prev.segmentEnd} next=${next.segmentStart}"
-        }
-    }
-    edge.startNode.trackBoundaryIn?.let { innerBoundary ->
-        require(innerBoundary.type == START) {
-            "Edge start node must not be a a track end: $edge start(inner)=$innerBoundary"
-        }
-    }
-    edge.endNode.trackBoundaryIn?.let { innerBoundary ->
-        require(innerBoundary.type == END) {
-            "Edge end node must not be a a track start: $edge end(inner)=$innerBoundary"
-        }
-    }
-    // TODO: GVT-2926 We shouldn't have edges like this, but we do. What's up?
-    // We shouldn't really have edges between null and a joint, but due to old data, we do
-    //        require(
-    //            startNode.switchOut == null || endNode.switchIn == null || startNode.switchOut?.id
-    // ==
-    // endNode.switchIn?.id
-    //        ) {
-    //            "An edge that is switch internal geometry, can only be that for one switch:
-    // start=${startNode.switchOut} end=${endNode.switchIn}"
-    //        }
 }
 
 data class TmpLayoutEdge(
@@ -572,7 +424,16 @@ data class TmpLayoutEdge(
     @get:JsonIgnore override val segments: List<LayoutSegment>,
 ) : LayoutEdge() {
     companion object {
-        fun of(segments: List<LayoutSegment>) = TmpLayoutEdge(PlaceHolderEdgeNode, PlaceHolderEdgeNode, segments)
+        fun of(segments: List<LayoutSegment>, trackId: IntId<LocationTrack>?): TmpLayoutEdge =
+            when {
+                trackId != null ->
+                    TmpLayoutEdge(
+                        EdgeNode.trackBoundary(trackId, START),
+                        EdgeNode.trackBoundary(trackId, END),
+                        segments,
+                    )
+                else -> TmpLayoutEdge(PlaceHolderEdgeNode, PlaceHolderEdgeNode, segments)
+            }
     }
 
     init {
@@ -596,7 +457,7 @@ sealed class EdgeNode {
         fun trackBoundary(id: IntId<LocationTrack>, type: TrackBoundaryType): TmpEdgeNode =
             trackBoundary(TrackBoundary(id, type))
 
-        fun trackBoundary(inner: TrackBoundary, outer: TrackBoundary? = null): TmpEdgeNode {
+        fun trackBoundary(inner: TrackBoundary?, outer: TrackBoundary? = null): TmpEdgeNode {
             val (trackA, trackB) = inNodeOrder(inner, outer)
             val portConnection = if (inner == trackA) A else B
             return TmpEdgeNode(portConnection, TmpTrackBoundaryNode(trackA, trackB))
@@ -610,6 +471,7 @@ sealed class EdgeNode {
     }
 
     @get:JsonIgnore abstract val portConnection: NodePortType
+
     @get:JsonIgnore abstract val node: LayoutNode
 
     val innerPort
@@ -662,9 +524,13 @@ sealed class EdgeNode {
             this
         }
 
-    fun withInnerBoundary(id: IntId<LocationTrack>, type: TrackBoundaryType) =
-        takeIf { n -> n.trackBoundaryIn?.id == id && n.trackBoundaryIn?.type == type }
-            ?: trackBoundary(inner = TrackBoundary(id, type), outer = trackBoundaryOut)
+    fun withInnerBoundary(id: IntId<LocationTrack>?, type: TrackBoundaryType): EdgeNode =
+        when {
+            trackBoundaryIn?.id == id && trackBoundaryIn?.type == type -> this
+            id != null -> trackBoundary(TrackBoundary(id, type), trackBoundaryOut)
+            trackBoundaryOut != null -> trackBoundary(null, trackBoundaryOut)
+            else -> PlaceHolderEdgeNode
+        }
 
     fun flipPort(): TmpEdgeNode = TmpEdgeNode(portConnection.opposite, node)
 }
@@ -902,6 +768,66 @@ fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
     return combined.toList()
 }
 
+private fun verifyEdgeContent(edge: LayoutEdge) {
+    // TODO: GVT-2934 fix the data and re-enable this
+    // Our base data is broken so that there's bad edges like this. It's the same in original
+    // segments as well.
+    //        require(startNodeId != endNodeId) { "Start and end node must be different:
+    // start=$startNodeId
+    // end=$endNodeId" }
+    require(edge.segments.isNotEmpty()) { "LayoutEdge must have at least one segment" }
+    edge.segmentMValues.forEach { range ->
+        require(range.min.isFinite() && range.min >= 0.0) { "Invalid start m: ${range.min}" }
+        require(range.max.isFinite() && range.max >= range.min) { "Invalid end m: ${range.max}" }
+    }
+    edge.segmentMValues.zipWithNext().mapIndexed { i, (prev, next) ->
+        require(abs(prev.max - next.min) < 0.001) {
+            "Edge segment m-values should be continuous: index=$i prev=$prev next=$next"
+        }
+    }
+    edge.segments.zipWithNext().mapIndexed { i, (prev, next) ->
+        require(prev.segmentEnd.isSame(next.segmentStart, 0.001)) {
+            "Edge segments should begin where the previous one ends: index=$i prev=${prev.segmentEnd} next=${next.segmentStart}"
+        }
+    }
+    edge.startNode.trackBoundaryIn?.let { innerBoundary ->
+        require(innerBoundary.type == START) {
+            "Edge start node must not be a a track end: $edge start(inner)=$innerBoundary"
+        }
+    }
+    edge.endNode.trackBoundaryIn?.let { innerBoundary ->
+        require(innerBoundary.type == END) {
+            "Edge end node must not be a a track start: $edge end(inner)=$innerBoundary"
+        }
+    }
+    // TODO: GVT-2926 We shouldn't have edges like this, but we do. What's up?
+    // We shouldn't really have edges between null and a joint, but due to old data, we do
+    //        require(
+    //            startNode.switchOut == null || endNode.switchIn == null || startNode.switchOut?.id
+    // ==
+    // endNode.switchIn?.id
+    //        ) {
+    //            "An edge that is switch internal geometry, can only be that for one switch:
+    // start=${startNode.switchOut} end=${endNode.switchIn}"
+    //        }
+}
+
+private fun verifySwitchNode(portA: SwitchLink, portB: SwitchLink?) {
+    require(portA.id != portB?.id) {
+        "A node cannot have two ports for the same switch (2 joints in one location): portA=$portA portB=$portB"
+    }
+    //        require(portA.id != portB?.id || portA.jointNumber != portB.jointNumber) {
+    //    "Switch node cannot have two identical ports (they should be the same single port):
+    // portA=$portA portB=$portB"
+    // }
+}
+
+private fun verifyTrackBoundaryNode(portA: TrackBoundary, portB: TrackBoundary?) {
+    require(portA.id != portB?.id) {
+        "A node cannot have two ports for the same track boundary (2 ends in one location): portA=$portA portB=$portB"
+    }
+}
+
 private fun <T : NodePort> inNodeOrder(linkIn: T?, linkOut: T?): Pair<T, T?> {
     require(linkIn != null || linkOut != null) { "A node must have at least one port" }
     return when {
@@ -913,18 +839,125 @@ private fun <T : NodePort> inNodeOrder(linkIn: T?, linkOut: T?): Pair<T, T?> {
     }
 }
 
-fun verifySwitchNode(portA: SwitchLink, portB: SwitchLink?) {
-    require(portA.id != portB?.id) {
-        "Switch node cannot have two connections to the same switch (1 joint of a switch in 1 location): portA=$portA portB=$portB"
+private fun processNodeReplacements(
+    replacements: Map<NodeHash, LayoutNode>,
+    edges: List<LayoutEdge>,
+): List<LayoutEdge> = buildList {
+    // This is notably stateful as each change is simpler to handle as an operation, but multiple
+    // may end up affecting the same edge due to replacements sometimes merging/splitting them.
+    // We maintain an edit window of 3 edges, where the middle one is the one being processed.
+    var previous: LayoutEdge? = null
+    var current: LayoutEdge? = edges.getOrNull(0)
+    var next: LayoutEdge? = edges.getOrNull(1)
+    var index = 0
+    while (current != null) {
+        // The replacement may result in the current edge getting merged with the next or previous
+        // one
+        val (editedPrevious, editedCurrent, editedNext) = replaceNodes(previous, current, next, replacements)
+
+        // Move the edit-window forward, maintaining partially edited edges
+        index++
+        previous = editedCurrent ?: editedPrevious
+        current = editedNext
+        next = edges.getOrNull(index + 1)
+
+        // Store the edges that are done into the result list
+        if (current != null) {
+            // More yet to process -> add edges as they move out of the processing window
+            editedPrevious?.takeIf { it != previous }?.let(::add)
+        } else {
+            // We're done -> add result edges
+            editedPrevious?.let(::add)
+            editedCurrent?.let(::add)
+        }
     }
-    //        require(portA.id != portB?.id || portA.jointNumber != portB.jointNumber) {
-    //    "Switch node cannot have two identical ports (they should be the same single port):
-    // portA=$portA portB=$portB"
-    // }
 }
 
-fun verifyTrackBoundaryNode(portA: TrackBoundary, portB: TrackBoundary?) {
-    require(portA.id != portB?.id) {
-        "Track boundary node cannot connect twice to the same track: portA=$portA portB=$portB"
+private fun replaceNodes(
+    previous: LayoutEdge?,
+    current: LayoutEdge,
+    next: LayoutEdge?,
+    replacements: Map<NodeHash, LayoutNode>,
+): Triple<LayoutEdge?, LayoutEdge?, LayoutEdge?> {
+    val newStartNode = replacements[current.startNode.node.contentHash]
+    val newEndNode = replacements[current.endNode.node.contentHash]
+    val newStartHash = newStartNode?.contentHash ?: current.startNode.node.contentHash
+    val newEndHash = newEndNode?.contentHash ?: current.endNode.node.contentHash
+    return when {
+        newStartNode == null && newEndNode == null -> Triple(previous, current, next)
+        // Special case where both ends would connect to the same node -> one of them needs to go
+        newStartHash == newEndHash ->
+            mergeEdgeWithPeers(previous, current, next, requireNotNull(newStartNode ?: newEndNode))
+        newStartNode == null -> Triple(previous, current.withEndNode(requireNotNull(newEndNode)), next)
+        newEndNode == null -> Triple(previous, current.withStartNode(newStartNode), next)
+        else -> Triple(previous, current.withNodes(newStartNode, newEndNode), next)
     }
 }
+
+private fun mergeEdgeWithPeers(
+    previous: LayoutEdge?,
+    target: LayoutEdge,
+    next: LayoutEdge?,
+    replacementNode: LayoutNode,
+    snapDistance: Double = 0.1,
+): Triple<LayoutEdge?, LayoutEdge?, LayoutEdge?> =
+    when {
+        // Can't do it: the replacements would connect track ends to each other
+        // This can happen in intermediate states if the track is short, so we can't throw
+        previous == null && next == null -> Triple(null, target, null)
+        // This is the first edge: merge it with the next one & the node becomes the start
+        previous == null -> {
+            requireNotNull(next)
+            Triple(
+                null,
+                null,
+                TmpLayoutEdge(
+                    startNode = reconnectEdgeNode(next.startNode, replacementNode),
+                    endNode = next.endNode,
+                    segments = target.segments + next.segments,
+                ),
+            )
+        }
+        // This is the last edge: merge it with the previous one & the node becomes the end
+        next == null ->
+            Triple(
+                TmpLayoutEdge(
+                    startNode = previous.startNode,
+                    endNode = reconnectEdgeNode(previous.endNode, replacementNode),
+                    segments = previous.segments + target.segments,
+                ),
+                null,
+                null,
+            )
+        // Between nodes: split the edge, dividing segments between previous/next
+        // The node comes in the middle, connecting the two edges
+        else -> {
+            val (preSegments, postSegments) = splitSegments(target.segmentsWithM, target.length * 0.5, snapDistance)
+            Triple(
+                TmpLayoutEdge(
+                    startNode = previous.startNode,
+                    endNode = reconnectEdgeNode(previous.endNode, replacementNode),
+                    segments = previous.segments + preSegments,
+                ),
+                null,
+                TmpLayoutEdge(
+                    startNode = reconnectEdgeNode(next.startNode, replacementNode),
+                    endNode = next.endNode,
+                    segments = postSegments + next.segments,
+                ),
+            )
+        }
+    }
+
+private fun reconnectEdgeNode(currentEdgeNode: EdgeNode, newNode: LayoutNode): TmpEdgeNode =
+    when {
+        currentEdgeNode.type == TRACK_BOUNDARY && newNode.type == SWITCH ->
+            TmpEdgeNode(B, newNode).also { require(newNode.portB == null) }
+
+        newNode.portA == currentEdgeNode.innerPort -> TmpEdgeNode(A, newNode)
+        newNode.portB == currentEdgeNode.innerPort -> TmpEdgeNode(B, newNode)
+        // The connection port doesn't exist on the new node -> cannot reconnect
+        // If the outer ports match, we could connect to outer.reversed, but that would be wrong:
+        // one side of the edge would be inner-switch while the other side is not
+        else -> error("Unable to replace edge node: current=$currentEdgeNode new=$newNode")
+    }

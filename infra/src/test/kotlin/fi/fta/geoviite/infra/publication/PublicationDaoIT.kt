@@ -34,11 +34,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
-import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
@@ -55,13 +55,13 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -150,7 +150,7 @@ constructor(
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId).let { lt ->
                 lt.copy(name = AlignmentName("${lt.name} TEST"))
             },
-            LocationTrackGeometry.empty,
+            TmpLocationTrackGeometry.empty,
         )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
@@ -168,7 +168,7 @@ constructor(
             locationTrackService
                 .getOrThrow(MainLayoutContext.official, draft.id as IntId)
                 .copy(state = LocationTrackState.DELETED),
-            LocationTrackGeometry.empty,
+            TmpLocationTrackGeometry.empty,
         )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
@@ -189,7 +189,7 @@ constructor(
             locationTrackService
                 .getOrThrow(MainLayoutContext.official, draft.id as IntId)
                 .copy(state = LocationTrackState.IN_USE),
-            LocationTrackGeometry.empty,
+            TmpLocationTrackGeometry.empty,
         )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
@@ -548,7 +548,7 @@ constructor(
     }
 
     private fun insertAndCheck(locationTrack: LocationTrack): Pair<LayoutRowVersion<LocationTrack>, LocationTrack> {
-        val official = locationTrackDao.save(locationTrack, LocationTrackGeometry.empty)
+        val official = locationTrackDao.save(locationTrack, TmpLocationTrackGeometry.empty)
         val fromDb = locationTrackDao.fetch(official)
         assertEquals(official.id, fromDb.id)
         assertMatches(locationTrack, fromDb, contextMatch = false)

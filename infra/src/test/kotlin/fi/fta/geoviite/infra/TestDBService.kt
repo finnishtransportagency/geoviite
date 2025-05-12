@@ -56,6 +56,7 @@ import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -327,7 +328,7 @@ class TestDBService(
         when (asset) {
             is LayoutTrackNumber -> trackNumberDao.save(asset)
             is LocationTrack ->
-                locationTrackDao.save(asset, asset.version?.let(alignmentDao::fetch) ?: LocationTrackGeometry.empty)
+                locationTrackDao.save(asset, asset.version?.let(alignmentDao::fetch) ?: TmpLocationTrackGeometry.empty)
             is ReferenceLine ->
                 referenceLineDao.save(
                     asset.takeIf { it.alignmentVersion != null }

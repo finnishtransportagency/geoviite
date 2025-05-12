@@ -186,7 +186,7 @@ constructor(
         val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
-        val geomWithNewSegments = replaceLocationTrackGeometry(geometryAlignment, geometryInterval.mRange)
+        val geomWithNewSegments = replaceLocationTrackGeometry(trackId, geometryAlignment, geometryInterval.mRange)
         return saveAndUpdateTopology(branch, track, geometry, geomWithNewSegments)
     }
 
