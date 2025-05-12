@@ -98,11 +98,25 @@ class AngleTest {
         assertEquals(-0.2, angleAvgRads(-0.1, -0.3), DOUBLE_CALC_DELTA)
         assertEquals(0.0, angleAvgRads(0.4 * PI, -0.4 * PI), DOUBLE_CALC_DELTA)
         assertEquals(PI, angleAvgRads(0.6 * PI, -0.6 * PI), DOUBLE_CALC_DELTA)
-        assertEquals(PI, angleAvgRads(0.9 * PI, -0.9 * PI), DOUBLE_CALC_DELTA)
-        assertEquals(PI, angleAvgRads(PI, -PI), DOUBLE_CALC_DELTA)
+        // TODO it's arbitrary whether these land at PI or -PI, except actually no, -PI is *better*
+        assertEquals(-PI, angleAvgRads(0.9 * PI, -0.9 * PI), DOUBLE_CALC_DELTA)
+        assertEquals(-PI, angleAvgRads(PI, -PI), DOUBLE_CALC_DELTA)
         assertEquals(0.8 * PI, angleAvgRads(0.9 * PI, 0.7 * PI), DOUBLE_CALC_DELTA)
         assertEquals(0.9 * PI, angleAvgRads(0.7 * PI, -0.9 * PI), DOUBLE_CALC_DELTA)
         assertEquals(-0.9 * PI, angleAvgRads(0.9 * PI, -0.7 * PI), DOUBLE_CALC_DELTA)
+    }
+
+    @Test
+    fun `interpolateAngleRads interpolates on the side of the smaller angle`() {
+        assertEquals(-0.25, interpolateAngleRads(-1.0, 0.0, 0.75), DOUBLE_CALC_DELTA)
+        assertEquals(-0.75, interpolateAngleRads(-1.0, 0.0, 0.25), DOUBLE_CALC_DELTA)
+        assertEquals(-0.25, interpolateAngleRads(0.0, -1.0, 0.25), DOUBLE_CALC_DELTA)
+        assertEquals(-0.75, interpolateAngleRads(0.0, -1.0, 0.75), DOUBLE_CALC_DELTA)
+
+        assertEquals(PI - 0.25, interpolateAngleRads(PI - 1.0, PI, 0.75), DOUBLE_CALC_DELTA)
+        assertEquals(PI - 0.75, interpolateAngleRads(PI - 1.0, PI, 0.25), DOUBLE_CALC_DELTA)
+        assertEquals(PI - 0.25, interpolateAngleRads(PI, PI - 1.0, 0.25), DOUBLE_CALC_DELTA)
+        assertEquals(PI - 0.75, interpolateAngleRads(PI, PI - 1.0, 0.75), DOUBLE_CALC_DELTA)
     }
 
     @Test
