@@ -46,6 +46,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
+import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
@@ -791,16 +792,20 @@ constructor(
                 val (_, linkedTestAlignment) =
                     locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, testLocationTrack.id as IntId)
 
-                assertEquals(null, linkedTestAlignment.segments[0].switchId)
-                assertEquals(null, linkedTestAlignment.segments[0].startJointNumber)
-                assertEquals(null, linkedTestAlignment.segments[0].endJointNumber)
+                assertEquals(null, linkedTestAlignment.startSwitchLink)
 
-                (1..2).forEach { segmentIndex ->
-                    assertEquals(existingLayoutSwitch.id, linkedTestAlignment.segments[segmentIndex].switchId)
+                (1..3).forEach { segmentIndex ->
+                    assertTrue(linkedTestAlignment.nodes[segmentIndex].containsSwitch(existingLayoutSwitch.id as IntId))
                 }
 
-                assertEquals(existingSwitchJoints[0].number, linkedTestAlignment.segments[1].startJointNumber)
-                assertEquals(existingSwitchJoints[1].number, linkedTestAlignment.segments[1].endJointNumber)
+                assertEquals(
+                    existingSwitchJoints[0].number,
+                    (linkedTestAlignment.nodes[1].portA as? SwitchLink)?.jointNumber,
+                )
+                assertEquals(
+                    existingSwitchJoints[1].number,
+                    (linkedTestAlignment.nodes[2].portA as? SwitchLink)?.jointNumber,
+                )
 
                 assertEquals(existingSwitchJoints[1].number, linkedTestAlignment.segments[2].startJointNumber)
                 assertEquals(existingSwitchJoints[2].number, linkedTestAlignment.segments[2].endJointNumber)

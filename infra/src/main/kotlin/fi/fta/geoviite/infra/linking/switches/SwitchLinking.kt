@@ -73,6 +73,8 @@ data class TopologyLinkFindingSwitch(val joints: List<ISwitchJoint>, val id: Int
 
 data class FittedSwitch(val switchStructure: SwitchStructure, val joints: List<FittedSwitchJoint>)
 
+data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitchId: IntId<LayoutSwitch>)
+
 data class SuggestedSwitch(
     val switchStructureId: IntId<SwitchStructure>,
     val joints: List<LayoutSwitchJoint>,
@@ -80,8 +82,6 @@ data class SuggestedSwitch(
     val geometrySwitchId: IntId<GeometrySwitch>? = null,
     val name: SwitchName,
 )
-
-data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitchId: IntId<LayoutSwitch>)
 
 data class SwitchLinkingTrackLinks(val locationTrackVersion: Int, val suggestedLinks: SuggestedLinks?) {
     fun isLinked(): Boolean = suggestedLinks != null

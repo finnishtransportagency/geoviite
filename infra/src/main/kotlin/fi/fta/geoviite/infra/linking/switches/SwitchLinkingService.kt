@@ -165,6 +165,9 @@ constructor(
     ): Pair<SuggestedSwitch, Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>> {
         val tracksAroundFit = findLocationTracksForMatchingSwitchToTracks(branch, fit)
         val relevantTracks = tracksAroundFit + (originallyLinkedTracks ?: mapOf())
+        // TODO redo geometry switch linking so that we get a non-null layoutSwitchId here; this is because
+        // saveSwitchLinking later does get one, and hence cleans said switch from the tracks for the linking, and so
+        // this needs to clean it, too
         val match = matchFittedSwitchToTracks(fit, relevantTracks, layoutSwitchId)
         return match to relevantTracks.filterKeys { track -> match.trackLinks.containsKey(track) }
     }
@@ -719,7 +722,7 @@ const val SWITCH_JOINT_NODE_SNAPPING_TOLERANCE = ALIGNMENT_LINKING_SNAP
 // TODO: Tämän pitää varmaan toimia yhteen topologialinkityksen kanssa
 const val SWITCH_JOINT_NODE_ADJUSTMENT_TOLERANCE = 2.0
 
-fun linkJointToEdge(
+private fun linkJointToEdge(
     switchId: IntId<LayoutSwitch>,
     edge: LayoutEdge,
     jointNumber: JointNumber,
@@ -752,26 +755,26 @@ fun linkJointToEdge(
 
 fun filterValidJointSequences(
     jointSequences: List<List<JointNumber>>,
-    jointsOnEdge: List<JointOnEdge>,
+    allJoints: List<JointOnEdge>,
 ): List<JointOnEdge> {
-    val jointsByLocationTrack = jointsOnEdge.groupBy { jointOnEdge -> jointOnEdge.locationTrackId }.toList()
+    val jointsByEdge = allJoints.groupBy { jointOnEdge -> jointOnEdge.edge }.toList()
     val validJointsOnEdge =
         jointSequences
             .flatMap { structureJointSequence ->
                 val validJoints =
-                    jointsByLocationTrack.flatMap { (_, jointsOnLocationTrack) ->
-                        val jointNumbersOnLocationTrack =
-                            jointsOnLocationTrack.map { jointOnLocationTrack -> jointOnLocationTrack.jointNumber }
+                    jointsByEdge.flatMap { (_, jointsOnEdge) ->
+                        val jointNumbersOnEdge =
+                            jointsOnEdge.map { jointOnLocationTrack -> jointOnLocationTrack.jointNumber }
                         val hasSameJoints =
-                            jointNumbersOnLocationTrack.containsAll(structureJointSequence) &&
-                                structureJointSequence.containsAll(jointNumbersOnLocationTrack)
+                            jointNumbersOnEdge.containsAll(structureJointSequence) &&
+                                structureJointSequence.containsAll(jointNumbersOnEdge)
                         val containsExtra =
-                            jointNumbersOnLocationTrack.containsAll(structureJointSequence) &&
-                                !structureJointSequence.containsAll(jointNumbersOnLocationTrack)
+                            jointNumbersOnEdge.containsAll(structureJointSequence) &&
+                                !structureJointSequence.containsAll(jointNumbersOnEdge)
                         require(!containsExtra) {
-                            "There is an additional joint match on location track: $jointNumbersOnLocationTrack expected: $jointSequences"
+                            "There is an additional joint match on edge: $jointNumbersOnEdge expected: $jointSequences"
                         }
-                        if (hasSameJoints) jointsOnLocationTrack else listOf()
+                        if (hasSameJoints) jointsOnEdge else listOf()
                     }
                 validJoints
             }
@@ -797,16 +800,16 @@ fun completeJointSequence(
     fittedSwitch: FittedSwitch,
     jointSequence: List<JointNumber>,
     locationTrackId: IntId<LocationTrack>,
-    jointsOnLocationTrack: List<JointOnEdge>,
+    jointsOnEdge: List<JointOnEdge>,
 ): List<JointOnEdge> {
     val middleJointNumbers = jointSequence.drop(1).dropLast(1)
-    val missingJointNumbers = findMissingJoints(jointSequence, jointsOnLocationTrack)
+    val missingJointNumbers = findMissingJoints(jointSequence, jointsOnEdge)
     val middleJointIsMissing =
         missingJointNumbers.any { missingJointNumber -> middleJointNumbers.contains(missingJointNumber) }
     val middleJointOnEdge =
-        jointsOnLocationTrack.firstOrNull { jointOnEdge -> middleJointNumbers.contains(jointOnEdge.jointNumber) }
+        jointsOnEdge.firstOrNull { jointOnEdge -> middleJointNumbers.contains(jointOnEdge.jointNumber) }
 
-    val completedJointsOnLocationTrack =
+    val completedJointsOnEdge =
         if (middleJointIsMissing || middleJointOnEdge == null) {
             // Middle joint is missing and it cannot be created automatically
             listOf<JointOnEdge>()
@@ -847,12 +850,12 @@ fun completeJointSequence(
                         isValidLocation
                     }
 
-            val allJoints = jointsOnLocationTrack + newJoints
+            val allJoints = jointsOnEdge + newJoints
             val allJointNumbers = allJoints.map { jointOnEdge -> jointOnEdge.jointNumber }
             val hasAllRequiredJoints = allJointNumbers.containsAll(jointSequence)
             if (hasAllRequiredJoints) allJoints else listOf()
         }
-    return completedJointsOnLocationTrack
+    return completedJointsOnEdge
 }
 
 /** Tries to create missing joints. */
@@ -861,10 +864,12 @@ fun completeJointSequences(
     jointSequences: List<List<JointNumber>>,
     jointsOnEdge: List<JointOnEdge>,
 ): List<JointOnEdge> {
-    val jointsByLocationTrack = jointsOnEdge.groupBy { jointOnEdge -> jointOnEdge.locationTrackId }.toList()
+    val jointsByLocationTrack =
+        jointsOnEdge.groupBy { jointOnEdge -> jointOnEdge.edge to jointOnEdge.locationTrackId }.toList()
     val completedJointSequences =
         jointSequences.flatMap { jointSequence ->
-            jointsByLocationTrack.flatMap { (locationTrackId, jointsOnLocationTrack) ->
+            jointsByLocationTrack.flatMap { (key, jointsOnLocationTrack) ->
+                val (_, locationTrackId) = key
                 completeJointSequence(fittedSwitch, jointSequence, locationTrackId, jointsOnLocationTrack)
             }
         }
@@ -914,20 +919,20 @@ fun clearSwitchFromTracks(
 
 fun matchFittedSwitchToTracks(
     fittedSwitch: FittedSwitch,
-    relevantTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+    clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
     switchId: IntId<LayoutSwitch>?,
     name: SwitchName? = null,
 ): SuggestedSwitch {
-    require(switchId == null || relevantTracks.values.none { it.second.containsSwitch(switchId) }) {
+    require(switchId == null || clearedTracks.values.none { it.second.containsSwitch(switchId) }) {
         "Must clear switch from tracks before calling matchFittedSwitchToTracks on it"
     }
-    val jointsOnEdges = mapFittedSwitchToEdges(fittedSwitch, relevantTracks)
+    val jointsOnEdges = mapFittedSwitchToEdges(fittedSwitch, clearedTracks)
     val adjustedJointsOnEdges = adjustJointPositions(fittedSwitch, jointsOnEdges)
-    val validatedJoints = filterValidJointsOnEdge(fittedSwitch.switchStructure, adjustedJointsOnEdges, relevantTracks)
+    val validatedJoints = filterValidJointsOnEdge(fittedSwitch.switchStructure, adjustedJointsOnEdges, clearedTracks)
 
     val linkedTracks =
-        (if (switchId != null) suggestDelinking(switchId, relevantTracks) else mapOf()) +
-            suggestLinking(validatedJoints, relevantTracks)
+        (if (switchId != null) suggestDelinking(switchId, clearedTracks) else mapOf()) +
+            suggestLinking(validatedJoints, clearedTracks)
 
     return SuggestedSwitch(
         fittedSwitch.switchStructure.id,
