@@ -46,10 +46,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -57,6 +59,7 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchAndMatchingAlignments
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAlignments
 import fi.fta.geoviite.infra.ui.testdata.locationTrackAndAlignmentForGeometryAlignment
@@ -150,97 +153,6 @@ constructor(
         for (joint in suggestedSwitch.joints.map { j -> j.number }) {
             assertJointPointLocationAccuracy(suggestedSwitch, joint, LocationAccuracy.GEOMETRY_CALCULATED)
         }
-    }
-
-    @Test
-    fun `should match with first switch alignment match only`() {
-        val segments =
-            (1..5).map { num ->
-                val start = (num - 1).toDouble() * 10.0
-                val end = start + 10.0
-                segment(Point(start, start), Point(end, end))
-            }
-
-        val (initTrack, initAlignment) =
-            locationTrackAndGeometry(trackNumberId = mainDraftContext.createLayoutTrackNumber().id, segments = segments)
-        val locationTrackId = mainDraftContext.save(initTrack, initAlignment).id
-
-        val insertedSwitch = mainOfficialContext.saveAndFetch(switch())
-
-        val linkingJoints =
-            listOf(
-                FittedSwitchJoint(
-                    JointNumber(1),
-                    Point(x = 9.5, y = 9.5),
-                    LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches =
-                        listOf(
-                            suggestedSwitchJointMatch(
-                                locationTrackId = locationTrackId,
-                                segmentIndex = 1,
-                                m = initAlignment.segmentMValues[1].min,
-                                1,
-                            )
-                        ),
-                ),
-                FittedSwitchJoint(
-                    JointNumber(2),
-                    Point(x = 20.0, y = 20.0),
-                    LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches =
-                        listOf(
-                            suggestedSwitchJointMatch(
-                                locationTrackId = locationTrackId,
-                                segmentIndex = 1,
-                                m = initAlignment.segmentMValues[1].max,
-                                2,
-                            )
-                        ),
-                ),
-                FittedSwitchJoint(
-                    JointNumber(3),
-                    Point(x = 20.0, y = 20.0),
-                    LocationAccuracy.DESIGNED_GEOLOCATION,
-                    matches =
-                        listOf(
-                            suggestedSwitchJointMatch(
-                                locationTrackId = locationTrackId,
-                                segmentIndex = 1,
-                                m = initAlignment.segmentMValues[1].max,
-                                3,
-                            )
-                        ),
-                ),
-            )
-
-        val fittedSwitch =
-            FittedSwitch(
-                joints = linkingJoints,
-                switchStructure = switchLibraryService.getSwitchStructure(insertedSwitch.switchStructureId),
-            )
-        switchLinkingService.saveSwitchLinking(
-            LayoutBranch.main,
-            matchFittedSwitchToTracks(
-                fittedSwitch,
-                switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
-                    LayoutBranch.main,
-                    fittedSwitch,
-                    insertedSwitch.id as IntId,
-                ),
-                insertedSwitch.id as IntId,
-            ),
-            insertedSwitch.id as IntId,
-        )
-
-        val (_, alignment) = locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, locationTrackId)
-        val joint12Segment = alignment.segments[1]
-
-        assertEquals(JointNumber(1), joint12Segment.startJointNumber)
-        assertEquals(JointNumber(2), joint12Segment.endJointNumber)
-
-        assertTrue(
-            alignment.segments.none { it.endJointNumber == JointNumber(3) || it.startJointNumber == JointNumber(3) }
-        )
     }
 
     @Test
@@ -1126,10 +1038,8 @@ constructor(
         val basePoint = Point(10.0, 0.0)
         val somewhereElse = Point(100.0, 100.0)
 
-        // we'll be linking topoTrack, which currently has a link to a switch that's actually
-        // somewhere completely
-        // different, so once it gets relinked, it'll have no match on topoTrack (it's immaterial
-        // that the link happens
+        // we'll be linking topoTrack, which currently has a link to a switch that's actually somewhere completely
+        // different, so once it gets relinked, it'll have no match on topoTrack (it's immaterial that the link happens
         // to be topological; the important thing is the misplaced switch)
         val okSwitch = switchDao.save(shiftSwitch(templateSwitch, "ok", basePoint))
         val switchSomewhereElse = switchDao.save(shiftSwitch(templateSwitch, "somewhere else", somewhereElse))
@@ -1157,15 +1067,13 @@ constructor(
         val topoTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(
-                    trackNumberId,
-                    name = "topoTrack",
-                    topologyEndSwitch = TopologyLocationTrackSwitch(okSwitch.id, JointNumber(1)),
-                    draft = true,
-                ),
-                trackGeometryOfSegments(
-                    segment(Point(0.0, 0.0), Point(5.0, 0.0), switchId = switchSomewhereElse.id),
-                    segment(Point(5.0, 0.0), basePoint),
+                locationTrack(trackNumberId, name = "topoTrack", draft = true),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(0.0, 0.0), basePoint)),
+                        startInnerSwitch = SwitchLink(switchSomewhereElse.id, SwitchJointRole.MAIN, JointNumber(1)),
+                        endOuterSwitch = SwitchLink(okSwitch.id, SwitchJointRole.MAIN, JointNumber(1)),
+                    )
                 ),
             )
         val validationResult =
@@ -1326,62 +1234,6 @@ constructor(
         assertTrackDraftVersionSwitchLinks(oneFiveTrack.id, null, null, listOf(0.0..5.2 to switch.id))
         assertTrackDraftVersionSwitchLinks(fiveTwoTrack.id, null, null, listOf(0.0..5.2 to switch.id))
         assertTrackDraftVersionSwitchLinks(threeFourTrack.id, null, null, listOf(0.0..10.4 to switch.id))
-    }
-
-    @Test
-    fun `mislinked track with wrong alignment link gets replaced with topology link`() {
-        val trackNumberId =
-            mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
-                .id
-        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
-        val (templateSwitch, templateTrackSections) =
-            switchAndMatchingAlignments(trackNumberId = trackNumberId, structure = switchStructure, draft = false)
-        val templateThroughTrackSegments = templateTrackSections[0].second.segments
-        val templateBranchingTrackSegments = templateTrackSections[1].second.segments
-        val switch = switchDao.save(templateSwitch.copy(contextData = LayoutContextData.newOfficial(LayoutBranch.main)))
-        val shift =
-            templateThroughTrackSegments.last().segmentEnd.toPoint() -
-                templateThroughTrackSegments.first().segmentStart.toPoint()
-        val fullShift = shift + Point(100.0, 0.0)
-
-        val throughTrackStart =
-            locationTrackService.saveDraft(
-                LayoutBranch.main,
-                locationTrack(trackNumberId, name = "through track start", draft = true),
-                trackGeometryOfSegments(
-                    setSwitchId(templateThroughTrackSegments + listOf(segment(shift, fullShift)), switch.id)
-                ),
-            )
-        val throughTrackSwitchAndEnd =
-            locationTrackService.saveDraft(
-                LayoutBranch.main,
-                locationTrack(trackNumberId, name = "through track switch and end", draft = true),
-                trackGeometryOfSegments(shiftTrack(templateThroughTrackSegments, switch.id, fullShift)),
-            )
-        val originallyLinkedBranchingTrack =
-            locationTrackService.saveDraft(
-                LayoutBranch.main,
-                locationTrack(trackNumberId, name = "originally linked branching track", draft = true),
-                trackGeometryOfSegments(setSwitchId(templateBranchingTrackSegments, switch.id)),
-            )
-        val newBranchingTrack =
-            locationTrackService.saveDraft(
-                LayoutBranch.main,
-                locationTrack(trackNumberId, name = "new branching track", draft = true),
-                trackGeometryOfSegments(shiftTrack(templateBranchingTrackSegments, switch.id, fullShift)),
-            )
-
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, fullShift, switch.id)!!
-        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id)
-
-        assertTrackDraftVersionSwitchLinks(throughTrackStart.id, null, switch.id, listOf(0.0..134.4 to null))
-
-        assertTrackDraftVersionSwitchLinks(throughTrackSwitchAndEnd.id, null, null, listOf(0.0..34.4 to switch.id))
-
-        assertTrackDraftVersionSwitchLinks(originallyLinkedBranchingTrack.id, null, null, listOf(0.0..34.3 to null))
-
-        assertTrackDraftVersionSwitchLinks(newBranchingTrack.id, null, null, listOf(0.0..34.3 to switch.id))
     }
 
     @Test
@@ -1820,31 +1672,25 @@ constructor(
     ) {
         val track = locationTrackService.get(MainLayoutContext.draft, trackId)!!
         val (_, geometry) = locationTrackService.getWithGeometry(track.version!!)
-        assertEquals(topologyStartSwitchId, track.topologyStartSwitch?.switchId)
-        assertEquals(topologyEndSwitchId, track.topologyEndSwitch?.switchId)
+        assertEquals(topologyStartSwitchId, geometry.outerStartSwitch?.id)
+        assertEquals(topologyEndSwitchId, geometry.outerEndSwitch?.id)
         assertEquals(segmentSwitchesByMRange.last().first.endInclusive, geometry.end!!.m, 0.1)
         segmentSwitchesByMRange.forEach { (range, switchId) ->
-            val rangeStartSegmentIndex = geometry.getSegmentIndexAtM(range.start)
-            val rangeEndSegmentIndex = geometry.getSegmentIndexAtM(range.endInclusive)
-            assertEquals(
-                range.start,
-                geometry.segmentMValues[rangeStartSegmentIndex].min,
-                0.1,
-                "segment range starts at given m-value",
-            )
-            assertEquals(
-                range.endInclusive,
-                geometry.segmentMValues[rangeEndSegmentIndex].max,
-                0.1,
-                "segment range ends at given m-value",
-            )
-            (rangeStartSegmentIndex..rangeEndSegmentIndex).forEach { i ->
+            val startEdge = geometry.getEdgeAtMOrThrow(range.start)
+            val endEdge = geometry.getEdgeAtMOrThrow(range.endInclusive)
+            assertEquals(range.start, startEdge.second.min, 0.1, "edge range starts at given m-value")
+            assertEquals(range.endInclusive, endEdge.second.max, 0.1, "edge range ends at given m-value")
+
+            val startEdgeIndex = geometry.edges.indexOf(startEdge.first)
+            val endEdgeIndex = geometry.edges.indexOf(endEdge.first)
+
+            (startEdgeIndex..endEdgeIndex).forEach { i ->
                 assertEquals(
                     switchId,
-                    geometry.segments[i].switchId,
-                    "switch at segment index $i (asserted m-range ${range.start}..${
+                    (geometry.nodes[i].portA as? SwitchLink)?.id,
+                    "switch id at node index $i (asserted m-range ${range.start}..${
                         range.endInclusive
-                    }, segment m-range ${geometry.segmentMValues[i].min}..${geometry.segmentMValues[i].max}",
+                    }, edge m-range ${geometry.edgeMs[i].min}..${geometry.edgeMs[i].max}",
                 )
             }
         }

@@ -1,15 +1,10 @@
 import * as React from 'react';
-import { JointNumber, LayoutContext, SwitchAlignment } from 'common/common-model';
+import { JointNumber, LayoutContext, SwitchStructure } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LocationTrackId } from 'track-layout/track-layout-model';
-import {
-    combineLocationTrackIds,
-    getLocationTracksEndingAtJoints,
-    getLocationTracksForJointConnections,
-    getMatchingLocationTrackIdsForJointNumbers,
-} from 'linking/linking-utils';
+import { combineLocationTrackIds, getLocationTracksEndingAtJoints } from 'linking/linking-utils';
 import { useLoader } from 'utils/react-utils';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, objectEntries } from 'utils/array-utils';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
 import { LocationTrackBadge } from 'geoviite-design-lib/alignment/location-track-badge';
 import styles from './switch-infobox.scss';
@@ -17,58 +12,49 @@ import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { SuggestedSwitch } from 'linking/linking-model';
 
 type SwitchJointInfobox = {
-    switchAlignments: SwitchAlignment[];
     suggestedSwitch: SuggestedSwitch;
+    suggestedSwitchStructure: SwitchStructure;
     layoutContext: LayoutContext;
     onSelectLocationTrackBadge?: (locationTrackId: LocationTrackId) => void;
 };
 
 const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
-    switchAlignments,
+    suggestedSwitch,
+    suggestedSwitchStructure,
     layoutContext,
     onSelectLocationTrackBadge,
 }) => {
     const { t } = useTranslation();
     const locationTracksEndingAtJoint = combineLocationTrackIds(
-        switchAlignments.map((switchAlignment) =>
-            getLocationTracksEndingAtJoints(switchAlignment.jointNumbers, jointConnections),
+        suggestedSwitchStructure.alignments.map((switchAlignment) =>
+            getLocationTracksEndingAtJoints(
+                switchAlignment.jointNumbers,
+                suggestedSwitch.trackLinks,
+            ),
         ),
     );
 
-    const displayedLocationTracksEndingAtJoint =
-        topologicalJointConnections ?? locationTracksEndingAtJoint;
-
-    const locationTracks = [
-        useLoader(
-            () => getLocationTracksForJointConnections(layoutContext, jointConnections),
-            [
-                switchAlignments,
-                jointConnections,
-                layoutContext.branch,
-                layoutContext.publicationState,
-            ],
-        ),
+    const locationTracks = (
         useLoader(
             () =>
                 getLocationTracks(
-                    (topologicalJointConnections ?? []).flatMap(
-                        (jointConnection) => jointConnection.locationTrackIds,
-                    ),
+                    objectEntries(suggestedSwitch.trackLinks)
+                        .filter(([_, links]) => links.suggestedLinks !== undefined)
+                        .map(([id]) => id),
                     layoutContext,
                 ),
-            [],
-        ),
-    ]
-        .flat()
-        .filter(filterNotEmpty);
+            [layoutContext.branch, layoutContext.publicationState],
+        ) ?? []
+    ).filter(filterNotEmpty);
 
     const locationTrackBadgeOnClickHandler = (locationTrackId: LocationTrackId) =>
         onSelectLocationTrackBadge ? () => onSelectLocationTrackBadge(locationTrackId) : undefined;
 
     function getLocationTracksForJointNumbers(jointNumbers: JointNumber[]) {
-        const locationTrackIds = getMatchingLocationTrackIdsForJointNumbers(
-            jointNumbers,
-            jointConnections,
+        const locationTrackIds = jointNumbers.flatMap(
+            (j) =>
+                locationTracksEndingAtJoint.find(({ jointNumber }) => j === jointNumber)
+                    ?.locationTrackIds ?? [],
         );
         return getLocationTrackBadges(locationTrackIds);
     }
@@ -103,7 +89,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                 <dd className={styles['switch-joint-infobox__joint-title']}>
                     {t('tool-panel.switch.layout.joint-alignments-location-tracks-title')}
                 </dd>
-                {switchAlignments.map((a) => (
+                {suggestedSwitchStructure.alignments.map((a) => (
                     <React.Fragment key={a.jointNumbers.join('_')}>
                         <dt className={styles['switch-joint-infobox__joint-alignments-title']}>
                             {a.jointNumbers.map((j) => switchJointNumberToString(j)).join('-')}
@@ -113,7 +99,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                         </dd>
                     </React.Fragment>
                 ))}
-                {displayedLocationTracksEndingAtJoint.length > 0 && (
+                {locationTracksEndingAtJoint.length > 0 && (
                     <React.Fragment>
                         <dt className={styles['switch-joint-infobox__joint-title']}>
                             {t('tool-panel.switch.layout.joint-number-title')}
@@ -121,7 +107,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                         <dd className={styles['switch-joint-infobox__joint-title']}>
                             {t('tool-panel.switch.layout.location-tracks-end-at-joint-title')}
                         </dd>
-                        {displayedLocationTracksEndingAtJoint?.map((a) => (
+                        {locationTracksEndingAtJoint?.map((a) => (
                             <React.Fragment key={a.jointNumber}>
                                 <dt className={styles['switch-joint-infobox__joint-points-title']}>
                                     {switchJointNumberToString(a.jointNumber)}.{' '}

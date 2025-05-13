@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
@@ -84,7 +85,7 @@ data class SuggestedSwitch(
 )
 
 data class SwitchLinkingTrackLinks(val locationTrackVersion: Int, val suggestedLinks: SuggestedLinks?) {
-    fun isLinked(): Boolean = suggestedLinks != null
+    @JsonIgnore fun isLinked(): Boolean = suggestedLinks != null
 }
 
 data class SuggestedLinks(val edgeIndex: Int, val joints: List<SuggestedJoint>) {

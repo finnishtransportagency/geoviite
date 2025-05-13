@@ -338,14 +338,14 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         label={t('tool-panel.switch.layout.coordinates')}
                         value={switchLocation ? formatToTM35FINString(switchLocation) : '-'}
                     />
-                    {structure && switchJointConnections && (
+                    {/*structure && switchJointConnections && (
                         <SwitchJointInfobox
                             switchAlignments={structure.alignments}
                             jointConnections={switchJointConnections}
                             layoutContext={layoutContext}
                             onSelectLocationTrackBadge={onSelectLocationTrackBadge}
                         />
-                    )}
+                    )*/}
                     <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <InfoboxButtons>
                             {!canStartPlacing && (
