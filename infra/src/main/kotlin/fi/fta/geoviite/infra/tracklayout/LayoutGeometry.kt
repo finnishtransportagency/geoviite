@@ -268,10 +268,9 @@ interface IAlignment : Loggable {
     override fun toLog(): String = logFormat("segments" to segments.size, "length" to round(length, 3))
 }
 
-// TODO: GVT-2935 this will become reference-line only version: rename
+// TODO: GVT-2935 this will become reference-line only version: rename (+ format with db & non-db types?
 data class LayoutAlignment(
     override val segments: List<LayoutSegment>,
-    // TODO: GVT-2935 replace with db and non-db types under sealed class. Is datatype even used?
     val id: DomainId<LayoutAlignment> = StringId(),
     val dataType: DataType = DataType.TEMP,
 ) : IAlignment {
