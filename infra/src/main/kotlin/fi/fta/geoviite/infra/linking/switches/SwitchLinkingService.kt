@@ -201,14 +201,9 @@ constructor(
         original: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
     ) =
         maybeChanged.forEach { (locationTrack, geometry) ->
-            val (originalLocationTrack, originalGeometry) = original[locationTrack.id as IntId] ?: (null to null)
+            val (_, originalGeometry) = original[locationTrack.id as IntId] ?: (null to null)
             if (originalGeometry != geometry) {
                 locationTrackService.saveDraft(branch, locationTrack, geometry)
-            } else if (originalLocationTrack != locationTrack) {
-                // TODO: GVT-2927 Switch linking in graph model: is this branch needed?
-                // TODO: GVT-2927 Switch links are all in geometry now, so can the track itself even
-                // change?
-                locationTrackService.saveDraft(branch, locationTrack, originalGeometry)
             }
         }
 
@@ -644,7 +639,7 @@ fun mapFittedSwitchToEdges(
             joint.matches.map { match -> mapFittedSwitchJointMatchToEdge(nearbyTracks, match, fittedSwitch, joint) }
         }
         .groupBy({ it.first }, { it.second })
-        .mapValues { (_, joints) -> joints.distinct() }
+        .mapValues { (_, joints) -> joints.distinct().sortedBy { it.mOnEdge } }
 
 private fun mapFittedSwitchJointMatchToEdge(
     nearbyTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
@@ -653,10 +648,6 @@ private fun mapFittedSwitchJointMatchToEdge(
     joint: FittedSwitchJoint,
 ): Pair<EdgeId, JointOnEdge> {
     val (_, geometry) = nearbyTracks.getValue(match.locationTrackId)
-    // this is annoyingly wrong BTW; mOnTrack will regularly be the exact end of an edge, and then getEdgeAtMOrThrow's
-    // binary search will arbitrarily pick a side to actually fall on. Then later, completeJoinSequence will come in
-    // and fix it, and to its credit, it's not only needed for this case (it does solve a real need with overlapping
-    // switches), but it also feels quite wrong to depend on it in this common case.
     val (edge, edgeMRange) = geometry.getEdgeAtMOrThrow(match.mOnTrack)
     val edgeId = EdgeId(match.locationTrackId, geometry.edges.indexOf(edge))
     val value =
@@ -781,7 +772,7 @@ fun findMissingJoints(jointSequence: List<JointNumber>, jointsOnLocationTrack: L
 /**
  * Tries to create missing joints.
  *
- * @return completed joint sequence if it is possible, otherwise empty list
+ * @return completed joint sequence if it is possible
  */
 fun completeJointSequence(
     fittedSwitch: FittedSwitch,
@@ -789,7 +780,7 @@ fun completeJointSequence(
     locationTrackGeometry: LocationTrackGeometry,
     edge: LayoutEdge,
     jointsOnEdge: List<JointOnEdge>,
-): List<JointOnEdge> {
+): List<JointOnEdge>? {
     val middleJointNumbers = jointSequence.drop(1).dropLast(1)
     val missingJointNumbers = findMissingJoints(jointSequence, jointsOnEdge)
     val middleJointIsMissing =
@@ -800,7 +791,7 @@ fun completeJointSequence(
     val completedJointsOnEdge =
         if (middleJointIsMissing || middleJointOnEdge == null) {
             // Middle joint is missing and it cannot be created automatically
-            listOf<JointOnEdge>()
+            null
         } else {
             // Try to create missing joints
             val newJoints =
@@ -836,7 +827,7 @@ fun completeJointSequence(
             val allJoints = jointsOnEdge + newJoints
             val allJointNumbers = allJoints.map { jointOnEdge -> jointOnEdge.jointNumber }
             val hasAllRequiredJoints = allJointNumbers.containsAll(jointSequence)
-            if (hasAllRequiredJoints) allJoints else listOf()
+            if (hasAllRequiredJoints) allJoints else null
         }
     return completedJointsOnEdge
 }
@@ -844,17 +835,22 @@ fun completeJointSequence(
 /** Tries to create missing joints. */
 fun completeJointSequences(
     fittedSwitch: FittedSwitch,
-    jointSequences: List<List<JointNumber>>,
+    structureJointSequences: List<List<JointNumber>>,
     jointsOnEdge: Map<EdgeId, List<JointOnEdge>>,
     clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
 ): Map<EdgeId, List<JointOnEdge>> =
-    jointsOnEdge.mapValues { (edgeId, joints) ->
-        jointSequences.flatMap { jointSequence ->
+    jointsOnEdge
+        .mapNotNull { (edgeId, joints) ->
             val (locationTrackId, edgeIndex) = edgeId
             val (_, geometry) = clearedTracks.getValue(locationTrackId)
-            completeJointSequence(fittedSwitch, jointSequence, geometry, geometry.edges[edgeIndex], joints)
+            val edge = geometry.edges[edgeIndex]
+            structureJointSequences
+                .firstNotNullOfOrNull { structureJointSequence ->
+                    completeJointSequence(fittedSwitch, structureJointSequence, geometry, edge, joints)
+                }
+                ?.let { edgeId to it }
         }
-    }
+        .associate { it }
 
 /** Filters out all joints of all handled location tracks */
 fun filterOutHandledJoints(
@@ -958,10 +954,7 @@ private fun suggestLinking(
 private fun suggestTrackLink(locationTrack: LocationTrack, edgeIndex: Int, joints: List<JointOnEdge>) =
     SwitchLinkingTrackLinks(
         locationTrack.versionOrThrow.version,
-        SuggestedLinks(
-            edgeIndex,
-            joints.map { joint -> SuggestedJoint(joint.mOnEdge, joint.jointNumber) }.sortedBy { it.mvalueOnEdge },
-        ),
+        SuggestedLinks(edgeIndex, joints.map { joint -> SuggestedJoint(joint.mOnEdge, joint.jointNumber) }),
     )
 
 fun directlyApplyFittedSwitchChangesToTracks(

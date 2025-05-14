@@ -1201,7 +1201,7 @@ class SwitchLinkingTest {
         val linkedTracks = directlyApplyFittedSwitchChangesToTracks(newSwitchId, fittedSwitch, nearbyTracks)
 
         // validate
-        assertTrue(linkedTracks.size == 1) // linked joints for track C only
+        assertSwitchDoesNotExist(linkedTracks, trackA.locationTrackId, newSwitchId) // linked joints for track C only
         assertSwitchNodeExists(
             linkedTracks,
             trackC.locationTrackId,

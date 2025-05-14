@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.linking.switches
 import fi.fta.geoviite.infra.asSwitchStructure
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.linking.slice
 import fi.fta.geoviite.infra.linking.splitSegments
@@ -13,12 +14,16 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.EdgeNode
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.NodePortType
+import fi.fta.geoviite.infra.tracklayout.StoredAssetId
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TmpEdgeNode
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
@@ -82,8 +87,14 @@ fun createTrack(
     val edge = TmpLayoutEdge(startEdgeNode, endEdgeNode, segments)
     val geometry = TmpLocationTrackGeometry(listOf(edge))
     val trackNumberId = IntId<LayoutTrackNumber>(0)
+    // must fake a stored asset ID because the switch linking code implements its own version-based locking
+    val contextData =
+        MainOfficialContextData(
+            StoredAssetId(LayoutRowVersion(LayoutRowId(locationTrackId, LayoutBranch.main.official), 1))
+        )
+
     val locationTrack =
-        locationTrack(trackNumberId = trackNumberId, geometry = geometry, id = locationTrackId, name = trackName)
+        locationTrack(trackNumberId = trackNumberId, geometry = geometry, contextData = contextData, name = trackName)
     return locationTrack to geometry
 }
 
@@ -122,7 +133,7 @@ fun expandTrackFromStart(
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
-            id = locationTrack.id as IntId,
+            contextData = locationTrack.contextData,
             name = locationTrack.name.toString(),
         )
     return newLocationTrack to newGeometry
@@ -153,7 +164,7 @@ fun cutFromStart(
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
-            id = locationTrack.id as IntId,
+            contextData = locationTrack.contextData,
             name = locationTrack.name.toString(),
         )
 
@@ -185,7 +196,7 @@ fun cutFromEnd(
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
-            id = locationTrack.id as IntId,
+            contextData = locationTrack.contextData,
             name = locationTrack.name.toString(),
         )
 
@@ -213,7 +224,7 @@ fun expandTrackFromEnd(
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
-            id = locationTrack.id as IntId,
+            contextData = locationTrack.contextData,
             name = locationTrack.name.toString(),
         )
     return newLocationTrack to newGeometry
@@ -247,7 +258,7 @@ fun moveTrackForward(
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
-            id = locationTrack.id as IntId,
+            contextData = locationTrack.contextData,
             name = locationTrack.name.toString(),
         )
     return newLocationTrack to newGeometry
@@ -276,7 +287,7 @@ fun withSwitchJointAtM(
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
-            id = locationTrack.id as IntId,
+            contextData = locationTrack.contextData,
             name = locationTrack.name.toString(),
         )
     return newLocationTrack to newGeometry
@@ -299,7 +310,7 @@ fun withTopologicalStartSwitch(
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
-            id = locationTrack.id as IntId,
+            contextData = locationTrack.contextData,
             name = locationTrack.name.toString(),
         )
     return newLocationTrack to newGeometry
@@ -322,7 +333,7 @@ fun withTopologicalEndSwitch(
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
-            id = locationTrack.id as IntId,
+            contextData = locationTrack.contextData,
             name = locationTrack.name.toString(),
         )
     return newLocationTrack to newGeometry
