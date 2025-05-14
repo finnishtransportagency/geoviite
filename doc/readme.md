@@ -11,7 +11,6 @@ sisäistä rakennetta.
 * [Tietokanta](tietokanta.md)
 * [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md)
 * [Julkaisut](julkaisut.md)
-* [Autentikaatio ja autorisaatio](../../geoviite-env/doc/autentikaatio_ja_autorisaatio.md)
 * [Virhekäsittely](virhekasittely.md)
 * [Projektivelho](projektivelho.md)
 

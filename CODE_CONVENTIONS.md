@@ -2,8 +2,8 @@
 
 ## Language
 
-- Code in english
-- Commit messages in english
+- Code in English
+- Commit messages in English
 - Review comments can be in a language of your choosing
 - Documentation (except for pure developer things, like this one) in Finnish
 
