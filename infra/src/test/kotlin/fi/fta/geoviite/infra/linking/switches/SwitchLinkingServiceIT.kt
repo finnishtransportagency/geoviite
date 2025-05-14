@@ -1842,4 +1842,5 @@ fun suggestedSwitchJointMatch(
         SuggestedSwitchJointMatchType.START,
         0.1,
         0.1,
+        RelativeDirection.Along,
     )

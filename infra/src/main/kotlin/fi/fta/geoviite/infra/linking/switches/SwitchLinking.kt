@@ -57,7 +57,7 @@ data class FittedSwitchJointMatch(
     val matchType: SuggestedSwitchJointMatchType,
     val distance: Double,
     val distanceToAlignment: Double,
-    val direction: RelativeDirection = RelativeDirection.Along, // TODO: tämä pitäisi asettaa fitted switch luonnissa
+    val direction: RelativeDirection,
 )
 
 data class FittedSwitchJoint(

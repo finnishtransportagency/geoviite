@@ -240,7 +240,7 @@ private fun replaceEdges(
     return combineEdges(newAllEdges)
 }
 
-private fun linkJointsToEdge(
+fun linkJointsToEdge(
     switchId: IntId<LayoutSwitch>,
     switchStructure: SwitchStructure,
     edge: LayoutEdge,
@@ -276,23 +276,22 @@ private fun linkJointToEdge(
     isLastJointInSwitchAlignment: Boolean,
 ): List<LayoutEdge> {
     val switchLink = SwitchLink(switchId, jointRole, jointNumber)
-    val switchEdgeNode = EdgeNode.switch(inner = switchLink, outer = null)
+    val switchInnerEdgeNode = EdgeNode.switch(inner = switchLink, outer = null)
+    val switchOuterEdgeNode = EdgeNode.switch(inner = null, outer = switchLink)
 
     return if (isSame(edge.start.m, mValue, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
-        val withNewStartNode = edge.withStartNode(switchEdgeNode)
+        val withNewStartNode = edge.withStartNode(switchInnerEdgeNode)
         listOf(withNewStartNode)
     } else if (isSame(edge.end.m, mValue, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
-        val withNewEndNode = edge.withEndNode(switchEdgeNode)
+        val withNewEndNode = edge.withEndNode(switchInnerEdgeNode)
         listOf(withNewEndNode)
     } else {
         val firstEdge =
-            slice(edge, Range(0.0, mValue)).let {
-                if (isFirstJointInSwitchAlignment) it else it.withEndNode(switchEdgeNode)
-            }
+            slice(edge, Range(0.0, mValue))
+                .withEndNode(if (isFirstJointInSwitchAlignment) switchOuterEdgeNode else switchInnerEdgeNode)
         val secondEdge =
-            slice(edge, Range(mValue, edge.end.m)).let {
-                if (isLastJointInSwitchAlignment) it else it.withStartNode(switchEdgeNode)
-            }
+            slice(edge, Range(mValue, edge.end.m))
+                .withStartNode(if (isLastJointInSwitchAlignment) switchOuterEdgeNode else switchInnerEdgeNode)
         listOf(firstEdge, secondEdge)
     }
 }
@@ -318,38 +317,37 @@ private fun findMissingJoints(
     return if (missingSomeJoint && !missingAllJoints) missingJoints else emptyList()
 }
 
-/**
- * Tries to create missing joints.
- *
- * @return completed joint sequence if it is possible
- */
-private fun completeJointSequence(
+private fun completeJointSequenceFromMiddleJoint(
     fittedSwitch: FittedSwitch,
-    jointSequence: List<JointNumber>,
+    structureJointSequence: List<JointNumber>,
     edge: LayoutEdge,
     jointsOnEdge: List<JointOnEdge>,
 ): List<JointOnEdge>? {
-    val middleJointNumbers = jointSequence.drop(1).dropLast(1)
-    val missingJointNumbers = findMissingJoints(jointSequence, jointsOnEdge)
-    val middleJointIsMissing =
-        missingJointNumbers.any { missingJointNumber -> middleJointNumbers.contains(missingJointNumber) }
+    val middleJointNumbers = structureJointSequence.drop(1).dropLast(1)
+    val missingJointNumbers = findMissingJoints(structureJointSequence, jointsOnEdge)
     val middleJointOnEdge =
         jointsOnEdge.firstOrNull { jointOnEdge -> middleJointNumbers.contains(jointOnEdge.jointNumber) }
 
-    return if (middleJointIsMissing || middleJointOnEdge == null) {
+    return if (middleJointOnEdge == null) {
         // Middle joint is missing and it cannot be created automatically
         null
     } else {
         // Try to create missing joints
         val newJoints =
             missingJointNumbers.mapNotNull { missingJointNumber ->
-                proposeCandidateJoint(middleJointOnEdge, jointSequence, missingJointNumber, edge, fittedSwitch)
+                proposeCandidateJoint(
+                        middleJointOnEdge,
+                        structureJointSequence,
+                        missingJointNumber,
+                        edge,
+                        fittedSwitch.switchStructure,
+                    )
                     .takeIf { candidate -> candidateJointLocationIsValid(edge, candidate, fittedSwitch) }
             }
 
         val allJoints = (jointsOnEdge + newJoints).sortedBy { it.mOnEdge }
         val allJointNumbers = allJoints.map { jointOnEdge -> jointOnEdge.jointNumber }
-        val hasAllRequiredJoints = allJointNumbers.containsAll(jointSequence)
+        val hasAllRequiredJoints = allJointNumbers.containsAll(structureJointSequence)
         if (hasAllRequiredJoints) allJoints else null
     }
 }
@@ -359,7 +357,7 @@ private fun proposeCandidateJoint(
     jointSequence: List<JointNumber>,
     missingJointNumber: JointNumber,
     edge: LayoutEdge,
-    fittedSwitch: FittedSwitch,
+    switchStructure: SwitchStructure,
 ): JointOnEdge {
     val useReverseOrder = middleJointOnEdge.direction == RelativeDirection.Against
     val sortedJointSequence = if (useReverseOrder) jointSequence.reversed() else jointSequence
@@ -368,7 +366,7 @@ private fun proposeCandidateJoint(
     val newJointLocationM = if (missingJointIsBeforeMiddleJoint) edge.start.m else edge.end.m
     return JointOnEdge(
         jointNumber = missingJointNumber,
-        jointRole = SwitchJointRole.of(fittedSwitch.switchStructure, missingJointNumber),
+        jointRole = SwitchJointRole.of(switchStructure, missingJointNumber),
         mOnEdge = newJointLocationM,
         direction = middleJointOnEdge.direction,
     )
@@ -397,7 +395,7 @@ private fun completeJointSequences(
     mapNonNullValues(jointsOnEdge) { (edgeId, joints) ->
         val edge = getEdge(edgeId, clearedTracks)
         structureJointSequences.firstNotNullOfOrNull { structureJointSequence ->
-            completeJointSequence(fittedSwitch, structureJointSequence, edge, joints)
+            completeJointSequenceFromMiddleJoint(fittedSwitch, structureJointSequence, edge, joints)
         }
     }
 

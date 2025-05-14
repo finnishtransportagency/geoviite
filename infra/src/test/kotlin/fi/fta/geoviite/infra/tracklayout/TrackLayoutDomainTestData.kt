@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.linking.switches.FittedSwitchJointMatch
+import fi.fta.geoviite.infra.linking.switches.RelativeDirection
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchJointMatchType
 import fi.fta.geoviite.infra.map.GeometryAlignmentHeader
 import fi.fta.geoviite.infra.map.MapAlignmentType
@@ -1191,6 +1192,7 @@ fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int,
         switchJoint = SwitchStructureJoint(JointNumber(jointNumber), Point(0.0, 0.0)),
         distanceToAlignment = 0.1,
         matchType = SuggestedSwitchJointMatchType.LINE,
+        direction = RelativeDirection.Along,
     )
 
 fun layoutDesign(
