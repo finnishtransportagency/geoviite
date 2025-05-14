@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.linking.splitSegments
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.EdgeNode
@@ -32,7 +31,6 @@ import fi.fta.geoviite.infra.tracklayout.TmpTrackBoundaryNode
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.tracklayout.someRowVersion
 
 fun asJointNumbers(vararg joints: Int): List<JointNumber> {
     return joints.map { joint -> JointNumber(joint) }
@@ -254,35 +252,6 @@ fun moveTrackForward(
             edge.withSegments(newSegments)
         }
     val newGeometry = TmpLocationTrackGeometry(newEdges)
-    val newLocationTrack =
-        locationTrack(
-            trackNumberId = locationTrack.trackNumberId,
-            geometry = newGeometry,
-            contextData = locationTrack.contextData,
-            name = locationTrack.name.toString(),
-        )
-    return newLocationTrack to newGeometry
-}
-
-fun withSwitchJointAtM(
-    locationTrack: LocationTrack,
-    geometry: LocationTrackGeometry,
-    mValue: Double,
-    switchId: IntId<LayoutSwitch>,
-    switchStructure: SwitchStructureData,
-    jointNumber: JointNumber,
-    direction: RelativeDirection = RelativeDirection.Along,
-): Pair<LocationTrack, LocationTrackGeometry> {
-    val (edgeAtM, mRange) = geometry.getEdgeAtMOrThrow(mValue)
-    val suggestedEdge =
-        SuggestedJoint(
-            jointNumber = jointNumber,
-            mvalueOnEdge = mValue, // - mRange.min,
-        )
-
-    val linkedEdges =
-        linkJointsToEdge(switchId, SwitchStructure(someRowVersion(), switchStructure), edgeAtM, listOf(suggestedEdge))
-    val newGeometry = replaceEdges(geometry, listOf(edgeAtM), linkedEdges)
     val newLocationTrack =
         locationTrack(
             trackNumberId = locationTrack.trackNumberId,
