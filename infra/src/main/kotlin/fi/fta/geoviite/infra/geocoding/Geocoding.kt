@@ -202,7 +202,6 @@ data class GeocodingContext(
                 "alignment=$referenceLineGeometry " +
                 "edgeMValues=${polyLineEdges.map { e -> e.startM..e.endM }}"
         }
-        // TODO: GVT-1727 The validation claims to filter out bad projections, but we use the un-filtered here
         createProjectionLines(referencePoints, polyLineEdges).also { lines ->
             validateProjectionLines(lines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
         }
@@ -728,7 +727,7 @@ private fun validateProjectionLines(
         }
         if (angleDiff != null && angleDiff > angleDelta) {
             logger.error(
-                "Projection lines turn unexpectedly (filtering out projection): " +
+                "Projection lines turn unexpectedly: " +
                     "index=$index distance=$distanceApprox angleDiff=$angleDiff previous=$previous next=$line"
             )
         }

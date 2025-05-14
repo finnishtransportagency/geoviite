@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -399,15 +400,15 @@ class LinkingTest {
         val alignment =
             alignment(
                 segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0), sourceId = sourceId, sourceStart = 10.0),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0), sourceId = sourceId, sourceStartM = 10.0),
                 segment(Point(0.0, 2.0), Point(0.0, 3.0)),
             )
         // Cutting other segments doesn't affect source start
-        assertEquals(10.0, slice(alignment, Range(0.5, 2.5))[1].sourceStart)
+        assertEquals(LayoutSegment.sourceStartM(10.0), slice(alignment, Range(0.5, 2.5))[1].sourceStartM)
         // Cutting the sourced segment from beginning adds to the source start
-        assertEquals(10.5, slice(alignment, Range(1.5, 3.0))[0].sourceStart)
+        assertEquals(LayoutSegment.sourceStartM(10.5), slice(alignment, Range(1.5, 3.0))[0].sourceStartM)
         // Cutting the sourced segment from end doesn't affect source start
-        assertEquals(10.0, slice(alignment, Range(0.0, 1.5))[1].sourceStart)
+        assertEquals(LayoutSegment.sourceStartM(10.0), slice(alignment, Range(0.0, 1.5))[1].sourceStartM)
     }
 }
 

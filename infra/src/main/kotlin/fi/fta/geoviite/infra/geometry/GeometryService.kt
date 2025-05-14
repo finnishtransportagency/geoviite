@@ -52,14 +52,14 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.processFlattened
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -533,7 +533,7 @@ constructor(
 
         return segments.map { segment ->
             val sourceId = segment.sourceId
-            if (sourceId == null || segment.sourceStart == null) {
+            if (sourceId == null || segment.sourceStartM == null) {
                 SegmentSource(null, null, null, null)
             } else {
                 val planAlignmentId = IntId<GeometryAlignment>(sourceId.parentId)
@@ -778,7 +778,7 @@ private fun getHeightAtTickInLayoutAlignment(
     val source = segmentSources[segmentIndex]
 
     val distanceInSegment = point.m - segmentM.min
-    val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
+    val distanceInElement = distanceInSegment + (segment.sourceStartM?.toDouble() ?: 0.0)
     val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
 
     val profileHeight = source.profile?.getHeightAt(distanceInGeometryAlignment)

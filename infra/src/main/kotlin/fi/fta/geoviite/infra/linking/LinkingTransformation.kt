@@ -91,7 +91,7 @@ private fun createLinkingSegment(start: IPoint?, end: IPoint?, tolerance: Double
                         ),
                 ),
             sourceId = null,
-            sourceStart = null,
+            sourceStartM = null,
             switchId = null,
             startJointNumber = null,
             endJointNumber = null,
@@ -106,7 +106,7 @@ private fun toLayoutSegment(segment: ISegment): LayoutSegment =
         LayoutSegment(
             geometry = segment.geometry,
             sourceId = segment.sourceId as? IndexedId,
-            sourceStart = segment.sourceStart,
+            sourceStartM = segment.sourceStartM,
             switchId = null,
             startJointNumber = null,
             endJointNumber = null,

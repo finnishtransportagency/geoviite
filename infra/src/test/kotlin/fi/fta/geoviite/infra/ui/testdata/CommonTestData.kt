@@ -223,7 +223,7 @@ fun locationTrackAndAlignmentForGeometryAlignment(
                 endJointNumber = null,
                 source = GeometrySource.PLAN,
                 sourceId = element.id as IndexedId,
-                sourceStart = null,
+                sourceStartM = null,
                 switchId = null,
             )
         }

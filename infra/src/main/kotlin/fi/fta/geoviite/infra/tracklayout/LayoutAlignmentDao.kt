@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import java.math.BigDecimal
 import java.sql.ResultSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
@@ -253,7 +254,7 @@ class LayoutAlignmentDao(
                                 }
                             SegmentData(
                                 sourceId = sourceId,
-                                sourceStart = sourceStartMValues[i]?.toDouble(),
+                                sourceStartM = sourceStartMValues[i],
                                 source = sources[i],
                                 geometryId = geometryIds[i],
                                 switchId = null,
@@ -310,8 +311,7 @@ class LayoutAlignmentDao(
                 "geometry_alignment_ids" to content.segments.map { s -> s.sourceId?.parentId }.toTypedArray(),
                 "geometry_element_indices" to content.segments.map { s -> s.sourceId?.index }.toTypedArray(),
                 "start_m_values" to content.segmentMValues.map { m -> roundTo6Decimals(m.min) }.toTypedArray(),
-                "source_start_m_values" to
-                    content.segments.map { s -> s.sourceStart?.let(::roundTo6Decimals) }.toTypedArray(),
+                "source_start_m_values" to content.segments.map { s -> s.sourceStartM }.toTypedArray(),
                 "sources" to content.segments.map { s -> s.source.name }.toTypedArray(),
                 "geometry_ids" to content.segments.map { s -> (s.geometry.id as IntId).intValue }.toTypedArray(),
                 "polygon_string" to create2DPolygonString(content.boundingBox.polygonFromCorners),
@@ -498,7 +498,7 @@ class LayoutAlignmentDao(
                     segmentId?.let { sId ->
                         SegmentData(
                             sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
-                            sourceStart = rs.getDoubleOrNull("source_start"),
+                            sourceStartM = rs.getBigDecimalOrNull("source_start"),
                             switchId = rs.getIntIdOrNull("switch_id"),
                             startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
                             endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
@@ -704,7 +704,7 @@ class LayoutAlignmentDao(
             jdbcTemplate.query(sql, params) { rs, _ ->
                 SegmentData(
                     sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
-                    sourceStart = rs.getDoubleOrNull("source_start"),
+                    sourceStartM = rs.getBigDecimalOrNull("source_start"),
                     switchId = rs.getIntIdOrNull("switch_id"),
                     startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
                     endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
@@ -1205,7 +1205,7 @@ class LayoutAlignmentDao(
                 ps.setNullableInt(7) { if (s.switchId is IntId) s.switchId.intValue else null }
                 ps.setNullableInt(8, s.startJointNumber?.intValue)
                 ps.setNullableInt(9, s.endJointNumber?.intValue)
-                ps.setNullableDouble(10, s.sourceStart)
+                ps.setNullableBigDecimal(10, s.sourceStartM)
                 ps.setString(11, s.source.name)
                 val geometryId =
                     if (s.geometry.id is IntId) s.geometry.id
@@ -1429,7 +1429,7 @@ private fun createSegments(
             requireNotNull(geometries[data.geometryId]) { "Fetching geometry failed for segment: data=$data" }
         LayoutSegment(
                 sourceId = data.sourceId,
-                sourceStart = data.sourceStart,
+                sourceStartM = data.sourceStartM,
                 switchId = data.switchId,
                 startJointNumber = data.startJointNumber,
                 endJointNumber = data.endJointNumber,
@@ -1449,7 +1449,7 @@ private data class EdgeData(
 
 private data class SegmentData(
     val sourceId: IndexedId<GeometryElement>?,
-    val sourceStart: Double?,
+    val sourceStartM: BigDecimal?,
     val switchId: IntId<LayoutSwitch>?,
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,

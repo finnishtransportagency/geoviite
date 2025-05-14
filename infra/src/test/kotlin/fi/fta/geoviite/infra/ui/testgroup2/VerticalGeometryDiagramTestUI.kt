@@ -120,7 +120,7 @@ constructor(
                     DEFAULT_BASE_POINT + Point(0.0, 0.0),
                     DEFAULT_BASE_POINT + Point(1000.0, 0.0),
                     sourceId = plan.alignments[0].elements[0].id as IndexedId,
-                    sourceStart = 0.0,
+                    sourceStartM = 0.0,
                 )
             ),
         )

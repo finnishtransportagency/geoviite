@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.linking.slice
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -42,6 +41,7 @@ import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.util.FileName
+import java.math.BigDecimal
 import java.time.Instant
 import kotlin.math.abs
 import kotlin.math.cos
@@ -446,9 +446,8 @@ private fun fixSegmentGeometryMValues(points: List<SegmentPoint>): List<SegmentP
 
 interface ISegmentFields {
     val sourceId: DomainId<GeometryElement>?
-    val sourceStart: Double?
+    val sourceStartM: BigDecimal?
     val source: GeometrySource
-    //    val id: DomainId<*>
 }
 
 interface ISegment : ISegmentGeometry, ISegmentFields {
@@ -520,8 +519,7 @@ data class PointSeekResult<T : IPoint3DM>(val point: T, val index: Int, val isSn
 data class LayoutSegment(
     @JsonIgnore override val geometry: SegmentGeometry,
     override val sourceId: IndexedId<GeometryElement>?,
-    // TODO: GVT-1727 these should be BigDecimals with a limited precision
-    override val sourceStart: Double?,
+    override val sourceStartM: BigDecimal?,
     @Deprecated("Switches will be removed from segments: use LocationTrackGeometry nodes")
     val switchId: IntId<LayoutSwitch>? = null,
     @Deprecated("Switches will be removed from segments: use LocationTrackGeometry nodes")
@@ -529,12 +527,18 @@ data class LayoutSegment(
     @Deprecated("Switches will be removed from segments: use LocationTrackGeometry nodes")
     val endJointNumber: JointNumber? = null,
     override val source: GeometrySource,
-    //    val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
 ) : ISegmentGeometry by geometry, ISegment, Loggable {
+
+    companion object {
+        val SOURCE_START_M_SCALE = 6
+        val zeroSourceStartM = BigDecimal.valueOf(0, SOURCE_START_M_SCALE)
+
+        fun sourceStartM(value: Double) = round(value, SOURCE_START_M_SCALE)
+    }
 
     init {
         require(source != GENERATED || segmentPoints.size == 2) { "Generated segment can't have more than 2 points" }
-        require(sourceStart?.isFinite() != false) { "Invalid source start length: $sourceStart" }
+        sourceStartM?.also { s -> require(s.scale() == SOURCE_START_M_SCALE) }
         require(switchId != null || (startJointNumber == null && endJointNumber == null)) {
             "Segment cannot link to switch joints if it doesn't link to a switch: switchId=$switchId startJoint=$startJointNumber endJoint=$endJointNumber"
         }
@@ -547,10 +551,7 @@ data class LayoutSegment(
             segmentPoints.slice(fromIndex..toIndex).let { newPoints ->
                 val offset = newPoints.first().m
                 val newSegment =
-                    withPoints(
-                        points = fixSegmentGeometryMValues(newPoints),
-                        newSourceStart = sourceStart?.plus(offset),
-                    )
+                    withPoints(points = fixSegmentGeometryMValues(newPoints), newSourceStart = addedSourceStart(offset))
                 newSegment to Range(segmentStartM + offset, segmentStartM + offset + newSegment.length)
             }
         }
@@ -571,15 +572,16 @@ data class LayoutSegment(
         val interpolatedStart = listOfNotNull(if (start.isSnapped) null else start.point)
         val interpolatedEnd = listOfNotNull(if (end.isSnapped) null else end.point)
         val newPoints = interpolatedStart + currentSegmentPoints + interpolatedEnd
-        val startCutLength = newPoints.first().m
-        return withPoints(newPoints, sourceStart?.plus(startCutLength))
+        return withPoints(newPoints, addedSourceStart(newPoints.first().m))
     }
 
-    fun withPoints(points: List<SegmentPoint>, newSourceStart: Double?): LayoutSegment =
+    fun addedSourceStart(distance: Double): BigDecimal? = sourceStartM?.let { old -> old + sourceStartM(distance) }
+
+    fun withPoints(points: List<SegmentPoint>, newSourceStart: BigDecimal?): LayoutSegment =
         withGeometry(geometry.withPoints(points), newSourceStart)
 
-    private fun withGeometry(geometry: SegmentGeometry, newSourceStart: Double?): LayoutSegment =
-        copy(geometry = geometry, sourceStart = newSourceStart)
+    private fun withGeometry(geometry: SegmentGeometry, newSourceStart: BigDecimal?): LayoutSegment =
+        copy(geometry = geometry, sourceStartM = newSourceStart)
 
     fun splitAtM(segmentM: Double, snapDistance: Double): Pair<LayoutSegment, LayoutSegment?> {
         val (startGeom, endGeom) = geometry.splitAtSegmentM(segmentM, snapDistance)
@@ -587,8 +589,8 @@ data class LayoutSegment(
             this to null
         } else {
             val splitLength = startGeom.length
-            val startSegment = withGeometry(startGeom, sourceStart)
-            val endSegment = withGeometry(endGeom, sourceStart?.plus(splitLength))
+            val startSegment = withGeometry(startGeom, sourceStartM)
+            val endSegment = withGeometry(endGeom, addedSourceStart(splitLength))
             startSegment to endSegment
         }
     }

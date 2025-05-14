@@ -233,7 +233,7 @@ private fun toMapSegments(
                 id = deriveFromSourceId("AS", element.id),
                 geometry = SegmentGeometry(resolution = pointListStepLength, segmentPoints = segmentPoints),
                 sourceId = element.id,
-                sourceStart = 0.0,
+                sourceStartM = LayoutSegment.zeroSourceStartM,
                 source = GeometrySource.PLAN,
                 pointCount = segmentPoints.size,
             )

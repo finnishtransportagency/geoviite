@@ -61,6 +61,8 @@ fun ResultSet.getFloatOrNull(name: String): Float? = getFloat(name).takeUnless {
 
 fun ResultSet.getDoubleOrNull(name: String): Double? = getDouble(name).takeUnless { wasNull() }
 
+fun ResultSet.getBigDecimalOrNull(name: String): BigDecimal? = getBigDecimal(name).takeUnless { wasNull() }
+
 fun ResultSet.getBooleanOrNull(name: String): Boolean? = getBoolean(name).takeUnless { wasNull() }
 
 fun ResultSet.getInstant(name: String): Instant = verifyNotNull(name, ::getInstantOrNull)

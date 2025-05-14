@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.util.FileName
+import java.math.BigDecimal
 
 data class GeometryPlanLayout(
     val fileName: FileName,
@@ -78,7 +79,7 @@ data class PlanLayoutSegment(
     @JsonIgnore override val geometry: SegmentGeometry,
     val pointCount: Int,
     override val sourceId: DomainId<GeometryElement>?,
-    override val sourceStart: Double?,
+    override val sourceStartM: BigDecimal?,
     override val source: GeometrySource,
     val id: DomainId<LayoutSegment>,
 ) : ISegment, ISegmentGeometry by geometry

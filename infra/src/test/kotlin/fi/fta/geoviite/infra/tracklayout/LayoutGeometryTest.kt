@@ -7,11 +7,11 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.publication.getMaxDirectionDeltaRads
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import kotlin.math.hypot
-import kotlin.test.assertEquals
 
 class LayoutGeometryTest {
 
@@ -58,7 +58,7 @@ class LayoutGeometryTest {
                         resolution = 2,
                     ),
                 sourceId = IndexedId(1, 1),
-                sourceStart = 15.0,
+                sourceStartM = LayoutSegment.sourceStartM(15.0),
                 switchId = IntId(1),
                 startJointNumber = JointNumber(2),
                 endJointNumber = JointNumber(2),
@@ -70,8 +70,8 @@ class LayoutGeometryTest {
         endSegment!!
         assertEquals(segment.sourceId, startSegment.sourceId)
         assertEquals(segment.sourceId, endSegment.sourceId)
-        assertEquals(segment.sourceStart, startSegment.sourceStart)
-        assertEquals(segment.sourceStart?.plus(startSegment.length), endSegment.sourceStart)
+        assertEquals(segment.sourceStartM, startSegment.sourceStartM)
+        assertEquals(segment.addedSourceStart(startSegment.length), endSegment.sourceStartM)
         assertEquals(segment.resolution, startSegment.resolution)
         assertEquals(segment.resolution, endSegment.resolution)
         assertEquals(segment.switchId, startSegment.switchId)
@@ -244,7 +244,7 @@ class LayoutGeometryTest {
                         resolution = 2,
                     ),
                 sourceId = IndexedId(1, 1),
-                sourceStart = 15.0,
+                sourceStartM = LayoutSegment.sourceStartM(15.0),
                 switchId = IntId(1),
                 startJointNumber = JointNumber(2),
                 endJointNumber = JointNumber(2),
@@ -254,7 +254,7 @@ class LayoutGeometryTest {
         val (slice, sliceM) = original.slice(10.0, 1, 2)!!
 
         assertEquals(slice.sourceId, original.sourceId)
-        assertEquals(slice.sourceStart, original.sourceStart?.plus(pointInterval))
+        assertEquals(slice.sourceStartM, original.addedSourceStart(pointInterval))
         assertEquals(slice.resolution, original.resolution)
         assertEquals(slice.switchId, original.switchId)
         assertEquals(slice.startJointNumber, original.startJointNumber)

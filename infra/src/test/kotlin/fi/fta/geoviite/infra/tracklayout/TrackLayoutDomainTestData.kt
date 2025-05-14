@@ -786,12 +786,12 @@ fun segment(
     switchId: IntId<LayoutSwitch>? = null,
     startJointNumber: JointNumber? = null,
     endJointNumber: JointNumber? = null,
-    sourceStart: Double? = null,
+    sourceStartM: Double? = null,
 ) =
     segment(
         toSegmentPoints(to3DMPoints(points.asList())),
         source = source,
-        sourceStart = sourceStart,
+        sourceStartM = sourceStartM,
         sourceId = sourceId,
         switchId = switchId,
         startJointNumber = startJointNumber,
@@ -802,7 +802,7 @@ fun segment(
     points: List<SegmentPoint>,
     source: GeometrySource = PLAN,
     sourceId: DomainId<GeometryElement>? = null,
-    sourceStart: Double? = null,
+    sourceStartM: Double? = null,
     resolution: Int = 1,
     switchId: IntId<LayoutSwitch>? = null,
     startJointNumber: JointNumber? = null,
@@ -811,7 +811,7 @@ fun segment(
     LayoutSegment(
         geometry = SegmentGeometry(segmentPoints = points, resolution = resolution),
         sourceId = sourceId as IndexedId?,
-        sourceStart = sourceStart,
+        sourceStartM = sourceStartM?.let(LayoutSegment::sourceStartM),
         switchId = switchId,
         startJointNumber = startJointNumber,
         endJointNumber = endJointNumber,
@@ -821,13 +821,13 @@ fun segment(
 fun mapSegment(
     vararg points: Point3DM,
     sourceId: DomainId<GeometryElement>? = null,
-    sourceStart: Double? = null,
+    sourceStartM: Double? = null,
     source: GeometrySource = PLAN,
 ) =
     mapSegment(
         points = toSegmentPoints(points.asList()),
         sourceId = sourceId,
-        sourceStart = sourceStart,
+        sourceStartM = sourceStartM,
         source = source,
     )
 
@@ -835,7 +835,7 @@ fun mapSegment(
     points: List<SegmentPoint>,
     resolution: Int = 1,
     sourceId: DomainId<GeometryElement>? = null,
-    sourceStart: Double? = null,
+    sourceStartM: Double? = null,
     source: GeometrySource = PLAN,
     id: DomainId<LayoutSegment> = StringId(),
 ) =
@@ -843,7 +843,7 @@ fun mapSegment(
         geometry = SegmentGeometry(segmentPoints = points, resolution = resolution),
         pointCount = points.size,
         sourceId = sourceId,
-        sourceStart = sourceStart,
+        sourceStartM = sourceStartM?.let(LayoutSegment::sourceStartM),
         source = source,
         id = id,
     )

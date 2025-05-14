@@ -237,7 +237,7 @@ fun moveTrackForward(
                         segment.segmentPoints.map { point ->
                             point.copy(x = point.x + translation.x, y = point.y + translation.y)
                         }
-                    segment.withPoints(newPoints, segment.sourceStart)
+                    segment.withPoints(newPoints, segment.sourceStartM)
                 }
             edge.withSegments(newSegments)
         }
