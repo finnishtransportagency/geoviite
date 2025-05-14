@@ -345,14 +345,14 @@ constructor(
             trackGeometry(
                 edgesBetweenNodes(
                     listOf(
-                        PlaceHolderEdgeNode,
-                        EdgeNode.switch(null, SwitchLink(switch1Id, MAIN, JointNumber(1))),
-                        EdgeNode.switch(
+                        PlaceHolderNodeConnection,
+                        NodeConnection.switch(null, SwitchLink(switch1Id, MAIN, JointNumber(1))),
+                        NodeConnection.switch(
                             SwitchLink(switch1Id, CONNECTION, JointNumber(2)),
                             SwitchLink(switch2Id, MAIN, JointNumber(1)),
                         ),
-                        EdgeNode.switch(SwitchLink(switch2Id, CONNECTION, JointNumber(2)), null),
-                        PlaceHolderEdgeNode,
+                        NodeConnection.switch(SwitchLink(switch2Id, CONNECTION, JointNumber(2)), null),
+                        PlaceHolderNodeConnection,
                     ),
                     edgeLength = 100.0,
                     edgeSegments = 3,
@@ -367,15 +367,15 @@ constructor(
             trackGeometry(
                 edgesBetweenNodes(
                     listOf(
-                        EdgeNode.switch(
+                        NodeConnection.switch(
                             SwitchLink(switch2Id, MAIN, JointNumber(1)),
                             SwitchLink(switch1Id, MAIN, JointNumber(1)),
                         ),
-                        EdgeNode.switch(
+                        NodeConnection.switch(
                             SwitchLink(switch1Id, MATH, JointNumber(5)),
                             SwitchLink(switch1Id, MATH, JointNumber(5)),
                         ),
-                        EdgeNode.switch(
+                        NodeConnection.switch(
                             SwitchLink(switch1Id, CONNECTION, JointNumber(2)),
                             SwitchLink(switch3Id, CONNECTION, JointNumber(2)),
                         ),
@@ -469,7 +469,7 @@ constructor(
     }
 
     fun edgesBetweenNodes(
-        nodes: List<EdgeNode> = listOf(PlaceHolderEdgeNode, PlaceHolderEdgeNode),
+        nodes: List<NodeConnection> = listOf(PlaceHolderNodeConnection, PlaceHolderNodeConnection),
         edgeLength: Double = 10.0,
         edgeSegments: Int = 1,
     ): List<TmpLayoutEdge> =

@@ -116,9 +116,9 @@ Myös itse geometria, joka yhdistää samat kaksi solmua on muuttumaton, eli eri
 kaari. Muuttumattomuudesta johtuen useampi eri raide tai raideversio voi huoletta viitata samaan kaareen jos niiden
 geometriat ovat identtiset. Tämä on tyypillistä esimerkiksi saman raiteen eri versioilla tai duplikaattiraiteilla.
 
-Geoviitteen tietomallissa kaaren kytkentä solmuun on kääritty EdgeNode-olioon, joka kuvaa liittyvän solmun ID:n lisäksi
-portin, eli puolen jolta kaari kiinnittyy solmuun. Se tarjoaa koodissa käsitteen "sisä" (inner) ja "ulko" (outer)
-kytkennöistä vaihteeseen.
+Geoviitteen tietomallissa kaaren kytkentä solmuun on kääritty NodeConnection-olioon, joka kuvaa liittyvän solmun ID:n
+lisäksi portin, eli puolen jolta kaari kiinnittyy solmuun. Se tarjoaa koodissa käsitteen "sisä" (inner) ja "ulko"
+(outer) kytkennöistä vaihteeseen.
 
 #### Kaarten muodostuminen linkityksessä
 

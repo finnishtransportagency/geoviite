@@ -11,18 +11,18 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
-import fi.fta.geoviite.infra.tracklayout.EdgeNode
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.NodeConnection
 import fi.fta.geoviite.infra.tracklayout.NodePortType
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
-import fi.fta.geoviite.infra.tracklayout.TmpEdgeNode
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.TmpNodeConnection
 import fi.fta.geoviite.infra.tracklayout.TmpTrackBoundaryNode
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -76,9 +76,9 @@ fun createTrack(
             val newStartM = startM + segment.length
             newStartM to newSegments
         }
-    val startEdgeNode = TmpEdgeNode(NodePortType.A, startNode)
-    val endEdgeNode = TmpEdgeNode(NodePortType.A, endNode)
-    val edge = TmpLayoutEdge(startEdgeNode, endEdgeNode, segments)
+    val startNodeConnection = TmpNodeConnection(NodePortType.A, startNode)
+    val endNodeConnection = TmpNodeConnection(NodePortType.A, endNode)
+    val edge = TmpLayoutEdge(startNodeConnection, endNodeConnection, segments)
     val geometry = TmpLocationTrackGeometry.of(listOf(edge), null)
     val trackNumberId = IntId<LayoutTrackNumber>(0)
     val locationTrack =
@@ -295,7 +295,10 @@ fun withTopologicalStartSwitch(
     val firstEdge = geometry.edges.first()
     val newFirstEdge =
         firstEdge.withStartNode(
-            EdgeNode.switch(inner = null, outer = SwitchLink(switchId, jointNumber, asSwitchStructure(switchStructure)))
+            NodeConnection.switch(
+                inner = null,
+                outer = SwitchLink(switchId, jointNumber, asSwitchStructure(switchStructure)),
+            )
         )
     val newGeometry = replaceEdges(geometry, listOf(firstEdge), listOf(newFirstEdge))
     val newLocationTrack =
@@ -318,7 +321,10 @@ fun withTopologicalEndSwitch(
     val lastEdge = geometry.edges.last()
     val newLastEdge =
         lastEdge.withEndNode(
-            EdgeNode.switch(inner = null, outer = SwitchLink(switchId, jointNumber, asSwitchStructure(switchStructure)))
+            NodeConnection.switch(
+                inner = null,
+                outer = SwitchLink(switchId, jointNumber, asSwitchStructure(switchStructure)),
+            )
         )
     val newGeometry = replaceEdges(geometry, listOf(lastEdge), listOf(newLastEdge))
     val newLocationTrack =

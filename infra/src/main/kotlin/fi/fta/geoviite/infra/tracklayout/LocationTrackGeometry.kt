@@ -124,11 +124,11 @@ sealed class LocationTrackGeometry : IAlignment {
         trackSwitchLinks.filter { tsl -> tsl.link.id == switchId }.map { tsl -> tsl.link to tsl.location }
 
     @get:JsonIgnore
-    open val startNode: EdgeNode?
+    open val startNode: NodeConnection?
         get() = edges.firstOrNull()?.startNode
 
     @get:JsonIgnore
-    open val endNode: EdgeNode?
+    open val endNode: NodeConnection?
         get() = edges.lastOrNull()?.endNode
 
     /**
@@ -163,11 +163,11 @@ sealed class LocationTrackGeometry : IAlignment {
      * one, but in cases where there are two switches following each other, a presentation joint is preferred, as that's
      * the logical node of the topology.
      */
-    private fun pickPrimaryEndJoint(edgeNode: EdgeNode): SwitchLink? =
-        edgeNode.switchIn?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
-            ?: edgeNode.switchOut?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
-            ?: edgeNode.switchIn
-            ?: edgeNode.switchOut
+    private fun pickPrimaryEndJoint(nodeConnection: NodeConnection): SwitchLink? =
+        nodeConnection.switchIn?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
+            ?: nodeConnection.switchOut?.takeIf { j -> j.jointRole == SwitchJointRole.MAIN }
+            ?: nodeConnection.switchIn
+            ?: nodeConnection.switchOut
 
     fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = switchIds.contains(switchId)
 
@@ -293,11 +293,11 @@ private constructor(override val edges: List<LayoutEdge>, override val trackId: 
     }
 
     @get:JsonIgnore
-    override val startNode: EdgeNode?
+    override val startNode: NodeConnection?
         get() = edges.firstOrNull()?.startNode
 
     @get:JsonIgnore
-    override val endNode: EdgeNode?
+    override val endNode: NodeConnection?
         get() = edges.lastOrNull()?.endNode
 
     init {
@@ -328,20 +328,20 @@ data class DbLocationTrackGeometry(
     override val nodesWithLocation: List<Pair<DbLayoutNode, AlignmentPoint>>
         get() = super.nodesWithLocation as List<Pair<DbLayoutNode, AlignmentPoint>>
 
-    override val startNode: DbEdgeNode?
+    override val startNode: DbNodeConnection?
         get() = edges.firstOrNull()?.startNode
 
-    override val endNode: DbEdgeNode?
+    override val endNode: DbNodeConnection?
         get() = edges.lastOrNull()?.endNode
 }
 
 data class EdgeHash private constructor(val value: Int) {
     companion object {
-        fun of(start: EdgeNode, end: EdgeNode, segments: List<LayoutSegment>): EdgeHash =
-            EdgeHash(Objects.hash(edgeNodeHash(start), edgeNodeHash(end), segmentsHash(segments)))
+        fun of(start: NodeConnection, end: NodeConnection, segments: List<LayoutSegment>): EdgeHash =
+            EdgeHash(Objects.hash(nodeConnectionHash(start), nodeConnectionHash(end), segmentsHash(segments)))
 
-        private fun edgeNodeHash(edgeNode: EdgeNode): Int =
-            Objects.hash(edgeNode.portConnection, edgeNode.node.contentHash)
+        private fun nodeConnectionHash(nodeConnection: NodeConnection): Int =
+            Objects.hash(nodeConnection.portConnection, nodeConnection.node.contentHash)
 
         private fun segmentsHash(segments: List<LayoutSegment>): Int = Objects.hash(segments.map(::segmentHash))
 
@@ -354,8 +354,8 @@ data class EdgeHash private constructor(val value: Int) {
 }
 
 sealed class LayoutEdge : IAlignment {
-    abstract val startNode: EdgeNode
-    abstract val endNode: EdgeNode
+    abstract val startNode: NodeConnection
+    abstract val endNode: NodeConnection
     override val segmentMValues: List<Range<Double>> by lazy { calculateSegmentMValues(segments) }
 
     @get:JsonIgnore
@@ -390,20 +390,20 @@ sealed class LayoutEdge : IAlignment {
 
     fun withSegments(newSegments: List<LayoutSegment>) = TmpLayoutEdge(startNode, endNode, newSegments)
 
-    fun withStartNode(newStartNode: EdgeNode) = TmpLayoutEdge(newStartNode, endNode, segments)
+    fun withStartNode(newStartNode: NodeConnection) = TmpLayoutEdge(newStartNode, endNode, segments)
 
-    fun withStartNode(newStartNode: LayoutNode) = withStartNode(reconnectEdgeNode(startNode, newStartNode))
+    fun withStartNode(newStartNode: LayoutNode) = withStartNode(reconnectNode(startNode, newStartNode))
 
-    fun withEndNode(newEndNode: EdgeNode) = TmpLayoutEdge(startNode, newEndNode, segments)
+    fun withEndNode(newEndNode: NodeConnection) = TmpLayoutEdge(startNode, newEndNode, segments)
 
     fun withNodes(newStartNode: LayoutNode, newEndNode: LayoutNode) =
         TmpLayoutEdge(
-            startNode = reconnectEdgeNode(startNode, newStartNode),
-            endNode = reconnectEdgeNode(endNode, newEndNode),
+            startNode = reconnectNode(startNode, newStartNode),
+            endNode = reconnectNode(endNode, newEndNode),
             segments = segments,
         )
 
-    fun withEndNode(newEndNode: LayoutNode) = withEndNode(reconnectEdgeNode(endNode, newEndNode))
+    fun withEndNode(newEndNode: LayoutNode) = withEndNode(reconnectNode(endNode, newEndNode))
 
     fun withoutSwitch(switchId: IntId<LayoutSwitch>): LayoutEdge {
         val start = startNode.withoutSwitch(switchId)
@@ -419,8 +419,8 @@ sealed class LayoutEdge : IAlignment {
 }
 
 data class TmpLayoutEdge(
-    override val startNode: EdgeNode,
-    override val endNode: EdgeNode,
+    override val startNode: NodeConnection,
+    override val endNode: NodeConnection,
     @get:JsonIgnore override val segments: List<LayoutSegment>,
 ) : LayoutEdge() {
     companion object {
@@ -428,11 +428,11 @@ data class TmpLayoutEdge(
             when {
                 trackId != null ->
                     TmpLayoutEdge(
-                        EdgeNode.trackBoundary(trackId, START),
-                        EdgeNode.trackBoundary(trackId, END),
+                        NodeConnection.trackBoundary(trackId, START),
+                        NodeConnection.trackBoundary(trackId, END),
                         segments,
                     )
-                else -> TmpLayoutEdge(PlaceHolderEdgeNode, PlaceHolderEdgeNode, segments)
+                else -> TmpLayoutEdge(PlaceHolderNodeConnection, PlaceHolderNodeConnection, segments)
             }
     }
 
@@ -443,8 +443,8 @@ data class TmpLayoutEdge(
 
 data class DbLayoutEdge(
     val id: IntId<LayoutEdge>,
-    override val startNode: DbEdgeNode,
-    override val endNode: DbEdgeNode,
+    override val startNode: DbNodeConnection,
+    override val endNode: DbNodeConnection,
     @get:JsonIgnore override val segments: List<LayoutSegment>,
 ) : LayoutEdge() {
     init {
@@ -452,21 +452,21 @@ data class DbLayoutEdge(
     }
 }
 
-sealed class EdgeNode {
+sealed class NodeConnection {
     companion object {
-        fun trackBoundary(id: IntId<LocationTrack>, type: TrackBoundaryType): TmpEdgeNode =
+        fun trackBoundary(id: IntId<LocationTrack>, type: TrackBoundaryType): TmpNodeConnection =
             trackBoundary(TrackBoundary(id, type))
 
-        fun trackBoundary(inner: TrackBoundary?, outer: TrackBoundary? = null): TmpEdgeNode {
+        fun trackBoundary(inner: TrackBoundary?, outer: TrackBoundary? = null): TmpNodeConnection {
             val (trackA, trackB) = inNodeOrder(inner, outer)
             val portConnection = if (inner == trackA) A else B
-            return TmpEdgeNode(portConnection, TmpTrackBoundaryNode(trackA, trackB))
+            return TmpNodeConnection(portConnection, TmpTrackBoundaryNode(trackA, trackB))
         }
 
-        fun switch(inner: SwitchLink?, outer: SwitchLink?): TmpEdgeNode {
+        fun switch(inner: SwitchLink?, outer: SwitchLink?): TmpNodeConnection {
             val (switchA, switchB) = inNodeOrder(inner, outer)
             val portConnection = if (inner == switchA) A else B
-            return TmpEdgeNode(portConnection, TmpSwitchNode(switchA, switchB))
+            return TmpNodeConnection(portConnection, TmpSwitchNode(switchA, switchB))
         }
     }
 
@@ -513,36 +513,38 @@ sealed class EdgeNode {
     fun containsJoint(switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
         node.containsJoint(switchId, jointNumber)
 
-    fun withoutSwitch(switchId: IntId<LayoutSwitch>): EdgeNode =
+    fun withoutSwitch(switchId: IntId<LayoutSwitch>): NodeConnection =
         if (containsSwitch(switchId)) {
             val remainingSwitch = switches.singleOrNull { it.id != switchId }
             remainingSwitch?.let { switch ->
                 val newConnection = if (switch == node?.portA) portConnection else portConnection.opposite
-                TmpEdgeNode(newConnection, TmpSwitchNode(switch, null))
-            } ?: PlaceHolderEdgeNode
+                TmpNodeConnection(newConnection, TmpSwitchNode(switch, null))
+            } ?: PlaceHolderNodeConnection
         } else {
             this
         }
 
-    fun withInnerBoundary(id: IntId<LocationTrack>?, type: TrackBoundaryType): EdgeNode =
+    fun withInnerBoundary(id: IntId<LocationTrack>?, type: TrackBoundaryType): NodeConnection =
         when {
             trackBoundaryIn?.id == id && trackBoundaryIn?.type == type -> this
             id != null -> trackBoundary(TrackBoundary(id, type), trackBoundaryOut)
             trackBoundaryOut != null -> trackBoundary(null, trackBoundaryOut)
-            else -> PlaceHolderEdgeNode
+            else -> PlaceHolderNodeConnection
         }
 
-    fun flipPort(): TmpEdgeNode = TmpEdgeNode(portConnection.opposite, node)
+    fun flipPort(): TmpNodeConnection = TmpNodeConnection(portConnection.opposite, node)
 }
 
-data class DbEdgeNode(override val portConnection: NodePortType, override val node: DbLayoutNode) : EdgeNode() {
+data class DbNodeConnection(override val portConnection: NodePortType, override val node: DbLayoutNode) :
+    NodeConnection() {
     val id: IntId<LayoutNode>
         get() = node.id
 }
 
-data class TmpEdgeNode(override val portConnection: NodePortType, override val node: LayoutNode) : EdgeNode()
+data class TmpNodeConnection(override val portConnection: NodePortType, override val node: LayoutNode) :
+    NodeConnection()
 
-data object PlaceHolderEdgeNode : EdgeNode() {
+data object PlaceHolderNodeConnection : NodeConnection() {
     override val portConnection: NodePortType = A
     override val node: PlaceholderNode = PlaceholderNode
 }
@@ -735,8 +737,10 @@ fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
             // Edges disagree on the switch content -> create a new combined node of their connected
             // ports
             else {
-                val endingNode = EdgeNode.switch(inner = previous.endNode.switchIn, outer = next.startNode.switchIn)
-                val startingNode = EdgeNode.switch(inner = next.startNode.switchIn, outer = previous.endNode.switchIn)
+                val endingNode =
+                    NodeConnection.switch(inner = previous.endNode.switchIn, outer = next.startNode.switchIn)
+                val startingNode =
+                    NodeConnection.switch(inner = next.startNode.switchIn, outer = previous.endNode.switchIn)
                 require(endingNode.node.contentHash == startingNode.node.contentHash) {
                     "Failed to resolve dual-switch node: previous=$endingNode next=$startingNode"
                 }
@@ -912,7 +916,7 @@ private fun mergeEdgeWithPeers(
                 null,
                 null,
                 TmpLayoutEdge(
-                    startNode = reconnectEdgeNode(next.startNode, replacementNode),
+                    startNode = reconnectNode(next.startNode, replacementNode),
                     endNode = next.endNode,
                     segments = target.segments + next.segments,
                 ),
@@ -923,7 +927,7 @@ private fun mergeEdgeWithPeers(
             Triple(
                 TmpLayoutEdge(
                     startNode = previous.startNode,
-                    endNode = reconnectEdgeNode(previous.endNode, replacementNode),
+                    endNode = reconnectNode(previous.endNode, replacementNode),
                     segments = previous.segments + target.segments,
                 ),
                 null,
@@ -936,12 +940,12 @@ private fun mergeEdgeWithPeers(
             Triple(
                 TmpLayoutEdge(
                     startNode = previous.startNode,
-                    endNode = reconnectEdgeNode(previous.endNode, replacementNode),
+                    endNode = reconnectNode(previous.endNode, replacementNode),
                     segments = previous.segments + preSegments,
                 ),
                 null,
                 TmpLayoutEdge(
-                    startNode = reconnectEdgeNode(next.startNode, replacementNode),
+                    startNode = reconnectNode(next.startNode, replacementNode),
                     endNode = next.endNode,
                     segments = postSegments + next.segments,
                 ),
@@ -949,15 +953,15 @@ private fun mergeEdgeWithPeers(
         }
     }
 
-private fun reconnectEdgeNode(currentEdgeNode: EdgeNode, newNode: LayoutNode): TmpEdgeNode =
+private fun reconnectNode(currentNodeConnection: NodeConnection, newNode: LayoutNode): TmpNodeConnection =
     when {
-        currentEdgeNode.type == TRACK_BOUNDARY && newNode.type == SWITCH ->
-            TmpEdgeNode(B, newNode).also { require(newNode.portB == null) }
+        currentNodeConnection.type == TRACK_BOUNDARY && newNode.type == SWITCH ->
+            TmpNodeConnection(B, newNode).also { require(newNode.portB == null) }
 
-        newNode.portA == currentEdgeNode.innerPort -> TmpEdgeNode(A, newNode)
-        newNode.portB == currentEdgeNode.innerPort -> TmpEdgeNode(B, newNode)
+        newNode.portA == currentNodeConnection.innerPort -> TmpNodeConnection(A, newNode)
+        newNode.portB == currentNodeConnection.innerPort -> TmpNodeConnection(B, newNode)
         // The connection port doesn't exist on the new node -> cannot reconnect
         // If the outer ports match, we could connect to outer.reversed, but that would be wrong:
         // one side of the edge would be inner-switch while the other side is not
-        else -> error("Unable to replace edge node: current=$currentEdgeNode new=$newNode")
+        else -> error("Unable to replace edge node: current=$currentNodeConnection new=$newNode")
     }

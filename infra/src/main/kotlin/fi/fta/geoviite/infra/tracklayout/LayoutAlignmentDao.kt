@@ -218,7 +218,7 @@ class LayoutAlignmentDao(
         // - Bulk-fetch all segment geometries and nodes in one go
         // - Build the actual edges
         fun getPort(rs: ResultSet, prefix: String) =
-            DbEdgeNode(
+            DbNodeConnection(
                 portConnection = rs.getEnum("${prefix}_node_port"),
                 node = getNode(rs.getIntId("${prefix}_node_id")),
             )
@@ -272,12 +272,12 @@ class LayoutAlignmentDao(
                 }
         }
 
-    private fun getOrSaveEdgeNode(node: EdgeNode): IntId<LayoutNode> =
+    private fun getOrSaveNodeConnection(node: NodeConnection): IntId<LayoutNode> =
         getOrCreateNode(requireNotNull(node.node) { "Cannot save edge with non-reified nodes: $node" }).id
 
     private fun saveEdge(content: TmpLayoutEdge): IntId<LayoutEdge> {
-        val startNodeId = getOrSaveEdgeNode(content.startNode)
-        val endNodeId = getOrSaveEdgeNode(content.endNode)
+        val startNodeId = getOrSaveNodeConnection(content.startNode)
+        val endNodeId = getOrSaveNodeConnection(content.endNode)
         val sql =
             """
             select layout.get_or_insert_edge(

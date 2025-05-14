@@ -54,7 +54,7 @@ käsitteistön kannalta oleellista osaa niiden tietosisällöstä.
 | LayoutSwitchJoint                     | layout.switch_joint                | Paikannuspohjan vaihdepiste                                   |                                                                                                                              |
 | **Rataverkkograafin käsitteet**       |                                    |                                                               |                                                                                                                              |
 | LayoutEdge                            | layout.edge                        | Graafin kaari                                                 | Geometria joka yhdistää 2 solmua                                                                                             |
-| EdgeNode                              | (osana layout.edge taulua)         | Graafin kaaren ja solmun välinen kytkentä                     | Yhdistää kaaren johonkin solmuun tietyn portin puolelta                                                                      |
+| NodeConnection                        | (osana layout.edge taulua)         | Graafin kaaren ja solmun välinen kytkentä                     | Yhdistää kaaren johonkin solmuun tietyn portin puolelta                                                                      |
 | LayoutNode                            | layout.node                        | Graafin solmu                                                 | Solmupiste: identiteetti rataverkon haarautumiskohdalle                                                                      |
 | NodePort                              | layout.node_port                   | Graafin solmun portti (kiinnityskohta)                        | Jos solmussa yhdistyy kaksi eri käsitettä (yleensä vaihdepistettä) portit kuvaavat suuntia joista kaari voi siihen kytkeytyä |
 | LayoutSegment (sama luokka kuin yllä) | layout.edge_segment                | Graafin kaaren geometrian (keskilinjan) segmentti             | Geometriaviivan pätkä: metatiedoiltaan yhtenevä osa pisteviivaa                                                              |
@@ -371,8 +371,8 @@ classDiagram
     LocationTrack *-- "1" LocationTrackGeometry
     LocationTrack --> "1" LayoutTrackNumber
     LocationTrackGeometry *-- "n" LayoutEdge
-    LayoutEdge *-- "2" EdgeNode
-    EdgeNode --> "1" LayoutNode
+    LayoutEdge *-- "2" NodeConnection
+    NodeConnection --> "1" LayoutNode
     LayoutEdge *-- "1..n" LayoutSegment
     LayoutSegment *-- "1" SegmentGeometry
     LayoutSegment --> "0..1" GeometryElement
@@ -384,7 +384,7 @@ classDiagram
     class LayoutNode {
         type: SWITCH/TRACK_BOUNDARY
     }
-    class EdgeNode {
+    class NodeConnection {
         port: A/B
     }
     class NodePort {

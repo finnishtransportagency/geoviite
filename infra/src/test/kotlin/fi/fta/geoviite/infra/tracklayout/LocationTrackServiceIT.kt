@@ -30,7 +30,6 @@ import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -43,6 +42,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -644,17 +644,17 @@ constructor(
                 trackGeometry(
                     TmpLayoutEdge(
                         startNode =
-                            EdgeNode.switch(
+                            NodeConnection.switch(
                                 inner = switchLinkYV(innerStartSwitchId, 2),
                                 outer = switchLinkYV(outerStartSwitchId, 3),
                             ),
-                        endNode = EdgeNode.switch(inner = switchLinkYV(innerMidSwitchId, 1), outer = null),
+                        endNode = NodeConnection.switch(inner = switchLinkYV(innerMidSwitchId, 1), outer = null),
                         segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
                     ),
                     TmpLayoutEdge(
-                        startNode = EdgeNode.switch(inner = null, outer = switchLinkYV(innerMidSwitchId, 1)),
+                        startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(innerMidSwitchId, 1)),
                         endNode =
-                            EdgeNode.switch(
+                            NodeConnection.switch(
                                 inner = switchLinkYV(innerEndSwitchId, 1),
                                 outer = switchLinkYV(outerEndSwitchId, 5),
                             ),
@@ -802,8 +802,8 @@ constructor(
                     ),
                     trackGeometry(
                         TmpLayoutEdge(
-                            startNode = EdgeNode.switch(inner = null, outer = switchLinkYV(switch1.id, 1)),
-                            endNode = EdgeNode.switch(inner = switchLinkYV(switch2.id, 1), outer = null),
+                            startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switch1.id, 1)),
+                            endNode = NodeConnection.switch(inner = switchLinkYV(switch2.id, 1), outer = null),
                             segments = listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0))),
                         )
                     ),
@@ -819,8 +819,8 @@ constructor(
                     ),
                     trackGeometry(
                         TmpLayoutEdge(
-                            startNode = EdgeNode.switch(inner = switchLinkYV(switch2.id, 1), outer = null),
-                            endNode = PlaceHolderEdgeNode,
+                            startNode = NodeConnection.switch(inner = switchLinkYV(switch2.id, 1), outer = null),
+                            endNode = PlaceHolderNodeConnection,
                             segments = listOf(segment(Point(2.0, 2.0), Point(3.0, 3.0))),
                         )
                     ),

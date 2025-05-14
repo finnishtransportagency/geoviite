@@ -29,7 +29,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.ContextCache
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.EdgeNode
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -46,6 +45,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.NearbyTracks
+import fi.fta.geoviite.infra.tracklayout.NodeConnection
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
@@ -54,9 +54,9 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
 import fi.fta.geoviite.infra.tracklayout.combineEdges
+import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import java.util.stream.Collectors
 
 private val temporarySwitchId: IntId<LayoutSwitch> = IntId(-1)
 
@@ -1355,17 +1355,17 @@ fun linkJointToEdge(
     mValue: Double,
 ): List<LayoutEdge> {
     val switchLink = SwitchLink(switchId, jointRole, jointNumber)
-    val switchEdgeNode = EdgeNode.switch(inner = switchLink, outer = null)
+    val switchNodeConnection = NodeConnection.switch(inner = switchLink, outer = null)
 
     return if (isSame(edge.start.m, mValue, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
-        val withNewStartNode = edge.withStartNode(switchEdgeNode)
+        val withNewStartNode = edge.withStartNode(switchNodeConnection)
         listOf(withNewStartNode)
     } else if (isSame(edge.end.m, mValue, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
-        val withNewEndNode = edge.withEndNode(switchEdgeNode)
+        val withNewEndNode = edge.withEndNode(switchNodeConnection)
         listOf(withNewEndNode)
     } else {
-        val firstEdge = slice(edge, Range(0.0, mValue)).withEndNode(switchEdgeNode)
-        val secondEdge = slice(edge, Range(mValue, edge.end.m)).withStartNode(switchEdgeNode)
+        val firstEdge = slice(edge, Range(0.0, mValue)).withEndNode(switchNodeConnection)
+        val secondEdge = slice(edge, Range(mValue, edge.end.m)).withStartNode(switchNodeConnection)
         listOf(firstEdge, secondEdge)
     }
 }

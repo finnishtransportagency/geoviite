@@ -95,22 +95,22 @@ class LocationTrackGeometryTest {
 
     @Test
     fun `Edge content hash works`() {
-        fun switchNode1() = EdgeNode.switch(SwitchLink(IntId(1), MAIN, JointNumber(1)), null)
+        fun switchNode1() = NodeConnection.switch(SwitchLink(IntId(1), MAIN, JointNumber(1)), null)
         fun switchNode2() =
-            EdgeNode.switch(
+            NodeConnection.switch(
                 inner = SwitchLink(IntId(2), MAIN, JointNumber(2)),
                 outer = SwitchLink(IntId(3), MAIN, JointNumber(3)),
             )
         fun switchNode2Reverse() =
-            EdgeNode.switch(
+            NodeConnection.switch(
                 inner = SwitchLink(IntId(3), MAIN, JointNumber(3)),
                 outer = SwitchLink(IntId(2), MAIN, JointNumber(2)),
             )
-        fun trackNode1() = EdgeNode.trackBoundary(IntId(1), START)
+        fun trackNode1() = NodeConnection.trackBoundary(IntId(1), START)
         fun trackNode2() =
-            EdgeNode.trackBoundary(inner = TrackBoundary(IntId(2), END), outer = TrackBoundary(IntId(3), START))
+            NodeConnection.trackBoundary(inner = TrackBoundary(IntId(2), END), outer = TrackBoundary(IntId(3), START))
         fun trackNode2Reverse() =
-            EdgeNode.trackBoundary(inner = TrackBoundary(IntId(3), START), outer = TrackBoundary(IntId(2), END))
+            NodeConnection.trackBoundary(inner = TrackBoundary(IntId(3), START), outer = TrackBoundary(IntId(2), END))
 
         // Segments generate internal ids which are not stable on recreation, but only after storing the geometry
         // -> don't recreate the segments themselves here

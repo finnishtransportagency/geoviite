@@ -308,8 +308,8 @@ constructor(
                 locationTrack(tnId, draft = true),
                 trackGeometry(
                     TmpLayoutEdge(
-                        startNode = EdgeNode.switch(inner = null, outer = switchLinkYV(switch.id as IntId, 1)),
-                        endNode = PlaceHolderEdgeNode,
+                        startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switch.id as IntId, 1)),
+                        endNode = PlaceHolderNodeConnection,
                         segments = listOf(someSegment()),
                     )
                 ),
@@ -320,8 +320,8 @@ constructor(
                 locationTrack(tnId, draft = true),
                 trackGeometry(
                     TmpLayoutEdge(
-                        startNode = PlaceHolderEdgeNode,
-                        endNode = EdgeNode.switch(inner = null, outer = switchLinkYV(switch.id as IntId, 2)),
+                        startNode = PlaceHolderNodeConnection,
+                        endNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switch.id as IntId, 2)),
                         segments = listOf(someSegment()),
                     )
                 ),
@@ -331,8 +331,8 @@ constructor(
                 locationTrack(tnId, draft = true),
                 trackGeometry(
                     TmpLayoutEdge(
-                        startNode = EdgeNode.switch(inner = switchLinkYV(switch.id as IntId, 1), outer = null),
-                        endNode = EdgeNode.switch(inner = switchLinkYV(switch.id as IntId, 2), outer = null),
+                        startNode = NodeConnection.switch(inner = switchLinkYV(switch.id as IntId, 1), outer = null),
+                        endNode = NodeConnection.switch(inner = switchLinkYV(switch.id as IntId, 2), outer = null),
                         segments = listOf(someSegment()),
                     )
                 ),
@@ -362,8 +362,8 @@ constructor(
                 locationTrack(trackNumberId = trackNumberId, name = "LT 1"),
                 trackGeometry(
                     TmpLayoutEdge(
-                        startNode = EdgeNode.switch(inner = null, outer = switchLinkYV(switchId, 1)),
-                        endNode = PlaceHolderEdgeNode,
+                        startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switchId, 1)),
+                        endNode = PlaceHolderNodeConnection,
                         segments = listOf(someSegment()),
                     )
                 ),
@@ -375,8 +375,8 @@ constructor(
                 locationTrack(trackNumberId = trackNumberId, name = "LT 2"),
                 trackGeometry(
                     TmpLayoutEdge(
-                        startNode = PlaceHolderEdgeNode,
-                        endNode = EdgeNode.switch(inner = null, outer = switchLinkYV(switchId, 2)),
+                        startNode = PlaceHolderNodeConnection,
+                        endNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switchId, 2)),
                         segments = listOf(someSegment()),
                     )
                 ),
@@ -388,8 +388,8 @@ constructor(
                 locationTrack(trackNumberId = trackNumberId, name = "LT 3"),
                 trackGeometry(
                     TmpLayoutEdge(
-                        startNode = EdgeNode.switch(inner = switchLinkYV(switchId, 1), outer = null),
-                        endNode = EdgeNode.switch(inner = switchLinkYV(switchId, 2), outer = null),
+                        startNode = NodeConnection.switch(inner = switchLinkYV(switchId, 1), outer = null),
+                        endNode = NodeConnection.switch(inner = switchLinkYV(switchId, 2), outer = null),
                         segments = listOf(someSegment()),
                     )
                 ),

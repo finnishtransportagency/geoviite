@@ -17,8 +17,8 @@ enum class DetailLevel {
 
 sealed class GraphEdgeData {
     abstract val id: DomainId<LayoutEdge>
-    abstract val startNode: DbEdgeNode
-    abstract val endNode: DbEdgeNode
+    abstract val startNode: DbNodeConnection
+    abstract val endNode: DbNodeConnection
     abstract val tracks: Set<IntId<LocationTrack>>
     abstract val length: Double
     abstract val start: Point
@@ -29,10 +29,10 @@ data class DbEdgeData(val edge: DbLayoutEdge, override val tracks: Set<IntId<Loc
     override val id: DomainId<LayoutEdge>
         get() = edge.id
 
-    override val startNode: DbEdgeNode
+    override val startNode: DbNodeConnection
         get() = edge.startNode
 
-    override val endNode: DbEdgeNode
+    override val endNode: DbNodeConnection
         get() = edge.endNode
 
     override val length: Double
@@ -45,10 +45,10 @@ data class DbEdgeData(val edge: DbLayoutEdge, override val tracks: Set<IntId<Loc
 data class SimplifiedEdgeData(val edges: List<DbEdgeData>) : GraphEdgeData() {
     override val id: DomainId<LayoutEdge> by lazy { StringId("M_${Objects.hash(edges.map { e -> e.id })}") }
 
-    override val startNode: DbEdgeNode
+    override val startNode: DbNodeConnection
         get() = edges.first().startNode
 
-    override val endNode: DbEdgeNode
+    override val endNode: DbNodeConnection
         get() = edges.last().endNode
 
     override val tracks: Set<IntId<LocationTrack>>
@@ -116,7 +116,7 @@ data class LayoutGraphNode(
     val location: Point,
 ) {
     constructor(
-        node: DbEdgeNode,
+        node: DbNodeConnection,
         location: IPoint,
     ) : this(node.id, node.type, node.detailLevel, listOfNotNull(node.switchIn, node.switchOut), location.toPoint())
 }

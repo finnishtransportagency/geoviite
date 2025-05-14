@@ -504,7 +504,13 @@ fun trackGeometryOfSegments(segments: List<LayoutSegment>): TmpLocationTrackGeom
     if (segments.isEmpty()) TmpLocationTrackGeometry.empty
     else
         trackGeometry(
-            listOf(TmpLayoutEdge(startNode = PlaceHolderEdgeNode, endNode = PlaceHolderEdgeNode, segments = segments))
+            listOf(
+                TmpLayoutEdge(
+                    startNode = PlaceHolderNodeConnection,
+                    endNode = PlaceHolderNodeConnection,
+                    segments = segments,
+                )
+            )
         )
 
 fun trackGeometry(vararg edges: LayoutEdge, trackId: IntId<LocationTrack>? = null): TmpLocationTrackGeometry =
@@ -523,12 +529,12 @@ fun edge(
     TmpLayoutEdge(
         startNode =
             if (startInnerSwitch != null || startOuterSwitch != null)
-                EdgeNode.switch(inner = startInnerSwitch, outer = startOuterSwitch)
-            else PlaceHolderEdgeNode,
+                NodeConnection.switch(inner = startInnerSwitch, outer = startOuterSwitch)
+            else PlaceHolderNodeConnection,
         endNode =
             if (endInnerSwitch != null || endOuterSwitch != null)
-                EdgeNode.switch(inner = endInnerSwitch, outer = endOuterSwitch)
-            else PlaceHolderEdgeNode,
+                NodeConnection.switch(inner = endInnerSwitch, outer = endOuterSwitch)
+            else PlaceHolderNodeConnection,
         segments = segments,
     )
 
