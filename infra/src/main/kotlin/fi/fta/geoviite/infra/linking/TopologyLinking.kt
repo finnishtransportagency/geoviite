@@ -37,8 +37,8 @@ data class NodeReplacementTarget(val node: LayoutNode, val tracks: List<Pair<Loc
     fun contains(trackId: DomainId<LocationTrack>): Boolean = tracks.any { (track, _) -> track.id == trackId }
 }
 
-data class DbNodeConnection(val node: DbLayoutNode, val trackVersions: List<LayoutRowVersion<LocationTrack>>) {
-    fun filterOut(trackIds: Set<IntId<LocationTrack>>): DbNodeConnection? {
+data class NodeTrackConnections(val node: DbLayoutNode, val trackVersions: List<LayoutRowVersion<LocationTrack>>) {
+    fun filterOut(trackIds: Set<IntId<LocationTrack>>): NodeTrackConnections? {
         val newTrackVersions = trackVersions.filter { (trackId, _) -> !trackIds.contains(trackId.id) }
         return when {
             newTrackVersions.isEmpty() -> null

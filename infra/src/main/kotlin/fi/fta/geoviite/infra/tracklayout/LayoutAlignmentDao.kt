@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.*
-import fi.fta.geoviite.infra.linking.DbNodeConnection
+import fi.fta.geoviite.infra.linking.NodeTrackConnections
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -17,14 +17,14 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import kotlin.math.abs
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -212,54 +212,61 @@ class LayoutAlignmentDao(
                 .trimIndent()
         val params = mapOf("ids" to ids?.map { id -> id.intValue }?.toTypedArray(), "active" to active)
 
-        // TODO: GVT-1727 Optimize these multi fetches:
-        // - Only collect SegmentData objects from .query (remove switch stuff as that is no longer needed)
-        // - Only collect nodeId+port pairs for edge nodes
-        // - Bulk-fetch all segment geometries and nodes in one go
-        // - Build the actual edges
-        fun getPort(rs: ResultSet, prefix: String) =
-            DbNodeConnection(
-                portConnection = rs.getEnum("${prefix}_node_port"),
-                node = getNode(rs.getIntId("${prefix}_node_id")),
-            )
+        val edges =
+            measureAndCollect("fetch") {
+                jdbcTemplate.query(sql, params) { rs, _ ->
+                    val edgeId = rs.getIntId<LayoutEdge>("id")
+                    val segmentIndices = rs.getIntArray("indices")
+                    val geometryAlignmentIds =
+                        rs.getNullableIntArray("geometry_alignment_ids").also {
+                            require(it.size == segmentIndices.size)
+                        }
+                    val geometryElementIndices =
+                        rs.getNullableIntArray("geometry_element_indices").also {
+                            require(it.size == segmentIndices.size)
+                        }
+                    val sourceStartMValues =
+                        rs.getNullableBigDecimalArray("source_start_m_values").also {
+                            require(it.size == segmentIndices.size)
+                        }
+                    val sources =
+                        rs.getEnumArray<GeometrySource>("sources").also { require(it.size == segmentIndices.size) }
+                    val geometryIds =
+                        rs.getIntIdArray<SegmentGeometry>("geometry_ids").also {
+                            require(it.size == segmentIndices.size)
+                        }
 
-        return jdbcTemplate
-            .query(sql, params) { rs, _ ->
-                val edgeId = rs.getIntId<LayoutEdge>("id")
-                val segmentIndices = rs.getIntArray("indices")
-                val geometryAlignmentIds =
-                    rs.getNullableIntArray("geometry_alignment_ids").also { require(it.size == segmentIndices.size) }
-                val geometryElementIndices =
-                    rs.getNullableIntArray("geometry_element_indices").also { require(it.size == segmentIndices.size) }
-                val sourceStartMValues =
-                    rs.getNullableBigDecimalArray("source_start_m_values").also {
-                        require(it.size == segmentIndices.size)
-                    }
-                val sources =
-                    rs.getEnumArray<GeometrySource>("sources").also { require(it.size == segmentIndices.size) }
-                val geometryIds =
-                    rs.getIntIdArray<SegmentGeometry>("geometry_ids").also { require(it.size == segmentIndices.size) }
-                val segmentGeometries = fetchSegmentGeometries(geometryIds)
-                val segments =
-                    segmentIndices.map { i ->
-                        val geometryAlignmentId = geometryAlignmentIds[i]
-                        val geometryElementIndex = geometryElementIndices[i]
-                        val sourceId: IndexedId<GeometryElement>? =
-                            if (geometryAlignmentId != null) {
-                                IndexedId(geometryAlignmentId, requireNotNull(geometryElementIndex))
-                            } else {
-                                null
-                            }
-                        LayoutSegment(
-                            sourceId = sourceId,
-                            sourceStart = sourceStartMValues[i]?.toDouble(),
-                            source = sources[i],
-                            geometry = requireNotNull(segmentGeometries[geometryIds[i]]),
-                        )
-                    }
-                DbLayoutEdge(edgeId, getPort(rs, "start"), getPort(rs, "end"), segments)
+                    val startNodeId = rs.getIntId<LayoutNode>("start_node_id")
+                    val startNodePort = rs.getEnum<NodePortType>("start_node_port")
+                    val endNodeId = rs.getIntId<LayoutNode>("end_node_id")
+                    val endNodePort = rs.getEnum<NodePortType>("end_node_port")
+
+                    val segments =
+                        segmentIndices.map { i ->
+                            val geometryAlignmentId = geometryAlignmentIds[i]
+                            val geometryElementIndex = geometryElementIndices[i]
+                            val sourceId: IndexedId<GeometryElement>? =
+                                if (geometryAlignmentId != null) {
+                                    IndexedId(geometryAlignmentId, requireNotNull(geometryElementIndex))
+                                } else {
+                                    null
+                                }
+                            SegmentData(
+                                sourceId = sourceId,
+                                sourceStart = sourceStartMValues[i]?.toDouble(),
+                                source = sources[i],
+                                geometryId = geometryIds[i],
+                                switchId = null,
+                                startJointNumber = null,
+                                endJointNumber = null,
+                            )
+                        }
+                    EdgeData(edgeId, startNodeId to startNodePort, endNodeId to endNodePort, segments)
+                }
             }
-            .associateBy(DbLayoutEdge::id)
+        val nodes = getNodes(edges.flatMap { d -> listOf(d.startNode.first, d.endNode.first) }.toSet())
+        val geometries = fetchSegmentGeometries(edges.flatMap { d -> d.segments.map { s -> s.geometryId } }.distinct())
+        return createEdges(edges, nodes, geometries).associateBy { e -> e.id }
     }
 
     @Transactional
@@ -490,23 +497,25 @@ class LayoutAlignmentDao(
                 val segment =
                     segmentId?.let { sId ->
                         SegmentData(
-                            id = sId,
-                            start = rs.getDouble("start"),
                             sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
                             sourceStart = rs.getDoubleOrNull("source_start"),
                             switchId = rs.getIntIdOrNull("switch_id"),
                             startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
                             endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
                             source = rs.getEnum("source"),
-                            rs.getIntId("geometry_id"),
+                            geometryId = rs.getIntId("geometry_id"),
                         )
                     }
                 alignmentData to segment
             }
         val groupedByAlignment = alignmentAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s }).entries
+        val geometries = fetchSegmentGeometries(alignmentAndSegment.mapNotNull { (_, s) -> s?.geometryId }.distinct())
         groupedByAlignment.parallelStream().forEach { (alignmentData, segmentDatas) ->
             alignmentsCache.get(alignmentData.version) { _ ->
-                LayoutAlignment(id = alignmentData.version.id, segments = createSegments(segmentDatas.filterNotNull()))
+                LayoutAlignment(
+                    id = alignmentData.version.id,
+                    segments = createSegments(segmentDatas.filterNotNull(), geometries),
+                )
             }
         }
         return groupedByAlignment.size
@@ -588,10 +597,14 @@ class LayoutAlignmentDao(
         return deletedRowId
     }
 
-    fun getNodeConnectionsNear(context: LayoutContext, target: IPoint, distance: Double): List<DbNodeConnection> =
+    fun getNodeConnectionsNear(context: LayoutContext, target: IPoint, distance: Double): List<NodeTrackConnections> =
         getNodeConnectionsNear(context, MultiPoint(target), distance)
 
-    fun getNodeConnectionsNear(context: LayoutContext, target: MultiPoint, distance: Double): List<DbNodeConnection> {
+    fun getNodeConnectionsNear(
+        context: LayoutContext,
+        target: MultiPoint,
+        distance: Double,
+    ): List<NodeTrackConnections> {
         val sql =
             """
             with
@@ -642,8 +655,8 @@ class LayoutAlignmentDao(
                 .groupBy({ it.first }, { it.second })
         val nodes = fetchNodes(connections.keys)
         return connections
-            .map { (nodeId, entries) -> DbNodeConnection(requireNotNull(nodes[nodeId]), entries.distinct()) }
-            .also { logger.daoAccess(AccessType.FETCH, DbNodeConnection::class, it.map { c -> c.node.id }) }
+            .map { (nodeId, entries) -> NodeTrackConnections(requireNotNull(nodes[nodeId]), entries.distinct()) }
+            .also { logger.daoAccess(AccessType.FETCH, NodeTrackConnections::class, it.map { c -> c.node.id }) }
     }
 
     // TODO: GVT-2932 This should not care about tracks any more, but keep the track-alignments while still validating
@@ -670,9 +683,6 @@ class LayoutAlignmentDao(
         val sql =
             """
             select 
-              alignment_id,
-              segment_index,
-              start,
               geometry_alignment_id,
               geometry_element_index,
               source_start,
@@ -690,11 +700,9 @@ class LayoutAlignmentDao(
         val params =
             mapOf("alignment_id" to alignmentVersion.id.intValue, "alignment_version" to alignmentVersion.version)
 
-        return createSegments(
+        val segmentData =
             jdbcTemplate.query(sql, params) { rs, _ ->
                 SegmentData(
-                    id = rs.getIndexedId("alignment_id", "segment_index"),
-                    start = rs.getDouble("start"),
                     sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
                     sourceStart = rs.getDoubleOrNull("source_start"),
                     switchId = rs.getIntIdOrNull("switch_id"),
@@ -704,34 +712,8 @@ class LayoutAlignmentDao(
                     geometryId = rs.getIntId("geometry_id"),
                 )
             }
-        )
-    }
-
-    private fun createSegments(segmentResults: List<SegmentData>): List<LayoutSegment> {
-        val geometries = fetchSegmentGeometries(segmentResults.map { s -> s.geometryId }.distinct())
-
-        var start = 0.0
-        return segmentResults.map { data ->
-            require(abs(start - data.start) < LAYOUT_M_DELTA) {
-                "Segment start value does not match the calculated one: stored=${data.start} calc=$start"
-            }
-            val geometry =
-                requireNotNull(geometries[data.geometryId]) {
-                    "Fetching geometry failed for segment: id=${data.id} geometryId=$data.geometryId"
-                }
-            LayoutSegment(
-                    //                    id = data.id,
-                    sourceId = data.sourceId,
-                    sourceStart = data.sourceStart,
-                    switchId = data.switchId,
-                    startJointNumber = data.startJointNumber,
-                    endJointNumber = data.endJointNumber,
-                    source = data.source,
-                    geometry = geometry,
-                    //                    startM = start,
-                )
-                .also { start += geometry.length }
-        }
+        val geometries = fetchSegmentGeometries(segmentData.map { s -> s.geometryId }.distinct())
+        return createSegments(segmentData, geometries)
     }
 
     fun fetchSegmentGeometriesAndPlanMetadata(
@@ -1359,52 +1341,6 @@ class LayoutAlignmentDao(
         segmentGeometryCache.getAll(ids, ::fetchSegmentGeometriesInternal)
         return ids.size
     }
-
-    //    fun getActiveContextEdges(context: LayoutContext, bbox: BoundingBox): List<DbEdgeData> {
-    //        val sql =
-    //            """
-    //            select
-    //              ltv_e.edge_id,
-    //              array_agg(distinct lt.id) as location_track_ids
-    //            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
-    // lt
-    //              inner join layout.location_track_version_edge ltv_e
-    //                         on lt.id = ltv_e.location_track_id
-    //                           and lt.layout_context_id = ltv_e.location_track_layout_context_id
-    //                           and lt.version = ltv_e.location_track_version
-    //              inner join layout.edge edge on ltv_e.edge_id = edge.id
-    //            where postgis.st_intersects(
-    //                    postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-    //                    edge.bounding_box
-    //                  )
-    //            group by ltv_e.edge_id;
-    //          """
-    //        val params =
-    //            mapOf(
-    //                "x_min" to bbox.min.x,
-    //                "y_min" to bbox.min.y,
-    //                "x_max" to bbox.max.x,
-    //                "y_max" to bbox.max.y,
-    //                "publication_state" to context.state.name,
-    //                "design_id" to context.branch.designId?.intValue,
-    //                "layout_srid" to LAYOUT_SRID.code,
-    //            )
-    //        return jdbcTemplate
-    //            .query(sql, params) { rs, _ ->
-    //                val edgeId = rs.getIntId<LayoutEdge>("edge_id")
-    //                val trackIds = rs.getIntIdArray<LocationTrack>("location_track_ids")
-    //                edgeId to trackIds
-    //            }
-    //            .let { result ->
-    //                val edges = getEdges(result.map { it.first })
-    //                result.map { (edgeId, trackIds) ->
-    //                    DbEdgeData(
-    //                        edge = requireNotNull(edges[edgeId]) { "Failed to fetch edge $edgeId" },
-    //                        tracks = trackIds,
-    //                    )
-    //                }
-    //            }
-    //    }
 }
 
 data class GeometryRowResult(
@@ -1460,9 +1396,58 @@ fun parseSegmentPointLineString(
 private fun parseNullableDoubleList(listString: String?): List<Double?>? =
     listString?.split(",")?.map(String::toDoubleOrNull)
 
+private fun createEdges(
+    edgeResults: List<EdgeData>,
+    nodes: Map<IntId<LayoutNode>, DbLayoutNode>,
+    geometries: Map<IntId<SegmentGeometry>, SegmentGeometry>,
+): List<DbLayoutEdge> {
+    fun getConnection(id: IntId<LayoutNode>, port: NodePortType): DbNodeConnection {
+        val node = requireNotNull(nodes[id]) { "Nodes should be pre-fetched before creating edges: missing=$id" }
+        return DbNodeConnection(port, node)
+    }
+    return edgeResults
+        .parallelStream()
+        .map { edgeData ->
+            DbLayoutEdge(
+                    id = edgeData.id,
+                    startNode = edgeData.startNode.let { (id, port) -> getConnection(id, port) },
+                    endNode = edgeData.endNode.let { (id, port) -> getConnection(id, port) },
+                    segments = createSegments(edgeData.segments, geometries),
+                )
+                .also { it.contentHash }
+        }
+        .collect(Collectors.toList())
+}
+
+private fun createSegments(
+    segmentResults: List<SegmentData>,
+    geometries: Map<IntId<SegmentGeometry>, SegmentGeometry>,
+): List<LayoutSegment> {
+    var start = 0.0
+    return segmentResults.map { data ->
+        val geometry =
+            requireNotNull(geometries[data.geometryId]) { "Fetching geometry failed for segment: data=$data" }
+        LayoutSegment(
+                sourceId = data.sourceId,
+                sourceStart = data.sourceStart,
+                switchId = data.switchId,
+                startJointNumber = data.startJointNumber,
+                endJointNumber = data.endJointNumber,
+                source = data.source,
+                geometry = geometry,
+            )
+            .also { start += geometry.length }
+    }
+}
+
+private data class EdgeData(
+    val id: IntId<LayoutEdge>,
+    val startNode: Pair<IntId<LayoutNode>, NodePortType>,
+    val endNode: Pair<IntId<LayoutNode>, NodePortType>,
+    val segments: List<SegmentData>,
+)
+
 private data class SegmentData(
-    val id: IndexedId<LayoutSegment>,
-    val start: Double,
     val sourceId: IndexedId<GeometryElement>?,
     val sourceStart: Double?,
     val switchId: IntId<LayoutSwitch>?,
