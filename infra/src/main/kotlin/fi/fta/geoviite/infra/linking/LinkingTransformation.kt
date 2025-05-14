@@ -42,9 +42,9 @@ fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): Layout
 }
 
 fun replaceLocationTrackGeometry(
-    trackId: IntId<LocationTrack>,
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<Double>,
+    trackId: IntId<LocationTrack>,
 ): LocationTrackGeometry = tryCreateLinkedTrackGeometry {
     TmpLocationTrackGeometry.ofSegments(createAlignmentGeometry(geometryAlignment, geometryMRange), trackId)
 }
