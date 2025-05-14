@@ -266,7 +266,7 @@ fun withSwitchJointAtM(
     val suggestedEdge =
         SuggestedJoint(
             jointNumber = jointNumber,
-            m = mValue, // - mRange.min,
+            mvalueOnEdge = mValue, // - mRange.min,
         )
 
     val linkedEdges =
@@ -354,7 +354,7 @@ fun fittedJointMatch(locationTrackId: IntId<LocationTrack>, joint: Int, m: Doubl
     return FittedSwitchJointMatch(
         locationTrackId = locationTrackId,
         segmentIndex = 0,
-        m = m,
+        mOnTrack = m,
         switchJoint = SwitchStructureJoint(JointNumber(joint), Point(0.0, 0.0)),
         matchType = SuggestedSwitchJointMatchType.START,
         0.0,
@@ -367,7 +367,7 @@ fun fittedJointMatch(track: TrackForSwitchFitting, joint: Int, m: Double): Fitte
     return FittedSwitchJointMatch(
         locationTrackId = track.locationTrackId,
         segmentIndex = 0,
-        m = m,
+        mOnTrack = m,
         switchJoint = SwitchStructureJoint(JointNumber(joint), coordinates),
         matchType = SuggestedSwitchJointMatchType.START,
         0.0,

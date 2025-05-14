@@ -277,7 +277,7 @@ export type SuggestedLinks = {
 };
 
 export type SuggestedJoint = {
-    m: number;
+    mvalueOnEdge: number;
     jointNumber: JointNumber;
 };
 

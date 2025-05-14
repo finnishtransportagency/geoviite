@@ -392,7 +392,7 @@ fun assertJoint(
     val match = matches.first()
     assertEquals(
         expectedM,
-        match.m,
+        match.mOnTrack,
         0.001,
         "M-value is not matching for location track \"${track.name}\" and joint $joint",
     )
@@ -413,7 +413,9 @@ fun removeDuplicateMatches(fittedSwitch: FittedSwitch): FittedSwitch {
             fittedSwitch.joints.map { joint ->
                 joint.copy(
                     matches =
-                        joint.matches.distinctBy { match -> listOf(match.locationTrackId, match.switchJoint, match.m) }
+                        joint.matches.distinctBy { match ->
+                            listOf(match.locationTrackId, match.switchJoint, match.mOnTrack)
+                        }
                 )
             }
     )

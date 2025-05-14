@@ -1186,7 +1186,7 @@ fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int,
     FittedSwitchJointMatch(
         locationTrackId = locationTrackId as IntId<LocationTrack>,
         segmentIndex = segmentIndex,
-        m = m,
+        mOnTrack = m,
         distance = 0.1,
         switchJoint = SwitchStructureJoint(JointNumber(jointNumber), Point(0.0, 0.0)),
         distanceToAlignment = 0.1,
