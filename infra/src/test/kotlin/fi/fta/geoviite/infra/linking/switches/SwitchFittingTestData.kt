@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.EdgeNode
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -31,6 +32,7 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TmpTrackBoundaryNode
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.replaceEdges
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someRowVersion
 
@@ -75,7 +77,7 @@ fun createTrack(
 ): TrackForSwitchFitting {
     val jointSequences =
         asSwitchStructure(switchStructure).let { switchStructure ->
-            getSwitchAlignmentJointSequences(switchStructure) + getPartialSwitchAlignmentJointSequences(switchStructure)
+            switchConnectivity(switchStructure).alignments.map { it.joints }
         }
     if (!skipValidation) {
         require(

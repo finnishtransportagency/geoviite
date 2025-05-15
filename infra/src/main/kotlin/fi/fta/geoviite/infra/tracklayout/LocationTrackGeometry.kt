@@ -201,12 +201,12 @@ sealed class LocationTrackGeometry : IAlignment {
         return requireNotNull(getEdgeAtM(m)) { "Geometry does not contain edge at m $m" }
     }
 
-    fun getEdgeAtM(m: Double): Pair<LayoutEdge, Range<Double>>? =
+    fun getEdgeAtM(m: Double, delta: Double = 0.000001): Pair<LayoutEdge, Range<Double>>? =
         edgeMs
             .binarySearch { mRange ->
                 when {
-                    m < mRange.min -> 1
-                    m > mRange.max -> -1
+                    m < mRange.min - delta -> 1
+                    m > mRange.max + delta -> -1
                     else -> 0
                 }
             }
@@ -927,4 +927,31 @@ fun verifyTrackBoundaryNode(portA: TrackBoundary, portB: TrackBoundary?) {
     require(portA.id != portB?.id) {
         "Track boundary node cannot connect twice to the same track: portA=$portA portB=$portB"
     }
+}
+
+fun replaceEdges(
+    geometry: LocationTrackGeometry,
+    edgesToReplace: List<LayoutEdge>,
+    newEdges: List<LayoutEdge>,
+): LocationTrackGeometry {
+    return TmpLocationTrackGeometry(replaceEdges(originalEdges = geometry.edges, edgesToReplace, newEdges))
+}
+
+private fun replaceEdges(
+    originalEdges: List<LayoutEdge>,
+    edgesToReplace: List<LayoutEdge>,
+    newEdges: List<LayoutEdge>,
+): List<LayoutEdge> {
+    val replaceStartIndex =
+        originalEdges.indexOfFirst { originalEdge ->
+            originalEdge.startNode.node == edgesToReplace.first().startNode.node
+        }
+    val replaceEndIndex =
+        originalEdges.indexOfLast { originalEdge -> originalEdge.endNode.node == edgesToReplace.last().endNode.node }
+    require(replaceStartIndex != -1 && replaceEndIndex != -1) { "Cannot replace non existing edges" }
+    val newAllEdges =
+        originalEdges.subList(0, replaceStartIndex) +
+            newEdges +
+            originalEdges.subList(replaceEndIndex + 1, originalEdges.lastIndex + 1)
+    return combineEdges(newAllEdges)
 }

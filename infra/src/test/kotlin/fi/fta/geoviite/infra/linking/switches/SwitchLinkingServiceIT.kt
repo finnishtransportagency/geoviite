@@ -41,6 +41,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
@@ -82,6 +83,7 @@ constructor(
     private val switchLinkingService: SwitchLinkingService,
     private val switchTrackRelinkingValidationService: SwitchTrackRelinkingValidationService,
     private val switchDao: LayoutSwitchDao,
+    private val switchService: LayoutSwitchService,
     private val locationTrackService: LocationTrackService,
     private val geometryDao: GeometryDao,
     private val switchStructureDao: SwitchStructureDao,
@@ -1578,7 +1580,7 @@ constructor(
                 fittedJointMatch(trackB, 3, 32.567),
             )
 
-        val linkedTracks = switchLinkingService.linkFittedSwitch(context.context, switchId, fittedSwitch)
+        val linkedTracks = linkFittedSwitch(context.context, switchId, fittedSwitch)
 
         // validate
         assertSwitchNodeExists(
@@ -1826,6 +1828,33 @@ constructor(
                     one.successfulSuggestion?.copy(location = one.successfulSuggestion!!.location.round(1).toPoint())
             )
         }
+
+    private fun linkFittedSwitch(
+        layoutContext: LayoutContext,
+        switchId: IntId<LayoutSwitch>,
+        fittedSwitch: FittedSwitch,
+    ): List<Pair<LocationTrack, LocationTrackGeometry>> {
+        val fittedSwitchLocationTrackIds =
+            fittedSwitch.joints.flatMap { joint -> joint.matches.map { match -> match.locationTrackId } }.distinct()
+        val fittedSwitchTracks =
+            fittedSwitchLocationTrackIds.map { locationTrackId ->
+                requireNotNull(locationTrackService.getWithGeometry(layoutContext, locationTrackId)) {
+                    "Location track $locationTrackId for fitted switch not found"
+                }
+            }
+        val switchContainingTracks = switchService.getLocationTracksLinkedToSwitch(layoutContext, switchId)
+        val linkedTracks =
+            directlyApplyFittedSwitchChangesToTracks(
+                    switchId,
+                    fittedSwitch,
+                    fittedSwitchTracks + switchContainingTracks,
+                )
+                .let { modifiedTracks ->
+                    locationTrackService.recalculateTopology(layoutContext, modifiedTracks, switchId)
+                }
+
+        return linkedTracks
+    }
 }
 
 fun suggestedSwitchJointMatch(
@@ -1844,3 +1873,13 @@ fun suggestedSwitchJointMatch(
         0.1,
         RelativeDirection.Along,
     )
+
+fun directlyApplyFittedSwitchChangesToTracks(
+    switchId: IntId<LayoutSwitch>,
+    fittedSwitch: FittedSwitch,
+    relevantTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+): List<Pair<LocationTrack, LocationTrackGeometry>> {
+    val clearedTracks = clearSwitchFromTracks(switchId, relevantTracks.associateBy { it.first.id as IntId })
+    val suggested = matchFittedSwitchToTracks(fittedSwitch, clearedTracks, switchId)
+    return withChangesFromLinkingSwitch(suggested, fittedSwitch.switchStructure, switchId, clearedTracks)
+}

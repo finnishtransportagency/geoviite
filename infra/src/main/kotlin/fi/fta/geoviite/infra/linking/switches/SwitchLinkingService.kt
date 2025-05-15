@@ -2,21 +2,30 @@ package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.linking.ALIGNMENT_LINKING_SNAP
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResult
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
+import fi.fta.geoviite.infra.linking.slice
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.math.boundingBoxCombining
+import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.ContextCache
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.EdgeNode
+import fi.fta.geoviite.infra.tracklayout.GeometrySource
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -26,7 +35,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
+import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
+import fi.fta.geoviite.infra.tracklayout.replaceEdges
 import java.util.stream.Collectors
 import kotlin.collections.find
 import org.springframework.beans.factory.annotation.Autowired
@@ -353,33 +365,6 @@ constructor(
             )
         }
     }
-
-    fun linkFittedSwitch(
-        layoutContext: LayoutContext,
-        switchId: IntId<LayoutSwitch>,
-        fittedSwitch: FittedSwitch,
-    ): List<Pair<LocationTrack, LocationTrackGeometry>> {
-        val fittedSwitchLocationTrackIds =
-            fittedSwitch.joints.flatMap { joint -> joint.matches.map { match -> match.locationTrackId } }.distinct()
-        val fittedSwitchTracks =
-            fittedSwitchLocationTrackIds.map { locationTrackId ->
-                requireNotNull(locationTrackService.getWithGeometry(layoutContext, locationTrackId)) {
-                    "Location track $locationTrackId for fitted switch not found"
-                }
-            }
-        val switchContainingTracks = switchService.getLocationTracksLinkedToSwitch(layoutContext, switchId)
-        val linkedTracks =
-            directlyApplyFittedSwitchChangesToTracks(
-                    switchId,
-                    fittedSwitch,
-                    fittedSwitchTracks + switchContainingTracks,
-                )
-                .let { modifiedTracks ->
-                    locationTrackService.recalculateTopology(layoutContext, modifiedTracks, switchId)
-                }
-
-        return linkedTracks
-    }
 }
 
 fun getSwitchBoundsFromTracks(tracks: Collection<LocationTrackGeometry>, switchId: IntId<LayoutSwitch>): BoundingBox? =
@@ -540,3 +525,98 @@ private fun collectLocationTracksNearFitGrids(
         val switchBboxes = fitGrid.keys().mapNotNull { fit -> getSwitchBoundsFromSwitchFit(fit) }
         boundingBoxCombining(switchBboxes)?.let { boundingBox -> locationTrackCache.getWithinBoundingBox(boundingBox) }
     }
+
+fun linkJointsToEdge(
+    switchId: IntId<LayoutSwitch>,
+    switchStructure: SwitchStructure,
+    edge: LayoutEdge,
+    joints: List<SuggestedJoint>,
+): List<LayoutEdge> {
+    val edges = mutableListOf(edge)
+    joints.forEachIndexed { index, joint ->
+        val lastEdge = edges.removeLast()
+        val edgeStartM = edges.sumOf { it.end.m }
+        val role = SwitchJointRole.of(switchStructure, joint.jointNumber)
+        val first = index == 0
+        val last = index == joints.lastIndex
+        edges.addAll(
+            linkJointToEdge(switchId, lastEdge, joint.jointNumber, role, joint.mvalueOnEdge - edgeStartM, first, last)
+        )
+    }
+    return edges
+}
+
+// TODO: Mieti toleranssit
+const val SWITCH_JOINT_NODE_SNAPPING_TOLERANCE = ALIGNMENT_LINKING_SNAP
+
+// TODO: Tämän pitää varmaan toimia yhteen topologialinkityksen kanssa
+const val SWITCH_JOINT_NODE_ADJUSTMENT_TOLERANCE = 2.0
+
+private fun linkJointToEdge(
+    switchId: IntId<LayoutSwitch>,
+    edge: LayoutEdge,
+    jointNumber: JointNumber,
+    jointRole: SwitchJointRole,
+    mValue: Double,
+    isFirstJointInSwitchAlignment: Boolean,
+    isLastJointInSwitchAlignment: Boolean,
+): List<LayoutEdge> {
+    val switchLink = SwitchLink(switchId, jointRole, jointNumber)
+    val switchInnerEdgeNode = EdgeNode.switch(inner = switchLink, outer = null)
+    val switchOuterEdgeNode = EdgeNode.switch(inner = null, outer = switchLink)
+
+    return if (isSame(edge.start.m, mValue, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
+        val withNewStartNode = edge.withStartNode(switchInnerEdgeNode)
+        listOf(withNewStartNode)
+    } else if (isSame(edge.end.m, mValue, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
+        val withNewEndNode = edge.withEndNode(switchInnerEdgeNode)
+        listOf(withNewEndNode)
+    } else {
+        val firstEdge =
+            slice(edge, Range(0.0, mValue))
+                .withEndNode(if (isFirstJointInSwitchAlignment) switchOuterEdgeNode else switchInnerEdgeNode)
+        val secondEdge =
+            slice(edge, Range(mValue, edge.end.m))
+                .withStartNode(if (isLastJointInSwitchAlignment) switchOuterEdgeNode else switchInnerEdgeNode)
+        listOf(firstEdge, secondEdge)
+    }
+}
+
+fun withChangesFromLinkingSwitch(
+    suggestedSwitch: SuggestedSwitch,
+    switchStructure: SwitchStructure,
+    switchId: IntId<LayoutSwitch>,
+    clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+): List<Pair<LocationTrack, LocationTrackGeometry>> {
+    require(clearedTracks.values.none { it.second.containsSwitch(switchId) }) {
+        "Must clear switch from tracks before calling withChangesFromLinkingSwitch on it"
+    }
+    return suggestedSwitch.trackLinks.map { (locationTrackId, links) ->
+        val (locationTrack, geometry) = clearedTracks.getValue(locationTrackId)
+        locationTrack to
+            (if (links.suggestedLinks != null) {
+                val suggested = links.suggestedLinks
+                val edge = geometry.edges[suggested.edgeIndex]
+                replaceEdges(
+                    geometry,
+                    listOf(edge),
+                    linkJointsToEdge(switchId, switchStructure, edge, suggested.joints),
+                )
+            } else geometry)
+    }
+}
+
+fun clearSwitchFromTracks(
+    switchId: IntId<LayoutSwitch>,
+    tracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+) = tracks.mapValues { (_, track) -> track.first to track.second.withoutSwitch(switchId) }
+
+fun createModifiedLayoutSwitchLinking(suggestedSwitch: SuggestedSwitch, layoutSwitch: LayoutSwitch): LayoutSwitch {
+    val newGeometrySwitchId = suggestedSwitch.geometrySwitchId ?: layoutSwitch.sourceId
+
+    return layoutSwitch.copy(
+        sourceId = newGeometrySwitchId,
+        joints = suggestedSwitch.joints,
+        source = if (newGeometrySwitchId != null) GeometrySource.PLAN else GeometrySource.GENERATED,
+    )
+}
