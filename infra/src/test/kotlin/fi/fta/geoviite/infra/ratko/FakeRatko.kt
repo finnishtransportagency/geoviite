@@ -46,6 +46,7 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
+import org.mockserver.model.Parameter
 import org.slf4j.event.Level
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -98,14 +99,109 @@ class FakeRatko(port: Int) {
         }
     }
 
-    fun acceptsNewLocationTrackGivingItOid(oid: String) {
+    fun acceptsNewLocationTrackGivingItOid(
+        oid: String,
+        ratkoLocationTrackAfterCreation: InterfaceRatkoLocationTrack? = null,
+    ) {
         post("/api/infra/v1.0/locationtracks", mapOf<String, String>(), MatchType.STRICT, Times.once())
             .respond(okJson(mapOf("id" to oid)))
         put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
-        get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
+
+        ratkoLocationTrackAfterCreation?.let { ratkoTrack ->
+            get("/api/locations/v1.1/locationtracks/${oid}").respond(okJson(listOf(ratkoTrack)))
+        } ?: get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
+
         post("/api/infra/v1.0/points/${oid}").respond(ok())
         patch("/api/infra/v1.0/points/${oid}").respond(ok())
         post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+            .respond(okJson(listOf(mapOf("id" to oid))))
+    }
+
+    fun acceptsMultipleNewLocationTracksWithReferencedGeometry(oids: List<String>, locationTrackOidOfGeometry: String) {
+        oids.forEach { oid -> acceptsNewLocationTrackWithReferencedGeometry(oid, locationTrackOidOfGeometry) }
+    }
+
+    fun acceptsNewLocationTrackWithReferencedGeometry(oid: String, locationTrackOidOfGeometry: String) {
+        post("/api/infra/v1.0/locationtracks", mapOf<String, String>(), MatchType.STRICT, Times.once())
+            .respond(okJson(mapOf("id" to oid)))
+        get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
+        post(
+                "/api/infra/v1.0/locationtracks",
+                mapOf("id" to oid),
+                MatchType.ONLY_MATCHING_FIELDS,
+                Times.once(),
+                queryParams = mapOf("locationtrackOidOfGeometry" to locationTrackOidOfGeometry),
+            )
+            .respond(okJson(mapOf("id" to oid)))
+
+        post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        patch("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+            .respond(okJson(listOf(mapOf("id" to oid))))
+    }
+
+    fun acceptsUpdatingLocationTrackWithReferencedGeometry(
+        oid: String,
+        locationTrackOidOfGeometry: String,
+        startKmM: String,
+        endKmM: String,
+    ) {
+        get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
+        // TODO Onkohan tämä alempi post-kutsu tarpeellinen? Miksi tämä lentää duplikaatille?
+        post(
+                "/api/infra/v1.0/locationtracks",
+                mapOf("id" to oid),
+                MatchType.ONLY_MATCHING_FIELDS,
+                Times.once(),
+                queryParams = mapOf("locationtrackOidOfGeometry" to locationTrackOidOfGeometry),
+            )
+            .respond(okJson(mapOf("id" to oid)))
+        patch(
+                "/api/infra/v1.1/locationtracks",
+                mapOf<String, String>(),
+                MatchType.ONLY_MATCHING_FIELDS,
+                Times.once(),
+                queryParams =
+                    mapOf(
+                        "locationtrackOIDOfGeometry" to locationTrackOidOfGeometry,
+                        "locationtrackOIDOfGeometryStartKmM" to startKmM,
+                        "locationtrackOIDOfGeometryEndKmM" to endKmM,
+                    ),
+            )
+            .respond(ok())
+
+        post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        patch("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+            .respond(okJson(listOf(mapOf("id" to oid))))
+    }
+
+    fun acceptsUpdatingLocationTrackPartiallyWithReferencedGeometry(
+        oid: String,
+        locationTrackOidOfGeometry: String,
+        startKmM: String,
+        endKmM: String,
+        expectedAmountOfPointUpdateCalls: Int? = null,
+    ) {
+        patch(
+                "/api/infra/v1.1/locationtracks",
+                mapOf<String, String>(),
+                MatchType.STRICT,
+                Times.once(),
+                queryParams =
+                    mapOf(
+                        "locationtrackOIDOfGeometry" to locationTrackOidOfGeometry,
+                        "locationrackOidOfGeometryStartKmM" to startKmM,
+                        "locationtrackOIDOfGeometryEndKmM" to endKmM,
+                    ),
+            )
+            .respond(ok())
+
+        val allowedAmountOfPointsUpdateCalls =
+            expectedAmountOfPointUpdateCalls?.let(Times::exactly) ?: Times.unlimited()
+
+        patch("/api/infra/v1.0/points/${oid}", times = allowedAmountOfPointsUpdateCalls).respond(ok())
         post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
@@ -159,6 +255,8 @@ class FakeRatko(port: Int) {
     fun hasSwitch(switchAsset: InterfaceRatkoSwitch) {
         get("/api/assets/v1.2/${switchAsset.id}").respond(okJson(switchAsset))
         put("/api/assets/v1.2/${switchAsset.id}/properties").respond(ok())
+        put("/api/assets/v1.2/${switchAsset.id}/locations").respond(ok())
+        put("/api/assets/v1.2/${switchAsset.id}/geoms").respond(ok())
     }
 
     fun getPushedRouteNumber(oid: Oid<LayoutTrackNumber>): List<RatkoRouteNumber> =
@@ -356,35 +454,39 @@ class FakeRatko(port: Int) {
         }
 
     private fun get(url: String, times: Times? = null): ForwardChainExpectation =
-        expectation(url, "GET", null, null, times)
+        expectation(url, "GET", null, null, times, emptyMap())
 
     private fun put(
         url: String,
         body: Any? = null,
         bodyMatchType: MatchType? = null,
         times: Times? = null,
-    ): ForwardChainExpectation = expectation(url, "PUT", body, bodyMatchType, times)
+        queryParams: Map<String, String> = emptyMap(),
+    ): ForwardChainExpectation = expectation(url, "PUT", body, bodyMatchType, times, queryParams)
 
     private fun post(
         url: String,
         body: Any? = null,
         bodyMatchType: MatchType? = null,
         times: Times? = null,
-    ): ForwardChainExpectation = expectation(url, "POST", body, bodyMatchType, times)
+        queryParams: Map<String, String> = emptyMap(),
+    ): ForwardChainExpectation = expectation(url, "POST", body, bodyMatchType, times, queryParams)
 
     private fun patch(
         url: String,
         body: Any? = null,
         bodyMatchType: MatchType? = null,
         times: Times? = null,
-    ): ForwardChainExpectation = expectation(url, "PATCH", body, bodyMatchType, times)
+        queryParams: Map<String, String> = emptyMap(),
+    ): ForwardChainExpectation = expectation(url, "PATCH", body, bodyMatchType, times, queryParams)
 
     private fun delete(
         url: String,
         body: Any? = null,
         bodyMatchType: MatchType? = null,
         times: Times? = null,
-    ): ForwardChainExpectation = expectation(url, "DELETE", body, bodyMatchType, times)
+        queryParams: Map<String, String> = emptyMap(),
+    ): ForwardChainExpectation = expectation(url, "DELETE", body, bodyMatchType, times, queryParams)
 
     private fun expectation(
         url: String,
@@ -392,15 +494,20 @@ class FakeRatko(port: Int) {
         body: Any?,
         bodyMatchType: MatchType?,
         times: Times?,
+        queryParams: Map<String, String>,
     ): ForwardChainExpectation =
-        mockServer.`when`(
-            request(url).withMethod(method).apply {
-                if (body != null) {
-                    this.withBody(JsonBody.json(body, bodyMatchType ?: MatchType.ONLY_MATCHING_FIELDS))
-                }
-            },
-            times ?: Times.unlimited(),
-        )
+        mockServer
+            .`when`(
+                request(url).withMethod(method).apply {
+                    queryParams.forEach { (name, value) -> this.withQueryStringParameters(Parameter(name, value)) }
+
+                    if (body != null) {
+                        this.withBody(JsonBody.json(body, bodyMatchType ?: MatchType.ONLY_MATCHING_FIELDS))
+                    }
+                },
+                times ?: Times.unlimited(),
+            )
+            .also { println(url) }
 
     private fun ok() = HttpResponse.response().withStatusCode(200)
 

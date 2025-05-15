@@ -211,6 +211,8 @@ data class PublishedSwitch(
         get() = version.id
 }
 
+data class PublishedSwitchJoint(val jointNumber: JointNumber, val address: TrackMeter)
+
 data class PublishedKmPost(
     val version: LayoutRowVersion<LayoutKmPost>,
     val trackNumberId: IntId<LayoutTrackNumber>,
