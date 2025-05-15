@@ -568,11 +568,31 @@ fun splitLocationTrack(
             val (newTrack, newGeometry) =
                 target.duplicate?.let { d ->
                     when (d.operation) {
-                        SplitTargetDuplicateOperation.TRANSFER ->
+                        SplitTargetDuplicateOperation.TRANSFER -> {
+                            val replacedEdgeIndexRange =
+                                findSplitEdgeIndices(d.geometry, target.startSwitch, nextSwitch)
+
+                            val newEdges =
+                                listOf(
+                                        // Partial duplicate edges before the split start position
+                                        d.geometry.edges.subList(0, replacedEdgeIndexRange.start),
+                                        // Split source track edges
+                                        edges,
+                                        // Partial duplicate edges after the split end position
+                                        d.geometry.edges.subList(
+                                            replacedEdgeIndexRange.endInclusive + 1,
+                                            d.geometry.edges.size,
+                                        ),
+                                    )
+                                    .flatten()
+                                    .distinct()
+
                             updateSplitTargetForTransferAssets(
                                 duplicateTrack = d.track,
                                 topologicalConnectivityType = connectivityType,
-                            ) to d.geometry
+                            ) to TmpLocationTrackGeometry.of(newEdges, d.track.id as? IntId)
+                        }
+
                         SplitTargetDuplicateOperation.OVERWRITE ->
                             updateSplitTargetForOverwriteDuplicate(
                                 sourceTrack = track,
