@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
@@ -283,32 +284,27 @@ constructor(
         publicationTime: Instant,
         split: Split,
     ): SplitTargetInPublication? {
-        val (track, geometry) = locationTrackService.getWithGeometry(rowVersion)
-        return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
+        val (targetTrack, targetGeometry) = locationTrackService.getWithGeometry(rowVersion)
+        return split.getTargetLocationTrack(targetTrack.id as IntId)?.let { splitTarget ->
             val ctx =
                 requireNotNull(
                     geocodingService.getGeocodingContextAtMoment(
                         publicationBranch,
-                        track.trackNumberId,
+                        targetTrack.trackNumberId,
                         publicationTime,
                     )
                 )
 
-            val (sourceStart, sourceEnd) = sourceGeometry.getEdgeStartAndEnd(target.edgeIndices)
-            val startBySegments = requireNotNull(ctx.getAddress(sourceStart)).first
-            val endBySegments = requireNotNull(ctx.getAddress(sourceEnd)).first
-            val startByTarget = requireNotNull(geometry.start?.let { point -> ctx.getAddress(point)?.first })
-            val endByTarget = requireNotNull(geometry.end?.let { point -> ctx.getAddress(point)?.first })
-            val startAddress = listOf(startBySegments, startByTarget).maxOrNull()
-            val endAddress = listOf(endBySegments, endByTarget).minOrNull()
+            val (startAddress, endAddress) =
+                getSplitTargetTrackStartAndEndAddresses(ctx, sourceGeometry, splitTarget, targetGeometry)
 
             return SplitTargetInPublication(
-                id = track.id,
-                name = track.name,
-                oid = locationTrackDao.fetchExternalId(publicationBranch, track.id)?.oid,
+                id = targetTrack.id,
+                name = targetTrack.name,
+                oid = locationTrackDao.fetchExternalId(publicationBranch, targetTrack.id)?.oid,
                 startAddress = startAddress,
                 endAddress = endAddress,
-                operation = target.operation,
+                operation = splitTarget.operation,
             )
         }
     }
