@@ -564,21 +564,18 @@ private fun linkJointToEdge(
     val switchLink = SwitchLink(switchId, jointRole, jointNumber)
     val switchInnerEdgeNode = EdgeNode.switch(inner = switchLink, outer = null)
     val switchOuterEdgeNode = EdgeNode.switch(inner = null, outer = switchLink)
+    val switchStartNode = if (isLastJointInSwitchAlignment) switchOuterEdgeNode else switchInnerEdgeNode
+    val switchEndNode = if (isFirstJointInSwitchAlignment) switchOuterEdgeNode else switchInnerEdgeNode
 
     return if (isSame(edge.start.m, mValue, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
-        val withNewStartNode = edge.withStartNode(switchInnerEdgeNode)
-        listOf(withNewStartNode)
+        listOf(edge.withStartNode(switchStartNode))
     } else if (isSame(edge.end.m, mValue, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
-        val withNewEndNode = edge.withEndNode(switchInnerEdgeNode)
-        listOf(withNewEndNode)
+        listOf(edge.withEndNode(switchEndNode))
     } else {
-        val firstEdge =
-            slice(edge, Range(0.0, mValue))
-                .withEndNode(if (isFirstJointInSwitchAlignment) switchOuterEdgeNode else switchInnerEdgeNode)
-        val secondEdge =
-            slice(edge, Range(mValue, edge.end.m))
-                .withStartNode(if (isLastJointInSwitchAlignment) switchOuterEdgeNode else switchInnerEdgeNode)
-        listOf(firstEdge, secondEdge)
+        listOf(
+            slice(edge, Range(0.0, mValue)).withEndNode(switchEndNode),
+            slice(edge, Range(mValue, edge.end.m)).withStartNode(switchStartNode),
+        )
     }
 }
 

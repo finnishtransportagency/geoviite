@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
+import fi.fta.geoviite.infra.tracklayout.TOPOLOGY_CALC_DISTANCE
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -87,10 +88,18 @@ private fun completeIncompleteJointSequences(
     val structureAlignments = switchConnectivity(fittedSwitch.switchStructure).alignments
 
     return mapNonNullValues(jointsOnEdge) { (edgeId, jointsFromSwitchFit) ->
-        fun isValid(structureAlignment: LinkableSwitchStructureAlignment, joints: List<JointOnEdge>) =
-            validateJointSequence(structureAlignment, joints, edgeId, clearedTracks)
+        fun isValidInnerJointLinkSequence(
+            structureAlignment: LinkableSwitchStructureAlignment,
+            joints: List<JointOnEdge>,
+        ) = validateJointSequence(structureAlignment, joints, edgeId, clearedTracks)
 
-        if (structureAlignments.any { structureAlignment -> isValid(structureAlignment, jointsFromSwitchFit) }) {
+        val sequenceIsValidTopoLink =
+            jointSequenceIsValidTopologyLink(fittedSwitch, edgeId, jointsFromSwitchFit, clearedTracks)
+        val sequenceIsValidEdgeLink =
+            structureAlignments.any { structureAlignment ->
+                isValidInnerJointLinkSequence(structureAlignment, jointsFromSwitchFit)
+            }
+        if (sequenceIsValidTopoLink || sequenceIsValidEdgeLink) {
             jointsFromSwitchFit
         } else {
             structureAlignments.firstNotNullOfOrNull { structureAlignment ->
@@ -100,11 +109,33 @@ private fun completeIncompleteJointSequences(
                         getEdge(edgeId, clearedTracks),
                         jointsFromSwitchFit,
                     )
-                    ?.takeIf { completedSequence -> isValid(structureAlignment, completedSequence) }
+                    ?.takeIf { completedSequence ->
+                        isValidInnerJointLinkSequence(structureAlignment, completedSequence)
+                    }
             }
         }
     }
 }
+
+private fun jointSequenceIsValidTopologyLink(
+    fittedSwitch: FittedSwitch,
+    edgeId: EdgeId,
+    jointSequence: List<JointOnEdge>,
+    clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+) =
+    if (jointSequence.size != 1 || jointSequence[0].jointRole == SwitchJointRole.MATH) {
+        false
+    } else {
+        val singleJoint = jointSequence[0]
+        val edge = getEdge(edgeId, clearedTracks)
+        val point = edge.getPointAtM(singleJoint.mOnEdge)
+        val switchJoint = fittedSwitch.joints.find { it.number == singleJoint.jointNumber }
+        point != null &&
+            switchJoint != null &&
+            (singleJoint.mOnEdge < TOPOLOGY_CALC_DISTANCE ||
+                edge.end.m - singleJoint.mOnEdge < TOPOLOGY_CALC_DISTANCE) &&
+            lineLength(point, switchJoint.location) < TOPOLOGY_CALC_DISTANCE
+    }
 
 private fun validateJointSequence(
     structureAlignment: LinkableSwitchStructureAlignment,
