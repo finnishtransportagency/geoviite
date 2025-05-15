@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
@@ -243,25 +244,13 @@ constructor(
     ): SplitTargetInPublication? {
         val (track, alignment) = locationTrackService.getWithAlignment(rowVersion)
         return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
-            val ctx =
-                geocodingService.getGeocodingContextAtMoment(publicationBranch, track.trackNumberId, publicationTime)
+            val geocodingContext =
+                geocodingService
+                    .getGeocodingContextAtMoment(publicationBranch, track.trackNumberId, publicationTime)
+                    .let(::requireNotNull)
 
-            val startBySegments =
-                requireNotNull(
-                    sourceAlignment.segments[target.segmentIndices.first].segmentStart.let { point ->
-                        ctx?.getAddress(point)?.first
-                    }
-                )
-            val endBySegments =
-                requireNotNull(
-                    sourceAlignment.segments[target.segmentIndices.last].segmentEnd.let { point ->
-                        ctx?.getAddress(point)?.first
-                    }
-                )
-            val startByTargetAlignment = requireNotNull(alignment.start?.let { point -> ctx?.getAddress(point)?.first })
-            val endByTargetAlignment = requireNotNull(alignment.end?.let { point -> ctx?.getAddress(point)?.first })
-            val startAddress = listOf(startBySegments, startByTargetAlignment).maxOrNull()
-            val endAddress = listOf(endBySegments, endByTargetAlignment).minOrNull()
+            val (startAddress, endAddress) =
+                getSplitTargetTrackStartAndEndAddresses(geocodingContext, sourceAlignment, target, alignment)
 
             return SplitTargetInPublication(
                 id = track.id,

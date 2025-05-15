@@ -62,6 +62,7 @@ private const val LOCATIONS_PATH = "/api/locations/v1.1"
 private const val LOCATION_TRACK_LOCATIONS_PATH = "$LOCATIONS_PATH/locationtracks"
 private const val LOCATION_TRACK_POINTS_PATH = "$INFRA_PATH/points"
 private const val LOCATION_TRACK_PATH = "$INFRA_PATH/locationtracks"
+private const val LOCATION_TRACK_POINTS_PATCH_PATH = "/api/infra/v1.1/locationtracks"
 private const val ROUTE_NUMBER_LOCATIONS_PATH = "$LOCATIONS_PATH/routenumber"
 private const val ROUTE_NUMBER_POINTS_PATH = "$INFRA_PATH/routenumber/points"
 private const val ROUTE_NUMBER_PATH = "$INFRA_PATH/routenumbers"
@@ -218,6 +219,31 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 .toBodilessEntity()
                 .block(defaultBlockTimeout)
         }
+    }
+
+    fun patchLocationTrackPoints(
+        sourceTrackOid: RatkoOid<RatkoLocationTrack>,
+        targetTrackOid: RatkoOid<RatkoLocationTrack>,
+        startAddress: TrackMeter,
+        endAddress: TrackMeter,
+    ) {
+        logger.integrationCall(
+            "patchLocationTrackPoints",
+            "locationTrackOid" to targetTrackOid,
+            "locationTrackOidOfGeometry" to sourceTrackOid,
+            "startAddress" to startAddress,
+            "endAddress" to endAddress,
+        )
+
+        patchSpec(
+            LOCATION_TRACK_POINTS_PATCH_PATH,
+            mapOf(
+                "locationtrackOid" to targetTrackOid,
+                "locationtrackOidOfGeometry" to sourceTrackOid,
+                "locationtrackOIDOfGeometryStartKmM" to startAddress,
+                "locationtrackOidOfGeometryEndKmM" to endAddress,
+            ),
+        )
     }
 
     fun forceRatkoToRedrawLocationTrack(locationTrackOids: Set<RatkoOid<RatkoLocationTrack>>) {

@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.math.roundTo3Decimals
+import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -973,4 +974,34 @@ data class PolyLineEdge(
 
     fun interpolateSegmentPointAtPortion(portion: Double): SegmentPoint =
         if (portion <= 0.0) start else if (portion >= 1.0) end else interpolateToSegmentPoint(start, end, portion)
+}
+
+fun getSplitTargetTrackStartAndEndAddresses(
+    geocodingContext: GeocodingContext,
+    sourceTrackAlignment: LayoutAlignment,
+    splitTarget: SplitTarget,
+    splitTargetAlignment: LayoutAlignment,
+): Pair<TrackMeter?, TrackMeter?> {
+    val startBySegments =
+        sourceTrackAlignment.segments[splitTarget.segmentIndices.first]
+            .segmentStart
+            .let { point -> geocodingContext.getAddress(point)?.first }
+            .let(::requireNotNull)
+
+    val endBySegments =
+        sourceTrackAlignment.segments[splitTarget.segmentIndices.last]
+            .segmentEnd
+            .let { point -> geocodingContext.getAddress(point)?.first }
+            .let(::requireNotNull)
+
+    val startByTargetAlignment =
+        splitTargetAlignment.start?.let { point -> geocodingContext.getAddress(point)?.first }.let(::requireNotNull)
+
+    val endByTargetAlignment =
+        splitTargetAlignment.end?.let { point -> geocodingContext.getAddress(point)?.first }.let(::requireNotNull)
+
+    val startAddress = listOf(startBySegments, startByTargetAlignment).maxOrNull()
+    val endAddress = listOf(endBySegments, endByTargetAlignment).minOrNull()
+
+    return startAddress to endAddress
 }
