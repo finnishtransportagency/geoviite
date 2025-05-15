@@ -9,6 +9,7 @@ import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.integration.RatkoOperation
@@ -40,7 +41,7 @@ import fi.fta.geoviite.infra.ratko.model.parseAsset
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
-import java.time.Duration
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -53,6 +54,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 val defaultBlockTimeout: Duration = defaultResponseTimeout.plusMinutes(1L)
 
@@ -62,6 +64,7 @@ private const val LOCATIONS_PATH = "/api/locations/v1.1"
 private const val LOCATION_TRACK_LOCATIONS_PATH = "$LOCATIONS_PATH/locationtracks"
 private const val LOCATION_TRACK_POINTS_PATH = "$INFRA_PATH/points"
 private const val LOCATION_TRACK_PATH = "$INFRA_PATH/locationtracks"
+private const val LOCATION_TRACK_POINTS_PATCH_PATH = "/api/infra/v1.1/locationtracks"
 private const val ROUTE_NUMBER_LOCATIONS_PATH = "$LOCATIONS_PATH/routenumber"
 private const val ROUTE_NUMBER_POINTS_PATH = "$INFRA_PATH/routenumber/points"
 private const val ROUTE_NUMBER_PATH = "$INFRA_PATH/routenumbers"
@@ -220,6 +223,45 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         }
     }
 
+    fun patchLocationTrackPoints(
+        sourceTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
+        targetTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
+        startAddress: TrackMeter,
+        endAddress: TrackMeter,
+    ) {
+        logger.integrationCall(
+            "patchLocationTrackPoints",
+            "locationTrackOid" to targetTrackExternalId.oid,
+            "locationtrackOidOfGeometry" to sourceTrackExternalId.oid,
+            "startAddress" to startAddress,
+            "endAddress" to endAddress,
+        )
+
+        val params =
+            mapOf(
+                "locationtrackOIDOfGeometry" to sourceTrackExternalId.oid.toString(),
+                "locationtrackOIDOfGeometryStartKmM" to startAddress.stripTrailingZeroes(),
+                "locationtrackOIDOfGeometryEndKmM" to endAddress.stripTrailingZeroes(),
+            )
+
+        val url = "$LOCATION_TRACK_POINTS_PATCH_PATH/${targetTrackExternalId.oid}"
+
+        client
+            .patch()
+            .uri { builder ->
+                // Due to special handling of the plus character "+" (as it is treated as a space in a URL), the
+                // following call uses a query param template.
+                //
+                // Plus characters are parts of track addresses, such as "0001+0123".
+                builder.path(url).apply { params.forEach { (k, v) -> queryParam(k, "{$k}") } }.build(params)
+            }
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(mapOf<String, Any>())
+            .retrieve()
+            .toBodilessEntity()
+            .block(defaultBlockTimeout)
+    }
+
     fun forceRatkoToRedrawLocationTrack(locationTrackOids: Set<RatkoOid<RatkoLocationTrack>>) {
         logger.integrationCall("updateLocationTrackGeometryMValues", "locationTrackOids" to locationTrackOids)
 
@@ -228,10 +270,18 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             .block(defaultBlockTimeout)
     }
 
-    fun newLocationTrack(locationTrack: RatkoLocationTrack): RatkoOid<RatkoLocationTrack>? {
+    fun newLocationTrack(
+        locationTrack: RatkoLocationTrack,
+        locationTrackOidOfGeometry: RatkoOid<RatkoLocationTrack>? = null,
+    ): RatkoOid<RatkoLocationTrack>? {
         logger.integrationCall("newLocationTrack", "locationTrack" to locationTrack)
 
-        return postWithResponseBody(LOCATION_TRACK_PATH, locationTrack)
+        return locationTrackOidOfGeometry?.let { referencedGeometryOid ->
+            postWithResponseBody(
+                "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=${referencedGeometryOid.id}",
+                locationTrack,
+            )
+        } ?: postWithResponseBody(LOCATION_TRACK_PATH, locationTrack)
     }
 
     fun <T : RatkoAsset> newAsset(asset: RatkoAsset): RatkoOid<T>? {

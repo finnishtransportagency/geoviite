@@ -88,11 +88,11 @@ import fi.fta.geoviite.infra.util.getTrackNumberOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -2408,6 +2408,32 @@ class PublicationDao(
                 "end_time" to Timestamp.from(inclusiveEndMoment),
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("track_number_id") }
+    }
+
+    fun fetchPublishedSwitchJoints(
+        publicationId: IntId<Publication>,
+        includeRemoved: Boolean,
+    ): Map<IntId<LayoutSwitch>, List<PublishedSwitchJoint>> {
+        val sql =
+            """
+                select switch_id, joint_number, address
+                from publication.switch_joint
+                where publication_id = :publication_id
+                and (:includeRemoved or removed = false)
+            """
+                .trimIndent()
+
+        val params = mapOf("publication_id" to publicationId.intValue, "includeRemoved" to includeRemoved)
+
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                rs.getIntId<LayoutSwitch>("switch_id") to
+                    PublishedSwitchJoint(
+                        jointNumber = rs.getJointNumber("joint_number"),
+                        address = rs.getTrackMeter("address"),
+                    )
+            }
+            .groupBy({ it.first }, { it.second })
     }
 }
 
