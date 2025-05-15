@@ -5,26 +5,36 @@ import fi.fta.geoviite.infra.common.FullRatkoExternalId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
+import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.getSplitTargetTrackStartAndEndAddresses
+import fi.fta.geoviite.infra.geometry.CreateVerticalGeometryListingCsvTask
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
+import fi.fta.geoviite.infra.ratko.model.PushableMainBranch
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
+import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
 import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoNodes
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoNodeCollection
+import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegmentMetadata
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -33,6 +43,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import java.time.Instant
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 
@@ -47,7 +59,225 @@ constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val geocodingService: GeocodingService,
+    createVerticalGeometryListingCsvTask: CreateVerticalGeometryListingCsvTask,
 ) {
+    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    fun pushSplits(splits: List<Pair<Split, RatkoLocationTrack>>, publicationTime: Instant): List<Oid<LocationTrack>> {
+        val layoutContext = LayoutContext.of(LayoutBranch.main, PublicationState.OFFICIAL)
+        val pushableBranch = PushableMainBranch
+
+        val oidMapping =
+            locationTrackDao.fetchExternalIds(
+                layoutContext.branch,
+                splits.flatMap { (split, _) -> split.locationTracks },
+            )
+
+        val asd =
+            splits.map { (split, existingRatkoLocationTrack) ->
+
+                // TODO Doesn't seem like the correct place
+                val (sourceTrack, sourceTrackAlignment) =
+                    locationTrackService.getWithAlignment(split.sourceLocationTrackVersion)
+
+                val sourceTrackGeocodingContext =
+                    geocodingService.getGeocodingContext(layoutContext, sourceTrack.trackNumberId).let(::requireNotNull)
+
+                // Refresh the state of the source track
+                updateEntireLocationTrack(
+                    pushableBranch,
+                    layoutContext,
+                    publicationTime,
+                    split.sourceLocationTrackVersion,
+                    existingRatkoLocationTrack,
+                )
+
+                split.targetLocationTracks.map { splitTarget ->
+                    val externalLocationTrackId =
+                        MainBranchRatkoExternalId(
+                            oid = oidMapping[splitTarget.locationTrackId]?.oid.let(::requireNotNull)
+                        )
+
+                    when (splitTarget.operation) {
+                        SplitTargetOperation.CREATE -> {
+                            createLocationTrack(
+                                layoutContext.branch,
+                                locationTrackDao.get(layoutContext, splitTarget.locationTrackId).let(::requireNotNull),
+                                externalLocationTrackId,
+                                publicationTime,
+                                sendGeometry = false,
+                            )
+                        }
+
+                        // TODO Overwrite korvaa raiteen kokonaan, ok, helppoa.
+                        // TODO TRANSFER, eli osittaiselle duplikaatille viedään ainoastaan geometria jossa ei ole
+                        // mitään päällekkäisyyttä? eli ns. koko raide uudelleen myös tässä tilanteessa?
+                        SplitTargetOperation.OVERWRITE,
+                        SplitTargetOperation.TRANSFER -> {
+                            val existingRatkoLocationTrack =
+                                ratkoClient.getLocationTrack(RatkoOid(externalLocationTrackId.oid))
+
+                            requireNotNull(existingRatkoLocationTrack) {
+                                "Existing Ratko location track was not found, oid=${externalLocationTrackId.oid}"
+                            }
+
+                            val alignmentAddresses =
+                                geocodingService.getAddressPoints(layoutContext, splitTarget.locationTrackId)
+
+                            requireNotNull(alignmentAddresses) {
+                                "Address points were undetermined, lt=${splitTarget.locationTrackId}"
+                            }
+
+                            val allKmNumbers =
+                                alignmentAddresses.allPoints
+                                    .asSequence()
+                                    .map { addressPoint -> addressPoint.address.kmNumber }
+                                    .toSet()
+
+                            updateLocationTrack(
+                                layoutContext.branch,
+                                locationTrackDao.get(layoutContext, splitTarget.locationTrackId).let(::requireNotNull),
+                                externalLocationTrackId,
+                                existingRatkoLocationTrack,
+                                allKmNumbers,
+                                publicationTime,
+                                sendGeometry = false,
+                            )
+                        }
+                    }
+
+                    // TODO The following is partially incorrect:
+                    // TODO Partial duplicates should be partially updated with the patchLocationTrackPoints-call
+                    // but their geometry should otherwise stay the same.
+                    when (splitTarget.operation) {
+                        SplitTargetOperation.CREATE,
+                        SplitTargetOperation.OVERWRITE -> {
+                            // TODO Change the call to only get the alignment
+                            val (_, splitTargetAlignment) =
+                                locationTrackService
+                                    .getWithAlignment(layoutContext, splitTarget.locationTrackId)
+                                    .let(::requireNotNull)
+
+                            val (startAddress, endAddress) =
+                                getSplitTargetTrackStartAndEndAddresses(
+                                    sourceTrackGeocodingContext,
+                                    sourceTrackAlignment,
+                                    splitTarget,
+                                    splitTargetAlignment,
+                                )
+
+                            // TODO This should be called to all track types.
+                            // CREATE+OVERWRITE -> full
+                            // TRANSFER -> only the partial address space
+                            ratkoClient.patchLocationTrackPoints(
+                                sourceTrackOid =
+                                    RatkoOid(oidMapping[split.sourceLocationTrackId]?.oid.let(::requireNotNull)),
+                                targetTrackOid =
+                                    RatkoOid(oidMapping[splitTarget.locationTrackId]?.oid.let(::requireNotNull)),
+                                startAddress = requireNotNull(startAddress),
+                                endAddress = requireNotNull(endAddress),
+                            )
+                        }
+
+                        SplitTargetOperation.TRANSFER -> {
+                            val locationTrack =
+                                locationTrackService
+                                    .get(layoutContext, splitTarget.locationTrackId)
+                                    .let(::requireNotNull)
+                            val locationTrackRatkoOid =
+                                RatkoOid<RatkoLocationTrack>(
+                                    oidMapping[splitTarget.locationTrackId]?.oid.let(::requireNotNull)
+                                )
+
+                            // TODO Palauttaakohan tämä edes oikeat osoitteet, ns. vasta siitä pisteestä lähtien, josta
+                            // osittain duplikaatti alkaa?
+                            // (Veikkaus: ei)
+                            val (addresses, jointPoints) =
+                                getLocationTrackPoints(layoutContext.branch, locationTrack, publicationTime)
+
+                            val alignmentAddresses =
+                                geocodingService.getAddressPoints(layoutContext, splitTarget.locationTrackId)
+
+                            requireNotNull(alignmentAddresses) {
+                                "Address points were undetermined, lt=${splitTarget.locationTrackId}"
+                            }
+
+                            val allKmNumbers =
+                                alignmentAddresses.allPoints
+                                    .asSequence()
+                                    .map { addressPoint -> addressPoint.address.kmNumber }
+                                    .toSet()
+
+                            val switchPoints =
+                                jointPoints.filterNot { jp ->
+                                    jp.address == addresses.startPoint.address ||
+                                        jp.address == addresses.endPoint.address
+                                }
+
+                            val changedMidPoints = (addresses.midPoints + switchPoints).sortedBy { p -> p.address }
+
+                            deleteLocationTrackPoints(allKmNumbers, locationTrackRatkoOid)
+                            updateLocationTrackGeometry(
+                                locationTrackOid = locationTrackRatkoOid,
+                                newPoints = changedMidPoints,
+                            )
+                        }
+                    }
+
+                    // TODO Set the state to OLD in the split source track
+                    updateLocationTrackProperties(
+                        branch = layoutContext.branch,
+                        locationTrack = sourceTrack,
+                        locationTrackExternalId =
+                            MainBranchRatkoExternalId(
+                                oidMapping[sourceTrack.id]?.oid.let(::requireNotNull)
+                            ), // TODO Should probably not be created here
+                        locationTrackStateOverride = RatkoLocationTrackState.OLD,
+                    )
+                }
+            }
+
+        return emptyList() // TODO
+    }
+
+    private fun updateEntireLocationTrack(
+        pushableBranch: PushableLayoutBranch,
+        layoutContext: LayoutContext, // TODO Only one of these should be enough right?
+        publicationTime: Instant,
+        locationTrackVersion: LayoutRowVersion<LocationTrack>,
+        existingRatkoLocationTrack: RatkoLocationTrack,
+    ) {
+        val sourceLocationTrack = locationTrackDao.fetch(locationTrackVersion)
+
+        val externalId =
+            getFullExtIdAndManagePlanItem(
+                branch = pushableBranch,
+                sourceLocationTrack.id as IntId,
+                sourceLocationTrack.designAssetState,
+                ratkoClient,
+                locationTrackDao::fetchExternalId,
+                locationTrackDao::savePlanItemId,
+            )
+
+        requireNotNull(externalId) { "OID required for location track, lt=${sourceLocationTrack.id}" }
+
+        // TODO These could be passed and fetched with the actual time (similarly to what the
+        // updateLocationTrack is doing)
+        val alignmentAddresses = geocodingService.getAddressPoints(layoutContext, sourceLocationTrack.id)
+        requireNotNull(alignmentAddresses) { "Address points were undetermined, lt=${sourceLocationTrack.id}" }
+
+        val allKmNumbers =
+            alignmentAddresses.allPoints.asSequence().map { addressPoint -> addressPoint.address.kmNumber }.toSet()
+
+        updateLocationTrack(
+            branch = pushableBranch.branch,
+            locationTrack = sourceLocationTrack,
+            locationTrackExternalId = externalId,
+            existingRatkoLocationTrack = existingRatkoLocationTrack,
+            changedKmNumbers = allKmNumbers,
+            moment = publicationTime,
+        )
+    }
 
     fun pushLocationTrackChangesToRatko(
         branch: PushableLayoutBranch,
@@ -140,6 +370,7 @@ constructor(
         locationTrack: LocationTrack,
         locationTrackExternalId: FullRatkoExternalId<LocationTrack>,
         moment: Instant,
+        sendGeometry: Boolean = true, // TODO Should probably not be here
     ) {
         try {
             val (addresses, jointPoints) = getLocationTrackPoints(branch, locationTrack, moment)
@@ -173,7 +404,12 @@ constructor(
                 }
 
             val midPoints = (addresses.midPoints + switchPoints).sortedBy { p -> p.address }
-            createLocationTrackPoints(RatkoOid(locationTrackExternalId.oid.toString()), midPoints)
+            if (sendGeometry) {
+                createLocationTrackPoints(RatkoOid(locationTrackExternalId.oid.toString()), midPoints)
+            } else {
+                logger.info("Did not send geometry for locationTrack=${locationTrack.id}")
+            }
+
             if (branch is MainBranch) {
                 val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
                 createLocationTrackMetadata(
@@ -328,6 +564,7 @@ constructor(
         existingRatkoLocationTrack: RatkoLocationTrack,
         changedKmNumbers: Set<KmNumber>,
         moment: Instant,
+        sendGeometry: Boolean = true,
     ) {
         try {
             val locationTrackRatkoOid = RatkoOid<RatkoLocationTrack>(locationTrackExternalId.oid)
@@ -364,9 +601,12 @@ constructor(
                 changedNodeCollection = updatedEndPointNodeCollection,
             )
 
-            deleteLocationTrackPoints(changedKmNumbers, locationTrackRatkoOid)
-
-            updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints = changedMidPoints)
+            if (sendGeometry) {
+                deleteLocationTrackPoints(changedKmNumbers, locationTrackRatkoOid)
+                updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints = changedMidPoints)
+            } else {
+                logger.info("Skipping updating geometry for locationTrack=${locationTrack.id}")
+            }
 
             if (branch is MainBranch) {
                 createLocationTrackMetadata(
@@ -406,6 +646,7 @@ constructor(
         locationTrack: LocationTrack,
         locationTrackExternalId: FullRatkoExternalId<LocationTrack>,
         changedNodeCollection: RatkoNodes? = null,
+        locationTrackStateOverride: RatkoLocationTrackState? = null,
     ) {
         val trackNumberOid = getDesignOrInheritedTrackNumberOid(branch, locationTrack.trackNumberId)
         val duplicateOfOidLocationTrack =
@@ -423,6 +664,7 @@ constructor(
                     locationTrackService.getFullDescription(branch.official, track, LocalizationLanguage.FI)
                 },
                 owner = owner,
+                locationTrackStateOverride = locationTrackStateOverride,
             )
 
         ratkoClient.updateLocationTrackProperties(ratkoLocationTrack)
