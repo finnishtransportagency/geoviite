@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.math.roundTo3Decimals
+import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.AnyM
@@ -40,6 +41,7 @@ import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.abs
 import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
@@ -49,12 +51,12 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.processSortedBy
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
 import kotlin.math.abs
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 data class AddressPoint<M : AnyM<M>>(val point: AlignmentPoint<M>, val address: TrackMeter) {
     fun isSame(other: AddressPoint<M>) = address.isSame(other.address) && point.isSame(other.point)
@@ -1002,4 +1004,27 @@ data class PolyLineEdge<M : AlignmentM<M>>(
 
     fun interpolateSegmentPointAtPortion(portion: Double): SegmentPoint =
         if (portion <= 0.0) start else if (portion >= 1.0) end else interpolateToSegmentPoint(start, end, portion)
+}
+
+fun getSplitTargetTrackStartAndEndAddresses(
+    geocodingContext: GeocodingContext<ReferenceLineM>,
+    sourceGeometry: LocationTrackGeometry,
+    splitTarget: SplitTarget,
+    splitTargetGeometry: LocationTrackGeometry,
+): Pair<TrackMeter?, TrackMeter?> {
+    val (sourceStart, sourceEnd) = sourceGeometry.getEdgeStartAndEnd(splitTarget.edgeIndices)
+
+    val startBySegments = requireNotNull(geocodingContext.getAddress(sourceStart)).first
+    val endBySegments = requireNotNull(geocodingContext.getAddress(sourceEnd)).first
+
+    val startByTarget =
+        requireNotNull(splitTargetGeometry.start?.let { point -> geocodingContext.getAddress(point)?.first })
+
+    val endByTarget =
+        requireNotNull(splitTargetGeometry.end?.let { point -> geocodingContext.getAddress(point)?.first })
+
+    val startAddress = listOf(startBySegments, startByTarget).maxOrNull()
+    val endAddress = listOf(endBySegments, endByTarget).minOrNull()
+
+    return startAddress to endAddress
 }
