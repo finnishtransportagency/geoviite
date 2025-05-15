@@ -56,12 +56,14 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - ${HOST_PORT_DB}:5432
+      - 5435:5432
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 2s
       timeout: 2s
       retries: 5
+    volumes:
+      - 'C:/repos/geoviite/geoviite-env/support/local-db/db/db-dumps:/dumps:ro'
 
   test-postgres-service:
     extends:

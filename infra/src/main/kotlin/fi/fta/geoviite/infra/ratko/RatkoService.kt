@@ -299,7 +299,35 @@ constructor(
             val pushableBranch =
                 if (layoutBranch is DesignBranch) {
                     updatePlan(layoutBranch, publications)
-                } else PushableMainBranch
+                } else {
+                    PushableMainBranch
+                }
+
+            val splits = publications.mapNotNull { publication -> publication.split?.id }.map(splitService::getOrThrow)
+
+            val splitsToPush =
+                if (pushableBranch == PushableMainBranch) {
+                    splits.mapNotNull { split ->
+                        val splitSourceTrackOid =
+                            locationTrackService
+                                .getExternalIdsByBranch(split.sourceLocationTrackId)[pushableBranch.branch]
+                                .let(::requireNotNull)
+
+                        val existingRatkoLocationTrack = ratkoClient.getLocationTrack(RatkoOid(splitSourceTrackOid))
+
+                        if (existingRatkoLocationTrack == null) {
+                            logger.info(
+                                "Split target tracks will be pushed normally as the source location track did not exist in Ratko, splitId=${split.id}, sourceLocationTrackId=${split.sourceLocationTrackId}"
+                            )
+                            null
+                        } else {
+                            split to existingRatkoLocationTrack
+                        }
+                    }
+                } else {
+                    require(splits.isEmpty()) { "Pushing splits is only supported in the main branch" }
+                    emptyList()
+                }
 
             val pushedRouteNumberOids =
                 ratkoRouteNumberService.pushTrackNumberChangesToRatko(
@@ -308,10 +336,19 @@ constructor(
                     lastPublicationTime,
                 )
 
+            val locationTrackOidsPushedInSplits =
+                ratkoLocationTrackService.pushSplits(splitsToPush, lastPublicationTime)
+
+            val locationTrackIdsPushedInSplits = splits.flatMap { split -> split.locationTracks }
+            val locationTracksToPush =
+                publications
+                    .flatMap { it.allPublishedLocationTracks }
+                    .filter { locationTrack -> locationTrack.id !in locationTrackIdsPushedInSplits }
+
             val pushedLocationTrackOids =
                 ratkoLocationTrackService.pushLocationTrackChangesToRatko(
                     pushableBranch,
-                    publications.flatMap { it.allPublishedLocationTracks },
+                    locationTracksToPush,
                     lastPublicationTime,
                 )
 
@@ -341,6 +378,7 @@ constructor(
                 logger.warn("Failed to push M values for location tracks $pushedLocationTrackOids")
             }
 
+            splits.forEach { split -> splitService.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE) }
             ratkoPushDao.updatePushStatus(ratkoPushId, RatkoPushStatus.SUCCESSFUL)
         } catch (ex: Exception) {
             when (ex) {
