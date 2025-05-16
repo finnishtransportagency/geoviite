@@ -378,7 +378,7 @@ constructor(
                 logger.warn("Failed to push M values for location tracks $pushedLocationTrackOids")
             }
 
-            // TODO Merkkaa splitit valmistuneiksi
+            splits.forEach { split -> splitService.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE) }
             ratkoPushDao.updatePushStatus(ratkoPushId, RatkoPushStatus.SUCCESSFUL)
         } catch (ex: Exception) {
             when (ex) {
