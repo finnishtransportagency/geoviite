@@ -142,6 +142,7 @@ class LocationTrackService(
         branch: LayoutBranch,
         id: IntId<LocationTrack>,
         state: LocationTrackState,
+        skipSwitchReferenceDeletion: Boolean = false, // TODO Remove
     ): LayoutRowVersion<LocationTrack> {
         val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack = originalTrack.copy(state = state)
@@ -150,10 +151,17 @@ class LocationTrackService(
             saveDraft(branch, locationTrack)
         } else {
             clearDuplicateReferences(branch, id)
-            val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
-            val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
-            val newTrack = fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack, newAlignment)
-            saveDraft(branch, newTrack, newAlignment)
+
+            // TODO This should just be better...
+            if (!skipSwitchReferenceDeletion) {
+                val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
+                val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
+                val newTrack =
+                    fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack, newAlignment)
+                saveDraft(branch, newTrack, newAlignment)
+            } else {
+                saveDraft(branch, locationTrack)
+            }
         }
     }
 

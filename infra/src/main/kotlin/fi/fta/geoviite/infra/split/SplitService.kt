@@ -460,7 +460,13 @@ class SplitService(
                 localizationParams = localizationParams("trackName" to sourceTrack.name),
             )
 
-        val savedSource = locationTrackService.updateState(branch, request.sourceTrackId, LocationTrackState.DELETED)
+        val savedSource =
+            locationTrackService.updateState(
+                branch,
+                request.sourceTrackId,
+                LocationTrackState.DELETED,
+                skipSwitchReferenceDeletion = true,
+            )
 
         return savedSplitTargetLocationTracks
             .map { splitTargetResult ->
