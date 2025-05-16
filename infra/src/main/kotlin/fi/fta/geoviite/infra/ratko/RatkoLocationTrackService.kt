@@ -369,9 +369,12 @@ constructor(
                 createLocationTrackPoints(RatkoOid(locationTrackExternalId.oid.toString()), midPoints)
             } else {
                 logger.info("Did not send geometry for locationTrack=${locationTrackExternalId.oid}")
+                // TODO Ensure that points required by the metadata are created? (Also in the update* function)
             }
 
-            if (branch is MainBranch) {
+            if (
+                branch is MainBranch && sendGeometry
+            ) { // TODO Remove the sendGeometry check from here, it is just for testing
                 val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
                 createLocationTrackMetadata(
                     branch,

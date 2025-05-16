@@ -33,7 +33,7 @@ up() {
            echo "Geoviite Postgres (test) available at :$HOST_PORT_DB_TEST"
             ;;
         *)
-            echo "Usage: $0 up {backend|ext-api|e2e-stack|db|db-test}"
+            echo "Usage: $0 up {backend|ext-api|e2e-stack|postgres|postgres-test}"
             exit 1
             ;;
     esac
@@ -58,16 +58,16 @@ down() {
             docker compose down e2e-backend
             docker compose down e2e-chrome-service
             ;;
-        db)
+        postgres)
            echo "Stopping Geoviite database..."
-           docker compose down db-service
+           docker compose down postgres-service
             ;;
-        db-test)
+        postgres-test)
            echo "Stopping Geoviite database (test)..."
-           docker compose down test-db-service
+           docker compose down test-postgres-service
             ;;
         *)
-            echo "Usage: $0 down {all|backend|ext-api|e2e-stack|db|db-test}"
+            echo "Usage: $0 down {all|backend|ext-api|e2e-stack|postgres|postgres-test}"
             exit 1
             ;;
     esac
