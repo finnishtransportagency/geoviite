@@ -1,4 +1,4 @@
-# Suorituskyvyn huomiointi Geoviitteessä
+# Välimuisti Geoviitteessä
 
 ## Backend välimuisti
 
@@ -27,11 +27,11 @@ haku saman välimuistin läpi.
 
 ### Välimuistin esilämmitys
 
-Välimuistin esilämmitys tapahtuu `CachePreloader`-luokassa, joka hakee käsitteiden tuoreet versiot välimuistin läpi
-ensin kerran käynnistyksessä ja sen jälkeen periodisesti. Tämä varmistaa että datan voimassaolevat versiot ovat aina
-välimuistissa ja niiden haku on nopeaa. Välimuistin konfiguraatiossa sille asetetaan esilämmityksen periodista hakua
-pidempi kesto, jolloin vanhentuneet käsitteet tippuvat muistista pois koska esilämmitys ei enää kysele niitä, mutta
-aktiiviset versiot säilyvät käytöstä riipumatta.
+Välimuistin esilämmitys tapahtuu `CachePreloadService` -luokassa (+ skedulointi `CachePreloadScheduler`:ssa), joka hakee
+käsitteiden tuoreet versiot välimuistin läpi ensin kerran käynnistyksessä ja sen jälkeen periodisesti. Tämän ansiosta
+datan voimassaolevat versiot voidaan olettaa löytyvän välimuistista jolloin niiden haku on nopeaa. Välimuistin
+konfiguraatiossa sille asetetaan esilämmityksen periodista hakua pidempi kesto, jolloin vanhentuneet käsitteet tippuvat
+muistista pois koska esilämmitys ei enää kysele niitä, mutta aktiiviset versiot säilyvät käytöstä riippumatta.
 
 On huomattavaa että vaikka välimuistin periodinen virkistys hakeekin aina kaikki aktiiviset käsitteet, sen ei tarvitse
 hakea kaikista riveistä muuta kuin välimuistin käyttämät avaimet. Itse rivit haetaan vain jos avain on tällä välin
@@ -62,30 +62,37 @@ valmiit kontekstit tallennetaan omaan välimuistiinsa haetulla avaimella.
 
 Välimuistin käytön peruskuvio siis toistuu Geoviitteessä usein ja on hyvä pitää kehittäessä mielessä:
 1. Ensin haetaan käsitteelle (ID:llä, hakuehdoilla, kaikki listaamalla) välimuistin avaimet, eli yleensä rivien versiot
-   (`RowVersion`, `LayoutRowVersion`)
-   * Tämä haku menee aina kantaan asti, sillä vain kanta voi lopulta tietää onko joku mahdollisesti muuttanut käsitettä
+   (`RowVersion`, `LayoutRowVersion`).
+   * Tämä haku menee aina kantaan asti, sillä vain kanta voi lopulta tietää onko joku mahdollisesti muuttanut käsitettä.
    * Haetaan yleensä **päätauluista**, sillä ne sisältävät tuoreimmat versiot ja niiden datamäärä on versiotauluja
-     pienempi
+     pienempi.
    * Tässä kannattaa pyrkiä hakemaan operaation kaipaamat versiot kerralla välttääkseen ylimääräisiä kantaan lähteviä
      pyyntöjä. Itse versioiden data on pieni, mutta jokainen pyyntö maksaa vähintään edestakaisen liikenteen!
-2. Saadut versiot mapataan olioiksi erillisellä haulla per-olio
-   * Tätä puolestaan ei tarvitse välttää, sillä data on jo luultavasti muistissa ja haku on nopea (lähes välitön)
+2. Saadut versiot mapataan olioiksi erillisellä haulla per-olio.
+   * Tätä puolestaan ei tarvitse välttää, sillä data on jo luultavasti muistissa ja haku on nopea (lähes välitön).
    * Haku menee toki kantaan esilämmityksessä tai käsitteen muuttuessa, mutta tällöinkin vain kerran ja sen jälkeen
-     käsite on välimuistissa
+     käsite on välimuistissa.
    * Nämä haut tehdään SQL:nä **versiotauluun** jotta välimuistiin päätyy oikean version tiedot eikä kaikkein tuoreimpia
-     (jos joku esim. muuttaa käsitettä versiohaun ja datan haun välissä)
+     (jos joku esim. muuttaa käsitettä versiohaun ja datan haun välissä).
 
 Eli aina jos funktio ottaa sisäänsä esimerkiksi Layout-käsitteen ID:n (ja kontekstin) tiedetään että joudutaan tekemään
 kantahaku jossa tuo ID mapataan versioksi. Jos funktio puolestaan ottaa sisään rivin version, sen ei luultavasti
 tarvitse enää käydä kannassa lainkaan. Tämä on siis käytännössä lähes yhtä hyvä kuin jos olio käsittelisi itse oliota.
 
+Poikkeuksen tähän tekee sellaiset käsiteversiot, jotka eivät ole jo välimuistissa, eli ennenkaikkea vanhemmat versiot.
+Välimuistin rakenne on suunniteltu yleistä käyttötapausta varten, jolloin kiinnostavaa on vain tuoreimmat versiot tai
+korkeintaan viimeaikaista muutosta edeltävä tila, joka ei ole vielä kerinnyt tippua välimuistista. Jos koodissa
+kuitenkin käsitellään historiadataa, välimuistin nopeuteen ei voi enää samalla tavalla luottaa. Tuosta ei vielä tarvitse
+välittää jos kyse on vain yksittäisistä olioista, mutta suuremmissa historiaa käsittelevissä operaatioissa haku
+kannattaa tehdä suoraan kannasta tai toteuttaa välimuisti erikseen tilanteeseen soveltuvalla tavalla.
+
 ### Ohjenuora: optimoi ID->versio haut, jätä versio->olio haut välimuistin murheeksi
 
 Koska geoviitteen keskeiset välimuistit esilämmitetään, käytön kannalta suorituskyky ei toimi aivan niinkuin pelkästä
-koodista voisi olettaa. Hitain osa hakuja on usein tietoliikenne edestakaisin kantaan, joten ilman välimuisteja olisi
+koodista voisi olettaa. Hakujen hitain osa on usein tietoliikenne edestakaisin kantaan, joten ilman välimuisteja olisi
 tehokkainta pyrkiä hakemaan kaikki data kerralla.
 
-Geoviitteessä kuitenkin data muuttuu suhteellisen verkkaiseen ja käsitteiden tuoreimmat versiot pidetään aina
+Geoviitteessä kuitenkin data muuttuu suhteellisen harvoin ja käsitteiden tuoreimmat versiot pidetään aina
 esilämmitettynä välimuistissa. Tällöin nopein tapa hakea dataa on usein hakea vain tarvittavat välimuistin avaimet
 kannasta ja hakea sen jälkeen kukin käsite erikseen välimuistin läpi sen versiolla. Ilman välimuistia tuo
 olisi tietenkin hidasta n+1 kyselyn takia, mutta välimuistin ansiosta nuo yksittäiset haut ovat käytännössä vain
@@ -103,10 +110,10 @@ kuitenkaan haeta kannasta kahdesti.
 
 Frontendissä haettu data säilytetään välimuistissa hakuja suorittavien `...-api.ts` tiedostojen sisällä, `AsyncCache`
 luokan toteutuksella, perustuen muutosaikaleimoihin. Koska jokainen rivin muutos saa muutosaikaleiman kannassa, voidaan
-kunkin käsitteen osalta välimuisti invalidoida kyseisen käsitetyypin tuoreimman muutosajan perusteella, eli kun
-UI-komponentti pyytää jotain käsitettä tai listausta käsitteistä, pyyntö palvellaan välimuistista jos kyseiseen
-käsitetyyppiin ei ole tullut muutoksia ja haetaan backendista jos mikään tyypin käsite on muuttunut, eli
-muutosaikaleima on kasvanut.
+kunkin käsitteen osalta välimuisti invalidoida kyseisen käsitetyypin tuoreimman muutosajan perusteella. Kun
+UI-komponentti pyytää jotain käsitettä tai listausta käsitteistä, pyyntö palvellaan suoraan frontin omasta välimuistista
+jos pyynnön aikaleima on vanhempi tai sama kuin välimuistilla. Mikäli muutosaika puolestaan on uudempi kuin välimuistin
+aikaleima, käsitteissä on jokin muuttunut ja pyyntö tehdään oikeasti backendille.
  
 Käsitekohtaiset muutosaikaleimat säilytetään Redux-storessa ja bindataan komponenttihierarkian läpi React propertyinä,
 jolloin koko sovellus saadaan päivittymään automaattisesti vain hakemalla backendista tuoreet muutosaikaleimat ja
@@ -126,28 +133,28 @@ siis säilyy tallessa välimuistissa, mistä se on kaikkien eri komponenttien k�
 ### Datan haku välimuistin läpi
 
 Tarkemmin katsottuna mekanismi toimii seuraavasti:
-1. Kunkin käsitteen muutosaikaleimat säilytetään Redux-storessa
-2. Muutosaikaleimat bindataan propertyinä React-komponentteihin, jotka kyseistä käsitettä käyttävät
-    * Esim. `changeTimes.locationTrack` bindataan komponentteihin, jotka esittävät raiteita
-    * Komponentti voi riippua useammasta aikaleimasta ja päivittää eri osia näkymästä eri aikaleimoilla
-    * Osa pyynnöistä voi riippua usammasta käsitteestä, jolloin riippuvuutena käytetään suurinta yksittäisten
-      riippuvuuksien aikaleimoista (`getMaxTimeStamp(changeTime1, changeTime2, ...)`)
-3. Komponentti hakee käsitteen tiedot `...-api.ts` -tiedoston hakufunktioilla, jotka tekevät kutsun välimuistin läpi
+1. Kunkin käsitteen muutosaikaleimat säilytetään Redux-storessa.
+2. Muutosaikaleimat bindataan propertyinä React-komponentteihin, jotka kyseistä käsitettä käyttävät.
+    * Esim. `changeTimes.locationTrack` bindataan komponentteihin, jotka esittävät raiteita.
+    * Komponentti voi riippua useammasta aikaleimasta ja päivittää eri osia näkymästä eri aikaleimoilla.
+    * Osa pyynnöistä voi riippua useammasta käsitteestä, jolloin riippuvuutena käytetään suurinta yksittäisten
+      riippuvuuksien aikaleimoista (`getMaxTimeStamp(changeTime1, changeTime2, ...)`).
+3. Komponentti hakee käsitteen tiedot `...-api.ts` -tiedoston hakufunktioilla, jotka tekevät kutsun välimuistin läpi.
     * Tässä kutsussa on argumenttina muutosaikaleima, jonka perusteella funktio käyttää välimuistia: varsinainen kutsu
-      tehdään vain jos aikaleima on päivittynyt, muuten palautetaan olemassaoleva data
+      tehdään vain jos aikaleima on päivittynyt, muuten palautetaan olemassaoleva data.
     * Vaikka useampi komponentti tekisi kutsun samaan aikaan, välimuisti palauttaa niille kaikille saman `Promise`
-      -vastauksen, eli kutsu tapahtuu vain kerran
-    * Välimuistissa tallennetaan tyypillisesti myös tyhjät vastaukset, eli jos haetaan jotain aikaleimalla n ja vastaus
-      on tyhjä, samaa pyyntöä ei ole hyötyä tehdä uudelleen ennen kuin kohteena olevassa datassa on jokin muuttunut
+      -vastauksen, eli kutsu tapahtuu vain kerran.
+    * Välimuistiin tallennetaan tyypillisesti myös tyhjät vastaukset, eli jos haetaan jotain aikaleimalla n ja vastaus
+      on tyhjä, samaa pyyntöä ei ole hyötyä tehdä uudelleen ennen kuin kohteena olevassa datassa on jokin muuttunut.
 
 ### Muutosaikaleimojen (välimuistin avainten) päivitys frontendiin
 
 Muutosaikaleimat päivitetään Reduxiin kahdella eri polulla:
 1. Kun joku komponentti muokkaa tietoja (onnistuu POST/PUT kutsussa), muutoksen toteuttava `...-api.ts` funktio
-   tarkasta kyseisen käsitteen uuden aikaleiman backendista ja päivittää sen Redux-storeen osana samaa funktiokutsua
-    * Tämä kattaa käytännössä UI:n kautta itse tekevät muutokset, päivittäen itse muutetun datan heti
-2. Taustalla haetaan kaikkien käsitteiden muutosaikaleimat periodisesti ja päivitetään ne kerralla Redux-storeen
-    * Tämä varmistaa että muiden käyttäjien tai taustapalveluiden tekemät muutokset päivittyy UI:lle
+   tarkasta kyseisen käsitteen uuden aikaleiman backendista ja päivittää sen Redux-storeen osana samaa funktiokutsua.
+    * Tämä kattaa käytännössä UI:n kautta itse tekevät muutokset, päivittäen itse muutetun datan heti.
+2. Taustalla haetaan kaikkien käsitteiden muutosaikaleimat periodisesti ja päivitetään ne kerralla Redux-storeen.
+    * Tämä varmistaa että muiden käyttäjien tai taustapalveluiden tekemät muutokset päivittyy UI:lle.
 
 Riippumatta kumpaa polkua aikaleima päivitetään, tuoreen aikaleimat noudetaan `ChangeTimeController`:n API:sta ja
 viedään storeen. Koska aikaleimat on bindattu UI-komponenttien läpi käyttöpaikkaan asti, muutos aiheuttaa 
