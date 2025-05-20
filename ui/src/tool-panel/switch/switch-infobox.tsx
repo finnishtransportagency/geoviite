@@ -79,7 +79,6 @@ const mapToSwitchJointTrackMeter = (
 ): SwitchJointTrackMeter => {
     return {
         locationTrackId: locationTrack.id,
-        locationTrackName: locationTrack.name,
         trackMeter: trackMeter,
         jointNumber: jointNumber,
         location,
@@ -251,6 +250,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                     <SwitchInfoboxTrackMeters
                                         jointTrackMeters={switchJointTrackMeters}
                                         presentationJoint={structure?.presentationJointNumber}
+                                        layoutContext={layoutContext}
                                     />
                                 )) || <Spinner />
                             }

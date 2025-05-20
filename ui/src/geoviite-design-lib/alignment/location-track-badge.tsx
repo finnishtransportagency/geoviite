@@ -1,11 +1,9 @@
 import * as React from 'react';
 import styles from './alignment-badge.scss';
-import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import { createClassName } from 'vayla-design-lib/utils';
-import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 type LocationTrackBadgeProps = {
-    locationTrack: AlignmentHeader | LayoutLocationTrack;
+    alignmentName: string;
     onClick?: React.MouseEventHandler;
     status?: LocationTrackBadgeStatus;
 };
@@ -19,7 +17,7 @@ export enum LocationTrackBadgeStatus {
 }
 
 export const LocationTrackBadge: React.FC<LocationTrackBadgeProps> = ({
-    locationTrack,
+    alignmentName,
     onClick,
     status = LocationTrackBadgeStatus.DEFAULT,
 }: LocationTrackBadgeProps) => {
@@ -31,7 +29,7 @@ export const LocationTrackBadge: React.FC<LocationTrackBadgeProps> = ({
 
     return (
         <div className={classes} onClick={onClick}>
-            <span>{locationTrack.name}</span>
+            <span>{alignmentName}</span>
         </div>
     );
 };

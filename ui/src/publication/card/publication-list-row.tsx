@@ -16,6 +16,7 @@ import { success } from 'geoviite-design-lib/snackbar/snackbar';
 import { getChangeTimes, updateSplitChangeTime } from 'common/change-time-api';
 import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
 import { RouterLink } from 'geoviite-design-lib/link/router-link';
+import { officialMainLayoutContext } from 'common/common-model';
 
 type PublicationListRowProps = {
     publication: PublicationDetails;
@@ -186,6 +187,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
             {splitDetailsDialogOpen && (
                 <SplitDetailsDialog
                     publicationId={publication.id}
+                    layoutContext={officialMainLayoutContext()}
                     onClose={() => setSplitDetailsDialogOpen(false)}
                 />
             )}

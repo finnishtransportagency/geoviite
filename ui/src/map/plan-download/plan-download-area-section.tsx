@@ -95,7 +95,7 @@ export const PlanDownloadAreaSection: React.FC<{
                 : [];
             const startKm = selectedAsset?.startAndEnd?.start?.address?.kmNumber;
             const endKm = selectedAsset?.startAndEnd?.end?.address?.kmNumber;
-            
+
             return startKm && endKm
                 ? kmPosts.filter((kmPost) => kmPost.kmNumber >= startKm && kmPost.kmNumber <= endKm)
                 : kmPosts;
@@ -149,20 +149,6 @@ export const PlanDownloadAreaSection: React.FC<{
 
     const selectedDropdownValue = inferDropdownItemValue(selectedAsset);
 
-    const getName = (item: SearchItemValue) => {
-        switch (item.type) {
-            case SearchItemType.TRACK_NUMBER:
-                return item.trackNumber.number;
-            case SearchItemType.LOCATION_TRACK:
-                return item.locationTrack.name;
-            case SearchItemType.SWITCH:
-            case SearchItemType.OPERATING_POINT:
-                console.error('Unsupported item type', item.type);
-                return '';
-            default:
-                return exhaustiveMatchingGuard(item);
-        }
-    };
     const errors = state.validationIssues.filter(filterErrors);
     const warnings = state.validationIssues.filter(filterWarnings);
 
@@ -197,7 +183,6 @@ export const PlanDownloadAreaSection: React.FC<{
                                         onBlur={() => onCommitField('asset')}
                                         hasError={hasErrors(state.committedFields, errors, 'asset')}
                                         value={selectedDropdownValue}
-                                        getName={getName}
                                     />
                                 </div>
                             }

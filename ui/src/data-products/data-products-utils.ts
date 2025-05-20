@@ -3,7 +3,11 @@ import { isNilOrBlank } from 'utils/string-utils';
 import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { debounceAsync } from 'utils/async-utils';
 import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
-import { LayoutLocationTrack, LocationTrackDescription } from 'track-layout/track-layout-model';
+import {
+    LayoutLocationTrack,
+    LocationTrackDescription,
+    LocationTrackName,
+} from 'track-layout/track-layout-model';
 import { CoordinateSystem, Srid } from 'common/common-model';
 
 export const searchGeometryPlanHeaders = async (
@@ -47,18 +51,26 @@ export const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm
 
 export const getLocationTrackOptions = (
     tracks: LayoutLocationTrack[],
+    names: LocationTrackName[],
     descriptions: LocationTrackDescription[],
     selectedTrack: LayoutLocationTrack | undefined,
 ) =>
     tracks
         .filter((lt) => !selectedTrack || lt.id !== selectedTrack.id)
-        .map((lt) => ({
-            name: `${lt.name}, ${
-                descriptions.find((desc) => desc.id === lt.id)?.description ?? '-'
-            }`,
-            value: lt,
-            qaId: `location-track-${lt.id}`,
-        }));
+        .map((lt) => {
+            const ltName = names.find((ltName) => ltName.id === lt.id);
+
+            return {
+                name: `${ltName?.name}, ${
+                    descriptions.find((desc) => desc.id === lt.id)?.description ?? '-'
+                }`,
+                value: {
+                    locationTrack: lt as LayoutLocationTrack | undefined,
+                    name: ltName,
+                },
+                qaId: `location-track-${lt.id}`,
+            };
+        });
 
 export type ElementHeading = {
     name: string;

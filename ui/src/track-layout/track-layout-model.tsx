@@ -83,6 +83,7 @@ export type LocationTrackDescriptionSuffixMode =
     | 'SWITCH_TO_SWITCH'
     | 'SWITCH_TO_BUFFER'
     | 'SWITCH_TO_OWNERSHIP_BOUNDARY';
+
 export enum MapAlignmentType {
     LocationTrack = 'LOCATION_TRACK',
     ReferenceLine = 'REFERENCE_LINE',
@@ -121,8 +122,45 @@ export type LocationTrackDescription = {
     description: string;
 };
 
-export type LayoutLocationTrack = {
+export type LocationTrackName = {
+    id: LocationTrackId;
     name: string;
+};
+
+export enum LocationTrackNamingScheme {
+    FREE_TEXT = 'FREE_TEXT',
+    WITHIN_OPERATING_POINT = 'WITHIN_OPERATING_POINT',
+    BETWEEN_OPERATING_POINTS = 'BETWEEN_OPERATING_POINTS',
+    TRACK_NUMBER_TRACK = 'TRACK_NUMBER_TRACK',
+    CHORD = 'CHORD',
+}
+
+export enum LocationTrackSpecifier {
+    PR = 'PR',
+    ER = 'ER',
+    IR = 'IR',
+    KR = 'KR',
+    LR = 'LR',
+    PSR = 'PSR',
+    ESR = 'ESR',
+    ISR = 'ISR',
+    LSR = 'LSR',
+    PKR = 'PKR',
+    EKR = 'EKR',
+    IKR = 'IKR',
+    LKR = 'LKR',
+    ITHR = 'ITHR',
+    LANHR = 'LANHR',
+}
+
+export type LocationTrackNaming = {
+    scheme: LocationTrackNamingScheme;
+    freeText: string | undefined;
+    specifier: LocationTrackSpecifier | undefined;
+};
+
+export type LayoutLocationTrack = {
+    namingScheme: LocationTrackNaming;
     descriptionBase?: string;
     descriptionSuffix?: LocationTrackDescriptionSuffixMode;
     type?: LocationTrackType;
@@ -391,7 +429,6 @@ export type LayoutSwitchJointConnection = {
 export type SwitchJointTrackMeter = {
     jointNumber: JointNumber;
     locationTrackId: LocationTrackId;
-    locationTrackName: string;
     trackMeter: TrackMeter | undefined;
     location: Point;
 };

@@ -13,7 +13,11 @@ import {
     LocationTrackDuplicateInfoIcon,
     LocationTrackInfoboxDuplicateTrackEntry,
 } from 'tool-panel/location-track/location-track-infobox-duplicate-track-entry';
-import { useLocationTracks, useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import {
+    useLocationTrackName,
+    useLocationTrackNames,
+    useTrackNumbers,
+} from 'track-layout/track-layout-react-utils';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 
 export type LocationTrackInfoboxDuplicateOfProps = {
@@ -39,7 +43,8 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
 }: LocationTrackInfoboxDuplicateOfProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(layoutContext);
-    const explicitDuplicateLocationTrackNames = useLocationTracks(
+    const targetName = useLocationTrackName(targetLocationTrack.id, layoutContext);
+    const explicitDuplicateLocationTrackNames = useLocationTrackNames(
         duplicatesOfLocationTrack
             ?.map((d) => d.duplicateStatus.duplicateOfId)
             ?.filter(filterNotEmpty) ?? [],
@@ -67,16 +72,23 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
         </span>
     ) : duplicatesOfLocationTrack ? (
         <ul className={styles['location-track-infobox-duplicate-of__ul']}>
-            {duplicatesOfLocationTrack.filter(filterUniqueById((d) => d.id)).map((duplicate) => (
-                <LocationTrackInfoboxDuplicateTrackEntry
-                    key={duplicate.id}
-                    targetLocationTrack={targetLocationTrack}
-                    duplicate={duplicate}
-                    explicitDuplicateLocationTrackNames={explicitDuplicateLocationTrackNames}
-                    trackNumbers={trackNumbers}
-                    currentTrackNumberId={currentTrackNumberId}
-                />
-            ))}
+            {duplicatesOfLocationTrack
+                .filter(filterUniqueById((d) => d.id))
+                .map(
+                    (duplicate) =>
+                        targetName && (
+                            <LocationTrackInfoboxDuplicateTrackEntry
+                                key={duplicate.id}
+                                targetLocationTrackName={targetName}
+                                duplicate={duplicate}
+                                explicitDuplicateLocationTrackNames={
+                                    explicitDuplicateLocationTrackNames ?? []
+                                }
+                                trackNumbers={trackNumbers}
+                                currentTrackNumberId={currentTrackNumberId}
+                            />
+                        ),
+                )}
         </ul>
     ) : (
         <React.Fragment />

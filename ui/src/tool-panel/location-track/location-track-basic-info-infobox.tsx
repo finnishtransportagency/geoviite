@@ -28,7 +28,10 @@ import { OnSelectOptions } from 'selection/selection-model';
 import { BoundingBox } from 'model/geometry';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
-import { useLocationTrackInfoboxExtras } from 'track-layout/track-layout-react-utils';
+import {
+    useLocationTrackInfoboxExtras,
+    useLocationTrackName,
+} from 'track-layout/track-layout-react-utils';
 import { first } from 'utils/array-utils';
 import { LocationTrackState } from 'geoviite-design-lib/location-track-state/location-track-state';
 import { LocationTrackOid } from 'track-layout/oid';
@@ -86,6 +89,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
     const { t } = useTranslation();
 
     const locationTrackOwners = useLoader(() => getLocationTrackOwners(), []);
+    const name = useLocationTrackName(locationTrack.id, layoutContext);
 
     function getLocationTrackOwnerName(ownerId: LocationTrackOwnerId) {
         const name = locationTrackOwners?.find((o) => o.id === ownerId)?.name;
@@ -156,7 +160,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                 <InfoboxField
                     qaId="location-track-name"
                     label={t('tool-panel.location-track.track-name')}
-                    value={locationTrack.name}
+                    value={name?.name ?? ''}
                 />
                 <InfoboxField
                     qaId="location-track-state"

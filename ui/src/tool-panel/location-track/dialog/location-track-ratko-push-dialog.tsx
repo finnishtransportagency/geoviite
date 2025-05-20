@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { AlignmentStartAndEnd, LocationTrackId } from 'track-layout/track-layout-model';
 import {
     useLocationTrack,
+    useLocationTrackName,
     useLocationTrackStartAndEnd,
 } from 'track-layout/track-layout-react-utils';
 import styles from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog.scss';
@@ -57,6 +58,7 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
         officialLayoutContext(props.layoutContext),
         props.changeTimes.layoutLocationTrack,
     );
+    const locationTrackName = useLocationTrackName(props.locationTrackId, props.layoutContext);
 
     const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         locationTrack?.id,
@@ -135,7 +137,7 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
                     </div>
                     <FieldLayout
                         label={t('tool-panel.location-track.track-name')}
-                        value={locationTrack?.name}
+                        value={locationTrackName?.name}
                     />
                     <FieldLayout
                         label={t('tool-panel.location-track.ratko-push-dialog.km-range')}

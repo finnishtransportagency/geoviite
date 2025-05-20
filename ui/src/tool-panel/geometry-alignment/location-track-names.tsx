@@ -10,9 +10,12 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
+import { useLocationTrackNames } from 'track-layout/track-layout-react-utils';
+import { LayoutContext } from 'common/common-model';
 
 type LocationTrackNamesProps = {
     linkedLocationTracks: LayoutLocationTrack[];
+    layoutContext: LayoutContext;
 };
 
 function createSelectAction() {
@@ -24,13 +27,19 @@ function createSelectAction() {
         });
 }
 
-const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({ linkedLocationTracks }) => {
+const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({
+    linkedLocationTracks,
+    layoutContext,
+}) => {
     const { t } = useTranslation();
-
-    const sortedLocationTracks = linkedLocationTracks.sort((a, b) => a.name.localeCompare(b.name));
+    const ltNames =
+        useLocationTrackNames(
+            linkedLocationTracks.map((lt) => lt.id),
+            layoutContext,
+        )?.toSorted((a, b) => a.name.localeCompare(b.name)) ?? [];
 
     const trackName =
-        sortedLocationTracks.length > 1
+        ltNames.length > 1
             ? t('tool-panel.location-track.track-name-short-plural')
             : t('tool-panel.location-track.track-name-short-singular');
 
@@ -41,16 +50,14 @@ const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({ linkedLocationT
             label={trackName}
             value={
                 <div className={styles['linked-items-list']}>
-                    {sortedLocationTracks.map((locationTrack) => {
+                    {ltNames.map((ltName) => {
                         return (
-                            <div
-                                className={styles['linked-items-list__list-item']}
-                                key={locationTrack.id}>
+                            <div className={styles['linked-items-list__list-item']} key={ltName.id}>
                                 <LocationTrackBadge
-                                    key={locationTrack.id}
-                                    locationTrack={locationTrack}
+                                    key={ltName.id}
+                                    alignmentName={ltName.name}
                                     status={LocationTrackBadgeStatus.DEFAULT}
-                                    onClick={() => clickAction(locationTrack.id)}
+                                    onClick={() => clickAction(ltName.id)}
                                 />
                             </div>
                         );

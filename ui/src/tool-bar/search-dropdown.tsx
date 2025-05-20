@@ -7,7 +7,10 @@ import {
     LocationTrackId,
     OperatingPoint,
 } from 'track-layout/track-layout-model';
-import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
+import {
+    getLocationTrackDescriptions,
+    getLocationTrackNames,
+} from 'track-layout/layout-location-track-api';
 import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { isNilOrBlank } from 'utils/string-utils';
 import { ALIGNMENT_DESCRIPTION_REGEX } from 'tool-panel/location-track/dialog/location-track-validation';
@@ -29,6 +32,7 @@ export type LocationTrackItemValue = {
 
 function createLocationTrackOptionItem(
     locationTrack: LayoutLocationTrack,
+    name: string,
     description: string,
 ): Item<LocationTrackItemValue> {
     return dropdownOption(
@@ -36,7 +40,7 @@ function createLocationTrackOptionItem(
             type: SearchItemType.LOCATION_TRACK,
             locationTrack: locationTrack,
         } as const,
-        `${locationTrack.name}, ${description}`,
+        `${name}, ${description}`,
         `location-track-${locationTrack.id}`,
     );
 }
@@ -114,16 +118,16 @@ async function getOptions(
         locationTrackSearchScope,
     );
 
-    const locationTrackDescriptions = await getLocationTrackDescriptions(
-        searchResult.locationTracks.map((lt) => lt.id),
-        layoutContext,
-    );
+    const ids = searchResult.locationTracks.map((lt) => lt.id);
+    const locationTrackNames = await getLocationTrackNames(ids, layoutContext);
+    const locationTrackDescriptions = await getLocationTrackDescriptions(ids, layoutContext);
 
     const locationTrackOptions = searchResult.locationTracks.map((locationTrack) => {
+        const name = locationTrackNames?.find((d) => d.id === locationTrack.id)?.name ?? '';
         const description =
             locationTrackDescriptions?.find((d) => d.id === locationTrack.id)?.description ?? '';
 
-        return createLocationTrackOptionItem(locationTrack, description);
+        return createLocationTrackOptionItem(locationTrack, name, description);
     });
 
     return [

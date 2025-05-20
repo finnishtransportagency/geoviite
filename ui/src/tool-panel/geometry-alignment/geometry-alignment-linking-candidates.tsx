@@ -13,11 +13,12 @@ import {
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { useTranslation } from 'react-i18next';
-import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import { useLocationTrackName, useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import {
     LayoutLocationTrack,
     LayoutReferenceLine,
     LocationTrackId,
+    LocationTrackName,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
@@ -27,6 +28,7 @@ import {
 import { deduplicateById, fieldComparator, negComparator } from 'utils/array-utils';
 import { expandBoundingBox } from 'model/geometry';
 import {
+    getLocationTrackNames,
     getLocationTracksNear,
     getNonLinkedLocationTracks,
 } from 'track-layout/layout-location-track-api';
@@ -286,9 +288,14 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
     const { t } = useTranslation();
     const [locationTrackRefs, setLocationTrackRefs] = React.useState<AlignmentRef[]>([]);
     const [locationTracks, setLocationTracks] = React.useState<LayoutLocationTrack[]>([]);
+    const [locationTrackNames, setLocationTrackNames] = React.useState<LocationTrackName[]>([]);
     const [layoutLocationTrackSearchInput, setLayoutLocationTrackSearchInput] =
         React.useState<string>('');
     const [isLoading, setIsLoading] = React.useState(true);
+    const selectedLocationTrackName = useLocationTrackName(
+        selectedLayoutLocationTrack?.id,
+        layoutContext,
+    );
 
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';
 
@@ -305,11 +312,18 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                     tracks.sort(negComparator(fieldComparator((a) => a.id))),
                 ),
             ])
-                .then((trackGroups) => {
+                .then(async ([ltsNear, ltsUnlinked]) => {
+                    const ltIds = [...ltsNear, ...ltsUnlinked].map((lt) => lt.id);
+                    const ltNames = await getLocationTrackNames(ltIds, layoutContext);
+                    return { ltsNear, ltsUnlinked, ltNames };
+                })
+                .then(({ ltsNear, ltsUnlinked, ltNames }) => {
+                    const trackGroups = [ltsNear, ltsUnlinked];
                     const uniqueLocationTracks = deduplicateById(trackGroups.flat(), (l) => l.id);
 
                     uniqueLocationTracks.sort(byDraftsFirst);
                     setLocationTracks(uniqueLocationTracks);
+                    setLocationTrackNames(deduplicateById(ltNames, (item) => item.id));
                 })
                 .finally(() => {
                     setIsLoading(false);
@@ -345,7 +359,8 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
 
         const alignmentExists = ref;
         const hasSearchInput = layoutLocationTrackSearchInput.length > 0;
-        const layoutLocationTrackMatchesSearchInput = track.name
+        const trackName = locationTrackNames.find((ltn) => ltn.id === track.id)?.name ?? '';
+        const layoutLocationTrackMatchesSearchInput = trackName
             .toLowerCase()
             .includes(layoutLocationTrackSearchInput);
 
@@ -368,7 +383,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                 }
                 ref={ref.ref}>
                 <LocationTrackBadge
-                    locationTrack={track}
+                    alignmentName={trackName}
                     status={
                         isSelected
                             ? LocationTrackBadgeStatus.SELECTED
@@ -428,7 +443,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                 <InfoboxContentSpread>
                     <MessageBox>
                         {t('tool-panel.alignment.geometry.part-of-unfinished-split', {
-                            locationTrackName: selectedLayoutLocationTrack?.name,
+                            locationTrackName: selectedLocationTrackName?.name,
                         })}
                     </MessageBox>
                 </InfoboxContentSpread>

@@ -7,11 +7,12 @@ import {
     LayoutSwitch,
     LayoutTrackNumber,
     LayoutTrackNumberId,
+    LocationTrackName,
 } from 'track-layout/track-layout-model';
 import { filterNotEmpty, filterUnique, groupBy } from 'utils/array-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import { getLocationTracks } from 'track-layout/layout-location-track-api';
+import { getLocationTrackNames, getLocationTracks } from 'track-layout/layout-location-track-api';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import { CalculatedChanges } from 'publication/publication-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
@@ -40,6 +41,7 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
     const [groupedCalculatedChanges, setGroupedCalculatedChanges] = React.useState<
         GroupedCalculatedChanges[]
     >([]);
+    const [locationTrackNames, setLocationTrackNames] = React.useState<LocationTrackName[]>();
 
     const [openTrackNumbers, setOpenTrackNumbers] = React.useState<{
         [key: LayoutTrackNumberId]: boolean;
@@ -69,61 +71,69 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
             switchChanges.map((s) => s.switchId),
             layoutContextDraft,
         );
+        const ltNamesPromise = getLocationTrackNames(
+            locationTrackChanges.map((lt) => lt.locationTrackId),
+            layoutContextDraft,
+        );
 
-        Promise.all([trackNumbersPromise, locationTracksPromise, switchesPromise]).then(
-            ([trackNumbers, locationTracks, switches]) => {
-                type Change = {
-                    trackNumberId: LayoutTrackNumberId;
-                    locationTrack?: LayoutLocationTrack;
-                    switch?: LayoutSwitch;
-                };
+        Promise.all([
+            trackNumbersPromise,
+            locationTracksPromise,
+            switchesPromise,
+            ltNamesPromise,
+        ]).then(([trackNumbers, locationTracks, switches, ltNames]) => {
+            type Change = {
+                trackNumberId: LayoutTrackNumberId;
+                locationTrack?: LayoutLocationTrack;
+                switch?: LayoutSwitch;
+            };
 
-                const tnChanges: Change[] = trackNumberChanges.map((tnc) => ({
-                    trackNumberId: tnc.trackNumberId,
+            const tnChanges: Change[] = trackNumberChanges.map((tnc) => ({
+                trackNumberId: tnc.trackNumberId,
+            }));
+
+            const ltChanges: Change[] = locationTrackChanges
+                .map((ltc) => locationTracks.find((lt) => lt.id === ltc.locationTrackId))
+                .filter(filterNotEmpty)
+                .map((lt) => ({
+                    trackNumberId: lt.trackNumberId,
+                    locationTrack: lt,
                 }));
 
-                const ltChanges: Change[] = locationTrackChanges
-                    .map((ltc) => locationTracks.find((lt) => lt.id === ltc.locationTrackId))
-                    .filter(filterNotEmpty)
-                    .map((lt) => ({
-                        trackNumberId: lt.trackNumberId,
-                        locationTrack: lt,
+            const sChanges: Change[] = switchChanges.flatMap((sc) => {
+                return sc.changedJoints
+                    .map((cj) => cj.trackNumberId)
+                    .filter(filterUnique)
+                    .map((tn) => ({
+                        trackNumberId: tn,
+                        switch: switches.find((s) => s.id === sc.switchId),
                     }));
+            });
 
-                const sChanges: Change[] = switchChanges.flatMap((sc) => {
-                    return sc.changedJoints
-                        .map((cj) => cj.trackNumberId)
-                        .filter(filterUnique)
-                        .map((tn) => ({
-                            trackNumberId: tn,
-                            switch: switches.find((s) => s.id === sc.switchId),
-                        }));
-                });
+            const groupedChanges = groupBy(
+                [...tnChanges, ...ltChanges, ...sChanges],
+                (o) => o.trackNumberId,
+            );
 
-                const groupedChanges = groupBy(
-                    [...tnChanges, ...ltChanges, ...sChanges],
-                    (o) => o.trackNumberId,
-                );
+            const calculatedChanges = Object.entries(groupedChanges)
+                .map(([key, changes]) => {
+                    const trackNumber = trackNumbers.find((tn) => tn.id === key);
+                    return trackNumber
+                        ? {
+                              trackNumber: trackNumber,
+                              locationTracks: changes
+                                  .map((c) => c.locationTrack)
+                                  .filter(filterNotEmpty),
+                              switches: changes.map((c) => c.switch).filter(filterNotEmpty),
+                          }
+                        : undefined;
+                })
+                .filter(filterNotEmpty);
 
-                const calculatedChanges = Object.entries(groupedChanges)
-                    .map(([key, changes]) => {
-                        const trackNumber = trackNumbers.find((tn) => tn.id === key);
-                        return trackNumber
-                            ? {
-                                  trackNumber: trackNumber,
-                                  locationTracks: changes
-                                      .map((c) => c.locationTrack)
-                                      .filter(filterNotEmpty),
-                                  switches: changes.map((c) => c.switch).filter(filterNotEmpty),
-                              }
-                            : undefined;
-                    })
-                    .filter(filterNotEmpty);
-
-                setGroupedCalculatedChanges(calculatedChanges);
-                setIsFetching(false);
-            },
-        );
+            setLocationTrackNames(ltNames);
+            setGroupedCalculatedChanges(calculatedChanges);
+            setIsFetching(false);
+        });
     }, [calculatedChanges]);
 
     return !isFetching ? (
@@ -161,7 +171,13 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                                             {t('preview-view.location-tracks')}
                                             <ul>
                                                 {changes.locationTracks.map((lt) => (
-                                                    <li key={lt.id}>{lt.name}</li>
+                                                    <li key={lt.id}>
+                                                        {
+                                                            locationTrackNames?.find(
+                                                                (ltn) => ltn.id === lt.id,
+                                                            )?.name
+                                                        }
+                                                    </li>
                                                 ))}
                                             </ul>
                                         </li>

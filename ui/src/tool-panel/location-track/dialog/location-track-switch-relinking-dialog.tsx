@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { LocationTrackId } from 'track-layout/track-layout-model';
+import { LocationTrackId, LocationTrackName } from 'track-layout/track-layout-model';
 import { relinkTrackSwitches } from 'linking/linking-api';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { getSwitchesValidation } from 'track-layout/layout-switch-api';
@@ -13,7 +13,10 @@ import {
     trackLayoutActionCreators as TrackLayoutActions,
     TrackLayoutState,
 } from 'track-layout/track-layout-slice';
-import { useLocationTrackInfoboxExtras } from 'track-layout/track-layout-react-utils';
+import {
+    useLocationTrackInfoboxExtras,
+    useLocationTrackName,
+} from 'track-layout/track-layout-react-utils';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { createDelegates } from 'store/store-utils';
@@ -23,7 +26,6 @@ import { getRelinkableSwitchesCount } from 'track-layout/layout-location-track-a
 type LocationTrackSwitchRelinkingDialogContainerProps = {
     locationTrackId: LocationTrackId;
     layoutContext: LayoutContext;
-    name: string;
     closeDialog: () => void;
 };
 
@@ -35,12 +37,14 @@ export const LocationTrackSwitchRelinkingDialogContainer: React.FC<
         () => getRelinkableSwitchesCount(props.locationTrackId, props.layoutContext),
         [props.locationTrackId, props.layoutContext.publicationState, props.layoutContext.branch],
     );
+    const name = useLocationTrackName(props.locationTrackId, props.layoutContext);
 
-    return relinkableSwitchesCount === undefined ? (
+    return name === undefined || relinkableSwitchesCount === undefined ? (
         <React.Fragment />
     ) : (
         <LocationTrackSwitchRelinkingDialog
             {...props}
+            name={name}
             showLocationTrackTaskList={delegates.showLocationTrackTaskList}
             relinkableSwitchesCount={relinkableSwitchesCount}
         />
@@ -50,6 +54,7 @@ export const LocationTrackSwitchRelinkingDialogContainer: React.FC<
 type LocationTrackSwitchRelinkingDialogProps = LocationTrackSwitchRelinkingDialogContainerProps & {
     showLocationTrackTaskList: (state: TrackLayoutState['locationTrackTaskList']) => void;
     relinkableSwitchesCount: number;
+    name: LocationTrackName;
 };
 
 export const LocationTrackSwitchRelinkingDialog: React.FC<

@@ -27,6 +27,7 @@ import {
 import {
     useConflictingTracks,
     useLocationTrack,
+    useLocationTrackName,
     useLocationTracks,
     useLocationTrackStartAndEnd,
     useSwitches,
@@ -352,12 +353,14 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         draftLayoutContext(layoutContext),
         changeTimes.layoutSwitch,
     );
+    const locationTrackName = useLocationTrackName(locationTrack.id, layoutContext);
+
     const conflictingLocationTracks = useConflictingTracks(
         locationTrack.trackNumberId,
-        allSplits.map((s) => s.name),
+        allSplits.map((s) => s.namingScheme),
         allSplits.map((s) => s.duplicateTrackId).filter(filterNotEmpty),
         draftLayoutContext(layoutContext),
-    )?.map((t) => t.name);
+    )?.map((t) => t.namingScheme);
     const duplicateTracksInCurrentSplits = useLocationTracks(
         allSplits.map((s) => s.duplicateTrackId).filter(filterNotEmpty),
         draftLayoutContext(layoutContext),
@@ -367,7 +370,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         validateSplit(
             s,
             allSplits[index + 1],
-            allSplits.map((s) => s.name),
+            allSplits.map((s) => s.namingScheme),
             conflictingLocationTracks || [],
             switches,
             splittingState.endSplitPoint,
@@ -396,7 +399,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         },
     );
     const unusedNonOverlappingDuplicateNames = unusedNonOverlappingDuplicates.map(
-        (duplicate) => duplicate.name,
+        (duplicate) => duplicate.namingScheme,
     );
     const anyNonOverlappingDuplicates = unusedNonOverlappingDuplicates.length > 0;
 
@@ -416,7 +419,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 stopSplitting();
                 success(
                     t('tool-panel.location-track.splitting.splitting-success', {
-                        locationTrackName: locationTrack.name,
+                        locationTrackName: locationTrackName?.name,
                         count: splitsValidated.length,
                     }),
                     undefined,
@@ -527,7 +530,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                     )}
                     {firstChangedDuplicateInSplits && (
                         <LocationTrackSplittingDuplicateTrackNotPublishedErrorNotice
-                            draftDuplicateName={firstChangedDuplicateInSplits.name}
+                            draftDuplicateLocationTrackId={firstChangedDuplicateInSplits.id}
+                            layoutContext={layoutContext}
                         />
                     )}
                     <InfoboxButtons>

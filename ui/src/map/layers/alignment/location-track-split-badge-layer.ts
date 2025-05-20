@@ -50,7 +50,7 @@ const calculateSplitBounds = (
         {
             start: originalStartAndEnd.start?.point.m || 0,
             end: first(splitsSorted)?.distance || originalStartAndEnd.end?.point?.m || 0,
-            name: splittingState.firstSplit.name,
+            name: 'WOLOLOO', //splittingState.firstSplit.name,
         },
         ...splitsSorted.map((split, index) => ({
             start: split.distance,
@@ -58,7 +58,7 @@ const calculateSplitBounds = (
                 splitsSorted[index + 1]?.distance ||
                 originalStartAndEnd.end?.point?.m ||
                 split.distance,
-            name: split.name,
+            name: 'WOLOLOO', //split.name,
         })),
     ].filter((split) => split.name);
 };

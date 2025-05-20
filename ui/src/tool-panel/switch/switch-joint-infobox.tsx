@@ -15,6 +15,7 @@ import { LocationTrackBadge } from 'geoviite-design-lib/alignment/location-track
 import styles from './switch-infobox.scss';
 import { TopologicalJointConnection } from 'linking/linking-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
+import { useLocationTrackNames } from 'track-layout/track-layout-react-utils';
 
 type SwitchJointInfobox = {
     switchAlignments: SwitchAlignment[];
@@ -64,6 +65,10 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     ]
         .flat()
         .filter(filterNotEmpty);
+    const locationTrackNames = useLocationTrackNames(
+        locationTracks.map((lt) => lt.id),
+        layoutContext,
+    );
 
     const locationTrackBadgeOnClickHandler = (locationTrackId: LocationTrackId) =>
         onSelectLocationTrackBadge ? () => onSelectLocationTrackBadge(locationTrackId) : undefined;
@@ -78,13 +83,13 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
 
     function getLocationTrackBadges(locationTrackIds: LocationTrackId[]) {
         const badges = locationTrackIds
-            .map((t) => locationTracks?.find((locationTrack) => locationTrack.id === t))
+            .map((t) => locationTrackNames?.find((locationTrack) => locationTrack.id === t))
             .filter(filterNotEmpty)
-            .map((t) => (
+            .map((ltName) => (
                 <LocationTrackBadge
-                    key={t.id}
-                    locationTrack={t}
-                    onClick={locationTrackBadgeOnClickHandler(t.id)}
+                    key={ltName.id}
+                    alignmentName={ltName.name}
+                    onClick={locationTrackBadgeOnClickHandler(ltName.id)}
                 />
             ));
 

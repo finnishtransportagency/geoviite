@@ -19,7 +19,6 @@ import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import { createPortal } from 'react-dom';
 import { Point } from 'model/geometry';
-import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -28,6 +27,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { validationIssueIsError } from 'publication/publication-model';
+import { useLocationTrackName } from 'track-layout/track-layout-react-utils';
 
 type SwitchRelinkingValidationTaskListProps = {
     layoutContext: LayoutContext;
@@ -94,11 +94,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
     const { t } = useTranslation();
     const changeTimes = getChangeTimes();
     const switchStructures = useLoader(() => getSwitchStructures(), []);
-
-    const [locationTrack, locationTrackLoadingStatus] = useLoaderWithStatus(
-        () => getLocationTrack(locationTrackId, draftLayoutContext(layoutContext)),
-        [locationTrackId, getChangeTimes().layoutLocationTrack],
-    );
+    const locationTrackName = useLocationTrackName(locationTrackId, layoutContext);
 
     const [switchesAndErrors, switchesLoadingStatus] = useLoaderWithStatus(async () => {
         const relinkingResults = await validateLocationTrackSwitchRelinking(
@@ -130,9 +126,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
         onShowSwitch(layoutSwitch, switchLocation);
     };
 
-    const loadingInProgress =
-        locationTrackLoadingStatus === LoaderStatus.Loading ||
-        switchesLoadingStatus === LoaderStatus.Loading;
+    const loadingInProgress = switchesLoadingStatus === LoaderStatus.Loading;
 
     return (
         <div className={styles['switch-relinking-validation-task-list']}>
@@ -160,7 +154,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                             {t(
                                 'tool-panel.location-track.task-list.switch-relinking.validation-errors-message',
                                 {
-                                    locationTrack: locationTrack?.name,
+                                    locationTrack: locationTrackName?.name,
                                 },
                             )}
                         </span>
@@ -222,7 +216,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                             {t(
                                 'tool-panel.location-track.task-list.switch-relinking.no-validation-errors-message',
                                 {
-                                    locationTrack: locationTrack?.name,
+                                    locationTrack: locationTrackName?.name,
                                 },
                             )}
                         </span>

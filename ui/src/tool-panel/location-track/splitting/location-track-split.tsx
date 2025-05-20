@@ -24,10 +24,8 @@ import {
     MAP_POINT_NEAR_BBOX_OFFSET,
 } from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import { isEqualIgnoreCase } from 'utils/string-utils';
 import {
     END_SPLIT_POINT_NOT_MATCHING_ERROR,
-    getOperation,
     START_SPLIT_POINT_NOT_MATCHING_ERROR,
 } from './split-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
@@ -123,7 +121,7 @@ export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
 };
 
 export const LocationTrackSplit: React.FC<SplitProps> = ({
-    locationTrackId,
+    locationTrackId: _locationTrackId,
     split,
     addressPoint,
     onRemove,
@@ -134,7 +132,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     switchIssues,
     editingDisabled,
     deletingDisabled,
-    nameRef,
+    nameRef: _nameRef,
     descriptionBaseRef,
     allDuplicateLocationTracks,
     duplicateLocationTrack,
@@ -149,7 +147,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     onReleaseSwitchHighlight,
 }) => {
     const { t } = useTranslation();
-    const [nameCommitted, setNameCommitted] = React.useState(split.name !== '');
+    //const [nameCommitted, setNameCommitted] = React.useState(split.name !== '');
     const [descriptionCommitted, setDescriptionCommitted] = React.useState(
         split.descriptionBase !== '',
     );
@@ -163,17 +161,16 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
 
     // TODO: Adding any kind of dependency array causes infinite re-render loops, find out why
     React.useEffect(() => {
-        if (!nameIssues.length) {
+        /*if (!nameIssues.length) {
             setNameCommitted(true);
-        }
+        }*/
         if (!descriptionIssues.length) {
             setDescriptionCommitted(true);
         }
     });
 
     const closeButtonRef = React.useRef(null);
-
-    const nameErrorsVisible = nameCommitted && nameIssues.length > 0;
+    const nameErrorsVisible = false; // nameCommitted && nameIssues.length > 0;
     const descriptionErrorsVisible = descriptionCommitted && descriptionIssues.length > 0;
 
     const isPartialDuplicate = split.duplicateStatus?.match === 'PARTIAL';
@@ -329,7 +326,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             )}
                         </div>
                     )}
-                    <InfoboxField
+                    {/*<InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
                         label={t('tool-panel.location-track.track-name')}
                         hasErrors={nameErrorsVisible}>
@@ -363,7 +360,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             }}
                             qa-id={'split-target-track-name'}
                         />
-                    </InfoboxField>
+                    </InfoboxField>*/}
                     {(nameErrorsVisible || split.operation) && (
                         <InfoboxField
                             className={createClassName(

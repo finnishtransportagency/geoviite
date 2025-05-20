@@ -318,7 +318,10 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     />
 
                     {linkedLocationTracks && linkedLocationTracks.length > 0 && (
-                        <LocationTrackNames linkedLocationTracks={linkedLocationTracks} />
+                        <LocationTrackNames
+                            linkedLocationTracks={linkedLocationTracks}
+                            layoutContext={layoutContext}
+                        />
                     )}
                     {linkedReferenceLines && linkedReferenceLines.length > 0 && (
                         <ReferenceLineNames

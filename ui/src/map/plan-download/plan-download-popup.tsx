@@ -8,6 +8,7 @@ import { KmNumber, LayoutContext, officialMainLayoutContext } from 'common/commo
 import {
     DownloadablePlan,
     PlanDownloadAsset,
+    PlanDownloadAssetType,
     PopupSection,
 } from 'map/plan-download/plan-download-store';
 import { createDelegates } from 'store/store-utils';
@@ -29,6 +30,7 @@ import {
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PlanDownloadPopupSection } from 'map/plan-download/plan-download-popup-section';
 import { createPortal } from 'react-dom';
+import { useLocationTrackName } from 'track-layout/track-layout-react-utils';
 
 const kmNumberRange = (start: KmNumber | undefined, end: KmNumber | undefined) => {
     if (start && end) return `${start}-${end}`;
@@ -48,10 +50,15 @@ export const LocationSpecifier: React.FC<LocationSpecifierProps> = ({
     endTrackMeter,
 }) => {
     const { t } = useTranslation();
+
+    const name =
+        selectedAsset?.type === PlanDownloadAssetType.LOCATION_TRACK
+            ? useLocationTrackName(selectedAsset.asset.id, officialMainLayoutContext())
+            : selectedAsset?.asset?.number;
     const base = !selectedAsset
         ? ''
         : selectedAsset.type === 'LOCATION_TRACK'
-          ? `${t('plan-download.location-track')} ${selectedAsset.asset.name}`
+          ? `${t('plan-download.location-track')} ${name ?? ''}`
           : `${t('plan-download.track-number')} ${selectedAsset.asset.number}`;
     const kmNumberString = kmNumberRange(startTrackMeter, endTrackMeter);
     return (

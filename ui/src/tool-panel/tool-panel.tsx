@@ -340,7 +340,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const locationTrackTabs = locationTracks.map((track: LayoutLocationTrack): ToolPanelTab => {
             return {
                 asset: { type: 'LOCATION_TRACK', id: track.id },
-                title: track.name,
+                title: 'Lokahuunträk',
                 element: (
                     <LocationTrackInfoboxLinkingContainer
                         visibilities={infoboxVisibilities.locationTrack}

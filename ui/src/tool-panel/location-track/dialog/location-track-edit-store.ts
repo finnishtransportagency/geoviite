@@ -1,19 +1,25 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
+import {
+    LayoutLocationTrack,
+    LayoutTrackNumber,
+    LocationTrackNaming,
+    LocationTrackNamingScheme,
+} from 'track-layout/track-layout-model';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
-    isPropEditFieldCommitted,
-    PropEdit,
     FieldValidationIssue,
     FieldValidationIssueType,
+    isPropEditFieldCommitted,
+    PropEdit,
 } from 'utils/validation-utils';
 import { LocationTrackOwner, LocationTrackOwnerId } from 'common/common-model';
 import {
     validateLocationTrackDescriptionBase,
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type LocationTrackEditState = {
     isNewLocationTrack: boolean;
@@ -30,6 +36,53 @@ export type LocationTrackEditState = {
     allFieldsCommitted: boolean;
 };
 
+export const initialLocationTrackNameFreeText: LocationTrackNaming = {
+    scheme: LocationTrackNamingScheme.FREE_TEXT,
+    freeText: '',
+    specifier: undefined,
+};
+
+export const initialLocationTrackNameTrackNumber: LocationTrackNaming = {
+    scheme: LocationTrackNamingScheme.TRACK_NUMBER_TRACK,
+    freeText: '',
+    specifier: undefined,
+};
+
+export const initialLocationTrackNameBetweenOperatingPoints: LocationTrackNaming = {
+    scheme: LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS,
+    freeText: undefined,
+    specifier: undefined,
+};
+
+export const initialLocationTrackNameWithinOperatingPoint: LocationTrackNaming = {
+    scheme: LocationTrackNamingScheme.WITHIN_OPERATING_POINT,
+    freeText: '',
+    specifier: undefined,
+};
+
+export const initialLocationTrackNameChord: LocationTrackNaming = {
+    scheme: LocationTrackNamingScheme.CHORD,
+    freeText: undefined,
+    specifier: undefined,
+};
+
+export const locationTrackNameByNamingScheme = (namingScheme: LocationTrackNamingScheme) => {
+    switch (namingScheme) {
+        case LocationTrackNamingScheme.FREE_TEXT:
+            return initialLocationTrackNameFreeText;
+        case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
+            return initialLocationTrackNameTrackNumber;
+        case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
+            return initialLocationTrackNameBetweenOperatingPoints;
+        case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
+            return initialLocationTrackNameWithinOperatingPoint;
+        case LocationTrackNamingScheme.CHORD:
+            return initialLocationTrackNameChord;
+        default:
+            return exhaustiveMatchingGuard(namingScheme);
+    }
+};
+
 export const initialLocationTrackEditState: LocationTrackEditState = {
     isNewLocationTrack: false,
     existingLocationTrack: undefined,
@@ -40,7 +93,7 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
     isSaving: false,
     trackNumbers: [],
     locationTrack: {
-        name: '',
+        namingScheme: initialLocationTrackNameFreeText,
         trackNumberId: undefined,
         state: undefined,
         type: undefined,
@@ -57,7 +110,7 @@ export type LoadingProp = keyof LocationTrackEditState['loading'];
 
 function newLinkingLocationTrack(): LocationTrackSaveRequest {
     return {
-        name: '',
+        namingScheme: initialLocationTrackNameFreeText,
         descriptionBase: '',
         type: undefined,
         state: undefined,
@@ -81,7 +134,7 @@ function validateLinkingLocationTrack(
             'topologicalConnectivity',
             'ownerId',
         ]
-            .map((prop: keyof LocationTrackSaveRequest) =>
+            .map((prop: keyof Omit<LocationTrackSaveRequest, 'namingScheme'>) =>
                 isNilOrBlank(saveRequest[prop])
                     ? {
                           field: prop,
@@ -91,13 +144,14 @@ function validateLinkingLocationTrack(
                     : undefined,
             )
             .filter(filterNotEmpty),
-        ...validateLocationTrackName(saveRequest.name),
+        ...validateLocationTrackName(saveRequest.namingScheme),
     ];
 
     return [...errors, ...validateLocationTrackDescriptionBase(saveRequest.descriptionBase)];
 }
 
 const VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME = 'Väylävirasto';
+
 export function setVaylavirastoOwnerIdFrom(
     owners: LocationTrackOwner[] | undefined,
     set: (vaylaId: LocationTrackOwnerId) => void,
@@ -144,6 +198,7 @@ const locationTrackEditSlice = createSlice({
             state.existingLocationTrack = existingLocationTrack;
             state.locationTrack = {
                 ...existingLocationTrack,
+                namingScheme: initialLocationTrackNameFreeText,
                 type: existingLocationTrack.type || 'MAIN',
                 duplicateOf: existingLocationTrack.duplicateOf,
             };
@@ -200,7 +255,7 @@ export function isProcessing(state: LocationTrackEditState): boolean {
 }
 
 export function canSaveLocationTrack(state: LocationTrackEditState): boolean {
-    return !!(state.locationTrack && !state.validationIssues.length && !isProcessing(state));
+    return state.locationTrack && !state.validationIssues.length && !isProcessing(state);
 }
 
 export const reducer = locationTrackEditSlice.reducer;

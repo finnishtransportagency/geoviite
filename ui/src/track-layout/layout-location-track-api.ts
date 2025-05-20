@@ -7,6 +7,8 @@ import {
     LocationTrackDescription,
     LocationTrackId,
     LocationTrackInfoboxExtras,
+    LocationTrackName,
+    LocationTrackNaming,
 } from 'track-layout/track-layout-model';
 import {
     DesignBranch,
@@ -20,6 +22,7 @@ import {
     TrackMeter,
 } from 'common/common-model';
 import {
+    API_URI,
     deleteNonNull,
     getNonNull,
     getNullable,
@@ -57,6 +60,7 @@ const locationTrackOidsCache = asyncCache<
     LocationTrackId,
     { [key in LayoutBranch]?: Oid } | undefined
 >();
+const locationTrackNameCache = asyncCache<string, LocationTrackName | undefined>();
 
 export type PlanSectionPoint = {
     address: TrackMeter;
@@ -77,7 +81,7 @@ export type AlignmentPlanSection = {
 
 export type SplitDuplicateTrack = {
     id: LocationTrackId;
-    name: string;
+    namingScheme: LocationTrackNaming;
     length: number;
     status: DuplicateStatus;
 };
@@ -129,7 +133,7 @@ export async function getRelinkableSwitchesCount(
 
 export async function getLocationTracksByName(
     trackNumberId: LayoutTrackNumberId,
-    locationTrackNames: string[],
+    locationTrackNames: LocationTrackNaming[],
     layoutContext: LayoutContext,
     includeDeleted: boolean,
 ): Promise<LayoutLocationTrack[]> {
@@ -357,3 +361,27 @@ export async function getLocationTrackOids(
     );
     return oids ?? {};
 }
+
+export const getLocationTrackNames = async (
+    ids: LocationTrackId[],
+    layoutContext: LayoutContext,
+    changeTime: TimeStamp | undefined = getMaxTimestamp(
+        getChangeTimes().layoutLocationTrack,
+        getChangeTimes().layoutTrackNumber,
+        getChangeTimes().layoutSwitch,
+    ),
+) =>
+    locationTrackNameCache
+        .getMany(
+            changeTime,
+            ids,
+            (id) => cacheKey(id, layoutContext),
+            (ids) =>
+                getNonNull<LocationTrackName[]>(
+                    `${API_URI}/track-layout/location-tracks/names${queryParams({ ids })}`,
+                ).then((tracks) => {
+                    const trackMap = indexIntoMap(tracks);
+                    return (id) => trackMap.get(id);
+                }),
+        )
+        .then((tracks) => tracks.filter(filterNotEmpty));

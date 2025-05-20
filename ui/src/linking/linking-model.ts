@@ -10,6 +10,7 @@ import {
     LayoutTrackNumberId,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
+    LocationTrackNaming,
     LocationTrackState,
     LocationTrackType,
     MapAlignmentType,
@@ -38,7 +39,7 @@ import {
 import { LayoutValidationIssue } from 'publication/publication-model';
 
 export type LocationTrackSaveRequest = {
-    name: string;
+    namingScheme: LocationTrackNaming;
     descriptionBase?: string;
     descriptionSuffix?: LocationTrackDescriptionSuffixMode;
     type?: LocationTrackType;

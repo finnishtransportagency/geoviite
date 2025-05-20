@@ -314,6 +314,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <LocationTracksPanel
                         locationTracks={filteredLocationTracks}
+                        layoutContext={layoutContext}
                         selectedLocationTracks={selectedItems.locationTracks}
                         canSelectLocationTrack={selectableItemTypes.includes('locationTracks')}
                         onToggleLocationTrackSelection={onToggleLocationTrackSelection}

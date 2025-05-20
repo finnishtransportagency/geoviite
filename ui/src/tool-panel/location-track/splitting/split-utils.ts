@@ -3,6 +3,7 @@ import {
     LayoutLocationTrack,
     LayoutSwitch,
     LocationTrackId,
+    LocationTrackNaming,
     SplitPoint,
     splitPointsAreSame,
 } from 'track-layout/track-layout-model';
@@ -16,11 +17,7 @@ import {
 } from 'tool-panel/location-track/split-store';
 import { findById } from 'utils/array-utils';
 import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
-import {
-    validateLocationTrackDescriptionBase,
-    validateLocationTrackName,
-} from 'tool-panel/location-track/dialog/location-track-validation';
-import { isEqualIgnoreCase } from 'utils/string-utils';
+import { validateLocationTrackDescriptionBase } from 'tool-panel/location-track/dialog/location-track-validation';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 
 export const START_SPLIT_POINT_NOT_MATCHING_ERROR = 'split-point-not-matching-start';
@@ -67,7 +64,7 @@ const splitToRequestTarget = (
               }
             : undefined;
     return {
-        name: duplicate ? duplicate.name : split.name,
+        namingScheme: duplicate ? duplicate.namingScheme : split.namingScheme,
         descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
         descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
         duplicateTrack: duplicateTrack,
@@ -79,13 +76,13 @@ const splitToRequestTarget = (
 export const validateSplit = (
     split: FirstSplitTargetCandidate | SplitTargetCandidate,
     nextSplit: FirstSplitTargetCandidate | SplitTargetCandidate | undefined,
-    allSplitNames: string[],
-    conflictingTrackNames: string[],
+    _allSplitNames: LocationTrackNaming[],
+    _conflictingTrackNames: LocationTrackNaming[],
     switches: LayoutSwitch[],
     lastSplitPoint: SplitPoint,
 ): ValidatedSplit => ({
     split: split,
-    nameIssues: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
+    nameIssues: [], // validateSplitName(split.namingScheme, allSplitNames, conflictingTrackNames),
     descriptionIssues: validateSplitDescription(split.descriptionBase, split.duplicateTrackId),
     switchIssues: validateSplitSwitch(
         split,
@@ -95,29 +92,37 @@ export const validateSplit = (
     ),
 });
 
-const validateSplitName = (
-    splitName: string,
-    allSplitNames: string[],
-    conflictingTrackNames: string[],
+/*const validateSplitName = (
+    splitName: LocationTrackNaming,
+    allSplitNames: LocationTrackNaming[],
+    conflictingTrackNames: LocationTrackNaming[],
 ) => {
     const errors: FieldValidationIssue<SplitTargetCandidate>[] =
         validateLocationTrackName(splitName);
 
-    if (allSplitNames.filter((s) => s !== '' && isEqualIgnoreCase(s, splitName)).length > 1)
+    if (
+        allSplitNames.filter(
+            (s) => s !== '' && !!splitName.freeText && isEqualIgnoreCase(s, splitName.freeText),
+        ).length > 1
+    )
         errors.push({
-            field: 'name',
+            field: 'namingScheme',
             reason: 'conflicts-with-split',
             type: FieldValidationIssueType.ERROR,
         });
-    if (conflictingTrackNames.map((t) => t.toLowerCase()).includes(splitName.toLowerCase())) {
+    if (
+        conflictingTrackNames
+            .map((t) => t.toLowerCase())
+            .some((t) => splitName.freeText && t === splitName.freeText.toLowerCase())
+    ) {
         errors.push({
-            field: 'name',
+            field: 'namingScheme',
             reason: 'conflicts-with-track',
             type: FieldValidationIssueType.ERROR,
         });
     }
     return errors;
-};
+};*/
 
 const validateSplitDescription = (
     description: string,
@@ -170,7 +175,7 @@ export const validateSplitSwitch = (
             params: {
                 expectedSplitPoint: split.duplicateStatus?.startSplitPoint.name,
                 selectedSplitPoint: split.splitPoint.name,
-                trackName: split.name,
+                trackName: split.namingScheme,
             },
         });
     }
@@ -191,7 +196,7 @@ export const validateSplitSwitch = (
             params: {
                 expectedSplitPoint: split.duplicateStatus?.endSplitPoint.name,
                 selectedSplitPoint: nextSplitPoint.name,
-                trackName: split.name,
+                trackName: split.namingScheme,
             },
         });
     }

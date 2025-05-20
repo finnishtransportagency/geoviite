@@ -8,8 +8,10 @@ import {
 import { createClassName } from 'vayla-design-lib/utils';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { useTranslation } from 'react-i18next';
-import { fieldComparator } from 'utils/array-utils';
+import { compare } from 'utils/array-utils';
 import { ShowMoreButton } from 'show-more-button/show-more-button';
+import { useLocationTrackNames } from 'track-layout/track-layout-react-utils';
+import { LayoutContext } from 'common/common-model';
 
 type LocationTracksPanelProps = {
     locationTracks: LayoutLocationTrack[];
@@ -18,6 +20,7 @@ type LocationTracksPanelProps = {
     canSelectLocationTrack: boolean;
     max?: number;
     showMoreMax?: number;
+    layoutContext: LayoutContext;
 };
 
 export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
@@ -27,15 +30,25 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
     canSelectLocationTrack,
     max = 16,
     showMoreMax = 48,
+    layoutContext,
 }: LocationTracksPanelProps) => {
     const { t } = useTranslation();
     const [showMore, setShowMore] = React.useState(false);
     const [visibleTracks, setVisibleTracks] = React.useState<LayoutLocationTrack[]>([]);
     const [showMoreButton, setShowMoreButton] = React.useState(false);
     const locationTrackCount = locationTracks.length;
+    const ltNames = useLocationTrackNames(
+        locationTracks.map((lt) => lt.id),
+        layoutContext,
+    );
 
     React.useEffect(() => {
-        const sortedLocationTracks = [...locationTracks].sort(fieldComparator((lt) => lt.name));
+        const sortedLocationTracks = [...locationTracks].sort((a, b) => {
+            const aName = ltNames?.find((lt) => a.id === lt.id)?.name;
+            const bName = ltNames?.find((lt) => b.id === lt.id)?.name;
+
+            return compare(aName, bName);
+        });
 
         if (sortedLocationTracks.length <= max) {
             //Just show everything since there aren't that many location tracks
@@ -66,7 +79,7 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
             setShowMore(false);
             setShowMoreButton(false);
         }
-    }, [locationTracks, showMore]);
+    }, [locationTracks, ltNames, showMore]);
 
     return (
         <div>
@@ -90,7 +103,9 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                                 canSelectLocationTrack && onToggleLocationTrackSelection(track.id)
                             }>
                             <LocationTrackBadge
-                                locationTrack={track}
+                                alignmentName={
+                                    ltNames?.find((lt) => lt.id === track.id)?.name ?? ''
+                                }
                                 status={isSelected ? LocationTrackBadgeStatus.SELECTED : undefined}
                             />
                             <span>

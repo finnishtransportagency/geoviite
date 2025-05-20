@@ -7,10 +7,11 @@ import { LayoutContext, TrackMeter as TrackMeterModel } from 'common/common-mode
 import { useDebouncedState, useLoader } from 'utils/react-utils';
 import { getAddress } from 'common/geocoding-api';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
-import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { getLocationTrack, getLocationTrackNames } from 'track-layout/layout-location-track-api';
 import { getTrackNumberById } from 'track-layout/layout-track-number-api';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 import { first } from 'utils/array-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 type LocationHolderProps = {
     hoveredCoordinate: Point | undefined;
@@ -21,7 +22,6 @@ type LocationHolderProps = {
 
 type HoverLocation = {
     coordinate: Point | undefined;
-    alignmentName: string | undefined;
     address: TrackMeterModel | undefined;
 };
 
@@ -31,7 +31,7 @@ async function getLocationTrackHoverLocation(
     coordinate: Point,
 ): Promise<HoverLocation> {
     return getLocationTrack(locationTrackId, layoutContext).then((track) =>
-        getHoverLocation(track?.name, track?.trackNumberId, layoutContext, coordinate),
+        getHoverLocation(track?.trackNumberId, layoutContext, coordinate),
     );
 }
 
@@ -43,7 +43,7 @@ async function getReferenceLineHoverLocation(
     return getTrackNumberReferenceLine(trackNumberId, layoutContext).then((line) => {
         if (line) {
             return getTrackNumberById(line.trackNumberId, layoutContext).then((trackNumber) =>
-                getHoverLocation(trackNumber?.number, trackNumber?.id, layoutContext, coordinate),
+                getHoverLocation(trackNumber?.id, layoutContext, coordinate),
             );
         } else {
             return emptyHoveredLocation(coordinate);
@@ -52,20 +52,17 @@ async function getReferenceLineHoverLocation(
 }
 
 async function getHoverLocation(
-    name: string | undefined,
     trackNumberId: LayoutTrackNumberId | undefined,
     layoutContext: LayoutContext,
     coordinate: Point,
 ): Promise<HoverLocation> {
     if (trackNumberId) {
         return getAddress(trackNumberId, coordinate, layoutContext).then((address) => ({
-            alignmentName: name,
             coordinate: coordinate,
             address: address || undefined,
         }));
     } else {
         return Promise.resolve({
-            alignmentName: name,
             coordinate: coordinate,
             address: undefined,
         });
@@ -74,7 +71,6 @@ async function getHoverLocation(
 
 function emptyHoveredLocation(coordinate: Point | undefined): HoverLocation {
     return {
-        alignmentName: undefined,
         coordinate: coordinate,
         address: undefined,
     };
@@ -100,9 +96,25 @@ export const LocationHolderView: React.FC<LocationHolderProps> = ({
         }
     }, [debouncedCoordinate, trackNumber, locationTrack]);
 
+    const name = useLoader(() => {
+        if (trackNumber) {
+            return Promise.resolve(trackNumber);
+        } else if (locationTrack) {
+            return getLocationTrackNames([locationTrack], layoutContext).then((names) => {
+                return first(names)?.name;
+            });
+        } else {
+            return Promise.resolve(undefined);
+        }
+    }, [
+        getChangeTimes().layoutSwitch,
+        getChangeTimes().layoutLocationTrack,
+        getChangeTimes().layoutSwitch,
+    ]);
+
     return (
         <div className={styles['location-holder-view']}>
-            <div>{hovered?.alignmentName}</div>
+            <div>{name}</div>
             <div>
                 <TrackMeter trackMeter={hovered?.address} />
             </div>

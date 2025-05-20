@@ -6,9 +6,11 @@ import { getRatkoPushError } from 'ratko/ratko-api';
 import { useTranslation } from 'react-i18next';
 import { RatkoAssetType, RatkoPushErrorAsset } from 'ratko/ratko-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
+import { useLayoutDesign, useLocationTrackName } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { GEOVIITE_SUPPORT_EMAIL } from 'publication/card/publication-card';
+import { officialMainLayoutContext } from 'common/common-model';
+import { LocationTrackName } from 'track-layout/track-layout-model';
 
 type RatkoPushErrorDetailsProps = {
     failedPublication: PublicationDetails;
@@ -27,9 +29,13 @@ const assetTranslationKeyByType = (errorAsset: RatkoPushErrorAsset) => {
     }
 };
 
-const assetNameByType = (errorAsset: RatkoPushErrorAsset) => {
+const assetNameByType = (
+    errorAsset: RatkoPushErrorAsset,
+    nameIfLocationTrack: LocationTrackName | undefined,
+) => {
     switch (errorAsset.assetType) {
         case RatkoAssetType.LOCATION_TRACK:
+            return nameIfLocationTrack?.name;
         case RatkoAssetType.SWITCH:
             return errorAsset.asset.name;
         case RatkoAssetType.TRACK_NUMBER:
@@ -53,6 +59,10 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
     if (!error) {
         return <React.Fragment />;
     }
+    const locationTrackName = useLocationTrackName(
+        error.assetType === 'LOCATION_TRACK' ? error.asset.id : undefined,
+        officialMainLayoutContext(),
+    );
 
     const isConnectionIssue = failedPublication.ratkoPushStatus === 'CONNECTION_ISSUE';
     const isInternalError = error.errorType === 'INTERNAL';
@@ -60,21 +70,21 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
 
     const ratkoFetchErrorString = t('publication-card.push-error.ratko-fetch-error', {
         assetType: t(assetTranslationKeyByType(error)),
-        name: assetNameByType(error),
+        name: assetNameByType(error, locationTrackName),
         operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
     });
 
     const ratkoErrorString = t('publication-card.push-error.ratko-error', {
         assetType: t(assetTranslationKeyByType(error)),
         errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
-        name: assetNameByType(error),
+        name: assetNameByType(error, locationTrackName),
         operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
     });
 
     const internalErrorString = t('publication-card.push-error.internal-error', {
         assetType: t(assetTranslationKeyByType(error)),
         errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
-        name: assetNameByType(error),
+        name: assetNameByType(error, locationTrackName),
         operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
         geoviiteSupportEmail: GEOVIITE_SUPPORT_EMAIL,
     });

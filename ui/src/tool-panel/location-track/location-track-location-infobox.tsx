@@ -43,6 +43,7 @@ import {
 import {
     useCoordinateSystem,
     useLocationTrackInfoboxExtras,
+    useLocationTrackName,
     useLocationTrackStartAndEnd,
 } from 'track-layout/track-layout-react-utils';
 import { createDelegates } from 'store/store-utils';
@@ -159,6 +160,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         layoutContext,
         changeTimes,
     );
+    const name = useLocationTrackName(locationTrack?.id, layoutContext);
 
     const isDraft = layoutContext.publicationState === 'DRAFT';
     const isMainDraft = layoutContext.branch === 'MAIN' && isDraft;
@@ -424,7 +426,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 {t(
                                                     'tool-panel.alignment.geometry.part-of-unfinished-split',
                                                     {
-                                                        locationTrackName: locationTrack.name,
+                                                        locationTrackName: name,
                                                     },
                                                 )}
                                             </MessageBox>

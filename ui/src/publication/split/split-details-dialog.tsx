@@ -15,18 +15,28 @@ import styles from './split-details-dialog.scss';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { TrackMeter } from 'common/common-model';
+import { LayoutContext, TrackMeter } from 'common/common-model';
+import { useLocationTrackName } from 'track-layout/track-layout-react-utils';
 
 export type SplitDetailsViewProps = {
     publicationId: PublicationId;
+    layoutContext: LayoutContext;
     onClose: () => void;
 };
 
-export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicationId, onClose }) => {
+export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({
+    publicationId,
+    layoutContext,
+    onClose,
+}) => {
     const { t } = useTranslation();
     const [splitDetails, splitDetailsStatus] = useLoaderWithStatus(
         () => getSplitDetails(publicationId),
         [publicationId],
+    );
+    const splitDetailsLocationTrackName = useLocationTrackName(
+        splitDetails?.locationTrack?.id,
+        layoutContext,
     );
 
     return (
@@ -57,7 +67,7 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
                 <div>
                     <FieldLayout label={t('split-details-dialog.source-name')}>
                         <div qa-id={'split-source-track-name'}>
-                            {splitDetails?.locationTrack?.name}
+                            {splitDetailsLocationTrackName?.name}
                         </div>
                     </FieldLayout>
                     <FieldLayout label={t('split-details-dialog.source-oid')}>

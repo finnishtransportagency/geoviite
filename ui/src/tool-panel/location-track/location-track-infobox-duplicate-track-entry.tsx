@@ -4,10 +4,10 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import {
-    LayoutLocationTrack,
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackDuplicate,
+    LocationTrackName,
 } from 'track-layout/track-layout-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
@@ -15,10 +15,10 @@ import { PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS }
 
 type LocationTrackInfoboxDuplicateTrackEntryProps = {
     duplicate: LocationTrackDuplicate;
-    targetLocationTrack: LayoutLocationTrack;
+    targetLocationTrackName: LocationTrackName;
     currentTrackNumberId: LayoutTrackNumberId | undefined;
     trackNumbers: LayoutTrackNumber[] | undefined;
-    explicitDuplicateLocationTrackNames: LayoutLocationTrack[];
+    explicitDuplicateLocationTrackNames: LocationTrackName[];
 };
 
 type NoticeLevel = 'ERROR' | 'WARNING' | 'INFO';
@@ -49,7 +49,7 @@ export const LocationTrackDuplicateInfoIcon: React.FC<{
 
 function validateIsExplicitDuplicate(
     duplicate: LocationTrackDuplicate,
-    targetLocationTrackName: string,
+    targetLocationTrackName: LocationTrackName,
 ): LocationTrackDuplicateNotice | undefined {
     if (
         duplicate.duplicateStatus.match === 'FULL' &&
@@ -59,7 +59,7 @@ function validateIsExplicitDuplicate(
             translationKey: 'tool-panel.location-track.implicit-duplicate-tooltip',
             translationParams: {
                 trackName: duplicate.name,
-                otherTrackName: targetLocationTrackName,
+                otherTrackName: targetLocationTrackName.name,
             },
             level: 'INFO',
         };
@@ -70,7 +70,7 @@ function validateIsExplicitDuplicate(
 
 function validateExplicitDuplicateOnSameTrackNumber(
     currentTrackNumberId: LayoutTrackNumberId | undefined,
-    currentLocationTrackName: string,
+    currentLocationTrackName: LocationTrackName,
     duplicate: LocationTrackDuplicate,
     trackNumbers: LayoutTrackNumber[] | undefined,
 ): LocationTrackDuplicateNotice | undefined {
@@ -78,7 +78,7 @@ function validateExplicitDuplicateOnSameTrackNumber(
         return {
             translationKey: 'tool-panel.location-track.duplicate-on-different-track-number',
             translationParams: {
-                currentTrack: currentLocationTrackName,
+                currentTrack: currentLocationTrackName.name,
                 currentTrackNumber: trackNumbers?.find((tn) => tn.id === currentTrackNumberId)
                     ?.number,
                 otherTrackNumber: trackNumbers?.find((tn) => tn.id === duplicate?.trackNumberId)
@@ -93,19 +93,19 @@ function validateExplicitDuplicateOnSameTrackNumber(
 }
 
 function validateExplicitDuplicateOfThisLocationTrack(
-    targetLocationTrack: LayoutLocationTrack,
+    targetLocationTrackName: LocationTrackName,
     duplicate: LocationTrackDuplicate,
-    explicitDuplicateLocationTrackNames: LayoutLocationTrack[],
+    explicitDuplicateLocationTrackNames: LocationTrackName[],
 ): LocationTrackDuplicateNotice | undefined {
     if (
         duplicate.duplicateStatus.duplicateOfId !== undefined &&
-        targetLocationTrack.id !== duplicate.duplicateStatus.duplicateOfId
+        targetLocationTrackName.id !== duplicate.duplicateStatus.duplicateOfId
     ) {
         return {
             translationKey:
                 'tool-panel.location-track.overlapping-duplicate-of-different-track-tooltip',
             translationParams: {
-                trackName: targetLocationTrack.name,
+                trackName: targetLocationTrackName.name,
                 implicitDuplicateName: duplicate.name,
                 explicitDuplicateName: explicitDuplicateLocationTrackNames.find(
                     (d) => d.id === duplicate.duplicateStatus.duplicateOfId,
@@ -120,14 +120,14 @@ function validateExplicitDuplicateOfThisLocationTrack(
 
 function validateDuplicateHasOverlappingGeometry(
     duplicate: LocationTrackDuplicate,
-    targetLocationTrack: LayoutLocationTrack,
+    targetLocationTrackName: LocationTrackName,
 ): LocationTrackDuplicateNotice | undefined {
     if (duplicate.duplicateStatus.match === 'NONE') {
         return {
             translationKey: 'tool-panel.location-track.non-overlapping-duplicate-tooltip',
             translationParams: {
                 trackName: duplicate.name,
-                otherTrackName: targetLocationTrack.name,
+                otherTrackName: targetLocationTrackName.name,
             },
             level: 'ERROR',
         };
@@ -190,7 +190,7 @@ export const LocationTrackInfoboxDuplicateTrackEntry: React.FC<
     LocationTrackInfoboxDuplicateTrackEntryProps
 > = ({
     duplicate,
-    targetLocationTrack,
+    targetLocationTrackName,
     currentTrackNumberId,
     trackNumbers,
     explicitDuplicateLocationTrackNames,
@@ -198,19 +198,19 @@ export const LocationTrackInfoboxDuplicateTrackEntry: React.FC<
     const { t } = useTranslation();
 
     const notices: LocationTrackDuplicateNotice[] = [
-        validateIsExplicitDuplicate(duplicate, targetLocationTrack.name),
+        validateIsExplicitDuplicate(duplicate, targetLocationTrackName),
         validateExplicitDuplicateOnSameTrackNumber(
             currentTrackNumberId,
-            targetLocationTrack.name,
+            targetLocationTrackName,
             duplicate,
             trackNumbers,
         ),
         validateExplicitDuplicateOfThisLocationTrack(
-            targetLocationTrack,
+            targetLocationTrackName,
             duplicate,
             explicitDuplicateLocationTrackNames,
         ),
-        validateDuplicateHasOverlappingGeometry(duplicate, targetLocationTrack),
+        validateDuplicateHasOverlappingGeometry(duplicate, targetLocationTrackName),
         validateIsPartialDuplicate(duplicate),
         validateHasShortNonOverlappingLength(duplicate),
     ].filter(filterNotEmpty);

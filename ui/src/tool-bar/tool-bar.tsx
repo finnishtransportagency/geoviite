@@ -28,6 +28,7 @@ import {
     refreshLocationTrackSelection,
     refreshSwitchSelection,
     refreshTrackNumberSelection,
+    useLocationTrackName,
 } from 'track-layout/track-layout-react-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
@@ -117,6 +118,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
         [getChangeTimes().layoutDesign, designId],
     );
+    const splittingOriginTrackName = useLocationTrackName(
+        splittingState?.originLocationTrack.id,
+        layoutContext,
+    );
+
     const currentDesignExists =
         designLoadStatus === LoaderStatus.Ready && currentDesign !== undefined;
 
@@ -469,7 +475,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         placeholder={
                             splittingState
                                 ? t('tool-bar.search-from-track', {
-                                      track: splittingState.originLocationTrack.name,
+                                      track: splittingOriginTrackName?.name,
                                   })
                                 : t('tool-bar.search-from-whole-network')
                         }

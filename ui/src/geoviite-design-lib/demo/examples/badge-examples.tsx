@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
     LayoutAssetFields,
     LayoutKmPost,
-    LayoutLocationTrack,
     LayoutState,
     LayoutSwitch,
 } from 'track-layout/track-layout-model';
@@ -18,25 +17,6 @@ const layoutAssetFields: LayoutAssetFields = {
     version: 'version',
     dataType: 'TEMP',
     isDraft: true,
-};
-
-const layoutLocationTrack: LayoutLocationTrack = {
-    ...layoutAssetFields,
-    id: brand(''),
-    name: 'name',
-    descriptionBase: 'description',
-    state: 'IN_USE' as LayoutState,
-    length: 123,
-    segmentCount: 0,
-    boundingBox: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
-    trackNumberId: brand(''),
-    sourceId: '',
-    type: undefined,
-    duplicateOf: undefined,
-    topologicalConnectivity: 'NONE',
-    topologyStartSwitch: undefined,
-    topologyEndSwitch: undefined,
-    ownerId: '',
 };
 const kmPost: LayoutKmPost = {
     ...layoutAssetFields,
@@ -75,29 +55,29 @@ export const BadgeExamples: React.FC = () => {
                     <tr>
                         <td>Location tracks</td>
                         <td>
-                            <LocationTrackBadge locationTrack={layoutLocationTrack} />
+                            <LocationTrackBadge alignmentName={'name'} />
                         </td>
                         <td>
                             <LocationTrackBadge
-                                locationTrack={layoutLocationTrack}
+                                alignmentName={'name'}
                                 status={LocationTrackBadgeStatus.LINKED}
                             />
                         </td>
                         <td>
                             <LocationTrackBadge
-                                locationTrack={layoutLocationTrack}
+                                alignmentName={'name'}
                                 status={LocationTrackBadgeStatus.UNLINKED}
                             />
                         </td>
                         <td>
                             <LocationTrackBadge
-                                locationTrack={layoutLocationTrack}
+                                alignmentName={'name'}
                                 status={LocationTrackBadgeStatus.SELECTED}
                             />
                         </td>
                         <td>
                             <LocationTrackBadge
-                                locationTrack={layoutLocationTrack}
+                                alignmentName={'name'}
                                 status={LocationTrackBadgeStatus.DISABLED}
                             />
                         </td>

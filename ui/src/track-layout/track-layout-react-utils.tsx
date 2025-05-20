@@ -10,6 +10,7 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     LocationTrackInfoboxExtras,
+    LocationTrackNaming,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoader, useLoaderWithStatus, useOptionalLoader } from 'utils/react-utils';
@@ -37,6 +38,7 @@ import {
     getLocationTrack,
     getLocationTrackChangeTimes,
     getLocationTrackInfoboxExtras,
+    getLocationTrackNames,
     getLocationTracks,
     getLocationTracksByName,
     getLocationTrackStartAndEnd,
@@ -51,15 +53,16 @@ import { getKmPost, getKmPostChangeInfo, getKmPosts } from 'track-layout/layout-
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
 import {
+    getChangeTimes,
     updateAllChangeTimes,
     updateKmPostChangeTime,
     updateLocationTrackChangeTime,
     updateSwitchChangeTime,
 } from 'common/change-time-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { deduplicate } from 'utils/array-utils';
+import { deduplicate, first } from 'utils/array-utils';
 import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
-import { getMaxTimestamp } from 'utils/date-utils';
+import { getMaxTimestamp, getMaxTimestampFromArray } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { getLayoutDesignByBranch, LayoutDesign } from 'track-layout/layout-design-api';
 
@@ -239,7 +242,7 @@ export function useLocationTrackInfoboxExtras(
 
 export function useConflictingTracks(
     trackNumberId: LayoutTrackNumberId | undefined,
-    trackNames: string[],
+    trackNames: LocationTrackNaming[],
     trackIds: LocationTrackId[],
     layoutContext: LayoutContext,
 ): LayoutLocationTrack[] | undefined {
@@ -267,6 +270,41 @@ export function useConflictingTracks(
         ],
     );
 }
+
+export const useLocationTrackNames = (ids: LocationTrackId[], layoutContext: LayoutContext) => {
+    const changeTimes = getChangeTimes();
+    const maxChangeTime = getMaxTimestampFromArray([
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutSwitch,
+        changeTimes.layoutTrackNumber,
+    ]);
+    return useLoader(
+        () => getLocationTrackNames(ids, layoutContext, maxChangeTime),
+        [JSON.stringify(ids), maxChangeTime],
+    );
+};
+
+export const useLocationTrackName = (
+    id: LocationTrackId | undefined,
+    layoutContext: LayoutContext,
+) => {
+    const changeTimes = getChangeTimes();
+    const maxChangeTime = getMaxTimestampFromArray([
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutSwitch,
+        changeTimes.layoutTrackNumber,
+    ]);
+
+    return useLoader(
+        () =>
+            id !== undefined
+                ? getLocationTrackNames([id], layoutContext, maxChangeTime).then((names) =>
+                      first(names),
+                  )
+                : Promise.resolve(undefined),
+        [id, maxChangeTime],
+    );
+};
 
 export function usePlanHeader(id: GeometryPlanId | undefined): GeometryPlanHeader | undefined {
     return useLoader(() => (id ? getGeometryPlanHeader(id) : undefined), [id]);

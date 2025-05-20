@@ -19,7 +19,10 @@ import {
     selectedElementTypes,
     validTrackMeterOrUndefined,
 } from 'data-products/data-products-slice';
-import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
+import {
+    getLocationTrackDescriptions,
+    getLocationTrackNames,
+} from 'track-layout/layout-location-track-api';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 import { officialMainLayoutContext } from 'common/common-model';
@@ -50,12 +53,19 @@ const LocationTrackElementListingSearch = ({
         (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, officialMainLayoutContext(), 10).then(
                 (locationTracks) =>
-                    getLocationTrackDescriptions(
-                        locationTracks.map((lt) => lt.id),
-                        officialMainLayoutContext(),
-                    ).then((descriptions) =>
+                    Promise.all([
+                        getLocationTrackNames(
+                            locationTracks.map((lt) => lt.id),
+                            officialMainLayoutContext(),
+                        ),
+                        getLocationTrackDescriptions(
+                            locationTracks.map((lt) => lt.id),
+                            officialMainLayoutContext(),
+                        ),
+                    ]).then(([names, descriptions]) =>
                         getLocationTrackOptions(
                             locationTracks,
+                            names,
                             descriptions ?? [],
                             state.searchParameters.locationTrack,
                         ),
@@ -103,12 +113,15 @@ const LocationTrackElementListingSearch = ({
                     value={
                         <Dropdown
                             qaId="data-products-search-location-track"
-                            value={state.searchParameters.locationTrack}
-                            getName={(item) => item.name}
+                            value={{
+                                locationTrack: state.searchParameters.locationTrack,
+                                name: undefined,
+                            }}
+                            getName={(item) => item.name?.name ?? ''}
                             placeholder={t('data-products.search.search')}
                             options={getLocationTracks}
                             searchable
-                            onChange={(e) => updateProp('locationTrack', e)}
+                            onChange={(e) => updateProp('locationTrack', e?.locationTrack)}
                             onBlur={() => onCommitField('locationTrack')}
                             unselectText={t('data-products.search.not-selected')}
                             wideList

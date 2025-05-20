@@ -201,7 +201,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 <LocationTrackSwitchRelinkingDialogContainer
                     locationTrackId={locationTrack.id}
                     layoutContext={layoutContext}
-                    name={locationTrack.name}
                     closeDialog={() => setConfirmingSwitchRelinking(false)}
                 />
             )}

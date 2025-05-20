@@ -407,7 +407,10 @@ function createAlignmentRow(
             <span
                 className={styles['geometry-plan-panel__list-item-main-content']}
                 onClick={() => onAlignmentSelect(alignment.header, alignmentStatus)}>
-                <LocationTrackBadge locationTrack={alignment.header} status={alignmentStatus} />
+                <LocationTrackBadge
+                    alignmentName={alignment.header.name}
+                    status={alignmentStatus}
+                />
             </span>
             <span
                 className={createClassName(

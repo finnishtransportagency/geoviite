@@ -20,10 +20,14 @@ import {
     LocationTrackVerticalGeometrySearchState,
     validTrackMeterOrUndefined,
 } from 'data-products/data-products-slice';
-import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
+import {
+    getLocationTrackDescriptions,
+    getLocationTrackNames,
+} from 'track-layout/layout-location-track-api';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 import { officialMainLayoutContext } from 'common/common-model';
+import { useLocationTrackName } from 'track-layout/track-layout-react-utils';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -45,20 +49,32 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
     const { t } = useTranslation();
     const getLocationTracks = React.useCallback(
         (searchTerm: string) =>
-            debouncedSearchTracks(searchTerm, officialMainLayoutContext(), 10).then(
-                (locationTracks) =>
-                    getLocationTrackDescriptions(
-                        locationTracks.map((lt) => lt.id),
-                        officialMainLayoutContext(),
-                    ).then((descriptions) =>
-                        getLocationTrackOptions(
-                            locationTracks,
-                            descriptions ?? [],
-                            state.searchParameters.locationTrack,
+            debouncedSearchTracks(searchTerm, officialMainLayoutContext(), 10)
+                .then(async (locationTracks) => {
+                    const ids = locationTracks.map((lt) => lt.id);
+                    return {
+                        locationTracks,
+                        names: await getLocationTrackNames(ids, officialMainLayoutContext()),
+                        descriptions: await getLocationTrackDescriptions(
+                            ids,
+                            officialMainLayoutContext(),
                         ),
+                    };
+                })
+                .then(({ locationTracks, names, descriptions }) =>
+                    getLocationTrackOptions(
+                        locationTracks,
+                        names ?? [],
+                        descriptions ?? [],
+                        state.searchParameters.locationTrack,
                     ),
-            ),
+                ),
+
         [state.searchParameters.locationTrack],
+    );
+    const searchParameterTrackName = useLocationTrackName(
+        state.searchParameters.locationTrack?.id,
+        officialMainLayoutContext(),
     );
 
     function updateProp<TKey extends keyof LocationTrackVerticalGeometrySearchParameters>(
@@ -105,12 +121,15 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                     value={
                         <Dropdown
                             qaId={'data-products-search-location-track'}
-                            value={state.searchParameters.locationTrack}
-                            getName={(item) => item.name}
+                            value={{
+                                locationTrack: state.searchParameters.locationTrack,
+                                name: searchParameterTrackName,
+                            }}
+                            getName={(item) => item.name?.name ?? ''}
                             placeholder={t('data-products.search.search')}
                             options={getLocationTracks}
                             searchable
-                            onChange={(e) => updateProp('locationTrack', e)}
+                            onChange={(e) => updateProp('locationTrack', e?.locationTrack)}
                             onBlur={() => onCommitField('locationTrack')}
                             unselectText={t('data-products.search.not-selected')}
                             wideList

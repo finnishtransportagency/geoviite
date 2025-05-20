@@ -1,24 +1,30 @@
 import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
+import { LocationTrackNaming } from 'track-layout/track-layout-model';
 
 export const ALIGNMENT_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-_]+$/g;
 export const ALIGNMENT_DESCRIPTION_REGEX = /^[A-ZÄÖÅa-zäöå0-9 _\-–—+().,'"/\\<>:!?&]+$/g;
 export const ALIGNMENT_NAME_MAX_LENGTH = 50;
 
 export const validateLocationTrackName = (
-    name: string,
-): FieldValidationIssue<{ name: string }>[] => {
-    if (name && (!name.match(ALIGNMENT_NAME_REGEX) || name.length > ALIGNMENT_NAME_MAX_LENGTH)) {
+    name: LocationTrackNaming,
+): FieldValidationIssue<{ namingScheme: LocationTrackNaming }>[] => {
+    if (
+        !name.freeText ||
+        name.freeText.match(
+            ALIGNMENT_NAME_REGEX || name.freeText.length > ALIGNMENT_NAME_MAX_LENGTH,
+        )
+    ) {
         return [
             {
-                field: 'name',
+                field: 'namingScheme',
                 reason: `invalid-name`,
                 type: FieldValidationIssueType.ERROR,
             },
         ];
-    } else if (name.trim() === '') {
+    } else if (name.freeText && name.freeText.trim() === '') {
         return [
             {
-                field: 'name',
+                field: 'namingScheme',
                 reason: `mandatory-field`,
                 type: FieldValidationIssueType.ERROR,
             },

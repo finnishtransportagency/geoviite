@@ -11,7 +11,7 @@ import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-mode
 import { useTranslation } from 'react-i18next';
 import {
     useKmPost,
-    useLocationTrack,
+    useLocationTrackName,
     useReferenceLine,
     useSwitch,
     useTrackNumbersIncludingDeleted,
@@ -116,11 +116,7 @@ const LookupLocationTrackItem: React.FC<{
     locationTrackId: LocationTrackId;
     changeTime: TimeStamp;
 }> = (props) =>
-    useLocationTrack(
-        props.locationTrackId,
-        draftLayoutContext(props.layoutContext),
-        props.changeTime,
-    )?.name;
+    useLocationTrackName(props.locationTrackId, draftLayoutContext(props.layoutContext))?.name;
 
 const SwitchItem: React.FC<{
     layoutContext: LayoutContext;
