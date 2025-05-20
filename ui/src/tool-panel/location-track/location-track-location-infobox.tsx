@@ -56,6 +56,7 @@ import { getSplitPointName } from 'tool-panel/location-track/splitting/location-
 import { SplitButton } from 'geoviite-design-lib/split-button/split-button';
 import { menuOption } from 'vayla-design-lib/menu/menu';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 type LocationTrackLocationInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -160,7 +161,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         layoutContext,
         changeTimes,
     );
-    const name = useLocationTrackName(locationTrack?.id, layoutContext);
+    const name = useLocationTrackName(locationTrack?.id, layoutContext, getChangeTimes());
 
     const isDraft = layoutContext.publicationState === 'DRAFT';
     const isMainDraft = layoutContext.branch === 'MAIN' && isDraft;

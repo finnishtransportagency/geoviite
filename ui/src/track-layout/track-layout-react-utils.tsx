@@ -53,7 +53,6 @@ import { getKmPost, getKmPostChangeInfo, getKmPosts } from 'track-layout/layout-
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
 import {
-    getChangeTimes,
     updateAllChangeTimes,
     updateKmPostChangeTime,
     updateLocationTrackChangeTime,
@@ -271,8 +270,11 @@ export function useConflictingTracks(
     );
 }
 
-export const useLocationTrackNames = (ids: LocationTrackId[], layoutContext: LayoutContext) => {
-    const changeTimes = getChangeTimes();
+export const useLocationTrackNames = (
+    ids: LocationTrackId[],
+    layoutContext: LayoutContext,
+    changeTimes: ChangeTimes,
+) => {
     const maxChangeTime = getMaxTimestampFromArray([
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,
@@ -287,8 +289,8 @@ export const useLocationTrackNames = (ids: LocationTrackId[], layoutContext: Lay
 export const useLocationTrackName = (
     id: LocationTrackId | undefined,
     layoutContext: LayoutContext,
+    changeTimes: ChangeTimes,
 ) => {
-    const changeTimes = getChangeTimes();
     const maxChangeTime = getMaxTimestampFromArray([
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,
@@ -485,3 +487,13 @@ export const useLayoutDesign = (
             layoutBranch === 'MAIN' ? undefined : getLayoutDesignByBranch(changeTime, layoutBranch),
         [layoutBranch],
     );
+
+export const splitSwitchName = (switchName: string | undefined) => {
+    if (!switchName) return ['', ''];
+
+    const firstSpaceIndex = switchName.indexOf(' ');
+    const firstPart = firstSpaceIndex !== -1 ? switchName.slice(0, firstSpaceIndex) : switchName;
+    const secondPart = firstSpaceIndex !== -1 ? switchName.slice(firstSpaceIndex + 1) : '';
+
+    return [firstPart, secondPart];
+};

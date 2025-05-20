@@ -353,7 +353,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         draftLayoutContext(layoutContext),
         changeTimes.layoutSwitch,
     );
-    const locationTrackName = useLocationTrackName(locationTrack.id, layoutContext);
+    const locationTrackName = useLocationTrackName(
+        locationTrack.id,
+        layoutContext,
+        getChangeTimes(),
+    );
 
     const conflictingLocationTracks = useConflictingTracks(
         locationTrack.trackNumberId,

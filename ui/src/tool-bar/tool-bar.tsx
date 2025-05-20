@@ -121,6 +121,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const splittingOriginTrackName = useLocationTrackName(
         splittingState?.originLocationTrack.id,
         layoutContext,
+        getChangeTimes(),
     );
 
     const currentDesignExists =

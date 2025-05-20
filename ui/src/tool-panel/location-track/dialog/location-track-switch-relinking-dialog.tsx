@@ -22,6 +22,7 @@ import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { createDelegates } from 'store/store-utils';
 import { useLoader } from 'utils/react-utils';
 import { getRelinkableSwitchesCount } from 'track-layout/layout-location-track-api';
+import { getChangeTimes } from 'common/change-time-api';
 
 type LocationTrackSwitchRelinkingDialogContainerProps = {
     locationTrackId: LocationTrackId;
@@ -37,7 +38,7 @@ export const LocationTrackSwitchRelinkingDialogContainer: React.FC<
         () => getRelinkableSwitchesCount(props.locationTrackId, props.layoutContext),
         [props.locationTrackId, props.layoutContext.publicationState, props.layoutContext.branch],
     );
-    const name = useLocationTrackName(props.locationTrackId, props.layoutContext);
+    const name = useLocationTrackName(props.locationTrackId, props.layoutContext, getChangeTimes());
 
     return name === undefined || relinkableSwitchesCount === undefined ? (
         <React.Fragment />

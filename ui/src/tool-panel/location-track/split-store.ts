@@ -26,7 +26,6 @@ import {
     initialLocationTrackNameChord,
     initialLocationTrackNameFreeText,
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
-import { splitSwitchName } from 'tool-panel/location-track/dialog/location-track-edit-dialog-name-section';
 
 export const PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS = 10;
 
@@ -408,6 +407,16 @@ function getLocationTrackName(
         return initialLocationTrackNameBetweenOperatingPoints;
     }
 }
+
+const splitSwitchName = (switchName: string | undefined) => {
+    if (!switchName) return ['', ''];
+
+    const firstSpaceIndex = switchName.indexOf(' ');
+    const firstPart = firstSpaceIndex !== -1 ? switchName.slice(0, firstSpaceIndex) : switchName;
+    const secondPart = firstSpaceIndex !== -1 ? switchName.slice(firstSpaceIndex + 1) : '';
+
+    return [firstPart, secondPart];
+};
 
 const findSwitchForSplitPoint = (
     switchesOnLocationTrack: SwitchOnLocationTrack[],

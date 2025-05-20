@@ -10,6 +10,7 @@ import { ShowMoreButton } from 'show-more-button/show-more-button';
 import { MAP_POINT_CLOSEUP_BBOX_OFFSET } from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { useLocationTrackName } from 'track-layout/track-layout-react-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 type JointTrackMeterProps = {
     jointTrackMeter: SwitchJointTrackMeter;
@@ -23,7 +24,11 @@ const JointTrackMeter: React.FC<JointTrackMeterProps> = ({
     layoutContext,
 }) => {
     const { t } = useTranslation();
-    const locationTrackName = useLocationTrackName(jointTrackMeter.locationTrackId, layoutContext);
+    const locationTrackName = useLocationTrackName(
+        jointTrackMeter.locationTrackId,
+        layoutContext,
+        getChangeTimes(),
+    );
     return (
         <span>
             {jointTrackMeter.trackMeter ? (

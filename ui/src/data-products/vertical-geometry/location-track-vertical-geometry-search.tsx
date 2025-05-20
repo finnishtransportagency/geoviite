@@ -28,6 +28,7 @@ import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 import { officialMainLayoutContext } from 'common/common-model';
 import { useLocationTrackName } from 'track-layout/track-layout-react-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -75,6 +76,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
     const searchParameterTrackName = useLocationTrackName(
         state.searchParameters.locationTrack?.id,
         officialMainLayoutContext(),
+        getChangeTimes(),
     );
 
     function updateProp<TKey extends keyof LocationTrackVerticalGeometrySearchParameters>(

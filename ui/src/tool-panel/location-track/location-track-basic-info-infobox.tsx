@@ -37,6 +37,7 @@ import { LocationTrackState } from 'geoviite-design-lib/location-track-state/loc
 import { LocationTrackOid } from 'track-layout/oid';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
+import { getChangeTimes } from 'common/change-time-api';
 
 type LocationTrackBasicInfoInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -89,7 +90,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
     const { t } = useTranslation();
 
     const locationTrackOwners = useLoader(() => getLocationTrackOwners(), []);
-    const name = useLocationTrackName(locationTrack.id, layoutContext);
+    const name = useLocationTrackName(locationTrack.id, layoutContext, getChangeTimes());
 
     function getLocationTrackOwnerName(ownerId: LocationTrackOwnerId) {
         const name = locationTrackOwners?.find((o) => o.id === ownerId)?.name;

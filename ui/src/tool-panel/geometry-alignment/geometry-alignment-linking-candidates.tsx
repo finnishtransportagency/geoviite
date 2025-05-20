@@ -44,6 +44,7 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
+import { getChangeTimes } from 'common/change-time-api';
 
 type GeometryAlignmentLinkingReferenceLineCandidatesProps = {
     geometryAlignment: AlignmentHeader;
@@ -295,6 +296,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
     const selectedLocationTrackName = useLocationTrackName(
         selectedLayoutLocationTrack?.id,
         layoutContext,
+        getChangeTimes(),
     );
 
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';

@@ -12,6 +12,7 @@ import { createEmptyItemCollections } from 'selection/selection-store';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useLocationTrackNames } from 'track-layout/track-layout-react-utils';
 import { LayoutContext } from 'common/common-model';
+import { getChangeTimes } from 'common/change-time-api';
 
 type LocationTrackNamesProps = {
     linkedLocationTracks: LayoutLocationTrack[];
@@ -36,6 +37,7 @@ const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({
         useLocationTrackNames(
             linkedLocationTracks.map((lt) => lt.id),
             layoutContext,
+            getChangeTimes(),
         )?.toSorted((a, b) => a.name.localeCompare(b.name)) ?? [];
 
     const trackName =

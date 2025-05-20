@@ -17,6 +17,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { LayoutContext, TrackMeter } from 'common/common-model';
 import { useLocationTrackName } from 'track-layout/track-layout-react-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 export type SplitDetailsViewProps = {
     publicationId: PublicationId;
@@ -37,6 +38,7 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({
     const splitDetailsLocationTrackName = useLocationTrackName(
         splitDetails?.locationTrack?.id,
         layoutContext,
+        getChangeTimes(),
     );
 
     return (

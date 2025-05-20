@@ -17,6 +17,7 @@ import { getRatkoStatus, pushLocationTracksToRatko } from 'ratko/ratko-api';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { ChangeTimes } from 'common/common-slice';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
+import { getChangeTimes } from 'common/change-time-api';
 
 export type LocationTrackRatkoPushDialogProps = {
     layoutContext: LayoutContext;
@@ -58,7 +59,11 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
         officialLayoutContext(props.layoutContext),
         props.changeTimes.layoutLocationTrack,
     );
-    const locationTrackName = useLocationTrackName(props.locationTrackId, props.layoutContext);
+    const locationTrackName = useLocationTrackName(
+        props.locationTrackId,
+        props.layoutContext,
+        getChangeTimes(),
+    );
 
     const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         locationTrack?.id,

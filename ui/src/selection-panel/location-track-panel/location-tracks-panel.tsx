@@ -12,6 +12,7 @@ import { compare } from 'utils/array-utils';
 import { ShowMoreButton } from 'show-more-button/show-more-button';
 import { useLocationTrackNames } from 'track-layout/track-layout-react-utils';
 import { LayoutContext } from 'common/common-model';
+import { getChangeTimes } from 'common/change-time-api';
 
 type LocationTracksPanelProps = {
     locationTracks: LayoutLocationTrack[];
@@ -40,6 +41,7 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
     const ltNames = useLocationTrackNames(
         locationTracks.map((lt) => lt.id),
         layoutContext,
+        getChangeTimes(),
     );
 
     React.useEffect(() => {

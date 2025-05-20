@@ -22,6 +22,7 @@ import {
     LocationTrackSpecifier,
 } from 'track-layout/track-layout-model';
 import {
+    splitSwitchName,
     useLocationTrackInfoboxExtras,
     useTrackNumber,
 } from 'track-layout/track-layout-react-utils';
@@ -170,16 +171,6 @@ const LocationTrackNameBetweenOperatingPoints: React.FC<
             />
         </React.Fragment>
     );
-};
-
-export const splitSwitchName = (switchName: string | undefined) => {
-    if (!switchName) return ['', ''];
-
-    const firstSpaceIndex = switchName.indexOf(' ');
-    const firstPart = firstSpaceIndex !== -1 ? switchName.slice(0, firstSpaceIndex) : switchName;
-    const secondPart = firstSpaceIndex !== -1 ? switchName.slice(firstSpaceIndex + 1) : '';
-
-    return [firstPart, secondPart];
 };
 
 const LocationTrackNameChord: React.FC<LocationTrackNameChordProps> = ({

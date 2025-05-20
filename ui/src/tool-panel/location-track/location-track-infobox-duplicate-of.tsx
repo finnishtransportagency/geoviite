@@ -19,6 +19,7 @@ import {
     useTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 export type LocationTrackInfoboxDuplicateOfProps = {
     layoutContext: LayoutContext;
@@ -43,12 +44,17 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
 }: LocationTrackInfoboxDuplicateOfProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(layoutContext);
-    const targetName = useLocationTrackName(targetLocationTrack.id, layoutContext);
+    const targetName = useLocationTrackName(
+        targetLocationTrack.id,
+        layoutContext,
+        getChangeTimes(),
+    );
     const explicitDuplicateLocationTrackNames = useLocationTrackNames(
         duplicatesOfLocationTrack
             ?.map((d) => d.duplicateStatus.duplicateOfId)
             ?.filter(filterNotEmpty) ?? [],
         layoutContext,
+        getChangeTimes(),
     );
     const duplicateTrackNumberWarning =
         existingDuplicate &&

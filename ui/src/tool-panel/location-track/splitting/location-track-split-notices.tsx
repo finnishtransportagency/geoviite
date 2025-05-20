@@ -6,6 +6,7 @@ import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { useLocationTrackName } from 'track-layout/track-layout-react-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
+import { getChangeTimes } from 'common/change-time-api';
 
 export const LocationTrackSplittingErrorNotice: React.FC<{
     msg: string;
@@ -40,7 +41,11 @@ export const LocationTrackSplittingDuplicateTrackNotPublishedErrorNotice: React.
     layoutContext: LayoutContext;
 }> = ({ draftDuplicateLocationTrackId, layoutContext }) => {
     const { t } = useTranslation();
-    const duplicateName = useLocationTrackName(draftDuplicateLocationTrackId, layoutContext);
+    const duplicateName = useLocationTrackName(
+        draftDuplicateLocationTrackId,
+        layoutContext,
+        getChangeTimes(),
+    );
     return (
         <InfoboxContentSpread>
             <MessageBox type={MessageBoxType.ERROR}>

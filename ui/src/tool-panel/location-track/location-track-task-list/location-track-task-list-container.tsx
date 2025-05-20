@@ -94,7 +94,11 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
     const { t } = useTranslation();
     const changeTimes = getChangeTimes();
     const switchStructures = useLoader(() => getSwitchStructures(), []);
-    const locationTrackName = useLocationTrackName(locationTrackId, layoutContext);
+    const locationTrackName = useLocationTrackName(
+        locationTrackId,
+        layoutContext,
+        getChangeTimes(),
+    );
 
     const [switchesAndErrors, switchesLoadingStatus] = useLoaderWithStatus(async () => {
         const relinkingResults = await validateLocationTrackSwitchRelinking(

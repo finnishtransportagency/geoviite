@@ -20,6 +20,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { RevertRequestType } from 'preview/preview-view-revert-request';
 import { ChangesBeingReverted } from 'preview/preview-view';
+import { getChangeTimes } from 'common/change-time-api';
 
 const TrackNumberItem: React.FC<{
     layoutContext: LayoutContext;
@@ -116,7 +117,11 @@ const LookupLocationTrackItem: React.FC<{
     locationTrackId: LocationTrackId;
     changeTime: TimeStamp;
 }> = (props) =>
-    useLocationTrackName(props.locationTrackId, draftLayoutContext(props.layoutContext))?.name;
+    useLocationTrackName(
+        props.locationTrackId,
+        draftLayoutContext(props.layoutContext),
+        getChangeTimes(),
+    )?.name;
 
 const SwitchItem: React.FC<{
     layoutContext: LayoutContext;

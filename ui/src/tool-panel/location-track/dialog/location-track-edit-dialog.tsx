@@ -124,6 +124,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const selectedDuplicateTrackName = useLocationTrackName(
         selectedDuplicateTrack?.id,
         props.layoutContext,
+        getChangeTimes(),
     );
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(state.locationTrack?.state === 'DELETED');

@@ -16,6 +16,7 @@ import styles from './switch-infobox.scss';
 import { TopologicalJointConnection } from 'linking/linking-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { useLocationTrackNames } from 'track-layout/track-layout-react-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 type SwitchJointInfobox = {
     switchAlignments: SwitchAlignment[];
@@ -68,6 +69,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     const locationTrackNames = useLocationTrackNames(
         locationTracks.map((lt) => lt.id),
         layoutContext,
+        getChangeTimes(),
     );
 
     const locationTrackBadgeOnClickHandler = (locationTrackId: LocationTrackId) =>

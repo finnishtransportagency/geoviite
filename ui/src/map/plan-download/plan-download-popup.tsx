@@ -53,7 +53,11 @@ export const LocationSpecifier: React.FC<LocationSpecifierProps> = ({
 
     const name =
         selectedAsset?.type === PlanDownloadAssetType.LOCATION_TRACK
-            ? useLocationTrackName(selectedAsset.asset.id, officialMainLayoutContext())
+            ? useLocationTrackName(
+                  selectedAsset.asset.id,
+                  officialMainLayoutContext(),
+                  getChangeTimes(),
+              )
             : selectedAsset?.asset?.number;
     const base = !selectedAsset
         ? ''

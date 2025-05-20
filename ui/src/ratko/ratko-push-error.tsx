@@ -55,14 +55,15 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
         getChangeTimes().layoutDesign,
         failedPublication.layoutBranch.branch,
     )?.name;
+    const locationTrackName = useLocationTrackName(
+        error?.assetType === 'LOCATION_TRACK' ? error.asset.id : undefined,
+        officialMainLayoutContext(),
+        getChangeTimes(),
+    );
 
     if (!error) {
         return <React.Fragment />;
     }
-    const locationTrackName = useLocationTrackName(
-        error.assetType === 'LOCATION_TRACK' ? error.asset.id : undefined,
-        officialMainLayoutContext(),
-    );
 
     const isConnectionIssue = failedPublication.ratkoPushStatus === 'CONNECTION_ISSUE';
     const isInternalError = error.errorType === 'INTERNAL';
