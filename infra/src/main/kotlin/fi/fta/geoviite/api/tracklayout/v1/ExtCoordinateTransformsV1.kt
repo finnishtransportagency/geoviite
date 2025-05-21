@@ -39,20 +39,11 @@ private fun convertAlignmentEndPointCoordinateSystem(
     return alignmentEndPoint.copy(point = alignmentEndPoint.point.copy(x = convertedPoint.x, y = convertedPoint.y))
 }
 
-fun layoutAddressPointToCoordinateSystem(addressPoint: AddressPoint, targetCoordinateSystem: Srid): AddressPoint {
-    return convertAddressPointCoordinateSystem(LAYOUT_SRID, targetCoordinateSystem, addressPoint)
-}
-
-private fun convertAddressPointCoordinateSystem(
-    sourceCoordinateSystem: Srid,
-    targetCoordinateSystem: Srid,
-    addressPoint: AddressPoint,
-): AddressPoint {
-    return if (sourceCoordinateSystem == LAYOUT_SRID && targetCoordinateSystem == LAYOUT_SRID) {
-        addressPoint
-    } else {
-        val convertedPoint =
-            transformNonKKJCoordinate(sourceCoordinateSystem, targetCoordinateSystem, addressPoint.point)
-        addressPoint.copy(point = addressPoint.point.copy(x = convertedPoint.x, y = convertedPoint.y))
-    }
+fun toExtAddressPoint(addressPoint: AddressPoint, targetCoordinateSystem: Srid): ExtAddressPointV1 {
+    val point =
+        when (targetCoordinateSystem) {
+            LAYOUT_SRID -> addressPoint.point
+            else -> transformNonKKJCoordinate(LAYOUT_SRID, targetCoordinateSystem, addressPoint.point)
+        }
+    return ExtAddressPointV1(point.x, point.y, addressPoint.address.formatFixedDecimals(3))
 }
