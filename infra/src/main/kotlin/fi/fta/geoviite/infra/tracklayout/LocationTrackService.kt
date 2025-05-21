@@ -174,17 +174,17 @@ class LocationTrackService(
         ids: List<IntId<LocationTrack>>,
         moment: Instant,
     ): List<AlignmentStartAndEnd<LocationTrack>> {
-        val tracksAndAlignments =
-            ids.map { locationTrackId -> // TODO Batchable
-                    dao.getOfficialAtMoment(context.branch, locationTrackId, moment).let(::requireNotNull)
-                }
-                .let(::associateWithAlignments)
-
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(context, moment)
+        val trackData =
+            dao.getManyOfficialAtMoment(context.branch, ids, moment).let(::associateWithAlignments).map {
+                (track, alignment) ->
+                Triple(track, alignment, getGeocodingContext(track.trackNumberId))
+            }
 
-        return tracksAndAlignments.map { (track, alignment) ->
-            AlignmentStartAndEnd.of(track.id as IntId, alignment, getGeocodingContext(track.trackNumberId))
-        }
+        return trackData
+            .parallelStream()
+            .map { (track, alignment, ctx) -> AlignmentStartAndEnd.of(track.id as IntId, alignment, ctx) }
+            .toList()
     }
 
     @Transactional
@@ -532,14 +532,11 @@ class LocationTrackService(
                 } ?: (null to null)
             }
 
+        val switchIds = startAndEndSwitchIds.flatMap { listOfNotNull(it.first, it.second) }.distinct()
         val switches =
-            startAndEndSwitchIds
-                .flatMap { listOfNotNull(it.first, it.second) }
-                .map { switchId ->
-                    // TODO Batchable
-                    switchDao.getOfficialAtMoment(layoutContext.branch, switchId, moment).let(::requireNotNull)
-                }
-                .associateBy { switch -> switch.id }
+            switchDao.getManyOfficialAtMoment(layoutContext.branch, switchIds, moment).associateBy { switch ->
+                switch.id
+            }
 
         return formatLocationTrackDescriptions(lang, locationTracks, startAndEndSwitchIds, switches)
     }
