@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import java.util.*
 import org.springframework.transaction.annotation.Transactional
 
 data class AddressPointCacheKey(
@@ -34,7 +35,7 @@ class AddressPointsCache(
     val geocodingDao: GeocodingDao,
     val geocodingCacheService: GeocodingCacheService,
 ) {
-    private val cache: Cache<AddressPointCacheKey, AlignmentAddresses?> =
+    private val cache: Cache<AddressPointCacheKey, Optional<AlignmentAddresses>> =
         Caffeine.newBuilder().maximumSize(ADDRESS_POINT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     @Transactional(readOnly = true)
@@ -58,15 +59,19 @@ class AddressPointsCache(
      * This is for caching address points. Please don't call this directly if possible, please prefer GeocodingService's
      * getAddressPoints method instead
      */
-    fun getAddressPoints(cacheKey: AddressPointCacheKey): AlignmentAddresses? {
-        return getAddressPointCalculationData(cacheKey)?.let(::getAddressPoints)
-    }
+    fun getAddressPoints(cacheKey: AddressPointCacheKey): AlignmentAddresses? =
+        cache
+            .get(cacheKey) {
+                Optional.ofNullable(
+                    getAddressPointCalculationData(cacheKey)?.let { input ->
+                        input.geocodingContext.getAddressPoints(input.alignment, input.key.resolution)
+                    }
+                )
+            }
+            .orElse(null)
 
     fun getAddressPointCalculationData(cacheKey: AddressPointCacheKey): AddressPointCalculationData? =
         geocodingCacheService.getGeocodingContext(cacheKey.geocodingContextCacheKey)?.let { geocodingContext ->
             AddressPointCalculationData(cacheKey, alignmentDao.fetch(cacheKey.alignmentVersion), geocodingContext)
         }
-
-    fun getAddressPoints(input: AddressPointCalculationData): AlignmentAddresses? =
-        cache.get(input.key) { input.geocodingContext.getAddressPoints(input.alignment, input.key.resolution) }
 }

@@ -248,7 +248,8 @@ data class GeocodingContext(
         polyLineEdges
         startProjection
         endProjection
-        projectionLines
+        // Skip preloading projectionlines as the benefit is quite limited and it's costly at startup
+        //        projectionLines.values.forEach { it.value }
         allKms
     }
 
@@ -281,7 +282,7 @@ data class GeocodingContext(
             null
         else if (address == startProjection.address) startProjection
         else if (address == endProjection.address) endProjection
-        else if (projectionLines.isEmpty()) null
+        else if (projectionLines.getValue(resolution).value.isEmpty()) null
         else
             projectionLines
                 .getValue(resolution)

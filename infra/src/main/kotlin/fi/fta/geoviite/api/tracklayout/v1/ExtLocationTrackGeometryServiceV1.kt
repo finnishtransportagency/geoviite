@@ -8,8 +8,8 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.Uuid
-import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
@@ -42,23 +42,10 @@ data class ExtLocationTrackModifiedGeometryResponseV1(
 
 @Schema(name = "Osoitepiste")
 data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataosoite") val trackAddress: String?) {
-    companion object {
-        fun of(addressPoint: AddressPoint): ExtAddressPointV1 {
-            return ExtAddressPointV1(
-                addressPoint.point.x,
-                addressPoint.point.y,
-                addressPoint.address.formatFixedDecimals(3),
-            )
-        }
 
-        fun of(alignmentEndPoint: AlignmentEndPoint): ExtAddressPointV1 {
-            return ExtAddressPointV1(
-                alignmentEndPoint.point.x,
-                alignmentEndPoint.point.y,
-                alignmentEndPoint.address?.formatFixedDecimals(3),
-            )
-        }
-    }
+    constructor(x: Double, y: Double, address: TrackMeter?) : this(x, y, address?.formatFixedDecimals(3))
+
+    constructor(point: AlignmentEndPoint) : this(point.point.x, point.point.y, point.address)
 }
 
 @Schema(name = "Osoiteväli")
@@ -139,17 +126,18 @@ constructor(
             geocodingService.getAddressPoints(geocodingContextCacheKey, locationTrackAlignmentVersion, resolution)
                 ?: throw ExtGeocodingFailedV1("could not get address points")
 
-        val filteredPoints =
-            alignmentAddresses.allPoints.filter { trackIntervalFilter.containsKmEndInclusive(it.address.kmNumber) }
+        val extAddressPoints =
+            alignmentAddresses.allPoints.mapNotNull { point ->
+                point
+                    .takeIf { p -> trackIntervalFilter.containsKmEndInclusive(p.address.kmNumber) }
+                    ?.let { toExtAddressPoint(point, coordinateSystem) }
+            }
 
         return listOf(
             ExtCenterLineTrackIntervalV1(
                 startAddress = alignmentAddresses.startPoint.address.toString(),
                 endAddress = alignmentAddresses.endPoint.address.toString(),
-                addressPoints =
-                    filteredPoints
-                        .map { addressPoint -> layoutAddressPointToCoordinateSystem(addressPoint, coordinateSystem) }
-                        .map(ExtAddressPointV1::of),
+                addressPoints = extAddressPoints,
             )
         )
     }

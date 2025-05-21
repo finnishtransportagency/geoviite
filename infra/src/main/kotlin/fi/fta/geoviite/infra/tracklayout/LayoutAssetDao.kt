@@ -65,7 +65,14 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     fun fetchOfficialVersionAtMomentOrThrow(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>
 
-    fun fetchOfficialVersionAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>?
+    fun fetchOfficialVersionAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>? =
+        fetchManyOfficialVersionsAtMoment(branch, listOf(id), moment).firstOrNull()
+
+    fun fetchManyOfficialVersionsAtMoment(
+        branch: LayoutBranch,
+        ids: List<IntId<T>>,
+        moment: Instant,
+    ): List<LayoutRowVersion<T>>
 
     @Transactional(readOnly = true)
     fun get(context: LayoutContext, id: IntId<T>): T? = fetchVersion(context, id)?.let(::fetch)
@@ -76,6 +83,10 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     @Transactional(readOnly = true)
     fun getOfficialAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): T? =
         fetchOfficialVersionAtMoment(branch, id, moment)?.let(::fetch)
+
+    @Transactional(readOnly = true)
+    fun getManyOfficialAtMoment(branch: LayoutBranch, ids: List<IntId<T>>, moment: Instant): List<T> =
+        fetchManyOfficialVersionsAtMoment(branch, ids, moment).map(::fetch)
 
     @Transactional(readOnly = true)
     fun getMany(context: LayoutContext, ids: List<IntId<T>>): List<T> = fetchVersions(context, ids).map(::fetch)
@@ -278,26 +289,25 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         fetchOfficialVersionAtMoment(branch, id, moment) ?: throw NoSuchEntityException(table.name, id)
 
     // language=SQL
-    private val officialVersionAtMomentSql =
+    private val officialVersionsAtMomentSql =
         """
-       select id, design_id, false as draft, version
-       from (
-         select distinct on (id, design_id)
-           id,
-           design_id,
-           design_id is not null as is_design,
-           deleted,
-           version
-           from ${table.versionTable}
-         where id = :id
-           and not draft
-           and (design_id is null or design_id = :design_id)
-           and change_time <= :moment
-           order by id, design_id, change_time desc
-         ) tn
-       where not deleted
-       order by is_design desc
-       limit 1;
+          select distinct on (id) id, design_id, false as draft, version
+          from (
+            select distinct on (id, design_id)
+              id,
+              design_id,
+              design_id is not null as is_design,
+              deleted,
+              version
+              from ${table.versionTable}
+            where id = any(:ids)
+              and not draft
+              and (design_id is null or design_id = :design_id)
+              and change_time <= :moment
+              order by id, design_id, change_time desc
+            ) tn
+          where not deleted
+          order by id, is_design desc
         """
             .trimIndent()
 
@@ -306,17 +316,24 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getIntId("id") }
     }
 
-    override fun fetchOfficialVersionAtMoment(
+    override fun fetchManyOfficialVersionsAtMoment(
         branch: LayoutBranch,
-        id: IntId<T>,
+        ids: List<IntId<T>>,
         moment: Instant,
-    ): LayoutRowVersion<T>? {
-        val params =
-            mapOf("design_id" to branch.designId?.intValue, "id" to id.intValue, "moment" to Timestamp.from(moment))
-        return jdbcTemplate.queryOptional(officialVersionAtMomentSql, params) { rs, _ ->
-            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+    ): List<LayoutRowVersion<T>> =
+        if (ids.isEmpty()) {
+            emptyList()
+        } else {
+            val params =
+                mapOf(
+                    "design_id" to branch.designId?.intValue,
+                    "ids" to ids.map { id -> id.intValue }.toTypedArray(),
+                    "moment" to Timestamp.from(moment),
+                )
+            jdbcTemplate.query(officialVersionsAtMomentSql, params) { rs, _ ->
+                rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+            }
         }
-    }
 
     @Transactional
     override fun deleteRow(rowId: LayoutRowId<T>): LayoutRowVersion<T> {
