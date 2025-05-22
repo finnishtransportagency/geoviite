@@ -116,6 +116,12 @@ Myös itse geometria, joka yhdistää samat kaksi solmua on muuttumaton, eli eri
 kaari. Muuttumattomuudesta johtuen useampi eri raide tai raideversio voi huoletta viitata samaan kaareen jos niiden
 geometriat ovat identtiset. Tämä on tyypillistä esimerkiksi saman raiteen eri versioilla tai duplikaattiraiteilla.
 
+Kaaren määritykseen kuuluu myös sen suunta, eli vaikka niiden geometriat olisivat sinällään identtiset, kaarii solmusta
+X solmuun Y on eri kaari kuin kaari solmusta Y solmuun X. Tämä olisi määriteltävissä myös suuntariippumattomaksi, mutta
+se edellyttäisi suunnan käsittelyä raiteella kun se koostetaan kaarista. Koska raiteiden määritysten ei lähtökohtaisesti
+haluta olevan päällekäisiä ja koska suunta on osa raiteen määritystä jos inframalleissa, kaaret on Geoviitteessä
+määritelty suunnattuiksi.
+
 Geoviitteen tietomallissa kaaren kytkentä solmuun on kääritty NodeConnection-olioon, joka kuvaa liittyvän solmun ID:n
 lisäksi portin, eli puolen jolta kaari kiinnittyy solmuun. Se tarjoaa koodissa käsitteen "sisä" (inner) ja "ulko"
 (outer) kytkennöistä vaihteeseen.
