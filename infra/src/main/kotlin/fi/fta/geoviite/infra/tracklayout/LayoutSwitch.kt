@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.switchLibrary.ISwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 
@@ -18,7 +19,7 @@ enum class SwitchJointRole {
     MATH;
 
     companion object {
-        fun of(structure: SwitchStructure, number: JointNumber): SwitchJointRole =
+        fun of(structure: ISwitchStructure, number: JointNumber): SwitchJointRole =
             when {
                 structure.presentationJointNumber == number -> MAIN
                 structure.endJointNumbers.contains(number) -> CONNECTION

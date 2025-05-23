@@ -10,9 +10,11 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import kotlin.math.absoluteValue
 import kotlin.test.fail
 import org.junit.jupiter.api.Test
@@ -43,15 +45,14 @@ class FittedSwitchTest {
                 switchAlignment.elements.last().end +
                 Point(400.0, 0.0)
         val transformedPoints = points.map { point -> transformPoint(point, translation, rotation) }
-
-        // TODO: GVT-2915
-        TODO()
-        //        return alignment(
-        //            segments =
-        //                (0 until transformedPoints.lastIndex).map { index ->
-        //                    segment(transformedPoints[index], transformedPoints[index + 1])
-        //                }
-        //        )
+        return trackGeometry(
+            edge(
+                segments =
+                    (0 until transformedPoints.lastIndex).map { index ->
+                        segment(transformedPoints[index], transformedPoints[index + 1])
+                    }
+            )
+        )
     }
 
     private enum class SegmentEndPoint {
@@ -70,7 +71,9 @@ class FittedSwitchTest {
             switchSuggestion.joints.find { joint -> joint.number == jointNumber }
                 ?: throw Exception("Switch structure does not contain joint ${jointNumber.intValue}")
         if (
-            !joint.matches.any { match -> match.locationTrackId == alignmentId && (m - match.m).absoluteValue < 0.01 }
+            !joint.matches.any { match ->
+                match.locationTrackId == alignmentId && (m - match.mOnTrack).absoluteValue < 0.01
+            }
         ) {
             fail("Didn't found a match from joint ${jointNumber.intValue}: alignmentId $alignmentId, m $m, $endPoint")
         }

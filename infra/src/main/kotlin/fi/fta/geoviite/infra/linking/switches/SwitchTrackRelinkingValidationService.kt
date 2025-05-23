@@ -51,7 +51,12 @@ constructor(
         val switchPlacingRequests = currentSwitchLocationsAsSwitchPlacingRequests(switchIds, originalLocations)
         val switchSuggestions = collectSwitchSuggestionsAtPoints(branch, switchPlacingRequests)
         val changedLocationTracks =
-            collectLocationTrackChangesFromSwitchSuggestions(branch, switchSuggestions, switchPlacingRequests)
+            collectLocationTrackChangesFromSwitchSuggestions(
+                branch,
+                switchSuggestions,
+                switchPlacingRequests,
+                switchStructures,
+            )
 
         val geocodingContext =
             geocodingService.getGeocodingContext(branch.draft, track.trackNumberId)
@@ -93,6 +98,7 @@ constructor(
         branch: LayoutBranch,
         switchSuggestions: List<SuggestedSwitchWithOriginallyLinkedTracks?>,
         switchPlacingRequests: List<SwitchPlacingRequest>,
+        switchStructures: List<SwitchStructure>,
     ): List<List<Pair<LocationTrack, LocationTrackGeometry>>> =
         lookupTracksForSuggestedSwitchValidation(branch, switchSuggestions.map { it?.suggestedSwitch })
             .mapIndexed { index, tracks -> index to tracks }
@@ -101,8 +107,9 @@ constructor(
                 switchSuggestions[index]?.let { suggestion ->
                     withChangesFromLinkingSwitch(
                         suggestion.suggestedSwitch,
+                        switchStructures[index],
                         switchPlacingRequests[index].layoutSwitchId,
-                        originalTracks,
+                        clearSwitchFromTracks(switchPlacingRequests[index].layoutSwitchId, originalTracks),
                     )
                 }
             }

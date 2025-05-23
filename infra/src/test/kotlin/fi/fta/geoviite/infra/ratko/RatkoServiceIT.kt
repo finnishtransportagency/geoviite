@@ -31,6 +31,7 @@ import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetState
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackType
@@ -798,24 +799,23 @@ constructor(
         publishAndPush(kmPosts = listOf(kmPost2.id))
 
         val switchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
-        val latestSwitchLocations = switchLocations.last()
+        val createPush = switchLocations.first().let(::sortRatkoSwitchLocationsByTrack)
+        val updatePush = switchLocations.last().let(::sortRatkoSwitchLocationsByTrack)
 
-        // TODO: GVT-2929 The data init has changed & topology switch handling is not finished, so this will fail
-        // Data change:
-        //   The old init produced a borked switch linking (compare with main) where multiple joints met at the same
-        //   point. This cannot be represented in the topology model so the above init is now different.
-        // Logic unfinished:
-        //   Original change calc filtered out topology joints that were not the presentation joint.
-        //   Should we still do that?
-        // Below asserts:
-        //   These are the original, unfixed asserts: fix when we know what the correct output is
-
-        // switch was originally after kmPost2, but it got removed and then we pushed again
-        assertEquals("0002+0001", switchLocations[0][0].nodecollection.nodes.first().point.kmM.toString())
-        assertEquals("0002+0003.5", switchLocations[0][1].nodecollection.nodes.first().point.kmM.toString())
-        assertEquals("0001+0003", latestSwitchLocations[0].nodecollection.nodes.first().point.kmM.toString())
-        assertEquals("0001+0005.5", latestSwitchLocations[1].nodecollection.nodes.first().point.kmM.toString())
+        // switch was originally after kmPost2, but it got removed and then we pushed again. kmPost2 was at m=4, while
+        // throughTrack's non-math joints are at 0 and 9.5, branchingTrack's at 0 and 7.5.
+        assertEquals(
+            listOf(listOf("0000+0000", "0002+0005.5"), listOf("0000+0000", "0002+0003.5")),
+            createPush.map { track -> track.nodecollection.nodes.map { joint -> joint.point.kmM.toString() } },
+        )
+        assertEquals(
+            listOf(listOf("0001+0007.5"), listOf("0001+0005.5")),
+            updatePush.map { track -> track.nodecollection.nodes.map { joint -> joint.point.kmM.toString() } },
+        )
     }
+
+    private fun sortRatkoSwitchLocationsByTrack(locations: List<RatkoAssetLocation>) =
+        locations.sortedBy { it.nodecollection.nodes.first().point.locationtrack.toString() }
 
     @Test
     fun removeLocationTrackWithSwitch() {
@@ -851,24 +851,18 @@ constructor(
         publishAndPush(locationTracks = listOf(throughTrack.id))
         val pushedSwitchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
 
-        // TODO: GVT-2929 The data init has changed & topology switch handling is not finished, so this will fail
-        // Data change:
-        //   The old init produced a borked switch linking (compare with main) where multiple joints met at the same
-        //   point. This cannot be represented in the topology model so the above init is now different.
-        // Logic unfinished:
-        //   Original change calc filtered out topology joints that were not the presentation joint.
-        //   Should we still do that?
-        // Below asserts:
-        //   These are the original, unfixed asserts: fix when we know what the correct output is
-        val firstPush = pushedSwitchLocations.first()
-        assertEquals(2, firstPush.size)
-        assertEquals("JOINT_A", firstPush[0].nodecollection.nodes.toList()[0].nodeType.name)
-        assertEquals("JOINT_C", firstPush[0].nodecollection.nodes.toList()[1].nodeType.name)
-        assertEquals("JOINT_C", firstPush[1].nodecollection.nodes.toList()[0].nodeType.name)
-        val lastPush = pushedSwitchLocations.last()
-        assertEquals(1, lastPush.size)
-        assertEquals("JOINT_A", lastPush[0].nodecollection.nodes.toList()[0].nodeType.name)
-        assertEquals("JOINT_C", lastPush[0].nodecollection.nodes.toList()[1].nodeType.name)
+        val createPush = pushedSwitchLocations.first().let(::sortRatkoSwitchLocationsByTrack)
+        assertEquals(2, createPush.size)
+        assertEquals(
+            listOf(listOf("JOINT_A", "JOINT_B"), listOf("JOINT_A", "JOINT_C")),
+            createPush.map { track -> track.nodecollection.nodes.map { node -> node.nodeType.name } },
+        )
+        val updatePush = pushedSwitchLocations.last()
+        assertEquals(1, updatePush.size)
+        assertEquals(
+            listOf("JOINT_A", "JOINT_B"),
+            updatePush[0].nodecollection.nodes.map { node -> node.nodeType.name },
+        )
     }
 
     @Test
@@ -909,11 +903,11 @@ constructor(
         publishAndPush(switches = listOf(switch.id))
         val pushedSwitchGeoms = fakeRatko.getPushedSwitchGeometries("3.4.5.6.7")
         assertEquals(
-            listOf("OFFICIALLY MEASURED GEODETICALLY", "OFFICIALLY MEASURED GEODETICALLY"),
+            (0 until 4).toList().map { "OFFICIALLY MEASURED GEODETICALLY" },
             pushedSwitchGeoms[0].map { geom -> geom.assetGeomAccuracyType.value },
         )
         assertEquals(
-            listOf("GEOMETRY CALCULATED", "GEOMETRY CALCULATED"),
+            (0 until 4).toList().map { "GEOMETRY CALCULATED" },
             pushedSwitchGeoms[1].map { geom -> geom.assetGeomAccuracyType.value },
         )
     }
@@ -928,27 +922,21 @@ constructor(
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
 
         publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
-        val switchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")[0]
+        val switchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")[0].let(::sortRatkoSwitchLocationsByTrack)
 
-        // TODO: GVT-2929 The data init has changed & topology switch handling is not finished, so this will fail
-        // Data change:
-        //   The old init produced a borked switch linking (compare with main) where multiple joints met at the same
-        //   point. This cannot be represented in the topology model so the above init is now different.
-        // Logic unfinished:
-        //   Original change calc filtered out topology joints that were not the presentation joint.
-        //   Should we still do that?
-        // Below asserts:
-        //   These are the original, unfixed asserts: fix when we know what the correct output is
         assertEquals(
-            listOf(listOf(5f, 5f), listOf(7.5f)),
-            switchLocations.map { l -> l.nodecollection.nodes.map { p -> p.point.kmM.meters.toFloat() } },
+            listOf(listOf(0.0, 9.5), listOf(0.0, 7.5)),
+            switchLocations.map { l -> l.nodecollection.nodes.map { p -> p.point.kmM.meters.toDouble() } },
         )
         assertEquals(
-            listOf(listOf(RatkoNodeType.JOINT_A, RatkoNodeType.JOINT_C), listOf(RatkoNodeType.JOINT_C)),
+            listOf(
+                listOf(RatkoNodeType.JOINT_A, RatkoNodeType.JOINT_B),
+                listOf(RatkoNodeType.JOINT_A, RatkoNodeType.JOINT_C),
+            ),
             switchLocations.map { l -> l.nodecollection.nodes.map { n -> n.nodeType } },
         )
         assertEquals(
-            listOf(listOf("1.2.3.4.5", "1.2.3.4.5"), listOf("2.3.4.5.6")),
+            listOf(listOf("1.2.3.4.5", "1.2.3.4.5"), listOf("2.3.4.5.6", "2.3.4.5.6")),
             switchLocations.map { push -> push.nodecollection.nodes.map { n -> n.point.locationtrack!!.toString() } },
         )
         assertEquals(
@@ -1043,38 +1031,40 @@ constructor(
         listOf("4.4.4.4.4", "5.5.5.5.5").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
         publishAndPush(locationTracks = listOf(differentThroughTrack.id, differentBranchingTrack.id))
         val switchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
-        val latestSwitchLocations = switchLocations.last()
+        val initialPush = switchLocations.first().let(::sortRatkoSwitchLocationsByTrack)
+        val updatePush = switchLocations.last().let(::sortRatkoSwitchLocationsByTrack)
 
-        // TODO: GVT-2929 The data init has changed & topology switch handling is not finished, so this will fail
-        // Data change:
-        //   The old init produced a borked switch linking (compare with main) where multiple joints met at the same
-        //   point. This cannot be represented in the topology model so the above init is now different.
-        // Logic unfinished:
-        //   Original change calc filtered out topology joints that were not the presentation joint.
-        //   Should we still do that?
-        // Below asserts:
-        //   These are the original, unfixed asserts: fix when we know what the correct output is
-        val expectedNodeTypes =
-            listOf(listOf(RatkoNodeType.JOINT_A, RatkoNodeType.JOINT_C), listOf(RatkoNodeType.JOINT_C))
         assertEquals(
-            expectedNodeTypes,
-            latestSwitchLocations.map { location -> location.nodecollection.nodes.map { n -> n.nodeType } },
+            listOf(
+                listOf(RatkoNodeType.JOINT_A, RatkoNodeType.JOINT_B),
+                listOf(RatkoNodeType.JOINT_A, RatkoNodeType.JOINT_C),
+            ),
+            initialPush.map { location -> location.nodecollection.nodes.map { n -> n.nodeType } },
         )
 
         assertEquals(
-            listOf(listOf("1.2.3.4.5", "1.2.3.4.5"), listOf("2.3.4.5.6")),
-            switchLocations[0].map { location ->
-                location.nodecollection.nodes.map { n -> n.point.locationtrack.toString() }
-            },
+            listOf(
+                listOf(RatkoNodeType.JOINT_A, RatkoNodeType.JOINT_B),
+                listOf(RatkoNodeType.JOINT_A, RatkoNodeType.JOINT_C),
+            ),
+            updatePush.map { location -> location.nodecollection.nodes.map { n -> n.nodeType } },
+        )
+
+        assertEquals(
+            listOf(listOf("1.2.3.4.5", "1.2.3.4.5"), listOf("2.3.4.5.6", "2.3.4.5.6")),
+            initialPush.map { location -> location.nodecollection.nodes.map { n -> n.point.locationtrack.toString() } },
         )
         assertEquals(
-            listOf(listOf("4.4.4.4.4", "4.4.4.4.4"), listOf("5.5.5.5.5")),
-            latestSwitchLocations.map { location ->
-                location.nodecollection.nodes.map { n -> n.point.locationtrack.toString() }
-            },
+            listOf(listOf("4.4.4.4.4", "4.4.4.4.4"), listOf("5.5.5.5.5", "5.5.5.5.5")),
+            updatePush.map { location -> location.nodecollection.nodes.map { n -> n.point.locationtrack.toString() } },
         )
     }
 
+    /**
+     * Setup a switch and tracks such that:
+     * - throughTrack has joint sequence 1,5,2 at positions (0, 0), (5, 0), (9.5, 0)
+     * - branchingTrack has joint sequence 1,3 at positions (0, 0), (7.5, 0.5)
+     */
     private fun setupDraftSwitchAndLocationTracks(
         trackNumberId: IntId<LayoutTrackNumber>,
         switchName: String = "TV123",
@@ -1097,6 +1087,16 @@ constructor(
                                     number = JointNumber(3),
                                     locationAccuracy = LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY,
                                 ),
+                            switchJoint(126)
+                                .copy(
+                                    number = JointNumber(5),
+                                    locationAccuracy = LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY,
+                                ),
+                            switchJoint(127)
+                                .copy(
+                                    number = JointNumber(2),
+                                    locationAccuracy = LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY,
+                                ),
                         ),
                     draft = true,
                     stateCategory = switchStateCategory,
@@ -1115,7 +1115,7 @@ constructor(
                     edge(
                         startInnerSwitch = switchLinkYV(switch.id, 5),
                         endInnerSwitch = switchLinkYV(switch.id, 2),
-                        segments = listOf(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+                        segments = listOf(segment(Point(5.0, 0.0), Point(9.5, 0.0))),
                     ),
                 ),
             )
@@ -1127,11 +1127,7 @@ constructor(
                     edge(
                         startInnerSwitch = switchLinkYV(switch.id, 1),
                         endInnerSwitch = switchLinkYV(switch.id, 3),
-                        segments =
-                            listOf(
-                                segment(Point(5.0, 0.0), Point(7.5, 0.5)),
-                                segment(Point(7.5, 0.5), Point(10.0, 1.0)),
-                            ),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(7.5, 0.5))),
                     )
                 ),
             )

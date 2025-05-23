@@ -244,7 +244,7 @@ interface ISwitchStructure {
     fun isInnerJoint(jointNumber: JointNumber): Boolean {
         return alignments.any { alignment ->
             val jointIndex = alignment.jointNumbers.indexOf(jointNumber)
-            val isInner = jointIndex>0 && jointIndex<alignment.jointNumbers.lastIndex
+            val isInner = jointIndex > 0 && jointIndex < alignment.jointNumbers.lastIndex
             isInner
         }
     }
@@ -358,9 +358,14 @@ fun transformSwitchPoint(transformation: SwitchPositionTransformation, point: Po
         transformation.translation
 }
 
-data class LinkableSwitchAlignment(val joints: List<JointNumber>, val originalAlignment: SwitchStructureAlignment)
+data class LinkableSwitchStructureAlignment(
+    val joints: List<JointNumber>,
+    val originalAlignment: SwitchStructureAlignment,
+    val innerJointOfSplitAlignment: JointNumber?,
+    val isSplittable: Boolean,
+)
 
-data class SwitchConnectivity(val alignments: List<LinkableSwitchAlignment>, val frontJoint: JointNumber?)
+data class SwitchConnectivity(val alignments: List<LinkableSwitchStructureAlignment>, val frontJoint: JointNumber?)
 
 fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
     when (structure.baseType) {
@@ -372,24 +377,49 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
         SwitchBaseType.EV,
         SwitchBaseType.KV ->
             SwitchConnectivity(
-                alignments = structure.alignments.map { LinkableSwitchAlignment(it.jointNumbers, it) },
+                alignments =
+                    structure.alignments.map {
+                        LinkableSwitchStructureAlignment(
+                            it.jointNumbers,
+                            it,
+                            innerJointOfSplitAlignment = null,
+                            isSplittable = false,
+                        )
+                    },
                 frontJoint = JointNumber(1),
             )
 
         SwitchBaseType.KRV,
         SwitchBaseType.RR,
-        SwitchBaseType.SRR ->
-            SwitchConnectivity(
-                alignments =
-                    structure.alignments
-                        .filter { it.jointNumbers.size == 3 }
-                        .flatMap { alignment ->
-                            val joints = alignment.jointNumbers
-                            listOf(
-                                LinkableSwitchAlignment(listOf(joints[0], joints[1]), alignment),
-                                LinkableSwitchAlignment(listOf(joints[1], joints[2]), alignment),
-                            )
-                        },
-                frontJoint = null,
-            )
+        SwitchBaseType.SRR -> {
+            val throughAlignments = structure.alignments.filter { it.jointNumbers.size == 3 }
+            val linkableFullAlignments =
+                throughAlignments.map {
+                    LinkableSwitchStructureAlignment(
+                        it.jointNumbers,
+                        it,
+                        innerJointOfSplitAlignment = null,
+                        isSplittable = true,
+                    )
+                }
+            val linkableSplitAlignments =
+                throughAlignments.flatMap { alignment ->
+                    val joints = alignment.jointNumbers
+                    listOf(
+                        LinkableSwitchStructureAlignment(
+                            listOf(joints[0], joints[1]),
+                            alignment,
+                            innerJointOfSplitAlignment = joints[1],
+                            isSplittable = false,
+                        ),
+                        LinkableSwitchStructureAlignment(
+                            listOf(joints[1], joints[2]),
+                            alignment,
+                            innerJointOfSplitAlignment = joints[1],
+                            isSplittable = false,
+                        ),
+                    )
+                }
+            SwitchConnectivity(alignments = linkableFullAlignments + linkableSplitAlignments, frontJoint = null)
+        }
     }

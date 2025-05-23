@@ -205,12 +205,12 @@ sealed class LocationTrackGeometry : IAlignment {
         return requireNotNull(getEdgeAtM(m)) { "Geometry does not contain edge at m $m" }
     }
 
-    fun getEdgeAtM(m: Double): Pair<LayoutEdge, Range<Double>>? =
+    fun getEdgeAtM(m: Double, delta: Double = 0.000001): Pair<LayoutEdge, Range<Double>>? =
         edgeMs
             .binarySearch { mRange ->
                 when {
-                    m < mRange.min -> 1
-                    m > mRange.max -> -1
+                    m < mRange.min - delta -> 1
+                    m > mRange.max + delta -> -1
                     else -> 0
                 }
             }
@@ -590,15 +590,6 @@ sealed class LayoutNode {
 
     fun containsBoundary(boundary: TrackBoundary): Boolean = ports.any { port -> port == boundary }
 
-    fun containsInnerSwitch(switchId: IntId<LayoutSwitch>): Boolean =
-        portA.let { port -> (port as? SwitchLink)?.id == switchId }
-
-    fun containsInnerJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
-        portA.let { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
-
-    fun containsOuterJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
-        portB.let { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
-
     abstract val type: LayoutNodeType
 
     companion object {
@@ -965,3 +956,33 @@ private fun reconnectNode(currentNodeConnection: NodeConnection, newNode: Layout
         // one side of the edge would be inner-switch while the other side is not
         else -> error("Unable to replace edge node: current=$currentNodeConnection new=$newNode")
     }
+
+fun replaceEdges(
+    geometry: LocationTrackGeometry,
+    edgesToReplace: List<LayoutEdge>,
+    newEdges: List<LayoutEdge>,
+): LocationTrackGeometry {
+    return TmpLocationTrackGeometry.of(
+        replaceEdges(originalEdges = geometry.edges, edgesToReplace, newEdges),
+        geometry.trackId,
+    )
+}
+
+private fun replaceEdges(
+    originalEdges: List<LayoutEdge>,
+    edgesToReplace: List<LayoutEdge>,
+    newEdges: List<LayoutEdge>,
+): List<LayoutEdge> {
+    val replaceStartIndex =
+        originalEdges.indexOfFirst { originalEdge ->
+            originalEdge.startNode.node == edgesToReplace.first().startNode.node
+        }
+    val replaceEndIndex =
+        originalEdges.indexOfLast { originalEdge -> originalEdge.endNode.node == edgesToReplace.last().endNode.node }
+    require(replaceStartIndex != -1 && replaceEndIndex != -1) { "Cannot replace non existing edges" }
+    val newAllEdges =
+        originalEdges.subList(0, replaceStartIndex) +
+            newEdges +
+            originalEdges.subList(replaceEndIndex + 1, originalEdges.lastIndex + 1)
+    return combineEdges(newAllEdges)
+}

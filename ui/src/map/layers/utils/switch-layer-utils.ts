@@ -295,10 +295,8 @@ export function suggestedSwitchHasMatchOnJoint(
     suggestedSwitch: SuggestedSwitch,
     joint: JointNumber,
 ) {
-    return Object.values(suggestedSwitch.trackLinks).some(
-        (link) =>
-            link.segmentJoints.some((sj) => sj.number === joint) ||
-            link.topologyJoint?.number === joint,
+    return Object.values(suggestedSwitch.trackLinks).some((link) =>
+        link.suggestedLinks?.joints?.some((suggestedJoint) => suggestedJoint.jointNumber === joint),
     );
 }
 

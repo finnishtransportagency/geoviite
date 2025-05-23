@@ -194,6 +194,7 @@ constructor(
             updatedGeometry,
             switch.id as IntId,
             JointNumber(1),
+            SwitchJointRole.MAIN,
             locationTrackService = locationTrackService,
         )
 
@@ -262,6 +263,7 @@ constructor(
             updatedGeometry,
             switch.id as IntId,
             JointNumber(1),
+            SwitchJointRole.MAIN,
             locationTrackService = locationTrackService,
         )
 
@@ -338,6 +340,7 @@ constructor(
                     alignment1,
                     testData.switches[0].id as IntId,
                     JointNumber(5), // Use non-presentation joint number
+                    SwitchJointRole.MATH,
                     locationTrackService = locationTrackService,
                 )
                 .let(locationTrackService::getWithGeometry)
@@ -346,7 +349,8 @@ constructor(
             updatedLocationTrack,
             updatedGeometry,
             testData.switches[1].id as IntId,
-            JointNumber(3), // Use non-presentation joint number
+            JointNumber(3),
+            SwitchJointRole.CONNECTION,
             locationTrackService = locationTrackService,
         )
 
@@ -389,6 +393,7 @@ constructor(
                     alignment1,
                     switch.id as IntId,
                     JointNumber(1),
+                    SwitchJointRole.MAIN,
                     locationTrackService = locationTrackService,
                 )
                 .let { version ->
@@ -1537,27 +1542,27 @@ constructor(
                             location = firstPoint(alignmentA, segIndexA).toPoint(),
                             matches =
                                 listOf(
-                                    switchLinkingAtStart(locationTrackA.id, alignmentA, segIndexA),
-                                    switchLinkingAtStart(locationTrackB.id, alignmentB, segIndexB),
+                                    switchLinkingAtStart(locationTrackA.id, alignmentA, segIndexA, 1),
+                                    switchLinkingAtStart(locationTrackB.id, alignmentB, segIndexB, 1),
                                 ),
                             locationAccuracy = null,
                         ),
                         FittedSwitchJoint(
                             number = JointNumber(5),
                             location = lastPoint(alignmentA, segIndexA).toPoint(),
-                            matches = listOf(switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA)),
+                            matches = listOf(switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA, 5)),
                             locationAccuracy = null,
                         ),
                         FittedSwitchJoint(
                             number = JointNumber(2),
                             location = lastPoint(alignmentA, segIndexA + 2).toPoint(),
-                            matches = listOf(switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA + 2)),
+                            matches = listOf(switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA + 2, 2)),
                             locationAccuracy = null,
                         ),
                         FittedSwitchJoint(
                             number = JointNumber(3),
                             location = lastPoint(alignmentB, segIndexB + 1).toPoint(),
-                            matches = listOf(switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB + 1)),
+                            matches = listOf(switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB + 1, 3)),
                             locationAccuracy = null,
                         ),
                     ),
