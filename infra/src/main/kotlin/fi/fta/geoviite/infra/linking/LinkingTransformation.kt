@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.math.IPoint
