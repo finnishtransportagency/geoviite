@@ -46,9 +46,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import kotlin.math.max
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
 const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
@@ -868,15 +868,16 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
 private fun getOriginallyLinkedAlignmentsJoints(
     alignments: List<CroppedTrackGeometry>,
     switchId: IntId<LayoutSwitch>,
-): Set<Pair<IntId<LocationTrack>, JointNumber>> =
-    alignments
-        .flatMap { alignment ->
-            alignment.segments
-                .filter { segment -> segment.switchId == switchId }
-                .flatMap { segment -> listOfNotNull(segment.startJointNumber, segment.endJointNumber) }
-                .map { jointNumber -> alignment.id to jointNumber }
-        }
-        .toSet()
+): Set<Pair<IntId<LocationTrack>, JointNumber>> = TODO()
+
+//    alignments
+//        .flatMap { alignment ->
+//            alignment.segments
+//                .filter { segment -> segment.switchId == switchId }
+//                .flatMap { segment -> listOfNotNull(segment.startJointNumber, segment.endJointNumber) }
+//                .map { jointNumber -> alignment.id to jointNumber }
+//        }
+//        .toSet()
 
 private data class TrackIntersection(
     val point: IPoint,

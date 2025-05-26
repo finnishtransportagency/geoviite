@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -11,15 +10,12 @@ import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.ALIGNMENT_LINKING_SNAP
-import fi.fta.geoviite.infra.linking.TrackEnd
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResult
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
 import fi.fta.geoviite.infra.linking.slice
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.math.boundingBoxCombining
@@ -30,11 +26,9 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.ContextCache
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
@@ -44,19 +38,16 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
-import fi.fta.geoviite.infra.tracklayout.NearbyTracks
 import fi.fta.geoviite.infra.tracklayout.NodeConnection
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
-import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
 import fi.fta.geoviite.infra.tracklayout.combineEdges
-import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 private val temporarySwitchId: IntId<LayoutSwitch> = IntId(-1)
 
@@ -456,50 +447,6 @@ fun matchFittedSwitchToTracks(
     )
 }
 
-private fun findTopologyLinks(
-    nearbyLocationTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
-    fittedSwitch: FittedSwitch,
-    segmentLinks: Map<IntId<LocationTrack>, List<SwitchLinkingJoint>>,
-    switchId: IntId<LayoutSwitch>,
-): Map<IntId<LocationTrack>, SwitchLinkingTopologicalTrackLink> {
-    return nearbyLocationTracks.entries
-        .filter { (id) -> !segmentLinks.containsKey(id) }
-        .mapNotNull { (locationTrackId, trackAndAlignment) ->
-            val (locationTrack, alignment) = trackAndAlignment
-            fun tracksNear(point: IPoint) =
-                filterTracksNear(locationTrack, nearbyLocationTracks.values, point.toPoint())
-
-            val nearbyTracks =
-                NearbyTracks(
-                    alignment.firstSegmentStart?.let(::tracksNear) ?: listOf(),
-                    alignment.lastSegmentEnd?.let(::tracksNear) ?: listOf(),
-                )
-
-            val locationTrackWithUpdatedTopology =
-                calculateLocationTrackTopology(
-                    locationTrack,
-                    alignment,
-                    startChanged = true,
-                    endChanged = true,
-                    nearbyTracks = nearbyTracks,
-                    newSwitch = TopologyLinkFindingSwitch(fittedSwitch.joints, switchId),
-                )
-            (if (locationTrackWithUpdatedTopology.topologyStartSwitch?.switchId == switchId) {
-                    SwitchLinkingTopologicalTrackLink(
-                        locationTrackWithUpdatedTopology.topologyStartSwitch.jointNumber,
-                        TrackEnd.START,
-                    )
-                } else if (locationTrackWithUpdatedTopology.topologyEndSwitch?.switchId == switchId) {
-                    SwitchLinkingTopologicalTrackLink(
-                        locationTrackWithUpdatedTopology.topologyEndSwitch.jointNumber,
-                        TrackEnd.END,
-                    )
-                } else null)
-                ?.let { locationTrackId to it }
-        }
-        .associate { it }
-}
-
 fun getSwitchBoundsFromTracks(tracks: Collection<LocationTrackGeometry>, switchId: IntId<LayoutSwitch>): BoundingBox? =
     tracks
         .flatMap { geometry ->
@@ -509,178 +456,6 @@ fun getSwitchBoundsFromTracks(tracks: Collection<LocationTrackGeometry>, switchI
 
 private fun getSwitchBoundsFromSwitchFit(suggestedSwitch: FittedSwitch): BoundingBox? =
     boundingBoxAroundPointsOrNull(suggestedSwitch.joints.map { joint -> joint.location }, TRACK_SEARCH_AREA_SIZE)
-
-private fun calculateSwitchLinkingJoints(
-    fittedSwitch: FittedSwitch,
-    tracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
-    switchStructure: SwitchStructure,
-    switchId: IntId<LayoutSwitch>?,
-): Map<IntId<LocationTrack>, List<SwitchLinkingJoint>> {
-    val switchJointsByLocationTrack =
-        fittedSwitch.joints
-            .flatMap { joint -> joint.matches.map { match -> match.locationTrackId } }
-            .distinct()
-            .associateWith { locationTrackId ->
-                filterMatchingJointsBySwitchAlignment(switchStructure, fittedSwitch.joints, locationTrackId)
-            }
-            .filter { it.value.isNotEmpty() }
-
-    return switchJointsByLocationTrack.entries.associate { (locationTrackId, switchJoints) ->
-        locationTrackId to
-            switchJoints
-                .flatMap { suggestedSwitchJoint ->
-                    suggestedSwitchJoint.matches.map { match ->
-                        val alignment = tracks.getValue(locationTrackId).second
-                        val segment = alignment.segments[match.segmentIndex]
-                        val snappedMatch =
-                            if (segment.switchId != null && segment.switchId != switchId) {
-                                tryToSnapOverlappingSwitchSegmentToNearbySegment(
-                                    tracks.getValue(locationTrackId).second,
-                                    match,
-                                )
-                            } else match
-                        SwitchLinkingJoint(
-                            suggestedSwitchJoint.number,
-                            snappedMatch.segmentIndex,
-                            snappedMatch.m,
-                            alignment.segments[snappedMatch.segmentIndex]
-                                .seekPointAtSegmentM(
-                                    snappedMatch.m - alignment.segmentMValues[snappedMatch.segmentIndex].min
-                                )
-                                .point
-                                .toPoint(),
-                        )
-                    }
-                }
-                .sortedBy { it.m }
-    }
-}
-
-private fun findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
-    existingSwitchId: IntId<LayoutSwitch>,
-    layoutSegments: List<LayoutSegment>,
-    searchIndexRange: IntProgression,
-): IndexedValue<LayoutSegment>? {
-    val layoutSegmentIndicesAreValid =
-        searchIndexRange.first in layoutSegments.indices && searchIndexRange.last in layoutSegments.indices
-
-    val step = searchIndexRange.step
-    val firstAdjacentIndexIsValid = (searchIndexRange.first + step) in layoutSegments.indices
-    val lastAdjacentIndexIsValid = (searchIndexRange.last + step) in layoutSegments.indices
-
-    val adjacentSegmentIndicesAreValid = firstAdjacentIndexIsValid && lastAdjacentIndexIsValid
-
-    require(layoutSegmentIndicesAreValid) {
-        "Invalid searchIndexRange: $searchIndexRange contains indices outside of layoutSegments (${layoutSegments.indices})"
-    }
-
-    require(adjacentSegmentIndicesAreValid) {
-        "Invalid searchIndexRange: $searchIndexRange contains adjacent indices outside of layoutSegments (${layoutSegments.indices})"
-    }
-
-    for (i in searchIndexRange) {
-        val segment = layoutSegments[i]
-
-        val existingSwitchIdMatchesSegment = existingSwitchId == segment.switchId
-        if (!existingSwitchIdMatchesSegment) {
-            return null
-        }
-
-        val adjacentSegmentHasNoSwitch = layoutSegments[i + searchIndexRange.step].switchId == null
-        if (adjacentSegmentHasNoSwitch) {
-            return IndexedValue(i, segment)
-        }
-    }
-
-    return null
-}
-
-fun tryToSnapOverlappingSwitchSegmentToNearbySegment(
-    layoutAlignment: LayoutAlignment,
-    match: FittedSwitchJointMatch,
-): FittedSwitchJointMatch {
-    val referencedLayoutSegment = layoutAlignment.segments[match.segmentIndex]
-
-    val segmentIsSwitchFree = referencedLayoutSegment.switchId == null
-    if (segmentIsSwitchFree) {
-        return match
-    }
-
-    // Snapping towards the start of the location track.
-    match.segmentIndex
-        .takeIf { segmentIndex -> segmentIndex > 1 }
-        ?.let { segmentIndex -> IntProgression.fromClosedRange(segmentIndex, 1, -1) }
-        ?.let { negativeSearchIndexDirection ->
-            findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
-                referencedLayoutSegment.switchId as IntId,
-                layoutAlignment.segments,
-                searchIndexRange = negativeSearchIndexDirection,
-            )
-        }
-        ?.let { indexedExistingSwitchStartSegment ->
-            val m = layoutAlignment.segmentMValues[indexedExistingSwitchStartSegment.index]
-            val distanceToPreviousSwitchLineStart = match.m - m.min
-            val hasAdjacentLayoutSegment = indexedExistingSwitchStartSegment.index > 0
-
-            if (
-                hasAdjacentLayoutSegment &&
-                    distanceToPreviousSwitchLineStart <= MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS
-            ) {
-                return match.copy(
-                    m = match.m - distanceToPreviousSwitchLineStart,
-                    segmentIndex = indexedExistingSwitchStartSegment.index - 1,
-                )
-            }
-        }
-
-    // Snapping towards the end of the location track.
-    match.segmentIndex
-        .takeIf { segmentIndex -> segmentIndex < layoutAlignment.segments.lastIndex - 1 }
-        ?.let { segmentIndex ->
-            IntProgression.fromClosedRange(segmentIndex, layoutAlignment.segments.lastIndex - 1, 1)
-        }
-        ?.let { positiveSearchIndexDirection ->
-            findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
-                referencedLayoutSegment.switchId as IntId,
-                layoutAlignment.segments,
-                searchIndexRange = positiveSearchIndexDirection,
-            )
-        }
-        ?.let { indexedExistingSwitchEndSegment ->
-            val m = layoutAlignment.segmentMValues[indexedExistingSwitchEndSegment.index]
-            val distanceToPreviousSwitchLineEnd = m.max - match.m
-            val hasAdjacentLayoutSegment = indexedExistingSwitchEndSegment.index < layoutAlignment.segments.lastIndex
-
-            if (
-                hasAdjacentLayoutSegment &&
-                    distanceToPreviousSwitchLineEnd <= MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS
-            ) {
-                return match.copy(
-                    m = match.m + distanceToPreviousSwitchLineEnd,
-                    segmentIndex = indexedExistingSwitchEndSegment.index + 1,
-                )
-            }
-        }
-
-    // Couldn't snap, possibly due to too much overlap or adjacent switch segment(s) already
-    // contained another switch.
-    return match
-}
-
-private fun filterTracksNear(
-    centerTrack: LocationTrack,
-    tracksWithAlignments: Collection<Pair<LocationTrack, LayoutAlignment>>,
-    point: Point,
-): List<Pair<LocationTrack, LayoutAlignment>> {
-    val boundingBox = boundingBoxAroundPoint(point, 1.0)
-    return tracksWithAlignments.filter { (track, alignment) ->
-        centerTrack.id != track.id &&
-            alignment.segments.any { segment ->
-                val bb = segment.boundingBox
-                bb != null && bb.intersects(boundingBox)
-            }
-    }
-}
 
 fun withChangesFromLinkingSwitch(
     suggestedSwitch: SuggestedSwitch,
@@ -705,44 +480,6 @@ fun withChangesFromLinkingSwitch(
     //    return segmentLinksMade.values + topologicalLinksMade.values + onlyDelinked
 }
 
-private fun withTopologicalLinks(
-    suggestedSwitch: SuggestedSwitch,
-    existingLinksCleared: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
-    switchId: IntId<LayoutSwitch>,
-): Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>> {
-    val topologicalLinksMade =
-        suggestedSwitch.trackLinks.entries
-            .mapNotNull { (locationTrackId, trackLink) ->
-                trackLink.topologyJoint?.let { topologyJoint ->
-                    val (locationTrack, alignment) = existingLinksCleared.getValue(locationTrackId)
-                    val updatedTrack = updateLocationTrackWithTopologyEndLinking(locationTrack, switchId, topologyJoint)
-                    locationTrackId to (updatedTrack to alignment)
-                }
-            }
-            .associate { it }
-    return topologicalLinksMade
-}
-
-private fun withSegmentLinks(
-    suggestedSwitch: SuggestedSwitch,
-    existingLinksCleared: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
-    switchId: IntId<LayoutSwitch>,
-): Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>> {
-    val segmentLinksMade =
-        suggestedSwitch.trackLinks.entries
-            .mapNotNull { (locationTrackId, trackLink) ->
-                if (trackLink.segmentJoints.isEmpty()) null
-                else {
-                    val (locationTrack, alignment) = existingLinksCleared.getValue(locationTrackId)
-                    locationTrackId to
-                        (locationTrack to
-                            updateAlignmentSegmentsWithSwitchLinking(alignment, switchId, trackLink.segmentJoints))
-                }
-            }
-            .associate { it }
-    return segmentLinksMade
-}
-
 private fun withExistingLinksToSwitchCleared(
     originalLocationTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
     switchId: IntId<LayoutSwitch>,
@@ -752,258 +489,13 @@ private fun withExistingLinksToSwitchCleared(
         track to geometry.withoutSwitch(switchId)
     }
 
-fun updateLocationTrackWithTopologyEndLinking(
-    locationTrack: LocationTrack,
-    switchId: IntId<LayoutSwitch>,
-    link: SwitchLinkingTopologicalTrackLink,
-): LocationTrack {
-    val topologySwitch = TopologyLocationTrackSwitch(switchId, link.number)
-    return if (link.trackEnd == TrackEnd.START) {
-        locationTrack.copy(topologyStartSwitch = topologySwitch)
-    } else {
-        locationTrack.copy(topologyEndSwitch = topologySwitch)
-    }
-}
-
 fun updateAlignmentSegmentsWithSwitchLinking(
     geometry: LocationTrackGeometry,
     layoutSwitchId: IntId<LayoutSwitch>,
     matchingJoints: List<SwitchLinkingJoint>,
 ): LocationTrackGeometry {
-    val segmentIndexRange = matchingJoints.map { it.segmentIndex }.let { ixes -> ixes.min()..ixes.max() }
-
-    val overriddenSwitches =
-        geometry.segments
-            .mapIndexedNotNull { index, segment -> if (index in segmentIndexRange) segment.switchId else null }
-            .distinct()
-
-    val cleanedSegments =
-        // Collections#contains mapped over a long alignment is surprisingly expensive, but usually
-        // we're overriding nothing anyway
-        if (overriddenSwitches.isEmpty()) {
-            geometry.segments
-        } else
-            geometry.segments.map { segment ->
-                if (overriddenSwitches.contains(segment.switchId)) segment.withoutSwitch() else segment
-            }
-
-    val segmentsWithNewSwitch =
-        cleanedSegments
-            .subList(segmentIndexRange.first, segmentIndexRange.last + 1)
-            .mapIndexed { indexInRange, segment ->
-                val index = indexInRange + segmentIndexRange.first
-                val switchLinkingJoints = matchingJoints.filter { joint -> joint.segmentIndex == index }
-
-                if (switchLinkingJoints.isEmpty()) {
-                    // Segment that is between two other segments that are linked to the switch
-                    // joints
-                    listOf(segment.copy(switchId = layoutSwitchId, startJointNumber = null, endJointNumber = null))
-                } else {
-                    getSegmentsByLinkingJoints(
-                        switchLinkingJoints,
-                        segment,
-                        geometry.segmentMValues[index],
-                        layoutSwitchId,
-                        index == segmentIndexRange.first,
-                        index == segmentIndexRange.last,
-                    )
-                }
-            }
-            .let { segments -> combineAdjacentSegmentJointNumbers(segments, layoutSwitchId) }
-
-    // TODO: GVT-2927 Switch linking in graph model
     TODO()
-    //    return geometry.withSegments(
-    //        listOf(
-    //                cleanedSegments.subList(0, segmentIndexRange.first),
-    //                segmentsWithNewSwitch,
-    //                cleanedSegments.subList(segmentIndexRange.last + 1, cleanedSegments.size),
-    //            )
-    //            .flatten()
-    //    )
 }
-
-private fun filterMatchingJointsBySwitchAlignment(
-    switchStructure: SwitchStructure,
-    matchingJoints: List<FittedSwitchJoint>,
-    locationTrackId: DomainId<LocationTrack>,
-): List<FittedSwitchJoint> {
-    val locationTrackSwitchJoints =
-        matchingJoints
-            .map { joint ->
-                joint.copy(matches = joint.matches.filter { segment -> segment.locationTrackId == locationTrackId })
-            }
-            .filter { it.matches.isNotEmpty() }
-
-    val switchStructureJointNumbers =
-        switchStructure.alignments
-            .firstOrNull { alignment ->
-                val frontJoint = alignment.jointNumbers.first()
-                val backJoint = alignment.jointNumbers.last()
-                val presentationJoint = switchStructure.presentationJointNumber
-                val hasFrontJoint = locationTrackSwitchJoints.any { joint -> joint.number == frontJoint }
-                val hasBackJoint = locationTrackSwitchJoints.any { joint -> joint.number == backJoint }
-                val hasSeparatePresentationJoint =
-                    presentationJoint != frontJoint &&
-                        presentationJoint != backJoint &&
-                        alignment.jointNumbers.any { jointNumber -> jointNumber == presentationJoint } &&
-                        locationTrackSwitchJoints.any { joint -> joint.number == presentationJoint }
-
-                // Alignment must contain at least two of these ("etujatkos", "takajatkos",
-                // presentation joint)
-                listOf(hasFrontJoint, hasBackJoint, hasSeparatePresentationJoint).count { it } >= 2
-            }
-            ?.jointNumbers
-
-    return locationTrackSwitchJoints.filter { joint ->
-        switchStructureJointNumbers?.any { structureJoint -> structureJoint == joint.number } ?: false
-    }
-}
-
-private fun getSegmentsByLinkingJoints(
-    linkingJoints: List<SwitchLinkingJoint>,
-    segment: LayoutSegment,
-    segmentM: Range<Double>,
-    layoutSwitchId: IntId<LayoutSwitch>,
-    isFirstSegment: Boolean,
-    isLastSegment: Boolean,
-) =
-    linkingJoints
-        .foldIndexed(mutableListOf<LayoutSegment>()) { index, acc, linkingJoint ->
-            val jointNumber = linkingJoint.number
-            val previousSegment = acc.lastOrNull()?.also { acc.removeLast() } ?: segment
-            val suggestedPointM = linkingJoint.m
-
-            if (isSame(segmentM.min, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
-                // Check if suggested point is start point
-                acc.add(setStartJointNumber(segment, layoutSwitchId, jointNumber))
-            } else if (isSame(segmentM.max, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
-                // Check if suggested point is end point
-                if (linkingJoints.size == 1) {
-                    acc.add(setEndJointNumber(previousSegment, layoutSwitchId, jointNumber))
-                } else {
-                    acc.add(previousSegment.copy(endJointNumber = jointNumber))
-                }
-            } else {
-                // Otherwise split the segment
-                // StartSplitSegment: before M-value
-                // EndSplitSegment: after M-value
-                val (startSplitSegment, endSplitSegment) =
-                    previousSegment.splitAtM(suggestedPointM - segmentM.min, TOLERANCE_JOINT_LOCATION_NEW_POINT)
-
-                // Handle cases differently when there are multiple joint matches in a single
-                // segment
-                if (linkingJoints.size == 1) {
-                    acc.add(
-                        if (isFirstSegment) startSplitSegment.withoutSwitch()
-                        else if (isLastSegment) setEndJointNumber(startSplitSegment, layoutSwitchId, jointNumber)
-                        else
-                            startSplitSegment.copy(
-                                switchId = layoutSwitchId,
-                                startJointNumber = null,
-                                endJointNumber = null,
-                            )
-                    )
-                    endSplitSegment?.let {
-                        acc.add(
-                            if (isFirstSegment) setStartJointNumber(endSplitSegment, layoutSwitchId, jointNumber)
-                            else if (isLastSegment) endSplitSegment.withoutSwitch()
-                            else setStartJointNumber(endSplitSegment, layoutSwitchId, jointNumber)
-                        )
-                    }
-                } else {
-                    when (index) {
-                        // First joint match
-                        0 -> {
-                            acc.add(
-                                if (isFirstSegment) startSplitSegment.withoutSwitch()
-                                else
-                                    startSplitSegment.copy(
-                                        switchId = layoutSwitchId,
-                                        startJointNumber = null,
-                                        endJointNumber = null,
-                                    )
-                            )
-
-                            endSplitSegment?.let {
-                                acc.add(setStartJointNumber(endSplitSegment, layoutSwitchId, jointNumber))
-                            }
-                        }
-                        // Last joint match
-                        linkingJoints.lastIndex -> {
-                            acc.add(startSplitSegment.copy(endJointNumber = jointNumber))
-
-                            endSplitSegment?.let {
-                                acc.add(
-                                    if (isLastSegment) endSplitSegment.withoutSwitch()
-                                    else
-                                        endSplitSegment.copy(
-                                            switchId = layoutSwitchId,
-                                            startJointNumber = null,
-                                            endJointNumber = null,
-                                        )
-                                )
-                            }
-                        }
-
-                        else -> {
-                            acc.add(startSplitSegment.copy(endJointNumber = jointNumber))
-                            endSplitSegment?.let {
-                                acc.add(setStartJointNumber(endSplitSegment, layoutSwitchId, jointNumber))
-                            }
-                        }
-                    }
-                }
-            }
-
-            acc
-        }
-        .toList()
-
-private fun setStartJointNumber(segment: LayoutSegment, switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
-    segment.copy(switchId = switchId, startJointNumber = jointNumber, endJointNumber = null)
-
-private fun setEndJointNumber(segment: LayoutSegment, switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
-    segment.copy(switchId = switchId, startJointNumber = null, endJointNumber = jointNumber)
-
-private fun combineAdjacentSegmentJointNumbers(
-    layoutSegments: List<List<LayoutSegment>>,
-    switchId: IntId<LayoutSwitch>,
-) =
-    layoutSegments.fold(mutableListOf<LayoutSegment>()) { acc, segments ->
-        val currentSegment = segments.first()
-        val previousSegment = acc.lastOrNull()
-
-        /**
-         * For instance in case of line 1-5-2 J1 J5 J2
-         *
-         * -----|-------|-------|------
-         * S0 S1 S2 S3 where the first switch segment S1 has start joint number 1, and the last switch segment S2 has
-         * start joint number 5 and end joint number 2 we want the S1 to have end joint number 5
-         */
-        if (currentSegment.switchId == switchId && previousSegment?.switchId == switchId) {
-            if (
-                previousSegment.startJointNumber != null &&
-                    previousSegment.endJointNumber == null &&
-                    currentSegment.startJointNumber != null
-            ) {
-                acc[acc.lastIndex] = previousSegment.copy(endJointNumber = currentSegment.startJointNumber)
-                acc.addAll(segments)
-                return@fold acc
-            } else if (
-                previousSegment.endJointNumber != null &&
-                    currentSegment.startJointNumber == null &&
-                    currentSegment.endJointNumber != null
-            ) {
-                acc.add(currentSegment.copy(startJointNumber = previousSegment.endJointNumber))
-                acc.addAll(segments.drop(1))
-                return@fold acc
-            }
-        }
-
-        acc.addAll(segments)
-        acc
-    }
 
 data class SamplingGridPoints(val points: List<Point>) {
     constructor(point: Point) : this(listOf(point))
