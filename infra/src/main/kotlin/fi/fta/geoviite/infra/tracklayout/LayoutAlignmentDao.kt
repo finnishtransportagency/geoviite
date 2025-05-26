@@ -17,15 +17,15 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.sql.ResultSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import kotlin.math.abs
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -257,9 +257,6 @@ class LayoutAlignmentDao(
                                 sourceStartM = sourceStartMValues[i],
                                 source = sources[i],
                                 geometryId = geometryIds[i],
-                                switchId = null,
-                                startJointNumber = null,
-                                endJointNumber = null,
                             )
                         }
                     EdgeData(edgeId, startNodeId to startNodePort, endNodeId to endNodePort, segments)
@@ -1412,9 +1409,6 @@ private fun createSegments(
         LayoutSegment(
                 sourceId = data.sourceId,
                 sourceStartM = data.sourceStartM,
-                switchId = data.switchId,
-                startJointNumber = data.startJointNumber,
-                endJointNumber = data.endJointNumber,
                 source = data.source,
                 geometry = geometry,
             )
