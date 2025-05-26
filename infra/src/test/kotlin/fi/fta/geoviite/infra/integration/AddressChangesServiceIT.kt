@@ -782,6 +782,7 @@ constructor(
             startIntersect = IntersectType.WITHIN,
             endIntersect = IntersectType.WITHIN,
             midPoints = listOf(),
+            alignmentWalkFinished = true,
         )
 
     fun createAddresses(vararg transitionPoints: Pair<Point, TrackMeter>): AlignmentAddresses {
@@ -809,6 +810,7 @@ constructor(
             startIntersect = IntersectType.WITHIN,
             endIntersect = IntersectType.WITHIN,
             midPoints = addressPoints.slice(1..addressPoints.size - 2),
+            alignmentWalkFinished = true,
         )
     }
 
