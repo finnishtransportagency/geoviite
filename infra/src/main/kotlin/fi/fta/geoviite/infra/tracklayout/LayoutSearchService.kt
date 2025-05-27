@@ -3,6 +3,9 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.ratko.RatkoLocalService
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.beans.factory.annotation.Autowired
@@ -15,6 +18,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val trackNumberService: LayoutTrackNumberService,
     private val ratkoLocalService: RatkoLocalService,
+    private val geocodingService: GeocodingService,
 ) {
 
     fun searchAssets(
@@ -68,7 +72,36 @@ constructor(
             locationTracks = searchAllLocationTracks(layoutContext, searchTerm, limitPerResultType),
             trackNumbers = searchAllTrackNumbers(layoutContext, searchTerm, limitPerResultType),
             operatingPoints = ratkoLocalService.searchOperatingPoints(searchTerm, limitPerResultType),
+            locations = searchLocations(layoutContext, searchTerm),
         )
+
+    val addressSearchParameterRegex = Regex("(\\w+)\\s*,\\s*(\\w{3,4})(\\+(\\d{3,4}(\\.\\d{1,3})?))?")
+
+    private fun getAddressSearchParameters(searchTerm: FreeText): Pair<TrackNumber, TrackMeter>? {
+        val parseResult = addressSearchParameterRegex.find(searchTerm)
+        val trackNumber = parseResult?.groups?.let { it[1]?.value }?.let { TrackNumber(it) }
+        val kmStr = parseResult?.groups?.let { it[2]?.value }
+        val mStr = parseResult?.groups?.let { it[4]?.value } ?: "0000"
+        val address = if (kmStr != null) TrackMeter(kmStr, mStr) else null
+        return if (trackNumber != null && address != null) trackNumber to address else null
+    }
+
+    private fun searchLocations(layoutContext: LayoutContext, searchTerm: FreeText): List<SearchLocation> {
+        val addressSearchParameters = getAddressSearchParameters(searchTerm)
+        val trackNumberLocation =
+            if (addressSearchParameters != null) {
+                val (trackNumber, trackMeter) = addressSearchParameters
+                val layoutTrackNumber = trackNumberService.find(layoutContext, trackNumber).firstOrNull()
+                if (layoutTrackNumber != null) {
+                    val geocodingContext = geocodingService.getGeocodingContext(layoutContext, layoutTrackNumber.id)
+                    val coordinates = geocodingContext?.getProjectionLine(trackMeter)?.projection?.start
+                    if (coordinates != null) {
+                        SearchLocation(coordinates, "${layoutTrackNumber.number}, $trackMeter")
+                    } else null
+                } else null
+            } else null
+        return listOfNotNull(trackNumberLocation)
+    }
 
     private fun searchByLocationTrackSearchScope(
         layoutContext: LayoutContext,
@@ -97,6 +130,7 @@ constructor(
                     .let { list -> trackNumberService.filterBySearchTerm(list, searchTerm, trackNumberIdMatch) }
                     .take(limit),
             operatingPoints = ratkoLocalService.searchOperatingPoints(searchTerm, limit),
+            locations = listOf(),
         )
     }
 

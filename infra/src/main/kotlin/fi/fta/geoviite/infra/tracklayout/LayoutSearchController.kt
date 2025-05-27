@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.security.access.prepost.PreAuthorize
@@ -15,11 +16,14 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
+data class SearchLocation(val coordinates: IPoint, val description: String)
+
 data class TrackLayoutSearchResult(
     val locationTracks: List<LocationTrack>,
     val switches: List<LayoutSwitch>,
     val trackNumbers: List<LayoutTrackNumber>,
     val operatingPoints: List<RatkoOperatingPoint>,
+    val locations: List<SearchLocation>,
 )
 
 @GeoviiteController("/track-layout/search")

@@ -40,7 +40,7 @@ import {
     refreshSwitchSelection,
     refreshTrackNumberSelection,
 } from 'track-layout/track-layout-react-utils';
-import { getBySearchTerm } from 'track-layout/track-layout-search-api';
+import { getBySearchTerm, SearchLocation } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
@@ -56,6 +56,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { EnvRestricted } from 'environment/env-restricted';
 import {
     calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_NEAR_BBOX_OFFSET,
     MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
 } from 'map/map-utils';
 import { DesignSelectionContainer } from 'tool-bar/workspace-selection';
@@ -141,6 +142,24 @@ function createTrackNumberOptionItem(
     );
 }
 
+type SearchLocationItemValue = {
+    searchLocation: SearchLocation;
+    type: 'searchLocationItem';
+};
+
+function createSearchLocationOptionItem(
+    searchLocation: SearchLocation,
+): Item<SearchLocationItemValue> {
+    return dropdownOption(
+        {
+            type: 'searchLocationItem',
+            searchLocation: searchLocation,
+        } as const,
+        searchLocation.description,
+        `track-number-${searchLocation.description}`,
+    );
+}
+
 type OperatingPointItemValue = {
     operatingPoint: OperatingPoint;
     type: 'operatingPointSearchItem';
@@ -163,7 +182,8 @@ type SearchItemValue =
     | LocationTrackItemValue
     | SwitchItemValue
     | TrackNumberItemValue
-    | OperatingPointItemValue;
+    | OperatingPointItemValue
+    | SearchLocationItemValue;
 
 // The characters that alignment descriptions can contain is a superset of the characters that can be used in search,
 // and it's considered quite likely to stay that way even if allowed character sets for names etc. are changed.
@@ -197,6 +217,7 @@ async function getOptions(
         locationTrackOptions,
         searchResult.switches.map(createSwitchOptionItem),
         searchResult.trackNumbers.map(createTrackNumberOptionItem),
+        searchResult.locations.map(createSearchLocationOptionItem),
     ].flat();
 }
 
@@ -350,6 +371,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     switches: [],
                 });
 
+            case 'searchLocationItem': {
+                const locationArea = calculateBoundingBoxToShowAroundLocation(
+                    item.searchLocation.coordinates,
+                    MAP_POINT_NEAR_BBOX_OFFSET,
+                );
+                showArea(locationArea);
+                return undefined;
+            }
             default:
                 return exhaustiveMatchingGuard(item);
         }
