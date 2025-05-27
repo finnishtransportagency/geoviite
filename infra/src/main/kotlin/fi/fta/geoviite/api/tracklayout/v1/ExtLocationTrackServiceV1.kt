@@ -213,8 +213,8 @@ constructor(
             locationTrackState = ExtLocationTrackStateV1.of(locationTrack.state),
             locationTrackDescription = locationTrackDescription,
             locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
-            startLocation = startLocation?.let(ExtAddressPointV1::of),
-            endLocation = endLocation?.let(ExtAddressPointV1::of),
+            startLocation = startLocation?.let(::ExtAddressPointV1),
+            endLocation = endLocation?.let(::ExtAddressPointV1),
             trackNumberName = trackNumberName,
             trackNumberOid = trackNumberOid,
         )
