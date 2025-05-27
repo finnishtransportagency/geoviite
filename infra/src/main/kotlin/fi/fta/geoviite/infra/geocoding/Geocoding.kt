@@ -40,12 +40,12 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.processSortedBy
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
 import kotlin.math.abs
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 data class AddressPoint(val point: AlignmentPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
@@ -248,7 +248,7 @@ data class GeocodingContext(
         polyLineEdges
         startProjection
         endProjection
-        projectionLines
+        // Skip preloading projectionlines as the benefit is quite limited and it's costly at startup
         allKms
     }
 
@@ -281,7 +281,7 @@ data class GeocodingContext(
             null
         else if (address == startProjection.address) startProjection
         else if (address == endProjection.address) endProjection
-        else if (projectionLines.isEmpty()) null
+        else if (projectionLines.getValue(resolution).value.isEmpty()) null
         else
             projectionLines
                 .getValue(resolution)

@@ -16,11 +16,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import io.swagger.v3.oas.annotations.media.Schema
-import java.time.Instant
-import kotlin.collections.get
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @Schema(name = "Vastaus: Sijaintiraidekokoelma")
 data class ExtLocationTrackCollectionResponseV1(
@@ -114,18 +113,17 @@ constructor(
             )
             null
         } else {
-
+            val changedIds =
+                publicationDao.fetchPublishedLocationTracksAfterMoment(
+                    fromPublication.publicationTime,
+                    toPublication.publicationTime,
+                )
             val modifiedLocationTracks =
-                publicationDao
-                    .fetchPublishedLocationTracksAfterMoment(
-                        fromPublication.publicationTime,
-                        toPublication.publicationTime,
-                    )
-                    .map { locationTrackId ->
-                        locationTrackDao
-                            .getOfficialAtMoment(layoutContext.branch, locationTrackId, toPublication.publicationTime)
-                            .let(::requireNotNull)
-                    }
+                locationTrackDao.getManyOfficialAtMoment(
+                    layoutContext.branch,
+                    changedIds,
+                    toPublication.publicationTime,
+                )
 
             if (modifiedLocationTracks.isEmpty()) {
                 logger.info(
@@ -133,7 +131,7 @@ constructor(
                 )
                 null
             } else {
-                return ExtModifiedLocationTrackCollectionResponseV1(
+                ExtModifiedLocationTrackCollectionResponseV1(
                     modificationsFromVersion = modificationsFromVersion,
                     trackNetworkVersion = toPublication.uuid,
                     coordinateSystem = coordinateSystem,
@@ -161,17 +159,8 @@ constructor(
         val distinctTrackNumberIds = locationTracks.map { locationTrack -> locationTrack.trackNumberId }.distinct()
 
         val trackNumbers =
-            distinctTrackNumberIds
-                .map { trackNumberId ->
-                    layoutTrackNumberDao
-                        // TODO Batch call instead of loop
-                        .fetchOfficialVersionAtMoment(layoutContext.branch, trackNumberId, moment)
-                        ?.let(layoutTrackNumberDao::fetch)
-                        ?: throw ExtTrackNumberNotFoundV1(
-                            "track number was not found for " +
-                                "branch=${layoutContext.branch}, trackNumberId=${trackNumberId}, moment=$moment"
-                        )
-                }
+            layoutTrackNumberDao
+                .getManyOfficialAtMoment(layoutContext.branch, distinctTrackNumberIds, moment)
                 .associateBy { trackNumber -> trackNumber.id }
 
         val externalLocationTrackIds = locationTrackDao.fetchExternalIds(layoutContext.branch, locationTrackIds)
@@ -225,8 +214,8 @@ constructor(
                 locationTrackState = ExtLocationTrackStateV1.of(locationTrack.state),
                 locationTrackDescription = locationTrackDescription,
                 locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
-                startLocation = startLocation?.let(ExtAddressPointV1::of),
-                endLocation = endLocation?.let(ExtAddressPointV1::of),
+                startLocation = startLocation?.let(::ExtAddressPointV1),
+                endLocation = endLocation?.let(::ExtAddressPointV1),
                 trackNumberName = trackNumberName,
                 trackNumberOid = trackNumberOid,
             )
