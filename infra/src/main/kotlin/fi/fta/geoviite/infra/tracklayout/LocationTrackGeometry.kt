@@ -216,26 +216,6 @@ sealed class LocationTrackGeometry : IAlignment {
             }
             .takeIf { it >= 0 }
             ?.let(edgesWithM::getOrNull)
-
-    fun mergeEdges(edgesToMerge: List<LayoutEdge>): LocationTrackGeometry {
-        val newEdges =
-            edges
-                .fold(listOf<LayoutEdge>() to listOf<LayoutEdge>()) { (collectedEdges, collectedToMerge), edge ->
-                    if (!edgesToMerge.contains(edge) || edge == edges.last()) {
-                        // merge multiple into one
-                        val toMerge = collectedToMerge + edge
-                        val newSegments = toMerge.flatMap { edgeToMerge -> edgeToMerge.segments }
-                        val newEdge = TmpLayoutEdge(toMerge.first().startNode, toMerge.last().endNode, newSegments)
-                        collectedEdges + newEdge to listOf()
-                    } else if (edgesToMerge.contains(edge)) {
-                        collectedEdges to collectedToMerge + edge
-                    } else {
-                        collectedEdges + edge to collectedToMerge
-                    }
-                }
-                .first
-        return TmpLocationTrackGeometry.of(combineEdges(newEdges), trackId)
-    }
 }
 
 fun calculateEdgeMValues(edges: List<LayoutEdge>): List<Range<Double>> {

@@ -1,18 +1,3 @@
-create table deprecated.location_track_version_alignment
-(
-  location_track_id                int         not null,
-  location_track_layout_context_id int         not null,
-  location_track_version           int         not null,
-  alignment_id                     int         not null,
-  alignment_version                int         not null,
-  change_user                      varchar(30) not null,
-  change_time                      timestamptz not null,
-  deleted                          boolean     not null,
-
-  primary key (location_track_id, location_track_layout_context_id, location_track_version),
-  foreign key (alignment_id, alignment_version) references deprecated.alignment_version (id, version)
-);
-
 create table deprecated.alignment_version
 (
   id            int                             not null,
@@ -43,5 +28,20 @@ create table deprecated.alignment_version_segment
   geometry_id               int                    not null references layout.segment_geometry (id),
 
   primary key (alignment_id, alignment_version, segment_index),
+  foreign key (alignment_id, alignment_version) references deprecated.alignment_version (id, version)
+);
+
+create table deprecated.location_track_version_alignment
+(
+  location_track_id                int         not null,
+  location_track_layout_context_id text        not null,
+  location_track_version           int         not null,
+  alignment_id                     int         not null,
+  alignment_version                int         not null,
+  change_user                      varchar(30) not null,
+  change_time                      timestamptz not null,
+  deleted                          boolean     not null,
+
+  primary key (location_track_id, location_track_layout_context_id, location_track_version),
   foreign key (alignment_id, alignment_version) references deprecated.alignment_version (id, version)
 );

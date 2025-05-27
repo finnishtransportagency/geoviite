@@ -528,7 +528,11 @@ data class LayoutSegment(
 
     init {
         require(source != GENERATED || segmentPoints.size == 2) { "Generated segment can't have more than 2 points" }
-        sourceStartM?.also { s -> require(s.scale() == SOURCE_START_M_SCALE) }
+        sourceStartM?.also { s ->
+            require(s.scale() == SOURCE_START_M_SCALE) {
+                "The source start m value has wrong scale: expected=$SOURCE_START_M_SCALE actual=${s.scale()}"
+            }
+        }
     }
 
     fun slice(segmentStartM: Double, fromIndex: Int, toIndex: Int): Pair<LayoutSegment, Range<Double>>? {
