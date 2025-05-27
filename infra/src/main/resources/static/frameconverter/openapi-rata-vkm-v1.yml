@@ -67,7 +67,7 @@ paths:
                 $ref: '#/components/schemas/coordinate-to-track-address'
             examples:
               'Muunnospyyntö':
-                externalValue: '../static/examples/example-request-coordinate-to-track-address.json'
+                externalValue: '../static/examples/example-request-coordinates-to-track-addresses.json'
       responses:
         '200':
           description: OK
