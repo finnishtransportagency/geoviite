@@ -137,7 +137,7 @@ export const planApplicabilities: LocalizedEnum<PlanApplicability>[] = values('P
 export const locationTrackNamingSchemes: LocalizedEnum<LocationTrackNamingScheme>[] = values(
     'LocationTrackNamingScheme',
     [
-        LocationTrackNamingScheme.FREE_TEXT,
+        LocationTrackNamingScheme.UNDEFINED,
         LocationTrackNamingScheme.WITHIN_OPERATING_POINT,
         LocationTrackNamingScheme.TRACK_NUMBER_TRACK,
         LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS,

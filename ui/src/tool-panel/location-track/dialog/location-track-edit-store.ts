@@ -36,8 +36,8 @@ export type LocationTrackEditState = {
     allFieldsCommitted: boolean;
 };
 
-export const initialLocationTrackNameFreeText: LocationTrackNaming = {
-    scheme: LocationTrackNamingScheme.FREE_TEXT,
+export const initialLocationTrackNameUndefined: LocationTrackNaming = {
+    scheme: LocationTrackNamingScheme.UNDEFINED,
     freeText: '',
     specifier: undefined,
 };
@@ -68,8 +68,8 @@ export const initialLocationTrackNameChord: LocationTrackNaming = {
 
 export const locationTrackNameByNamingScheme = (namingScheme: LocationTrackNamingScheme) => {
     switch (namingScheme) {
-        case LocationTrackNamingScheme.FREE_TEXT:
-            return initialLocationTrackNameFreeText;
+        case LocationTrackNamingScheme.UNDEFINED:
+            return initialLocationTrackNameUndefined;
         case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
             return initialLocationTrackNameTrackNumber;
         case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
@@ -93,7 +93,7 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
     isSaving: false,
     trackNumbers: [],
     locationTrack: {
-        namingScheme: initialLocationTrackNameFreeText,
+        namingScheme: initialLocationTrackNameUndefined,
         trackNumberId: undefined,
         state: undefined,
         type: undefined,
@@ -110,7 +110,7 @@ export type LoadingProp = keyof LocationTrackEditState['loading'];
 
 function newLinkingLocationTrack(): LocationTrackSaveRequest {
     return {
-        namingScheme: initialLocationTrackNameFreeText,
+        namingScheme: initialLocationTrackNameUndefined,
         descriptionBase: '',
         type: undefined,
         state: undefined,
@@ -198,7 +198,7 @@ const locationTrackEditSlice = createSlice({
             state.existingLocationTrack = existingLocationTrack;
             state.locationTrack = {
                 ...existingLocationTrack,
-                namingScheme: initialLocationTrackNameFreeText,
+                namingScheme: initialLocationTrackNameUndefined,
                 type: existingLocationTrack.type || 'MAIN',
                 duplicateOf: existingLocationTrack.duplicateOf,
             };

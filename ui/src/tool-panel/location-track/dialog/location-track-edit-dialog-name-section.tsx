@@ -214,7 +214,7 @@ export const LocationTrackNameParts: React.FC<{
     getVisibleErrorsByProp,
 }) => {
     switch (name.scheme) {
-        case LocationTrackNamingScheme.FREE_TEXT:
+        case LocationTrackNamingScheme.UNDEFINED:
             return (
                 <LocationTrackNameFreeText
                     name={name}

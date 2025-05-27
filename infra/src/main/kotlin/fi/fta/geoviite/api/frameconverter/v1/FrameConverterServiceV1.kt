@@ -163,7 +163,12 @@ constructor(
                 request.locationTrackOid?.let { locationTrackOid -> locationTrackOid == locationTrackOids[track.id] }
                     ?: true
             },
-            { request.locationTrackName?.let { locationTrackName -> locationTrackName == track.name } ?: true },
+            {
+                request.locationTrackName?.let { locationTrackName ->
+                    locationTrackName ==
+                        locationTrackService.getNameOrThrow(LayoutBranch.main.official, track.id as IntId).name
+                } ?: true
+            },
             { request.locationTrackType?.let { locationTrackType -> locationTrackType == track.type } ?: true },
             {
                 request.trackNumberOid?.let { trackNumberOid -> trackNumberOid == trackNumberOids[track.trackNumberId] }
@@ -316,7 +321,10 @@ constructor(
         val requestIndicesOnTrack =
             requests.mapIndexedNotNull { index, request ->
                 index.takeIf {
-                    filterByLocationTrackName(request.locationTrackName, locationTrack) &&
+                    filterByLocationTrackName(
+                        request.locationTrackName,
+                        locationTrackService.getNameOrThrow(LayoutBranch.main.official, locationTrack.id as IntId).name,
+                    ) &&
                         filterByLocationTrackType(request.locationTrackType, locationTrack) &&
                         filterByLocationTrackOid(request.locationTrackOid, locationTrack, locationTrackOidLookup)
                 }
@@ -603,7 +611,8 @@ constructor(
             FeatureMatchDetailsV1(
                 trackNumber = trackNumberDetails.trackNumber.number,
                 trackNumberOid = trackNumberDetails.oid?.toString() ?: "",
-                locationTrackName = locationTrack.name,
+                locationTrackName =
+                    locationTrackService.getNameOrThrow(LayoutBranch.main.official, locationTrack.id as IntId).name,
                 locationTrackOid = locationTrackDetails.oid?.toString() ?: "",
                 locationTrackDescription = locationTrackDetails.description,
                 translatedLocationTrackType = translatedLocationTrackType,
@@ -687,8 +696,10 @@ private fun createSimpleFeatureMatchOrNull(
     }
 }
 
-private fun filterByLocationTrackName(locationTrackName: AlignmentName?, locationTrack: LocationTrack): Boolean =
-    locationTrackName == null || locationTrackName == locationTrack.name
+private fun filterByLocationTrackName(
+    requestLocationTrackName: AlignmentName?,
+    locationTrackName: AlignmentName,
+): Boolean = requestLocationTrackName == null || requestLocationTrackName == locationTrackName
 
 private fun filterByLocationTrackType(locationTrackType: LocationTrackType?, locationTrack: LocationTrack): Boolean {
     return if (locationTrackType == null) {

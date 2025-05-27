@@ -128,7 +128,9 @@ data class PublishedReferenceLine(
 
 data class PublishedLocationTrack(
     val version: LayoutRowVersion<LocationTrack>,
-    val name: AlignmentName,
+    val namingScheme: LocationTrackNamingScheme,
+    val nameFreeText: AlignmentName?,
+    val nameSpecifier: LocationTrackNameSpecifier?,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val operation: Operation,
     val changedKmNumbers: Set<KmNumber>,
@@ -486,7 +488,6 @@ data class KmPostPublicationCandidate(
 }
 
 data class SwitchLocationTrack(
-    val name: AlignmentName,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val oldVersion: LayoutRowVersion<LocationTrack>,
 )
@@ -495,7 +496,9 @@ data class Change<T>(val old: T?, val new: T?)
 
 data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
-    val name: Change<AlignmentName>,
+    val namingScheme: Change<LocationTrackNamingScheme>,
+    val nameFreeText: Change<AlignmentName>,
+    val nameSpecifier: Change<LocationTrackNameSpecifier>,
     val descriptionBase: Change<LocationTrackDescriptionBase>,
     val descriptionSuffix: Change<LocationTrackDescriptionSuffix>,
     val state: Change<LocationTrackState>,

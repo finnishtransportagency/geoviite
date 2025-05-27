@@ -285,7 +285,10 @@ class LocationTrackController(
         @RequestParam("includeDeleted") includeDeleted: Boolean = true,
     ): List<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.list(context, includeDeleted, trackNumberId, names)
+        return locationTrackService.list(context, includeDeleted, trackNumberId).filter { lt ->
+            locationTrackService.getNameOrThrow(context, lt.id as IntId).name.toString().lowercase() in
+                names.map { it.toString().lowercase() }
+        }
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)
@@ -309,5 +312,16 @@ class LocationTrackController(
     @GetMapping("/location-tracks/{id}/oids")
     fun getLocationTrackOids(@PathVariable("id") id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
         return locationTrackService.getExternalIdsByBranch(id)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/names")
+    fun getLocationTrackNames(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @RequestParam("ids") ids: List<IntId<LocationTrack>>,
+    ): List<LocationTrackName> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return locationTrackService.getNames(context, ids)
     }
 }

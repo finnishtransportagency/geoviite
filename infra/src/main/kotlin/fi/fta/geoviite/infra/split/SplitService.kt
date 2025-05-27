@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -134,6 +135,7 @@ class SplitService(
         candidates: ValidationVersions,
         context: ValidationContext,
         allowMultipleSplits: Boolean,
+        getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
     ): SplitLayoutValidationIssues {
         val splitIssues =
             validateSplitContent(
@@ -146,7 +148,8 @@ class SplitService(
         val tnSplitIssues =
             candidates.trackNumbers
                 .associate { version ->
-                    version.id to listOfNotNull(validateSplitReferencesByTrackNumber(version.id, context))
+                    version.id to
+                        listOfNotNull(validateSplitReferencesByTrackNumber(version.id, context, getLocationTrackName))
                 }
                 .filterValues { it.isNotEmpty() }
 
@@ -154,7 +157,10 @@ class SplitService(
             candidates.referenceLines
                 .associate { version ->
                     val trackNumberId = referenceLineDao.fetch(version).trackNumberId
-                    version.id to listOfNotNull(validateSplitReferencesByTrackNumber(trackNumberId, context))
+                    version.id to
+                        listOfNotNull(
+                            validateSplitReferencesByTrackNumber(trackNumberId, context, getLocationTrackName)
+                        )
                 }
                 .filterValues { it.isNotEmpty() }
 
@@ -164,7 +170,9 @@ class SplitService(
                     val trackNumberId = kmPostDao.fetch(version).trackNumberId
                     version.id to
                         listOfNotNull(
-                            trackNumberId?.let { tnId -> validateSplitReferencesByTrackNumber(tnId, context) }
+                            trackNumberId?.let { tnId ->
+                                validateSplitReferencesByTrackNumber(tnId, context, getLocationTrackName)
+                            }
                         )
                 }
                 .filterValues { it.isNotEmpty() }
@@ -172,7 +180,7 @@ class SplitService(
         val trackSplitIssues =
             candidates.locationTracks
                 .associate { version ->
-                    val ltSplitIssues = validateSplitForLocationTrack(version.id, context)
+                    val ltSplitIssues = validateSplitForLocationTrack(version.id, context, getLocationTrackName)
                     val contentIssues =
                         splitIssues.mapNotNull { (split, error) ->
                             if (split.containsLocationTrack(version.id)) error else null
@@ -211,11 +219,12 @@ class SplitService(
     private fun validateSplitForLocationTrack(
         trackId: IntId<LocationTrack>,
         context: ValidationContext,
+        getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
     ): List<LayoutValidationIssue> {
         val splits = context.getUnfinishedSplits().filter { split -> split.locationTracks.contains(trackId) }
         val track = context.getLocationTrack(trackId)
 
-        return if (track == null) validateLocationTrackAbsence(trackId, context, splits)
+        return if (track == null) validateLocationTrackAbsence(trackId, context, splits, getLocationTrackName)
         else
             validateSplitForFoundLocationTrack(
                 trackId,
@@ -229,6 +238,7 @@ class SplitService(
         trackId: IntId<LocationTrack>,
         context: ValidationContext,
         splits: List<Split>,
+        getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
     ): List<LayoutValidationIssue> {
         if (!context.locationTrackIsCancelled(trackId)) {
             throw IllegalArgumentException("The track to validate must exist in the validation context: id=$trackId")
@@ -238,7 +248,10 @@ class SplitService(
                 listOf(
                     validationError(
                         "$VALIDATION_SPLIT.track-is-cancelled",
-                        "name" to context.getCandidateLocationTrack(trackId)?.name,
+                        "name" to
+                            context.getCandidateLocationTrack(trackId)?.let { track ->
+                                getLocationTrackName(track.id as IntId)
+                            },
                     )
                 )
             } else listOf()
@@ -253,11 +266,19 @@ class SplitService(
     ): List<LayoutValidationIssue> {
         val splitSourceLocationTrackErrors =
             splits.flatMap { (split, _) ->
-                if (split.sourceLocationTrackId == trackId) validateSplitSourceLocationTrack(track, split)
+                if (split.sourceLocationTrackId == trackId)
+                    validateSplitSourceLocationTrack(track, split) {
+                        locationTrackService.getNameOrThrow(context.target.candidateContext, trackId).name
+                    }
                 else emptyList()
             }
 
-        val statusErrors = splits.mapNotNull { (split, sourceTrack) -> validateSplitStatus(track, sourceTrack, split) }
+        val statusErrors =
+            splits.mapNotNull { (split, sourceTrack) ->
+                validateSplitStatus(track, sourceTrack, split) {
+                    locationTrackService.getNameOrThrow(context.target.candidateContext, trackId).name
+                }
+            }
 
         // Note: we only check draft splits from here on, since the situation cannot change after
         // publication:
@@ -271,7 +292,9 @@ class SplitService(
         val trackNumberMismatchErrors =
             draftSplits.mapNotNull { (split, sourceTrack) ->
                 produceIf(split.containsTargetTrack(trackId)) {
-                    validateTargetTrackNumberIsUnchanged(sourceTrack, track)
+                    validateTargetTrackNumberIsUnchanged(sourceTrack, track) {
+                        locationTrackService.getNameOrThrow(context.target.candidateContext, trackId).name
+                    }
                 }
             }
 
@@ -369,6 +392,7 @@ class SplitService(
     private fun validateSplitReferencesByTrackNumber(
         trackNumberId: IntId<LayoutTrackNumber>,
         context: ValidationContext,
+        getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
     ): LayoutValidationIssue? {
         val affectedTracks = context.getLocationTracksByTrackNumber(trackNumberId)
         val affectedSplits =
@@ -378,7 +402,11 @@ class SplitService(
         return if (affectedSplits.isNotEmpty()) {
             val sourceTrackNames =
                 affectedSplits
-                    .mapNotNull { split -> context.getLocationTrack(split.sourceLocationTrackId)?.name }
+                    .mapNotNull { split ->
+                        context.getLocationTrack(split.sourceLocationTrackId)?.let { track ->
+                            getLocationTrackName(track.id as IntId)
+                        }
+                    }
                     .joinToString(", ")
             validationError("$VALIDATION_SPLIT.affected-split-in-progress", "sourceName" to sourceTrackNames)
         } else {
@@ -452,12 +480,16 @@ class SplitService(
                 geocodingContext,
                 request,
                 splitTargetTracksWithAlignments,
+                { id -> locationTrackService.getNameOrThrow(branch.draft, id).name },
             )
         }
             ?: throw SplitFailureException(
                 message = "Geocoding context creation failed: trackNumber=${sourceTrack.trackNumberId}",
                 localizedMessageKey = "geocoding-failed",
-                localizationParams = localizationParams("trackName" to sourceTrack.name),
+                localizationParams =
+                    localizationParams(
+                        "trackName" to locationTrackService.getNameOrThrow(branch.draft, sourceTrack.id as IntId)
+                    ),
             )
 
         val savedSource = locationTrackService.updateState(branch, request.sourceTrackId, LocationTrackState.DELETED)
@@ -480,6 +512,7 @@ class SplitService(
         geocodingContext: GeocodingContext,
         splitRequest: SplitRequest,
         splitTargetLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+        getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
     ) {
         val unusedDuplicates =
             locationTrackService
@@ -491,7 +524,12 @@ class SplitService(
                 }
                 .let { unusedDuplicateTracks -> locationTrackService.getAlignmentsForTracks(unusedDuplicateTracks) }
 
-        findNewLocationTracksForUnusedDuplicates(geocodingContext, unusedDuplicates, splitTargetLocationTracks)
+        findNewLocationTracksForUnusedDuplicates(
+                geocodingContext,
+                unusedDuplicates,
+                splitTargetLocationTracks,
+                getLocationTrackName,
+            )
             .forEach { updatedDuplicate -> locationTrackService.saveDraft(branch, updatedDuplicate) }
     }
 
@@ -664,7 +702,9 @@ private fun updateSplitTargetForOverwriteDuplicate(
     val newAlignment = duplicateAlignment.withSegments(segments)
     val newTrack =
         duplicateTrack.copy(
-            name = request.name,
+            namingScheme = request.namingScheme,
+            nameFreeText = request.nameFreeText,
+            nameSpecifier = request.nameSpecifier,
             descriptionBase = request.descriptionBase,
             descriptionSuffix = request.descriptionSuffix,
 
@@ -697,7 +737,9 @@ private fun createSplitTarget(
     val newAlignment = LayoutAlignment(segments)
     val newTrack =
         LocationTrack(
-            name = request.name,
+            namingScheme = request.namingScheme,
+            nameFreeText = request.nameFreeText,
+            nameSpecifier = request.nameSpecifier,
             descriptionBase = request.descriptionBase,
             descriptionSuffix = request.descriptionSuffix,
 
@@ -799,6 +841,7 @@ private fun findNewLocationTracksForUnusedDuplicates(
     geocodingContext: GeocodingContext,
     unusedDuplicates: List<Pair<LocationTrack, LayoutAlignment>>,
     splitTargetLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LocationTrack> {
     val geocodedUnusedDuplicates =
         unusedDuplicates.mapNotNull { (unusedDuplicate, alignment) ->
@@ -826,7 +869,7 @@ private fun findNewLocationTracksForUnusedDuplicates(
             ?: throw SplitFailureException(
                 message = "Could not find a new reference for duplicate location track: duplicateId=${duplicate.id}",
                 localizedMessageKey = "new-duplicate-reference-assignment-failed",
-                localizationParams = localizationParams("duplicate" to duplicate.name),
+                localizationParams = localizationParams("duplicate" to getLocationTrackName(duplicate.id as IntId)),
             )
     }
 }

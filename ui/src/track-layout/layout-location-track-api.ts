@@ -22,7 +22,6 @@ import {
     TrackMeter,
 } from 'common/common-model';
 import {
-    API_URI,
     deleteNonNull,
     getNonNull,
     getNullable,
@@ -378,7 +377,7 @@ export const getLocationTrackNames = async (
             (id) => cacheKey(id, layoutContext),
             (ids) =>
                 getNonNull<LocationTrackName[]>(
-                    `${API_URI}/track-layout/location-tracks/names${queryParams({ ids })}`,
+                    `${layoutUri('location-tracks', layoutContext)}/names${queryParams({ ids })}`,
                 ).then((tracks) => {
                     const trackMap = indexIntoMap(tracks);
                     return (id) => trackMap.get(id);

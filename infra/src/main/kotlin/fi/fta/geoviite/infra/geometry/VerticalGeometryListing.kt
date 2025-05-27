@@ -156,6 +156,7 @@ fun toVerticalGeometryListing(
     geocodingContext: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<VerticalGeometryListing> {
     val linkedElementIds =
         collectLinkedElements(layoutAlignment.segments, geocodingContext, startAddress, endAddress).mapNotNull {
@@ -190,6 +191,7 @@ fun toVerticalGeometryListing(
                                 track,
                                 curvedProfileSegments,
                                 linearProfileSegments,
+                                getLocationTrackName,
                             )
                             ?.let { segment to it }
                     } else null
@@ -245,6 +247,7 @@ private fun toVerticalGeometry(
     track: LocationTrack,
     curvedProfileSegments: List<CurvedProfileSegment>,
     linearProfileSegments: List<LinearProfileSegment>,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): VerticalGeometryListing? {
     val coordinateTransform = planHeader.units.coordinateSystemSrid?.let(getTransformation)
     val (segmentStartAddress, segmentEndAddress) =
@@ -261,7 +264,7 @@ private fun toVerticalGeometry(
         toVerticalGeometryListing(
             segment,
             geometryAlignment,
-            track.name,
+            getLocationTrackName(track.id as IntId),
             planHeader.units.coordinateSystemSrid?.let(getTransformation),
             planHeader,
             geocodingContext,

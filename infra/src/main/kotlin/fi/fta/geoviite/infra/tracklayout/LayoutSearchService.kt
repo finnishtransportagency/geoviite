@@ -43,7 +43,7 @@ constructor(
             .let { list ->
                 locationTrackService.filterBySearchTerm(list, searchTerm, locationTrackService.idMatches(layoutContext))
             }
-            .sortedBy(LocationTrack::name)
+            .sortedBy { locationTrackService.getNameOrThrow(layoutContext, it.id as IntId).name }
             .take(limit)
     }
 

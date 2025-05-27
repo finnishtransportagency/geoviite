@@ -23,7 +23,9 @@ fun getDuplicateTrackParentStatus(
     return LocationTrackDuplicate(
         parentTrack.id as IntId,
         parentTrack.trackNumberId,
-        parentTrack.name,
+        parentTrack.namingScheme,
+        nameFreeText = parentTrack.nameFreeText,
+        nameSpecifier = parentTrack.nameSpecifier,
         start = childAlignment.start,
         end = childAlignment.end,
         length = childAlignment.length,
@@ -49,7 +51,7 @@ fun getLocationTrackDuplicatesBySplitPoints(
                 isPresentationJointNumber,
             )
         }
-        .sortedWith(compareBy({ it.first }, { it.second.name }))
+        .sortedWith(compareBy({ it.first }))
         .map { (_, duplicate) -> duplicate }
         .toList()
 }
@@ -68,8 +70,10 @@ private fun getLocationTrackDuplicatesBySplitPoints(
         jointIndex to
             LocationTrackDuplicate(
                 duplicateTrack.id as IntId,
-                duplicateTrack.trackNumberId,
-                duplicateTrack.name,
+                trackNumberId = duplicateTrack.trackNumberId,
+                namingScheme = duplicateTrack.namingScheme,
+                nameFreeText = duplicateTrack.nameFreeText,
+                nameSpecifier = duplicateTrack.nameSpecifier,
                 start = duplicateAlignment.start,
                 end = duplicateAlignment.end,
                 length = duplicateAlignment.length,

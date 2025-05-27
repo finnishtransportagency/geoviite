@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -133,6 +134,7 @@ constructor(
         val translation = localizationService.getLocalization(lang)
         val localizationParams =
             getInfraModelBatchFilenameLocalizationParams(
+                MainLayoutContext.official,
                 applicability,
                 locationTrackId?.let { locationTrackService.get(MainLayoutContext.official, it) },
                 trackNumberId?.let { trackNumberService.get(MainLayoutContext.official, it) },
@@ -219,29 +221,35 @@ constructor(
         return pvDocumentService.getFile(documentId)?.let(::toFileDownloadResponse)
             ?: throw NoSuchEntityException(PVDocument::class, documentId)
     }
-}
 
-private fun getInfraModelBatchFilenameLocalizationParams(
-    applicability: PlanApplicability?,
-    locationTrack: LocationTrack?,
-    trackNumber: LayoutTrackNumber?,
-    startKmNumber: KmNumber?,
-    endKmNumber: KmNumber?,
-    translation: Translation,
-): LocalizationParams {
-    val alignmentName = requireNotNull(locationTrack?.name?.toString() ?: trackNumber?.number?.toString())
-    return LocalizationParams(
-        mutableMapOf(
-                "applicability" to translation.t("enum.PlanApplicability.${applicability?.name ?: "UNKNOWN"}"),
-                "alignmentName" to alignmentName,
-                "date" to LocalDate.now().format(ZIP_TIMESTAMP_FORMATTER),
+    private fun getInfraModelBatchFilenameLocalizationParams(
+        layoutContext: LayoutContext,
+        applicability: PlanApplicability?,
+        locationTrack: LocationTrack?,
+        trackNumber: LayoutTrackNumber?,
+        startKmNumber: KmNumber?,
+        endKmNumber: KmNumber?,
+        translation: Translation,
+    ): LocalizationParams {
+        val alignmentName =
+            requireNotNull(
+                locationTrack?.let {
+                    locationTrackService.getNameOrThrow(layoutContext, locationTrack.id as IntId).toString()
+                } ?: trackNumber?.number?.toString()
             )
-            .let { paramMap ->
-                startKmNumber?.let { paramMap.put(START_KM_PARAM_KEY, it.toString()) }
-                endKmNumber?.let { paramMap.put(END_KM_PARAM_KEY, it.toString()) }
-                paramMap
-            }
-    )
+        return LocalizationParams(
+            mutableMapOf(
+                    "applicability" to translation.t("enum.PlanApplicability.${applicability?.name ?: "UNKNOWN"}"),
+                    "alignmentName" to alignmentName,
+                    "date" to LocalDate.now().format(ZIP_TIMESTAMP_FORMATTER),
+                )
+                .let { paramMap ->
+                    startKmNumber?.let { paramMap.put(START_KM_PARAM_KEY, it.toString()) }
+                    endKmNumber?.let { paramMap.put(END_KM_PARAM_KEY, it.toString()) }
+                    paramMap
+                }
+        )
+    }
 }
 
 private fun deduplicateBatchFiles(

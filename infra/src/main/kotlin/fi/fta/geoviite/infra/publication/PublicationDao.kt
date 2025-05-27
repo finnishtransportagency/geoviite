@@ -930,8 +930,12 @@ class PublicationDao(
             select
               location_track_id,
               location_track_version,
-              ltv.name,
-              old_ltv.name as old_name,
+              ltv.naming_scheme,
+              old_ltv.naming_scheme as old_naming_scheme,
+              ltv.name_free_text,
+              old_ltv.name_free_text as old_name_free_text,
+              ltv.name_specifier,
+              old_ltv.name_specifier as old_name_specifier,
               ltv.description_base,
               old_ltv.description_base as old_description_base,
               ltv.description_suffix,
@@ -1010,7 +1014,11 @@ class PublicationDao(
                     LocationTrackChanges(
                         id,
                         trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
-                        name = rs.getChange("name") { rs.getString(it)?.let(::AlignmentName) },
+                        namingScheme =
+                            rs.getChange("naming_scheme") { rs.getEnumOrNull<LocationTrackNamingScheme>(it) },
+                        nameFreeText = rs.getChange("name_free_text") { rs.getString(it)?.let(::AlignmentName) },
+                        nameSpecifier =
+                            rs.getChange("name_specifier") { rs.getEnumOrNull<LocationTrackNameSpecifier>(it) },
                         descriptionBase =
                             rs.getChange("description_base") { rs.getString(it)?.let(::LocationTrackDescriptionBase) },
                         descriptionSuffix =
@@ -1348,7 +1356,6 @@ class PublicationDao(
             location_tracks as (
               select switch_id,
                 array_agg(lt.track_number_id order by location_track_id) as lt_track_number_ids,
-                array_agg(lt.name order by location_track_id) as lt_names,
                 array_agg(lt.id order by location_track_id) as lt_location_track_ids,
                 array_agg(lt.design_id order by location_track_id) as lt_design_ids,
                 array_agg(
@@ -1390,7 +1397,6 @@ class PublicationDao(
               joints.track_number_ids,
               switch_structure.presentation_joint_number,
               location_tracks.lt_track_number_ids,
-              location_tracks.lt_names,
               location_tracks.lt_location_track_ids,
               location_tracks.lt_design_ids,
               location_tracks.lt_location_track_old_versions
@@ -1460,7 +1466,6 @@ class PublicationDao(
                         }
                         .filter { joint -> joint.jointNumber == presentationJointNumber }
 
-                val locationTrackNames = rs.getListOrNull<String>("lt_names")?.map(::AlignmentName) ?: emptyList()
                 val trackNumberIds =
                     rs.getListOrNull<Int>("lt_track_number_ids")?.map { IntId<LayoutTrackNumber>(it) } ?: emptyList()
                 val locationTrackIds =
@@ -1471,10 +1476,9 @@ class PublicationDao(
                     } ?: emptyList()
                 val locationTrackOldVersions = rs.getListOrNull<Int>("lt_location_track_old_versions") ?: emptyList()
                 val lts =
-                    locationTrackNames.indices.map { index ->
+                    locationTrackIds.indices.map { index ->
                         SwitchLocationTrack(
                             trackNumberId = trackNumberIds[index],
-                            name = locationTrackNames[index],
                             oldVersion = LayoutRowVersion(locationTrackIds[index], locationTrackOldVersions[index]),
                         )
                     }
@@ -1878,7 +1882,9 @@ class PublicationDao(
               ltv.design_id,
               ltv.draft,
               ltv.version,
-              ltv.name,
+              ltv.naming_scheme,
+              ltv.name_free_text,
+              ltv.name_specifier,
               ltv.track_number_id,
               layout.infer_operation_from_location_track_state_transition(ltc.old_state, ltc.state) as operation,
               direct_change,
@@ -1902,7 +1908,9 @@ class PublicationDao(
                 rs.getBoolean("direct_change") to
                     PublishedLocationTrack(
                         version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
-                        name = AlignmentName(rs.getString("name")),
+                        namingScheme = rs.getEnum("naming_scheme"),
+                        nameFreeText = rs.getString("name_free_text")?.let(::AlignmentName),
+                        nameSpecifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
                         trackNumberId = rs.getIntId("track_number_id"),
                         operation = rs.getEnum("operation"),
                         changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),

@@ -172,11 +172,12 @@ fun convertToRatkoLocationTrack(
     nodeCollection: RatkoNodes? = null,
     duplicateOfOid: Oid<LocationTrack>?,
     descriptionGetter: (LocationTrack) -> FreeText,
+    nameGetter: (LocationTrack) -> AlignmentName,
     owner: LocationTrackOwner,
 ) =
     RatkoLocationTrack(
         id = locationTrackExternalId?.oid?.toString(),
-        name = locationTrack.name.toString(),
+        name = nameGetter(locationTrack).toString(),
         routenumber = trackNumberOid?.let(::RatkoOid),
         description = descriptionGetter(locationTrack).toString(),
         state = mapToRatkoLocationTrackState(locationTrack.state),

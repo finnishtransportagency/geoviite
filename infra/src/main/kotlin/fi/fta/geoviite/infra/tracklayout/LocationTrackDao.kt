@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getEnumOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
@@ -126,7 +127,9 @@ class LocationTrackDao(
               ltv.alignment_id,
               ltv.alignment_version,
               ltv.track_number_id, 
-              ltv.name, 
+              ltv.naming_scheme, 
+              ltv.name_free_text,
+              ltv.name_specifier,
               ltv.description_base,
               ltv.description_suffix,
               ltv.type, 
@@ -182,7 +185,9 @@ class LocationTrackDao(
               lt.alignment_id,
               lt.alignment_version,
               lt.track_number_id, 
-              lt.name, 
+              lt.naming_scheme, 
+              lt.name_free_text,
+              lt.name_specifier,
               lt.description_base,
               lt.description_suffix,
               lt.type, 
@@ -227,7 +232,9 @@ class LocationTrackDao(
             alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
-            name = rs.getString("name").let(::AlignmentName),
+            namingScheme = rs.getEnum("naming_scheme"),
+            nameFreeText = rs.getString("name_free_text")?.let(::AlignmentName),
+            nameSpecifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
             descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),
             descriptionSuffix = rs.getEnum<LocationTrackDescriptionSuffix>("description_suffix"),
             type = rs.getEnum("type"),
@@ -263,7 +270,9 @@ class LocationTrackDao(
               track_number_id,
               alignment_id,
               alignment_version,
-              name,
+              naming_scheme,
+              name_free_text,
+              name_specified,
               description_base,
               description_suffix,
               type,
@@ -286,7 +295,9 @@ class LocationTrackDao(
               :track_number_id,
               :alignment_id,
               :alignment_version,
-              :name,
+              :naming_scheme::layout.naming_scheme,
+              :name_free_text,
+              :name_specifier::layout.location_track_name_specifier,
               :description_base,
               :description_suffix::layout.location_track_description_suffix,
               :type::layout.track_type,
@@ -306,7 +317,9 @@ class LocationTrackDao(
               track_number_id = excluded.track_number_id,
               alignment_id = excluded.alignment_id,
               alignment_version = excluded.alignment_version,
-              name = excluded.name,
+              naming_scheme = excluded.naming_scheme,
+              name_free_text = excluded.name_free_text,
+              name_specifier = excluded.name_specifier,
               description_base = excluded.description_base,
               description_suffix = excluded.description_suffix,
               type = excluded.type,
@@ -330,7 +343,9 @@ class LocationTrackDao(
                 "track_number_id" to item.trackNumberId.intValue,
                 "alignment_id" to item.getAlignmentVersionOrThrow().id.intValue,
                 "alignment_version" to item.getAlignmentVersionOrThrow().version,
-                "name" to item.name,
+                "naming_scheme" to item.namingScheme,
+                "name_free_text" to item.nameFreeText,
+                "name_specifier" to item.nameSpecifier?.name,
                 "description_base" to item.descriptionBase,
                 "description_suffix" to item.descriptionSuffix.name,
                 "type" to item.type.name,
@@ -364,14 +379,12 @@ class LocationTrackDao(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
-        names: List<AlignmentName> = emptyList(),
-    ): List<LocationTrack> = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).map(::fetch)
+    ): List<LocationTrack> = fetchVersions(layoutContext, includeDeleted, trackNumberId).map(::fetch)
 
     fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
-        names: List<AlignmentName> = emptyList(),
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
@@ -379,7 +392,6 @@ class LocationTrackDao(
             from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
             where 
               (cast(:track_number_id as int) is null or lt.track_number_id = :track_number_id) 
-              and (:names = '' or lower(lt.name) = any(string_to_array(:names, ',')::varchar[]))
               and (:include_deleted = true or state != 'DELETED')
         """
                 .trimIndent()
@@ -389,7 +401,6 @@ class LocationTrackDao(
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
-                "names" to names.joinToString(",") { name -> name.toString().lowercase() },
             )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getLayoutRowVersion("id", "design_id", "draft", "version")

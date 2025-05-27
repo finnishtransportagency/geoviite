@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import java.util.concurrent.ConcurrentHashMap
@@ -77,6 +78,7 @@ class ValidationContext(
     val referenceLineDao: ReferenceLineDao,
     val kmPostDao: LayoutKmPostDao,
     val locationTrackDao: LocationTrackDao,
+    val locationTrackService: LocationTrackService,
     val alignmentDao: LayoutAlignmentDao,
     val switchDao: LayoutSwitchDao,
     val switchLibraryService: SwitchLibraryService,
@@ -123,6 +125,9 @@ class ValidationContext(
 
     fun getLocationTrack(id: IntId<LocationTrack>): LocationTrack? =
         getObject(target.baseContext, id, publicationSet.locationTracks, locationTrackDao, locationTrackVersionCache)
+
+    fun getLocationTrackName(id: IntId<LocationTrack>): AlignmentName? =
+        locationTrackService.getNames(target.baseContext, listOf(id)).firstOrNull()?.name
 
     fun getLocationTracksByName(name: AlignmentName): List<LocationTrack> =
         trackNameCache.get(name).mapNotNull(::getLocationTrack)
@@ -325,12 +330,18 @@ class ValidationContext(
     }
 
     fun preloadLocationTracksByName(trackIds: List<IntId<LocationTrack>>) =
-        trackNameCache.preload(trackIds.mapNotNull(::getLocationTrack).map(LocationTrack::name).distinct())
+        trackNameCache.preload(trackIds.mapNotNull(::getLocationTrackName).distinct())
 
     fun fetchLocationTracksByName(names: List<AlignmentName>): Map<AlignmentName, List<IntId<LocationTrack>>> {
         val baseVersions = locationTrackDao.findNameDuplicates(target.baseContext, names)
         cacheBaseVersions(baseVersions.values.flatten(), locationTrackVersionCache)
-        return mapIdsByField(names, { t -> t.name }, publicationSet.locationTracks, baseVersions, locationTrackDao)
+        return mapIdsByField(
+            names,
+            { t -> getLocationTrackName(t.id as IntId) ?: AlignmentName("") },
+            publicationSet.locationTracks,
+            baseVersions,
+            locationTrackDao,
+        )
     }
 
     fun preloadTrackNumbersByNumber(trackNumberIds: List<IntId<LayoutTrackNumber>>) =

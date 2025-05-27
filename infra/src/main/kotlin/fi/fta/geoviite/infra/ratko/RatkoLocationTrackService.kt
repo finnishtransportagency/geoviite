@@ -161,6 +161,9 @@ constructor(
                     descriptionGetter = { track ->
                         locationTrackService.getFullDescription(branch.official, track, LocalizationLanguage.FI)
                     },
+                    nameGetter = { track ->
+                        locationTrackService.getNameOrThrow(branch.official, track.id as IntId).name
+                    },
                     owner = owner,
                 )
             checkNotNull(ratkoClient.newLocationTrack(ratkoLocationTrack)) {
@@ -422,6 +425,7 @@ constructor(
                 descriptionGetter = { track ->
                     locationTrackService.getFullDescription(branch.official, track, LocalizationLanguage.FI)
                 },
+                nameGetter = { track -> locationTrackService.getNameOrThrow(branch.official, track.id as IntId).name },
                 owner = owner,
             )
 

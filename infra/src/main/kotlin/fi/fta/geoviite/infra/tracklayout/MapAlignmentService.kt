@@ -145,7 +145,7 @@ class MapAlignmentService(
         locationTrackIds: List<IntId<LocationTrack>>,
     ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
         return locationTrackService.getManyWithAlignments(layoutContext, locationTrackIds).map { (track, alignment) ->
-            toAlignmentHeader(track, alignment)
+            toAlignmentHeader(track, alignment, { id -> locationTrackService.getNameOrThrow(layoutContext, id).name })
         }
     }
 

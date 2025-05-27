@@ -103,13 +103,17 @@ fun toAlignmentHeader(trackNumber: LayoutTrackNumber, referenceLine: ReferenceLi
         boundingBox = alignment?.boundingBox,
     )
 
-fun toAlignmentHeader(locationTrack: LocationTrack, alignment: LayoutAlignment?) =
+fun toAlignmentHeader(
+    locationTrack: LocationTrack,
+    alignment: LayoutAlignment?,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
+) =
     LocationTrackHeader(
         id = locationTrack.id.also { require(it is IntId) } as IntId,
         version = requireNotNull(locationTrack.version),
         trackNumberId = locationTrack.trackNumberId,
         duplicateOf = locationTrack.duplicateOf,
-        name = locationTrack.name,
+        name = getLocationTrackName(locationTrack.id as IntId),
         state = locationTrack.state,
         trackType = locationTrack.type,
         length = alignment?.length ?: 0.0,

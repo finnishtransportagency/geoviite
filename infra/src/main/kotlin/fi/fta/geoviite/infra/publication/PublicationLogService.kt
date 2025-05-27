@@ -265,7 +265,7 @@ constructor(
 
             return SplitTargetInPublication(
                 id = track.id,
-                name = track.name,
+                name = locationTrackService.getNameOrThrow(publicationBranch.official, track.id).name,
                 oid = locationTrackDao.fetchExternalId(publicationBranch, track.id)?.oid,
                 startAddress = startAddress,
                 endAddress = endAddress,
@@ -278,8 +278,14 @@ constructor(
     fun getSplitInPublicationCsv(id: IntId<Publication>, lang: LocalizationLanguage): Pair<String, AlignmentName?> {
         return getSplitInPublication(id).let { splitInPublication ->
             val data = splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication to lt } ?: emptyList()
-            printCsv(splitCsvColumns(localizationService.getLocalization(lang)), data) to
-                splitInPublication?.locationTrack?.name
+            val publication = publicationDao.getPublication(id)
+            printCsv(
+                splitCsvColumns(localizationService.getLocalization(lang), publication.layoutBranch.branch),
+                data,
+            ) to
+                splitInPublication?.locationTrack?.let { track ->
+                    locationTrackService.getNameOrThrow(LayoutBranch.main.official, track.id as IntId).name
+                }
         }
     }
 
@@ -396,7 +402,9 @@ constructor(
                 },
                 PropKey("track-number"),
             ),
-            compareChangeValues(locationTrackChanges.name, { it }, PropKey("location-track")),
+            compareChangeValues(locationTrackChanges.namingScheme, { it }, PropKey("naming-scheme")),
+            compareChangeValues(locationTrackChanges.nameFreeText, { it }, PropKey("name-free-text")),
+            compareChangeValues(locationTrackChanges.nameSpecifier, { it }, PropKey("name-specifier")),
             compareChangeValues(locationTrackChanges.state, { it }, PropKey("state"), null, "LocationTrackState"),
             compareChangeValues(
                 locationTrackChanges.type,
@@ -422,7 +430,7 @@ constructor(
                 oldAndTime,
                 newAndTime,
                 { (duplicateOf, timestamp) ->
-                    duplicateOf?.let { locationTrackService.getOfficialAtMoment(branch, it, timestamp)?.name }
+                    duplicateOf?.let { id -> locationTrackService.getNameOrThrow(branch.official, id).name }
                 },
                 PropKey("duplicate-of"),
             ),
@@ -624,6 +632,7 @@ constructor(
 
     fun diffSwitch(
         translation: Translation,
+        branch: LayoutBranch,
         changes: SwitchChanges,
         newTimestamp: Instant,
         oldTimestamp: Instant,
@@ -693,8 +702,14 @@ constructor(
                 }
                 .sortedBy { it.propKey.key }
 
-        val oldLinkedTrackNames = oldLinkedLocationTracks.values.map { it.first.name }.sorted()
-        val newLinkedTrackNames = changes.locationTracks.map { it.name }.sorted()
+        val oldLinkedTrackNames =
+            oldLinkedLocationTracks.values
+                .map { (lt, _) -> locationTrackService.getNameOrThrow(branch.official, lt.id as IntId).name }
+                .sorted()
+        val newLinkedTrackNames =
+            changes.locationTracks
+                .map { locationTrackService.getNameOrThrow(branch.official, it.oldVersion.id).name }
+                .sorted()
 
         return listOfNotNull(
             compareChangeValues(changes.name, { it }, PropKey("switch")),
@@ -817,7 +832,8 @@ constructor(
                         .findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }
                         ?.number
                 mapToPublicationTableItem(
-                    name = "${translation.t("publication-table.location-track")} ${lt.name}",
+                    name =
+                        "${translation.t("publication-table.location-track")} ${locationTrackService.getNameAtMoment(publication.layoutBranch.branch, lt.id, publication.publicationTime)?.name}",
                     trackNumbers = setOfNotNull(trackNumber),
                     changedKmNumbers = lt.changedKmNumbers,
                     operation = lt.operation,
@@ -851,6 +867,7 @@ constructor(
                     propChanges =
                         diffSwitch(
                             translation,
+                            publication.layoutBranch.branch,
                             publicationSwitchChanges.getOrElse(s.id) {
                                 error("Switch changes not found: id=${s.id} version=${s.version}")
                             },
@@ -896,7 +913,8 @@ constructor(
                         .findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }
                         ?.number
                 mapToPublicationTableItem(
-                    name = "${translation.t("publication-table.location-track")} ${lt.name}",
+                    name =
+                        "${translation.t("publication-table.location-track")} ${locationTrackService.getNameAtMoment(publication.layoutBranch.branch, lt.id, publication.publicationTime)?.name}",
                     trackNumbers = setOfNotNull(tn),
                     changedKmNumbers = lt.changedKmNumbers,
                     operation = Operation.CALCULATED,
@@ -930,6 +948,7 @@ constructor(
                     propChanges =
                         diffSwitch(
                             translation,
+                            publication.layoutBranch.branch,
                             publicationSwitchChanges.getOrElse(s.id) {
                                 error("Switch changes not found: id=${s.id} version=${s.version}")
                             },
@@ -980,10 +999,14 @@ constructor(
         )
 
     private fun splitCsvColumns(
-        translation: Translation
+        translation: Translation,
+        branch: LayoutBranch,
     ): List<CsvEntry<Pair<SplitInPublication, SplitTargetInPublication>>> =
         mapOf<String, (item: Pair<SplitInPublication, SplitTargetInPublication>) -> Any?>(
-                "split-details-csv.source-name" to { (split, _) -> split.locationTrack.name },
+                "split-details-csv.source-name" to
+                    { (split, _) ->
+                        locationTrackService.getNameOrThrow(branch.official, split.locationTrack.id as IntId).name
+                    },
                 "split-details-csv.source-oid" to { (split, _) -> split.locationTrackOid },
                 "split-details-csv.target-name" to { (_, split) -> split.name },
                 "split-details-csv.target-oid" to { (_, split) -> split.oid },

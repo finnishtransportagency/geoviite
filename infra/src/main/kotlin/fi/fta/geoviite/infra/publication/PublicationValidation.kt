@@ -61,6 +61,7 @@ fun validateTrackNumberReferences(
     referenceLine: ReferenceLine?,
     kmPosts: List<LayoutKmPost>,
     locationTracks: List<LocationTrack>,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> =
     listOfNotNull(
         referenceLine?.let {
@@ -73,7 +74,8 @@ fun validateTrackNumberReferences(
         },
         locationTracks.filter(LocationTrack::exists).let { existingTracks ->
             validateWithParams(trackNumberExists || existingTracks.isEmpty()) {
-                val existingNames = existingTracks.joinToString(", ") { track -> track.name }
+                val existingNames =
+                    existingTracks.joinToString(", ") { track -> getLocationTrackName(track.id as IntId) }
                 "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted" to
                     localizationParams("locationTracks" to existingNames)
             }
@@ -144,11 +146,13 @@ fun validateSwitchLocationTrackLinkReferences(
     switchExists: Boolean,
     switchIsCancelled: Boolean,
     locationTracks: List<LocationTrack>,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> {
     return listOfNotNull(
         locationTracks.filter(LocationTrack::exists).let { existingTracks ->
             validateWithParams(switchExists || existingTracks.isEmpty()) {
-                val existingNames = existingTracks.joinToString(", ") { track -> track.name }
+                val existingNames =
+                    existingTracks.joinToString(", ") { track -> getLocationTrackName(track.id as IntId) }
                 "$VALIDATION_SWITCH.location-track.${if (switchIsCancelled) "cancelled"  else "reference-deleted"}" to
                     localizationParams("locationTracks" to existingNames)
             }
@@ -206,6 +210,7 @@ fun validateLocationTrackNameDuplication(
     trackNumber: TrackNumber?,
     duplicates: List<LocationTrack>,
     validationTargetType: ValidationTargetType,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> {
     return if (track.exists && duplicates.any { d -> d.id != track.id }) {
         validateNameDuplication(
@@ -215,7 +220,7 @@ fun validateLocationTrackNameDuplication(
             // location tracks with the same name on other track numbers
             duplicates.any { d -> d.id != track.id && d.isOfficial && d.trackNumberId == track.trackNumberId },
             duplicates.any { d -> d.id != track.id && d.isDraft && d.trackNumberId == track.trackNumberId },
-            "locationTrack" to track.name,
+            "locationTrack" to getLocationTrackName(track.id as IntId),
             "trackNumber" to trackNumber,
         )
     } else emptyList()
@@ -225,6 +230,7 @@ fun validateSwitchLocationTrackLinkStructure(
     switch: LayoutSwitch,
     structure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> {
     val existingTracks = locationTracks.filter { (track, _) -> track.exists }
     val segmentGroups =
@@ -245,7 +251,8 @@ fun validateSwitchLocationTrackLinkStructure(
                 .filterNot { (_, group) -> areSegmentsContinuous(group) }
                 .let { errorGroups ->
                     validateWithParams(errorGroups.isEmpty()) {
-                        val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
+                        val errorTrackNames =
+                            errorGroups.joinToString(", ") { (track, _) -> getLocationTrackName(track.id as IntId) }
                         "$VALIDATION_SWITCH.location-track.not-continuous" to
                             localizationParams("locationTracks" to errorTrackNames)
                     }
@@ -254,7 +261,8 @@ fun validateSwitchLocationTrackLinkStructure(
                 .filterNot { (_, group) -> segmentAndJointLocationsAgree(switch, group) }
                 .let { errorGroups ->
                     validateWithParams(errorGroups.isEmpty(), WARNING) {
-                        val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
+                        val errorTrackNames =
+                            errorGroups.joinToString(", ") { (track, _) -> getLocationTrackName(track.id as IntId) }
                         "$VALIDATION_SWITCH.location-track.joint-location-mismatch" to
                             localizationParams("locationTracks" to errorTrackNames)
                     }
@@ -263,7 +271,8 @@ fun validateSwitchLocationTrackLinkStructure(
                 .filterNot { (_, group) -> topologyLinkAndJointLocationsAgree(switch, group) }
                 .let { errorGroups ->
                     validateWithParams(errorGroups.isEmpty(), WARNING) {
-                        val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
+                        val errorTrackNames =
+                            errorGroups.joinToString(", ") { (track, _) -> getLocationTrackName(track.id as IntId) }
                         "$VALIDATION_SWITCH.location-track.joint-location-mismatch" to
                             localizationParams("locationTracks" to errorTrackNames)
                     }
@@ -272,12 +281,13 @@ fun validateSwitchLocationTrackLinkStructure(
                 .filterNot { (_, group) -> alignmentJointGroupFound(group, structureJoints) }
                 .let { errorGroups ->
                     validateWithParams(errorGroups.isEmpty()) {
-                        val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
+                        val errorTrackNames =
+                            errorGroups.joinToString(", ") { (track, _) -> getLocationTrackName(track.id as IntId) }
                         "$VALIDATION_SWITCH.location-track.wrong-joint-sequence" to
                             localizationParams("locationTracks" to errorTrackNames)
                     }
                 },
-        ) + validateSwitchTopologicalConnectivity(switch, structure, locationTracks, null)
+        ) + validateSwitchTopologicalConnectivity(switch, structure, locationTracks, null, getLocationTrackName)
     else listOf()
 }
 
@@ -346,11 +356,19 @@ fun validateSwitchTopologicalConnectivity(
     structure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     validatingTrack: LocationTrack?,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> {
     val existingTracks = locationTracks.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(switch.id, structure, existingTracks, switch.name, validatingTrack),
+            validateSwitchAlignmentTopology(
+                switch.id,
+                structure,
+                existingTracks,
+                switch.name,
+                validatingTrack,
+                getLocationTrackName,
+            ),
         )
         .flatten()
 }
@@ -448,14 +466,20 @@ private fun findValidatingTrackSwitchAlignment(
         }
 
 private fun summarizeSwitchAlignmentLocationTrackLinks(
-    links: List<Pair<LocationTrack, SwitchStructureAlignment>>
+    links: List<Pair<LocationTrack, SwitchStructureAlignment>>,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): String =
     links
         .groupBy { it.second }
         .entries
         .joinToString(", ") { (originalAlignment, linksOnAlignment) ->
             val alignmentString = originalAlignment.jointNumbers.joinToString("-") { j -> j.intValue.toString() }
-            val tracksString = linksOnAlignment.map { it.first.name.toString() }.sorted().distinct().joinToString(", ")
+            val tracksString =
+                linksOnAlignment
+                    .map { getLocationTrackName(it.first.id as IntId).toString() }
+                    .sorted()
+                    .distinct()
+                    .joinToString(", ")
             "$alignmentString ($tracksString)"
         }
 
@@ -465,6 +489,7 @@ fun validateSwitchAlignmentTopology(
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> {
     val connectivity = switchConnectivity(switchStructure)
     val linkingQuality =
@@ -518,21 +543,23 @@ fun validateSwitchAlignmentTopology(
             "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-only-connected-to-duplicate" to
                 localizationParams(
                     "switch" to switchName.toString(),
-                    "locationTracks" to summarizeSwitchAlignmentLocationTrackLinks(linkedOnlyToDuplicates),
+                    "locationTracks" to
+                        summarizeSwitchAlignmentLocationTrackLinks(linkedOnlyToDuplicates, getLocationTrackName),
                 )
         },
         validateWithParams(linkedPartially.isEmpty(), WARNING) {
             "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-partially-connected" to
                 localizationParams(
                     "switch" to switchName.toString(),
-                    "locationTracks" to summarizeSwitchAlignmentLocationTrackLinks(linkedPartially),
+                    "locationTracks" to
+                        summarizeSwitchAlignmentLocationTrackLinks(linkedPartially, getLocationTrackName),
                 )
         },
         validateWithParams(linkedMultiply.isEmpty(), WARNING) {
             "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-multiply-connected" to
                 localizationParams(
                     "switch" to switchName.toString(),
-                    "locationTracks" to summarizeSwitchAlignmentLocationTrackLinks(linkedMultiply),
+                    "locationTracks" to summarizeSwitchAlignmentLocationTrackLinks(linkedMultiply, getLocationTrackName),
                 )
         },
     )
@@ -610,9 +637,14 @@ fun validateDuplicateOfState(
     duplicateOfLocationTrackDraftName: AlignmentName?,
     duplicateOfLocationTrackIsCancelled: Boolean,
     duplicates: List<LocationTrack>,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> {
     val duplicateNameParams =
-        localizationParams("duplicateTrack" to (duplicateOfLocationTrack?.name ?: duplicateOfLocationTrackDraftName))
+        localizationParams(
+            "duplicateTrack" to
+                (duplicateOfLocationTrack?.let { getLocationTrackName(it.id as IntId) }
+                    ?: duplicateOfLocationTrackDraftName)
+        )
     val ownDuplicateOfErrors =
         if (duplicateOfLocationTrack == null) {
             listOfNotNull(
@@ -638,9 +670,12 @@ fun validateDuplicateOfState(
                     "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-while-duplicated${suffix}" to
                         localizationParams(
                             mapOf(
-                                "duplicateTrack" to duplicateOfLocationTrack.name,
+                                "duplicateTrack" to getLocationTrackName(duplicateOfLocationTrack.id as IntId),
                                 "otherDuplicates" to
-                                    duplicates.map { track -> track.name }.distinct().joinToString { it },
+                                    duplicates
+                                        .map { track -> getLocationTrackName(track.id as IntId) }
+                                        .distinct()
+                                        .joinToString { it },
                             )
                         )
                 },
@@ -652,7 +687,12 @@ fun validateDuplicateOfState(
             listOfNotNull(
                 validateWithParams(existingDuplicates.isEmpty()) {
                     "$VALIDATION_LOCATION_TRACK.deleted-duplicated-by-existing" to
-                        localizationParams("duplicates" to existingDuplicates.joinToString(",") { track -> track.name })
+                        localizationParams(
+                            "duplicates" to
+                                existingDuplicates.joinToString(",") { track ->
+                                    getLocationTrackName(track.id as IntId)
+                                }
+                        )
                 }
             )
         } else {
@@ -891,10 +931,12 @@ fun validateAddressPoints(
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,
     geocode: () -> AlignmentAddresses?,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> =
     try {
-        geocode()?.let { addresses -> validateAddressPoints(trackNumber, locationTrack, addresses) }
-            ?: listOf(LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.no-context", emptyMap()))
+        geocode()?.let { addresses ->
+            validateAddressPoints(trackNumber, locationTrack, addresses, getLocationTrackName)
+        } ?: listOf(LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.no-context", emptyMap()))
     } catch (e: ClientException) {
         listOf(LayoutValidationIssue(ERROR, e.localizationKey))
     }
@@ -903,6 +945,7 @@ fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
     addresses: AlignmentAddresses,
+    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> {
     val allPoints = listOf(addresses.startPoint) + addresses.midPoints + listOf(addresses.endPoint)
     val allCoordinates = allPoints.map(AddressPoint::point)
@@ -923,17 +966,23 @@ fun validateAddressPoints(
     return listOfNotNull(
         validateWithParams(addresses.startIntersect == WITHIN) {
             "$VALIDATION_GEOCODING.start-outside-reference-line" to
-                localizationParams("referenceLine" to trackNumber.number, "locationTrack" to locationTrack.name)
+                localizationParams(
+                    "referenceLine" to trackNumber.number,
+                    "locationTrack" to getLocationTrackName(locationTrack.id as IntId),
+                )
         },
         validateWithParams(addresses.endIntersect == WITHIN) {
             "$VALIDATION_GEOCODING.end-outside-reference-line" to
-                localizationParams("referenceLine" to trackNumber.number, "locationTrack" to locationTrack.name)
+                localizationParams(
+                    "referenceLine" to trackNumber.number,
+                    "locationTrack" to getLocationTrackName(locationTrack.id as IntId),
+                )
         },
         validateWithParams(discontinuousDirectionRanges.isEmpty()) {
             "$VALIDATION_GEOCODING.sharp-angle" to
                 localizationParams(
                     "trackNumber" to trackNumber.number,
-                    "locationTrack" to locationTrack.name,
+                    "locationTrack" to getLocationTrackName(locationTrack.id as IntId),
                     "kmNumbers" to discontinuousDirectionRanges,
                 )
         },
@@ -941,7 +990,7 @@ fun validateAddressPoints(
             "$VALIDATION_GEOCODING.stretched-meters" to
                 localizationParams(
                     "trackNumber" to trackNumber.number,
-                    "locationTrack" to locationTrack.name,
+                    "locationTrack" to getLocationTrackName(locationTrack.id as IntId),
                     "kmNumbers" to stretchedMeterRanges,
                 )
         },
@@ -949,7 +998,7 @@ fun validateAddressPoints(
             "$VALIDATION_GEOCODING.not-continuous" to
                 localizationParams(
                     "trackNumber" to trackNumber.number,
-                    "locationTrack" to locationTrack.name,
+                    "locationTrack" to getLocationTrackName(locationTrack.id as IntId),
                     "kmNumbers" to discontinuousAddressRanges,
                 )
         },

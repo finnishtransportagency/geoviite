@@ -251,7 +251,9 @@ constructor(
                             checkNotNull(locationTrack.version) {
                                 "Location track missing version, id=${locationTrackChange.locationTrackId}"
                             },
-                        name = locationTrack.name,
+                        namingScheme = locationTrack.namingScheme,
+                        nameFreeText = locationTrack.nameFreeText,
+                        nameSpecifier = locationTrack.nameSpecifier,
                         trackNumberId = locationTrack.trackNumberId,
                         operation = Operation.MODIFY,
                         changedKmNumbers = locationTrackChange.changedKmNumbers,
