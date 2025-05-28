@@ -2,11 +2,23 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.geography.*
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.geography.create2DPolygonString
+import fi.fta.geoviite.infra.geography.create3DMLineString
+import fi.fta.geoviite.infra.geography.get3DMLineStringContent
+import fi.fta.geoviite.infra.geography.parseSegmentPoint
+import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.linking.NodeTrackConnections
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -15,8 +27,35 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.batchUpdateIndexed
+import fi.fta.geoviite.infra.util.getBigDecimalOrNull
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getEnumArray
+import fi.fta.geoviite.infra.util.getEnumOrNull
+import fi.fta.geoviite.infra.util.getFileNameOrNull
+import fi.fta.geoviite.infra.util.getIndexedIdOrNull
+import fi.fta.geoviite.infra.util.getInstantOrNull
+import fi.fta.geoviite.infra.util.getIntArray
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdArray
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getJointNumber
+import fi.fta.geoviite.infra.util.getLayoutRowVersion
+import fi.fta.geoviite.infra.util.getNullableBigDecimalArray
+import fi.fta.geoviite.infra.util.getNullableIntArray
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getPoint
+import fi.fta.geoviite.infra.util.getPoint3DMOrNull
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getSridOrNull
+import fi.fta.geoviite.infra.util.measureAndCollect
+import fi.fta.geoviite.infra.util.produceIf
+import fi.fta.geoviite.infra.util.setNullableBigDecimal
+import fi.fta.geoviite.infra.util.setNullableInt
+import fi.fta.geoviite.infra.util.setUser
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -650,8 +689,6 @@ class LayoutAlignmentDao(
             .also { logger.daoAccess(AccessType.FETCH, NodeTrackConnections::class, it.map { c -> c.node.id }) }
     }
 
-    // TODO: GVT-2932 This should not care about tracks any more, but keep the track-alignments while still validating
-    // the data
     @Transactional
     fun deleteOrphanedAlignments(): List<IntId<LayoutAlignment>> {
         val sql =
@@ -659,7 +696,6 @@ class LayoutAlignmentDao(
            delete
            from layout.alignment alignment
            where not exists(select 1 from layout.reference_line where reference_line.alignment_id = alignment.id)
-             and not exists(select 1 from layout.location_track where location_track.alignment_id = alignment.id)
            returning alignment.id
        """
                 .trimIndent()
@@ -1301,18 +1337,25 @@ class LayoutAlignmentDao(
     private fun fetchAllLiveSegmentGeometryIds(): List<IntId<SegmentGeometry>> {
         val sql =
             """
-          select 
-            geom.id
-          from layout.segment_geometry geom
-          where exists(
-            select *
-            from layout.alignment a
-              join layout.segment_version sv on a.id = sv.alignment_id and a.version = sv.alignment_version
-            where geom.id = sv.geometry_id
-          )
+            select
+              distinct geometry_id as id
+              from
+                (
+                  select sv.geometry_id
+                    from layout.segment_version sv
+                      inner join layout.alignment a on a.id = sv.alignment_id and a.version = sv.alignment_version
+                  union all
+                  select s.geometry_id
+                    from layout.edge_segment s
+                      inner join layout.location_track_version_edge ltve on ltve.edge_id = s.edge_id
+                      inner join layout.location_track lt
+                                 on ltve.location_track_id = lt.id
+                                   and ltve.location_track_layout_context_id = lt.layout_context_id
+                                   and ltve.location_track_version = lt.version
+                ) tmp;
         """
 
-        return jdbcTemplate.query(sql) { rs, _ -> rs.getIntId<SegmentGeometry>("id") }
+        return jdbcTemplate.query(sql) { rs, _ -> rs.getIntId("id") }
     }
 
     fun preloadSegmentGeometries(): Int {
