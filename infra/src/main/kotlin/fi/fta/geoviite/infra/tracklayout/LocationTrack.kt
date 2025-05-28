@@ -101,36 +101,36 @@ data class DbTrackNumberTrackNaming(
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK
 }
 
-data class DbWithinOperatingPointTrackNaming(
-    override val nameFreeText: AlignmentName,
-) : DbLocationTrackNaming() {
+data class DbWithinOperatingPointTrackNaming(override val nameFreeText: AlignmentName) : DbLocationTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.WITHIN_OPERATING_POINT
 }
 
-data class DbBetweenOperatingPointsTrackNaming(
-    override val nameSpecifier: LocationTrackNameSpecifier,
-) : DbLocationTrackNaming() {
+data class DbBetweenOperatingPointsTrackNaming(override val nameSpecifier: LocationTrackNameSpecifier) :
+    DbLocationTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
 }
 
-data object DbChordTrackNaming: DbLocationTrackNaming() {
+data object DbChordTrackNaming : DbLocationTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.CHORD
 }
 
 sealed class ReifiedTrackNaming() {
     abstract val namingScheme: LocationTrackNamingScheme
     val name: AlignmentName by lazy { getName() }
+
     abstract fun getName(): AlignmentName
 }
 
 data class ReifiedFreeTextTrackNaming(val nameFreeText: AlignmentName) : ReifiedTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.UNDEFINED
+
     override fun getName(): AlignmentName = nameFreeText
 }
 
-data class ReifiedBetweenOperatingPointsTrackNaming(
-    val startSwitchName: SwitchName?, val endSwitchName: SwitchName?) : ReifiedTrackNaming() {
+data class ReifiedBetweenOperatingPointsTrackNaming(val startSwitchName: SwitchName?, val endSwitchName: SwitchName?) :
+    ReifiedTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
+
     override fun getName(): AlignmentName {
         val startName = startSwitchName?.let { "$it" } ?: "???"
         val endName = endSwitchName?.let { "$it" } ?: "???"
@@ -138,8 +138,10 @@ data class ReifiedBetweenOperatingPointsTrackNaming(
     }
 }
 
-data class ReifiedChordTrackNaming(val startSwitchName: SwitchName?, val endSwitchName: SwitchName?): ReifiedTrackNaming() {
+data class ReifiedChordTrackNaming(val startSwitchName: SwitchName?, val endSwitchName: SwitchName?) :
+    ReifiedTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.CHORD
+
     override fun getName(): AlignmentName {
         val startName = startSwitchName?.let { "$it" } ?: "???"
         val endName = endSwitchName?.let { "$it" } ?: "???"
@@ -147,10 +149,9 @@ data class ReifiedChordTrackNaming(val startSwitchName: SwitchName?, val endSwit
     }
 }
 
-data class ReifiedWithinOperatingPointTrackNaming(
-    val nameFreeText: AlignmentName,
-) : ReifiedTrackNaming() {
+data class ReifiedWithinOperatingPointTrackNaming(val nameFreeText: AlignmentName) : ReifiedTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.WITHIN_OPERATING_POINT
+
     override fun getName(): AlignmentName = nameFreeText
 }
 
@@ -160,17 +161,10 @@ data class ReifiedTrackNumberTrackNaming(
     val nameSpecifier: LocationTrackNameSpecifier,
 ) : ReifiedTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK
-    override fun getName(): AlignmentName =
-        AlignmentName("$trackNumber $nameSpecifier $nameFreeText")
 
+    override fun getName(): AlignmentName = AlignmentName("$trackNumber $nameSpecifier $nameFreeText")
 }
 
-// UNDEFINED,
-// WITHIN_OPERATING_POINT,
-// BETWEEN_OPERATING_POINTS,
-// TRACK_NUMBER_TRACK,
-// CHORD,
-//
 data class LocationTrackName(val id: IntId<LocationTrack>, val name: AlignmentName)
 
 data class DbLocationTrackDescription(
