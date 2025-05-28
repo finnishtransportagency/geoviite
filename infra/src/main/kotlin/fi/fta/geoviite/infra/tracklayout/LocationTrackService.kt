@@ -36,11 +36,11 @@ import fi.fta.geoviite.infra.split.SplitDuplicateTrack
 import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -512,6 +512,9 @@ class LocationTrackService(
 
     fun getAugLocationTrack(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrack? =
         dao.fetchAugLocationTrack(defaultTranslation, id, layoutContext)
+
+    fun getManyLocationTracks(layoutContext: LayoutContext, ids: List<IntId<LocationTrack>>): List<AugLocationTrack> =
+        dao.fetchManyAugLocationTracks(defaultTranslation, layoutContext, ids)
 
     fun listAugLocationTracks(
         layoutContext: LayoutContext,

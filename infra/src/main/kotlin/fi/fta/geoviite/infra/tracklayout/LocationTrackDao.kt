@@ -30,12 +30,12 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -65,6 +65,13 @@ class LocationTrackDao(
         layoutContext: LayoutContext,
     ): AugLocationTrack? = fetchAugLocationTrackKey(id, layoutContext)?.let { key -> fetch(key, translation) }
 
+    fun fetchManyAugLocationTracks(
+        defaultTranslation: Translation,
+        layoutContext: LayoutContext,
+        ids: List<IntId<LocationTrack>>,
+    ): List<AugLocationTrack> =
+        fetchManyAugLocationTrackKeys(ids, layoutContext).map { key -> fetch(key, defaultTranslation) }
+
     fun listAugLocationTracks(
         translation: Translation,
         layoutContext: LayoutContext,
@@ -75,6 +82,11 @@ class LocationTrackDao(
         listAugLocationTrackKeys(layoutContext, includeDeleted, trackNumberId, boundingBox).map { key ->
             fetch(key, translation)
         }
+
+    fun fetchManyAugLocationTrackKeys(
+        ids: List<IntId<LocationTrack>>,
+        layoutContext: LayoutContext,
+    ): List<AugLocationTrackCacheKey> = TODO()
 
     fun fetchAugLocationTrackKey(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrackCacheKey? {
         val sql =
@@ -109,7 +121,6 @@ class LocationTrackDao(
             )
 
         jdbcTemplate.queryOptional(sql, params) { rs, _ ->
-            TODO()
             //            val trackVersion = rs.getLayoutRowVersion("lt_id", "lt_layout_context_id", "lt_version")
             //            val trackNumberVersion = rs.getLayoutRowVersion("tn_id", "tn_layout_context_id", "tn_version")
             //            val startSwitchVersion =
