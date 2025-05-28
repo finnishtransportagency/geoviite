@@ -142,11 +142,12 @@ class LocationTrackService(
         branch: LayoutBranch,
         id: IntId<LocationTrack>,
         state: LocationTrackState,
+        skipReferenceDeletion: Boolean = false, // TODO Remove
     ): LayoutRowVersion<LocationTrack> {
         val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack = originalTrack.copy(state = state)
 
-        return if (locationTrack.state != LocationTrackState.DELETED) {
+        return if (locationTrack.state != LocationTrackState.DELETED || skipReferenceDeletion) { // TODO Remove
             saveDraft(branch, locationTrack)
         } else {
             clearDuplicateReferences(branch, id)

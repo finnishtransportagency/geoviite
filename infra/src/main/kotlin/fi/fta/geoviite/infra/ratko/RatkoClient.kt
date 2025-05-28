@@ -280,10 +280,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         logger.integrationCall("newLocationTrack", "locationTrack" to locationTrack)
 
         return locationTrackOidOfGeometry?.let { referencedGeometryOid ->
-            postWithResponseBody(
-                "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=$referencedGeometryOid",
-                locationTrack,
-            )
+            val url = "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=$referencedGeometryOid"
+            val fixedUrl = "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=${referencedGeometryOid.id}"
+
+            postWithResponseBody(fixedUrl, locationTrack)
         } ?: postWithResponseBody(LOCATION_TRACK_PATH, locationTrack)
     }
 

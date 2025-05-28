@@ -369,7 +369,7 @@ constructor(
                 //                )
             } ?: createLocationTrackPoints(RatkoOid(locationTrackExternalId.oid.toString()), midPoints)
 
-            if (branch is MainBranch) { // TODO Remove the sendGeometry check from here, it is just for testing
+            if (branch is MainBranch) {
                 val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
                 createLocationTrackMetadata(
                     branch,
@@ -505,7 +505,10 @@ constructor(
                 changedNodeCollection = deletedEndsPoints,
             )
 
-            ratkoClient.deleteLocationTrackPoints(RatkoOid(locationTrackExternalId.oid), null)
+            ratkoClient.deleteLocationTrackPoints(
+                RatkoOid(locationTrackExternalId.oid),
+                null,
+            ) // TODO Käytä nullia splitin lähderaiteen geometriapäivityksen viennissäkin?
         } catch (ex: RatkoPushException) {
             throw ex
         } catch (ex: Exception) {
@@ -569,7 +572,8 @@ constructor(
                     endAddress = requireNotNull(endAddress),
                 )
 
-                updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints = switchPoints)
+                //                updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints =
+                // switchPoints) // TODO Should be unnecessary.
             }
                 ?: run {
                     deleteLocationTrackPoints(changedKmNumbers, locationTrackRatkoOid)
