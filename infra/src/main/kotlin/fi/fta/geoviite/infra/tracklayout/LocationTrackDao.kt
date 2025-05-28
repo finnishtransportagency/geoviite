@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.util.getJointNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
@@ -67,16 +68,63 @@ class LocationTrackDao(
     fun listAugLocationTracks(
         translation: Translation,
         layoutContext: LayoutContext,
+        includeDeleted: Boolean = false,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         boundingBox: BoundingBox? = null,
-    ): List<AugLocationTrack> = listAugLocationTrackKeys(layoutContext).map { key -> fetch(key, translation) }
+    ): List<AugLocationTrack> =
+        listAugLocationTrackKeys(layoutContext, includeDeleted, trackNumberId, boundingBox).map { key ->
+            fetch(key, translation)
+        }
 
     fun fetchAugLocationTrackKey(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrackCacheKey? {
+        val sql =
+            """
+            select
+              lt.id as lt_id,
+              lt.layout_context_id as lt_layout_context_id,
+              lt.version as lt_version,
+              tn.id as tn_id,
+              tn.layout_context_id as tn_layout_context_id,
+              tn.version as tn_version,
+              sw_start.id as sw_start_id,
+              sw_start.layout_context_id as sw_start_layout_context_id,
+              sw_start.version as sw_start_version,
+              sw_end.id as sw_end_id,
+              sw_end.layout_context_id as sw_end_layout_context_id,
+              sw_end.version as sw_end_version
+            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+              inner join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn on lt.track_number_id = tn.id
+              -- TODO: fetch the switch id through nodes in topology model. This is faulty as it doesn't care about segment switches
+              left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) sw_start on lt.topology_start_switch_id = sw_start.id
+              -- TODO: fetch the switch id through nodes in topology model. This is faulty as it doesn't care about segment switches
+              left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) sw_end on lt.topology_end_switch_id = sw_end.id
+            where lt.id = :id
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "id" to id.intValue,
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+            )
+
+        jdbcTemplate.queryOptional(sql, params) { rs, _ ->
+            TODO()
+            //            val trackVersion = rs.getLayoutRowVersion("lt_id", "lt_layout_context_id", "lt_version")
+            //            val trackNumberVersion = rs.getLayoutRowVersion("tn_id", "tn_layout_context_id", "tn_version")
+            //            val startSwitchVersion =
+            //                rs.getLayoutRowVersion("sw_start_id", "sw_start_layout_context_id", "sw_start_version")
+            //            val endSwitchVersion = rs.getLayoutRowVersion("sw_end_id", "sw_end_layout_context_id",
+            // "sw_end_version")
+
+        }
+
         TODO()
     }
 
     fun listAugLocationTrackKeys(
         layoutContext: LayoutContext,
+        includeDeleted: Boolean = false,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         boundingBox: BoundingBox? = null,
     ): List<AugLocationTrackCacheKey> {

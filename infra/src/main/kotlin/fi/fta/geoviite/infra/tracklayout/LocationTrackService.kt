@@ -513,7 +513,13 @@ class LocationTrackService(
     fun getAugLocationTrack(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrack? =
         dao.fetchAugLocationTrack(defaultTranslation, id, layoutContext)
 
-    fun listAugLocationTracks(layoutContext: LayoutContext): List<AugLocationTrack> = locationTrackDao.listAugLocationTracks(defaultTranslation, layoutContext, trackNumberId, boundingBox)
+    fun listAugLocationTracks(
+        layoutContext: LayoutContext,
+        includeDeleted: Boolean = false,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
+        boundingBox: BoundingBox? = null,
+    ): List<AugLocationTrack> =
+        locationTrackDao.listAugLocationTracks(defaultTranslation, layoutContext, trackNumberId, boundingBox)
 
     fun fillTrackAddresses(
         duplicates: List<LocationTrackDuplicate>,
