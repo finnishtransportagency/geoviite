@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
@@ -116,11 +115,34 @@ data object DbChordTrackNaming : DbLocationTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.CHORD
 }
 
-sealed class ReifiedTrackNaming() {
+sealed class ReifiedTrackNaming {
     abstract val namingScheme: LocationTrackNamingScheme
-    val name: AlignmentName by lazy { getName() }
 
     abstract fun getName(): AlignmentName
+
+    companion object {
+        fun of(
+            locationTrack: LocationTrack,
+            trackNumber: LayoutTrackNumber,
+            startSwitch: LayoutSwitch?,
+            endSwitch: LayoutSwitch?,
+        ): ReifiedTrackNaming =
+            when (locationTrack.dbName.namingScheme) {
+                LocationTrackNamingScheme.UNDEFINED ->
+                    ReifiedFreeTextTrackNaming(requireNotNull(locationTrack.dbName.nameFreeText))
+                LocationTrackNamingScheme.WITHIN_OPERATING_POINT ->
+                    ReifiedWithinOperatingPointTrackNaming(requireNotNull(locationTrack.dbName.nameFreeText))
+                LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS ->
+                    ReifiedBetweenOperatingPointsTrackNaming(startSwitch?.name, endSwitch?.name)
+                LocationTrackNamingScheme.TRACK_NUMBER_TRACK ->
+                    ReifiedTrackNumberTrackNaming(
+                        trackNumber.number,
+                        requireNotNull(locationTrack.dbName.nameFreeText),
+                        requireNotNull(locationTrack.dbName.nameSpecifier),
+                    )
+                LocationTrackNamingScheme.CHORD -> ReifiedChordTrackNaming(startSwitch?.name, endSwitch?.name)
+            }
+    }
 }
 
 data class ReifiedFreeTextTrackNaming(val nameFreeText: AlignmentName) : ReifiedTrackNaming() {
@@ -184,8 +206,8 @@ data class DbLocationTrackDescription(
 
 data class ReifiedTrackDescription(
     val dbDescription: DbLocationTrackDescription,
-    val startSwitchName: SwitchName,
-    val endSwitchName: SwitchName,
+    val startSwitchName: SwitchName?,
+    val endSwitchName: SwitchName?,
 ) {
     fun getDescription(translation: Translation): FreeText {
         val base = dbDescription.descriptionBase.toString()
@@ -234,12 +256,17 @@ interface ILocationTrack : Loggable {
     val alignmentVersion: RowVersion<LayoutAlignment>?
     val segmentSwitchIds: List<IntId<LayoutSwitch>>
 
-    @get:JsonIgnore val exists get() = !state.isRemoved()
+    @get:JsonIgnore
+    val exists
+        get() = !state.isRemoved()
 
     @get:JsonIgnore
-    val switchIds: List<IntId<LayoutSwitch>> get() =
-        (listOfNotNull(topologyStartSwitch?.switchId) + segmentSwitchIds + listOfNotNull(topologyEndSwitch?.switchId))
-            .distinct()
+    val switchIds: List<IntId<LayoutSwitch>>
+        get() =
+            (listOfNotNull(topologyStartSwitch?.switchId) +
+                    segmentSwitchIds +
+                    listOfNotNull(topologyEndSwitch?.switchId))
+                .distinct()
 }
 
 data class AugLocationTrack(
