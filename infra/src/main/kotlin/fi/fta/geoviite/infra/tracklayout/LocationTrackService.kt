@@ -39,11 +39,11 @@ import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -557,6 +557,10 @@ class LocationTrackService(
             is EndpointSplitPoint -> splitPoint.copy(address = address)
         }
     }
+
+    fun getAugLocationTrack(id: IntId<LocationTrack>, layoutLocation: LayoutContext): AugLocationTrack? = TODO()
+
+    fun listAugLocationTracks(layoutLocation: LayoutContext): List<AugLocationTrack> = TODO()
 
     fun fillTrackAddresses(
         duplicates: List<LocationTrackDuplicate>,
