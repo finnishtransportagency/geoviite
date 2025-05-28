@@ -62,6 +62,7 @@ class LocationTrackService(
     private val localizationService: LocalizationService,
     private val transactionTemplate: TransactionTemplate,
 ) : LayoutAssetService<LocationTrack, LocationTrackDao>(locationTrackDao) {
+    val defaultTranslation = localizationService.getLocalization(LocalizationLanguage.FI)
 
     @Transactional
     fun insert(branch: LayoutBranch, request: LocationTrackSaveRequest): LayoutRowVersion<LocationTrack> {
@@ -558,13 +559,15 @@ class LocationTrackService(
         }
     }
 
-    fun getAugLocationTrack(id: IntId<LocationTrack>, layoutLocation: LayoutContext): AugLocationTrack? = TODO()
+    fun getAugLocationTrack(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrack? =
+        dao.fetchAugLocationTrack(defaultTranslation, id, layoutContext)
 
     fun listAugLocationTracks(
-        layoutLocation: LayoutContext,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         boundingBox: BoundingBox? = null,
-    ): List<AugLocationTrack> = TODO()
+    ): List<AugLocationTrack> =
+        locationTrackDao.listAugLocationTracks(defaultTranslation, layoutContext, trackNumberId, boundingBox)
 
     fun fillTrackAddresses(
         duplicates: List<LocationTrackDuplicate>,
