@@ -29,12 +29,12 @@ import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -401,7 +401,7 @@ class LocationTrackDao(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
-    ): List<LocationTrack> = fetchVersions(layoutContext, includeDeleted, trackNumberId).map(::fetch)
+    ): List<AugLocationTrack> = fetchVersions(layoutContext, includeDeleted, trackNumberId).map(::fetch)
 
     fun fetchVersions(
         layoutContext: LayoutContext,

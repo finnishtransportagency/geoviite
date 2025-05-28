@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
@@ -30,7 +29,7 @@ enum class LocationTrackType {
 }
 
 enum class LocationTrackNamingScheme {
-    UNDEFINED,
+    FREE_TEXT,
     WITHIN_OPERATING_POINT,
     BETWEEN_OPERATING_POINTS,
     TRACK_NUMBER_TRACK,
@@ -93,7 +92,7 @@ sealed class DbLocationTrackNaming {
 }
 
 data class DbFreeTextTrackNaming(override val nameFreeText: AlignmentName) : DbLocationTrackNaming() {
-    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.UNDEFINED
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT
 }
 
 data class DbTrackNumberTrackNaming(
@@ -124,7 +123,7 @@ sealed class ReifiedTrackNaming() {
 }
 
 data class ReifiedFreeTextTrackNaming(val nameFreeText: AlignmentName) : ReifiedTrackNaming() {
-    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.UNDEFINED
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT
 
     override fun getName(): AlignmentName = nameFreeText
 }
@@ -234,12 +233,19 @@ interface ILocationTrack : Loggable {
     val alignmentVersion: RowVersion<LayoutAlignment>?
     val segmentSwitchIds: List<IntId<LayoutSwitch>>
 
-    @get:JsonIgnore val exists get() = !state.isRemoved()
+    @get:JsonIgnore
+    val exists
+        get() = !state.isRemoved()
 
     @get:JsonIgnore
-    val switchIds: List<IntId<LayoutSwitch>> get() =
-        (listOfNotNull(topologyStartSwitch?.switchId) + segmentSwitchIds + listOfNotNull(topologyEndSwitch?.switchId))
-            .distinct()
+    val switchIds: List<IntId<LayoutSwitch>>
+        get() =
+            (listOfNotNull(topologyStartSwitch?.switchId) +
+                    segmentSwitchIds +
+                    listOfNotNull(topologyEndSwitch?.switchId))
+                .distinct()
+
+    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment>
 }
 
 data class AugLocationTrack(
