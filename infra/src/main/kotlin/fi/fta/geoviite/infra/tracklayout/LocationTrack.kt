@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -92,14 +93,75 @@ data class DbFreeTextTrackNaming(override val nameFreeText: AlignmentName) : DbL
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.UNDEFINED
 }
 
+data class DbTrackNumberTrackNaming(
+    override val nameFreeText: AlignmentName,
+    override val nameSpecifier: LocationTrackNameSpecifier,
+) : DbLocationTrackNaming() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK
+}
+
+data class DbWithinOperatingPointTrackNaming(
+    override val nameFreeText: AlignmentName,
+) : DbLocationTrackNaming() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.WITHIN_OPERATING_POINT
+}
+
+data class DbBetweenOperatingPointsTrackNaming(
+    override val nameSpecifier: LocationTrackNameSpecifier,
+) : DbLocationTrackNaming() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
+}
+
+data object DbChordTrackNaming: DbLocationTrackNaming() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.CHORD
+}
+
 sealed class ReifiedTrackNaming() {
     abstract val namingScheme: LocationTrackNamingScheme
+    val name: AlignmentName by lazy { getName() }
     abstract fun getName(): AlignmentName
 }
 
-data class ReifiedChordTrackNaming(val startSwitchName: SwitchName, val endSwitchName: SwitchName): ReifiedTrackNaming() {
+data class ReifiedFreeTextTrackNaming(val nameFreeText: AlignmentName) : ReifiedTrackNaming() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.UNDEFINED
+    override fun getName(): AlignmentName = nameFreeText
+}
+
+data class ReifiedBetweenOperatingPointsTrackNaming(
+    val startSwitchName: SwitchName?, val endSwitchName: SwitchName?) : ReifiedTrackNaming() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
+    override fun getName(): AlignmentName {
+        val startName = startSwitchName?.let { "$it" } ?: "???"
+        val endName = endSwitchName?.let { "$it" } ?: "???"
+        return AlignmentName("$startName-$endName")
+    }
+}
+
+data class ReifiedChordTrackNaming(val startSwitchName: SwitchName?, val endSwitchName: SwitchName?): ReifiedTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.CHORD
-    override fun getName(): AlignmentName = "$startSwitchName - $endSwitchName"
+    override fun getName(): AlignmentName {
+        val startName = startSwitchName?.let { "$it" } ?: "???"
+        val endName = endSwitchName?.let { "$it" } ?: "???"
+        return AlignmentName("$startName-$endName")
+    }
+}
+
+data class ReifiedWithinOperatingPointTrackNaming(
+    val nameFreeText: AlignmentName,
+) : ReifiedTrackNaming() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.WITHIN_OPERATING_POINT
+    override fun getName(): AlignmentName = nameFreeText
+}
+
+data class ReifiedTrackNumberTrackNaming(
+    val trackNumber: TrackNumber,
+    val nameFreeText: AlignmentName,
+    val nameSpecifier: LocationTrackNameSpecifier,
+) : ReifiedTrackNaming() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK
+    override fun getName(): AlignmentName =
+        AlignmentName("$trackNumber $nameSpecifier $nameFreeText")
+
 }
 
 // UNDEFINED,
