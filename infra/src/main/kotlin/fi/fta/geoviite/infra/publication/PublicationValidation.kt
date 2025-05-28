@@ -22,8 +22,7 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.FATAL
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
-import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivity
+import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
@@ -424,12 +423,12 @@ private fun findValidatingTrackSwitchAlignment(
     switchId: IntId<LayoutSwitch>,
     validatingTrack: LocationTrack?,
     locationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
-    connectivity: SwitchConnectivity,
+    structureAlignmentsToCheck: List<LinkableSwitchStructureAlignment>,
 ): SwitchStructureAlignment? =
     locationTracks
         .find { (track) -> track.id == validatingTrack?.id }
         ?.let { trackAndAlignment ->
-            connectivity.alignments
+            structureAlignmentsToCheck
                 // with really bad linking, this could be ambiguous, and the choice of finding the
                 // first one arbitrary; but that shouldn't really happen
                 .find { switchAlignment ->
@@ -457,11 +456,11 @@ fun validateSwitchAlignmentTopology(
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
 ): List<LayoutValidationIssue> {
-    val connectivity = switchConnectivity(switchStructure)
+    val structureAlignmentsToCheck = switchConnectivity(switchStructure).alignments.filter { !it.isSplittable }
     val linkingQuality =
-        connectivity.alignments.map { alignment -> alignmentLinkingQuality(switchId, alignment, locationTracks) }
+        structureAlignmentsToCheck.map { alignment -> alignmentLinkingQuality(switchId, alignment, locationTracks) }
     val validatingTrackSwitchAlignment =
-        findValidatingTrackSwitchAlignment(switchId, validatingTrack, locationTracks, connectivity)
+        findValidatingTrackSwitchAlignment(switchId, validatingTrack, locationTracks, structureAlignmentsToCheck)
     val switchHasTopologicalConnections =
         locationTracks.any { (_, geom) -> geom.outerStartSwitch?.id == switchId || geom.outerEndSwitch?.id == switchId }
 
@@ -528,7 +527,7 @@ fun validateSwitchAlignmentTopology(
 }
 
 private data class SwitchAlignmentLinkingQuality(
-    val switchAlignment: LinkableSwitchAlignment,
+    val switchAlignment: LinkableSwitchStructureAlignment,
     val nonDuplicateTracks: List<LocationTrack>,
     val duplicateTracks: List<LocationTrack>,
     val fullyLinked: List<LocationTrack>,
@@ -542,7 +541,7 @@ private data class SwitchAlignmentLinkingQuality(
 
 private fun alignmentLinkingQuality(
     switchId: IntId<LayoutSwitch>,
-    switchAlignment: LinkableSwitchAlignment,
+    switchAlignment: LinkableSwitchStructureAlignment,
     tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): SwitchAlignmentLinkingQuality {
     val nonDuplicateTracks = mutableListOf<LocationTrack>()

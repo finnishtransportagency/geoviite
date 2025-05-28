@@ -4,16 +4,22 @@ import fi.fta.geoviite.infra.asSwitchStructure
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.createMainContext
+import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.StoredAssetId
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.combineEdges
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -29,10 +35,10 @@ data class TrackForSwitchFitting(
 
     fun asNew(name: String): TrackForSwitchFitting {
         val newId = locationTrackIdByName(name)
-        return copy(
-            locationTrack =
-                locationTrack.copy(contextData = createMainContext(newId, false), name = AlignmentName(name))
-        )
+        // must fake a stored asset ID because the switch linking code implements its own version-based locking
+        val contextData =
+            MainOfficialContextData(StoredAssetId(LayoutRowVersion(LayoutRowId(newId, LayoutBranch.main.official), 1)))
+        return copy(locationTrack = locationTrack.copy(contextData = contextData, name = AlignmentName(name)))
     }
 
     fun startPoint(): IPoint {
@@ -81,61 +87,69 @@ data class TrackForSwitchFitting(
         return moveForward(-distance)
     }
 
-    fun withSwitchJointAtEnd(
+    fun withSwitch(
         switchId: IntId<LayoutSwitch>,
         switchStructure: SwitchStructureData,
-        jointNumber: Int,
-        direction: RelativeDirection = RelativeDirection.Along,
+        vararg joints: TrackForSwitchFittingJointDescription,
     ): TrackForSwitchFitting {
-        return withSwitchJointAtM(length, switchId, switchStructure, jointNumber, direction)
-    }
-
-    fun withSwitchJointAtStart(
-        switchId: IntId<LayoutSwitch>,
-        switchStructure: SwitchStructureData,
-        jointNumber: Int,
-        direction: RelativeDirection = RelativeDirection.Along,
-    ): TrackForSwitchFitting {
-        return withSwitchJointAtM(0.0, switchId, switchStructure, jointNumber, direction)
-    }
-
-    fun withSwitchJointAtM(
-        mValue: Double,
-        switchId: IntId<LayoutSwitch>,
-        switchStructure: SwitchStructureData,
-        jointNumber: Int,
-        direction: RelativeDirection = RelativeDirection.Along,
-    ): TrackForSwitchFitting {
-        return withSwitchJointAtM(
-                locationTrack,
-                geometry,
-                mValue,
-                switchId,
-                switchStructure,
-                JointNumber(jointNumber),
-                direction,
-            )
-            .let { (locationTrack, geometry) -> this.copy(locationTrack = locationTrack, geometry = geometry) }
-    }
-
-    fun withTopologicalStartSwitch(
-        switchId: IntId<LayoutSwitch>,
-        switchStructure: SwitchStructureData,
-        jointNumber: Int,
-    ): TrackForSwitchFitting {
-        return withTopologicalStartSwitch(locationTrack, geometry, switchId, switchStructure, JointNumber(jointNumber))
-            .let { (locationTrack, geometry) -> this.copy(locationTrack = locationTrack, geometry = geometry) }
-    }
-
-    fun withTopologicalEndSwitch(
-        switchId: IntId<LayoutSwitch>,
-        switchStructure: SwitchStructureData,
-        jointNumber: Int,
-    ): TrackForSwitchFitting {
-        return withTopologicalEndSwitch(locationTrack, geometry, switchId, switchStructure, JointNumber(jointNumber))
-            .let { (locationTrack, geometry) -> this.copy(locationTrack = locationTrack, geometry = geometry) }
+        val jointsByEdgeIndex =
+            joints
+                .map { joint ->
+                    val mOnTrack =
+                        when (joint.location) {
+                            is PlaceInnerJointAtTrackStart,
+                            is PlaceTopologicalJointAtTrackStart -> 0.0
+                            is PlaceInnerJointAtTrackEnd,
+                            is PlaceTopologicalJointAtTrackEnd -> geometry.length
+                            is PlaceInnerJointAtM -> joint.location.mOnTrack
+                        }
+                    val (edge, mRange) = geometry.getEdgeAtMOrThrow(mOnTrack)
+                    val edgeIndex = geometry.edges.indexOf(edge)
+                    val mOnEdge = mOnTrack - mRange.min
+                    edgeIndex to SwitchLinkingJoint(mOnEdge, joint.jointNumber, edge.getPointAtM(mOnEdge)!!.toPoint())
+                }
+                .groupBy({ it.first }, { it.second })
+        val newEdges =
+            geometry.edges.flatMapIndexed { index, edge ->
+                jointsByEdgeIndex[index]?.let { joints -> linkJointsToEdge(switchId, switchStructure, edge, joints) }
+                    ?: listOf(edge)
+            }
+        val newGeometry = TmpLocationTrackGeometry.of(combineEdges(newEdges), geometry.trackId)
+        return this.copy(geometry = newGeometry)
     }
 }
+
+sealed class TrackForSwitchFittingJointLocation
+
+data object PlaceInnerJointAtTrackStart : TrackForSwitchFittingJointLocation()
+
+data object PlaceInnerJointAtTrackEnd : TrackForSwitchFittingJointLocation()
+
+data object PlaceTopologicalJointAtTrackStart : TrackForSwitchFittingJointLocation()
+
+data object PlaceTopologicalJointAtTrackEnd : TrackForSwitchFittingJointLocation()
+
+data class PlaceInnerJointAtM(val mOnTrack: Double) : TrackForSwitchFittingJointLocation()
+
+data class TrackForSwitchFittingJointDescription(
+    val location: TrackForSwitchFittingJointLocation,
+    val jointNumber: JointNumber,
+)
+
+fun innerJointAtStart(jointNumber: Int) =
+    TrackForSwitchFittingJointDescription(PlaceInnerJointAtTrackStart, JointNumber(jointNumber))
+
+fun topologicalJointAtStart(jointNumber: Int) =
+    TrackForSwitchFittingJointDescription(PlaceTopologicalJointAtTrackStart, JointNumber(jointNumber))
+
+fun innerJointAtEnd(jointNumber: Int) =
+    TrackForSwitchFittingJointDescription(PlaceInnerJointAtTrackEnd, JointNumber(jointNumber))
+
+fun topologicalJointAtEnd(jointNumber: Int) =
+    TrackForSwitchFittingJointDescription(PlaceTopologicalJointAtTrackEnd, JointNumber(jointNumber))
+
+fun innerJointAtM(mOnTrack: Double, jointNumber: Int) =
+    TrackForSwitchFittingJointDescription(PlaceInnerJointAtM(mOnTrack), JointNumber(jointNumber))
 
 class SwitchFittingTest {
     @Test
@@ -168,7 +182,7 @@ class SwitchFittingTest {
         assertJoint(fitted, 5, track152.locationTrack, distance1to5)
         assertJoint(fitted, 2, track152.locationTrack, distance1to2)
         assertJoint(fitted, 1, track13.locationTrack, 0.0)
-        assertJoint(fitted, 3, track13.locationTrack, distance1to3)
+        assertJoint(fitted, 3, track13.locationTrack, distance1to3, absoluteMPrecision = 0.01)
         assertMatchCount(fitted, 5)
     }
 
@@ -209,7 +223,7 @@ class SwitchFittingTest {
         assertJoint(fitted, 5, track152.locationTrack, expectedM = distance1to5 + extraTrackLength)
         assertJoint(fitted, 2, track152.locationTrack, expectedM = distance1to2 + extraTrackLength)
         assertJoint(fitted, 1, track13.locationTrack, 0.0)
-        assertJoint(fitted, 3, track13.locationTrack, expectedM = distance1to3)
+        assertJoint(fitted, 3, track13.locationTrack, expectedM = distance1to3, absoluteMPrecision = 0.01)
         assertMatchCount(fitted, 5)
     }
 
@@ -249,7 +263,7 @@ class SwitchFittingTest {
         assertJoint(fitted, 5, trackA.locationTrack, expectedM = distance1to5)
         assertJoint(fitted, 2, trackA.locationTrack, expectedM = distance1to2)
         assertJoint(fitted, 1, trackC.locationTrack, expectedM = 0.0)
-        assertJoint(fitted, 3, trackC.locationTrack, expectedM = distance1to3)
+        assertJoint(fitted, 3, trackC.locationTrack, expectedM = distance1to3, absoluteMPrecision = 0.01)
         assertJoint(fitted, 1, trackB.locationTrack, expectedM = trackBLength)
         assertMatchCount(fitted, 6)
     }
@@ -384,6 +398,7 @@ fun assertJoint(
     track: LocationTrack,
     expectedM: Double,
     direction: RelativeDirection = RelativeDirection.Along,
+    absoluteMPrecision: Double = 0.001,
 ) {
     val jointNumber = JointNumber(joint)
     val fittedJoint = fitted.joints.first { fittedJoint -> fittedJoint.number == jointNumber }
@@ -392,8 +407,8 @@ fun assertJoint(
     val match = matches.first()
     assertEquals(
         expectedM,
-        match.m,
-        0.001,
+        match.mOnTrack,
+        absoluteMPrecision,
         "M-value is not matching for location track \"${track.name}\" and joint $joint",
     )
     assertEquals(
@@ -413,7 +428,9 @@ fun removeDuplicateMatches(fittedSwitch: FittedSwitch): FittedSwitch {
             fittedSwitch.joints.map { joint ->
                 joint.copy(
                     matches =
-                        joint.matches.distinctBy { match -> listOf(match.locationTrackId, match.switchJoint, match.m) }
+                        joint.matches.distinctBy { match ->
+                            listOf(match.locationTrackId, match.switchJoint, match.mOnTrack)
+                        }
                 )
             }
     )

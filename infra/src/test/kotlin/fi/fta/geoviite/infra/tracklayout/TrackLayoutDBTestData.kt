@@ -30,6 +30,7 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
     geometry: LocationTrackGeometry,
     switchId: IntId<LayoutSwitch>,
     jointNumber: JointNumber,
+    jointRole: SwitchJointRole,
     locationTrackService: LocationTrackService,
 ) =
     locationTrackService.saveDraft(
@@ -37,8 +38,16 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
         locationTrack.copy(
             topologyEndSwitch = TopologyLocationTrackSwitch(switchId = switchId, jointNumber = jointNumber)
         ),
-        geometry,
+        geometry.withNodeReplacements(mapOf(replaceEndWithTopoSwitch(geometry, switchId, jointNumber, jointRole))),
     )
+
+private fun replaceEndWithTopoSwitch(
+    geometry: LocationTrackGeometry,
+    switchId: IntId<LayoutSwitch>,
+    jointNumber: JointNumber,
+    jointRole: SwitchJointRole,
+): Pair<NodeHash, LayoutNode> =
+    geometry.edges.last().endNode.node.contentHash to LayoutNode.of(SwitchLink(switchId, jointRole, jointNumber))
 
 fun removeTopologySwitchesFromLocationTrackAndUpdate(
     locationTrack: LocationTrack,
@@ -47,24 +56,59 @@ fun removeTopologySwitchesFromLocationTrackAndUpdate(
 ) =
     locationTrackService.saveDraft(
         LayoutBranch.main,
-        locationTrack.copy(topologyStartSwitch = null, topologyEndSwitch = null),
-        geometry,
+        locationTrack,
+        geometry.withNodeReplacements(
+            listOfNotNull(
+                    replaceTopologyStartWithTrackBoundary(geometry, locationTrack),
+                    replaceTopologyEndWithTrackBoundary(geometry, locationTrack),
+                )
+                .associate { it }
+        ),
     )
+
+private fun replaceTopologyStartWithTrackBoundary(
+    geometry: LocationTrackGeometry,
+    locationTrack: LocationTrack,
+): Pair<NodeHash, LayoutNode>? =
+    geometry.edges.first().startNode.let { start ->
+        if (start.switchOut == null) null
+        else {
+            start.node.contentHash to LayoutNode.of(TrackBoundary(locationTrack.id as IntId, TrackBoundaryType.START))
+        }
+    }
+
+private fun replaceTopologyEndWithTrackBoundary(
+    geometry: LocationTrackGeometry,
+    locationTrack: LocationTrack,
+): Pair<NodeHash, LayoutNode>? =
+    geometry.edges.last().endNode.let { end ->
+        if (end.switchOut == null) null
+        else {
+            end.node.contentHash to LayoutNode.of(TrackBoundary(locationTrack.id as IntId, TrackBoundaryType.END))
+        }
+    }
 
 fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
     locationTrack: LocationTrack,
     geometry: LocationTrackGeometry,
     switchId: IntId<LayoutSwitch>,
     jointNumber: JointNumber,
+    jointRole: SwitchJointRole,
     locationTrackService: LocationTrackService,
 ): LayoutRowVersion<LocationTrack> =
     locationTrackService.saveDraft(
         LayoutBranch.main,
-        locationTrack.copy(
-            topologyStartSwitch = TopologyLocationTrackSwitch(switchId = switchId, jointNumber = jointNumber)
-        ),
-        geometry,
+        locationTrack,
+        geometry.withNodeReplacements(mapOf(replaceStartWithTopoSwitch(geometry, switchId, jointNumber, jointRole))),
     )
+
+private fun replaceStartWithTopoSwitch(
+    geometry: LocationTrackGeometry,
+    switchId: IntId<LayoutSwitch>,
+    jointNumber: JointNumber,
+    jointRole: SwitchJointRole,
+): Pair<NodeHash, LayoutNode> =
+    geometry.edges.first().startNode.node.contentHash to LayoutNode.of(SwitchLink(switchId, jointRole, jointNumber))
 
 fun moveReferenceLineGeometryPointsAndUpdate(
     referenceLine: ReferenceLine,
