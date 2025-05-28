@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
 import fi.fta.geoviite.infra.geometry.MetaDataName
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -28,12 +29,12 @@ import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -54,6 +55,27 @@ class LocationTrackDao(
         "layout.location_track_external_id_version",
     ),
     IExternallyIdentifiedLayoutAssetDao<LocationTrack> {
+
+    fun fetchAugLocationTrack(
+        id: IntId<LocationTrack>,
+        layoutContext: LayoutContext,
+        translation: Translation,
+    ): AugLocationTrack? = fetchAugLocationTrackKey(id, layoutContext)?.let { key -> fetch(key, translation) }
+
+    fun listAugLocationTracks(layoutContext: LayoutContext, translation: Translation): List<AugLocationTrack> =
+        listAugLocationTrackKeys(layoutContext).map { key -> fetch(key, translation) }
+
+    fun fetchAugLocationTrackKey(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrackCacheKey? {
+        TODO()
+    }
+
+    fun listAugLocationTrackKeys(layoutContext: LayoutContext): List<AugLocationTrackCacheKey> {
+        TODO()
+    }
+
+    fun fetch(key: AugLocationTrackCacheKey, translation: Translation): AugLocationTrack {
+        TODO()
+    }
 
     fun fetchDuplicateVersions(
         layoutContext: LayoutContext,
