@@ -59,13 +59,17 @@ class LocationTrackDao(
     IExternallyIdentifiedLayoutAssetDao<LocationTrack> {
 
     fun fetchAugLocationTrack(
+        translation: Translation,
         id: IntId<LocationTrack>,
         layoutContext: LayoutContext,
-        translation: Translation,
     ): AugLocationTrack? = fetchAugLocationTrackKey(id, layoutContext)?.let { key -> fetch(key, translation) }
 
-    fun listAugLocationTracks(layoutContext: LayoutContext, translation: Translation): List<AugLocationTrack> =
-        listAugLocationTrackKeys(layoutContext).map { key -> fetch(key, translation) }
+    fun listAugLocationTracks(
+        translation: Translation,
+        layoutContext: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
+        boundingBox: BoundingBox? = null,
+    ): List<AugLocationTrack> = listAugLocationTrackKeys(layoutContext).map { key -> fetch(key, translation) }
 
     fun fetchAugLocationTrackKey(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrackCacheKey? {
         TODO()
