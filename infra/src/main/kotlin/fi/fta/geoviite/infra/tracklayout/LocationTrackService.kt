@@ -98,7 +98,10 @@ class LocationTrackService(
             return requireNotNull(transactionTemplate.execute { updateLocationTrackTransaction(branch, id, request) })
         } catch (dataIntegrityException: DataIntegrityViolationException) {
             throw if (isSplitSourceReferenceError(dataIntegrityException)) {
-                SplitSourceLocationTrackUpdateException(dao.fetchAugLocationTrackKey(id, branch.draft)?.let{ key -> dao.fetch(key, )}, dataIntegrityException)
+                SplitSourceLocationTrackUpdateException(
+                    dao.fetchAugLocationTrackKey(id, branch.draft)?.let { key -> dao.fetch(key) },
+                    dataIntegrityException,
+                )
             } else {
                 dataIntegrityException
             }
@@ -508,11 +511,7 @@ class LocationTrackService(
 
     fun getAugLocationTrack(id: IntId<LocationTrack>, layoutLocation: LayoutContext): AugLocationTrack? = TODO()
 
-    fun listAugLocationTracks(
-        layoutLocation: LayoutContext,
-        trackNumberId: IntId<LayoutTrackNumber>? = null,
-        boundingBox: BoundingBox? = null,
-    ): List<AugLocationTrack> = TODO()
+    fun listAugLocationTracks(layoutLocation: LayoutContext): List<AugLocationTrack> = TODO()
 
     fun fillTrackAddresses(
         duplicates: List<LocationTrackDuplicate>,
