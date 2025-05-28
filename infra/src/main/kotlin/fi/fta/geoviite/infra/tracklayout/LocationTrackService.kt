@@ -38,11 +38,11 @@ import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -255,6 +255,9 @@ class LocationTrackService(
         return dao.list(branch.draft, false).filter { a -> a.segmentCount == 0 }
     }
 
+    fun listNonLinkedAugLocationTracks(branch: LayoutBranch): List<AugLocationTrack> =
+        listAugLocationTracks(branch.draft).filter { a -> a.segmentCount == 0 }
+
     fun list(layoutContext: LayoutContext, bbox: BoundingBox): List<LocationTrack> {
         return dao.list(layoutContext, false).filter { tn -> bbox.intersects(tn.boundingBox) }
     }
@@ -287,8 +290,8 @@ class LocationTrackService(
     fun contentMatchesAug(term: String, item: AugLocationTrack) =
         item.exists && (item.name.contains(term, true) || item.description.contains(term, true))
 
-    fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<AugLocationTrack> {
-        return dao.listNear(layoutContext, bbox).filter(AugLocationTrack::exists)
+    fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<LocationTrack> {
+        return dao.listNear(layoutContext, bbox).filter(LocationTrack::exists)
     }
 
     @Transactional(readOnly = true)
@@ -369,7 +372,7 @@ class LocationTrackService(
     fun listNearWithAlignments(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
-    ): List<Pair<AugLocationTrack, LayoutAlignment>> =
+    ): List<Pair<LocationTrack, LayoutAlignment>> =
         dao.listNear(layoutContext, bbox).let(::associateWithAlignments).filter { (_, alignment) ->
             alignment.segments.any { segment ->
                 bbox.intersects(segment.boundingBox) && segment.segmentPoints.any(bbox::contains)
@@ -380,7 +383,7 @@ class LocationTrackService(
     fun getLocationTracksNear(
         layoutContext: LayoutContext,
         location: IPoint,
-    ): List<Pair<AugLocationTrack, LayoutAlignment>> =
+    ): List<Pair<LocationTrack, LayoutAlignment>> =
         listNearWithAlignments(
             layoutContext,
             BoundingBox(Point(0.0, 0.0), Point(TRACK_SEARCH_AREA_SIZE, TRACK_SEARCH_AREA_SIZE)).centerAt(location),
@@ -506,7 +509,7 @@ class LocationTrackService(
         version: LayoutRowVersion<LocationTrack>
     ): Pair<LocationTrack, LayoutAlignment> = locationTrackWithAlignment(dao, alignmentDao, version)
 
-    private fun associateWithAlignments(lines: List<ILocationTrack>): List<Pair<ILocationTrack, LayoutAlignment>> {
+    private fun <T> associateWithAlignments(lines: List<T>): List<Pair<T, LayoutAlignment>> where T : ILocationTrack {
         // This is a little convoluted to avoid extra passes of transaction annotation handling in
         // alignmentDao.fetch
         val alignments = alignmentDao.fetchMany(lines.map(ILocationTrack::getAlignmentVersionOrThrow))
@@ -533,7 +536,12 @@ class LocationTrackService(
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         boundingBox: BoundingBox? = null,
     ): List<AugLocationTrack> =
-        locationTrackDao.listAugLocationTracks(defaultTranslation, layoutContext, trackNumberId, boundingBox)
+        locationTrackDao.listAugLocationTracks(
+            defaultTranslation,
+            layoutContext,
+            trackNumberId = trackNumberId,
+            boundingBox = boundingBox,
+        )
 
     fun listAugLocationTracks(layoutContext: LayoutContext, includeDeleted: Boolean): List<AugLocationTrack> =
         locationTrackDao.listAugLocationTracks(defaultTranslation, layoutContext, includeDeleted = includeDeleted)
@@ -1007,7 +1015,7 @@ fun locationTrackWithAlignment(
     rowVersion: LayoutRowVersion<LocationTrack>,
 ) = locationTrackDao.fetch(rowVersion).let { track -> track to alignmentDao.fetch(track.getAlignmentVersionOrThrow()) }
 
-fun filterByBoundingBox(list: List<ILocationTrack>, boundingBox: BoundingBox?): List<ILocationTrack> =
+fun <T> filterByBoundingBox(list: List<T>, boundingBox: BoundingBox?): List<T> where T : ILocationTrack =
     if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) } else list
 
 fun isSplitSourceReferenceError(exception: DataIntegrityViolationException): Boolean {

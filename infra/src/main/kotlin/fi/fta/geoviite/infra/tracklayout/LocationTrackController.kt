@@ -61,7 +61,7 @@ class LocationTrackController(
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<AugLocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.listNear(context, bbox)
+        return locationTrackService.listAugLocationTracks(context, boundingBox = bbox)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -84,7 +84,7 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<AugLocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return toResponse(locationTrackService.get(context, id))
+        return toResponse(locationTrackService.getAugLocationTrack(id, context))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -95,7 +95,7 @@ class LocationTrackController(
         @RequestParam("ids", required = true) ids: List<IntId<LocationTrack>>,
     ): List<AugLocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.getMany(context, ids)
+        return locationTrackService.getManyAugLocationTracks(context, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -214,7 +214,7 @@ class LocationTrackController(
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/draft/non-linked")
     fun getNonLinkedLocationTracks(@PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch): List<AugLocationTrack> {
-        return locationTrackService.listNonLinked(layoutBranch)
+        return locationTrackService.listNonLinkedAugLocationTracks(layoutBranch)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -269,9 +269,8 @@ class LocationTrackController(
         @RequestParam("includeDeleted") includeDeleted: Boolean = true,
     ): List<AugLocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.list(context, includeDeleted, trackNumberId).filter { lt ->
-            locationTrackService.getNameOrThrow(context, lt.id as IntId).name.toString().lowercase() in
-                names.map { it.toString().lowercase() }
+        return locationTrackService.listAugLocationTracks(context, includeDeleted, trackNumberId).filter { lt ->
+            lt.name.toString().lowercase() in names.map { it.toString().lowercase() }
         }
     }
 
