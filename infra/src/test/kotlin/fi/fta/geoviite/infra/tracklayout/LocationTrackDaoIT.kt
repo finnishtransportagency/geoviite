@@ -19,9 +19,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.SIDE
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.queryOne
-import kotlin.random.Random
-import kotlin.test.assertContains
-import kotlin.test.assertFalse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -30,13 +27,15 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import kotlin.random.Random
+import kotlin.test.assertContains
+import kotlin.test.assertFalse
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 class LocationTrackDaoIT
 @Autowired
 constructor(
-    private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val locationTrackDao: LocationTrackDao,
     private val layoutDesignDao: LayoutDesignDao,
@@ -150,7 +149,6 @@ constructor(
         assertEquals(draftVersion2, locationTrackDao.fetchVersion(MainLayoutContext.draft, id))
 
         locationTrackDao.deleteDraft(LayoutBranch.main, id)
-        alignmentDao.deleteOrphanedAlignments()
         assertEquals(insertVersion, locationTrackDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, locationTrackDao.fetchVersion(MainLayoutContext.draft, id))
 
