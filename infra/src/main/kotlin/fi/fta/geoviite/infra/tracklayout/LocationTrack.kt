@@ -82,12 +82,65 @@ enum class LocationTrackState(val category: LayoutStateCategory) {
     fun isRemoved() = this == DELETED
 }
 
+sealed class DbLocationTrackNaming {
+    abstract val namingScheme: LocationTrackNamingScheme
+    open val nameFreeText: AlignmentName? = null
+    open val nameSpecifier: LocationTrackNameSpecifier? = null
+}
+
+data class DbFreeTextTrackNaming(override val nameFreeText: AlignmentName) : DbLocationTrackNaming() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.UNDEFINED
+}
+
+sealed class ReifiedTrackNaming() {
+    abstract val namingScheme: LocationTrackNamingScheme
+    abstract fun getName(): AlignmentName
+}
+
+data class ReifiedChordTrackNaming(val startSwitchName: SwitchName, val endSwitchName: SwitchName): ReifiedTrackNaming() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.CHORD
+    override fun getName(): AlignmentName = "$startSwitchName - $endSwitchName"
+}
+
+// UNDEFINED,
+// WITHIN_OPERATING_POINT,
+// BETWEEN_OPERATING_POINTS,
+// TRACK_NUMBER_TRACK,
+// CHORD,
+//
 data class LocationTrackName(val id: IntId<LocationTrack>, val name: AlignmentName)
 
+data class AugLocationTrackCacheKey(
+    val trackVersion: LayoutRowVersion,...
+)
+interface ILocationTrack {
+    val name: DbLocationTrackNaming
+    val descriptionBase: LocationTrackDescriptionBase
+    val descriptionSuffix: LocationTrackDescriptionSuffix
+    val type: LocationTrackType
+    val state: LocationTrackState
+    val trackNumberId: IntId<LayoutTrackNumber>
+    val sourceId: IntId<GeometryAlignment>?
+    val boundingBox: BoundingBox?
+    val length: Double
+    val segmentCount: Int
+    val duplicateOf: IntId<LocationTrack>?
+    val topologicalConnectivity: TopologicalConnectivityType
+    val topologyStartSwitch: TopologyLocationTrackSwitch?
+    val topologyEndSwitch: TopologyLocationTrackSwitch?
+    val ownerId: IntId<LocationTrackOwner>
+    val contextData: LayoutContextData<LocationTrack>
+    val alignmentVersion: RowVersion<LayoutAlignment>?
+    val segmentSwitchIds: List<IntId<LayoutSwitch>>
+}
+
+data class AugLocationTrack(
+    val name: ReifiedTrackNaming,
+    private val dbTrack: LocationTrack,
+):  ILocationTrack by dbTrack
+
 data class LocationTrack(
-    val namingScheme: LocationTrackNamingScheme,
-    val nameFreeText: AlignmentName?,
-    val nameSpecifier: LocationTrackNameSpecifier?,
+    override val dbName: DbLocationTrackNaming,
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,
     val type: LocationTrackType,
@@ -105,7 +158,7 @@ data class LocationTrack(
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
     @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore val segmentSwitchIds: List<IntId<LayoutSwitch>> = listOf(),
-) : PolyLineLayoutAsset<LocationTrack>(contextData) {
+) : ILocationTrack, PolyLineLayoutAsset<LocationTrack>(contextData) {
 
     @JsonIgnore val exists = !state.isRemoved()
 
