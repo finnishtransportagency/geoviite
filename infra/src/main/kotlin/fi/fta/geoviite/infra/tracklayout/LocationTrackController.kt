@@ -20,7 +20,6 @@ import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidateTransition
@@ -60,7 +59,7 @@ class LocationTrackController(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
-    ): List<LocationTrack> {
+    ): List<AugLocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return locationTrackService.listNear(context, bbox)
     }
@@ -72,7 +71,7 @@ class LocationTrackController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("searchTerm", required = true) searchTerm: FreeText,
         @RequestParam("limit", required = true) limit: Int,
-    ): List<LocationTrack> {
+    ): List<AugLocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return searchService.searchAllLocationTracks(context, searchTerm, limit)
     }
@@ -83,7 +82,7 @@ class LocationTrackController(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): ResponseEntity<LocationTrack> {
+    ): ResponseEntity<AugLocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(locationTrackService.get(context, id))
     }
@@ -94,7 +93,7 @@ class LocationTrackController(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids", required = true) ids: List<IntId<LocationTrack>>,
-    ): List<LocationTrack> {
+    ): List<AugLocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return locationTrackService.getMany(context, ids)
     }
@@ -141,23 +140,6 @@ class LocationTrackController(
     ): ResponseEntity<Int> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(locationTrackService.getRelinkableSwitchesCount(context, id))
-    }
-
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/description")
-    fun getDescription(
-        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
-        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("ids") ids: List<IntId<LocationTrack>>,
-        @RequestParam("lang") lang: LocalizationLanguage,
-    ): List<DbLocationTrackDescription> {
-        val context = LayoutContext.of(layoutBranch, publicationState)
-        return ids.mapNotNull { id ->
-            id.let { locationTrackService.get(context, it) }
-                ?.let { lt ->
-                    DbLocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang))
-                }
-        }
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -231,7 +213,7 @@ class LocationTrackController(
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/draft/non-linked")
-    fun getNonLinkedLocationTracks(@PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch): List<LocationTrack> {
+    fun getNonLinkedLocationTracks(@PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch): List<AugLocationTrack> {
         return locationTrackService.listNonLinked(layoutBranch)
     }
 
@@ -285,7 +267,7 @@ class LocationTrackController(
         @PathVariable("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
         @RequestParam("locationTrackNames") names: List<AlignmentName>,
         @RequestParam("includeDeleted") includeDeleted: Boolean = true,
-    ): List<LocationTrack> {
+    ): List<AugLocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return locationTrackService.list(context, includeDeleted, trackNumberId).filter { lt ->
             locationTrackService.getNameOrThrow(context, lt.id as IntId).name.toString().lowercase() in
@@ -314,16 +296,5 @@ class LocationTrackController(
     @GetMapping("/location-tracks/{id}/oids")
     fun getLocationTrackOids(@PathVariable("id") id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
         return locationTrackService.getExternalIdsByBranch(id)
-    }
-
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/names")
-    fun getLocationTrackNames(
-        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
-        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("ids") ids: List<IntId<LocationTrack>>,
-    ): List<LocationTrackName> {
-        val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.getNames(context, ids)
     }
 }

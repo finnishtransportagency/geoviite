@@ -408,7 +408,7 @@ class LocationTrackDao(
     }
 
     @Transactional(readOnly = true)
-    fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
+    fun listNear(context: LayoutContext, bbox: BoundingBox): List<AugLocationTrack> =
         fetchVersionsNear(context, bbox).map(::fetch)
 
     fun fetchVersionsNear(

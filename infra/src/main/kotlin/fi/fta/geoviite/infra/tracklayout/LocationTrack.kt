@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
@@ -12,6 +13,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.localization.Translation
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
@@ -211,7 +213,9 @@ data class AugLocationTrackCacheKey(
     val endSwitchVersion: LayoutRowVersion<LayoutSwitch>?,
 )
 
-interface ILocationTrack {
+interface ILocationTrack : Loggable {
+    val version: LayoutRowVersion<LocationTrack>?
+    val id: DomainId<LocationTrack>
     val dbName: DbLocationTrackNaming
     val dbDescription: DbLocationTrackDescription
     val type: LocationTrackType
@@ -229,6 +233,13 @@ interface ILocationTrack {
     val contextData: LayoutContextData<LocationTrack>
     val alignmentVersion: RowVersion<LayoutAlignment>?
     val segmentSwitchIds: List<IntId<LayoutSwitch>>
+
+    @get:JsonIgnore val exists get() = !state.isRemoved()
+
+    @get:JsonIgnore
+    val switchIds: List<IntId<LayoutSwitch>> get() =
+        (listOfNotNull(topologyStartSwitch?.switchId) + segmentSwitchIds + listOfNotNull(topologyEndSwitch?.switchId))
+            .distinct()
 }
 
 data class AugLocationTrack(
@@ -239,6 +250,16 @@ data class AugLocationTrack(
 ) : ILocationTrack by dbTrack {
     val name: AlignmentName by lazy { reifiedNaming.getName() }
     val description: FreeText by lazy { reifiedDescription.getDescription(translation) }
+
+    override fun toLog(): String =
+        logFormat(
+            "id" to id,
+            "version" to version,
+            "context" to contextData::class.simpleName,
+            "name" to name,
+            "trackNumber" to trackNumberId,
+            "alignment" to alignmentVersion,
+        )
 }
 
 data class LocationTrack(
@@ -260,28 +281,6 @@ data class LocationTrack(
     @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore override val segmentSwitchIds: List<IntId<LayoutSwitch>> = listOf(),
 ) : ILocationTrack, PolyLineLayoutAsset<LocationTrack>(contextData) {
-
-    @JsonIgnore val exists = !state.isRemoved()
-
-    @get:JsonIgnore
-    val switchIds: List<IntId<LayoutSwitch>> by lazy {
-        (listOfNotNull(topologyStartSwitch?.switchId) + segmentSwitchIds + listOfNotNull(topologyEndSwitch?.switchId))
-            .distinct()
-    }
-
-    init {
-        require(dataType == DataType.TEMP || alignmentVersion != null) {
-            "LocationTrack in DB must have an alignment: id=$id"
-        }
-        require(topologyStartSwitch?.switchId == null || topologyStartSwitch.switchId != topologyEndSwitch?.switchId) {
-            "LocationTrack cannot topologically connect to the same switch at both ends: " +
-                "trackId=$id " +
-                "switchId=${topologyStartSwitch?.switchId} " +
-                "startJoint=${topologyStartSwitch?.jointNumber} " +
-                "endJoint=${topologyEndSwitch?.jointNumber}"
-        }
-    }
-
     override fun toLog(): String =
         logFormat(
             "id" to id,
@@ -295,8 +294,6 @@ data class LocationTrack(
     override fun withContext(contextData: LayoutContextData<LocationTrack>): LocationTrack =
         copy(contextData = contextData)
 }
-
-data class LocationTrackDescription(val id: IntId<LocationTrack>, val description: FreeText)
 
 data class LocationTrackInfoboxExtras(
     val duplicateOf: LocationTrackDuplicate?,

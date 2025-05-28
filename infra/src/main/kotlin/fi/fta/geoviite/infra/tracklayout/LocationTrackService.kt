@@ -270,11 +270,11 @@ class LocationTrackService(
             return { term, item -> externalIds[item.id]?.oid?.toString() == term || item.id.toString() == term }
         }
 
-    override fun contentMatches(term: String, item: LocationTrack) =
-        item.exists && ((item.nameFreeText ?: "").contains(term, true) || item.descriptionBase.contains(term, true))
+    override fun contentMatches(term: String, item: AugLocationTrack) =
+        item.exists && ((item.name ?: "").contains(term, true) || item.description.contains(term, true))
 
-    fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<LocationTrack> {
-        return dao.listNear(layoutContext, bbox).filter(LocationTrack::exists)
+    fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<AugLocationTrack> {
+        return dao.listNear(layoutContext, bbox).filter(AugLocationTrack::exists)
     }
 
     @Transactional(readOnly = true)
