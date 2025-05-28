@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.angleAvgRads
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
+import fi.fta.geoviite.infra.math.interpolateToAlignmentPoint
 import fi.fta.geoviite.infra.math.interpolateToPoint
 import fi.fta.geoviite.infra.math.interpolateToSegmentPoint
 import fi.fta.geoviite.infra.math.isSame
@@ -66,6 +67,7 @@ data class AlignmentAddresses(
     val startIntersect: IntersectType,
     val endIntersect: IntersectType,
     val midPoints: List<AddressPoint>,
+    val alignmentWalkFinished: Boolean,
 ) {
     @get:JsonIgnore
     val allPoints: List<AddressPoint> by lazy { emptyList<AddressPoint>() + startPoint + midPoints + endPoint }
@@ -262,12 +264,18 @@ data class GeocodingContext(
         ) {
             findCachedProjectionLine(address, resolution)
         } else
-            findCachedProjectionLine(address.floor(), resolution)?.let { previous ->
+            findCachedProjectionLine(previousProjectionLineAddress(address), resolution)?.let { previous ->
                 val distance = previous.distance + (address.meters.toDouble() - previous.address.meters.toDouble())
                 findEdge(distance, polyLineEdges)?.let { edge ->
                     ProjectionLine(address, edge.crossSectionAt(distance), distance, edge.referenceDirection)
                 }
             }
+    }
+
+    private fun previousProjectionLineAddress(address: TrackMeter): TrackMeter {
+        val startProjection = startProjection
+        val floor = address.floor()
+        return if (startProjection != null && floor < startProjection.address) startProjection.address else floor
     }
 
     private fun findCachedProjectionLine(address: TrackMeter, resolution: Resolution): ProjectionLine? {
@@ -483,7 +491,8 @@ data class GeocodingContext(
                 endPoint = endPoint.first,
                 startIntersect = startPoint.second,
                 endIntersect = endPoint.second,
-                midPoints = midPoints,
+                midPoints = midPoints.addressPoints.filterNotNull(),
+                alignmentWalkFinished = midPoints.alignmentWalkFinished,
             )
         } else null
     }
@@ -553,7 +562,7 @@ data class GeocodingContext(
                         .filterIndexed { index, _ -> index % 10 == 0 },
                 Comparator.comparing(ProjectionLine::distance),
             ) { sortedLines ->
-                getProjectedAddressPoints(sortedLines, alignment)
+                getProjectedAddressPoints(sortedLines, alignment).addressPoints
             }
             .take(projectionLinesWithinAlignment.size)
 
@@ -567,11 +576,7 @@ data class GeocodingContext(
         alignment: IAlignment,
         range: ClosedRange<TrackMeter>,
         resolution: Resolution = Resolution.ONE_METER,
-    ): List<AddressPoint> =
-        getProjectedAddressPoints(getProjectionLinesForRange(range, resolution), alignment)
-            // projection lines can simply fail to hit the alignment even if they are between its start and end
-            // addresses
-            .filterNotNull()
+    ): AddressPointWalkResult = getProjectedAddressPoints(getProjectionLinesForRange(range, resolution), alignment)
 
     private fun getProjectionLinesForRange(range: ClosedRange<TrackMeter>, resolution: Resolution) =
         getSublistForRangeInOrderedList(projectionLines.getValue(resolution).value, range) { p, e ->
@@ -662,12 +667,24 @@ fun getProjectedAddressPoint(projection: ProjectionLine, alignment: IAlignment):
     }
 }
 
+private data class AddressPointWalkResult(val addressPoints: List<AddressPoint?>, val alignmentWalkFinished: Boolean)
+
+private data class AlignmentPointInterval(val start: AlignmentPoint, val end: AlignmentPoint) {
+    fun interpolateAlignmentPointAtPortion(proportion: Double): AlignmentPoint =
+        interpolateToAlignmentPoint(start, end, proportion)
+
+    val referenceDirection: Double
+        get() = directionBetweenPoints(start, end)
+}
+
 private fun getProjectedAddressPoints(
     projectionLines: List<ProjectionLine>,
     alignment: IAlignment,
-): List<AddressPoint?> {
-    val walk = AlignmentWalk(getPolyLineEdges(alignment))
-    return projectionLines.map(walk::stepWith)
+): AddressPointWalkResult {
+    val alignmentPoints = alignment.allAlignmentPoints.zipWithNext(::AlignmentPointInterval).toList()
+    val walk = AlignmentWalk(alignmentPoints)
+    val addressPoints = projectionLines.map(walk::stepWith)
+    return AddressPointWalkResult(addressPoints, walk.alignmentLooksValid)
 }
 
 private sealed class StepResult
@@ -683,8 +700,10 @@ private enum class StepDirection(val diff: Int) {
     Backward(-1),
 }
 
-private class AlignmentWalk(val alignmentEdges: List<PolyLineEdge>) {
-    var edgeIndex = 0
+private class AlignmentWalk(val alignmentEdges: List<AlignmentPointInterval>) {
+    var alignmentLooksValid = true
+    private var edgeIndex = 0
+
     private val edge
         get() = alignmentEdges[edgeIndex]
 
@@ -707,7 +726,11 @@ private class AlignmentWalk(val alignmentEdges: List<PolyLineEdge>) {
                         projection.address,
                     )
                 is ContinueStepping -> {
-                    require(lastStepDirection != -stepResult.direction.diff) { "alignmentWalk would loop" }
+                    if (lastStepDirection == -stepResult.direction.diff) {
+                        // alignment walk would loop
+                        alignmentLooksValid = false
+                        return null
+                    }
                     lastStepDirection = stepResult.direction.diff
                     edgeIndex += stepResult.direction.diff
                     continue
@@ -902,6 +925,12 @@ private fun findEdge(distance: Double, all: List<PolyLineEdge>, delta: Double = 
     )
 
 private fun intersection(edge: PolyLineEdge, projection: Line) =
+    lineIntersection(edge.start, edge.end, projection.start, projection.end)
+        ?: throw GeocodingFailureException(
+            "Projection line parallel to segment: edge=${edge.start}-${edge.end} projection=${projection.start}-${projection.end}"
+        )
+
+private fun intersection(edge: AlignmentPointInterval, projection: Line) =
     lineIntersection(edge.start, edge.end, projection.start, projection.end)
         ?: throw GeocodingFailureException(
             "Projection line parallel to segment: edge=${edge.start}-${edge.end} projection=${projection.start}-${projection.end}"

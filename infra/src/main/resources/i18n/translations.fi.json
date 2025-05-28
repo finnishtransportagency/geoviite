@@ -1632,6 +1632,7 @@
                 "sharp-angle": "Sijaintiraiteen {{locationTrack}} tasametripisteet menevät taaksepäin, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",
                 "stretched-meters": "Sijaintiraiteen {{locationTrack}} metrivälit ovat liian pitkiä, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",
                 "not-continuous": "Sijaintiraiteen {{locationTrack}} osoitteet eivät ole jatkuvia, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",
+                "bad-geometry-for-geocoding": "Sijaintiraiteen {{locationTrack}} osoitteita ratanumerolla {{trackNumber}} ei voitu laskea loppuun asti, koska osoitteen {{lastAddress}} jälkeen raiteen geometria menee edestakaisin",
                 "start-outside-reference-line": "Pituusmittauslinja {{referenceLine}} on sijaintiraiteelle {{locationTrack}} liian lyhyt, eikä kata sen alkua",
                 "end-outside-reference-line": "Pituusmittauslinja {{referenceLine}} on sijaintiraiteelle {{locationTrack}} liian lyhyt, eikä kata sen loppua",
                 "km-post-too-long": "Tasakilometripiste {{kmNumber}} on liian kaukana edellisestä tasakilometripisteestä",
