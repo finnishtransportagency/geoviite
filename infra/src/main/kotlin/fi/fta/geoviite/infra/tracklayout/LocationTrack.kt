@@ -115,11 +115,34 @@ data object DbChordTrackNaming : DbLocationTrackNaming() {
     override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.CHORD
 }
 
-sealed class ReifiedTrackNaming() {
+sealed class ReifiedTrackNaming {
     abstract val namingScheme: LocationTrackNamingScheme
-    val name: AlignmentName by lazy { getName() }
 
     abstract fun getName(): AlignmentName
+
+    companion object {
+        fun of(
+            locationTrack: LocationTrack,
+            trackNumber: LayoutTrackNumber,
+            startSwitch: LayoutSwitch?,
+            endSwitch: LayoutSwitch?,
+        ): ReifiedTrackNaming =
+            when (locationTrack.dbName.namingScheme) {
+                LocationTrackNamingScheme.UNDEFINED ->
+                    ReifiedFreeTextTrackNaming(requireNotNull(locationTrack.dbName.nameFreeText))
+                LocationTrackNamingScheme.WITHIN_OPERATING_POINT ->
+                    ReifiedWithinOperatingPointTrackNaming(requireNotNull(locationTrack.dbName.nameFreeText))
+                LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS ->
+                    ReifiedBetweenOperatingPointsTrackNaming(startSwitch?.name, endSwitch?.name)
+                LocationTrackNamingScheme.TRACK_NUMBER_TRACK ->
+                    ReifiedTrackNumberTrackNaming(
+                        trackNumber.number,
+                        requireNotNull(locationTrack.dbName.nameFreeText),
+                        requireNotNull(locationTrack.dbName.nameSpecifier),
+                    )
+                LocationTrackNamingScheme.CHORD -> ReifiedChordTrackNaming(startSwitch?.name, endSwitch?.name)
+            }
+    }
 }
 
 data class ReifiedFreeTextTrackNaming(val nameFreeText: AlignmentName) : ReifiedTrackNaming() {
@@ -183,8 +206,8 @@ data class DbLocationTrackDescription(
 
 data class ReifiedTrackDescription(
     val dbDescription: DbLocationTrackDescription,
-    val startSwitchName: SwitchName,
-    val endSwitchName: SwitchName,
+    val startSwitchName: SwitchName?,
+    val endSwitchName: SwitchName?,
 ) {
     fun getDescription(translation: Translation): FreeText {
         val base = dbDescription.descriptionBase.toString()

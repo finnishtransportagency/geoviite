@@ -508,7 +508,11 @@ class LocationTrackService(
 
     fun getAugLocationTrack(id: IntId<LocationTrack>, layoutLocation: LayoutContext): AugLocationTrack? = TODO()
 
-    fun listAugLocationTracks(layoutLocation: LayoutContext): List<AugLocationTrack> = TODO()
+    fun listAugLocationTracks(
+        layoutLocation: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
+        boundingBox: BoundingBox? = null,
+    ): List<AugLocationTrack> = TODO()
 
     fun fillTrackAddresses(
         duplicates: List<LocationTrackDuplicate>,

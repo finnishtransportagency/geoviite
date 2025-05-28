@@ -41,6 +41,8 @@ const val LOCATIONTRACK_CACHE_SIZE = 10000L
 @Component
 class LocationTrackDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    val switchDao: LayoutSwitchDao,
+    val trackNumberDao: LayoutTrackNumberDao,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
     LayoutAssetDao<LocationTrack>(
@@ -69,12 +71,25 @@ class LocationTrackDao(
         TODO()
     }
 
-    fun listAugLocationTrackKeys(layoutContext: LayoutContext): List<AugLocationTrackCacheKey> {
+    fun listAugLocationTrackKeys(
+        layoutContext: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
+        boundingBox: BoundingBox? = null,
+    ): List<AugLocationTrackCacheKey> {
         TODO()
     }
 
     fun fetch(key: AugLocationTrackCacheKey, translation: Translation): AugLocationTrack {
-        TODO()
+        val dbTrack = fetch(key.trackVersion)
+        val startSwitch = key.startSwitchVersion?.let(switchDao::fetch)
+        val endSwitch = key.startSwitchVersion?.let(switchDao::fetch)
+        val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
+        return AugLocationTrack(
+            translation,
+            dbTrack,
+            ReifiedTrackNaming.of(dbTrack, trackNumber, startSwitch, endSwitch),
+            ReifiedTrackDescription(dbTrack.dbDescription, startSwitch?.name, endSwitch?.name),
+        )
     }
 
     fun fetchDuplicateVersions(
