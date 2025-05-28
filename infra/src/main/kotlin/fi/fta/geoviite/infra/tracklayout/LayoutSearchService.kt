@@ -37,13 +37,21 @@ constructor(
         }
     }
 
-    fun searchAllLocationTracks(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LocationTrack> {
+    fun searchAllLocationTracks(
+        layoutContext: LayoutContext,
+        searchTerm: FreeText,
+        limit: Int,
+    ): List<AugLocationTrack> {
         return locationTrackService
-            .list(layoutContext, true)
+            .listAugLocationTracks(layoutContext, includeDeleted = true)
             .let { list ->
-                locationTrackService.filterBySearchTerm(list, searchTerm, locationTrackService.idMatches(layoutContext))
+                locationTrackService.filterBySearchTermAug(
+                    list,
+                    searchTerm,
+                    locationTrackService.idMatches(layoutContext),
+                )
             }
-            .sortedBy { locationTrackService.getNameOrThrow(layoutContext, it.id as IntId).name }
+            .sortedBy { it.name }
             .take(limit)
     }
 
@@ -118,7 +126,7 @@ constructor(
                 switches.let { list -> switchService.filterBySearchTerm(list, searchTerm, switchIdMatch) }.take(limit),
             locationTracks =
                 locationTracks
-                    .let { list -> locationTrackService.filterBySearchTerm(list, searchTerm, ltIdMatch) }
+                    .let { list -> locationTrackService.filterBySearchTermAug(list, searchTerm, ltIdMatch) }
                     .take(limit),
             trackNumbers =
                 trackNumbers
@@ -134,13 +142,14 @@ constructor(
     private fun getLocationTrackAndDuplicatesByScope(
         layoutContext: LayoutContext,
         locationTrackSearchScope: IntId<LocationTrack>,
-    ): List<LocationTrack> =
+    ): List<AugLocationTrack> =
         locationTrackService
             .getWithAlignmentOrThrow(layoutContext, locationTrackSearchScope)
             .let { (lt, alignment) ->
                 lt to locationTrackService.getLocationTrackDuplicates(layoutContext, lt, alignment)
             }
             .let { (locationTrack, duplicates) ->
-                listOf(locationTrack) + locationTrackService.getMany(layoutContext, duplicates.map { d -> d.id })
+                listOf(locationTrack) +
+                    locationTrackService.getManyAugLocationTracks(layoutContext, duplicates.map { d -> d.id })
             }
 }

@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.TopologyLinkFindingSwitch
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -35,6 +36,7 @@ import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitDuplicateTrack
 import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import java.time.Instant
 import org.postgresql.util.PSQLException
@@ -100,7 +102,7 @@ class LocationTrackService(
         } catch (dataIntegrityException: DataIntegrityViolationException) {
             throw if (isSplitSourceReferenceError(dataIntegrityException)) {
                 SplitSourceLocationTrackUpdateException(
-                    dao.fetchAugLocationTrackKey(id, branch.draft)?.let { key -> dao.fetch(key) },
+                    requireNotNull(getAugLocationTrack(id, branch.draft)?.name),
                     dataIntegrityException,
                 )
             } else {
@@ -268,12 +270,21 @@ class LocationTrackService(
     fun idMatches(
         layoutContext: LayoutContext,
         possibleIds: List<IntId<LocationTrack>>? = null,
-    ): ((term: String, item: LocationTrack) -> Boolean) =
+    ): ((term: String, item: ILocationTrack) -> Boolean) =
         dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
             return { term, item -> externalIds[item.id]?.oid?.toString() == term || item.id.toString() == term }
         }
 
-    override fun contentMatches(term: String, item: AugLocationTrack) =
+    fun filterBySearchTermAug(
+        list: List<AugLocationTrack>,
+        searchTerm: FreeText,
+        idMatches: (String, AugLocationTrack) -> Boolean,
+    ): List<AugLocationTrack> =
+        searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
+            list.filter { item -> idMatches(term, item) || contentMatchesAug(term, item) }
+        } ?: listOf()
+
+    fun contentMatchesAug(term: String, item: AugLocationTrack) =
         item.exists && (item.name.contains(term, true) || item.description.contains(term, true))
 
     fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<AugLocationTrack> {
@@ -288,7 +299,7 @@ class LocationTrackService(
         boundingBox: BoundingBox? = null,
         minLength: Double? = null,
         locationTrackIds: Set<IntId<LocationTrack>>? = null,
-    ): List<Pair<AugLocationTrack, LayoutAlignment>> {
+    ): List<Pair<LocationTrack, LayoutAlignment>> {
         return if (boundingBox == null) {
                 dao.list(layoutContext, includeDeleted, trackNumberId)
             } else {
@@ -513,7 +524,11 @@ class LocationTrackService(
     fun getAugLocationTrack(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrack? =
         dao.fetchAugLocationTrack(defaultTranslation, id, layoutContext)
 
-    fun listAugLocationTracks(layoutContext: LayoutContext): List<AugLocationTrack> = locationTrackDao.listAugLocationTracks(defaultTranslation, layoutContext, trackNumberId, boundingBox)
+    fun listAugLocationTracks(layoutContext: LayoutContext): List<AugLocationTrack> =
+        locationTrackDao.listAugLocationTracks(defaultTranslation, layoutContext, trackNumberId, boundingBox)
+
+    fun listAugLocationTracks(layoutContext: LayoutContext, includeDeleted: Boolean): List<AugLocationTrack> =
+        locationTrackDao.listAugLocationTracks(defaultTranslation, layoutContext, includeDeleted = includeDeleted)
 
     fun fillTrackAddresses(
         duplicates: List<LocationTrackDuplicate>,
