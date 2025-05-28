@@ -150,11 +150,13 @@ class LocationTrackController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
         @RequestParam("lang") lang: LocalizationLanguage,
-    ): List<LocationTrackDescription> {
+    ): List<DbLocationTrackDescription> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return ids.mapNotNull { id ->
             id.let { locationTrackService.get(context, it) }
-                ?.let { lt -> LocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang)) }
+                ?.let { lt ->
+                    DbLocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang))
+                }
         }
     }
 

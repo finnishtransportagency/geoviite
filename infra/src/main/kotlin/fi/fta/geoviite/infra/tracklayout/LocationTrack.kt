@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
@@ -172,13 +173,53 @@ data class ReifiedTrackNumberTrackNaming(
 //
 data class LocationTrackName(val id: IntId<LocationTrack>, val name: AlignmentName)
 
+data class DbLocationTrackDescription(
+    val descriptionBase: LocationTrackDescriptionBase,
+    val descriptionSuffix: LocationTrackDescriptionSuffix,
+) {
+    init {
+        require(descriptionBase.length in locationTrackDescriptionLength) {
+            "LocationTrack descriptionBase length invalid  not in range 4-256: " +
+                "length=${descriptionBase.length} " +
+                "allowed=$locationTrackDescriptionLength"
+        }
+    }
+}
+
+data class ReifiedTrackDescription(
+    val dbDescription: DbLocationTrackDescription,
+    val startSwitchName: SwitchName,
+    val endSwitchName: SwitchName,
+) {
+    fun getDescription(translation: Translation): FreeText {
+        val base = dbDescription.descriptionBase.toString()
+        val end =
+            when (dbDescription.descriptionSuffix) {
+                LocationTrackDescriptionSuffix.NONE -> dbDescription.descriptionBase.toString()
+
+                LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER ->
+                    " ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
+
+                LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ->
+                    " ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}"
+
+                LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ->
+                    " ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
+            }
+        return FreeText(base + end)
+    }
+}
+
 data class AugLocationTrackCacheKey(
-    val trackVersion: LayoutRowVersion,...
+    val trackVersion: LayoutRowVersion<LocationTrack>,
+    val trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
+    val startSwitchVersion: LayoutRowVersion<LayoutSwitch>?,
+    val endSwitchVersion: LayoutRowVersion<LayoutSwitch>?,
 )
+
 interface ILocationTrack {
-    val name: DbLocationTrackNaming
-    val descriptionBase: LocationTrackDescriptionBase
-    val descriptionSuffix: LocationTrackDescriptionSuffix
+    val dbName: DbLocationTrackNaming
+    val dbDescription: DbLocationTrackDescription
     val type: LocationTrackType
     val state: LocationTrackState
     val trackNumberId: IntId<LayoutTrackNumber>
@@ -197,29 +238,33 @@ interface ILocationTrack {
 }
 
 data class AugLocationTrack(
-    val name: ReifiedTrackNaming,
+    private val translation: Translation,
     private val dbTrack: LocationTrack,
-):  ILocationTrack by dbTrack
+    val reifiedNaming: ReifiedTrackNaming,
+    val reifiedDescription: ReifiedTrackDescription,
+) : ILocationTrack by dbTrack {
+    val name: AlignmentName by lazy { reifiedNaming.getName() }
+    val description: FreeText by lazy { reifiedDescription.getDescription(translation) }
+}
 
 data class LocationTrack(
     override val dbName: DbLocationTrackNaming,
-    val descriptionBase: LocationTrackDescriptionBase,
-    val descriptionSuffix: LocationTrackDescriptionSuffix,
-    val type: LocationTrackType,
-    val state: LocationTrackState,
-    val trackNumberId: IntId<LayoutTrackNumber>,
-    val sourceId: IntId<GeometryAlignment>?,
-    val boundingBox: BoundingBox?,
-    val length: Double,
-    val segmentCount: Int,
-    val duplicateOf: IntId<LocationTrack>?,
-    val topologicalConnectivity: TopologicalConnectivityType,
-    val topologyStartSwitch: TopologyLocationTrackSwitch?,
-    val topologyEndSwitch: TopologyLocationTrackSwitch?,
-    val ownerId: IntId<LocationTrackOwner>,
+    override val dbDescription: DbLocationTrackDescription,
+    override val type: LocationTrackType,
+    override val state: LocationTrackState,
+    override val trackNumberId: IntId<LayoutTrackNumber>,
+    override val sourceId: IntId<GeometryAlignment>?,
+    override val boundingBox: BoundingBox?,
+    override val length: Double,
+    override val segmentCount: Int,
+    override val duplicateOf: IntId<LocationTrack>?,
+    override val topologicalConnectivity: TopologicalConnectivityType,
+    override val topologyStartSwitch: TopologyLocationTrackSwitch?,
+    override val topologyEndSwitch: TopologyLocationTrackSwitch?,
+    override val ownerId: IntId<LocationTrackOwner>,
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
     @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
-    @JsonIgnore val segmentSwitchIds: List<IntId<LayoutSwitch>> = listOf(),
+    @JsonIgnore override val segmentSwitchIds: List<IntId<LayoutSwitch>> = listOf(),
 ) : ILocationTrack, PolyLineLayoutAsset<LocationTrack>(contextData) {
 
     @JsonIgnore val exists = !state.isRemoved()
@@ -231,12 +276,6 @@ data class LocationTrack(
     }
 
     init {
-        require(descriptionBase.length in locationTrackDescriptionLength) {
-            "LocationTrack descriptionBase length invalid  not in range 4-256: " +
-                "id=$id " +
-                "length=${descriptionBase.length} " +
-                "allowed=$locationTrackDescriptionLength"
-        }
         require(dataType == DataType.TEMP || alignmentVersion != null) {
             "LocationTrack in DB must have an alignment: id=$id"
         }
@@ -254,9 +293,7 @@ data class LocationTrack(
             "id" to id,
             "version" to version,
             "context" to contextData::class.simpleName,
-            "namingScheme" to namingScheme,
-            "nameFreeText" to nameFreeText,
-            "nameSpecifier" to nameSpecifier,
+            "dbName" to dbName,
             "trackNumber" to trackNumberId,
             "alignment" to alignmentVersion,
         )
