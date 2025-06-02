@@ -134,7 +134,6 @@ export const initialMapState: Map = {
         'location-track-selected-alignment-layer',
         'location-track-split-alignment-layer',
         'reference-line-selected-alignment-layer',
-        'debug-geometry-graph-layer',
     ],
     layerMenu: {
         layout: [

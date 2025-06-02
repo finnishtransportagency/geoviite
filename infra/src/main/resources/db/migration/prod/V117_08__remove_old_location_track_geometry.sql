@@ -1,11 +1,3 @@
--- TODO: GVT-3097 Do we want to keep this data in a separate schema for comparisons?
-
--- TODO: GVT-3097 Drop these columns instead, but keep them for now to maintain the data for comparison
--- alter table layout.location_track_version alter column alignment_id drop not null;
--- alter table layout.location_track_version alter column alignment_version drop not null;
--- alter table layout.location_track alter column alignment_id drop not null;
--- alter table layout.location_track alter column alignment_version drop not null;
-
 -- Remove old alignment (now in edges) & topology switches (now in nodes) from location tracks
 alter table layout.location_track_version
   drop column alignment_id,
@@ -29,18 +21,24 @@ alter table layout.segment_version
   drop column switch_end_joint_number;
 
 -- Remove location track alignments (= alignments not connected to a reference line)
-delete from layout.segment_version s where not exists(
-  select 1
-    from layout.reference_line_version rl
-    where s.alignment_id = rl.alignment_id and s.alignment_version = rl.alignment_version
-);
-delete from layout.alignment_version a where not exists(
-  select 1
-    from layout.reference_line_version rl
-    where a.id = rl.alignment_id and a.version = rl.alignment_version
-);
-delete from layout.alignment a where not exists(
-  select 1
-    from layout.reference_line rl
-    where a.id = rl.alignment_id and a.version = rl.alignment_version
-);
+delete
+  from layout.segment_version s
+  where not exists(
+    select 1
+      from layout.reference_line_version rl
+      where s.alignment_id = rl.alignment_id and s.alignment_version = rl.alignment_version
+  );
+delete
+  from layout.alignment_version a
+  where not exists(
+    select 1
+      from layout.reference_line_version rl
+      where a.id = rl.alignment_id and a.version = rl.alignment_version
+  );
+delete
+  from layout.alignment a
+  where not exists(
+    select 1
+      from layout.reference_line rl
+      where a.id = rl.alignment_id and a.version = rl.alignment_version
+  );
