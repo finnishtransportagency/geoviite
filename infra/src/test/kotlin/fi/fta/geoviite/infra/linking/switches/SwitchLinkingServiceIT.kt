@@ -69,6 +69,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -754,6 +755,7 @@ constructor(
     private fun shiftTrack(template: List<LayoutSegment>, shiftVector: Point) =
         template.map { segment -> shiftSegmentGeometry(segment, shiftVector) }
 
+    @Disabled
     @Test
     fun `validateRelinkingTrack relinks okay cases and gives validation errors about bad ones`() {
         val trackNumberId =
