@@ -34,12 +34,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.assertMatches
@@ -55,13 +55,13 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -293,8 +293,8 @@ constructor(
         val (_, switch) = insertAndCheck(switch(name = "Foo", draft = false))
         val switchId = switch.id as IntId
         insertAndCheck(
-            locationTrack(trackNumberId, draft = false)
-                .copy(topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)))
+            locationTrack(trackNumberId, draft = false),
+            trackGeometry(edge(listOf(someSegment()), endOuterSwitch = switchLinkYV(switchId, 1))),
         )
         insertAndCheck(asMainDraft(switch.copy(name = SwitchName("FooEdited"))))
 
@@ -309,8 +309,8 @@ constructor(
         val (_, switch) = insertAndCheck(switch(name = "Foo", draft = true))
         val switchId = switch.id as IntId
         insertAndCheck(
-            locationTrack(trackNumberId, draft = true)
-                .copy(topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)))
+            locationTrack(trackNumberId, draft = true),
+            trackGeometry(edge(listOf(someSegment()), endOuterSwitch = switchLinkYV(switchId, 1))),
         )
         val publicationCandidates = publicationDao.fetchSwitchPublicationCandidates(PublicationInMain)
         val editedCandidate = publicationCandidates.first { s -> s.name == SwitchName("Foo") }
@@ -547,11 +547,24 @@ constructor(
         return official to fromDb
     }
 
-    private fun insertAndCheck(locationTrack: LocationTrack): Pair<LayoutRowVersion<LocationTrack>, LocationTrack> {
-        val official = locationTrackDao.save(locationTrack, TmpLocationTrackGeometry.empty)
+    private fun insertAndCheck(
+        locationTrack: LocationTrack,
+        geometry: LocationTrackGeometry = TmpLocationTrackGeometry.empty,
+    ): Pair<LayoutRowVersion<LocationTrack>, LocationTrack> {
+        val official = locationTrackDao.save(locationTrack, geometry)
         val fromDb = locationTrackDao.fetch(official)
         assertEquals(official.id, fromDb.id)
-        assertMatches(locationTrack, fromDb, contextMatch = false)
+        assertMatches(
+            locationTrack.copy(
+                // These fields are read from DB geometry and aren't set on track itself before saving
+                switchIds = geometry.switchIds,
+                segmentCount = geometry.segments.size,
+                length = geometry.length,
+                boundingBox = geometry.boundingBox,
+            ),
+            fromDb,
+            contextMatch = false,
+        )
         assertEquals(DataType.TEMP, locationTrack.dataType)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)

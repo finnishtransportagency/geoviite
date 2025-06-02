@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.switchLibrary.data.RR54_1_9
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -25,27 +24,12 @@ import fi.fta.geoviite.infra.tracklayout.segmentPoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class SwitchLinkingTest {
-    private var testLayoutSwitchId = IntId<LayoutSwitch>(0)
-    private var otherLayoutSwitchId = IntId<LayoutSwitch>(99)
-
-    private fun assertSwitchLinkingInfoEquals(
-        segment: LayoutSegment,
-        layoutSwitchId: IntId<LayoutSwitch>?,
-        startJointNumber: JointNumber?,
-        endJointNumber: JointNumber?,
-        segmentName: String = "",
-    ) {
-        val fullSegmentName = "Segment" + if (segmentName.isNotEmpty()) " ($segmentName)" else ""
-        assertEquals(layoutSwitchId, segment.switchId, "$fullSegmentName switchId")
-        assertEquals(startJointNumber, segment.startJointNumber, "$fullSegmentName startJointNumber")
-        assertEquals(endJointNumber, segment.endJointNumber, "$fullSegmentName endJointNumber")
-    }
 
     @Test
     fun `should find joint matches for suggested switch`() {

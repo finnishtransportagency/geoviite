@@ -35,9 +35,7 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
 ) =
     locationTrackService.saveDraft(
         LayoutBranch.main,
-        locationTrack.copy(
-            topologyEndSwitch = TopologyLocationTrackSwitch(switchId = switchId, jointNumber = jointNumber)
-        ),
+        locationTrack,
         geometry.withNodeReplacements(mapOf(replaceEndWithTopoSwitch(geometry, switchId, jointNumber, jointRole))),
     )
 

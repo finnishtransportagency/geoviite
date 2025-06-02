@@ -372,8 +372,6 @@ fun locationTrackAndGeometry(
     state: LocationTrackState = LocationTrackState.IN_USE,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
-    topologyStartSwitch: TopologyLocationTrackSwitch? = null,
-    topologyEndSwitch: TopologyLocationTrackSwitch? = null,
 ): Pair<LocationTrack, LocationTrackGeometry> =
     locationTrackAndGeometry(
         trackNumberId,
@@ -384,8 +382,6 @@ fun locationTrackAndGeometry(
         state = state,
         id = id,
         draft = draft,
-        topologyStartSwitch = topologyStartSwitch,
-        topologyEndSwitch = topologyEndSwitch,
     )
 
 fun locationTrackAndGeometry(
@@ -398,8 +394,6 @@ fun locationTrackAndGeometry(
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
     state: LocationTrackState = LocationTrackState.IN_USE,
-    topologyStartSwitch: TopologyLocationTrackSwitch? = null,
-    topologyEndSwitch: TopologyLocationTrackSwitch? = null,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val geometry = trackGeometryOfSegments(segments)
     val locationTrack =
@@ -413,8 +407,6 @@ fun locationTrackAndGeometry(
             description = description,
             duplicateOf = duplicateOf,
             state = state,
-            topologyStartSwitch = topologyStartSwitch,
-            topologyEndSwitch = topologyEndSwitch,
         )
     return locationTrack to geometry
 }
@@ -429,8 +421,6 @@ fun locationTrack(
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
-    topologyStartSwitch: TopologyLocationTrackSwitch? = null,
-    topologyEndSwitch: TopologyLocationTrackSwitch? = null,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
     contextData: LayoutContextData<LocationTrack> = createMainContext(id, draft),
@@ -445,8 +435,6 @@ fun locationTrack(
         type = type,
         state = state,
         topologicalConnectivity = topologicalConnectivity,
-        topologyStartSwitch = topologyStartSwitch,
-        topologyEndSwitch = topologyEndSwitch,
         duplicateOf = duplicateOf,
         ownerId = ownerId,
         descriptionSuffix = descriptionSuffix,
@@ -461,8 +449,6 @@ fun locationTrack(
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
-    topologyStartSwitch: TopologyLocationTrackSwitch? = null,
-    topologyEndSwitch: TopologyLocationTrackSwitch? = null,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
     descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
@@ -480,8 +466,6 @@ fun locationTrack(
         length = geometry.length,
         duplicateOf = duplicateOf,
         topologicalConnectivity = topologicalConnectivity,
-        topologyStartSwitch = topologyStartSwitch,
-        topologyEndSwitch = topologyEndSwitch,
         ownerId = ownerId,
         contextData = contextData,
     )
@@ -784,9 +768,6 @@ fun segment(
     vararg points: IPoint,
     source: GeometrySource = PLAN,
     sourceId: DomainId<GeometryElement>? = null,
-    switchId: IntId<LayoutSwitch>? = null,
-    startJointNumber: JointNumber? = null,
-    endJointNumber: JointNumber? = null,
     sourceStartM: Double? = null,
 ) =
     segment(
@@ -794,9 +775,6 @@ fun segment(
         source = source,
         sourceStartM = sourceStartM,
         sourceId = sourceId,
-        switchId = switchId,
-        startJointNumber = startJointNumber,
-        endJointNumber = endJointNumber,
     )
 
 fun segment(
@@ -805,17 +783,11 @@ fun segment(
     sourceId: DomainId<GeometryElement>? = null,
     sourceStartM: Double? = null,
     resolution: Int = 1,
-    switchId: IntId<LayoutSwitch>? = null,
-    startJointNumber: JointNumber? = null,
-    endJointNumber: JointNumber? = null,
 ) =
     LayoutSegment(
         geometry = SegmentGeometry(segmentPoints = points, resolution = resolution),
         sourceId = sourceId as IndexedId?,
         sourceStartM = sourceStartM?.let(LayoutSegment::sourceStartM),
-        switchId = switchId,
-        startJointNumber = startJointNumber,
-        endJointNumber = endJointNumber,
         source = source,
     )
 

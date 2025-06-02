@@ -193,9 +193,11 @@ constructor(
             mainOfficialContext
                 .save(
                     locationTrack(trackNumber),
-                    trackGeometryOfSegments(
-                        segment(Point(0.0, 0.0), Point(10.0, 0.0))
-                            .copy(switchId = switch, endJointNumber = JointNumber(1))
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                            endInnerSwitch = switchLinkYV(switch, 1),
+                        )
                     ),
                 )
                 .id

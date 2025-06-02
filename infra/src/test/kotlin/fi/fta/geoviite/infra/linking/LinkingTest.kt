@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IndexedId
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.math.Point
@@ -12,7 +9,6 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.mapAlignment
@@ -303,95 +299,6 @@ class LinkingTest {
                     )
             ),
         )
-    }
-
-    @Test
-    fun `Selected switches can be removed from alignment`() {
-        val switchId1 = IntId<LayoutSwitch>(1)
-        val switchId2 = IntId<LayoutSwitch>(2)
-        val segments =
-            listOf(
-                segment(
-                    Point(0.0, 0.0),
-                    Point(0.0, 1.0),
-                    switchId = switchId1,
-                    startJointNumber = JointNumber(1),
-                    endJointNumber = JointNumber(2),
-                ),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                segment(
-                    Point(0.0, 2.0),
-                    Point(0.0, 3.0),
-                    switchId = switchId2,
-                    startJointNumber = JointNumber(1),
-                    endJointNumber = null,
-                ),
-                segment(
-                    Point(0.0, 3.0),
-                    Point(0.0, 4.0),
-                    switchId = switchId2,
-                    startJointNumber = null,
-                    endJointNumber = JointNumber(1),
-                ),
-                segment(Point(0.0, 4.0), Point(0.0, 5.0)),
-                segment(
-                    Point(0.0, 5.0),
-                    Point(0.0, 6.0),
-                    switchId = switchId1,
-                    startJointNumber = JointNumber(1),
-                    endJointNumber = JointNumber(2),
-                ),
-            )
-        assertEquals(segments, removeSwitches(segments, setOf()))
-        assertEquals(
-            segments.map { s -> s.copy(switchId = null, startJointNumber = null, endJointNumber = null) },
-            removeSwitches(segments, setOf(switchId1, switchId2)),
-        )
-        assertEquals(
-            segments.map { s ->
-                if (s.switchId != switchId1) s
-                else s.copy(switchId = null, startJointNumber = null, endJointNumber = null)
-            },
-            removeSwitches(segments, setOf(switchId1)),
-        )
-        assertEquals(
-            segments.map { s ->
-                if (s.switchId != switchId2) s
-                else s.copy(switchId = null, startJointNumber = null, endJointNumber = null)
-            },
-            removeSwitches(segments, setOf(switchId2)),
-        )
-    }
-
-    @Test
-    fun `Affected switches are found with m-value range`() {
-        val switchId1 = IntId<LayoutSwitch>(1)
-        val switchId2 = IntId<LayoutSwitch>(2)
-        val switchId3 = IntId<LayoutSwitch>(3)
-        val alignment =
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = switchId1),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                segment(Point(0.0, 2.0), Point(0.0, 3.0), switchId = switchId2),
-                segment(Point(0.0, 3.0), Point(0.0, 4.0), switchId = switchId2),
-                segment(Point(0.0, 4.0), Point(0.0, 5.0)),
-                segment(Point(0.0, 5.0), Point(0.0, 6.0), switchId = switchId3),
-            )
-
-        assertEquals(setOf<DomainId<LayoutSwitch>>(), getSwitchIdsInside(alignment, Range(0.0, 0.0)))
-        assertEquals(setOf<DomainId<LayoutSwitch>>(), getSwitchIdsInside(alignment, Range(4.0, 5.0)))
-        assertEquals(setOf(switchId1, switchId2, switchId3), getSwitchIdsInside(alignment, Range(0.0, 6.0)))
-        assertEquals(setOf(switchId2, switchId3), getSwitchIdsInside(alignment, Range(3.1, 5.1)))
-        assertEquals(setOf(switchId2), getSwitchIdsInside(alignment, Range(3.5, 4.5)))
-        assertEquals(setOf(switchId2), getSwitchIdsInside(alignment, Range(1.5, 4.5)))
-        assertEquals(setOf<DomainId<LayoutSwitch>>(), getSwitchIdsInside(alignment, Range(4.5, 4.7)))
-        assertEquals(setOf(switchId3), getSwitchIdsInside(alignment, Range(5.5, 5.7)))
-
-        assertEquals(setOf(switchId1, switchId2, switchId3), getSwitchIdsOutside(alignment, Range(0.0, 0.0)))
-        assertEquals(setOf(switchId1, switchId2, switchId3), getSwitchIdsOutside(alignment, Range(4.0, 5.0)))
-        assertEquals(setOf(switchId1, switchId3), getSwitchIdsOutside(alignment, Range(1.0, 5.0)))
-        assertEquals(setOf(switchId1, switchId3), getSwitchIdsOutside(alignment, Range(0.5, 4.5)))
-        assertEquals(setOf<DomainId<LayoutSwitch>>(), getSwitchIdsOutside(alignment, Range(0.0, 6.0)))
     }
 
     @Test

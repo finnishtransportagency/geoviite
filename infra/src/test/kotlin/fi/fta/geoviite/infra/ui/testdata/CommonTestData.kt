@@ -219,12 +219,9 @@ fun locationTrackAndAlignmentForGeometryAlignment(
                             ),
                         resolution = 100,
                     ),
-                startJointNumber = null,
-                endJointNumber = null,
                 source = GeometrySource.PLAN,
                 sourceId = element.id as IndexedId,
                 sourceStartM = null,
-                switchId = null,
             )
         }
     return locationTrackAndGeometry(trackNumberId, segments, draft = draft)

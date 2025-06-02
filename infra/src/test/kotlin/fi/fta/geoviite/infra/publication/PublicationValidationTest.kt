@@ -30,7 +30,6 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -52,10 +51,10 @@ import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import org.junit.jupiter.api.Test
 
 class PublicationValidationTest {
 
@@ -706,7 +705,6 @@ class PublicationValidationTest {
                 locationTrack(
                     trackNumberId = IntId(100),
                     topologicalConnectivity = TopologicalConnectivityType.NONE,
-                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
                     draft = true,
                 ),
                 trackGeometry(

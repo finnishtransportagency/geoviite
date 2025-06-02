@@ -54,7 +54,7 @@ constructor(
     @BeforeEach
     fun setUp() {
         initUser()
-        jdbc.execute("truncate layout.alignment cascade") { it.execute() }
+        testDBService.clearLayoutTables()
     }
 
     @Test

@@ -126,8 +126,6 @@ class LocationTrackDao(
               ltv.design_id,
               ltv.draft,
               ltv.design_asset_state,
-              ltv.alignment_id,
-              ltv.alignment_version,
               ltv.track_number_id, 
               ltv.name, 
               ltv.description_base,
@@ -285,8 +283,6 @@ class LocationTrackDao(
               postgis.st_polygonfromtext(:polygon_string, 3067)
             ) on conflict (id, layout_context_id) do update set
               track_number_id = excluded.track_number_id,
-              alignment_id = excluded.alignment_id,
-              alignment_version = excluded.alignment_version,
               name = excluded.name,
               description_base = excluded.description_base,
               description_suffix = excluded.description_suffix,
