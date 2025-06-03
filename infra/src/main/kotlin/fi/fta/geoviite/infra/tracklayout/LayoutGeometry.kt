@@ -547,7 +547,7 @@ data class LayoutSegment(
         require(segmentMRange.min + snapDistance < segmentMRange.max) {
             "Slice m-range must be at least as long as snap distance: range=$segmentMRange snapDistance=$snapDistance"
         }
-        require(segmentMRange.min + snapDistance >= 0.0 && segmentMRange.max <= length) {
+        require(segmentMRange.min + snapDistance >= 0.0 && segmentMRange.max - snapDistance <= length) {
             "Slice m-range ends must be within segment (with snapDistance tolerance):" +
                 " range=$segmentMRange snapDistance=$snapDistance segment=${0.0..length}"
         }

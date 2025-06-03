@@ -8,6 +8,8 @@ data class StringSanitizer(val type: KClass<*>, val allowedCharacters: String, v
 
     fun assertSanitized(value: String) = assertSanitized(type, value, safeStringRegex, allowedLength)
 
+    fun assertTrimmed(value: String) = assertTrimmed(type, value)
+
     fun sanitize(value: String) = sanitize(value, unsafeCharactersRegex, allowedLength?.last)
 
     fun isSanitized(value: String) = isSanitized(value, safeStringRegex, allowedLength)

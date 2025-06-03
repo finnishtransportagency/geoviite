@@ -53,6 +53,7 @@ import org.springframework.transaction.annotation.Transactional
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
 const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
+const val CROP_SLICE_SNAPPING_TOLERANCE = 0.0001
 
 /**
  * Tools for finding a fit for a switch: The positioning of the switch's joints, based on the geometry of the tracks
@@ -970,7 +971,8 @@ fun cropAlignment(segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>, cropR
                         cropRange.contains(m) -> s to m
                         cropRange.overlaps(m) -> {
                             val newRange = Range(maxOf(m.min, cropRange.min), minOf(m.max, cropRange.max))
-                            s.slice(Range(newRange.min - m.min, newRange.max - m.min)) to newRange
+                            s.slice(Range(newRange.min - m.min, newRange.max - m.min), CROP_SLICE_SNAPPING_TOLERANCE) to
+                                newRange
                         }
 
                         else -> null

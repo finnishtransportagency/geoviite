@@ -438,7 +438,7 @@ function findTrackNumberKmPost(
         return getKmPostByNumber(
             draftLayoutContext(layoutContext),
             state.kmPost.trackNumberId,
-            state.kmPost.kmNumber,
+            state.kmPost.kmNumber.trim(),
             true,
         );
     } else {

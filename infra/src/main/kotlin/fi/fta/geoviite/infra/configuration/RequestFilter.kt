@@ -12,6 +12,7 @@ import correlationId
 import currentUser
 import currentUserRole
 import fi.fta.geoviite.api.configuration.ExtApiConfiguration
+import fi.fta.geoviite.api.tracklayout.v1.EXT_TRACK_LAYOUT_BASE_PATH
 import fi.fta.geoviite.infra.SpringContextUtility
 import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.authorization.AuthName
@@ -27,6 +28,8 @@ import fi.fta.geoviite.infra.environmentInfo.EnvironmentInfo
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.error.InvalidUiVersionException
 import fi.fta.geoviite.infra.error.createErrorResponse
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiRequest
 import fi.fta.geoviite.infra.logging.apiResponse
 import jakarta.servlet.FilterChain
@@ -51,6 +54,8 @@ import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
+import org.springframework.web.context.request.ServletWebRequest
+import org.springframework.web.context.request.WebRequest
 import org.springframework.web.filter.OncePerRequestFilter
 
 const val HTTP_HEADER_REMOTE_IP = "X-FORWARDED-FOR"
@@ -80,6 +85,7 @@ constructor(
     @Value("\${geoviite.app-root:}") private val appRoot: String,
     private val extApi: ExtApiConfiguration,
     private val environmentInfo: EnvironmentInfo,
+    private val localizationService: LocalizationService,
 ) : OncePerRequestFilter() {
 
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
@@ -202,7 +208,14 @@ constructor(
                 chain.doFilter(request, response)
             }
         } catch (ex: Exception) {
-            val errorResponse = createErrorResponse(log, ex)
+            val errorResponse =
+                createErrorResponse(
+                    logger = log,
+                    exception = ex,
+                    requestType = (request as? WebRequest)?.let(::inferRequestType) ?: GeoviiteRequestType.Other,
+                    translation = localizationService.getLocalization(LocalizationLanguage.FI),
+                )
+
             response.contentType = errorResponse.headers.contentType?.toString() ?: MediaType.APPLICATION_JSON_VALUE
             response.status = errorResponse.statusCode.value()
             response.writer.write(objectMapper.writeValueAsString(errorResponse.body))
@@ -436,4 +449,23 @@ private fun parseAuthCodes(authCodeListing: String): List<AuthCode> {
         }
 
     return authCodeStrings.filter(::isValidCode).map(::AuthCode)
+}
+
+enum class GeoviiteRequestType {
+    ExtApiV1,
+    Other,
+}
+
+fun inferRequestType(request: WebRequest): GeoviiteRequestType {
+    val servletRequest = request as? ServletWebRequest
+
+    return when {
+        servletRequest != null && servletRequest.request.requestURI.startsWith(EXT_TRACK_LAYOUT_BASE_PATH) -> {
+            GeoviiteRequestType.ExtApiV1
+        }
+
+        else -> {
+            GeoviiteRequestType.Other
+        }
+    }
 }

@@ -12,6 +12,7 @@ Kuvaus järjestelmän tarkoituksesta kannattaa katsoa Confluencesta vaatimusmä�
 * [Julkaisut](julkaisut.md)
 * [Autentikaatio ja autorisaatio](autentikaatio_ja_autorisaatio.md)
 * [Virhekäsittely](virhekasittely.md)
+* [Välimuisti](välimuisti.md)
 * [Projektivelho](projektivelho.md)
 
 Kehittäjien ohjeet säilytetään versionhallinnassa, koodin rinnalla markdown-formaatissa

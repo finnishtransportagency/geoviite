@@ -394,6 +394,7 @@ fun locationTrackAndGeometry(
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
     state: LocationTrackState = LocationTrackState.IN_USE,
+    ownerId: IntId<LocationTrackOwner> = IntId(1),
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val geometry = trackGeometryOfSegments(segments)
     val locationTrack =
@@ -407,6 +408,7 @@ fun locationTrackAndGeometry(
             description = description,
             duplicateOf = duplicateOf,
             state = state,
+            ownerId = ownerId,
         )
     return locationTrack to geometry
 }

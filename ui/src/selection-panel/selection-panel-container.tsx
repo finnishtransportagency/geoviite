@@ -49,14 +49,14 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
 
     const togglePlanDownload = () => {
         if (state.planDownloadState) {
-            delegates.onStopPlanDownload();
+            delegates.onClosePlanDownloadPopup();
         } else if (state.layoutContext.publicationState === 'DRAFT') {
             setSwitchToOfficialDialogOpen(true);
         } else {
             const initialAsset = state.selectedToolPanelTab
                 ? planDownloadAssetIdFromToolPanelAsset(state.selectedToolPanelTab)
                 : undefined;
-            delegates.onStartPlanDownload(initialAsset);
+            delegates.onOpenPlanDownloadPopup(initialAsset);
         }
     };
 

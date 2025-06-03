@@ -881,6 +881,14 @@ fun validateAddressPoints(
     val discontinuousAddressRanges = describeAsAddressRanges(discontinuousAddressRangeIndices(allAddresses))
 
     return listOfNotNull(
+        validateWithParams(addresses.alignmentWalkFinished) {
+            "$VALIDATION_GEOCODING.bad-geometry-for-geocoding" to
+                localizationParams(
+                    "trackNumber" to trackNumber.number,
+                    "locationTrack" to locationTrack.name,
+                    "lastAddress" to (addresses.midPoints.lastOrNull()?.address ?: addresses.startPoint.address),
+                )
+        },
         validateWithParams(addresses.startIntersect == WITHIN) {
             "$VALIDATION_GEOCODING.start-outside-reference-line" to
                 localizationParams("referenceLine" to trackNumber.number, "locationTrack" to locationTrack.name)

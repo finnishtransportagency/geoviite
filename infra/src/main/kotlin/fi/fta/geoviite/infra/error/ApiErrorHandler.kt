@@ -1,8 +1,15 @@
 package fi.fta.geoviite.infra.error
 
 import correlationId
+import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.configuration.GeoviiteRequestType
+import fi.fta.geoviite.infra.configuration.inferRequestType
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.localization.Translation
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
@@ -15,37 +22,52 @@ import org.springframework.web.context.request.WebRequest
 @ConditionalOnWebApplication
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @ControllerAdvice
-class ApiErrorHandler {
-
-    private val log: Logger = LoggerFactory.getLogger(this::class.java)
+@GeoviiteService
+class ApiErrorHandler @Autowired constructor(private val localizationService: LocalizationService) {
+    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     init {
-        log.info("Initialized error handler")
+        logger.info("Initialized error handler")
     }
 
     @ExceptionHandler(value = [(Exception::class)])
-    fun handleAnyException(ex: Exception, request: WebRequest): ResponseEntity<ApiErrorResponse> =
-        createErrorResponse(log, ex)
+    fun handleAnyException(exception: Exception, request: WebRequest): ResponseEntity<GeoviiteErrorResponse> {
+        return createErrorResponse(
+            logger,
+            exception,
+            requestType = inferRequestType(request),
+            translation = localizationService.getLocalization(LocalizationLanguage.FI),
+        )
+    }
 }
 
-fun createErrorResponse(log: Logger, ex: Exception): ResponseEntity<ApiErrorResponse> {
+fun createErrorResponse(
+    logger: Logger,
+    exception: Exception,
+    requestType: GeoviiteRequestType,
+    translation: Translation,
+): ResponseEntity<GeoviiteErrorResponse> {
     val correlationId: String = correlationId.getOrNull() ?: "N/A"
     val response =
-        createResponse(ex, correlationId)
+        handleErrorResponseCreation(exception, correlationId, requestType, translation)
             ?: run {
-                log.warn(
+                logger.warn(
                     "Error handling failed. Defaulting to \"Internal server error\": " +
-                        "correlationId=$correlationId exceptionChain=${getCauseChain(ex)}"
+                        "correlationId=$correlationId exceptionChain=${getCauseChain(exception)}"
                 )
                 createTerseErrorResponse(correlationId, INTERNAL_SERVER_ERROR)
             }
     when {
         // Log server errors with full stack
-        response.statusCode.is5xxServerError -> log.error("Server error: correlationId=$correlationId $response", ex)
+        response.statusCode.is5xxServerError ->
+            logger.error("Server error: correlationId=$correlationId $response", exception)
         // Log handled (client) errors with Exception.toString -> no stack
         response.statusCode.is4xxClientError ->
-            log.warn("Client error: correlationId=$correlationId $response exception=\"$ex\"")
-        else -> log.info("Non-error response: correlationId=$correlationId ${response.statusCode} exception=\"$ex\"")
+            logger.warn("Client error: correlationId=$correlationId $response exception=\"$exception\"")
+        else ->
+            logger.info(
+                "Non-error response: correlationId=$correlationId ${response.statusCode} exception=\"$exception\""
+            )
     }
     return response
 }

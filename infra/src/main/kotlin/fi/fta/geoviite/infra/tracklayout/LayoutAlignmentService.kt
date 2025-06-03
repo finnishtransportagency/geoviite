@@ -8,13 +8,20 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geography.bufferedPolygonForLineStringPoints
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
+import fi.fta.geoviite.infra.linking.switches.CROP_SLICE_SNAPPING_TOLERANCE
+import fi.fta.geoviite.infra.linking.switches.CroppedAlignment
+import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION
+import fi.fta.geoviite.infra.map.simplify
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
-class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
+class LayoutAlignmentService(private val dao: LayoutAlignmentDao, private val geometryDao: GeometryDao) {
 
     fun update(alignment: LayoutAlignment) = dao.update(alignment)
 
@@ -83,7 +90,49 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
             }
         }
     }
+
+    fun getOverlappingPlanHeaders(
+        geometry: LocationTrackGeometry,
+        polygonBufferSize: Double,
+        cropStartM: Double?,
+        cropEndM: Double?,
+    ): List<GeometryPlanHeader> {
+        val simplifiedAlignment =
+            simplify(
+                alignment =
+                    if (cropStartM == null && cropEndM == null) geometry
+                    else cropGeometry(geometry, cropStartM, cropEndM),
+                resolution = ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION,
+                bbox = null,
+                includeSegmentEndPoints = true,
+            )
+
+        val polygon = bufferedPolygonForLineStringPoints(simplifiedAlignment, polygonBufferSize, LAYOUT_SRID)
+        val plans = geometryDao.fetchIntersectingPlans(polygon, LAYOUT_SRID)
+
+        return geometryDao.getPlanHeaders(plans)
+    }
+
+    private fun cropGeometry(geometry: LocationTrackGeometry, cropStartM: Double?, cropEndM: Double?): IAlignment {
+        val mRange = Range(cropStartM ?: requireNotNull(geometry.start?.m), cropEndM ?: requireNotNull(geometry.end?.m))
+
+        val (segments, segmentMRanges) =
+            geometry.segmentMValues
+                .mapIndexedNotNull { index, sRange -> getSegmentMRangeInMRange(sRange, mRange)?.let { index to it } }
+                .map { (index, sRange) ->
+                    geometry.segments[index].slice(sRange, CROP_SLICE_SNAPPING_TOLERANCE) to sRange
+                }
+                .unzip()
+
+        return CroppedAlignment(0, segments, segmentMRanges)
+    }
 }
+
+private fun getSegmentMRangeInMRange(sRange: Range<Double>, mRange: Range<Double>): Range<Double>? =
+    sRange
+        .intersection(mRange)
+        ?.takeIf { range -> range.max - range.min > CROP_SLICE_SNAPPING_TOLERANCE }
+        ?.let { range -> Range(range.min - sRange.min, range.max - sRange.min) }
 
 private fun toPlanSectionPoint(point: IPoint, alignment: IAlignment, context: GeocodingContext) =
     context.getAddress(point)?.let { (address, _) ->

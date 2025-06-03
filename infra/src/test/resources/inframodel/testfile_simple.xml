@@ -25,8 +25,8 @@
     <Author createdBy="Geoviite Test Author" createdByEmail="example@vayla.fi" company="Test"
             companyURL="vayla.fi" timeStamp="2022-11-02T13:37:00"></Author>
   </Application>
-  <Alignments name="001" desc="Test data" state="proposed">
-    <Alignment name="T1" desc="T1" oID="11" state="proposed" staStart="0.000000" length="2372.489079">
+  <Alignments name="   001   " desc="Test data" state="proposed">
+    <Alignment name="  T1  " desc="T1" oID="11" state="proposed" staStart="0.000000" length="2372.489079">
       <CoordGeom>
         <Line dir="387.284143" length="617.216021" staStart="0.000000" name="S01" oID="209">
           <Start>6673718.296540 25496706.966606</Start>

@@ -571,7 +571,7 @@ constructor(
         trackNumber: TrackNumber?,
     ) {
         assertNotNull(trackNumber)
-        assertEquals(TrackNumber(infraModelAlignmentGroups.first().name), trackNumber)
+        assertEquals(TrackNumber(infraModelAlignmentGroups.first().name.trim()), trackNumber)
     }
 
     private fun assertAlignmentsMatch(
@@ -581,8 +581,8 @@ constructor(
         assertEquals(infraModelAlignments.size, gvtAlignments.size)
         infraModelAlignments.forEachIndexed { aIndex, xmlAlignment ->
             val gvtAlignment = gvtAlignments[aIndex]
-            assertEquals(AlignmentName(xmlAlignment.name), gvtAlignment.name)
-            assertEquals(FreeText(xmlAlignment.desc!!), gvtAlignment.description)
+            assertEquals(AlignmentName(xmlAlignment.name.trim()), gvtAlignment.name)
+            assertEquals(FreeText(xmlAlignment.desc!!.trim()), gvtAlignment.description)
             assertEquals(xmlAlignment.elements.size, gvtAlignment.elements.size)
             xmlAlignment.elements.forEachIndexed { eIndex, xmlElement ->
                 val gvtElement = gvtAlignment.elements[eIndex]

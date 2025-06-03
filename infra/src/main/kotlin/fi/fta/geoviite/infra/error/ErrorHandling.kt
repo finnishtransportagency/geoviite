@@ -8,8 +8,11 @@ import com.auth0.jwt.exceptions.TokenExpiredException
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException
+import fi.fta.geoviite.api.tracklayout.v1.createExtApiErrorResponseV1
+import fi.fta.geoviite.infra.configuration.GeoviiteRequestType
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import jakarta.xml.bind.UnmarshalException
 import org.geotools.api.referencing.operation.TransformException
@@ -48,32 +51,45 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException
 import org.springframework.web.multipart.support.MissingServletRequestPartException
 import org.springframework.web.servlet.NoHandlerFoundException
 
-fun createResponse(exception: Exception, correlationId: String): ResponseEntity<ApiErrorResponse>? {
+fun handleErrorResponseCreation(
+    exception: Exception,
+    correlationId: String,
+    requestType: GeoviiteRequestType,
+    translation: Translation,
+): ResponseEntity<GeoviiteErrorResponse>? {
     val causeChain = getCauseChain(exception)
-    val status = getStatusCode(causeChain)
-    return status?.let { s ->
-        if (s.is5xxServerError) {
-            createTerseErrorResponse(correlationId, s)
-        } else {
-            createDescriptiveErrorResponse(correlationId, s, causeChain)
+
+    return getStatusCode(causeChain)?.let { status ->
+        when (requestType) {
+            GeoviiteRequestType.ExtApiV1 -> {
+                createExtApiErrorResponseV1(correlationId, status, causeChain, translation)
+            }
+
+            GeoviiteRequestType.Other -> {
+                if (status.is5xxServerError) {
+                    createTerseErrorResponse(correlationId, status)
+                } else {
+                    createDescriptiveErrorResponse(correlationId, status, causeChain)
+                }
+            }
         }
     }
 }
 
-fun createTerseErrorResponse(correlationId: String, status: HttpStatus): ResponseEntity<ApiErrorResponse> =
+fun createTerseErrorResponse(correlationId: String, status: HttpStatus): ResponseEntity<GeoviiteErrorResponse> =
     createResponse(listOf(describe(status)), status, correlationId)
 
 fun createDescriptiveErrorResponse(
     correlationId: String,
     status: HttpStatus,
     causeChain: List<Exception>,
-): ResponseEntity<ApiErrorResponse> = createResponse(causeChain.mapNotNull(::describe), status, correlationId)
+): ResponseEntity<GeoviiteErrorResponse> = createResponse(causeChain.mapNotNull(::describe), status, correlationId)
 
 fun createResponse(
     messageRows: List<ErrorDescription>,
     status: HttpStatus,
     correlationId: String,
-): ResponseEntity<ApiErrorResponse> {
+): ResponseEntity<GeoviiteErrorResponse> {
     val headers = HttpHeaders()
     headers.contentType = MediaType.APPLICATION_JSON
     val description = getPrimaryDescription(messageRows, status)

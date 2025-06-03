@@ -147,9 +147,15 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
 
     const saveTrackNumber = () => {
         setSaveInProgress(true);
+        const trackNumberWithTrimmedStrings = {
+            ...state.request,
+            number: state.request.number.trim(),
+            description: state.request.description.trim(),
+        };
+
         const operation = inEditTrackNumber
-            ? updateTrackNumber(layoutContext, inEditTrackNumber.id, state.request)
-            : createTrackNumber(layoutContext, state.request);
+            ? updateTrackNumber(layoutContext, inEditTrackNumber.id, trackNumberWithTrimmedStrings)
+            : createTrackNumber(layoutContext, trackNumberWithTrimmedStrings);
         operation
             .then((tn) => {
                 if (tn) {

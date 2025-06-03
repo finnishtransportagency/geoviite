@@ -24,7 +24,7 @@ export const ConfirmMoveToMainOfficialDialogContainer: React.FC<
     return (
         <ConfirmMoveToMainOfficialDialog
             moveToMainOfficial={() => delegates.onLayoutContextModeChange('MAIN_OFFICIAL')}
-            openPlanDownloadDialog={() => delegates.onStartPlanDownload(initialAsset)}
+            openPlanDownloadDialog={() => delegates.onOpenPlanDownloadPopup(initialAsset)}
             onClose={onClose}
         />
     );

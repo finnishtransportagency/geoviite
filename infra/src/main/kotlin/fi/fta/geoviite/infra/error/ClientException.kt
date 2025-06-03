@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.error
 
-import fi.fta.geoviite.api.frameconverter.v1.FrameConverterErrorV1
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.RowVersion
@@ -22,7 +21,7 @@ interface HasLocalizedMessage {
     val localizationParams: LocalizationParams
 }
 
-sealed class ClientException(
+open class ClientException(
     val status: HttpStatus,
     message: String,
     cause: Throwable? = null,
@@ -214,10 +213,3 @@ class InvalidUiVersionException(cause: Throwable? = null) :
         cause = cause,
         localizedMessageKey = "error.bad-request.invalid-version",
     )
-
-class ExtApiExceptionV1(
-    message: String,
-    cause: Throwable? = null,
-    error: FrameConverterErrorV1,
-    localizationParams: LocalizationParams = LocalizationParams.empty,
-) : ClientException(BAD_REQUEST, "Invalid request: $message", cause, error.localizationKey, localizationParams)
