@@ -200,14 +200,6 @@ class ValidationContext(
                 SwitchTrackLinking(switchId, name, switch, structure, links, switchIsCancelled(switchId))
             }
 
-//    fun getTopologicallyConnectedSwitches(track: LocationTrack): List<TopologySwitch> =
-//        listOfNotNull(track.topologyStartSwitch?.switchId, track.topologyEndSwitch?.switchId).map { switchId ->
-//            val switch = getSwitch(switchId)
-//            // If there's no draft either, we have a referential integrity error
-//            val name = switch?.name ?: requireNotNull(getCandidateSwitch(switchId)).name
-//            TopologySwitch(switch, name, switchIsCancelled(switchId))
-//        }
-
     fun getPublicationSplits(): List<Split> =
         allUnfinishedSplits.filter { split -> publicationSet.containsSplit(split.id) }
 

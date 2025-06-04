@@ -46,6 +46,7 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
             }
 }
 
+// TODO: GVT-2935 This is likely no longer needed as LocationTrack and ReferenceLine are now different
 sealed class PolyLineLayoutAsset<T : PolyLineLayoutAsset<T>>(contextData: LayoutContextData<T>) :
     LayoutAsset<T>(contextData) {}
 

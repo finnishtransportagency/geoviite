@@ -343,40 +343,6 @@ fun validateSwitchTopologicalConnectivity(
 fun switchOrTrackLinkageKey(validatingTrack: LocationTrack?) =
     if (validatingTrack != null) "$VALIDATION_LOCATION_TRACK.switch-linkage" else "$VALIDATION_SWITCH.track-linkage"
 
-// private fun getTracksThroughJoints(
-//    structure: SwitchStructure,
-//    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
-//    switch: LayoutSwitch,
-// ): Map<JointNumber, List<LocationTrack>> =
-//    structure.joints
-//        .map { it.number }
-//        .associateWith { jointNumber -> getTracksThroughJoint(tracks, switch, jointNumber) }
-
-// private fun getTracksThroughJoint(
-//    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
-//    switch: LayoutSwitch,
-//    jointNumber: JointNumber,
-// ) =
-//    tracks
-//        .filter { (_, geometry) -> trackPassesThroughJoint(geometry, switch, jointNumber) }
-//        .map { (locationTrack, _) -> locationTrack }
-
-// private fun trackPassesThroughJoint(
-//    geometry: LocationTrackGeometry,
-//    switch: LayoutSwitch,
-//    jointNumber: JointNumber,
-// ): Boolean {
-//    val startJointLinkIndex =
-//        geometry.segments.indexOfFirst { segment ->
-//            segment.switchId == switch.id && segment.startJointNumber == jointNumber
-//        }
-//    val endJointLinkIndex =
-//        geometry.segments.indexOfFirst { segment ->
-//            segment.switchId == switch.id && segment.endJointNumber == jointNumber
-//        }
-//    return startJointLinkIndex > 0 || (endJointLinkIndex != -1 && endJointLinkIndex < geometry.segments.lastIndex)
-// }
-//
 private fun validateFrontJointTopology(
     switch: LayoutSwitch,
     switchStructure: SwitchStructure,
@@ -948,28 +914,6 @@ private fun nodeAndJointLocationsAgree(switch: LayoutSwitch, trackLinks: List<Tr
             joint != null && joint.location.isSame(link.location, JOINT_LOCATION_DELTA)
         }
 
-// private fun segmentAndJointLocationsAgree(switch: LayoutSwitch, segmentGroup: List<LayoutSegment>): Boolean =
-//    segmentGroup.all { segment -> segmentAndJointLocationsAgree(switch, segment) }
-//
-// private fun segmentAndJointLocationsAgree(switch: LayoutSwitch, segment: LayoutSegment): Boolean {
-//    val jointLocations =
-//        listOfNotNull(
-//            segment.startJointNumber?.let { jn -> segment.segmentStart to jn },
-//            segment.endJointNumber?.let { jn -> segment.segmentEnd to jn },
-//        )
-//    return jointLocations.all { (location, jointNumber) ->
-//        val joint = switch.getJoint(jointNumber)
-//        joint != null && joint.location.isSame(location, JOINT_LOCATION_DELTA)
-//    }
-// }
-
-// private fun topologyLinkAndJointLocationsAgree(switch: LayoutSwitch, endLinks: List<TopologyEndLink>): Boolean {
-//    return endLinks.all { topologyEndLink ->
-//        val switchJoint = switch.getJoint(topologyEndLink.topologySwitch.jointNumber)
-//        switchJoint != null && switchJoint.location.isSame(topologyEndLink.point, JOINT_LOCATION_DELTA)
-//    }
-// }
-//
 private fun trackJointGroupFound(trackJoints: List<JointNumber>, structureJointGroups: List<List<JointNumber>>) =
     structureJointGroups.any { structureJoints -> jointGroupMatches(trackJoints, structureJoints) }
 
@@ -1004,25 +948,9 @@ private fun collectJoints(structure: SwitchStructure) =
         listOf(alignment.jointNumbers) + partialAlignments
     }
 
-// private fun collectJoints(track: LocationTrack, segments: List<LayoutSegment>): Pair<LocationTrack,
-// List<JointNumber>> =
-//    track to collectJoints(segments)
-
-// private fun collectJoints(segments: List<LayoutSegment>): List<JointNumber> {
-//    val allJoints = segments.flatMap { segment -> listOfNotNull(segment.startJointNumber, segment.endJointNumber) }
-//    return allJoints.filterIndexed { index, jointNumber -> index == 0 || allJoints[index - 1] != jointNumber }
-// }
-
 private fun areLinksContinuous(links: List<Pair<Int, TrackSwitchLink>>): Boolean =
     links.zipWithNext().all { (prev, next) -> prev.first + 1 == next.first }
 
-// private fun areSegmentsContinuous(segments: List<LayoutSegment>): Boolean =
-//    segments
-//        .mapIndexed { index, segment ->
-//            index == 0 || segments[index - 1].segmentEnd.isSame(segment.segmentStart, LAYOUT_COORDINATE_DELTA)
-//        }
-//        .all { it }
-//
 private fun discontinuousDirectionRangeIndices(points: List<AlignmentPoint>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::directionBetweenPoints).zipWithNext(::isAngleDiffOk), 2)
 
@@ -1055,26 +983,6 @@ fun validateWithParams(
         null
     }
 
-// data class TopologyEndLink(val topologySwitch: TopologyLocationTrackSwitch, val point: AlignmentPoint)
-//
-// private fun collectTopologyEndLinks(
-//    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-//    switch: LayoutSwitch,
-// ): List<Pair<LocationTrack, List<TopologyEndLink>>> =
-//    locationTracks
-//        .map { (track, alignment) ->
-//            track to
-//                listOfNotNull(
-//                    track.topologyStartSwitch
-//                        ?.takeIf { topologySwitch -> topologySwitch.switchId == switch.id }
-//                        ?.let { topologySwitch -> alignment.start?.let { p -> TopologyEndLink(topologySwitch, p) } },
-//                    track.topologyEndSwitch
-//                        ?.takeIf { topologySwitch -> topologySwitch.switchId == switch.id }
-//                        ?.let { topologySwitch -> alignment.end?.let { p -> TopologyEndLink(topologySwitch, p) } },
-//                )
-//        }
-//        .filter { (_, ends) -> ends.isNotEmpty() }
-//
 fun validationFatal(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
     LayoutValidationIssue(FATAL, key, params.associate { it })
 

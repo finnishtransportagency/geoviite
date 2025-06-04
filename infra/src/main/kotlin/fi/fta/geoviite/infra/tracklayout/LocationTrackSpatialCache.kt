@@ -9,9 +9,9 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.lineLength
-import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class LocationTrackSpatialCache
@@ -33,7 +33,7 @@ constructor(
         ContextCache(locationTrackDao::fetch, alignmentDao::fetch, alignmentDao::fetch)
 
     private fun refresh(cache: ContextCache, newTracks: Map<IntId<LocationTrack>, LocationTrack>): ContextCache {
-        // TODO: GVT-1727 This could possibly be optimized by edges, since their geometries don't change
+        // TODO: GVT-3113 This could possibly be optimized by edges, since their geometries don't change
 
         val (staleTracks, currentTracks) =
             cache.items

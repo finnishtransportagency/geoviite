@@ -520,8 +520,8 @@ data class LayoutSegment(
 ) : ISegmentGeometry by geometry, ISegment, Loggable {
 
     companion object {
-        val SOURCE_START_M_SCALE = 6
-        val zeroSourceStartM = BigDecimal.valueOf(0, SOURCE_START_M_SCALE)
+        const val SOURCE_START_M_SCALE = 6
+        val zeroSourceStartM: BigDecimal = BigDecimal.valueOf(0, SOURCE_START_M_SCALE)
 
         fun sourceStartM(value: Double) = round(value, SOURCE_START_M_SCALE)
     }

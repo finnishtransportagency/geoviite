@@ -152,7 +152,8 @@ class LayoutTrackNumberDao(
             number = rs.getTrackNumber("number"),
             description = rs.getString("description").let(::TrackNumberDescription),
             state = rs.getEnum("state"),
-            // TODO: GVT-2442 This should be non-null but we have tests that produce broken data
+
+            // TODO: GVT-2935 This should be non-null but we have tests that produce broken data
             // To fix this, we could use a similar model as LocationTrack+LocationTrackGeometry
             // There, they are save always as one, all the way from DAO.save
             referenceLineId = rs.getIntIdOrNull("reference_line_id"),

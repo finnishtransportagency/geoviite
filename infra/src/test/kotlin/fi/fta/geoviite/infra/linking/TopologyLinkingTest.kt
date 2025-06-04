@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 
-class TopologyLinkinTest {
+class TopologyLinkingTest {
 
     @Test
     fun `Node combining works`() {

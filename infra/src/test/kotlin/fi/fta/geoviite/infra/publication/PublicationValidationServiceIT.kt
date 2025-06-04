@@ -1080,7 +1080,7 @@ constructor(
                     locationTrack(trackNumberId, draft = true),
                     trackGeometry(
                         edge(
-                            startInnerSwitch = switchLinkYV(switchId, 5), // TODO: 5? really?
+                            startInnerSwitch = switchLinkYV(switchId, 1),
                             endInnerSwitch = switchLinkYV(switchId, 3),
                             segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 2.0))),
                         )

@@ -16,7 +16,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -37,16 +36,16 @@ import fi.fta.geoviite.infra.ui.testdata.pointsFromIncrementList
 import fi.fta.geoviite.infra.ui.testdata.referenceLine
 import fi.fta.geoviite.infra.ui.util.metersToDouble
 import fi.fta.geoviite.infra.ui.util.pointToCoordinateString
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 // the point where the map opens up by default
 val DEFAULT_BASE_POINT = Point(385782.89, 6672277.83)
@@ -62,7 +61,6 @@ constructor(
     private val switchDao: LayoutSwitchDao,
     private val kmPostDao: LayoutKmPostDao,
     private val referenceLineDao: ReferenceLineDao,
-    private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val locationTrackService: LocationTrackService,
 ) : SeleniumTest() {
