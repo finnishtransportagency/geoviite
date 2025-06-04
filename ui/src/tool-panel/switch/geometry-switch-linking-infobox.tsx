@@ -13,7 +13,7 @@ import {
 } from 'linking/linking-model';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
-import { LayoutSwitch } from 'track-layout/track-layout-model';
+import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
 import { SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
@@ -44,6 +44,7 @@ import { VIEW_LAYOUT_DRAFT } from 'user/user-model';
 type GeometrySwitchLinkingInfoboxProps = {
     geometrySwitchId?: GeometrySwitchId;
     selectedSuggestedSwitch?: SuggestedSwitch;
+    selectLayoutSwitchForLinking?: (layoutSwitchId: LayoutSwitchId) => void;
     switchId?: GeometrySwitchId;
     linkingState?: LinkingSwitch;
     onLinkingStart: (suggestedSwitch: SuggestedSwitch) => void;
@@ -70,6 +71,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     switchId,
     onLinkingStart,
     selectedSuggestedSwitch,
+    selectLayoutSwitchForLinking,
     onSelect,
     onUnselect,
     switchChangeTime,
@@ -91,10 +93,14 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         } else if (selectedSuggestedSwitch) {
             return Promise.resolve({ switch: selectedSuggestedSwitch });
         } else if (geometrySwitchId !== undefined) {
-            return getSuggestedSwitchForGeometrySwitch(layoutContext.branch, geometrySwitchId);
+            return getSuggestedSwitchForGeometrySwitch(
+                layoutContext.branch,
+                geometrySwitchId,
+                layoutSwitch?.id,
+            );
         }
         return undefined;
-    }, [geometrySwitchId, selectedSuggestedSwitch]);
+    }, [geometrySwitchId, selectedSuggestedSwitch, layoutSwitch]);
     const suggestedSwitch =
         suggestedSwitchResult === undefined
             ? undefined
@@ -142,14 +148,26 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         isValidLayoutSwitch &&
         linkingState?.state === 'allSet' &&
         !linkingCallInProgress &&
-        selectedLayoutSwitch.stateCategory !== 'NOT_EXISTING';
+        selectedLayoutSwitch.stateCategory !== 'NOT_EXISTING' &&
+        suggestedSwitchFetchStatus === LoaderStatus.Ready;
 
     React.useEffect(() => setSwitchTypeDifferenceIsConfirmed(false), [selectedLayoutSwitch]);
 
+    function setSuggestedSwitch(
+        newSuggestedSwitch: SuggestedSwitch,
+        layoutSwitchId?: LayoutSwitchId,
+    ) {
+        onSuggestedSwitchChange && onSuggestedSwitchChange(newSuggestedSwitch);
+        onLinkingStart(newSuggestedSwitch);
+        if (layoutSwitchId && selectLayoutSwitchForLinking) {
+            onSelect({ switches: [layoutSwitchId] });
+            selectLayoutSwitchForLinking(layoutSwitchId);
+        }
+    }
+
     function startLinking() {
         if (suggestedSwitch) {
-            onSuggestedSwitchChange && onSuggestedSwitchChange(suggestedSwitch);
-            onLinkingStart(suggestedSwitch);
+            setSuggestedSwitch(suggestedSwitch);
         }
     }
 
@@ -245,16 +263,18 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                                             }>
                                             {t('tool-panel.switch.geometry.select-switch-msg')}
                                         </span>
-                                        <GeometrySwitchLinkingCandidates
-                                            layoutContext={layoutContext}
-                                            onSelectSwitch={(s) => onSelect({ switches: [s.id] })}
-                                            selectedSwitchId={layoutSwitch?.id}
-                                            switchChangeTime={switchChangeTime}
-                                            suggestedSwitch={suggestedSwitch}
-                                            onShowAddSwitchDialog={() =>
-                                                setShowAddSwitchDialog(true)
-                                            }
-                                        />
+                                        {geometrySwitchId && (
+                                            <GeometrySwitchLinkingCandidates
+                                                layoutContext={layoutContext}
+                                                geometrySwitchId={geometrySwitchId}
+                                                switchChangeTime={switchChangeTime}
+                                                suggestedSwitch={suggestedSwitch}
+                                                onSelectSuggestedSwitch={setSuggestedSwitch}
+                                                onShowAddSwitchDialog={() =>
+                                                    setShowAddSwitchDialog(true)
+                                                }
+                                            />
+                                        )}
                                     </React.Fragment>
                                 )}
                                 {suggestedSwitch && switchStructure && (

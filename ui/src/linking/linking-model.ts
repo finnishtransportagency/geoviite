@@ -283,12 +283,10 @@ export type SwitchLinkingJoint = {
 };
 
 export type SuggestedSwitch = {
-    id: SuggestedSwitchId;
+    id: GeometrySwitchId;
     switchStructureId: SwitchStructureId;
     joints: LayoutSwitchJoint[];
     trackLinks: Record<LocationTrackId, SwitchLinkingTrackLinks>;
-    geometryPlanId?: GeometryPlanId;
-    geometrySwitchId?: GeometrySwitchId;
     name: string;
 };
 

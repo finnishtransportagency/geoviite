@@ -234,7 +234,7 @@ export const linkingReducers = {
         // operator needs to take an action to select a switch
         state.selection.selectedItems.switches = [];
     },
-    lockSwitchSelection: (
+    selectLayoutSwitchForLinking: (
         state: TrackLayoutState,
         { payload: switchId }: PayloadAction<LayoutSwitchId | undefined>,
     ) => {

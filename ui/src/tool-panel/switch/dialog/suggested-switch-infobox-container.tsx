@@ -35,11 +35,11 @@ export const SuggestedSwitchInfoboxContainer: React.FC<SuggestedSwitchInfoboxCon
         <GeometrySwitchInfobox
             visibilities={visibilities}
             onVisibilityChange={onVisibilityChange}
-            switchId={suggestedSwitch.geometrySwitchId ?? undefined}
+            switchId={suggestedSwitch.id}
             layoutSwitch={layoutSwitch}
             suggestedSwitch={suggestedSwitch}
             linkingState={trackLayoutState.linkingState}
-            planId={suggestedSwitch.geometryPlanId ?? undefined}
+            planId={undefined}
             changeTimes={changeTimes}
             locationTrackChangeTime={changeTimes.layoutLocationTrack}
             onShowOnMap={onShowMapLocation}

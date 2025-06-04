@@ -1577,7 +1577,8 @@ constructor(
                     suggestedFitting,
                     switch.id as IntId,
                 ),
-                switch.id as IntId,
+                layoutSwitchId = switch.id as IntId,
+                geometrySwitchId = null,
             ),
             switch.id as IntId,
         )

@@ -125,12 +125,31 @@ export function useRateLimitedLoaderWithStatus<TEntity>(
     return [entity, loaderStatus];
 }
 
+/**
+ * Returns a { load, isLoading }. Call load() with a promise: If, by the time that promise resolves, load() hasn't
+ * been called again, and the component hasn't been unmounted, the given setter is called with the promise's result.
+ */
 export function useImmediateLoader<TEntity>(setter: (result: TEntity) => void): {
     isLoading: boolean;
     load: (promise: Promise<TEntity>) => void;
 } {
     const [isLoading, setIsLoading] = useState(false);
     const query = useRef({ cancel: false });
+
+    const queryCancelledOnUnmount = useRef(false);
+    useEffect(() => {
+        if (queryCancelledOnUnmount.current) {
+            // useEffect effects and cleanups must be symmetric, so we must revive any queries we cancelled
+            queryCancelledOnUnmount.current = false;
+            query.current.cancel = false;
+        }
+        return () => {
+            if (!query.current.cancel) {
+                queryCancelledOnUnmount.current = true;
+                query.current.cancel = true;
+            }
+        };
+    }, []);
     return {
         isLoading,
         load: (promise) => {
