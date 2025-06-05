@@ -2,10 +2,10 @@ import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { fieldComparator, filterNotEmpty, first, last } from 'utils/array-utils';
 import {
+    AlignmentTypeAndId,
     emptyLinkInterval,
     GeometryLinkingAlignmentLockParameters,
     GeometryPreliminaryLinkingParameters,
-    LayoutAlignmentTypeAndId,
     LinkingAlignment,
     LinkingAssetSource,
     LinkingGeometryWithAlignment,
@@ -465,7 +465,7 @@ function validateLinkingSwitch(state: LinkingSwitch): LinkingSwitch {
 }
 
 export function createLinkPoints(
-    alignment: LayoutAlignmentTypeAndId,
+    alignment: AlignmentTypeAndId,
     alignmentLength: number,
     segmentEndMs: number[],
     points: AlignmentPoint[],

@@ -30,7 +30,7 @@ const layoutLocationTrack: LayoutLocationTrack = {
     segmentCount: 0,
     boundingBox: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
     trackNumberId: brand(''),
-    sourceId: '',
+    sourceId: brand(''),
     type: undefined,
     duplicateOf: undefined,
     topologicalConnectivity: 'NONE',

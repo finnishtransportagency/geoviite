@@ -260,7 +260,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         });
 
         const geometryKmPostTabs = geometryKmPostIds.map(
-            (k: SelectedGeometryItem<LayoutKmPostId>) => {
+            (k: SelectedGeometryItem<GeometryKmPostId>) => {
                 const kmPost = getPlan(k.planId)?.kmPosts?.find((p) => p.sourceId === k.geometryId);
                 return {
                     asset: { type: 'GEOMETRY_KM_POST', id: k.geometryId },

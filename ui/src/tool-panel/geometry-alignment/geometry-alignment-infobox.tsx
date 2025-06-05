@@ -18,7 +18,7 @@ import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { BoundingBox } from 'model/geometry';
-import { AlignmentHeader } from 'track-layout/layout-map-api';
+import { GeometryAlignmentHeader } from 'track-layout/layout-map-api';
 import { GeometryAlignmentInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { GeometryAlignmentVerticalGeometryInfobox } from 'tool-panel/geometry-alignment/geometry-alignment-vertical-geometry-infobox';
 import { ChangeTimes } from 'common/common-slice';
@@ -27,7 +27,7 @@ import { LayoutContext } from 'common/common-model';
 type GeometryAlignmentInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    geometryAlignment: AlignmentHeader;
+    geometryAlignment: GeometryAlignmentHeader;
     selectedLayoutLocationTrack?: LayoutLocationTrack;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
     planId: GeometryPlanId;

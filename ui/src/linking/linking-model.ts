@@ -125,6 +125,10 @@ export type LayoutAlignmentTypeAndId =
     | { type: MapAlignmentType.LocationTrack; id: LocationTrackId }
     | { type: MapAlignmentType.ReferenceLine; id: ReferenceLineId };
 
+export type AlignmentTypeAndId =
+    | LayoutAlignmentTypeAndId
+    | { type: MapAlignmentType; id: GeometryAlignmentId };
+
 export type LinkingGeometryWithAlignment = LinkingBaseType & {
     type: LinkingType.LinkingGeometryWithAlignment;
     geometryPlanId: GeometryPlanId;

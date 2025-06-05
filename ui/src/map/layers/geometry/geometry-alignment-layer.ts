@@ -4,9 +4,9 @@ import { LineString } from 'ol/geom';
 import { Stroke, Style } from 'ol/style';
 import { Selection } from 'selection/selection-model';
 import {
+    AlignmentPoint,
     filterAlignmentPoints,
     GeometryPlanLayout,
-    AlignmentPoint,
     PlanLayoutAlignment,
 } from 'track-layout/track-layout-model';
 import {
@@ -32,6 +32,7 @@ import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { cache } from 'cache/cache';
 import { MapLayerName, MapTile } from 'map/map-model';
 import { LayoutContext } from 'common/common-model';
+import { brand } from 'common/brand';
 
 const alignmentFeatureCache = cache<string, Feature<LineString>>(500);
 
@@ -206,7 +207,7 @@ export function createGeometryAlignmentLayer(
                     data.planId
                         ? {
                               planId: data.planId,
-                              geometryId: data.header.id,
+                              geometryId: brand<'GeometryAlignmentId'>(data.header.id),
                           }
                         : undefined,
                 )
