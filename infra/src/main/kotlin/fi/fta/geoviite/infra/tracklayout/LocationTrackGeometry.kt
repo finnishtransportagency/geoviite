@@ -744,12 +744,11 @@ fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
 }
 
 private fun verifyEdgeContent(edge: LayoutEdge) {
-    // TODO: GVT-2934 fix the data and re-enable this
-    // Our base data is broken so that there's bad edges like this. It's the same in original
-    // segments as well.
-    //        require(startNodeId != endNodeId) { "Start and end node must be different:
-    // start=$startNodeId
-    // end=$endNodeId" }
+    val startNode = edge.startNode.node
+    val endNode = edge.endNode.node
+    require(startNode is PlaceholderNode || startNode.contentHash != endNode.contentHash) {
+        "Start and end node must be different (edge cannot loop back on itself): start=$startNode end=$endNode"
+    }
     require(edge.segments.isNotEmpty()) { "LayoutEdge must have at least one segment" }
     edge.segmentMValues.forEach { range ->
         require(range.min.isFinite() && range.min >= 0.0) { "Invalid start m: ${range.min}" }

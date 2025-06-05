@@ -109,8 +109,6 @@ class LocationTrackGeometryTest {
         fun trackNode1() = NodeConnection.trackBoundary(IntId(1), START)
         fun trackNode2() =
             NodeConnection.trackBoundary(inner = TrackBoundary(IntId(2), END), outer = TrackBoundary(IntId(3), START))
-        fun trackNode2Reverse() =
-            NodeConnection.trackBoundary(inner = TrackBoundary(IntId(3), START), outer = TrackBoundary(IntId(2), END))
 
         // Segments generate internal ids which are not stable on recreation, but only after storing the geometry
         // -> don't recreate the segments themselves here
@@ -145,10 +143,6 @@ class LocationTrackGeometryTest {
         assertNotEquals(
             TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentHash,
             TmpLayoutEdge(switchNode2(), switchNode1(), segments1()).contentHash,
-        )
-        assertNotEquals(
-            TmpLayoutEdge(trackNode1(), trackNode2(), segments1()).contentHash,
-            TmpLayoutEdge(trackNode2Reverse(), trackNode2(), segments1()).contentHash,
         )
         assertNotEquals(
             TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentHash,
