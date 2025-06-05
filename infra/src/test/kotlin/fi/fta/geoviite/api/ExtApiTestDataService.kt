@@ -15,7 +15,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import java.util.*
@@ -79,13 +79,13 @@ constructor(
         val usedReferenceLineId =
             referenceLineId
                 ?: layoutContext
-                    .insert(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
+                    .saveReferenceLine(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
                     .id
 
         val locationTrackId =
             layoutContext
-                .insert(
-                    locationTrackAndAlignment(
+                .saveLocationTrack(
+                    locationTrackAndGeometry(
                         trackNumberId = trackNumberId,
                         name = locationTrackName,
                         type = locationTrackType,

@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.SwitchName
@@ -23,22 +22,21 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.FATAL
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
-import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivity
+import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
+import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import kotlin.math.PI
 
@@ -224,75 +222,62 @@ fun validateLocationTrackNameDuplication(
 fun validateSwitchLocationTrackLinkStructure(
     switch: LayoutSwitch,
     structure: SwitchStructure,
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    locationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): List<LayoutValidationIssue> {
-    val existingTracks = locationTracks.filter { (track, _) -> track.exists }
-    val segmentGroups =
-        existingTracks // Only consider the non-deleted tracks for switch alignments
-            .map { (track, alignment) ->
-                track to alignment.segments.filter { segment -> segment.switchId == switch.id }
-            }
-            .filter { (_, segments) -> segments.isNotEmpty() }
+    if (!switch.exists) return emptyList()
+    val indexedLinks =
+        locationTracks.mapNotNull { (track, geometry) ->
+            geometry
+                .takeIf { track.exists }
+                ?.let { geom ->
+                    geom.trackSwitchLinks
+                        .mapIndexed { index, link -> index to link }
+                        .filter { (_, link) -> link.switchId == switch.id }
+                }
+                ?.takeIf { links -> links.isNotEmpty() }
+                ?.let { links -> track to links }
+        }
+    val trackLinks = indexedLinks.map { (track, links) -> track to links.map { (_, link) -> link } }
 
     val structureJoints = collectJoints(structure)
-    val segmentJoints = segmentGroups.map { (track, group) -> collectJoints(track, group) }
 
-    val topologyLinks = collectTopologyEndLinks(existingTracks, switch)
-
-    return if (switch.exists)
-        listOfNotNull(
-            segmentGroups
-                .filterNot { (_, group) -> areSegmentsContinuous(group) }
-                .let { errorGroups ->
-                    validateWithParams(errorGroups.isEmpty()) {
-                        val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
-                        "$VALIDATION_SWITCH.location-track.not-continuous" to
-                            localizationParams("locationTracks" to errorTrackNames)
-                    }
-                },
-            segmentGroups
-                .filterNot { (_, group) -> segmentAndJointLocationsAgree(switch, group) }
-                .let { errorGroups ->
-                    validateWithParams(errorGroups.isEmpty(), WARNING) {
-                        val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
-                        "$VALIDATION_SWITCH.location-track.joint-location-mismatch" to
-                            localizationParams("locationTracks" to errorTrackNames)
-                    }
-                },
-            topologyLinks
-                .filterNot { (_, group) -> topologyLinkAndJointLocationsAgree(switch, group) }
-                .let { errorGroups ->
-                    validateWithParams(errorGroups.isEmpty(), WARNING) {
-                        val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
-                        "$VALIDATION_SWITCH.location-track.joint-location-mismatch" to
-                            localizationParams("locationTracks" to errorTrackNames)
-                    }
-                },
-            segmentJoints
-                .filterNot { (_, group) -> alignmentJointGroupFound(group, structureJoints) }
-                .let { errorGroups ->
-                    validateWithParams(errorGroups.isEmpty()) {
-                        val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
-                        "$VALIDATION_SWITCH.location-track.wrong-joint-sequence" to
-                            localizationParams("locationTracks" to errorTrackNames)
-                    }
-                },
-        ) + validateSwitchTopologicalConnectivity(switch, structure, locationTracks, null)
-    else listOf()
+    return listOfNotNull(
+        indexedLinks
+            .filterNot { (_, links) -> areLinksContinuous(links) }
+            .let { errorGroups ->
+                validateWithParams(errorGroups.isEmpty()) {
+                    val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
+                    "$VALIDATION_SWITCH.location-track.not-continuous" to
+                        localizationParams("locationTracks" to errorTrackNames)
+                }
+            },
+        trackLinks
+            .filterNot { (_, links) -> nodeAndJointLocationsAgree(switch, links) }
+            .let { errorGroups ->
+                validateWithParams(errorGroups.isEmpty(), WARNING) {
+                    val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
+                    "$VALIDATION_SWITCH.location-track.joint-location-mismatch" to
+                        localizationParams("locationTracks" to errorTrackNames)
+                }
+            },
+        trackLinks
+            .filterNot { (_, group) -> trackJointGroupFound(group.map(TrackSwitchLink::jointNumber), structureJoints) }
+            .let { errorGroups ->
+                validateWithParams(errorGroups.isEmpty()) {
+                    val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
+                    "$VALIDATION_SWITCH.location-track.wrong-joint-sequence" to
+                        localizationParams("locationTracks" to errorTrackNames)
+                }
+            },
+    ) + validateSwitchTopologicalConnectivity(switch, structure, locationTracks, null)
 }
 
 fun validateLocationTrackSwitchConnectivity(
     layoutTrack: LocationTrack,
-    alignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
 ): List<LayoutValidationIssue> {
-    val startSegment = alignment.segments.firstOrNull()
-    val endSegment = alignment.segments.lastOrNull()
-    val topologyStartSwitch = layoutTrack.topologyStartSwitch?.switchId
-    val topologyEndSwitch = layoutTrack.topologyEndSwitch?.switchId
-
-    val hasStartSwitch =
-        (startSegment?.switchId != null && startSegment.startJointNumber != null) || topologyStartSwitch != null
-    val hasEndSwitch = (endSegment?.switchId != null && endSegment.endJointNumber != null) || topologyEndSwitch != null
+    val hasStartSwitch = geometry.startSwitchLink != null
+    val hasEndSwitch = geometry.endSwitchLink != null
 
     return when (layoutTrack.topologicalConnectivity) {
         TopologicalConnectivityType.NONE -> {
@@ -344,13 +329,13 @@ fun validateLocationTrackSwitchConnectivity(
 fun validateSwitchTopologicalConnectivity(
     switch: LayoutSwitch,
     structure: SwitchStructure,
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    locationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     validatingTrack: LocationTrack?,
 ): List<LayoutValidationIssue> {
     val existingTracks = locationTracks.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(switch.id, structure, existingTracks, switch.name, validatingTrack),
+            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
         )
         .flatten()
 }
@@ -358,70 +343,25 @@ fun validateSwitchTopologicalConnectivity(
 fun switchOrTrackLinkageKey(validatingTrack: LocationTrack?) =
     if (validatingTrack != null) "$VALIDATION_LOCATION_TRACK.switch-linkage" else "$VALIDATION_SWITCH.track-linkage"
 
-private fun getTracksThroughJoints(
-    structure: SwitchStructure,
-    tracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    switch: LayoutSwitch,
-): Map<JointNumber, List<LocationTrack>> =
-    structure.joints
-        .map { it.number }
-        .associateWith { jointNumber -> getTracksThroughJoint(tracks, switch, jointNumber) }
-
-private fun getTracksThroughJoint(
-    tracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    switch: LayoutSwitch,
-    jointNumber: JointNumber,
-) =
-    tracks
-        .filter { (_, alignment) -> trackPassesThroughJoint(alignment, switch, jointNumber) }
-        .map { (locationTrack, _) -> locationTrack }
-
-private fun trackPassesThroughJoint(
-    alignment: LayoutAlignment,
-    switch: LayoutSwitch,
-    jointNumber: JointNumber,
-): Boolean {
-    val startJointLinkIndex =
-        alignment.segments.indexOfFirst { segment ->
-            segment.switchId == switch.id && segment.startJointNumber == jointNumber
-        }
-    val endJointLinkIndex =
-        alignment.segments.indexOfFirst { segment ->
-            segment.switchId == switch.id && segment.endJointNumber == jointNumber
-        }
-    return startJointLinkIndex > 0 || (endJointLinkIndex != -1 && endJointLinkIndex < alignment.segments.lastIndex)
-}
-
 private fun validateFrontJointTopology(
     switch: LayoutSwitch,
     switchStructure: SwitchStructure,
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    locationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     validatingTrack: LocationTrack?,
 ): LayoutValidationIssue? {
     val connectivity = switchConnectivity(switchStructure)
-    fun tracksHaveOkFrontJointLink(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
-        tracks.any { (locationTrack, _) ->
-            val topoStart =
-                locationTrack.topologyStartSwitch?.switchId == switch.id &&
-                    locationTrack.topologyStartSwitch.jointNumber == connectivity.frontJoint
-            val topoEnd =
-                locationTrack.topologyEndSwitch?.switchId == switch.id &&
-                    locationTrack.topologyEndSwitch.jointNumber == connectivity.frontJoint
-            val tracksThroughFrontJoint =
-                if (connectivity.frontJoint == null) {
-                    listOf()
-                } else getTracksThroughJoints(switchStructure, tracks, switch)[connectivity.frontJoint]
-            topoStart || topoEnd || !tracksThroughFrontJoint.isNullOrEmpty()
-        }
+    val frontJointConnections =
+        connectivity.frontJoint?.let { frontJoint ->
+            tracksWithOutsideConnection(switch.id as IntId, frontJoint, locationTracks)
+        } ?: emptyList()
 
-    val okFrontJointLinkInDuplicates = tracksHaveOkFrontJointLink(locationTracks)
-    val okFrontJointLinkInNonDuplicates =
-        tracksHaveOkFrontJointLink(locationTracks.filter { it.first.duplicateOf == null })
+    val someFrontJointLink = frontJointConnections.isNotEmpty()
+    val frontJointLinkInNonDuplicates = frontJointConnections.any { track -> track.duplicateOf == null }
 
-    return validateWithParams(connectivity.frontJoint == null || okFrontJointLinkInNonDuplicates, WARNING) {
+    return validateWithParams(connectivity.frontJoint == null || frontJointLinkInNonDuplicates, WARNING) {
         val key =
             "${switchOrTrackLinkageKey(validatingTrack)}.${
-            if (okFrontJointLinkInDuplicates) "front-joint-only-duplicate-connected"
+            if (someFrontJointLink) "front-joint-only-duplicate-connected"
             else "front-joint-not-connected"
         }"
 
@@ -429,16 +369,32 @@ private fun validateFrontJointTopology(
     }
 }
 
+private fun tracksWithOutsideConnection(
+    switchId: IntId<LayoutSwitch>,
+    jointNumber: JointNumber,
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+): List<LocationTrack> =
+    tracks.mapNotNull { (track, geometry) ->
+        track.takeIf {
+            geometry.nodes.isNotEmpty() &&
+                (geometry.startNode?.switchOut?.matches(switchId, jointNumber) ?: false ||
+                    geometry.endNode?.switchOut?.matches(switchId, jointNumber) ?: false ||
+                    geometry.nodes.subList(1, geometry.nodes.lastIndex).any { node ->
+                        node.containsJoint(switchId, jointNumber)
+                    })
+        }
+    }
+
 private fun findValidatingTrackSwitchAlignment(
-    switchId: DomainId<LayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
     validatingTrack: LocationTrack?,
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    connectivity: SwitchConnectivity,
+    locationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    structureAlignmentsToCheck: List<LinkableSwitchStructureAlignment>,
 ): SwitchStructureAlignment? =
     locationTracks
         .find { (track) -> track.id == validatingTrack?.id }
         ?.let { trackAndAlignment ->
-            connectivity.alignments
+            structureAlignmentsToCheck
                 // with really bad linking, this could be ambiguous, and the choice of finding the
                 // first one arbitrary; but that shouldn't really happen
                 .find { switchAlignment ->
@@ -460,21 +416,19 @@ private fun summarizeSwitchAlignmentLocationTrackLinks(
         }
 
 fun validateSwitchAlignmentTopology(
-    switchId: DomainId<LayoutSwitch>,
+    switchId: IntId<LayoutSwitch>,
     switchStructure: SwitchStructure,
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    locationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
 ): List<LayoutValidationIssue> {
-    val connectivity = switchConnectivity(switchStructure)
+    val structureAlignmentsToCheck = switchConnectivity(switchStructure).alignments.filter { !it.isSplittable }
     val linkingQuality =
-        connectivity.alignments.map { alignment -> alignmentLinkingQuality(switchId, alignment, locationTracks) }
+        structureAlignmentsToCheck.map { alignment -> alignmentLinkingQuality(switchId, alignment, locationTracks) }
     val validatingTrackSwitchAlignment =
-        findValidatingTrackSwitchAlignment(switchId, validatingTrack, locationTracks, connectivity)
+        findValidatingTrackSwitchAlignment(switchId, validatingTrack, locationTracks, structureAlignmentsToCheck)
     val switchHasTopologicalConnections =
-        locationTracks.any { (track) ->
-            track.topologyStartSwitch?.switchId == switchId || track.topologyEndSwitch?.switchId == switchId
-        }
+        locationTracks.any { (_, geom) -> geom.outerStartSwitch?.id == switchId || geom.outerEndSwitch?.id == switchId }
 
     val qualitiesToValidate =
         linkingQuality.filter { quality ->
@@ -539,7 +493,7 @@ fun validateSwitchAlignmentTopology(
 }
 
 private data class SwitchAlignmentLinkingQuality(
-    val switchAlignment: LinkableSwitchAlignment,
+    val switchAlignment: LinkableSwitchStructureAlignment,
     val nonDuplicateTracks: List<LocationTrack>,
     val duplicateTracks: List<LocationTrack>,
     val fullyLinked: List<LocationTrack>,
@@ -552,32 +506,26 @@ private data class SwitchAlignmentLinkingQuality(
 }
 
 private fun alignmentLinkingQuality(
-    switchId: DomainId<LayoutSwitch>,
-    switchAlignment: LinkableSwitchAlignment,
-    tracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    switchId: IntId<LayoutSwitch>,
+    switchAlignment: LinkableSwitchStructureAlignment,
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): SwitchAlignmentLinkingQuality {
     val nonDuplicateTracks = mutableListOf<LocationTrack>()
     val duplicateTracks = mutableListOf<LocationTrack>()
     val fullyLinked = mutableListOf<LocationTrack>()
     val partiallyLinked = mutableListOf<LocationTrack>()
 
-    tracks.forEach { (track, trackAlignment) ->
-        val trackAlignmentSwitchJointLinks =
-            trackAlignment.segments
-                .filter { it.switchId == switchId }
-                .flatMap { listOf(it.startJointNumber, it.endJointNumber) }
-                .filterNotNull()
-                .toSet()
-        val hasStart = trackAlignmentSwitchJointLinks.contains(switchAlignment.joints.first())
-        val hasEnd = trackAlignmentSwitchJointLinks.contains(switchAlignment.joints.last())
-        val trackAlignmentHasOtherLinks =
-            trackAlignmentSwitchJointLinks.subtract(switchAlignment.joints.toSet()).isNotEmpty()
+    tracks.forEach { (track, geometry) ->
+        val trackSwitchJoints = geometry.getSwitchJoints(switchId, includeOuterLinks = false).toSet()
+        val hasStart = trackSwitchJoints.contains(switchAlignment.joints.first())
+        val hasEnd = trackSwitchJoints.contains(switchAlignment.joints.last())
+        val trackAlignmentHasOtherLinks = trackSwitchJoints.subtract(switchAlignment.joints.toSet()).isNotEmpty()
 
         val isPartiallyLinkedWithoutOtherLinks = (hasStart || hasEnd) && !trackAlignmentHasOtherLinks
         val isFullyLinkedToSplitAlignment = hasStart && hasEnd
         val isFullyLinkedToOriginalAlignment =
-            trackAlignmentSwitchJointLinks.contains(switchAlignment.originalAlignment.jointNumbers.first()) &&
-                trackAlignmentSwitchJointLinks.contains(switchAlignment.originalAlignment.jointNumbers.last())
+            trackSwitchJoints.contains(switchAlignment.originalAlignment.jointNumbers.first()) &&
+                trackSwitchJoints.contains(switchAlignment.originalAlignment.jointNumbers.last())
         val isFullyLinked = isFullyLinkedToOriginalAlignment || isFullyLinkedToSplitAlignment
 
         if (isPartiallyLinkedWithoutOtherLinks || isFullyLinked) {
@@ -705,67 +653,64 @@ fun validateLocationTrackReference(
     }
 }
 
-data class SegmentSwitch(
+data class SwitchTrackLinking(
     val switchId: IntId<LayoutSwitch>,
     val switchName: SwitchName?,
     val switch: LayoutSwitch?,
     val switchStructure: SwitchStructure?,
-    val segments: List<LayoutSegment>,
+    val indexedLinks: List<Pair<Int, TrackSwitchLink>>,
     val switchIsCancelled: Boolean,
 )
 
 data class TopologySwitch(val switch: LayoutSwitch?, val name: SwitchName, val switchIsCancelled: Boolean)
 
-fun validateSegmentSwitchReferences(
+fun validateTrackSwitchReferences(
     locationTrack: LocationTrack,
-    segmentSwitches: List<SegmentSwitch>,
+    switchTrackLinkings: List<SwitchTrackLinking>,
 ): List<LayoutValidationIssue> {
-    return segmentSwitches.flatMap { segmentSwitch ->
-        val switch = segmentSwitch.switch
-        val switchStructure = segmentSwitch.switchStructure
-        val segments = segmentSwitch.segments
-
-        val nameLocalizationParams = localizationParams("switch" to segmentSwitch.switchName)
+    return switchTrackLinkings.flatMap { linking ->
+        val switch = linking.switch
+        val switchStructure = linking.switchStructure
+        val indexedLinks = linking.indexedLinks
+        val nameLocalizationParams = localizationParams("switch" to linking.switchName)
 
         if (switch == null || switchStructure == null) {
             listOf(
                 validationError(
-                    cancelledOrNotPublishedKey("$VALIDATION_LOCATION_TRACK.switch", segmentSwitch.switchIsCancelled),
+                    cancelledOrNotPublishedKey("$VALIDATION_LOCATION_TRACK.switch", linking.switchIsCancelled),
                     nameLocalizationParams,
                 )
             )
         } else {
             val stateErrors: List<LayoutValidationIssue> =
                 listOfNotNull(
-                    validateWithParams(segments.all { segment -> switch.id == segment.switchId }) {
-                        "$VALIDATION_LOCATION_TRACK.switch.not-official" to nameLocalizationParams
-                    },
                     validateWithParams(!locationTrack.exists || switch.stateCategory.isLinkable()) {
                         "$VALIDATION_LOCATION_TRACK.switch.state-category.${switch.stateCategory}" to
                             nameLocalizationParams
-                    },
+                    }
                 )
 
             val geometryErrors: List<LayoutValidationIssue> =
                 if (locationTrack.exists && switch.exists) {
-                    val structureJoints = collectJoints(segmentSwitch.switchStructure)
-                    val segmentJoints = collectJoints(segments)
+                    val links = indexedLinks.map { it.second }
+                    val structureJoints = collectJoints(switchStructure)
+                    val trackJoints = links.map(TrackSwitchLink::jointNumber)
                     listOfNotNull(
-                        validateWithParams(areSegmentsContinuous(segments)) {
+                        validateWithParams(areLinksContinuous(indexedLinks)) {
                             "$VALIDATION_LOCATION_TRACK.switch.alignment-not-continuous" to nameLocalizationParams
                         },
-                        validateWithParams(segmentAndJointLocationsAgree(switch, segments), WARNING) {
+                        validateWithParams(nodeAndJointLocationsAgree(switch, links), WARNING) {
                             "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch" to nameLocalizationParams
                         },
-                        validateWithParams(alignmentJointGroupFound(segmentJoints, structureJoints)) {
+                        validateWithParams(trackJointGroupFound(trackJoints, structureJoints)) {
                             "$VALIDATION_LOCATION_TRACK.switch.wrong-joint-sequence" to
-                                localizationParams(
-                                    "switch" to switch.name,
-                                    "switchType" to segmentSwitch.switchStructure.baseType.name,
-                                    "switchJoints" to jointSequence(segmentJoints),
-                                )
+                                nameLocalizationParams +
+                                    localizationParams(
+                                        "switchType" to switchStructure.baseType.name,
+                                        "switchJoints" to jointSequence(trackJoints),
+                                    )
                         },
-                        validateWithParams(segmentJoints.isNotEmpty()) {
+                        validateWithParams(trackJoints.isNotEmpty()) {
                             "$VALIDATION_LOCATION_TRACK.switch.wrong-links" to nameLocalizationParams
                         },
                     )
@@ -774,25 +719,6 @@ fun validateSegmentSwitchReferences(
         }
     }
 }
-
-fun validateTopologicallyConnectedSwitchReferences(
-    locationTrack: LocationTrack,
-    topologicallyConnectedSwitches: List<TopologySwitch>,
-): List<LayoutValidationIssue> =
-    topologicallyConnectedSwitches.mapNotNull { topoSwitch ->
-        val nameParams = localizationParams("switch" to topoSwitch.name)
-        if (topoSwitch.switch == null) {
-            validationError(
-                cancelledOrNotPublishedKey("$VALIDATION_LOCATION_TRACK.switch", topoSwitch.switchIsCancelled),
-                nameParams,
-            )
-        } else {
-            val switch = topoSwitch.switch
-            validateWithParams(!locationTrack.exists || switch.stateCategory.isLinkable()) {
-                "$VALIDATION_LOCATION_TRACK.switch.state-category.${switch.stateCategory}" to nameParams
-            }
-        }
-    }
 
 private fun jointSequence(joints: List<JointNumber>) =
     joints.joinToString("-") { jointNumber -> "${jointNumber.intValue}" }
@@ -964,44 +890,32 @@ fun validateAddressPoints(
     )
 }
 
-fun validateReferenceLineAlignment(alignment: LayoutAlignment) = validateAlignment(VALIDATION_REFERENCE_LINE, alignment)
+fun validateReferenceLineGeometry(alignment: LayoutAlignment) = validateGeometry(VALIDATION_REFERENCE_LINE, alignment)
 
-fun validateLocationTrackAlignment(alignment: LayoutAlignment) = validateAlignment(VALIDATION_LOCATION_TRACK, alignment)
+fun validateLocationTrackGeometry(geometry: LocationTrackGeometry) =
+    validateGeometry(VALIDATION_LOCATION_TRACK, geometry)
 
-private fun validateAlignment(errorParent: String, alignment: LayoutAlignment) =
+private fun validateGeometry(errorParent: String, alignment: IAlignment) =
     listOfNotNull(
         validate(alignment.segments.isNotEmpty()) { "$errorParent.empty-segments" },
-        validate(alignment.getMaxDirectionDeltaRads() <= MAX_LAYOUT_POINT_ANGLE_CHANGE) {
+        validate(getMaxDirectionDeltaRads(alignment) <= MAX_LAYOUT_POINT_ANGLE_CHANGE) {
             "$errorParent.points.not-continuous"
         },
     )
 
-private fun segmentAndJointLocationsAgree(switch: LayoutSwitch, segmentGroup: List<LayoutSegment>): Boolean =
-    segmentGroup.all { segment -> segmentAndJointLocationsAgree(switch, segment) }
+fun getMaxDirectionDeltaRads(alignment: IAlignment): Double =
+    alignment.allSegmentPoints.zipWithNext(::directionBetweenPoints).zipWithNext(::angleDiffRads).maxOrNull() ?: 0.0
 
-private fun segmentAndJointLocationsAgree(switch: LayoutSwitch, segment: LayoutSegment): Boolean {
-    val jointLocations =
-        listOfNotNull(
-            segment.startJointNumber?.let { jn -> segment.segmentStart to jn },
-            segment.endJointNumber?.let { jn -> segment.segmentEnd to jn },
-        )
-    return jointLocations.all { (location, jointNumber) ->
-        val joint = switch.getJoint(jointNumber)
-        joint != null && joint.location.isSame(location, JOINT_LOCATION_DELTA)
-    }
-}
+private fun nodeAndJointLocationsAgree(switch: LayoutSwitch, trackLinks: List<TrackSwitchLink>): Boolean =
+    trackLinks
+        .filter { link -> link.switchId == switch.id }
+        .all { link ->
+            val joint = switch.getJoint(link.jointNumber)
+            joint != null && joint.location.isSame(link.location, JOINT_LOCATION_DELTA)
+        }
 
-private fun topologyLinkAndJointLocationsAgree(switch: LayoutSwitch, endLinks: List<TopologyEndLink>): Boolean {
-    return endLinks.all { topologyEndLink ->
-        val switchJoint = switch.getJoint(topologyEndLink.topologySwitch.jointNumber)
-        switchJoint != null && switchJoint.location.isSame(topologyEndLink.point, JOINT_LOCATION_DELTA)
-    }
-}
-
-private fun alignmentJointGroupFound(
-    alignmentJoints: List<JointNumber>,
-    structureJointGroups: List<List<JointNumber>>,
-) = structureJointGroups.any { structureJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
+private fun trackJointGroupFound(trackJoints: List<JointNumber>, structureJointGroups: List<List<JointNumber>>) =
+    structureJointGroups.any { structureJoints -> jointGroupMatches(trackJoints, structureJoints) }
 
 private fun jointGroupMatches(alignmentJoints: List<JointNumber>, structureJoints: List<JointNumber>): Boolean =
     if (!structureJoints.containsAll(alignmentJoints)) false
@@ -1034,20 +948,8 @@ private fun collectJoints(structure: SwitchStructure) =
         listOf(alignment.jointNumbers) + partialAlignments
     }
 
-private fun collectJoints(track: LocationTrack, segments: List<LayoutSegment>): Pair<LocationTrack, List<JointNumber>> =
-    track to collectJoints(segments)
-
-private fun collectJoints(segments: List<LayoutSegment>): List<JointNumber> {
-    val allJoints = segments.flatMap { segment -> listOfNotNull(segment.startJointNumber, segment.endJointNumber) }
-    return allJoints.filterIndexed { index, jointNumber -> index == 0 || allJoints[index - 1] != jointNumber }
-}
-
-private fun areSegmentsContinuous(segments: List<LayoutSegment>): Boolean =
-    segments
-        .mapIndexed { index, segment ->
-            index == 0 || segments[index - 1].segmentEnd.isSame(segment.segmentStart, LAYOUT_COORDINATE_DELTA)
-        }
-        .all { it }
+private fun areLinksContinuous(links: List<Pair<Int, TrackSwitchLink>>): Boolean =
+    links.zipWithNext().all { (prev, next) -> prev.first + 1 == next.first }
 
 private fun discontinuousDirectionRangeIndices(points: List<AlignmentPoint>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::directionBetweenPoints).zipWithNext(::isAngleDiffOk), 2)
@@ -1080,26 +982,6 @@ fun validateWithParams(
     } else {
         null
     }
-
-data class TopologyEndLink(val topologySwitch: TopologyLocationTrackSwitch, val point: AlignmentPoint)
-
-private fun collectTopologyEndLinks(
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    switch: LayoutSwitch,
-): List<Pair<LocationTrack, List<TopologyEndLink>>> =
-    locationTracks
-        .map { (track, alignment) ->
-            track to
-                listOfNotNull(
-                    track.topologyStartSwitch
-                        ?.takeIf { topologySwitch -> topologySwitch.switchId == switch.id }
-                        ?.let { topologySwitch -> alignment.start?.let { p -> TopologyEndLink(topologySwitch, p) } },
-                    track.topologyEndSwitch
-                        ?.takeIf { topologySwitch -> topologySwitch.switchId == switch.id }
-                        ?.let { topologySwitch -> alignment.end?.let { p -> TopologyEndLink(topologySwitch, p) } },
-                )
-        }
-        .filter { (_, ends) -> ends.isNotEmpty() }
 
 fun validationFatal(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
     LayoutValidationIssue(FATAL, key, params.associate { it })

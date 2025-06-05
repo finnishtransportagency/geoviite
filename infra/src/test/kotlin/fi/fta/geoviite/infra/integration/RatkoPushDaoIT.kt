@@ -16,7 +16,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getEnum
@@ -244,7 +244,7 @@ constructor(
     }
 
     fun insertAndPublishLocationTrack(): LayoutRowVersion<LocationTrack> =
-        locationTrackAndAlignment(trackNumberId, draft = true).let { (track, alignment) ->
+        locationTrackAndGeometry(trackNumberId, draft = true).let { (track, alignment) ->
             val draftVersion = locationTrackService.saveDraft(LayoutBranch.main, track, alignment)
             locationTrackService.publish(LayoutBranch.main, draftVersion).published
         }

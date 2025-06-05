@@ -14,14 +14,14 @@ import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.queryOne
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -51,12 +51,13 @@ constructor(
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
-        val trackNumber = designDraftContext.insert(trackNumber())
-        designDraftContext.insert(referenceLine(trackNumber.id), alignment)
-        designDraftContext.insert(locationTrack(trackNumber.id), alignment)
-        designDraftContext.insert(switch())
-        designDraftContext.insert(kmPost(trackNumber.id, KmNumber(123)))
+        val trackNumber = designDraftContext.save(trackNumber())
+        designDraftContext.save(referenceLine(trackNumber.id), alignment)
+        designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
+        designDraftContext.save(switch())
+        designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
         val latestPublication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
         layoutDesignService.update(designId, designForm(designId))
@@ -70,7 +71,7 @@ constructor(
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
 
-        val trackNumber = designDraftContext.insert(trackNumber()).id
+        val trackNumber = designDraftContext.save(trackNumber()).id
         publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber)))
         val latestPublication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
         layoutDesignService.update(designId, designForm(designId))
@@ -90,7 +91,7 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        val trackNumber = designDraftContext.insert(trackNumber()).id
+        val trackNumber = designDraftContext.save(trackNumber()).id
 
         val objectIds = publicationRequestIds(trackNumbers = listOf(trackNumber))
         publicationTestSupportService.publish(designBranch, objectIds)
@@ -112,12 +113,13 @@ constructor(
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
-        val trackNumber = designDraftContext.insert(trackNumber())
-        val referenceLine = designDraftContext.insert(referenceLine(trackNumber.id), alignment)
-        val locationTrack = designDraftContext.insert(locationTrack(trackNumber.id), alignment)
-        val switch = designDraftContext.insert(switch())
-        val kmPost = designDraftContext.insert(kmPost(trackNumber.id, KmNumber(123)))
+        val trackNumber = designDraftContext.save(trackNumber())
+        val referenceLine = designDraftContext.save(referenceLine(trackNumber.id), alignment)
+        val locationTrack = designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
+        val switch = designDraftContext.save(switch())
+        val kmPost = designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
         publicationTestSupportService.publish(
             designBranch,
@@ -153,12 +155,13 @@ constructor(
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
-        val trackNumber = designDraftContext.insert(trackNumber())
-        designDraftContext.insert(referenceLine(trackNumber.id), alignment)
-        designDraftContext.insert(locationTrack(trackNumber.id), alignment)
-        designDraftContext.insert(switch())
-        designDraftContext.insert(kmPost(trackNumber.id, KmNumber(123)))
+        val trackNumber = designDraftContext.save(trackNumber())
+        designDraftContext.save(referenceLine(trackNumber.id), alignment)
+        designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
+        designDraftContext.save(switch())
+        designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
         deleteDesign(designId)
 
@@ -176,11 +179,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val alignment = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
 
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
-        mainOfficialContext.insert(referenceLine(trackNumber), alignment)
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        mainOfficialContext.save(referenceLine(trackNumber), alignment)
         val switch =
             mainOfficialContext
-                .insert(
+                .save(
                     switch(
                         joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null))
                     )
@@ -188,15 +191,17 @@ constructor(
                 .id
         val locationTrack =
             mainOfficialContext
-                .insert(
+                .save(
                     locationTrack(trackNumber),
-                    alignment(
-                        segment(Point(0.0, 0.0), Point(10.0, 0.0))
-                            .copy(switchId = switch, endJointNumber = JointNumber(1))
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                            endInnerSwitch = switchLinkYV(switch, 1),
+                        )
                     ),
                 )
                 .id
-        designDraftContext.insert(mainOfficialContext.fetch(trackNumber)!!)
+        designDraftContext.save(mainOfficialContext.fetch(trackNumber)!!)
         publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber)))
 
         // at the time of writing this test, we don't actually have support for updating designs
@@ -219,10 +224,10 @@ constructor(
 
     private fun <T : LayoutAsset<T>> assertContainsSingleCancelledOfficialObject(
         versions: List<LayoutRowVersion<T>>,
-        dao: LayoutAssetDao<T>,
+        reader: LayoutAssetReader<T>,
     ) {
         assertEquals(1, versions.size)
-        val asset = dao.fetch(versions[0])
+        val asset = reader.fetch(versions[0])
         assertTrue(asset.isCancelled)
         assertTrue(asset.isOfficial)
     }

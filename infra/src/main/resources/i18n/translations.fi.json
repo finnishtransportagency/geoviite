@@ -1340,7 +1340,9 @@
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
         "operating-points": "Liikennepaikat",
         "debug-1m": "Tasametripisteet",
-        "debug": "Debug"
+        "debug": "Debug",
+        "debug-layout-graph": "Raidegraafi",
+        "debug-layout-graph-nano": "Nano-tason graafi"
     },
     "map-view": {
         "cluster-overlay-title": "Klusteripiste",

@@ -95,7 +95,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
         val officialVersion = mainOfficialContext.createLayoutTrackNumber()
         val undeletedDraftVersion = mainDraftContext.createLayoutTrackNumber()
         val deleteStateDraftVersion =
-            mainDraftContext.insert(trackNumber(number = testDBService.getUnusedTrackNumber(), state = DELETED))
+            mainDraftContext.save(trackNumber(number = testDBService.getUnusedTrackNumber(), state = DELETED))
         val deletedDraftId = mainDraftContext.createLayoutTrackNumber().id
         trackNumberDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 

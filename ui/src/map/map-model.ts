@@ -7,7 +7,7 @@ import {
     MapAlignmentType,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { ValueOf } from 'utils/type-utils';
+import { expectDefined, ValueOf } from 'utils/type-utils';
 import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 import {
     VerticalGeometryDiagramAlignmentId,
@@ -50,7 +50,8 @@ export type MapLayerName =
     | 'virtual-km-post-linking-layer'
     | 'virtual-hide-geometry-layer'
     | 'publication-candidate-layer'
-    | 'deleted-publication-candidate-icon-layer';
+    | 'deleted-publication-candidate-icon-layer'
+    | 'debug-geometry-graph-layer';
 
 export type MapViewportSource = 'Map';
 
@@ -111,7 +112,9 @@ export type MapLayerMenuItemName =
     | 'geometry-km-post'
     | 'operating-points'
     | 'debug-1m'
-    | 'debug';
+    | 'debug'
+    | 'debug-layout-graph'
+    | 'debug-layout-graph-nano';
 
 export type TrackNumberDiagramLayerSetting = {
     [key: LayoutTrackNumberId]: {
@@ -168,3 +171,21 @@ export type VerticalAlignmentVisibleExtentChange = {
 };
 
 export const HELSINKI_RAILWAY_STATION_COORDS: Point = { x: 385782.89, y: 6672277.83 };
+
+export function getLayerSetting(
+    menuItems: MapLayerMenuItem[],
+    layer: MapLayerMenuItemName,
+    setting: MapLayerMenuItemName,
+): boolean {
+    return expectDefined(getSubMenu(menuItems, layer, setting)?.visible);
+}
+
+export function getSubMenu(
+    menuItems: MapLayerMenuItem[],
+    layer: MapLayerMenuItemName,
+    setting: MapLayerMenuItemName,
+): MapLayerMenuItem | undefined {
+    return menuItems
+        .find((item) => item.name === layer)
+        ?.subMenu?.find((item) => item.name === setting);
+}

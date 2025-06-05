@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
@@ -15,12 +16,18 @@ import fi.fta.geoviite.infra.geometry.infraModelFile
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.linking.fixSegmentStarts
+import fi.fta.geoviite.infra.linking.NodeTrackConnections
+import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
+import fi.fta.geoviite.infra.tracklayout.GeometrySource.IMPORTED
+import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MATH
 import fi.fta.geoviite.infra.util.getIntId
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -31,6 +38,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -46,7 +54,7 @@ constructor(
     @BeforeEach
     fun setUp() {
         initUser()
-        jdbc.execute("truncate layout.alignment cascade") { it.execute() }
+        testDBService.clearLayoutTables()
     }
 
     @Test
@@ -104,19 +112,12 @@ constructor(
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
 
         val alignmentOrphan = alignment(someSegment())
-        val alignmentLocationTrack = alignment(someSegment())
+        val trackGeometry = trackGeometryOfSegments(someSegment())
         val alignmentReferenceLine = alignment(someSegment())
 
         val orphanAlignmentVersion = alignmentDao.insert(alignmentOrphan)
-        val locationTrackAlignmentVersion = alignmentDao.insert(alignmentLocationTrack)
-        locationTrackDao.save(
-            locationTrack(
-                trackNumberId = trackNumberId,
-                alignment = alignmentLocationTrack,
-                alignmentVersion = locationTrackAlignmentVersion,
-                draft = false,
-            )
-        )
+        val trackVersion =
+            locationTrackDao.save(locationTrack(trackNumberId = trackNumberId, draft = false), trackGeometry)
         val referenceLineAlignmentVersion = alignmentDao.insert(alignmentReferenceLine)
         referenceLineDao.save(
             referenceLine(
@@ -129,14 +130,14 @@ constructor(
 
         val orphanAlignmentBeforeDelete = alignmentDao.fetch(orphanAlignmentVersion)
         assertMatches(alignmentOrphan, orphanAlignmentBeforeDelete)
-        assertMatches(alignmentLocationTrack, alignmentDao.fetch(locationTrackAlignmentVersion))
+        assertMatches(trackGeometry, alignmentDao.fetch(trackVersion))
         assertMatches(alignmentReferenceLine, alignmentDao.fetch(referenceLineAlignmentVersion))
 
         alignmentDao.deleteOrphanedAlignments()
 
         assertEquals(orphanAlignmentBeforeDelete, alignmentDao.fetch(orphanAlignmentVersion))
         assertThrows<NoSuchEntityException> { alignmentDao.fetch(orphanAlignmentVersion.next()) }
-        assertMatches(alignmentLocationTrack, alignmentDao.fetch(locationTrackAlignmentVersion))
+        assertMatches(trackGeometry, alignmentDao.fetch(trackVersion))
         assertMatches(alignmentReferenceLine, alignmentDao.fetch(referenceLineAlignmentVersion))
     }
 
@@ -195,39 +196,49 @@ constructor(
         val plan = geometryDao.fetchPlan(planVersion)
         val geometryAlignment = plan.alignments.first()
         val geometryElement = geometryAlignment.elements.first()
-        val alignment =
-            alignment(
-                segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement),
-                segment(points = points2, source = GeometrySource.PLAN, sourceId = geometryElement),
-                segment(points = points3, source = GeometrySource.GENERATED),
-                segment(points = points4, source = GeometrySource.GENERATED),
-                segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement),
+        val segments =
+            listOf(
+                segment(points = points, source = PLAN, sourceId = geometryElement.id),
+                segment(points = points2, source = PLAN, sourceId = geometryElement.id),
+                segment(points = points3, source = GENERATED),
+                segment(points = points4, source = GENERATED),
+                segment(points = points5, source = PLAN, sourceId = geometryElement.id),
             )
-        val version = alignmentDao.insert(alignment)
 
-        val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(version, null, null)
-        assertEquals(3, segmentGeometriesAndPlanMetadatas.size)
+        val alignmentVersion = alignmentDao.insert(alignment(segments))
+        val trackVersion =
+            locationTrackDao.save(
+                locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
+                trackGeometryOfSegments(segments),
+            )
 
-        assertApproximatelyEquals(points.first(), segmentGeometriesAndPlanMetadatas[0].startPoint!!)
-        assertApproximatelyEquals(points2.last(), segmentGeometriesAndPlanMetadatas[0].endPoint!!)
-        assertEquals(true, segmentGeometriesAndPlanMetadatas[0].isLinked)
-        assertEquals(planVersion.id, segmentGeometriesAndPlanMetadatas[0].planId)
-        assertEquals(plan.fileName, segmentGeometriesAndPlanMetadatas[0].fileName)
-        assertEquals(geometryAlignment.name, segmentGeometriesAndPlanMetadatas[0].alignmentName)
+        val alignmentMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, null, null)
+        val trackMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(trackVersion, null, null)
 
-        assertApproximatelyEquals(points3.first(), segmentGeometriesAndPlanMetadatas[1].startPoint!!)
-        assertApproximatelyEquals(points4.last(), segmentGeometriesAndPlanMetadatas[1].endPoint!!)
-        assertEquals(false, segmentGeometriesAndPlanMetadatas[1].isLinked)
-        assertEquals(null, segmentGeometriesAndPlanMetadatas[1].planId)
-        assertEquals(null, segmentGeometriesAndPlanMetadatas[1].fileName)
-        assertEquals(null, segmentGeometriesAndPlanMetadatas[1].alignmentName)
+        for (metaDatas in listOf(alignmentMetadatas, trackMetadatas)) {
+            assertEquals(3, metaDatas.size)
 
-        assertApproximatelyEquals(points5.first(), segmentGeometriesAndPlanMetadatas[2].startPoint!!)
-        assertApproximatelyEquals(points5.last(), segmentGeometriesAndPlanMetadatas[2].endPoint!!)
-        assertEquals(true, segmentGeometriesAndPlanMetadatas[2].isLinked)
-        assertEquals(planVersion.id, segmentGeometriesAndPlanMetadatas[2].planId)
-        assertEquals(plan.fileName, segmentGeometriesAndPlanMetadatas[2].fileName)
-        assertEquals(geometryAlignment.name, segmentGeometriesAndPlanMetadatas[2].alignmentName)
+            assertApproximatelyEquals(points.first(), metaDatas[0].startPoint!!)
+            assertApproximatelyEquals(points2.last(), metaDatas[0].endPoint!!)
+            assertEquals(true, metaDatas[0].isLinked)
+            assertEquals(planVersion.id, metaDatas[0].planId)
+            assertEquals(plan.fileName, metaDatas[0].fileName)
+            assertEquals(geometryAlignment.name, metaDatas[0].alignmentName)
+
+            assertApproximatelyEquals(points3.first(), metaDatas[1].startPoint!!)
+            assertApproximatelyEquals(points4.last(), metaDatas[1].endPoint!!)
+            assertEquals(false, metaDatas[1].isLinked)
+            assertEquals(null, metaDatas[1].planId)
+            assertEquals(null, metaDatas[1].fileName)
+            assertEquals(null, metaDatas[1].alignmentName)
+
+            assertApproximatelyEquals(points5.first(), metaDatas[2].startPoint!!)
+            assertApproximatelyEquals(points5.last(), metaDatas[2].endPoint!!)
+            assertEquals(true, metaDatas[2].isLinked)
+            assertEquals(planVersion.id, metaDatas[2].planId)
+            assertEquals(plan.fileName, metaDatas[2].fileName)
+            assertEquals(geometryAlignment.name, metaDatas[2].alignmentName)
+        }
     }
 
     @Test
@@ -298,71 +309,205 @@ constructor(
         val geometryAlignmentWithoutCrs = planWithoutCrs.alignments.first()
         val geometryElementWithoutCrs = geometryAlignmentWithoutCrs.elements.first()
 
-        val alignment =
-            alignment(
-                segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement),
-                segment(points = points2, source = GeometrySource.IMPORTED),
-                segment(points = points3, source = GeometrySource.GENERATED),
-                segment(points = points4, source = GeometrySource.PLAN, sourceId = geometryElementWithoutCrs),
-                segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement),
-                segment(points = points6, source = GeometrySource.PLAN, sourceId = geometryElementWithCrsButNoProfile),
+        val geometry =
+            trackGeometryOfSegments(
+                segment(points = points, source = PLAN, sourceId = geometryElement.id),
+                segment(points = points2, source = IMPORTED),
+                segment(points = points3, source = GENERATED),
+                segment(points = points4, source = PLAN, sourceId = geometryElementWithoutCrs.id),
+                segment(points = points5, source = PLAN, sourceId = geometryElement.id),
+                segment(points = points6, source = PLAN, sourceId = geometryElementWithCrsButNoProfile.id),
             )
-        val version = alignmentDao.insert(alignment)
-        locationTrackDao.save(locationTrack(trackNumberId, alignmentVersion = version, draft = false))
+        locationTrackDao.save(locationTrack(trackNumberId, draft = false), geometry)
 
         val boundingBox = boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
-        val profileInfo =
-            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
-                MainLayoutContext.official,
-                boundingBox,
-            )
+        val profileInfo = alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, boundingBox)
         assertEquals(6, profileInfo.size)
         assertEquals(listOf(true, false, false, false, true, false), profileInfo.map { it.hasProfile })
 
         val onlyProfileless =
-            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
-                MainLayoutContext.official,
-                boundingBox,
-                false,
-            )
+            alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, boundingBox, false)
         assertEquals(profileInfo.slice(1..3) + profileInfo[5], onlyProfileless)
 
-        val onlyProfileful =
-            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
-                MainLayoutContext.official,
-                boundingBox,
-                true,
-            )
+        val onlyProfileful = alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, boundingBox, true)
 
         assertEquals(2, onlyProfileful.size)
         assertEquals(listOf(profileInfo[0], profileInfo[4]), onlyProfileful)
     }
 
-    private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =
+    @Test
+    fun `LocationTrackGeometry is saved and loaded correctly`() {
+        val track = locationTrack(mainDraftContext.createLayoutTrackNumber().id)
+        val switch1Id = mainDraftContext.save(switch()).id
+        val switch2Id = mainDraftContext.save(switch()).id
+        val switch3Id = mainDraftContext.save(switch()).id
+        val geometry1 =
+            trackGeometry(
+                edgesBetweenNodes(
+                    listOf(
+                        PlaceHolderNodeConnection,
+                        NodeConnection.switch(null, SwitchLink(switch1Id, MAIN, JointNumber(1))),
+                        NodeConnection.switch(
+                            SwitchLink(switch1Id, CONNECTION, JointNumber(2)),
+                            SwitchLink(switch2Id, MAIN, JointNumber(1)),
+                        ),
+                        NodeConnection.switch(SwitchLink(switch2Id, CONNECTION, JointNumber(2)), null),
+                        PlaceHolderNodeConnection,
+                    ),
+                    edgeLength = 100.0,
+                    edgeSegments = 3,
+                )
+            )
+        val insertVersion = mainDraftContext.save(track, geometry1)
+        val insertedGeometry = alignmentDao.fetch(insertVersion)
+        assertEquals(insertVersion, insertedGeometry.trackRowVersion)
+        assertMatches(geometry1, insertedGeometry)
+
+        val geometry2 =
+            trackGeometry(
+                edgesBetweenNodes(
+                    listOf(
+                        NodeConnection.switch(
+                            SwitchLink(switch2Id, MAIN, JointNumber(1)),
+                            SwitchLink(switch1Id, MAIN, JointNumber(1)),
+                        ),
+                        NodeConnection.switch(
+                            SwitchLink(switch1Id, MATH, JointNumber(5)),
+                            SwitchLink(switch1Id, MATH, JointNumber(5)),
+                        ),
+                        NodeConnection.switch(
+                            SwitchLink(switch1Id, CONNECTION, JointNumber(2)),
+                            SwitchLink(switch3Id, CONNECTION, JointNumber(2)),
+                        ),
+                    ),
+                    edgeLength = 50.0,
+                    edgeSegments = 1,
+                )
+            )
+        val updateVersion = mainDraftContext.save(locationTrackDao.fetch(insertVersion), geometry2)
+        val updatedGeometry = alignmentDao.fetch(updateVersion)
+        assertEquals(updateVersion, updatedGeometry.trackRowVersion)
+        assertMatches(geometry2, updatedGeometry)
+    }
+
+    @Test
+    fun `Nearby node fetching works`() {
+        val track1Start = Point(100.0, 100.0)
+        val crossingPoint = Point(100.0, 200.0)
+        val track1End = Point(110.0, 300.0)
+        val track2Start = Point(200.0, 200.0)
+        val track3End = Point(120.0, 400.0)
+        val switchLink1 = switchLinkYV(IntId(1), 1)
+        val switchLink2 = switchLinkYV(IntId(2), 2)
+        val switchLink3 = switchLinkYV(IntId(3), 3)
+
+        assertEquals(
+            emptyList(),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(track1Start), 1.0),
+        )
+        assertEquals(
+            emptyList(),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.draft, MultiPoint(track1Start), 1.0),
+        )
+
+        val (track1, geometry1) =
+            testDBService.fetchWithGeometry(
+                mainOfficialContext.save(
+                    locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
+                    trackGeometry(
+                        edge(endInnerSwitch = switchLink1, segments = listOf(segment(track1Start, crossingPoint))),
+                        edge(
+                            startInnerSwitch = switchLink1,
+                            endOuterSwitch = switchLink2,
+                            segments = listOf(segment(crossingPoint, track1End)),
+                        ),
+                    ),
+                )
+            )
+        val (track2, geometry2) =
+            testDBService.fetchWithGeometry(
+                mainOfficialContext.save(
+                    locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
+                    trackGeometry(
+                        edge(endInnerSwitch = switchLink3, segments = listOf(segment(track2Start, crossingPoint)))
+                    ),
+                )
+            )
+        val (track3, _) =
+            testDBService.fetchWithGeometry(
+                mainDraftContext.save(
+                    locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                    trackGeometry(
+                        edge(startInnerSwitch = switchLink2, segments = listOf(segment(track1End, track3End)))
+                    ),
+                )
+            )
+
+        // Only track1 has something at this point (the track start)
+        assertEquals(
+            listOf(NodeTrackConnections(geometry1.nodes[0], listOf(track1.versionOrThrow))),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(track1Start), 1.0),
+        )
+        // Both track1 & track 2 go through the crossing point
+        assertEquals(
+            listOf(
+                NodeTrackConnections(geometry1.nodes[1], listOf(track1.versionOrThrow)),
+                NodeTrackConnections(geometry2.nodes[1], listOf(track2.versionOrThrow)),
+            ),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(crossingPoint), 1.0),
+        )
+        // In official context, only track 1 is at the end-point
+        assertEquals(
+            listOf(NodeTrackConnections(geometry1.nodes[2], listOf(track1.versionOrThrow))),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(track1End), 1.0),
+        )
+        // In draft context, also track 3 starts from the same node
+        assertEquals(
+            listOf(NodeTrackConnections(geometry1.nodes[2], listOf(track1.versionOrThrow, track3.versionOrThrow))),
+            alignmentDao.getNodeConnectionsNear(MainLayoutContext.draft, MultiPoint(track1End), 1.0),
+        )
+    }
+
+    fun edgesBetweenNodes(
+        nodes: List<NodeConnection> = listOf(PlaceHolderNodeConnection, PlaceHolderNodeConnection),
+        edgeLength: Double = 10.0,
+        edgeSegments: Int = 1,
+    ): List<TmpLayoutEdge> =
+        nodes.zipWithNext().mapIndexed { edgeIndex, (startNode, endNode) ->
+            val segmentLength = edgeLength / edgeSegments
+            val segments =
+                (0 until edgeSegments).map { segmentIndex ->
+                    val startPoint = Point(edgeIndex * edgeLength + segmentIndex * segmentLength, 0.0)
+                    val endPoint = startPoint + Point(segmentLength, 0.0)
+                    segment(startPoint, endPoint)
+                }
+            TmpLayoutEdge(startNode.flipPort(), endNode, segments)
+        }
+
+    private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20): LayoutAlignment =
         alignment(segmentsWithZAndCant(alignmentSeed, segmentCount))
 
-    private fun alignmentWithoutZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =
+    private fun alignmentWithoutZAndCant(alignmentSeed: Int, segmentCount: Int = 20): LayoutAlignment =
         alignment(segmentsWithoutZAndCant(alignmentSeed, segmentCount))
 
-    private fun segmentsWithZAndCant(alignmentSeed: Int, count: Int) =
-        fixSegmentStarts((0..count).map { seed -> segmentWithZAndCant(alignmentSeed + seed) })
+    private fun segmentsWithZAndCant(alignmentSeed: Int, count: Int): List<LayoutSegment> =
+        (0..count).map { seed -> segmentWithZAndCant(alignmentSeed + seed) }
 
-    private fun segmentsWithoutZAndCant(alignmentSeed: Int, count: Int) =
-        fixSegmentStarts((0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) })
+    private fun segmentsWithoutZAndCant(alignmentSeed: Int, count: Int): List<LayoutSegment> =
+        (0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) }
 
     private fun segmentWithoutZAndCant(segmentSeed: Int) =
-        createSegment(
-            segmentSeed,
+        segment(
             points(
                 count = 10,
                 x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
                 y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
             ),
+            source = PLAN,
         )
 
     private fun segmentWithZAndCant(segmentSeed: Int) =
-        createSegment(
-            segmentSeed,
+        segment(
             points(
                 count = 20,
                 x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
@@ -370,10 +515,8 @@ constructor(
                 z = segmentSeed.toDouble()..segmentSeed + 20.0,
                 cant = segmentSeed.toDouble()..segmentSeed + 20.0,
             ),
+            source = PLAN,
         )
-
-    private fun createSegment(segmentSeed: Int, points: List<SegmentPoint>) =
-        segment(points = points, startM = segmentSeed * 0.1, source = GeometrySource.PLAN)
 
     fun insertAndVerify(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
         val rowVersion = alignmentDao.insert(alignment)

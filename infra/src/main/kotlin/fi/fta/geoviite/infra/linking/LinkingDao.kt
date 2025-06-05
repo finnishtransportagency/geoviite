@@ -55,34 +55,49 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     ): Map<IntId<GeometryPlan>, List<GeometryAlignmentLinkStatus>> {
         val sql =
             """
-          select
-            plan_id,
-            element.alignment_id,
-            element.element_index,
-            bool_or(case 
-              when location_track.id is not null or reference_track_number.id is not null then true
-              else false 
-            end) as is_linked,
-            array_agg(distinct location_track.id) filter ( where location_track.id is not null ) as location_track_ids,
-            array_agg(distinct reference_line.id) filter ( where reference_line.id is not null ) as reference_line_ids
-          from geometry.alignment geometry_alignment
-            join geometry.element on geometry_alignment.id = element.alignment_id
-            left join layout.segment_version
-              on element.alignment_id = segment_version.geometry_alignment_id
-                and element.element_index = segment_version.geometry_element_index
-            left join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) location_track
-              on location_track.alignment_id = segment_version.alignment_id
-                and location_track.alignment_version = segment_version.alignment_version
-                and location_track.state != 'DELETED'
-            left join layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_line
-              on reference_line.alignment_id = segment_version.alignment_id
-                and reference_line.alignment_version = segment_version.alignment_version
-            left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_track_number
-              on reference_line.track_number_id = reference_track_number.id
-                and reference_track_number.state != 'DELETED'
-            where geometry_alignment.plan_id in (:plan_ids)
-          group by plan_id, element.alignment_id, element.element_index
-          order by plan_id, element.alignment_id, element.element_index;
+            with
+              linked_track as (
+                select
+                  lt.id,
+                  es.geometry_alignment_id,
+                  es.geometry_element_index
+                  from geometry.alignment
+                    inner join layout.edge_segment es on alignment.id = es.geometry_alignment_id
+                    inner join layout.location_track_version_edge ltve on ltve.edge_id = es.edge_id
+                    inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+                              on lt.id = ltve.location_track_id
+                                and lt.layout_context_id = ltve.location_track_layout_context_id
+                                and lt.version = ltve.location_track_version
+                                and lt.state != 'DELETED'
+                  where alignment.plan_id in (:plan_ids)
+              )
+            select
+              geometry_alignment.plan_id,
+              element.alignment_id,
+              element.element_index,
+              bool_or(
+                  case
+                    when linked_track.id is not null or reference_track_number.id is not null then true
+                    else false
+                  end
+              ) as is_linked,
+              array_agg(distinct linked_track.id) filter (where linked_track.id is not null) as location_track_ids,
+              array_agg(distinct reference_line.id) filter (where reference_line.id is not null) as reference_line_ids
+              from geometry.alignment geometry_alignment
+                join geometry.element on geometry_alignment.id = element.alignment_id
+                left join linked_track on element.alignment_id = linked_track.geometry_alignment_id and element.element_index = linked_track.geometry_element_index
+                left join layout.segment_version
+                          on element.alignment_id = segment_version.geometry_alignment_id
+                            and element.element_index = segment_version.geometry_element_index
+                left join layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_line
+                          on reference_line.alignment_id = segment_version.alignment_id
+                            and reference_line.alignment_version = segment_version.alignment_version
+                left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_track_number
+                          on reference_line.track_number_id = reference_track_number.id
+                            and reference_track_number.state != 'DELETED'
+              where geometry_alignment.plan_id in (:plan_ids)
+              group by plan_id, element.alignment_id, element.element_index
+              order by plan_id, element.alignment_id, element.element_index;
         """
                 .trimIndent()
         val params =
@@ -156,50 +171,48 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     ): Map<IntId<GeometryPlan>, List<GeometrySwitchLinkStatus>> {
         val sql =
             """
-            with all_switch_links_in_plans as (
-              select
-                switch.id as geometry_switch_id,
-                segment_version.alignment_id,
-                segment_version.alignment_version,
-                segment_version.switch_id as layout_switch_id
-                from geometry.switch
-                  join geometry.element on element.switch_id = switch.id
-                  join layout.segment_version on segment_version.geometry_element_index = element.element_index
-                  and segment_version.geometry_alignment_id = element.alignment_id
-                  and segment_version.switch_id is not null
-                where switch.plan_id in (:plan_ids)
-            ),
-              with_ok_layout_alignment as (
-                select unnest(geometry_switch_ids) as geometry_switch_id,
-                       unnest(layout_switch_ids) as layout_switch_id
-                  from (
-                    select array_agg(geometry_switch_id) as geometry_switch_ids,
-                           array_agg(layout_switch_id) as layout_switch_ids
-                      from all_switch_links_in_plans link
-                      group by alignment_id, alignment_version
-                      having exists(select *
-                                      from layout.location_track_in_layout_context(
-                                          :publication_state::layout.publication_state, :design_id) location_track
-                                      where location_track.state != 'DELETED'
-                                        and location_track.alignment_id = link.alignment_id
-                                        and location_track.alignment_version = link.alignment_version)
-                  ) alignment_checked
+            with
+              linked_edge as (
+                select
+                  switch.id as geometry_switch_id,
+                  es.edge_id,
+                  coalesce(start_n.switch_id, end_n.switch_id) as layout_switch_id
+                  from geometry.switch
+                    inner join geometry.element on element.switch_id = switch.id
+                    inner join layout.edge_segment es
+                               on es.geometry_alignment_id = element.alignment_id
+                                 and es.geometry_element_index = element.element_index
+                    inner join layout.edge e on e.id = es.edge_id
+                    left join layout.node_port start_n
+                              on es.segment_index = 0
+                                and e.start_node_id = start_n.node_id
+                                and e.start_node_port = start_n.port
+                    left join layout.node_port end_n
+                              on es.segment_index = (e.segment_count - 1)
+                                and e.start_node_id = end_n.node_id
+                                and e.start_node_port = end_n.port
+                  where switch.plan_id in (:plan_ids)
+                    and (start_n.switch_id is not null or end_n.switch_id is not null)
               ),
-              with_ok_layout_switch as (
-                select distinct unnest(geometry_switch_ids) as geometry_switch_id
-                  from (
-                    select array_agg(geometry_switch_id) as geometry_switch_ids
-                      from with_ok_layout_alignment link
-                      group by layout_switch_id
-                      having exists(select *
-                                      from layout.switch_in_layout_context(:publication_state::layout.publication_state,
-                                                                           :design_id)
-                                      where state_category != 'NOT_EXISTING' and id = layout_switch_id)
-                  ) switch_checked
+              linked_switch as (
+                select distinct switch.id
+                  from geometry.switch
+                    inner join linked_edge on linked_edge.geometry_switch_id = switch.id
+                    inner join layout.location_track_version_edge ltve on ltve.edge_id = linked_edge.edge_id
+                    inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) location_track
+                              on ltve.location_track_id = location_track.id
+                                and ltve.location_track_layout_context_id = location_track.layout_context_id
+                                and ltve.location_track_version = location_track.version
+                                and location_track.state != 'DELETED'
+                    inner join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) layout_switch
+                              on layout_switch.id = linked_edge.layout_switch_id
+                  where switch.plan_id in (:plan_ids)
+                  group by switch.id
               )
-            select plan_id, id, exists(select * from with_ok_layout_switch ok where ok.geometry_switch_id = switch.id) as is_linked
+            select switch.plan_id, switch.id, (linked_switch.id is not null) as is_linked
               from geometry.switch
-              where plan_id in (:plan_ids);
+                left join linked_switch on switch.id = linked_switch.id
+              where switch.plan_id in (:plan_ids);
         """
                 .trimIndent()
 

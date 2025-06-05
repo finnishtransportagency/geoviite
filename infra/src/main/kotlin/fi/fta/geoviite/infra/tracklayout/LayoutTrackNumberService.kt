@@ -14,14 +14,17 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateSystem
 import fi.fta.geoviite.infra.geography.GeographyService
-import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.linking.switches.cropAlignment
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
+import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
+import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.mapNonNullValues
@@ -45,13 +48,12 @@ class LayoutTrackNumberService(
     private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
-    private val layoutAlignmentDao: LayoutAlignmentDao,
-) : LayoutAssetService<LayoutTrackNumber, LayoutTrackNumberDao>(dao) {
+) : LayoutAssetService<LayoutTrackNumber, NoParams, LayoutTrackNumberDao>(dao) {
 
     @Transactional
     fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutRowVersion<LayoutTrackNumber> {
         val draftSaveResponse =
-            saveDraftInternal(
+            saveDraft(
                 branch,
                 LayoutTrackNumber(
                     number = saveRequest.number,
@@ -72,7 +74,7 @@ class LayoutTrackNumberService(
     ): LayoutRowVersion<LayoutTrackNumber> {
         val original = dao.getOrThrow(branch.draft, id)
         val draftSaveResponse =
-            saveDraftInternal(
+            saveDraft(
                 branch,
                 original.copy(
                     number = saveRequest.number,
@@ -192,44 +194,38 @@ class LayoutTrackNumberService(
     }
 
     @Transactional(readOnly = true)
-    fun getOverlappingPlanHeaders(
+    fun getReferenceLinePolygon(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
-        polygonBufferSize: Double,
-        startKmNumber: KmNumber?,
-        endKmNumber: KmNumber?,
-    ): List<GeometryPlanHeader> =
-        referenceLineService.getByTrackNumber(layoutContext, trackNumberId)?.let { referenceLine ->
-            val alignmentVersion =
-                requireNotNull(referenceLine.alignmentVersion) { "Reference line must have an alignment" }
+        startKm: KmNumber?,
+        endKm: KmNumber?,
+        bufferSize: Double = ALIGNMENT_POLYGON_BUFFER,
+    ): List<IPoint> {
+        val alignment = referenceLineService.getByTrackNumberWithAlignment(layoutContext, trackNumberId)?.second
+        val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
 
-            geocodingService.getGeocodingContext(layoutContext, trackNumberId)?.let { geocodingContext ->
-                if (!cropIsWithinReferenceLine(startKmNumber, endKmNumber, geocodingContext)) {
-                    emptyList()
-                } else if (startKmNumber == null && endKmNumber == null) {
-                    alignmentService.getOverlappingPlanHeaders(
-                        alignment = layoutAlignmentDao.fetch(alignmentVersion),
-                        polygonBufferSize = polygonBufferSize,
-                        cropStartM = null,
-                        cropEndM = null,
-                    )
-                } else {
-                    val (cropStartM, cropEndM) = getCropMValues(geocodingContext, startKmNumber, endKmNumber)
-                    alignmentService.getOverlappingPlanHeaders(
-                        alignment = layoutAlignmentDao.fetch(alignmentVersion),
-                        polygonBufferSize = polygonBufferSize,
-                        cropStartM = cropStartM,
-                        cropEndM = cropEndM,
-                    )
-                }
-            }
-        } ?: emptyList()
+        return if (
+            alignment == null ||
+                geocodingContext == null ||
+                !cropIsWithinReferenceLine(startKm, endKm, geocodingContext)
+        ) {
+            emptyList()
+        } else {
+            getCropMRange(geocodingContext, Range(0.0, alignment.length), startKm, endKm)?.let { cropRange ->
+                toPolygon(cropAlignment(alignment.segmentsWithM, cropRange))
+            } ?: emptyList()
+        }
+    }
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 
     @Transactional(readOnly = true)
     fun getExternalIdsByBranch(id: IntId<LayoutTrackNumber>): Map<LayoutBranch, Oid<LayoutTrackNumber>> =
         mapNonNullValues(dao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
+
+    @Transactional
+    fun saveDraft(branch: LayoutBranch, draftAsset: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> =
+        saveDraftInternal(branch, draftAsset, NoParams.instance)
 }
 
 private fun asCsvFile(
@@ -385,12 +381,20 @@ private fun getKmPostDistances(
         kmPost to distance
     }
 
-private fun getCropMValues(
-    geocodingContext: GeocodingContext,
-    startKmNumber: KmNumber?,
-    endKmNumber: KmNumber?,
-): Pair<Double?, Double?> {
-    val startM = startKmNumber?.let { geocodingContext.referencePoints.find { it.kmNumber == startKmNumber }?.distance }
-    val endM = endKmNumber?.let { geocodingContext.referencePoints.find { it.kmNumber > endKmNumber }?.distance }
-    return startM to endM
+private fun getCropMRange(
+    context: GeocodingContext,
+    origRange: Range<Double>,
+    startKm: KmNumber?,
+    endKm: KmNumber?,
+): Range<Double>? {
+    val start = startKm?.let { context.referencePoints.find { it.kmNumber >= startKm } }?.distance
+    val end = endKm?.let { context.referencePoints.find { it.kmNumber > endKm } }?.distance
+    return if (start != null && start >= origRange.max || end != null && end <= origRange.min) {
+        null
+    } else {
+        Range(
+            start?.coerceIn(origRange.min, origRange.max) ?: origRange.min,
+            end?.coerceIn(origRange.min, origRange.max) ?: origRange.max,
+        )
+    }
 }

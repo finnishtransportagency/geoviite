@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
@@ -44,10 +45,13 @@ constructor(
 
         val trackNumberId = trackNumberDao.save(trackNumber(TrackNumber("foo"), draft = false)).id
 
-        val alignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
-        referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = alignment, draft = false))
+        val lineSegments = listOf((segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
+        referenceLineDao.save(
+            referenceLine(trackNumberId, alignmentVersion = alignmentDao.insert(alignment(lineSegments)), draft = false)
+        )
         locationTrackDao.save(
-            locationTrack(trackNumberId = trackNumberId, name = "foo bar", alignmentVersion = alignment, draft = false)
+            locationTrack(trackNumberId = trackNumberId, name = "foo bar", draft = false),
+            trackGeometryOfSegments(lineSegments),
         )
         kmPostDao.save(kmPost(trackNumberId, KmNumber(1), Point(900.0, 1.0), draft = false))
         kmPostDao.save(kmPost(trackNumberId, KmNumber(2), Point(2000.0, -1.0), draft = false))

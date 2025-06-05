@@ -23,16 +23,17 @@ import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
-import java.math.BigDecimal
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -89,7 +90,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    alignment(segment(yRangeToSegmentPoints(1..29))),
+                    trackGeometryOfSegments(segment(yRangeToSegmentPoints(1..29))),
                 )
                 .id
 
@@ -163,28 +164,28 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(
                             yRangeToSegmentPoints(0..6),
-                            sourceId = p1.alignments[0].elements[0],
-                            sourceStart = 0.0,
+                            sourceId = p1.alignments[0].elements[0].id,
+                            sourceStartM = 0.0,
                         ),
                         segment(yRangeToSegmentPoints(6..10)),
                         segment(
                             yRangeToSegmentPoints(10..12),
-                            sourceId = p2.alignments[0].elements[0],
-                            sourceStart = 0.0,
+                            sourceId = p2.alignments[0].elements[0].id,
+                            sourceStartM = 0.0,
                         ),
                         segment(yRangeToSegmentPoints(12..13)),
                         segment(
                             yRangeToSegmentPoints(13..15),
-                            sourceId = p3.alignments[0].elements[0],
-                            sourceStart = 0.0,
+                            sourceId = p3.alignments[0].elements[0].id,
+                            sourceStartM = 0.0,
                         ),
                         segment(
                             yRangeToSegmentPoints(15..17),
-                            sourceId = p1.alignments[0].elements[0],
-                            sourceStart = 0.0,
+                            sourceId = p1.alignments[0].elements[0].id,
+                            sourceStartM = 0.0,
                         ),
                     ),
                 )
@@ -242,11 +243,11 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    alignment(
+                    trackGeometryOfSegments(
                         segment(yRangeToSegmentPoints(0..2)),
-                        segment(yRangeToSegmentPoints(2..9), sourceId = sourceElement, sourceStart = 0.0),
+                        segment(yRangeToSegmentPoints(2..9), sourceId = sourceElement.id, sourceStartM = 0.0),
                         segment(yRangeToSegmentPoints(9..10)),
-                        segment(yRangeToSegmentPoints(10..20), sourceId = sourceElement, sourceStart = 0.0),
+                        segment(yRangeToSegmentPoints(10..20), sourceId = sourceElement.id, sourceStartM = 0.0),
                     ),
                 )
                 .id
@@ -292,7 +293,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    alignment(segment(yRangeToSegmentPoints(0..10))),
+                    trackGeometryOfSegments(segment(yRangeToSegmentPoints(0..10))),
                 )
                 .id
         kmPostService.saveDraft(

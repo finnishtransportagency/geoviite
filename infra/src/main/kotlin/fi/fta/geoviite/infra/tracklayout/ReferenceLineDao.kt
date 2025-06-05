@@ -27,12 +27,14 @@ class ReferenceLineDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<ReferenceLine>(
+    LayoutAssetDao<ReferenceLine, NoParams>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_REFERENCE_LINE,
         cacheEnabled,
         REFERENCE_LINE_CACHE_SIZE,
     ) {
+
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<ReferenceLine>) = NoParams.instance
 
     override fun fetchInternal(version: LayoutRowVersion<ReferenceLine>): ReferenceLine {
         val sql =
@@ -116,8 +118,10 @@ class ReferenceLineDao(
                 rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
 
+    @Transactional fun save(item: ReferenceLine): LayoutRowVersion<ReferenceLine> = save(item, NoParams.instance)
+
     @Transactional
-    override fun save(item: ReferenceLine): LayoutRowVersion<ReferenceLine> {
+    override fun save(item: ReferenceLine, params: NoParams): LayoutRowVersion<ReferenceLine> {
         val id = item.id as? IntId ?: createId()
 
         val sql =

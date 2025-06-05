@@ -1,5 +1,6 @@
 import { MapLayerName } from 'map/map-model';
 // Alignments
+export const GEOMETRY_GRAPH = 50.0;
 export const LINKING_DOTS = 0.19;
 export const DEBUG_1M_POINTS = 0.06;
 
@@ -39,6 +40,7 @@ const mapLayerOrder: MapLayerName[] = [
     'operating-points-layer',
     'debug-1m-points-layer',
     'debug-layer',
+    'debug-geometry-graph-layer',
 ];
 
 export const mapLayerZIndexes = mapLayerOrder.reduce(

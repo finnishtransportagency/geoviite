@@ -9,13 +9,18 @@ import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.util.findCommonSubsequenceInCompactLists
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import kotlin.math.hypot
 
 private const val GEOMETRY_CHANGE_BATCH_SIZE = 10
 
@@ -64,13 +69,13 @@ class PublicationGeometryChangeRemarksUpdateService(
         publicationDao.upsertGeometryChangeSummaries(
             unprocessedChange.publicationId,
             unprocessedChange.locationTrackId,
-            if (geocodingContext == null || unprocessedChange.oldAlignmentVersion == null) {
+            if (geocodingContext == null || unprocessedChange.oldTrackVersion == null) {
                 listOf()
             } else {
                 summarizeAlignmentChanges(
                     geocodingContext = geocodingContext,
-                    oldAlignment = alignmentDao.fetch(unprocessedChange.oldAlignmentVersion),
-                    newAlignment = alignmentDao.fetch(unprocessedChange.newAlignmentVersion),
+                    oldGeometry = alignmentDao.fetch(unprocessedChange.oldTrackVersion),
+                    newGeometry = alignmentDao.fetch(unprocessedChange.newTrackVersion),
                 )
             },
         )
@@ -79,26 +84,26 @@ class PublicationGeometryChangeRemarksUpdateService(
 
 fun summarizeAlignmentChanges(
     geocodingContext: GeocodingContext,
-    oldAlignment: LayoutAlignment,
-    newAlignment: LayoutAlignment,
+    oldGeometry: LocationTrackGeometry,
+    newGeometry: LocationTrackGeometry,
     changeThreshold: Double = 1.0,
 ): List<GeometryChangeSummary> =
-    if (geometriesEqual(oldAlignment, newAlignment)) listOf()
+    if (geometriesEqual(oldGeometry, newGeometry)) listOf()
     else
-        getCommonAddressRange(geocodingContext, oldAlignment, newAlignment)?.let { (oldPoints, newPoints) ->
+        getCommonAddressRange(geocodingContext, oldGeometry, newGeometry)?.let { (oldPoints, newPoints) ->
             summarizeCommonAddressRange(geocodingContext, oldPoints, newPoints, changeThreshold)
         } ?: listOf()
 
-private fun geometriesEqual(old: LayoutAlignment, new: LayoutAlignment): Boolean =
+private fun geometriesEqual(old: LocationTrackGeometry, new: LocationTrackGeometry): Boolean =
     old.segments.map { it.geometry.id } == new.segments.map { it.geometry.id }
 
 private fun getCommonAddressRange(
     geocodingContext: GeocodingContext,
-    oldAlignment: LayoutAlignment,
-    newAlignment: LayoutAlignment,
+    oldGeometry: LocationTrackGeometry,
+    newGeometry: LocationTrackGeometry,
 ): Pair<List<AddressPoint>, List<AddressPoint>>? {
-    val oldAddressPoints = geocodingContext.getAddressPoints(oldAlignment)
-    val newAddressPoints = geocodingContext.getAddressPoints(newAlignment)
+    val oldAddressPoints = geocodingContext.getAddressPoints(oldGeometry)
+    val newAddressPoints = geocodingContext.getAddressPoints(newGeometry)
     if (oldAddressPoints == null || newAddressPoints == null) return null
 
     val (old, new) = getOldAndNewAddressPoints(oldAddressPoints, newAddressPoints)

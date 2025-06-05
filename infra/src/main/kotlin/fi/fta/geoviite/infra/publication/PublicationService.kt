@@ -88,11 +88,11 @@ constructor(
         id: IntId<LocationTrack>,
         transition: LayoutContextTransition,
     ): GeometryChangeRanges {
-        val trackWithAlignment1 = locationTrackService.getWithAlignment(transition.candidateContext, id)
-        val trackWithAlignment2 = locationTrackService.getWithAlignment(transition.baseContext, id)
+        val trackWithGeometry1 = locationTrackService.getWithGeometry(transition.candidateContext, id)
+        val trackWithGeometry2 = locationTrackService.getWithGeometry(transition.baseContext, id)
         return getChangedGeometryRanges(
-            trackWithAlignment1?.second?.segments ?: emptyList(),
-            trackWithAlignment2?.second?.segments ?: emptyList(),
+            trackWithGeometry1?.second?.segmentsWithM ?: emptyList(),
+            trackWithGeometry2?.second?.segmentsWithM ?: emptyList(),
         )
     }
 
@@ -103,8 +103,8 @@ constructor(
         val lineWithAlignment1 = referenceLineService.getWithAlignment(transition.candidateContext, id)
         val lineWithAlignment2 = referenceLineService.getWithAlignment(transition.baseContext, id)
         return getChangedGeometryRanges(
-            lineWithAlignment1?.second?.segments ?: emptyList(),
-            lineWithAlignment2?.second?.segments ?: emptyList(),
+            lineWithAlignment1?.second?.segmentsWithM ?: emptyList(),
+            lineWithAlignment2?.second?.segmentsWithM ?: emptyList(),
         )
     }
 

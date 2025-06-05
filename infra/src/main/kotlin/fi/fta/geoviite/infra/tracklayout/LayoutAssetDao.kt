@@ -32,10 +32,20 @@ import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Transactional
 
-interface LayoutAssetWriter<T : LayoutAsset<T>> {
+// The Kotlin thing to do would be to just use Unit, but for some reason, the overriden functions returning Unit end up
+// giving null to the caller. Not sure why, but perhaps due to reflection shenanigans done by Spring.
+class NoParams private constructor() {
+    companion object {
+        val instance = NoParams()
+    }
+}
+
+interface LayoutAssetWriter<T : LayoutAsset<T>, SaveParams> {
     fun createId(): IntId<T>
 
-    fun save(item: T): LayoutRowVersion<T>
+    fun save(item: T, params: SaveParams): LayoutRowVersion<T>
+
+    fun getBaseSaveParams(rowVersion: LayoutRowVersion<T>): SaveParams
 
     fun deleteRow(rowId: LayoutRowId<T>): LayoutRowVersion<T>
 
@@ -96,14 +106,14 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
         fetchVersions(context, includeDeleted).map(::fetch)
 }
 
-interface ILayoutAssetDao<T : LayoutAsset<T>> : LayoutAssetReader<T>, LayoutAssetWriter<T>
+interface ILayoutAssetDao<T : LayoutAsset<T>, SaveParams> : LayoutAssetReader<T>, LayoutAssetWriter<T, SaveParams>
 
-abstract class LayoutAssetDao<T : LayoutAsset<T>>(
+abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     open val table: LayoutAssetTable,
     val cacheEnabled: Boolean,
     cacheSize: Long,
-) : DaoBase(jdbcTemplateParam), ILayoutAssetDao<T> {
+) : DaoBase(jdbcTemplateParam), ILayoutAssetDao<T, SaveParams> {
 
     protected val cache: Cache<LayoutRowVersion<T>, T> =
         Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()

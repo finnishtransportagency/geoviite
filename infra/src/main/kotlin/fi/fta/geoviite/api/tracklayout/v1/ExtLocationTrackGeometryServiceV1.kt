@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.Uuid
@@ -17,7 +16,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import io.swagger.v3.oas.annotations.media.Schema
@@ -106,7 +105,7 @@ constructor(
             locationTrackOid = oid,
             trackIntervals =
                 getExtLocationTrackGeometry(
-                    locationTrack.getAlignmentVersionOrThrow(),
+                    locationTrack.versionOrThrow,
                     geocodingContextCacheKey,
                     trackIntervalFilter,
                     resolution,
@@ -116,14 +115,14 @@ constructor(
     }
 
     private fun getExtLocationTrackGeometry(
-        locationTrackAlignmentVersion: RowVersion<LayoutAlignment>,
+        locationTrackVersion: LayoutRowVersion<LocationTrack>,
         geocodingContextCacheKey: GeocodingContextCacheKey,
         trackIntervalFilter: ExtTrackKilometerIntervalV1,
         resolution: Resolution,
         coordinateSystem: Srid,
     ): List<ExtCenterLineTrackIntervalV1> {
         val alignmentAddresses =
-            geocodingService.getAddressPoints(geocodingContextCacheKey, locationTrackAlignmentVersion, resolution)
+            geocodingService.getAddressPoints(geocodingContextCacheKey, locationTrackVersion, resolution)
                 ?: throw ExtGeocodingFailedV1("could not get address points")
 
         val extAddressPoints =

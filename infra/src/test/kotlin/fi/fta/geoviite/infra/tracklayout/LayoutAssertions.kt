@@ -40,6 +40,43 @@ fun assertMatches(expected: LocationTrack, actual: LocationTrack, contextMatch: 
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
 }
 
+fun assertMatches(expected: LocationTrackGeometry, actual: LocationTrackGeometry, idMatch: Boolean = false) =
+    if (idMatch) {
+        assertEquals(expected, actual)
+    } else {
+        assertEquals(expected.edges.size, actual.edges.size)
+        expected.edges.forEachIndexed { index, expectedEdge -> assertMatches(expectedEdge, actual.edges[index]) }
+    }
+
+fun assertMatches(expected: LayoutEdge, actual: LayoutEdge, idMatch: Boolean = false) =
+    if (idMatch) {
+        assertEquals(expected, actual)
+    } else {
+        assertMatches(expected.startNode, actual.startNode)
+        assertMatches(expected.endNode, actual.endNode)
+        assertEquals(expected.length, actual.length, LENGTH_DELTA)
+        assertEquals(expected.segments.size, actual.segments.size)
+        expected.segments.forEachIndexed { index, expectedSegment ->
+            assertMatches(expectedSegment, actual.segments[index], idMatch)
+        }
+        expected.segmentMValues.forEachIndexed { index, m ->
+            assertEquals(m.min, actual.segmentMValues[index].min, LENGTH_DELTA)
+            assertEquals(m.max, actual.segmentMValues[index].max, LENGTH_DELTA)
+        }
+    }
+
+fun assertMatches(expected: NodeConnection, actual: NodeConnection, idMatch: Boolean = false) {
+    if (idMatch) {
+        assertEquals(expected, actual)
+    } else {
+        assertEquals(expected.type, actual.type)
+        if (expected.type == LayoutNodeType.SWITCH) {
+            assertEquals(expected.switchIn, actual.switchIn)
+            assertEquals(expected.switchOut, actual.switchOut)
+        }
+    }
+}
+
 fun assertMatches(expected: LayoutAlignment, actual: LayoutAlignment, idMatch: Boolean = false) {
     val expectedWithSameFloats = expected.copy(segments = actual.segments)
     if (idMatch) {
@@ -53,24 +90,27 @@ fun assertMatches(expected: LayoutAlignment, actual: LayoutAlignment, idMatch: B
     expected.segments.forEachIndexed { index, expectedSegment ->
         assertMatches(expectedSegment, actual.segments[index], idMatch)
     }
+    expected.segmentMValues.forEachIndexed { index, m ->
+        assertEquals(m.min, actual.segmentMValues[index].min, LENGTH_DELTA)
+        assertEquals(m.max, actual.segmentMValues[index].max, LENGTH_DELTA)
+    }
 }
 
 fun assertMatches(expected: LayoutSegment, actual: LayoutSegment, idMatch: Boolean = false) {
-    val expectedWithSameFloats = expected.copy(geometry = actual.geometry, startM = actual.startM)
+    val expectedWithSameFloats = expected.copy(geometry = actual.geometry)
     if (idMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
-        assertEquals(expectedWithSameFloats, actual.copy(id = expected.id, sourceId = expected.sourceId))
+        assertEquals(expectedWithSameFloats, actual.copy(sourceId = expected.sourceId))
         assertEquals(expected.sourceId != null, actual.sourceId != null)
     }
-    assertEquals(expected.startM, actual.startM, LENGTH_DELTA)
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
-    assertEquals(expected.alignmentPoints.size, actual.alignmentPoints.size)
+    assertEquals(expected.segmentPoints.size, actual.segmentPoints.size)
     assertEquals(expected.resolution, actual.resolution)
-    expected.alignmentPoints.forEachIndexed { index, point -> assertMatches(point, actual.alignmentPoints[index]) }
+    expected.segmentPoints.forEachIndexed { index, point -> assertMatches(point, actual.segmentPoints[index]) }
 }
 
-fun assertMatches(expected: AlignmentPoint, actual: AlignmentPoint) {
+fun assertMatches(expected: LayoutPoint, actual: LayoutPoint) {
     assertEquals(expected.x, actual.x, COORDINATE_DELTA)
     assertEquals(expected.y, actual.y, COORDINATE_DELTA)
     assertEquals(expected.m, actual.m, COORDINATE_DELTA)

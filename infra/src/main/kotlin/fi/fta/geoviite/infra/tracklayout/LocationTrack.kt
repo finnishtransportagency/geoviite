@@ -2,11 +2,9 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -69,21 +67,12 @@ data class LocationTrack(
     val segmentCount: Int,
     val duplicateOf: IntId<LocationTrack>?,
     val topologicalConnectivity: TopologicalConnectivityType,
-    val topologyStartSwitch: TopologyLocationTrackSwitch?,
-    val topologyEndSwitch: TopologyLocationTrackSwitch?,
     val ownerId: IntId<LocationTrackOwner>,
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
-    @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
-    @JsonIgnore val segmentSwitchIds: List<IntId<LayoutSwitch>> = listOf(),
+    @JsonIgnore val switchIds: List<IntId<LayoutSwitch>> = listOf(),
 ) : PolyLineLayoutAsset<LocationTrack>(contextData) {
 
     @JsonIgnore val exists = !state.isRemoved()
-
-    @get:JsonIgnore
-    val switchIds: List<IntId<LayoutSwitch>> by lazy {
-        (listOfNotNull(topologyStartSwitch?.switchId) + segmentSwitchIds + listOfNotNull(topologyEndSwitch?.switchId))
-            .distinct()
-    }
 
     init {
         require(descriptionBase.length in locationTrackDescriptionLength) {
@@ -91,16 +80,6 @@ data class LocationTrack(
                 "id=$id " +
                 "length=${descriptionBase.length} " +
                 "allowed=$locationTrackDescriptionLength"
-        }
-        require(dataType == DataType.TEMP || alignmentVersion != null) {
-            "LocationTrack in DB must have an alignment: id=$id"
-        }
-        require(topologyStartSwitch?.switchId == null || topologyStartSwitch.switchId != topologyEndSwitch?.switchId) {
-            "LocationTrack cannot topologically connect to the same switch at both ends: " +
-                "trackId=$id " +
-                "switchId=${topologyStartSwitch?.switchId} " +
-                "startJoint=${topologyStartSwitch?.jointNumber} " +
-                "endJoint=${topologyEndSwitch?.jointNumber}"
         }
     }
 
@@ -111,7 +90,6 @@ data class LocationTrack(
             "context" to contextData::class.simpleName,
             "name" to name,
             "trackNumber" to trackNumberId,
-            "alignment" to alignmentVersion,
         )
 
     override fun withContext(contextData: LayoutContextData<LocationTrack>): LocationTrack =

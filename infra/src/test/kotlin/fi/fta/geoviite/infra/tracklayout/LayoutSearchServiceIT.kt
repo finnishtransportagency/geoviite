@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
@@ -108,7 +107,7 @@ constructor(
     }
 
     @Test
-    fun `free text search using locationt track as search scope should return only assets relating to search scope`() {
+    fun `free text search using location track as search scope should return only assets relating to search scope`() {
         val trackNumberId =
             saveTrackNumbersWithSaveRequests(listOf(TrackNumber("track number 1")), LayoutState.IN_USE).first()
 
@@ -153,38 +152,37 @@ constructor(
             .id as IntId
 
         val lt1 =
-            mainDraftContext.insert( // Location track search scope origin, should be included
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    name = "blaa",
-                    topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
-                    topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
+            mainDraftContext.save( // Location track search scope origin, should be included
+                locationTrack(trackNumberId = trackNumberId, name = "blaa"),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(topologyStartSwitchId, 3),
+                        endOuterSwitch = switchLinkYV(topologyEndSwitchId, 5),
+                        segments = listOf(someSegment()),
+                    )
                 ),
-                someAlignment(),
             )
         val lt2 =
-            mainDraftContext.insert( // Duplicate based on duplicateOf, should be included
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    name = "blee",
-                    topologyStartSwitch = TopologyLocationTrackSwitch(duplicateStartSwitchId, JointNumber(3)),
-                    duplicateOf = lt1.id,
+            mainDraftContext.save( // Duplicate based on duplicateOf, should be included
+                locationTrack(trackNumberId = trackNumberId, name = "blee", duplicateOf = lt1.id),
+                trackGeometry(
+                    edge(startOuterSwitch = switchLinkYV(duplicateStartSwitchId, 3), segments = listOf(someSegment()))
                 ),
-                someAlignment(),
             )
         val lt3 =
-            mainDraftContext.insert( // Duplicate based on switches, should be included
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    name = "bloo",
-                    topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
-                    topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
+            mainDraftContext.save( // Duplicate based on switches, should be included
+                locationTrack(trackNumberId = trackNumberId, name = "bloo"),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(topologyStartSwitchId, 3),
+                        endOuterSwitch = switchLinkYV(topologyEndSwitchId, 5),
+                        segments = listOf(someSegment()),
+                    )
                 ),
-                someAlignment(),
             )
-        mainDraftContext.insert( // Non-duplicate, shouldn't be included in search results
+        mainDraftContext.save( // Non-duplicate, shouldn't be included in search results
             locationTrack(trackNumberId = trackNumberId, name = "bluu"),
-            someAlignment(),
+            someTrackGeometry(),
         )
 
         val searchResults =

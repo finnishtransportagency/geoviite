@@ -212,7 +212,7 @@ constructor(
         val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, locationTrack.trackNumberId, moment)
 
         alignmentDao
-            .fetchMetadata(locationTrack.getAlignmentVersionOrThrow())
+            .fetchMetadata(locationTrack.versionOrThrow)
             .fold(mutableListOf<LayoutSegmentMetadata>()) { acc, metadata ->
                 val previousMetadata = acc.lastOrNull()
 
@@ -442,12 +442,12 @@ constructor(
             "Missing geocoding context, trackNumberId=${locationTrack.trackNumberId} moment=$moment"
         }
 
-        val alignment = alignmentDao.fetch(locationTrack.getAlignmentVersionOrThrow())
+        val geometry = alignmentDao.fetch(locationTrack.versionOrThrow)
         val addresses =
-            checkNotNull(geocodingContext.getAddressPoints(alignment)) {
+            checkNotNull(geocodingContext.getAddressPoints(geometry)) {
                 "Cannot calculate addresses for location track, id=${locationTrack.id}"
             }
 
-        return addresses to geocodingContext.getSwitchPoints(alignment)
+        return addresses to geocodingContext.getSwitchPoints(geometry)
     }
 }

@@ -108,7 +108,7 @@ enum class SplitTargetDuplicateOperation {
 
 data class SplitTarget(
     val locationTrackId: IntId<LocationTrack>,
-    val segmentIndices: IntRange,
+    val edgeIndices: IntRange,
     val operation: SplitTargetOperation,
 )
 

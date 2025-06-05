@@ -6,6 +6,7 @@ Kuvaus järjestelmän tarkoituksesta kannattaa katsoa Confluencesta vaatimusmä�
 
 * [Teknologiat](teknologiat.md)
 * [Tietomalli](tietomalli.md)
+* [Rataverkon graafimalli](rataverkko_graafi.md)
 * [Tietokanta](tietokanta.md)
 * [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md)
 * [Julkaisut](julkaisut.md)

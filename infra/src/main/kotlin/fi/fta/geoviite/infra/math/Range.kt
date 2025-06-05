@@ -4,7 +4,7 @@ data class Range<T : Comparable<T>>(val min: T, val max: T) {
     constructor(range: ClosedFloatingPointRange<T>) : this(range.start, range.endInclusive)
 
     init {
-        if (min > max) throw IllegalArgumentException("Range min cannot be greater than max: min=$min max=$max")
+        require(min <= max) { "Range min cannot be greater than max: min=$min max=$max" }
     }
 
     fun contains(value: T) = value in min..max
@@ -14,6 +14,12 @@ data class Range<T : Comparable<T>>(val min: T, val max: T) {
     fun overlaps(other: Range<T>) = min <= other.max && max >= other.min
 
     fun overlapsExclusive(other: Range<T>) = min < other.max && max > other.min
+
+    fun intersection(other: Range<T>): Range<T>? {
+        val minimum = if (min < other.min) other.min else min
+        val maximum = if (max > other.max) other.max else max
+        return if (minimum <= maximum) Range(minimum, maximum) else null
+    }
 }
 
 fun <T : Comparable<T>> combineContinuous(ranges: List<Range<T>>): List<Range<T>> {

@@ -136,7 +136,7 @@ constructor(
         locationTrackSearchScope: IntId<LocationTrack>,
     ): List<LocationTrack> =
         locationTrackService
-            .getWithAlignmentOrThrow(layoutContext, locationTrackSearchScope)
+            .getWithGeometryOrThrow(layoutContext, locationTrackSearchScope)
             .let { (lt, alignment) ->
                 lt to locationTrackService.getLocationTrackDuplicates(layoutContext, lt, alignment)
             }
