@@ -315,7 +315,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             };
         });
         const geometrySwitchTabs: ToolPanelTab[] = geometrySwitchIds
-            .filter((s) => !suggestedSwitches.some((ss) => ss.geometrySwitchId === s.geometryId))
+            .filter((s) => !suggestedSwitches.some((ss) => ss.id === s.geometryId))
             .map((s) => {
                 const geomSwitch = getPlan(s.planId)?.switches?.find(
                     (gs) => gs.sourceId === s.geometryId,
@@ -441,7 +441,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 return (
                     ((t.asset.type === 'GEOMETRY_SWITCH' ||
                         t.asset.type === 'GEOMETRY_SWITCH_SUGGESTION') &&
-                        t.asset.id === linkingState.suggestedSwitch.geometrySwitchId) ||
+                        t.asset.id === linkingState.suggestedSwitch.id) ||
                     suggestedSwitches.some((s) => t.asset.id === s.id)
                 );
             })?.asset;

@@ -150,7 +150,9 @@ constructor(
     fun getSuggestedSwitchForGeometrySwitch(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestParam("geometrySwitchId") geometrySwitchId: IntId<GeometrySwitch>,
-    ): GeometrySwitchSuggestionResult = switchLinkingService.getSuggestedSwitch(branch, geometrySwitchId)
+        @RequestParam("layoutSwitchId") layoutSwitchId: IntId<LayoutSwitch>?,
+    ): GeometrySwitchSuggestionResult =
+        switchLinkingService.getSuggestedSwitch(branch, geometrySwitchId, layoutSwitchId)
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/{$LAYOUT_BRANCH}/switches/suggested", params = ["location", "layoutSwitchId"])

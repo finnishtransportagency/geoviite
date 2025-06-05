@@ -412,7 +412,7 @@ const trackLayoutSlice = createSlice({
                     break;
                 case LinkingType.LinkingSwitch: {
                     const selectedSwitch = first(state.selection.selectedItems.switches);
-                    linkingReducers.lockSwitchSelection(state, {
+                    linkingReducers.selectLayoutSwitchForLinking(state, {
                         type: '',
                         payload: selectedSwitch,
                     });

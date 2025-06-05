@@ -1,34 +1,52 @@
 import * as React from 'react';
-import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
+import { LayoutSwitchId } from 'track-layout/track-layout-model';
 import styles from 'tool-panel/switch/switch-infobox.scss';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
-import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { LoaderStatus, useImmediateLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { getSwitchesByBoundingBox } from 'track-layout/layout-switch-api';
-import { SuggestedSwitch } from 'linking/linking-model';
+import { GeometrySwitchSuggestionResult, SuggestedSwitch } from 'linking/linking-model';
 import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { getSuggestedSwitchForGeometrySwitch } from 'linking/linking-api';
+import { GeometrySwitchId } from 'geometry/geometry-model';
 
 type GeometrySwitchLinkingCandidatesProps = {
     layoutContext: LayoutContext;
     suggestedSwitch?: SuggestedSwitch;
-    selectedSwitchId?: LayoutSwitchId;
-    onSelectSwitch: (selectedSwitch: LayoutSwitch) => void;
+    geometrySwitchId: GeometrySwitchId;
+    onSelectSuggestedSwitch: (
+        selectedSuggestedSwitch: SuggestedSwitch,
+        layoutSwitchId: LayoutSwitchId,
+    ) => void;
     switchChangeTime: TimeStamp;
     onShowAddSwitchDialog: () => void;
+};
+
+type SuggestionResultAndSwitchId = {
+    result: GeometrySwitchSuggestionResult | undefined;
+    switchId: LayoutSwitchId;
 };
 
 export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCandidatesProps> = ({
     layoutContext,
     suggestedSwitch,
-    selectedSwitchId,
-    onSelectSwitch,
+    geometrySwitchId,
+    onSelectSuggestedSwitch,
     switchChangeTime,
     onShowAddSwitchDialog,
 }) => {
     const { t } = useTranslation();
+
+    const [selectedSwitchId, setSelectedSwitchId] = React.useState<LayoutSwitchId>();
+    const suggestedSwitchLoader = useImmediateLoader<SuggestionResultAndSwitchId>(
+        (result) =>
+            result.result &&
+            result.result.switch &&
+            onSelectSuggestedSwitch(result.result.switch, result.switchId),
+    );
 
     const [switches, loadingStatus] = useLoaderWithStatus(() => {
         const point = suggestedSwitch?.joints.find((joint) => joint.location)?.location;
@@ -63,7 +81,17 @@ export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCand
                         <li
                             key={s.id}
                             className={styles['geometry-switch-infobox__switch']}
-                            onClick={() => onSelectSwitch(s)}>
+                            onClick={() => {
+                                const switchId = s.id;
+                                setSelectedSwitchId(switchId);
+                                suggestedSwitchLoader.load(
+                                    getSuggestedSwitchForGeometrySwitch(
+                                        layoutContext.branch,
+                                        geometrySwitchId,
+                                        switchId,
+                                    ).then((result) => ({ result, switchId })),
+                                );
+                            }}>
                             <SwitchBadge
                                 switchItem={s}
                                 status={
