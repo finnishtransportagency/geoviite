@@ -1,16 +1,16 @@
-# Ratkovienti
-Täällä on kuvattuna ratkoviennin prosessi sekä sen tietomalli.  
-Ratkoviennillä tarkoitetaan ratanumeroiden, sijaintiraiteiden sekä vaihteiden geometrioiden päivittämistä Ratkoon.
+# Ratko-vienti
+Täällä on kuvattuna Ratko-viennin prosessi sekä sen tietomalli. Ratko-viennillä tarkoitetaan ratanumeroiden,
+sijaintiraiteiden sekä vaihteiden geometrioiden päivittämistä Ratkoon.
 
 Geoviitteen ja Ratkon välinen integraatio on toteutettu push-tyyppisenä eli yksisuuntaisena.  
 Järjestelmien välinen kommunikaatio tapahtuu REST-rajapinnoilla. 
 
-Ratkovienti tapahtuu erillisellä asynkronisella prosessilla ja ylätasolla se koostuu seuraavista vaiheista:
+Ratko-vienti tapahtuu erillisellä asynkronisella prosessilla ja ylätasolla se koostuu seuraavista vaiheista:
 - Haetaan kaikki julkaisut, joita ei vielä ole viety Ratkoon
 - Yhdistetään julkaisujen muutokset, jotta saadaan erotus Ratkon ja Geoviitteen nykytilan välillä
 - Viedään tähän liittyvät käsitteet käsite kerrallaan Ratkoon (ratanumerot, raiteet, vaihteet)
 
-## Ylätason kuvaus ratkoviennistä järjestelmien välillä
+## Ylätason kuvaus Ratko-viennistä järjestelmien välillä
 
 ```mermaid
 sequenceDiagram
@@ -66,8 +66,8 @@ sequenceDiagram
       g ->> r: Vie vaihdepisteiden koordinaattisijainnit
     end
   end
-  g ->> g: Merkitse ratkovienti onnistuneeksi
-  note right of g: M-arvojen laskenta ei vaikuta Ratkoviennin onnistumiseen, <br> sillä Ratko laskee ne joka tapauksessa joka päivä
+  g ->> g: Merkitse Ratko-vienti onnistuneeksi
+  note right of g: M-arvojen laskenta ei vaikuta Ratko-viennin onnistumiseen, <br> sillä Ratko laskee ne joka tapauksessa joka päivä
   g ->> r: Käynnistä M-arvojen laskenta ratanumeroille
   g ->> r: Käynnistä M-arvojen laskenta sijaintiraiteille
 ```
@@ -80,7 +80,7 @@ muuttamalla vietävää datajoukkoa uudella julkaisulla, jolloin datan koostamis
 tarvitse saada menemään läpi.
 
 ## Tietomalli
-Alla on kuvattuna yksikertaistettu malli ratkoviennin käsitteistä.
+Alla on kuvattuna yksikertaistettu malli Ratko-viennin käsitteistä.
 
 ```mermaid
 classDiagram 
@@ -117,8 +117,8 @@ Vaihteisiin kohdistuvat muutokset viedään viimeisenä koska vaihteen linjoilla
 Sijaintiraiteen ja ratanumeron päätepisteet käsitellään aina omana operaationa, sillä Ratkossa ne ovat käsitteellisesti eri asioia kuin muut raiteen pisteet.
 
 
-### Manuaalisesti käynnistetty sijaintiraiteen ratkovienti
-Geoviitteen käyttöliittymästä on myös mahdollista käynnistää ratkovienti yksittäiselle sijaintiraiteelle.
+### Manuaalisesti käynnistetty sijaintiraiteen Ratko-vienti
+Geoviitteen käyttöliittymästä on myös mahdollista käynnistää Ratko-vienti yksittäiselle sijaintiraiteelle.
 Tällöin Ratkoon päivitetään halutut raiteen ratakilometrit, sekä niille välille osuvat topologisesti kytkeytyneet vaihteet.
 
 

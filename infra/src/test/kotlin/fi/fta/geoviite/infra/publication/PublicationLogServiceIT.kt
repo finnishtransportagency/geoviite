@@ -27,7 +27,6 @@ import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
@@ -44,23 +43,29 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.combineEdges
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
 import fi.fta.geoviite.infra.util.SortOrder
@@ -119,10 +124,10 @@ constructor(
             referenceLine(trackNumberId, draft = true),
             alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
-        val (track, alignment) = locationTrackAndAlignment(trackNumberId, draft = true)
+        val (track, alignment) = locationTrackAndGeometry(trackNumberId, draft = true)
         val draftId = locationTrackService.saveDraft(LayoutBranch.main, track, alignment).id
         assertThrows<NoSuchEntityException> {
-            locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.official, draftId)
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.official, draftId)
         }
         assertEquals(draftId, locationTrackService.getOrThrow(MainLayoutContext.draft, draftId).id)
 
@@ -532,8 +537,8 @@ constructor(
 
     @Test
     fun `simple km post change in design is reported`() {
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
-        val kmPost = mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1))).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1))).id
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
         kmPostService.saveDraft(testBranch, mainOfficialContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publish(publicationService, testBranch, kmPosts = listOf(kmPost))
@@ -737,7 +742,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    alignmentWithSwitchLinks(switch),
+                    geometryWithSwitchLinks(switch),
                 )
                 .id
 
@@ -755,7 +760,7 @@ constructor(
         locationTrackService.saveDraft(
             designBranch,
             locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
-            alignmentWithSwitchLinks(),
+            geometryWithSwitchLinks(),
         )
 
         publish(
@@ -770,7 +775,7 @@ constructor(
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
-            alignmentWithSwitchLinks(),
+            geometryWithSwitchLinks(),
         )
         val secondMainPublicationId =
             publish(publicationService, locationTracks = listOf(locationTrackId))
@@ -806,7 +811,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, draft = true),
-                    alignmentWithSwitchLinks(switchAddedAndRemoved),
+                    geometryWithSwitchLinks(switchAddedAndRemoved),
                 )
                 .id
 
@@ -820,7 +825,7 @@ constructor(
         locationTrackService.saveDraft(
             designBranch,
             locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
-            alignmentWithSwitchLinks(switchFurtherAddedInDesign),
+            geometryWithSwitchLinks(switchFurtherAddedInDesign),
         )
         publish(publicationService, branch = designBranch, locationTracks = listOf(locationTrackId))
             .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-03T00:00:00Z")) }
@@ -829,7 +834,7 @@ constructor(
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
-            alignmentWithSwitchLinks(switchFurtherAddedInMain),
+            geometryWithSwitchLinks(switchFurtherAddedInMain),
         )
         val secondMainPublicationId =
             publish(publicationService, locationTracks = listOf(locationTrackId))
@@ -904,16 +909,13 @@ constructor(
         val originalLocationTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(
-                    trackNumberId,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1)),
-                    draft = true,
-                ),
-                alignmentWithSwitchLinks(
+                locationTrack(trackNumberId, draft = true),
+                geometryWithSwitchLinks(
                     switchUnlinkedFromAlignment.id,
                     switchDeleted.id,
                     switchMerelyRenamed.id,
                     originalSwitchReplacedWithNewSameName.id,
+                    outerLinks = (switchUnlinkedFromTopology.id to null),
                 ),
             )
         publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
@@ -937,17 +939,13 @@ constructor(
 
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrackDao
-                .getOrThrow(MainLayoutContext.official, originalLocationTrack.id)
-                .copy(
-                    topologyStartSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyStart.id, JointNumber(1)),
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1)),
-                ),
-            alignmentWithSwitchLinks(
+            locationTrackDao.getOrThrow(MainLayoutContext.official, originalLocationTrack.id),
+            geometryWithSwitchLinks(
                 switchAddedToAlignment.id,
                 switchMerelyRenamed.id,
                 newSwitchReplacingOldWithSameName.id,
                 null,
+                outerLinks = (switchAddedToTopologyStart.id to switchAddedToTopologyEnd.id),
             ),
         )
         publish(
@@ -1009,16 +1007,15 @@ constructor(
         // track that had bump to y=-10 goes to having a bump to y=10, meaning the length and ends
         // stay the same,
         // but the geometry changes
-        val originalAlignment = alignment(segmentWithCurveToMaxY(-10.0))
-        val newAlignment = alignment(segmentWithCurveToMaxY(10.0))
         val originalLocationTrack =
             locationTrackDao.save(
-                locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment), draft = false)
+                locationTrack(trackNumberId, draft = false),
+                trackGeometryOfSegments(segmentWithCurveToMaxY(-10.0)),
             )
         locationTrackService.saveDraft(
             LayoutBranch.main,
             asMainDraft(locationTrackDao.fetch(originalLocationTrack)),
-            newAlignment,
+            trackGeometryOfSegments(segmentWithCurveToMaxY(10.0)),
         )
         publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
         val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0]
@@ -1051,7 +1048,7 @@ constructor(
         )
 
         val locationTrack1 =
-            locationTrackAndAlignment(trackNumberId1, draft = true).let { (lt, a) ->
+            locationTrackAndGeometry(trackNumberId1, draft = true).let { (lt, a) ->
                 locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
             }
 
@@ -1066,7 +1063,7 @@ constructor(
         )
 
         val locationTrack2 =
-            locationTrackAndAlignment(trackNumberId2, draft = true).let { (lt, a) ->
+            locationTrackAndGeometry(trackNumberId2, draft = true).let { (lt, a) ->
                 locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
             }
 
@@ -1113,7 +1110,7 @@ constructor(
         )
 
         val locationTrack1 =
-            locationTrackAndAlignment(trackNumberId1, draft = true).let { (lt, a) ->
+            locationTrackAndGeometry(trackNumberId1, draft = true).let { (lt, a) ->
                 locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
             }
 
@@ -1128,7 +1125,7 @@ constructor(
         )
 
         val locationTrack2 =
-            locationTrackAndAlignment(trackNumberId2, draft = true).let { (lt, a) ->
+            locationTrackAndGeometry(trackNumberId2, draft = true).let { (lt, a) ->
                 locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
             }
 
@@ -1222,14 +1219,19 @@ constructor(
                     draft = false,
                 )
             )
-        val originalAlignment =
-            alignment(
-                segment(Point(0.0, 0.0), Point(4.0, 0.0)),
-                segment(Point(4.0, 0.0), Point(10.0, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1)),
-            )
         val locationTrack =
             locationTrackDao.save(
-                locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment), draft = false)
+                locationTrack(trackNumberId, draft = false),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(4.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(4.0, 0.0), Point(10.0, 0.0))),
+                    ),
+                ),
             )
         switchService.saveDraft(
             LayoutBranch.main,
@@ -1237,12 +1239,20 @@ constructor(
                 .fetch(switch)
                 .copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.1, 0.2), null))),
         )
-        val updatedAlignment =
-            alignment(
-                segment(Point(0.1, 0.0), Point(4.1, 0.0)),
-                segment(Point(4.1, 0.0), Point(10.1, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1)),
-            )
-        locationTrackService.saveDraft(LayoutBranch.main, locationTrackDao.fetch(locationTrack), updatedAlignment)
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            locationTrackDao.fetch(locationTrack),
+            trackGeometry(
+                edge(
+                    endInnerSwitch = switchLinkYV(switch.id, 1),
+                    segments = listOf(segment(Point(0.1, 0.0), Point(4.1, 0.0))),
+                ),
+                edge(
+                    startInnerSwitch = switchLinkYV(switch.id, 1),
+                    segments = listOf(segment(Point(4.1, 0.0), Point(10.1, 0.0))),
+                ),
+            ),
+        )
 
         publish(publicationService, switches = listOf(switch.id), locationTracks = listOf(locationTrack.id))
 
@@ -1262,7 +1272,6 @@ constructor(
             ) { _, _ ->
                 null
             }
-        assertEquals(2, diff.size)
         assertEquals(
             listOf("switch-joint-location", "switch-track-address").sorted(),
             diff.map { it.propKey.key.toString() }.sorted(),
@@ -1291,14 +1300,19 @@ constructor(
                     draft = false,
                 )
             )
-        val originalAlignment =
-            alignment(
-                segment(Point(0.0, 0.0), Point(4.0, 0.0)),
-                segment(Point(4.0, 0.0), Point(10.0, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1)),
-            )
         val locationTrack =
             locationTrackDao.save(
-                locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment), draft = false)
+                locationTrack(trackNumberId, draft = false),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(4.0, 0.0))),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(4.0, 0.0), Point(10.0, 0.0))),
+                    ),
+                ),
             )
 
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
@@ -1309,12 +1323,20 @@ constructor(
                 .fetch(switch)
                 .copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.1, 0.2), null))),
         )
-        val updatedAlignment =
-            alignment(
-                segment(Point(0.1, 0.0), Point(4.1, 0.0)),
-                segment(Point(4.1, 0.0), Point(10.1, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1)),
-            )
-        locationTrackService.saveDraft(testBranch, locationTrackDao.fetch(locationTrack), updatedAlignment)
+        locationTrackService.saveDraft(
+            testBranch,
+            locationTrackDao.fetch(locationTrack),
+            trackGeometry(
+                edge(
+                    endInnerSwitch = switchLinkYV(switch.id, 1),
+                    segments = listOf(segment(Point(0.1, 0.0), Point(4.1, 0.0))),
+                ),
+                edge(
+                    startInnerSwitch = switchLinkYV(switch.id, 1),
+                    segments = listOf(segment(Point(4.1, 0.0), Point(10.1, 0.0))),
+                ),
+            ),
+        )
 
         publish(publicationService, testBranch, switches = listOf(switch.id), locationTracks = listOf(locationTrack.id))
         locationTrackService.mergeToMainBranch(testBranch, locationTrack.id)
@@ -1351,30 +1373,32 @@ constructor(
 
     @Test
     fun `changes published in design do not confuse publication change logs`() {
-        val trackNumber = mainDraftContext.insert(trackNumber(TrackNumber("original")))
+        val trackNumber = mainDraftContext.save(trackNumber(TrackNumber("original")))
         val referenceLine =
-            mainDraftContext.insert(
-                referenceLine(trackNumber.id),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
-            )
+            mainDraftContext.save(referenceLine(trackNumber.id), alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         val switch =
-            mainDraftContext.insert(
+            mainDraftContext.save(
                 switch(
                     name = "original",
                     joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(5.0, 5.0), null)),
                 )
             )
         val locationTrack =
-            mainDraftContext.insert(
+            mainDraftContext.save(
                 locationTrack(trackNumber.id, name = "original"),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(5.0, 5.0))
-                        .copy(switchId = switch.id, endJointNumber = JointNumber(1)),
-                    segment(Point(5.0, 5.0), Point(10.0, 10.0)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(5.0, 5.0))),
+                    ),
+                    edge(
+                        startOuterSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(5.0, 5.0), Point(10.0, 10.0))),
+                    ),
                 ),
             )
         val kmPost =
-            mainDraftContext.insert(kmPost(trackNumber.id, km = KmNumber(124), roughLayoutLocation = Point(4.0, 4.0)))
+            mainDraftContext.save(kmPost(trackNumber.id, km = KmNumber(124), roughLayoutLocation = Point(4.0, 4.0)))
         val requestPublishEverything =
             publicationRequest(
                 trackNumbers = listOf(trackNumber.id),
@@ -1398,10 +1422,9 @@ constructor(
             mainOfficialContext.fetch(referenceLine.id)!!,
             alignment(segment(Point(1.0, 0.0), Point(1.0, 10.0))),
         )
-        locationTrackService.saveDraft(
-            designBranch,
-            mainOfficialContext.fetch(locationTrack.id)!!.copy(name = AlignmentName("edited in design")),
-        )
+        mainOfficialContext.fetchWithGeometry(locationTrack.id)!!.let { (t, g) ->
+            locationTrackService.saveDraft(designBranch, t.copy(name = AlignmentName("edited in design")), g)
+        }
         switchService.saveDraft(
             designBranch,
             mainOfficialContext.fetch(switch.id)!!.copy(name = SwitchName("edited in design")),
@@ -1481,7 +1504,7 @@ constructor(
     @Test
     fun `track number created in design is reported as created`() {
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
-        val trackNumber = testDBService.testContext(testBranch, DRAFT).insert(trackNumber()).id
+        val trackNumber = testDBService.testContext(testBranch, DRAFT).save(trackNumber()).id
         publish(publicationService, testBranch, trackNumbers = listOf(trackNumber))
         trackNumberService.mergeToMainBranch(testBranch, trackNumber)
         publish(publicationService, trackNumbers = listOf(trackNumber))
@@ -1491,10 +1514,13 @@ constructor(
 
     @Test
     fun `location track created in design is reported as created`() {
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
         val locationTrack =
-            testDBService.testContext(testBranch, DRAFT).insert(locationTrack(trackNumber), alignment()).id
+            testDBService
+                .testContext(testBranch, DRAFT)
+                .save(locationTrack(trackNumber), TmpLocationTrackGeometry.empty)
+                .id
         publish(publicationService, testBranch, locationTracks = listOf(locationTrack))
         locationTrackService.mergeToMainBranch(testBranch, locationTrack)
         publish(publicationService, locationTracks = listOf(locationTrack))
@@ -1505,7 +1531,7 @@ constructor(
     @Test
     fun `switch created in design is reported as created`() {
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
-        val switch = testDBService.testContext(testBranch, DRAFT).insert(switch()).id
+        val switch = testDBService.testContext(testBranch, DRAFT).save(switch()).id
         publish(publicationService, testBranch, switches = listOf(switch))
         switchService.mergeToMainBranch(testBranch, switch)
         publish(publicationService, switches = listOf(switch))
@@ -1515,9 +1541,9 @@ constructor(
 
     @Test
     fun `km post created in design is reported as created`() {
-        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
-        val kmPost = testDBService.testContext(testBranch, DRAFT).insert(kmPost(trackNumber, KmNumber(2))).id
+        val kmPost = testDBService.testContext(testBranch, DRAFT).save(kmPost(trackNumber, KmNumber(2))).id
         publish(publicationService, testBranch, kmPosts = listOf(kmPost))
         kmPostService.mergeToMainBranch(testBranch, kmPost)
         publish(publicationService, kmPosts = listOf(kmPost))
@@ -1532,15 +1558,20 @@ constructor(
         )
 }
 
-private fun alignmentWithSwitchLinks(vararg switchIds: IntId<LayoutSwitch>?): LayoutAlignment =
-    alignment(
-        switchIds.mapIndexed { index, switchId ->
-            segment(Point(0.0, index * 1.0), Point(0.0, index * 1.0 + 1.0)).let { segment ->
-                if (switchId == null) {
-                    segment
-                } else {
-                    segment.copy(switchId = switchId, startJointNumber = JointNumber(1))
-                }
+private fun geometryWithSwitchLinks(
+    vararg switchIds: IntId<LayoutSwitch>?,
+    outerLinks: Pair<IntId<LayoutSwitch>?, IntId<LayoutSwitch>?> = (null to null),
+): LocationTrackGeometry =
+    trackGeometry(
+        combineEdges(
+            switchIds.mapIndexed { index, switchId ->
+                edge(
+                    startOuterSwitch = outerLinks.first.takeIf { index == 0 }?.let { id -> switchLinkYV(id, 1) },
+                    endOuterSwitch =
+                        outerLinks.second.takeIf { index == switchIds.lastIndex }?.let { id -> switchLinkYV(id, 1) },
+                    startInnerSwitch = switchId?.let { s -> switchLinkYV(s, 1) },
+                    segments = listOf(segment(Point(0.0, index * 1.0), Point(0.0, index * 1.0 + 1.0))),
+                )
             }
-        }
+        )
     )

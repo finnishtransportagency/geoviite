@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.someOid
@@ -55,7 +56,7 @@ constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val locationTrackDao: LocationTrackDao,
 ) : SeleniumTest() {
-    lateinit var WEST_LT: Pair<LocationTrack, LayoutAlignment>
+    lateinit var WEST_LT: Pair<LocationTrack, LocationTrackGeometry>
     lateinit var GEOMETRY_PLAN: GeometryPlan
     lateinit var WEST_REFERENCE_LINE: Pair<ReferenceLine, LayoutAlignment>
     lateinit var EAST_LAYOUT_SWITCH: LayoutSwitch
@@ -78,9 +79,9 @@ constructor(
         val eastReferenceLine = eastReferenceLine(trackNumberEastId.id)
         val eastLocationTrack = eastLocationTrack(trackNumberEastId.id)
 
-        val westLtId = mainOfficialContext.insert(WEST_LT).id
+        val westLtId = mainOfficialContext.saveLocationTrack(WEST_LT).id
         locationTrackDao.insertExternalId(westLtId, LayoutBranch.main, someOid())
-        mainOfficialContext.insert(eastLocationTrack)
+        mainOfficialContext.saveLocationTrack(eastLocationTrack)
         insertReferenceLine(WEST_REFERENCE_LINE)
         insertReferenceLine(eastReferenceLine)
 

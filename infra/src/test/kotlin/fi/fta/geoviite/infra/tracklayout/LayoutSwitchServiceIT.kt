@@ -183,7 +183,7 @@ constructor(
     fun switchWithNoJointsIsReturnedFirst() {
         val idOfSwitchWithNoJoints =
             mainOfficialContext
-                .insert(
+                .save(
                     switch(
                         name = testDBService.getUnusedSwitchName().toString(),
                         stateCategory = LayoutStateCategory.EXISTING,
@@ -228,7 +228,7 @@ constructor(
 
         val idOfSwitchLocatedAtComparisonPoint =
             mainOfficialContext
-                .insert(
+                .save(
                     switch(
                         name = testDBService.getUnusedSwitchName().toString(),
                         stateCategory = LayoutStateCategory.EXISTING,
@@ -305,27 +305,36 @@ constructor(
             )
         val (_, withStartLink) =
             insertDraft(
-                locationTrack(tnId, draft = true)
-                    .copy(topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1))),
-                alignment(someSegment()),
+                locationTrack(tnId, draft = true),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switch.id as IntId, 1)),
+                        endNode = PlaceHolderNodeConnection,
+                        segments = listOf(someSegment()),
+                    )
+                ),
                 someOid(),
             )
         val (_, withEndLink) =
             insertDraft(
-                locationTrack(tnId, draft = true)
-                    .copy(topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2))),
-                alignment(someSegment()),
+                locationTrack(tnId, draft = true),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = PlaceHolderNodeConnection,
+                        endNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switch.id as IntId, 2)),
+                        segments = listOf(someSegment()),
+                    )
+                ),
             )
         val (_, withSegmentLink) =
             insertDraft(
                 locationTrack(tnId, draft = true),
-                alignment(
-                    someSegment()
-                        .copy(
-                            switchId = switch.id as IntId,
-                            startJointNumber = JointNumber(1),
-                            endJointNumber = JointNumber(2),
-                        )
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = NodeConnection.switch(inner = switchLinkYV(switch.id as IntId, 1), outer = null),
+                        endNode = NodeConnection.switch(inner = switchLinkYV(switch.id as IntId, 2), outer = null),
+                        segments = listOf(someSegment()),
+                    )
                 ),
                 someOid(),
             )
@@ -343,57 +352,55 @@ constructor(
     }
 
     @Test
-    fun shouldReturnLocationTracksThatAreLinkedToSwitchAtMoment() {
+    fun `findLocationTracksLinkedToSwitchAtMoment works`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val switchId = mainOfficialContext.insert(switch()).id
+        val switchId = mainOfficialContext.save(switch()).id
 
         val locationTrack1Oid = someOid<LocationTrack>()
         val locationTrack1 =
-            mainOfficialContext.insert(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    name = "LT 1",
-                    topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = trackNumberId, name = "LT 1"),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switchId, 1)),
+                        endNode = PlaceHolderNodeConnection,
+                        segments = listOf(someSegment()),
+                    )
                 ),
-                alignment(someSegment()),
             )
         locationTrackService.insertExternalId(LayoutBranch.main, locationTrack1.id, locationTrack1Oid)
 
         val locationTrack2 =
-            mainOfficialContext.insert(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    name = "LT 2",
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = trackNumberId, name = "LT 2"),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = PlaceHolderNodeConnection,
+                        endNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switchId, 2)),
+                        segments = listOf(someSegment()),
+                    )
                 ),
-                alignment(someSegment()),
             )
 
         val locationTrack3Oid = someOid<LocationTrack>()
         val locationTrack3 =
-            mainOfficialContext.insert(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    name = "LT 3",
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
-                ),
-                alignment(
-                    someSegment()
-                        .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(2))
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = trackNumberId, name = "LT 3"),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = NodeConnection.switch(inner = switchLinkYV(switchId, 1), outer = null),
+                        endNode = NodeConnection.switch(inner = switchLinkYV(switchId, 2), outer = null),
+                        segments = listOf(someSegment()),
+                    )
                 ),
             )
         locationTrackService.insertExternalId(LayoutBranch.main, locationTrack3.id, locationTrack3Oid)
 
         // add confuser draft; should have no effect
-        mainDraftContext.insert(mainOfficialContext.fetch(locationTrack1.id)!!)
+        mainDraftContext.save(mainOfficialContext.fetch(locationTrack1.id)!!)
 
         val linkedLocationTracks =
-            switchDao.findLocationTracksLinkedToSwitchAtMoment(
-                LayoutBranch.main,
-                switchId,
-                JointNumber(1),
-                Instant.now(),
-            )
+            switchDao.findLocationTracksLinkedToSwitchAtMoment(LayoutBranch.main, switchId, Instant.now())
         assertEquals(2, linkedLocationTracks.size)
 
         assertTrue(
@@ -416,22 +423,20 @@ constructor(
         val switch = switch(IntId(1), joints = listOf(switchJoint(1, Point(1.0, 1.0))), draft = false)
         val switchVersion = switchDao.save(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
-        val (locationTrack, alignment) =
-            locationTrackAndAlignment(
-                mainDraftContext.createLayoutTrackNumber().id,
-                segment(joint1Point - 1.0, joint1Point),
-                draft = true,
-            )
-        val locationTrackVersion =
-            locationTrackService.saveDraft(
-                LayoutBranch.main,
-                locationTrack.copy(topologyEndSwitch = TopologyLocationTrackSwitch(switchVersion.id, JointNumber(1))),
-                alignment,
+        val trackVersion =
+            mainDraftContext.save(
+                locationTrack(mainDraftContext.createLayoutTrackNumber().id),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(switchVersion.id, 1),
+                        segments = listOf(segment(joint1Point - 1.0, joint1Point)),
+                    )
+                ),
             )
         val connections = switchService.getSwitchJointConnections(MainLayoutContext.draft, switchVersion.id)
 
         assertEquals(
-            listOf(LayoutSwitchJointMatch(locationTrackVersion.id, joint1Point)),
+            listOf(LayoutSwitchJointMatch(trackVersion.id, joint1Point)),
             connections.first { connection -> connection.number == JointNumber(1) }.accurateMatches,
         )
     }
@@ -460,37 +465,62 @@ constructor(
     @Test
     fun `deleteDraft clears references if the switch is draft-only, but not if official exists`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val draftOnlySwitch = mainDraftContext.insert(switch()).id
-        val officialSwitch = mainOfficialContext.insert(switch())
+        val draftOnlySwitch = mainDraftContext.save(switch()).id
+        val officialSwitch = mainOfficialContext.save(switch())
         mainDraftContext.copyFrom(officialSwitch)
 
         val locationTrack =
-            mainDraftContext.insert(
+            mainDraftContext.save(
                 locationTrack(trackNumber),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(1.0, 0.0))
-                        .copy(switchId = draftOnlySwitch, startJointNumber = JointNumber(1)),
-                    segment(Point(1.0, 0.0), Point(2.0, 0.0))
-                        .copy(switchId = officialSwitch.id, startJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(draftOnlySwitch, 1),
+                        endInnerSwitch = switchLinkYV(draftOnlySwitch, 2),
+                        endOuterSwitch = switchLinkYV(officialSwitch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+                    ),
+                    edge(
+                        startOuterSwitch = switchLinkYV(draftOnlySwitch, 2),
+                        startInnerSwitch = switchLinkYV(officialSwitch.id, 1),
+                        endInnerSwitch = switchLinkYV(officialSwitch.id, 2),
+                        segments = listOf(segment(Point(1.0, 0.0), Point(2.0, 0.0))),
+                    ),
                 ),
             )
+
+        assertEquals(
+            listOf(
+                switchLinkYV(draftOnlySwitch, 1),
+                switchLinkYV(draftOnlySwitch, 2),
+                switchLinkYV(officialSwitch.id, 1),
+                switchLinkYV(officialSwitch.id, 2),
+            ),
+            locationTrackService
+                .getWithGeometryOrThrow(MainLayoutContext.draft, locationTrack.id)
+                .second
+                .trackSwitchLinks
+                .map { l -> l.link },
+        )
+
         switchService.deleteDraft(LayoutBranch.main, draftOnlySwitch)
         switchService.deleteDraft(LayoutBranch.main, officialSwitch.id)
 
         assertEquals(
-            listOf(null, officialSwitch.id),
-            locationTrackService.getWithAlignment(MainLayoutContext.draft, locationTrack.id)!!.second.segments.map {
-                it.switchId
-            },
+            listOf(switchLinkYV(officialSwitch.id, 1), switchLinkYV(officialSwitch.id, 2)),
+            locationTrackService
+                .getWithGeometryOrThrow(MainLayoutContext.draft, locationTrack.id)
+                .second
+                .trackSwitchLinks
+                .map { l -> l.link },
         )
     }
 
     private fun insertDraft(
         locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
+        geometry: LocationTrackGeometry,
         oid: Oid<LocationTrack>? = null,
     ): Pair<LocationTrack, LocationTrackIdentifiers> {
-        val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry)
         if (oid != null) {
             locationTrackService.insertExternalId(LayoutBranch.main, version.id, oid)
         }

@@ -32,6 +32,7 @@
             "v1": {
                 "error": {
                     "oid-not-found": "Pyynnön OID-tunnuksen perusteella ei löydetty kohdetta.",
+                    "location-track-not-found": "Sijaintiraidetta ei löydetty.",
                     "client-error": "Pyyntö oli tunnistamattomalla tavalla virheellinen (HTTP {{koodi}}).",
                     "server-error": "Pyynnön käsittely epäonnistui palvelimella (HTTP {{koodi}}).",
                     "unauthorized": "Pyyntöön ei ollut oikeutta.",
@@ -1351,7 +1352,9 @@
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
         "operating-points": "Liikennepaikat",
         "debug-1m": "Tasametripisteet",
-        "debug": "Debug"
+        "debug": "Debug",
+        "debug-layout-graph": "Raidegraafi",
+        "debug-layout-graph-nano": "Nano-tason graafi"
     },
     "map-view": {
         "cluster-overlay-title": "Klusteripiste",
@@ -1643,6 +1646,7 @@
                 "sharp-angle": "Sijaintiraiteen {{locationTrack}} tasametripisteet menevät taaksepäin, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",
                 "stretched-meters": "Sijaintiraiteen {{locationTrack}} metrivälit ovat liian pitkiä, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",
                 "not-continuous": "Sijaintiraiteen {{locationTrack}} osoitteet eivät ole jatkuvia, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",
+                "bad-geometry-for-geocoding": "Sijaintiraiteen {{locationTrack}} osoitteita ratanumerolla {{trackNumber}} ei voitu laskea loppuun asti, koska osoitteen {{lastAddress}} jälkeen raiteen geometria menee edestakaisin",
                 "start-outside-reference-line": "Pituusmittauslinja {{referenceLine}} on sijaintiraiteelle {{locationTrack}} liian lyhyt, eikä kata sen alkua",
                 "end-outside-reference-line": "Pituusmittauslinja {{referenceLine}} on sijaintiraiteelle {{locationTrack}} liian lyhyt, eikä kata sen loppua",
                 "km-post-too-long": "Tasakilometripiste {{kmNumber}} on liian kaukana edellisestä tasakilometripisteestä",

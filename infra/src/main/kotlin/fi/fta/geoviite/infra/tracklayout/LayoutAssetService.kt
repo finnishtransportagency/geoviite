@@ -7,15 +7,17 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.util.FreeText
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
-abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType : ILayoutAssetDao<ObjectType>>(
-    protected open val dao: DaoType
-) {
+abstract class LayoutAssetService<
+    ObjectType : LayoutAsset<ObjectType>,
+    SaveParamsType,
+    DaoType : ILayoutAssetDao<ObjectType, SaveParamsType>,
+>(protected open val dao: DaoType) {
 
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -59,7 +61,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     @Transactional
     fun cancel(branch: DesignBranch, id: IntId<ObjectType>): LayoutRowVersion<ObjectType>? =
         dao.fetchVersion(branch.official, id)?.let { version ->
-            saveDraft(branch, cancelInternal(dao.fetch(version), branch))
+            saveDraftInternal(branch, cancelInternal(dao.fetch(version), branch), dao.getBaseSaveParams(version))
         }
 
     protected fun cancelInternal(asset: ObjectType, designBranch: DesignBranch) =
@@ -67,15 +69,14 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
 
     protected fun contentMatches(term: String, item: ObjectType): Boolean = false
 
-    @Transactional
-    fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): LayoutRowVersion<ObjectType> {
-        return saveDraftInternal(branch, draftAsset)
-    }
-
-    protected fun saveDraftInternal(branch: LayoutBranch, draftAsset: ObjectType): LayoutRowVersion<ObjectType> {
+    protected fun saveDraftInternal(
+        branch: LayoutBranch,
+        draftAsset: ObjectType,
+        params: SaveParamsType,
+    ): LayoutRowVersion<ObjectType> {
         val draft = asDraft(branch, draftAsset)
         require(draft.isDraft) { "Item is not a draft: id=${draft.id}" }
-        return dao.save(draft)
+        return dao.save(draft, params)
     }
 
     @Transactional
@@ -102,8 +103,9 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         val published = asOfficial(branch, draft)
         require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
 
+        val publishedSaveParams = dao.getBaseSaveParams(draftVersion)
         val publicationVersion =
-            dao.save(published).also { r ->
+            dao.save(published, publishedSaveParams).also { r ->
                 require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
             }
         dao.deleteRow(draftVersion.rowId)
@@ -116,7 +118,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
 
         val completedVersion =
             (draft.contextData as? MainDraftContextData)?.originBranch?.let { originBranch ->
-                completeMergeToMain(draftVersion.id, originBranch)
+                completeMergeToMain(draftVersion.id, originBranch, publishedSaveParams)
             }
 
         return PublicationResultVersions(published = publicationVersion, completed = completedVersion)
@@ -125,16 +127,20 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     private fun completeMergeToMain(
         id: IntId<ObjectType>,
         originBranch: LayoutBranch,
+        saveParams: SaveParamsType,
     ): Pair<DesignBranch, LayoutRowVersion<ObjectType>>? =
         if (originBranch is DesignBranch) {
             val designOfficial = dao.fetchVersion(originBranch.official, id)
             if (designOfficial != null && designOfficial.context == originBranch.official) {
-                val completedVersion = dao.save(completed(dao.fetch(designOfficial)))
+                val completedVersion = dao.save(completed(dao.fetch(designOfficial)), saveParams)
                 originBranch to completedVersion
             } else null
         } else null
 
-    protected fun fetchAndCheckForMerging(fromBranch: DesignBranch, id: IntId<ObjectType>): ObjectType {
+    protected fun fetchAndCheckForMerging(
+        fromBranch: DesignBranch,
+        id: IntId<ObjectType>,
+    ): Pair<ObjectType, SaveParamsType> {
         val branchOfficialVersion = dao.fetchVersion(fromBranch.official, id)
         require(branchOfficialVersion != null) {
             "Object must exist to merge to main branch: fromBranch=$fromBranch id=$id"
@@ -147,9 +153,9 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         require(dao.fetchVersion(fromBranch.draft, id) == branchOfficialVersion) {
             "Object must not have branch-draft version when merging to main: fromBranch=$fromBranch id=$id"
         }
-        return branchObject
+        return branchObject to dao.getBaseSaveParams(branchOfficialVersion)
     }
 
     fun mergeToMainBranch(fromBranch: DesignBranch, id: IntId<ObjectType>): LayoutRowVersion<ObjectType> =
-        dao.save(asMainDraft(fetchAndCheckForMerging(fromBranch, id)))
+        fetchAndCheckForMerging(fromBranch, id).let { (item, params) -> dao.save(asMainDraft(item), params) }
 }

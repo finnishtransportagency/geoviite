@@ -147,15 +147,15 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             insert into publication.split_target_location_track(
                 split_id,
                 location_track_id,
-                source_start_segment_index,
-                source_end_segment_index,
+                source_start_edge_index,
+                source_end_edge_index,
                 operation
             )
             values (
                 :splitId,
                 :trackId,
-                :segmentStart,
-                :segmentEnd,
+                :edgeStart,
+                :edgeEnd,
                 :operation::publication.split_target_operaton
             )
         """
@@ -166,8 +166,8 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 mapOf(
                     "splitId" to splitId.intValue,
                     "trackId" to st.locationTrackId.intValue,
-                    "segmentStart" to st.segmentIndices.first,
-                    "segmentEnd" to st.segmentIndices.last,
+                    "edgeStart" to st.edgeIndices.first,
+                    "edgeEnd" to st.edgeIndices.last,
                     "operation" to st.operation.name,
                 )
             }
@@ -292,8 +292,8 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             """
           select
               location_track_id,
-              source_start_segment_index,
-              source_end_segment_index,
+              source_start_edge_index,
+              source_end_edge_index,
               operation
           from publication.split_target_location_track
           where split_id = :id
@@ -303,7 +303,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         return jdbcTemplate.query(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
             SplitTarget(
                 locationTrackId = rs.getIntId("location_track_id"),
-                segmentIndices = rs.getInt("source_start_segment_index")..rs.getInt("source_end_segment_index"),
+                edgeIndices = rs.getInt("source_start_edge_index")..rs.getInt("source_end_edge_index"),
                 operation = rs.getEnum("operation"),
             )
         }

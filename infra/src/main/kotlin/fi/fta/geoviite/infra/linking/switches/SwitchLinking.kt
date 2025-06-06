@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
@@ -7,24 +8,38 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
-import fi.fta.geoviite.infra.linking.TrackEnd
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 
 enum class SuggestedSwitchJointMatchType {
     START,
     END,
     LINE,
 }
+
+enum class RelativeDirection {
+    Along,
+    Against,
+}
+
+data class EdgeId(val locationTrackId: IntId<LocationTrack>, val edgeIndex: Int)
+
+data class JointOnEdge(
+    val jointNumber: JointNumber,
+    val jointRole: SwitchJointRole,
+    val mOnEdge: Double,
+    val direction: RelativeDirection,
+    val location: Point,
+)
 
 data class LayoutSwitchSaveRequest(
     val name: SwitchName,
@@ -38,12 +53,13 @@ data class LayoutSwitchSaveRequest(
 data class FittedSwitchJointMatch(
     val locationTrackId: IntId<LocationTrack>,
     val segmentIndex: Int,
-    val m: Double,
+    val mOnTrack: Double,
     val switchJoint: SwitchStructureJoint,
     val matchType: SuggestedSwitchJointMatchType,
     val distance: Double,
     val distanceToAlignment: Double,
-    val alignmentId: IntId<LayoutAlignment>?,
+    val direction: RelativeDirection,
+    val location: Point,
 )
 
 data class FittedSwitchJoint(
@@ -57,6 +73,8 @@ data class TopologyLinkFindingSwitch(val joints: List<ISwitchJoint>, val id: Int
 
 data class FittedSwitch(val switchStructure: SwitchStructure, val joints: List<FittedSwitchJoint>)
 
+data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitchId: IntId<LayoutSwitch>)
+
 data class SuggestedSwitch(
     val switchStructureId: IntId<SwitchStructure>,
     val joints: List<LayoutSwitchJoint>,
@@ -65,28 +83,17 @@ data class SuggestedSwitch(
     val name: SwitchName,
 )
 
-data class SwitchLinkingTopologicalTrackLink(val number: JointNumber, val trackEnd: TrackEnd)
-
-data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitchId: IntId<LayoutSwitch>)
-
-data class SwitchLinkingTrackLinks(
-    val segmentJoints: List<SwitchLinkingJoint>,
-    val topologyJoint: SwitchLinkingTopologicalTrackLink?,
-) {
-    init {
-        // linking to neither is OK; that just communicates cleaning up all links
-        check(topologyJoint == null || segmentJoints.isEmpty()) {
-            "Switch linking track link links both to segment and topology"
-        }
-        check(segmentJoints.zipWithNext { a, b -> a.m <= b.m }.all { it }) {
-            "Switch linking track link segment joints should be m-ordered"
-        }
-    }
-
-    fun isLinked(): Boolean = segmentJoints.isNotEmpty() || topologyJoint != null
+data class SwitchLinkingTrackLinks(val locationTrackVersion: Int, val suggestedLinks: SuggestedLinks?) {
+    @JsonIgnore fun isLinked(): Boolean = suggestedLinks != null
 }
 
-data class SwitchLinkingJoint(val number: JointNumber, val segmentIndex: Int, val m: Double, val location: Point)
+data class SuggestedLinks(val edgeIndex: Int, val joints: List<SwitchLinkingJoint>) {
+    init {
+        require(edgeIndex >= 0) { "Suggested link must be on a found edge" }
+    }
+}
+
+data class SwitchLinkingJoint(val mvalueOnEdge: Double, val jointNumber: JointNumber, val location: Point)
 
 data class SwitchRelinkingValidationResult(
     val id: IntId<LayoutSwitch>,

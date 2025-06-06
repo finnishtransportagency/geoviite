@@ -42,7 +42,7 @@ class ChangeContext(
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
     baseContext: LayoutContext,
-    dao: LayoutAssetDao<T>,
+    dao: LayoutAssetDao<T, *>,
     versions: List<LayoutRowVersion<T>>,
 ): TypedChangeContext<T> =
     createTypedContext(
@@ -53,7 +53,7 @@ inline fun <reified T : LayoutAsset<T>> createTypedContext(
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
     branch: LayoutBranch,
-    dao: LayoutAssetDao<T>,
+    dao: LayoutAssetDao<T, *>,
     before: Instant,
     after: Instant,
 ): TypedChangeContext<T> =
@@ -64,14 +64,14 @@ inline fun <reified T : LayoutAsset<T>> createTypedContext(
     )
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
-    dao: LayoutAssetDao<T>,
+    dao: LayoutAssetDao<T, *>,
     noinline getBeforeVersion: (id: IntId<T>) -> LayoutRowVersion<T>?,
     noinline getAfterVersion: (id: IntId<T>) -> LayoutRowVersion<T>?,
 ) = TypedChangeContext(T::class, dao, LazyMap(getBeforeVersion), LazyMap(getAfterVersion))
 
 class TypedChangeContext<T : LayoutAsset<T>>(
     private val klass: KClass<T>,
-    private val dao: LayoutAssetDao<T>,
+    private val dao: LayoutAssetDao<T, *>,
     private val beforeVersions: LazyMap<IntId<T>, LayoutRowVersion<T>?>,
     private val afterVersions: LazyMap<IntId<T>, LayoutRowVersion<T>?>,
 ) {

@@ -13,7 +13,8 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import java.time.Instant
@@ -27,18 +28,22 @@ class GeocodingService(
     private val geocodingDao: GeocodingDao,
     private val geocodingCacheService: GeocodingCacheService,
 ) {
-
-    fun getAddressPoints(layoutContext: LayoutContext, locationTrackId: IntId<LocationTrack>): AlignmentAddresses? {
-        return addressPointsCache
-            .getAddressPointCacheKey(layoutContext, locationTrackId)
-            ?.let(addressPointsCache::getAddressPoints)
+    fun getAddressPoints(
+        layoutContext: LayoutContext,
+        locationTrackId: IntId<LocationTrack>,
+        resolution: Resolution = Resolution.ONE_METER,
+    ): AlignmentAddresses? {
+        return addressPointsCache.getAddressPointCacheKey(layoutContext, locationTrackId, resolution)?.let { cacheKey ->
+            addressPointsCache.getAddressPoints(cacheKey)
+        }
     }
 
     fun getAddressPoints(
         contextKey: GeocodingContextCacheKey,
-        alignmentVersion: RowVersion<LayoutAlignment>,
+        trackVersion: LayoutRowVersion<LocationTrack>,
+        resolution: Resolution = Resolution.ONE_METER,
     ): AlignmentAddresses? {
-        return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
+        return addressPointsCache.getAddressPoints(AddressPointCacheKey(trackVersion, contextKey, resolution))
     }
 
     fun getAddress(
@@ -47,6 +52,10 @@ class GeocodingService(
         location: IPoint,
     ): Pair<TrackMeter, IntersectType>? {
         return getGeocodingContext(layoutContext, trackNumberId)?.getAddress(location)
+    }
+
+    fun getAddress(layoutContext: LayoutContext, trackNumberId: IntId<LayoutTrackNumber>, meter: Double): TrackMeter? {
+        return getGeocodingContext(layoutContext, trackNumberId)?.getAddress(meter)
     }
 
     fun getAddressIfWithin(
@@ -68,10 +77,24 @@ class GeocodingService(
         }
     }
 
+    fun getLazyGeocodingContextsAtMoment(
+        layoutContext: LayoutContext,
+        moment: Instant,
+    ): (IntId<LayoutTrackNumber>) -> GeocodingContext? {
+        val contexts: MutableMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext>> = mutableMapOf()
+        return { trackNumberId ->
+            contexts
+                .computeIfAbsent(trackNumberId) {
+                    Optional.ofNullable(getGeocodingContextAtMoment(layoutContext.branch, it, moment))
+                }
+                .getOrNull()
+        }
+    }
+
     fun getTrackLocation(
         layoutContext: LayoutContext,
         locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
+        alignment: IAlignment,
         address: TrackMeter,
     ): AddressPoint? {
         return getGeocodingContext(layoutContext, locationTrack.trackNumberId)?.getTrackLocation(alignment, address)

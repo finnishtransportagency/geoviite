@@ -6,11 +6,13 @@ Kuvaus järjestelmän tarkoituksesta kannattaa katsoa Confluencesta vaatimusmä�
 
 * [Teknologiat](teknologiat.md)
 * [Tietomalli](tietomalli.md)
+* [Rataverkon graafimalli](rataverkko_graafi.md)
 * [Tietokanta](tietokanta.md)
 * [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md)
 * [Julkaisut](julkaisut.md)
 * [Autentikaatio ja autorisaatio](autentikaatio_ja_autorisaatio.md)
 * [Virhekäsittely](virhekasittely.md)
+* [Välimuisti](välimuisti.md)
 * [Projektivelho](projektivelho.md)
 
 Kehittäjien ohjeet säilytetään versionhallinnassa, koodin rinnalla markdown-formaatissa

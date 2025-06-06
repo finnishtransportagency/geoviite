@@ -17,10 +17,11 @@ import fi.fta.geoviite.infra.publication.validateWithParams
 import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.asDraft
 import org.springframework.beans.factory.annotation.Autowired
@@ -42,7 +43,7 @@ constructor(
         branch: LayoutBranch,
         trackId: IntId<LocationTrack>,
     ): List<SwitchRelinkingValidationResult> {
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, trackId)
+        val (track, alignment) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
         val switchIds = switchLinkingService.collectAllSwitchesOnTrackAndNearby(branch, track, alignment)
         val originalSwitches = getOriginalSwitches(branch, switchIds)
         val switchStructures = originalSwitches.map { switchLibraryService.getSwitchStructure(it.switchStructureId) }
@@ -51,7 +52,12 @@ constructor(
         val switchPlacingRequests = currentSwitchLocationsAsSwitchPlacingRequests(switchIds, originalLocations)
         val switchSuggestions = collectSwitchSuggestionsAtPoints(branch, switchPlacingRequests)
         val changedLocationTracks =
-            collectLocationTrackChangesFromSwitchSuggestions(branch, switchSuggestions, switchPlacingRequests)
+            collectLocationTrackChangesFromSwitchSuggestions(
+                branch,
+                switchSuggestions,
+                switchPlacingRequests,
+                switchStructures,
+            )
 
         val geocodingContext =
             geocodingService.getGeocodingContext(branch.draft, track.trackNumberId)
@@ -94,7 +100,8 @@ constructor(
         branch: LayoutBranch,
         switchSuggestions: List<SuggestedSwitchWithOriginallyLinkedTracks?>,
         switchPlacingRequests: List<SwitchPlacingRequest>,
-    ): List<List<Pair<LocationTrack, LayoutAlignment>>> =
+        switchStructures: List<SwitchStructure>,
+    ): List<List<Pair<LocationTrack, LocationTrackGeometry>>> =
         lookupTracksForSuggestedSwitchValidation(branch, switchSuggestions.map { it?.suggestedSwitch })
             .mapIndexed { index, tracks -> index to tracks }
             .parallelStream()
@@ -102,8 +109,9 @@ constructor(
                 switchSuggestions[index]?.let { suggestion ->
                     withChangesFromLinkingSwitch(
                         suggestion.suggestedSwitch,
+                        switchStructures[index],
                         switchPlacingRequests[index].layoutSwitchId,
-                        originalTracks,
+                        clearSwitchFromTracks(switchPlacingRequests[index].layoutSwitchId, originalTracks),
                     )
                 }
             }
@@ -112,11 +120,11 @@ constructor(
     private fun lookupTracksForSuggestedSwitchValidation(
         branch: LayoutBranch,
         suggestedSwitches: List<SuggestedSwitch?>,
-    ): List<Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>> {
+    ): List<Map<IntId<LocationTrack>, Pair<LocationTrack, DbLocationTrackGeometry>>> {
         val changedTracksIds =
             suggestedSwitches.asSequence().mapNotNull { it?.trackLinks?.keys }.flatten().distinct().toList()
         val tracks =
-            locationTrackService.getManyWithAlignments(branch.draft, changedTracksIds).associateBy { it.first.id }
+            locationTrackService.getManyWithGeometries(branch.draft, changedTracksIds).associateBy { it.first.id }
         return suggestedSwitches.map { suggestedSwitch ->
             suggestedSwitch?.trackLinks?.keys?.associateWith { id -> tracks.getValue(id) } ?: mapOf()
         }
@@ -125,8 +133,8 @@ constructor(
 
 // some validation logic depends on draftness state, so we need to pre-draft tracks for online
 // validation
-private fun draft(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
-    tracks.map { (track, alignment) -> asDraft(track.branch, track) to alignment }
+private fun draft(tracks: List<Pair<LocationTrack, LocationTrackGeometry>>) =
+    tracks.map { (track, geometry) -> asDraft(track.branch, track) to geometry }
 
 private fun currentSwitchLocationsAsSwitchPlacingRequests(
     switchIds: List<IntId<LayoutSwitch>>,
@@ -140,7 +148,7 @@ private fun validateChangeFromSwitchRelinking(
     suggestedSwitchWithOriginallyLinkedTracks: SuggestedSwitchWithOriginallyLinkedTracks?,
     originalSwitch: LayoutSwitch,
     switchStructure: SwitchStructure,
-    changedTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    changedTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): SwitchRelinkingValidationResult {
     return if (suggestedSwitchWithOriginallyLinkedTracks == null) failRelinkingValidationFor(switchId, originalSwitch)
@@ -153,7 +161,7 @@ private fun validateChangeFromSwitchRelinking(
                 switchStructure,
                 track,
                 changedTracks,
-                suggestedSwitchWithOriginallyLinkedTracks.originallyLinkedTracks.keys.toList(),
+                suggestedSwitchWithOriginallyLinkedTracks.originallyLinkedTracks.toList(),
                 getLocationTrackName,
             )
         val presentationJointLocation = getSuggestedLocation(switchId, suggestedSwitch, switchStructure)
@@ -174,7 +182,7 @@ private fun validateForSplit(
     originalSwitch: LayoutSwitch,
     switchStructure: SwitchStructure,
     track: LocationTrack,
-    changedTracksFromSwitchSuggestion: List<Pair<LocationTrack, LayoutAlignment>>,
+    changedTracksFromSwitchSuggestion: List<Pair<LocationTrack, LocationTrackGeometry>>,
     currentSwitchLocationTrackConnections: List<IntId<LocationTrack>>,
     getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> {

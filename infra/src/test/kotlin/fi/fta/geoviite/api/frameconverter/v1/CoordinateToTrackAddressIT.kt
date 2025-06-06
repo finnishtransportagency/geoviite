@@ -1,5 +1,9 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
+import fi.fta.geoviite.api.GeocodableTrack
+import fi.fta.geoviite.api.assertContainsErrorMessage
+import fi.fta.geoviite.api.assertNullDetailedProperties
+import fi.fta.geoviite.api.assertNullSimpleProperties
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestLayoutContext
@@ -24,14 +28,10 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
-import java.math.BigDecimal
-import java.util.*
-import kotlin.math.hypot
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -41,6 +41,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
+import java.util.*
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 
 private const val API_TRACK_ADDRESSES: FrameConverterUrl = "/rata-vkm/v1/rataosoitteet"
 
@@ -697,7 +701,9 @@ constructor(
         val trackEnd = Point(5.0, 2.0)
         val trackSegments = listOf(segment(trackStart, trackEnd))
         val (track, _) =
-            mainOfficialContext.insertAndFetch(locationTrackAndAlignment(trackNumberId, segments = trackSegments))
+            mainOfficialContext.saveAndFetchLocationTrack(
+                locationTrackAndGeometry(trackNumberId, segments = trackSegments)
+            )
 
         // Seek a point that is offset from both the track and the reference line - perpendicular
         // from track point x=0 y=1.5
@@ -795,7 +801,7 @@ constructor(
 
         mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).let { trackNumber ->
             val referenceLine =
-                mainOfficialContext.insert(
+                mainOfficialContext.saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
                 )
 
@@ -824,7 +830,7 @@ constructor(
         testOids.forEach { oid ->
             val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
             val referenceLine =
-                mainOfficialContext.insert(
+                mainOfficialContext.saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
                 )
 
@@ -871,12 +877,14 @@ constructor(
         locationTrackType: LocationTrackType = LocationTrackType.MAIN,
         segments: List<LayoutSegment> = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
         referenceLineId: IntId<ReferenceLine> =
-            layoutContext.insert(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments)).id,
+            layoutContext
+                .saveReferenceLine(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
+                .id,
     ): GeocodableTrack {
         val locationTrackId =
             layoutContext
-                .insert(
-                    locationTrackAndAlignment(
+                .saveLocationTrack(
+                    locationTrackAndGeometry(
                         trackNumberId = trackNumberId,
                         name = locationTrackName,
                         type = locationTrackType,

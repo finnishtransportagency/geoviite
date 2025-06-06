@@ -24,12 +24,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TrackNumberAndChangeTime
 import fi.fta.geoviite.infra.util.CsvEntry
@@ -38,12 +38,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -199,7 +199,7 @@ constructor(
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
                 val (sourceLocationTrack, sourceAlignment) =
-                    locationTrackService.getWithAlignment(split.sourceLocationTrackVersion)
+                    locationTrackService.getWithGeometry(split.sourceLocationTrackVersion)
                 val oid =
                     requireNotNull(
                         locationTrackDao
@@ -215,7 +215,7 @@ constructor(
                         .distinct()
                         .mapNotNull { v ->
                             createSplitTargetInPublication(
-                                sourceAlignment = sourceAlignment,
+                                sourceGeometry = sourceAlignment,
                                 rowVersion = v,
                                 publicationBranch = publication.layoutBranch.branch,
                                 publicationTime = publication.publicationTime,
@@ -235,33 +235,30 @@ constructor(
     }
 
     private fun createSplitTargetInPublication(
-        sourceAlignment: LayoutAlignment,
+        sourceGeometry: LocationTrackGeometry,
         rowVersion: LayoutRowVersion<LocationTrack>,
         publicationBranch: LayoutBranch,
         publicationTime: Instant,
         split: Split,
     ): SplitTargetInPublication? {
-        val (track, alignment) = locationTrackService.getWithAlignment(rowVersion)
+        val (track, geometry) = locationTrackService.getWithGeometry(rowVersion)
         return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
             val ctx =
-                geocodingService.getGeocodingContextAtMoment(publicationBranch, track.trackNumberId, publicationTime)
+                requireNotNull(
+                    geocodingService.getGeocodingContextAtMoment(
+                        publicationBranch,
+                        track.trackNumberId,
+                        publicationTime,
+                    )
+                )
 
-            val startBySegments =
-                requireNotNull(
-                    sourceAlignment.segments[target.segmentIndices.first].segmentStart.let { point ->
-                        ctx?.getAddress(point)?.first
-                    }
-                )
-            val endBySegments =
-                requireNotNull(
-                    sourceAlignment.segments[target.segmentIndices.last].segmentEnd.let { point ->
-                        ctx?.getAddress(point)?.first
-                    }
-                )
-            val startByTargetAlignment = requireNotNull(alignment.start?.let { point -> ctx?.getAddress(point)?.first })
-            val endByTargetAlignment = requireNotNull(alignment.end?.let { point -> ctx?.getAddress(point)?.first })
-            val startAddress = listOf(startBySegments, startByTargetAlignment).maxOrNull()
-            val endAddress = listOf(endBySegments, endByTargetAlignment).minOrNull()
+            val (sourceStart, sourceEnd) = sourceGeometry.getEdgeStartAndEnd(target.edgeIndices)
+            val startBySegments = requireNotNull(ctx.getAddress(sourceStart)).first
+            val endBySegments = requireNotNull(ctx.getAddress(sourceEnd)).first
+            val startByTarget = requireNotNull(geometry.start?.let { point -> ctx.getAddress(point)?.first })
+            val endByTarget = requireNotNull(geometry.end?.let { point -> ctx.getAddress(point)?.first })
+            val startAddress = listOf(startBySegments, startByTarget).maxOrNull()
+            val endAddress = listOf(endBySegments, endByTarget).minOrNull()
 
             return SplitTargetInPublication(
                 id = track.id,
@@ -644,8 +641,8 @@ constructor(
 
         val oldLinkedLocationTracks =
             changes.locationTracks.associate { lt ->
-                locationTrackService.getWithAlignment(lt.oldVersion).let { (track, alignment) ->
-                    track.id as IntId to (track to alignment)
+                locationTrackService.getWithGeometry(lt.oldVersion).let { (track, geometry) ->
+                    track.id as IntId to (track to geometry)
                 }
             }
         val jointLocationChanges =
@@ -653,9 +650,7 @@ constructor(
                 .flatMap { joint ->
                     val oldLocation =
                         oldLinkedLocationTracks[joint.locationTrackId]
-                            ?.let { (track, alignment) ->
-                                findJointPoint(track, alignment, changes.id, joint.jointNumber)
-                            }
+                            ?.let { (_, geometry) -> geometry.getSwitchLocation(changes.id, joint.jointNumber) }
                             ?.toPoint()
                     val distance =
                         if (oldLocation != null && !pointsAreSame(joint.point, oldLocation)) {

@@ -178,3 +178,7 @@ data class Point4DZM(override val x: Double, override val y: Double, override va
         }
     }
 }
+
+fun dot(p1: IPoint, p2: IPoint): Double {
+    return p1.x * p2.x + p1.y * p2.y
+}

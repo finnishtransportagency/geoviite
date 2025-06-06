@@ -8,14 +8,20 @@ import kotlin.math.min
 
 data class GeometryChangeRanges(val added: List<Range<Double>>, val removed: List<Range<Double>>)
 
-fun getChangedGeometryRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>) =
+fun getChangedGeometryRanges(
+    newSegments: List<Pair<LayoutSegment, Range<Double>>>,
+    oldSegments: List<Pair<LayoutSegment, Range<Double>>>,
+) =
     GeometryChangeRanges(
         added = getAddedSegmentMRanges(newSegments, oldSegments),
         removed = getAddedSegmentMRanges(oldSegments, newSegments),
     )
 
-fun getAddedSegmentMRanges(newSegments: List<LayoutSegment>, oldSegments: List<LayoutSegment>): List<Range<Double>> {
-    val addedSegmentIndices = getAddedIndexRangesExclusive(newSegments, oldSegments) { s -> s.geometry.id }
+fun getAddedSegmentMRanges(
+    newSegments: List<Pair<LayoutSegment, Range<Double>>>,
+    oldSegments: List<Pair<LayoutSegment, Range<Double>>>,
+): List<Range<Double>> {
+    val addedSegmentIndices = getAddedIndexRangesExclusive(newSegments, oldSegments) { (s, _) -> s.geometry.id }
     return addedSegmentIndices.flatMap { (newRange, oldRange) ->
         val newPoints = getPointsWithMExclusive(newSegments, newRange)
         val oldPoints = getPointsWithMExclusive(oldSegments, oldRange)
@@ -30,16 +36,19 @@ fun getAddedSegmentMRanges(newSegments: List<LayoutSegment>, oldSegments: List<L
     }
 }
 
-fun getPointsWithMExclusive(segments: List<LayoutSegment>, indexRange: Range<Int>): List<Pair<Point, Double>> =
+fun getPointsWithMExclusive(
+    segments: List<Pair<LayoutSegment, Range<Double>>>,
+    indexRange: Range<Int>,
+): List<Pair<Point, Double>> =
     indexRange
         .takeIf { r -> r.max - r.min >= 2 }
         ?.let { exclusive -> Range(exclusive.min + 1, exclusive.max - 1) }
         ?.let { inclusive ->
             (inclusive.min..inclusive.max).flatMap { i ->
-                segments.getOrNull(i)?.let { segment ->
+                segments.getOrNull(i)?.let { (segment, m) ->
                     segment.segmentPoints
                         .let { if (i == inclusive.min) it else it.subList(0, it.lastIndex) }
-                        .map { p -> p.toPoint() to (p.m + segment.startM) }
+                        .map { p -> p.toPoint() to (p.m + m.min) }
                 } ?: emptyList()
             }
         } ?: emptyList()

@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
@@ -22,12 +21,13 @@ import fi.fta.geoviite.infra.math.RoundedPoint
 import fi.fta.geoviite.infra.math.radsMathToGeo
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.round
-import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
@@ -101,7 +101,7 @@ fun toElementListing(
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     track: LocationTrack,
-    layoutAlignment: LayoutAlignment,
+    geometry: LocationTrackGeometry,
     trackNumber: TrackNumber?,
     elementTypes: List<TrackGeometryElementType>,
     startAddress: TrackMeter?,
@@ -110,29 +110,34 @@ fun toElementListing(
     getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
     getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<ElementListing> {
-    val linkedElementIds = collectLinkedElements(layoutAlignment.segments, context, startAddress, endAddress)
+    val linkedElements = collectLinkedElements(geometry, context, startAddress, endAddress)
     val lengthOfSegmentsConnectedToSameElement =
-        linkedElementIds.groupBy { it.second }.map { it.key to it.value.sumOf { (segment, _) -> segment.length } }
-    val linkedAlignmentIds = linkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
+        linkedElements.groupBy { e -> e.elementId }.map { (key, value) -> key to value.sumOf { e -> e.segment.length } }
+    val linkedAlignmentIds = linkedElements.mapNotNull { e -> e.alignmentId }.distinct()
     val headersAndAlignments = linkedAlignmentIds.associateWith { id -> getPlanHeaderAndAlignment(id) }
 
-    return linkedElementIds
-        .mapNotNull { (segment, elementId) ->
-            if (elementId == null) {
+    return linkedElements
+        .mapNotNull { linked ->
+            if (linked.elementId == null || linked.alignmentId == null) {
                 if (elementTypes.contains(MISSING_SECTION))
-                    toMissingElementListing(context, trackNumber, segment, track, getSwitchName, getLocationTrackName)
+                    toMissingElementListing(
+                        context,
+                        trackNumber,
+                        linked.idString,
+                        linked.segment,
+                        track,
+                        getEdgeSwitchName(linked.edge, getSwitchName, getLocationTrackName),
+                    )
                 else null
             } else {
                 val (planHeader, alignment) =
-                    headersAndAlignments[getAlignmentId(elementId)]
-                        ?: throw IllegalStateException(
-                            "Failed to fetch geometry alignment for element: element=$elementId"
-                        )
+                    requireNotNull(linked.alignmentId?.let(headersAndAlignments::get)) {
+                        "Failed to fetch geometry alignment for element: linked=$linked"
+                    }
                 val element =
-                    alignment.elements.find { e -> e.id == elementId }
-                        ?: throw IllegalStateException(
-                            "Geometry element not found on its parent alignment: alignment=${alignment.id} element=$elementId"
-                        )
+                    requireNotNull(alignment.elements.find { e -> e.id == linked.elementId }) {
+                        "Geometry element not found on its parent alignment: alignment=${alignment.id} linked=$linked"
+                    }
                 if (elementTypes.contains(TrackGeometryElementType.of(element.type))) {
                     toElementListing(
                         context,
@@ -142,8 +147,7 @@ fun toElementListing(
                         alignment,
                         trackNumber,
                         element,
-                        segment,
-                        getSwitchName,
+                        getEdgeSwitchName(linked.edge, getSwitchName),
                         getLocationTrackName,
                     )
                 } else {
@@ -157,13 +161,16 @@ fun toElementListing(
                 lengthOfSegmentsConnectedToSameElement.find { (elementId, _) -> elementId == listing.elementId }?.second
             listing.copy(
                 isPartial =
-                    if (calculatedSegmentLength != null && listing.planId != null)
+                    calculatedSegmentLength != null &&
+                        listing.planId != null &&
                         abs(calculatedSegmentLength - listing.lengthMeters.toDouble()) >
                             SEGMENT_AND_ELEMENT_LENGTH_MAX_DELTA
-                    else false
             )
         }
 }
+
+fun getEdgeSwitchName(edge: LayoutEdge, getSwitchName: (IntId<LayoutSwitch>) -> SwitchName): SwitchName? =
+    (edge.startNode.switchIn ?: edge.endNode.switchIn)?.let { link -> getSwitchName(link.id) }
 
 fun toElementListing(
     context: GeocodingContext?,
@@ -176,29 +183,20 @@ fun toElementListing(
     plan.alignments.flatMap { alignment ->
         alignment.elements
             .filter { element -> elementTypes.contains(element.type) }
-            .map { element ->
-                toElementListing(
-                    context,
-                    getTransformation,
-                    plan,
-                    alignment,
-                    element,
-                    getSwitchName,
-                    getLocationTrackName,
-                )
-            }
+            .map { element -> toElementListing(context, getTransformation, plan, alignment, element) }
     }
 
 private fun toMissingElementListing(
     context: GeocodingContext?,
     trackNumber: TrackNumber?,
-    segment: LayoutSegment,
+    identifier: String,
+    segment: ISegment,
     locationTrack: LocationTrack,
-    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
+    switchName: SwitchName?,
+    locationTrackName: AlignmentName?,
 ) =
     ElementListing(
-        id = StringId("MEL_${segment.id}"),
+        id = StringId("MEL_${identifier}"),
         planId = null,
         planSource = null,
         fileName = null,
@@ -211,10 +209,10 @@ private fun toMissingElementListing(
         elementId = null,
         elementType = MISSING_SECTION,
         lengthMeters = round(segment.length, LENGTH_DECIMALS),
-        start = getLocation(context, segment.alignmentStart, segment.startDirection),
-        end = getLocation(context, segment.alignmentEnd, segment.endDirection),
-        locationTrackName = getLocationTrackName(locationTrack.id as IntId<LocationTrack>),
-        connectedSwitchName = segment.switchId?.let { id -> getSwitchName(id) },
+        start = getLocation(context, segment.segmentStart, segment.startDirection),
+        end = getLocation(context, segment.segmentEnd, segment.endDirection),
+        locationTrackName = locationTrackName,
+        connectedSwitchName = switchName,
         isPartial = false,
     )
 
@@ -226,8 +224,7 @@ private fun toElementListing(
     alignment: GeometryAlignment,
     trackNumber: TrackNumber?,
     element: GeometryElement,
-    segment: LayoutSegment,
-    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
+    switchName: SwitchName?,
     getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ) =
     elementListing(
@@ -242,8 +239,7 @@ private fun toElementListing(
         alignment = alignment,
         element = element,
         locationTrack = locationTrack,
-        segment = segment,
-        getSwitchName = getSwitchName,
+        linkedSwitch = switchName,
         getLocationTrackName = getLocationTrackName,
         planTime = planHeader.planTime,
     )
@@ -254,8 +250,6 @@ private fun toElementListing(
     plan: GeometryPlan,
     alignment: GeometryAlignment,
     element: GeometryElement,
-    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ) =
     elementListing(
         context = context,
@@ -269,9 +263,7 @@ private fun toElementListing(
         alignment = alignment,
         element = element,
         locationTrack = null,
-        segment = null,
-        getSwitchName = getSwitchName,
-        getLocationTrackName = getLocationTrackName,
+        linkedSwitch = element.switchId?.let { sId -> plan.switches.find { s -> s.id == sId } }?.name,
         planTime = plan.planTime,
     )
 
@@ -351,8 +343,7 @@ private fun elementListing(
     alignment: GeometryAlignment,
     locationTrack: LocationTrack?,
     element: GeometryElement,
-    segment: LayoutSegment?,
-    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
+    linkedSwitch: SwitchName?,
     getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
     planTime: Instant?,
 ) =
@@ -376,13 +367,13 @@ private fun elementListing(
             lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
             start = start,
             end = end,
-            connectedSwitchName = segment?.switchId?.let { id -> getSwitchName(id) },
+            connectedSwitchName = linkedSwitch,
             isPartial = false,
             planTime = planTime,
         )
     }
 
-private fun getLocation(context: GeocodingContext?, point: AlignmentPoint, directionRads: Double) =
+private fun getLocation(context: GeocodingContext?, point: SegmentPoint, directionRads: Double) =
     ElementLocation(
         coordinate = point.round(COORDINATE_DECIMALS),
         address = context?.getAddress(point)?.first,
@@ -418,8 +409,6 @@ private fun getEndLocation(
         radiusMeters = getEndRadius(element),
         cant = getEndCant(alignment, element),
     )
-
-fun getAlignmentId(elementId: IndexedId<GeometryElement>) = IntId<GeometryAlignment>(elementId.parentId)
 
 private fun getAddress(context: GeocodingContext?, transformation: Transformation?, coordinate: Point) =
     if (context == null || transformation == null) null

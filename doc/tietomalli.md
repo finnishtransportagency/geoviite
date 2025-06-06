@@ -1,56 +1,103 @@
 # Tietomalli
 
-Tässä kuvassa esitetään geoviitteen peruskäsitteet ja miten ne liittyvät toisiinsa. Käsitteistöä on tarkoituksella
-yksinkertaistettu ollakseen havainnollisempi ja luokkahierarkiat eivät vastaa 1-1 tietokantatauluja vaan ennenkaikkea
+Tässä dokumentissa esitetään Geoviitteen peruskäsitteet ja miten ne liittyvät toisiinsa. Käsitteistöä on tarkoituksella
+yksinkertaistettu ollakseen havainnollisempi ja luokkahierarkiat eivät vastaa 1-1 tietokantatauluja vaan ennen kaikkea
 käsitteistön kannalta oleellista osaa niiden tietosisällöstä.
 
 ![](images/data_flow.png)
 
+## Käsitteiden 3 esitystapaa
+
+| Käsite          | Geometria                                                                                                                                                                                                                            | Paikannuspohja                                                                                                                                                                                                                      | Osoitepisteet                                                                                                                                                                                                                                                                                                              |
+| --------------- |--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Yleiskuva       | Tarkat suunnitteluohjelmissa tuotetut matemaattisesti kuvatut geometriat. Toisistaan riippumattomia, eri koordinaatistoissa ja eri ajoilta olevia lähtötietoja, jotka eivät aina yhdisty saumattomasti.                              | Koko rataverkko, tuotuna yhtenäiseen koordinaatistoon helposti kartalla esitettävässä muodossa.                                                                                                                                   | RATKO:n esitysmuoto. Koostuu tasametripisteistä jotka on valittu projisoimalla pituusmittauslinjalta, ja johon on siten sisällytetty rataosoitejärjestelmä. Tasametrien lisäksi sisältää myös epätasametripisteinä tärkeät raiteella olevat kohdat, kuten alku- ja loppupisteen sekä mahdolliset vaihteiden jatkospisteet. |
+| Vaakageometria  | Keskilinja koostuu elementeistä Kukin elementti kuvattu reunapisteinä sekä matemaattisen funktion parametreina: suora, kaari, spiraali (siirtymäkaari)                                                                               | Keskilinja koostuu segmenteistä, joista kukin on polyline (pisteviiva) joka on laskettu matemaattisista geometrioista halutulla resoluutiolla.                                                                                      | Keskilinja koostuu tasametripisteistä jotka on valittu projisoimalla pituusmittauslinjalta.                                                                                                                                                                                                                                |
+| Pystygeometria  | Koostuu kaarista joiden X on pituutta rataa pitkin ja Y korkeus ko. kohdassa. Kaarten väliin oletetaan suoraa.                                                                                                                       | Kullekin vaakageometrian pisteelle (pisteviivan käännöskohdat) annettu desimaaliarvo: korkeus metreinä                                                                                                                              | Ei mukana                                                                                                                                                                                                                                                                                                                  |
+| Kallistuskulmat | Koostuu pistemäisistä kallistusarvoista (ja suunnista) per pituusyksikkö rataa pitkin. Pisteiden välissä kulman oletetaan kasvavan/pienenevän lineaarisesti.                                                                         | Kullekin vaakageometrian pisteelle (pisteviivan käännöskohdat) annettu desimaaliarvo: <0 vasemmalle, >0 oikealle                                                                                                                    | Ei mukana                                                                                                                                                                                                                                                                                                                  |
+| Vaihteet        | Vaihteiden perustiedot ovat mukana jokaisessa vaakageometrian elementissä, johon se liittyy. Lisäksi mukana on tieto "Switch Joint" numerosta, joka kuvaa (tyyppikohtaisesti) mikä kohta vaihdetta liittyy ko. geometriaelementtiin. | Vaihteen perustiedot ovat mallissa kerran ja siihen kytkeytyy tunnetut vaihdepisteet, kukin kerran. Sijaintiraiteiden segmentit kytkeytyy vaihteisiin ja niiden pisteisiin päistä. Koordinaattisijainnit ovat vain vaihdepisteillä. | Vaihdepisteet lasketun osoitteen kera per-raide. Yksi piste voi siis olla monta kertaa, kerran kullekin raiteelle johon se kytkeytyy, osoite ja ko. raiteen mukaisesti. Saman pisteen sijainti eri raiteilla ei välttämättä ole tarkalleen sama, ja johtuen eri pituusmittauslinjoista, myös osoite saattaa erota.         |
+
 ## Termistö
 
-| Luokkanimi                    | Tietokantataulu                   | Käsite suomeksi                                               | Selite                                                               |
-|-------------------------------|-----------------------------------|---------------------------------------------------------------|----------------------------------------------------------------------|
-| **Suunnitelman käsitteet**    |                                   |                                                               |                                                                      |
-| GeometryPlan                  | geometry.plan                     | Suunnitelma                                                   | InfraModel (IM)-tiedoston jäsennetty muoto                           |
-| Author                        | geometry.plan_author              | Suunnitelman luoja                                            | IM:n luoneen yrityksen tiedot                                        |
-| Application                   | geometry.plan_application         | Suunniteluohjelma                                             | Ohjelma jolla IM luotiin                                             |
-| GeometryUnits                 | (osana geometry.plan taulua)      | Suunnitelman yksiköt                                          | Pituus, kulma, koordinaattijärjestelmä, jne.                         |
-| GeometryAlignment             | geometry.alignment                | Suunnitelman keskilinjan geometria                            |                                                                      |
-| GeometryElement               | geometry.element                  | Suunnitelman geometrian elementti (kantaluokka)               |                                                                      |
-| GeometryLine                  | (osana geometry.element taulua)   | Suunnitelman suora (geometriaelementti)                       |                                                                      |
-| GeometryCurve                 | (osana geometry.element taulua)   | Suunnitelman ympyräkaari (geometriaelementti)                 |                                                                      |
-| GeometrySpiral                | (osana geometry.element taulua)   | Suunnitelman siirtymäkaari (geometriaelementti - kantaluokka) |                                                                      |
-| GeometryClothoid              | (osana geometry.element taulua)   | Suunnitelman klotoidi (geometriaelementti)                    |                                                                      |
-| GeometryBiquadraticParabola   | (osana geometry.element taulua)   | Suunnitelman toisen asteen paraabeli (geometriaelementti)     |                                                                      |
-| GeometrySwitch                | geometry.switch                   | Suunnitelman vaihde                                           |                                                                      |
-| GeometrySwitchJoint           | geometry.switch_joint             | Suunnitelman vaihteen jatkospiste                             |                                                                      |
-| GeometryKmPost                | geometry.km_post                  | Suunnitelman tasakilometripiste                               | Aiemmin kilometripylväs                                              |
-| GeometryProfile               | (osana geometry.alignment taulua) | Suunnitelman pystygeometria                                   |                                                                      |
-| VerticalIntersection          | geometry.vertical_intersection    | Suunnitelman pystygeometrian piste (kantaluokka)              | Määrityskohta pystygeometrialle: korkeus suhteessa raiteen pituuteen |
-| VIPoint                       | geometry.vertical_intersection    | Suunnitelman pistemäinen pystygeometrian piste                | Määrittelee pystygeometrian arvon tietyssä kohdassa                  |
-| VICircularCurve               | geometry.vertical_intersection    | Suunnitelman kaareva pystygeometrian määrityspiste            | Määrittelee pystygeometriaan kaaren                                  |
-| GeometryCant                  | (osana geometry.alignment taulua) | Suunnitelman raiteen kallistus                                |                                                                      |
-| GeometryCantPoint             | geometry.cant_point               | Suunnitelman raiteen kallistuspiste                           | Määrityskohta kaltevuudelle: arvo suhteessa raiteen pituuteen        |
-| **Paikannuspohjan käsitteet** |                                   |                                                               |                                                                      |
-| LayoutTrackNumber             | layout.track_number               | Paikannuspohjan ratanumero                                    |                                                                      |
-| ReferenceLine                 | layout.reference_line             | Paikannuspohjan pituusmittauslinja                            | Ratanumeron osoitteiston määräävä linja. Yleensä seuraa pääraidetta. |
-| LayoutKmPost                  | layout.km_post                    | Paikannuspohjan tasakilometripiste                            | Rataosoitteen kilometrinumeron vaihtumiskohta pituusmittauslinjalla  |
-| LocationTrack                 | layout.location_track             | Paikannuspohjan sijaintiraide                                 |                                                                      |
-| LayoutAlignment               | layout.alignment                  | Paikannuspohjan keskilinja                                    | Paikannuspohjan geometriaviiva (kokonaisuus)                         |
-| LayoutSegment                 | layout.segment_version            | Paikannuspohjan keskilinjan segmentti                         | Geometriaviivan pätkä: metatiedoiltaan yhtenevä osa                  |
-| SegmentGeometry               | layout.segment_geometry           | Paikannuspohjan segmenttigeometria                            | Uniikki segmentin geometriapätkä                                     |
-| LayoutSwitch                  | layout.switch                     | Paikannuspohjan vaihde                                        |                                                                      |
-| LayoutSwitchJoint             | layout.switch_joint               | Paikannuspohjan vaihdepiste                                   |                                                                      |
-| **Muut käsitteet**            |                                   |                                                               |                                                                      |
-| PVDocument                    | projektivelho.document            | Projektivelhon dokumentti                                     | Projektivelhosta ladattu yksittäinen tiedosto                        |
-| SwitchStructure               | common.switch_structure           | Vaihdetyyppi                                                  | Vaihdetyypin kuvaus ja sen RATO-määrityksen mukainen rakenne         |
-| SwitchOwner                   | common.switch_owner               | Vaihteen omistaja                                             |                                                                      |
-| LocationTrackOwner            | common.location_track_owner       | Sijaintiraiteen omistaja                                      |                                                                      |
+| Luokkanimi                            | Tietokantataulu                    | Käsite suomeksi                                               | Selite                                                                                                                       |
+|---------------------------------------|------------------------------------|---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| **Suunnitelman käsitteet**            |                                    |                                                               |                                                                                                                              |
+| GeometryPlan                          | geometry.plan                      | Suunnitelma                                                   | InfraModel (IM)-tiedoston jäsennetty muoto                                                                                   |
+| Author                                | geometry.plan_author               | Suunnitelman luoja                                            | IM:n luoneen yrityksen tiedot                                                                                                |
+| Application                           | geometry.plan_application          | Suunniteluohjelma                                             | Ohjelma jolla IM luotiin                                                                                                     |
+| GeometryUnits                         | (osana geometry.plan taulua)       | Suunnitelman yksiköt                                          | Pituus, kulma, koordinaattijärjestelmä, jne.                                                                                 |
+| GeometryAlignment                     | geometry.alignment                 | Suunnitelman keskilinjan geometria                            |                                                                                                                              |
+| GeometryElement                       | geometry.element                   | Suunnitelman geometrian elementti (kantaluokka)               |                                                                                                                              |
+| GeometryLine                          | (osana geometry.element taulua)    | Suunnitelman suora (geometriaelementti)                       |                                                                                                                              |
+| GeometryCurve                         | (osana geometry.element taulua)    | Suunnitelman ympyräkaari (geometriaelementti)                 |                                                                                                                              |
+| GeometrySpiral                        | (osana geometry.element taulua)    | Suunnitelman siirtymäkaari (geometriaelementti - kantaluokka) |                                                                                                                              |
+| GeometryClothoid                      | (osana geometry.element taulua)    | Suunnitelman klotoidi (geometriaelementti)                    |                                                                                                                              |
+| GeometryBiquadraticParabola           | (osana geometry.element taulua)    | Suunnitelman toisen asteen paraabeli (geometriaelementti)     |                                                                                                                              |
+| GeometrySwitch                        | geometry.switch                    | Suunnitelman vaihde                                           |                                                                                                                              |
+| GeometrySwitchJoint                   | geometry.switch_joint              | Suunnitelman vaihteen jatkospiste                             |                                                                                                                              |
+| GeometryKmPost                        | geometry.km_post                   | Suunnitelman tasakilometripiste                               | Aiemmin kilometripylväs                                                                                                      |
+| GeometryProfile                       | (osana geometry.alignment taulua)  | Suunnitelman pystygeometria                                   |                                                                                                                              |
+| VerticalIntersection                  | geometry.vertical_intersection     | Suunnitelman pystygeometrian piste (kantaluokka)              | Määrityskohta pystygeometrialle: korkeus suhteessa raiteen pituuteen                                                         |
+| VIPoint                               | geometry.vertical_intersection     | Suunnitelman pistemäinen pystygeometrian piste                | Määrittelee pystygeometrian arvon tietyssä kohdassa                                                                          |
+| VICircularCurve                       | geometry.vertical_intersection     | Suunnitelman kaareva pystygeometrian määrityspiste            | Määrittelee pystygeometriaan kaaren                                                                                          |
+| GeometryCant                          | (osana geometry.alignment taulua)  | Suunnitelman raiteen kallistus                                |                                                                                                                              |
+| GeometryCantPoint                     | geometry.cant_point                | Suunnitelman raiteen kallistuspiste                           | Määrityskohta kaltevuudelle: arvo suhteessa raiteen pituuteen                                                                |
+| **Paikannuspohjan käsitteet**         |                                    |                                                               |                                                                                                                              |
+| LayoutTrackNumber                     | layout.track_number                | Paikannuspohjan ratanumero                                    |                                                                                                                              |
+| ReferenceLine                         | layout.reference_line              | Paikannuspohjan pituusmittauslinja                            | Ratanumeron osoitteiston määräävä linja. Yleensä seuraa pääraidetta.                                                         |
+| LayoutKmPost                          | layout.km_post                     | Paikannuspohjan tasakilometripiste                            | Rataosoitteen kilometrinumeron vaihtumiskohta pituusmittauslinjalla                                                          |
+| LocationTrack                         | layout.location_track              | Paikannuspohjan sijaintiraide                                 |                                                                                                                              |
+| LocationTrackGeometry                 | layout.location_track_version_edge | Paikannuspohjan sijaintiraiteen keskilinja                    | Sijaintiraiteen keskilinjan geometriaviiva (koostavat edget, versioituu raiteen mukana)                                      |
+| LayoutAlignment                       | layout.alignment                   | Paikannuspohjan pituusmittauslinjan keskilinja                | Pituusmittauslinjan geometriaviiva (kokonaisuus)                                                                             |
+| LayoutSegment                         | layout.segment_version             | Paikannuspohjan keskilinjan segmentti                         | Geometriaviivan pätkä: metatiedoiltaan yhtenevä osa                                                                          |
+| SegmentGeometry                       | layout.segment_geometry            | Paikannuspohjan segmenttigeometria                            | Uniikki segmentin geometriapätkä                                                                                             |
+| LayoutSwitch                          | layout.switch                      | Paikannuspohjan vaihde                                        |                                                                                                                              |
+| LayoutSwitchJoint                     | layout.switch_joint                | Paikannuspohjan vaihdepiste                                   |                                                                                                                              |
+| **Rataverkkograafin käsitteet**       |                                    |                                                               |                                                                                                                              |
+| LayoutEdge                            | layout.edge                        | Graafin kaari                                                 | Geometria joka yhdistää 2 solmua                                                                                             |
+| NodeConnection                        | (osana layout.edge taulua)         | Graafin kaaren ja solmun välinen kytkentä                     | Yhdistää kaaren johonkin solmuun tietyn portin puolelta                                                                      |
+| LayoutNode                            | layout.node                        | Graafin solmu                                                 | Solmupiste: identiteetti rataverkon haarautumiskohdalle                                                                      |
+| NodePort                              | layout.node_port                   | Graafin solmun portti (kiinnityskohta)                        | Jos solmussa yhdistyy kaksi eri käsitettä (yleensä vaihdepistettä) portit kuvaavat suuntia joista kaari voi siihen kytkeytyä |
+| LayoutSegment (sama luokka kuin yllä) | layout.edge_segment                | Graafin kaaren geometrian (keskilinjan) segmentti             | Geometriaviivan pätkä: metatiedoiltaan yhtenevä osa pisteviivaa                                                              |
+| **Muut käsitteet**                    |                                    |                                                               |                                                                                                                              |
+| PVDocument                            | projektivelho.document             | Projektivelhon dokumentti                                     | Projektivelhosta ladattu yksittäinen tiedosto                                                                                |
+| SwitchStructure                       | common.switch_structure            | Vaihdetyyppi                                                  | Vaihdetyypin kuvaus ja sen RATO-määrityksen mukainen rakenne                                                                 |
+| SwitchOwner                           | common.switch_owner                | Vaihteen omistaja                                             |                                                                                                                              |
+| LocationTrackOwner                    | common.location_track_owner        | Sijaintiraiteen omistaja                                      |                                                                                                                              |
+
+## Sijaintien esitysmuodot
+
+### Koordinaatit
+
+Geoviitteessä koordinaatit ovat tyypillisesti määräävä esitysmuoto sijainnille ja muut muodot ovat johdettuja niistä.
+Koordinaatteja käsitellään useassa eri koordinaatistossa, erityisesti suunnitelmien tarkoissa geometrioissa.
+Paikannuspohjassa koordinaatit ovat yhtenäistetty ETRS-TM35FIN koordinaatistoon.
+
+### m-arvot
+
+Geoviitteessä käytetään m-arvoja (matka metreinä) kuvaamaan sijaintia tiettyä geometriaa pitkin. M-arvo on siis
+etäisyys ko. geometrian (raiteen, pituusmittauslinjan, ...) alusta. Koska tulkinta on riippuvainen kontekstista,
+tulee m-arvojen kanssa aina huomioida minkä käsitteen m-arvosta puhutaan. Esimerkiksi yhdellä raiteen sijainnilla
+on erilliset m-arvot suhteessa sen segmentteihin (segmentM) tai raiteen koko pituuteen (alignmentM).
+
+### Rataosoitteet
+
+Rataosoitteet on RATO-ohjeistuksen mukaisesti lasketut osoitteet rataverkon sijainneille, muotoa KM+m, esim. 0123+1234.
+Tyypillisimmin rataverkon käsitteistössä osoitteista käytetään vain tasametrejä, mutta niille voidaan antaa myös
+tarkempi arvo metrin desimaaleina, esim. 0123+1234.123.
+
+Geoviite pystyy laskemaan osoitteet halutulla tarkkuudella ja tietomallissa niitä pyritään käsittelemään
+desimaalilukuina (Java BigDecimal), jotka säilyttävän tiedon tarkkuudesta (desimaalien määrä) vaikka itse desimaalit
+eivät olisi merkitseviä. Eli esim. 0123+1234.100 kertoo että se on 3 desimaalin tarkkuudella laskettu, eli millin 
+tarkkuudella tasan .100 eikä jotain joka voisi pyöristyä arvoon 0.1.
+
+Laskenta edellyttää että tunnetaan käytettävä ratanumero ja että sen pituusmittauslinja kattaa ko. sijainnin. Osoitteen
+arvo lasketaan pituusmittauslinjaa pitkin vaihtaen ratakilometriä tasakilometripisteiden kohdalla. Pituusmittauslinjan
+sivussa oleville sijainneille osoite lasketaan projisoimalla kohta pituusmittauslinjalle.
 
 ## Tarkat geometriat
 
 Ratatieto saapuu järjestelmään pääasiassa tarkkoina 3D geometrioina, jotka on piirretty suunnitteluohjelmissa. Nämä
-kuvastavat tiettyä rataverkon osaa tietyn suunnitelman tai toteuman hetkellä, osat ovat päällekäisiä tai niiden välistä
+kuvastavat tiettyä rataverkon osaa tietyn suunnitelman tai toteuman hetkellä, osat ovat päällekkäisiä tai niiden välistä
 voi puuttua pätkiä. Lisäksi ne voivat olla määritelty eri koordinaatistoissa, joiden muunnos ei ole häviötöntä. Niistä
 ei siis voi yksiselitteisesti koostaa koko rataverkkoa. Geometrioiden tietomalli noudattaa läheisesti lähdeaineiston
 (LandXML) käsitteistöä.
@@ -129,15 +176,13 @@ classDiagram
         location: Point
     }
     class SwitchStructure {
-        type: String
-        presentationJointNumber: Int
-        [structure geometry as a separate object model]
+        [Katso vaihderakenteen tietomalli paikannuspohjan kuvauksesta]
     }
     class LayoutTrackNumber {
-        [See layout model below]
+        [Katso ratanumeron tietomalli]
     }
     class PVDocument {
-        [See projectivelho model]
+        [Katso projektivelho.md]
     }
 ```
 
@@ -145,11 +190,12 @@ classDiagram
 
 Yksittäinen alignment kuvaa yhtä suunnitelman keskilinjaa ja niitä voi olla yhdellä suunnitelmalla useampia.
 Tyypillisimmin linjat kuvaavat raiteita, mutta ne voivat olla myös pituusmittauslinjoja. Linjan vaakageometria on
-kuvattu matemaattisina elementteinä eli suorina, viivoina ja kaarina. Linjoille voi olla kuvattuna pystygeometria
-(GeometryProfile) ja kallistuskulma (GeometryCant), mutta ne eivät ole pakollisia. Pystygeometria koostuu pisteistä (x =
-raiteen pituus, y = korkeus ko. kohdalla), joiden välille mallinnetaan lineaarinen siirtymä, sekä kaarista jotka
-sovitetaan linjalle. Kallistuskulma kuvataan pelkkinä pisteinä, joiden väliin sovitetaan joko lineaarinen siirtymä tai
-toisen asteen paraabeli.
+kuvattu matemaattisina elementteinä eli suorina, viivoina ja kaarina.
+
+Linjoille voi olla kuvattuna pystygeometria (GeometryProfile) ja kallistuskulma (GeometryCant), mutta ne eivät ole
+pakollisia. Pystygeometria koostuu pisteistä (x = raiteen pituus, y = korkeus ko. kohdalla), joiden välille
+mallinnetaan lineaarinen siirtymä, sekä kaarista jotka sovitetaan linjalle. Kallistuskulma kuvataan pelkkinä pisteinä,
+joiden väliin sovitetaan joko lineaarinen siirtymä tai toisen asteen paraabeli.
 
 ```mermaid
 classDiagram
@@ -219,44 +265,58 @@ classDiagram
 ## Paikannuspohja
 
 Geoviitteen toinen esitysmuoto on paikannuspohja (kuvassa vasemmalla), joka on koko rataverkon kartalla esitettävä
-muoto. Paikannuspohjaa ylläpidetään geoviitteessä ja tarkat geometriat toimivat yhtenä sen pohjatiedon lähteenä. Tässä
-esitysmuodossa kukin raide on mukana on kerran ja kokonaisuutena (poikkeuksena duplikaattiraiteet) ja ne kaikki on tuotu
-samaan koordinaatistoon yhtenäistä esitystä varten. Muunnoksista johtuen, paikannuspohjan tarkkuus ei ole yhtä hyvä kuin
-alkuperäisissä geometrioissa.
+muoto. Paikannuspohjaa ylläpidetään Geoviitteessä ja tarkat geometriat toimivat yhtenä sen pohjatiedon lähteenä. Tässä
+esitysmuodossa kukin raide on mukana kerran ja kokonaisuutena (poikkeuksena duplikaattiraiteet) ja ne kaikki on tuotu
+samaan koordinaatistoon yhtenäistä esitystä varten.
 
-Paikannuspohjaan sisältyy myös rataosoitteiston viitekehys, eli sen avulla voidaan laskea sijainnille tai kohteelle
-rataosoite (rata, km, metrit) ja mikä tahansa rataosoite voidaan kääntäen laskea tiettyy sijaintiin (koordinaatti).
+Muunnoksista ja yhtenäiskoordinaatistosta johtuen, paikannuspohjan tarkkuus ei ole yhtä hyvä kuin alkuperäisissä
+geometrioissa. Toisaalta, koska se on koottu yhdeksi kokonaisuudeksi, paikannuspohja tarjoaa eheän esityksen koko
+rataverkosta ja sen sijainneista.
 
-### Paikannuspohjan rakenne
+Yhdestä paikannuspohjan käsitteestä voi olla monta versiota eri paikannuspohjan konteksteissa. Koska paikannuspohjan
+sisältämät käsitteet viittaavat toisiinsa vain ID:llä, nuo viitteet säilyy käsitteen siirtyessä kontekstista toiseen.
+Toisaalta käsitteet tulee aina hakea kontekstitiedon kera, sillä pelkälle ID:lle on olemassa useampi voimassaoleva
+versio. Tässä dokumentissa kuvataan käsitteitä vain yhden konteksin näkökulmasta. Paikannuspohjan kontekstit on kuvattu
+tarkemmin dokumentissa [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md).
 
-Paikannuspohjan osoitteistot lasketaan ratanumerokohtaisesti, projisoimalla sijainnit ratanumeron pituusmittauslinjalle.
-Tasakilometripisteet määräävät missä kohtaa pituusmittauslinjaa vaihdetaan rataosoitteen kilometrilukua. Nuo käsitteet
-muodostavat siis yhdessä ratanumeron geokoodauskontekstin (GeocodingContext), jonka avulla voidaan laskea osoitteet
-mille vain pisteelle pituusmittauslinjan matkalla.
+### Segmenttigeometriat
 
-Koska paikannuspohja muodostetaan geometrioiden pohjalta, sen sisältö viittaa geometriamalliin. Viivageometriassa
-yksittäinen segment kuvaa yhtä tiedoiltaan yhtenäistä pisteviivan osaa ja sellaisenaan voi viitata lähteenä olleeseen
-geometria-puolen viivaelementtiin (GeometryElement). Vastaavasti, jos vaihde on luotu geometriavaihteen pohjalta, se
-viittää lähteenä olleeseen käsitteeseen.
+Sekä pituusmittauslinjan että raiteiden tietomallissa esiintyy segmentit, joista niiden geometria koostuu. Geometria
+muodostetaan linkittämällä keskilinjan elementtejä yhdestä tai useammasta lähdesuunnitelmasta. Yksittäinen segmentti ei
+sinällään ole erityisen kiinnostava käyttäjän kannalta, mutta se kertoo tietyn keskiviivan osan metatiedot, esimerkiksi
+lähdesuunnitelman josta se on linkitetty. Segmenttien jaottelu on siis pituuden puolesta mielivaltainen, mutta kukin
+segmentti on metatiedoiltaan yhtenevä geometrian pätkä.
+
+Segmenttigeometrioiden tallennuksessa on optimointi, joka varmistaa että itse geometria (linestring) tallennetaan vain
+kerran vaikka se olisi useammalla segmentillä. Tämä perustuu geometriataulun uniikkiin hash-avaimeen ja tapahtuu
+automaattisesti kun geometria tallennetaan. Tässä on kuitenkin se hyödyllinen ominaisuus että jos tallennetun segmentin
+geometryId on sama kuin toisella segmentillä, ne voidaan tietää identtisiksi ilman tarvetta vertailla pisteitä.
+
+### Ratanumeron tietomalli
+
+Ratanumero koostuu tavallisten ominaisuustietojen lisäksi siihen liittyvästä pituusmittauslinjan geometriasta ja 
+tasakilometripisteistä. Noiden käsitteiden yhdistelmästä muodostuu paikannuspohjaan ja ratanumeron rataosoitteiston
+viitekehys, eli Geoviitteen termistössä geokoodauskonteksti. Sen avulla voidaan laskea (geokoodata) ratanumeroon
+liittyvälle sijainnille rataosoite (rata, km, metrit). Vastaavasti ratanumerolle sidotulle rataosoitteelle voidaan
+laskea sijainti (koordinaatti) joko pituusmittauslinjalla tai jollain ratanumeroon sidotulla raiteella.
+
+Koska pituusmittauslinjan geometria muodostuu linkittämällä suunnitelmista, sen koostavat pätkät (segmentit) viittaavat
+lähdesuunnitelman keskilinjan elementtiin josta se on muodostettu. Yksittäinen segmentti ei muutoin ole erityisen
+merkittävä, mutta se muodostaa metatiedoiltaan (erityisesti tämä lähdetieto) yhtenevän jakson keskiviivaa.
+
+Pituusmittauslinjan geometria koostuu segmenteistä yllä kuvatulla tavalla (kts.
+[Segmenttigeometriat](#segmenttigeometriat)).
 
 ```mermaid
 classDiagram
-    ReferenceLine "1" --> "1" LayoutAlignment
-    LocationTrack "1" --> "1" LayoutAlignment
+    ReferenceLine *-- "1" LayoutAlignment
     LayoutSegment *-- "1" SegmentGeometry
     SegmentGeometry *-- SegmentPoint
-    LayoutTrackNumber "1" <-- "1" LocationTrack
-    LayoutTrackNumber "1" <-- "1" ReferenceLine
-    LayoutTrackNumber "1" <-- "n" LayoutKmPost
-    LayoutSwitch *-- "n" LayoutSwitchJoint
-    LayoutSwitch <-- LayoutSegment
+    LayoutTrackNumber <-- "1" ReferenceLine
+    LayoutTrackNumber <-- "n" LayoutKmPost
     LayoutAlignment *-- "n" LayoutSegment
-    LocationTrackOwner "1" <-- "n" LocationTrack
-    SwitchOwner "1" <-- "n" LayoutSwitch
-    SwitchStructure "1" <-- "n" LayoutSwitch
-    GeometrySwitch "0..1" <-- "n" LayoutSwitch
-    LayoutSegment "n" --> "0..1" GeometryElement
-
+    LayoutSegment --> "0..1" GeometryElement
+    
     class LayoutTrackNumber {
         externalId: Oid
         number: String
@@ -270,13 +330,6 @@ classDiagram
         kmNumber: KmNumber
         location: Point
         state: IN_USE/NOT_IN_USE/PLANNED/DELETED
-    }
-    class LocationTrack {
-        externalId: Oid
-        name: String
-        description: String
-        type: MAIN/SIDE/TRAP/CHORD
-        state: IN_USE/NOT_IN_USE/PLANNED/DELETED/BUILT
     }
     class LayoutAlignment {
     }
@@ -294,6 +347,107 @@ classDiagram
         m: Double
         cant: Double
     }
+    class GeometryElement {
+        [Katso suunnitelmien tietomalli]
+    }
+```
+
+#### Sijaintiraiteiden tietomalli sekä raidegraafi
+
+Perustietojensa lisäksi, sijaintiraiteet muodostavat rataverkon graafin. Graafimalli koostuu solmuista (LayoutNode) ja
+kaarista (LayoutEdge). Solmut vaihdepisteitä tai raiteiden päitä ja kaaret geometrioita, jotka yhdistävät ne. Raiteen
+geometria koostuu joukosta kaaria, alla olevan kuvan mukaisesti. Graafimallia on kuvattu tarkemmin dokumentissa
+[Rataverkon graafimalli](rataverkko_graafi.md). Tässä kuvataan vain, miten raide muodostuu graafin osista.
+
+Sijaintiraiteet eivät suoraan kytkeydy vaihteisiin, vaan ne koostuvat kaarien kautta solmuista. Solmu puolestaan voi
+viitata yhteen tai kahteen vaihdepisteeseen, jotka tuossa rataverkon haarautumiskohdassa sijaitsevat.
+
+Raiteen geometria kuvataan sen koostamien kaarien geometrioista. Kuten pituusmittauslinjoillakin, myös kaarien ja siten
+koko raiteen geometria muodostuu segmenteistä yllä kuvatulla tavalla (kts. [Segmenttigeometriat](#segmenttigeometriat)).
+
+```mermaid
+classDiagram
+    direction TB
+    LocationTrack *-- "1" LocationTrackGeometry
+    LocationTrack --> "1" LayoutTrackNumber
+    LocationTrackGeometry *-- "n" LayoutEdge
+    LayoutEdge *-- "2" NodeConnection
+    NodeConnection --> "1" LayoutNode
+    LayoutEdge *-- "1..n" LayoutSegment
+    LayoutSegment *-- "1" SegmentGeometry
+    LayoutSegment --> "0..1" GeometryElement
+    SegmentGeometry *-- "2..n" SegmentPoint
+    LayoutNode *-- "1..2" NodePort
+    NodePort <|-- TrackBoundary
+    NodePort <|-- SwitchLink
+    SwitchLink --> "1" LayoutSwitchJoint
+    class LayoutNode {
+        type: SWITCH/TRACK_BOUNDARY
+    }
+    class NodeConnection {
+        port: A/B
+    }
+    class NodePort {
+        port: A/B
+    }
+    class SwitchLink {
+    }
+    class TrackBoundary {
+        type: START/END
+    }
+    class LayoutSwitchJoint {
+        [Katso vaihteet tietomalli]
+    }
+    class LocationTrack {
+        externalId: Oid
+        name: String
+        description: String
+        type: MAIN/SIDE/TRAP/CHORD
+        state: IN_USE/NOT_IN_USE/PLANNED/DELETED/BUILT
+    }
+    class LayoutSegment {
+        startJointNumber: Int?
+        endJointNumber: Int?
+    }
+    class LayoutTrackNumber {
+        [Katso ratanumeron tietomalli]
+    }
+    class GeometryElement {
+        [Katso suunnitelmien tietomalli]
+    }
+    class SegmentGeometry {
+        resolution: Int
+    }
+    class SegmentPoint {
+        x[easting]: Double
+        y[northing]: Double
+        z[height]: Double
+        m: Double
+        cant: Double
+    }
+```
+
+#### Vaihteiden tietomalli
+
+Vaihteen keskeisimpiä ominaisuustietoja on sen tyyppi. Vaihdetyyppi kuvataan vaihderakenteina (SwitchStructure), 
+joista kukin kuvaa tietyn mallisen vaihteen tärkeine mittoineen RATO-ohjeistuksen mukaisesti. Tyyppejä on rajallinen
+määrä (kuvattu RATO:ssa) ja ne voidaan tunnistaa uniikilla tyyppikoodillaan, esim. "YV60-300-1:9-O". Kukin rakenne kuvaa
+sen muodon tarkasti geometrioina ja vaihdepisteinä. Tuon tiedon avulla Geoviite osaa sovittaa vaihteen oikealle kohdalle
+raiteiden päälle linkityksessä.
+
+Vaihde voidaan luoda suoraan Geoviitteessä tai se voi syntyä linkittämällä tiedot jostain suunnitelmasta. Jos
+vaihde on luotu geometriavaihteen pohjalta, se viittaa lähteenä olleeseen suunnitelman vaihdekäsitteeseen.
+
+```mermaid
+classDiagram
+    LayoutSwitch --> "0..1" GeometrySwitch
+    LayoutSwitch --> "1" SwitchOwner
+    LayoutSwitch *-- "n" LayoutSwitchJoint
+    LayoutSwitch --> "1" SwitchStructure
+    SwitchStructure *-- "1..n" SwitchStructureAlignment
+    SwitchStructure *-- "1..n" SwitchStructureJoint
+    SwitchStructureAlignment *-- "1..n" SwitchStructureElement
+
     class LayoutSwitch {
         externalId: Oid
         name: String
@@ -306,28 +460,24 @@ classDiagram
     class SwitchOwner {
         name: String
     }
-    class LocationTrackOwner {
-        name: String
-    }
     class SwitchStructure {
         type: String
         presentationJointNumber: Int
-        [structure geometry as a separate object model]
     }
     class GeometrySwitch {
-        [See geometry model above]
+        [Katso suunnitelmien tietomalli]
     }
-    class GeometryElement {
-        [See geometry model above]
+    class SwitchStructureAlignment {
+        joints: List[Int]
+    }
+    class SwitchStructureElement {
+        type: LINE/CURVE
+        start: Point
+        end: Point
+        curveRadius: Double?
+    }
+    class SwitchStructureJoint {
+        number: Int
+        location: Point
     }
 ```
-
-## Käsitteiden 3 esitystapaa
-
-| Käsite          | Geometria                                                                                                                                                                                                                            | Paikannuspohja                                                                                                                                                                                                                      | Osoitepisteet                                                                                                                                                                                                                                                                                                              |
-|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Yleiskuva       | Tarkat suunnitelluohjelmissa tuotetut matemaattisesti kuvatut geometriat. Toisistaan riippumattomia, eri koordinaatistoissa olevia lähtötietoja, jotka ovat osin päällekäisiä ja eivät kuvaa kaikkia alueita lainkaan.               | Koko rataverkko, tuotuna yhtenäiseen koordiinaatistoon, helposti kartalla esitettävässä muodossa.                                                                                                                                   | RATKO:n esitysmuoto. Koostuu tasametripisteistä jotka on valittu projisoimalla pituusmittauslinjalta, ja johon on siten sisällytetty rataosoitejärjestelmä. Tasametrien lisäksi sisältää myös epätasamatripisteinä tärkeät raiteella olevat kohdat, kuten alku- ja loppupisteen sekä mahdolliset vaihteiden jatkospisteet. |
-| Vaakageometria  | Keskilinja koostuu elementeistä Kukin elementti kuvattu reunapisteinä sekä matemaattisen funktion parametreina: suora, kaari, spiraali (siirtymäkaari)                                                                               | Keskilinja koostuu segmenteistä, joista kukin on polyline (pisteviiva) joka on laskettu matemaattisista geometrioista halutulla resoluutiolla.                                                                                      | Keskilinja koostuu tasametripisteistä jotka on valittu projisoimalla pituusmittauslinjalta.                                                                                                                                                                                                                                |
-| Pystygeometria  | Koostuu kaarista joiden X on pituutta rataa pitkin ja Y korkeus ko. kohdassa. Kaarten väliin oletetaan suoraa.                                                                                                                       | Kullekin vaakageometrian pisteelle (pisteviivan käännöskohdat) annettu desimaaliarvo: korkeus metreinä                                                                                                                              | Ei mukana                                                                                                                                                                                                                                                                                                                  |
-| Kallistuskulmat | Koostuu pistemäisistä kallistusarvoista (ja suunnista) per pituusyksikkö rataa pitkin. Pisteiden välissä kulman oletetaan kasvavan/pienenevän lineaarisesti.                                                                         | Kullekin vaakageometrian pisteelle (pisteviivan käännöskohdat) annettu desimaaliarvo: <0 vasemmalle, >0 oikealle                                                                                                                    | Ei mukana                                                                                                                                                                                                                                                                                                                  |
-| Vaihteet        | Vaihteiden perustiedot ovat mukana jokaisessa vaakageometrian elementissä, johon se liittyy. Lisäksi mukana on tieto "Switch Joint" numerosta, joka kuvaa (tyyppikohtaisesti) mikä kohta vaihdetta liittyy ko. geometriaelementtiin. | Vaihteen perustiedot ovat mallissa kerran ja siihen kytkeytyy tunnetut vaihdepisteet, kukin kerran. Sijaintiraiteiden segmentit kytkeytyy vaihteisiin ja niiden pisteisiin päistä. Koordinaattisijainnit ovat vain vaihdepisteillä. | Vaihdepisteet lasketun osoitteen kera per-raide. Yksi piste voi siis olla monta kertaa, kerran kullekin raiteelle johon se kytkeytyy, osoite ja ko. raiteen mukaisesti. Saman pisteen sijainti eri raiteilla ei välttämättä ole tarkalleen sama, ja johtuen eri pituusmittauslinjoista, myös osoite saattaa erota.         |

@@ -3,11 +3,15 @@ package fi.fta.geoviite.infra.map
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.geography.bufferedPolygonForLineStringPoints
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
@@ -105,7 +109,7 @@ fun toAlignmentHeader(trackNumber: LayoutTrackNumber, referenceLine: ReferenceLi
 
 fun toAlignmentHeader(
     locationTrack: LocationTrack,
-    alignment: LayoutAlignment?,
+    alignment: DbLocationTrackGeometry,
     getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ) =
     LocationTrackHeader(
@@ -116,13 +120,13 @@ fun toAlignmentHeader(
         name = getLocationTrackName(locationTrack.id as IntId),
         state = locationTrack.state,
         trackType = locationTrack.type,
-        length = alignment?.length ?: 0.0,
+        length = alignment.length,
         segmentCount = locationTrack.segmentCount,
-        boundingBox = alignment?.boundingBox,
+        boundingBox = alignment.boundingBox,
     )
 
 fun getSegmentBorderMValues(alignment: IAlignment): List<Double> =
-    alignment.segments.map { s -> s.startM } + alignment.length
+    alignment.segmentMValues.map { s -> s.min } + alignment.length
 
 fun <T> toAlignmentPolyLine(
     id: DomainId<T>,
@@ -133,18 +137,32 @@ fun <T> toAlignmentPolyLine(
     includeSegmentEndPoints: Boolean,
 ) = AlignmentPolyLine(id, type, simplify(alignment, resolution, bbox, includeSegmentEndPoints))
 
+const val ALIGNMENT_POLYGON_BUFFER = 10.0
+const val ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION = 100
+
+fun toPolygon(alignment: IAlignment, polygonBufferSize: Double = ALIGNMENT_POLYGON_BUFFER): List<IPoint> {
+    val simplifiedAlignment =
+        simplify(
+            alignment = alignment,
+            resolution = ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION,
+            bbox = null,
+            includeSegmentEndPoints = true,
+        )
+    return bufferedPolygonForLineStringPoints(simplifiedAlignment, polygonBufferSize, LAYOUT_SRID)
+}
+
 fun simplify(
     alignment: IAlignment,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
     includeSegmentEndPoints: Boolean,
 ): List<AlignmentPoint> {
-    val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segments
+    val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segmentsWithM
     var previousM = Double.NEGATIVE_INFINITY
     val isOverResolution = { mValue: Double -> resolution?.let { r -> (mValue - previousM).roundToInt() >= r } ?: true }
     return segments
-        .flatMapIndexed { sIndex, s ->
-            if (sIndex == 0 || sIndex == segments.lastIndex || isOverResolution(s.endM)) {
+        .flatMapIndexed { sIndex, (s, m) ->
+            if (sIndex == 0 || sIndex == segments.lastIndex || isOverResolution(m.max)) {
                 val isEndPoint = { pIndex: Int ->
                     val isTrackEndPoint =
                         (sIndex == 0 && pIndex == 0) ||
@@ -158,20 +176,20 @@ fun simplify(
                 }
 
                 s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-                    if (isPointIncluded(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
+                    if (isPointIncluded(pIndex, p.m + m.min, isEndPoint, isOverResolution, bboxContains)) {
                         if (!isSegmentEndPoint(pIndex)) {
                             // segment end points should be additional points,
                             // so increase m-counter only when handling middle points
-                            previousM = s.startM + p.m
+                            previousM = m.min + p.m
                         }
-                        p.toAlignmentPoint(s.startM)
+                        p.toAlignmentPoint(m.min)
                     } else null
                 }
             } else {
                 if (includeSegmentEndPoints)
                     listOf(
-                        s.segmentPoints.first().toAlignmentPoint(s.startM),
-                        s.segmentPoints.last().toAlignmentPoint(s.endM),
+                        s.segmentPoints.first().toAlignmentPoint(m.min),
+                        s.segmentPoints.last().toAlignmentPoint(m.max),
                     )
                 else emptyList()
             }

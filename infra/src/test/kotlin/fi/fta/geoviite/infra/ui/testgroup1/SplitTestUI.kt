@@ -1,20 +1,22 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationGroup
 import fi.fta.geoviite.infra.ratko.FakeRatko
 import fi.fta.geoviite.infra.ratko.FakeRatkoService
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.combineEdges
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.someOid
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
+import fi.fta.geoviite.infra.tracklayout.verticalEdge
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
@@ -58,34 +60,32 @@ constructor(
     fun `Split can be created and published`() {
         testDBService.clearAllTables()
         val trackNumber = TrackNumber("876")
-        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
 
         val trackStartPoint = HelsinkiTestData.HKI_BASE_POINT + Point(x = 675.0, y = 410.0)
-        val preSegments = splitTestDataService.createSegments(trackStartPoint, 3)
+        val preEdge = verticalEdge(trackStartPoint, 3)
 
-        val switchStartPoint1 = lastPoint(preSegments)
-        val (_, switchSegments1, turningSegments1) =
+        val switchStartPoint1 = preEdge.lastSegmentEnd
+        val (_, straightEdges1, turningEdges1) =
             splitTestDataService.createSwitchAndGeometry(switchStartPoint1, externalId = someOid())
 
-        val segments1To2 = splitTestDataService.createSegments(lastPoint(switchSegments1), 2)
+        val edge1To2 = verticalEdge(straightEdges1.last().lastSegmentEnd, 2)
 
-        val switchStartPoint2 = lastPoint(segments1To2)
-        val (_, switchSegments2, turningSegments2) =
+        val switchStartPoint2 = edge1To2.lastSegmentEnd
+        val (_, straightEdges2, turningEdges2) =
             splitTestDataService.createSwitchAndGeometry(switchStartPoint2, externalId = someOid())
 
-        val postSegments = splitTestDataService.createSegments(lastPoint(switchSegments2), 4)
+        val postEdge = verticalEdge(straightEdges2.last().lastSegmentEnd, 4)
 
-        val sourceTrackId =
-            splitTestDataService
-                .createAsMainTrack(
-                    trackNumberId = trackNumberId,
-                    segments = preSegments + switchSegments1 + segments1To2 + switchSegments2 + postSegments,
-                )
-                .id
+        val geometry =
+            trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1To2 + straightEdges2 + postEdge))
+        val trackNumberId =
+            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(alignment(geometry.segments), trackNumber).id
+        val sourceTrackId = mainOfficialContext.save(locationTrack(trackNumberId), geometry).id
+        locationTrackService.insertExternalId(LayoutBranch.main, sourceTrackId, someOid())
 
         val sourceTrackName = locationTrackService.get(MainLayoutContext.official, sourceTrackId)!!.name.toString()
-        splitTestDataService.insertAsTrack(trackNumberId = trackNumberId, segments = turningSegments1)
-        splitTestDataService.insertAsTrack(trackNumberId = trackNumberId, segments = turningSegments2)
+        mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges1))
+        mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges2))
 
         startGeoviite()
 
@@ -158,5 +158,3 @@ constructor(
         )
     }
 }
-
-private fun lastPoint(segments: List<LayoutSegment>): IPoint = segments.last().segmentPoints.last()

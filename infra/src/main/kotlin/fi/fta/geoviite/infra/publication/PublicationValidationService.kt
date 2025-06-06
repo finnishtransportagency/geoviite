@@ -423,12 +423,11 @@ constructor(
     private fun validateSwitch(
         id: IntId<LayoutSwitch>,
         validationContext: ValidationContext,
-    ): List<LayoutValidationIssue>? {
+    ): List<LayoutValidationIssue> {
         val switch = validationContext.getSwitch(id)
         val switchIsCancelled = validationContext.switchIsCancelled(id)
-        val linkedTracksAndAlignments = validationContext.getSwitchTracksWithAlignments(id)
-        val linkedTracks = linkedTracksAndAlignments.map(Pair<LocationTrack, *>::first)
-
+        val linkedTracksAndGeometries = validationContext.getSwitchTracksWithGeometries(id)
+        val linkedTracks = linkedTracksAndGeometries.map(Pair<LocationTrack, *>::first)
         if (switch == null) {
             return validateSwitchLocationTrackLinkReferences(
                 switchExists = false,
@@ -509,7 +508,7 @@ constructor(
                 )
             val alignmentIssues =
                 if (trackNumber?.exists == true) {
-                    validateReferenceLineAlignment(alignment)
+                    validateReferenceLineGeometry(alignment)
                 } else {
                     listOf()
                 }
@@ -547,26 +546,26 @@ constructor(
         id: IntId<LocationTrack>,
         validationContext: ValidationContext,
     ): List<LayoutValidationIssue>? {
-        val trackAndAlignment = validationContext.getLocationTrackWithAlignment(id)
+        val trackAndGeometry = validationContext.getLocationTrackWithGeometry(id)
         // cancelling a track's creation can cause switches to become disconnected
         val trackNetworkTopologyIssues =
             validationContext.getPotentiallyAffectedSwitches(id).filter(LayoutSwitch::exists).flatMap { switch ->
                 val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-                val switchTracks = validationContext.getSwitchTracksWithAlignments(switch.id as IntId)
+                val switchTracks = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
                 validateSwitchTopologicalConnectivity(
                     switch,
                     structure,
                     switchTracks,
-                    trackAndAlignment?.first,
+                    trackAndGeometry?.first,
                     getLocationTrackName = { trackId ->
                         getLocationTrackNameByValidationContext(validationContext, trackId)
                     },
                 )
             }
-        return if (trackAndAlignment == null) {
+        return if (trackAndGeometry == null) {
             trackNetworkTopologyIssues
         } else {
-            val (track, alignment) = trackAndAlignment
+            val (track, geometry) = trackAndGeometry
             val trackNumber = validationContext.getTrackNumber(track.trackNumberId)
             val trackNumberName =
                 (trackNumber ?: validationContext.getCandidateTrackNumber(track.trackNumberId))?.number
@@ -578,16 +577,17 @@ constructor(
                     trackNumberName,
                     trackNumberIsCancelled = validationContext.trackNumberIsCancelled(track.trackNumberId),
                 )
-            val segmentSwitches = validationContext.getSegmentSwitches(alignment)
-            val switchSegmentIssues = validateSegmentSwitchReferences(track, segmentSwitches)
-            val topologicallyConnectedSwitchIssues =
-                validateTopologicallyConnectedSwitchReferences(
-                    track,
-                    validationContext.getTopologicallyConnectedSwitches(track),
-                )
+            val switchTrackLinkings: List<SwitchTrackLinking> = validationContext.getSwitchTrackLinks(geometry)
+            val switchTrackIssues = validateTrackSwitchReferences(track, switchTrackLinkings)
+            val trackNetworkTopologyIssues =
+                validationContext.getPotentiallyAffectedSwitches(id).filter(LayoutSwitch::exists).flatMap { switch ->
+                    val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
+                    val switchTracks = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
+                    validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
+                }
             val switchConnectivityIssues =
                 if (track.exists) {
-                    validateLocationTrackSwitchConnectivity(track, alignment)
+                    validateLocationTrackSwitchConnectivity(track, geometry)
                 } else {
                     emptyList()
                 }
@@ -613,7 +613,7 @@ constructor(
                     },
                 )
 
-            val alignmentIssues = if (track.exists) validateLocationTrackAlignment(alignment) else listOf()
+            val alignmentIssues = if (track.exists) validateLocationTrackGeometry(geometry) else listOf()
             val geocodingIssues =
                 if (track.exists && trackNumber != null) {
                     validationContext.getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
@@ -645,8 +645,7 @@ constructor(
                 )
 
             (referenceIssues +
-                switchSegmentIssues +
-                topologicallyConnectedSwitchIssues +
+                switchTrackIssues +
                 duplicateIssues +
                 alignmentIssues +
                 geocodingIssues +
@@ -674,14 +673,12 @@ constructor(
     ): List<LayoutValidationIssue> =
         if (!track.exists) {
             listOf()
-        } else if (track.alignmentVersion == null) {
-            throw IllegalStateException("LocationTrack in DB should have an alignment: track=$track")
         } else {
             validateAddressPoints(
                 trackNumber,
                 track,
                 validationTargetLocalizationPrefix,
-                geocode = { geocodingService.getAddressPoints(contextKey, track.alignmentVersion) },
+                geocode = { geocodingService.getAddressPoints(contextKey, track.versionOrThrow) },
                 getLocationTrackName,
             )
         }

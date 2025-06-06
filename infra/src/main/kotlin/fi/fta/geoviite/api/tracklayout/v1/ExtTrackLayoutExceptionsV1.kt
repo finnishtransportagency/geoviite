@@ -10,6 +10,12 @@ class ExtOidNotFoundExceptionV1(
     localizedMessageKey: String = "$ERROR_KEY_BASE.oid-not-found",
 ) : ClientException(HttpStatus.NOT_FOUND, "oid not found: $message", cause, localizedMessageKey)
 
+class ExtLocationTrackNotFoundExceptionV1(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "$ERROR_KEY_BASE.location-track-not-found",
+) : ClientException(HttpStatus.NOT_FOUND, "location track not found: $message", cause, localizedMessageKey)
+
 class ExtGeocodingFailedV1(message: String, cause: Throwable? = null) :
     ServerException("geocoding failed: $message", cause)
 

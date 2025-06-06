@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
@@ -48,7 +47,7 @@ class LayoutSwitchDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<LayoutSwitch>(
+    LayoutAssetDao<LayoutSwitch, NoParams>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_SWITCH,
         cacheEnabled,
@@ -60,6 +59,8 @@ class LayoutSwitchDao(
         "layout.switch_external_id_version",
     ),
     IExternallyIdentifiedLayoutAssetDao<LayoutSwitch> {
+
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutSwitch>) = NoParams.instance
 
     override fun fetchVersions(
         layoutContext: LayoutContext,
@@ -83,38 +84,54 @@ class LayoutSwitchDao(
         }
     }
 
-    fun fetchSegmentSwitchJointConnections(
+    fun fetchSwitchJointConnections(
         layoutContext: LayoutContext,
         switchId: IntId<LayoutSwitch>,
     ): List<LayoutSwitchJointConnection> {
         val sql =
             """
-            select number, location_accuracy, location_track_id, postgis.st_x(point) x, postgis.st_y(point) y
-              from layout.switch_in_layout_context(:publication_state::layout.publication_state,
-                                                   :design_id) switch
-                join layout.switch_version_joint jv on switch.id = jv.switch_id
-                  and switch.layout_context_id = jv.switch_layout_context_id
-                  and switch.version = jv.switch_version
-                left join (
-                  select lt.id as location_track_id, *
-                    from layout.segment_version
-                      join
-                        (select *
-                         from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
-                                                                      :design_id) lt
-                         where lt.state != 'DELETED') lt
-                           on lt.alignment_id = segment_version.alignment_id
-                             and lt.alignment_version = segment_version.alignment_version 
-                      join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                      cross join lateral
-                      (select switch_start_joint_number as number, postgis.st_startpoint(geometry) as point
-                         where switch_start_joint_number is not null
-                       union all
-                         select switch_end_joint_number, postgis.st_endpoint(geometry)
-                           where switch_end_joint_number is not null) p
-                  where switch_id = :switch_id
-              ) segment_joint using (number)
-            where state_category != 'NOT_EXISTING' and switch.id = :switch_id;
+            with
+              track_link as (
+                select distinct
+                  ltve.location_track_id,
+                  ltve.location_track_layout_context_id,
+                  ltve.location_track_version,
+                  np.switch_id,
+                  np.switch_joint_number,
+                  case
+                    when np.node_id = edge.start_node_id then postgis.st_astext(postgis.st_startpoint(start_g.geometry))
+                    when np.node_id = edge.end_node_id then postgis.st_astext(postgis.st_endpoint(start_g.geometry))
+                  end as location
+                  from layout.node_port np
+                    inner join layout.edge edge on np.node_id = edge.start_node_id or np.node_id = edge.end_node_id
+                    inner join layout.edge_segment start_segment on start_segment.edge_id = edge.id and start_segment.segment_index = 0
+                    inner join layout.edge_segment end_segment on end_segment.edge_id = edge.id and end_segment.segment_index = edge.segment_count - 1
+                    inner join layout.segment_geometry start_g on start_segment.geometry_id = start_g.id
+                    inner join layout.segment_geometry end_g on end_segment.geometry_id = end_g.id
+                    inner join layout.location_track_version_edge ltve on ltve.edge_id = edge.id
+                    inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+                               on ltve.location_track_id = lt.id and
+                                  ltve.location_track_layout_context_id::text =
+                                  lt.layout_context_id::text and ltve.location_track_version = lt.version
+                  where np.switch_id = :switch_id
+                    and (np.node_id = edge.end_node_id or ltve.edge_index = 0)
+                    and lt.state != 'DELETED'
+              )
+            select
+              jv.switch_id,
+              jv.number,
+              jv.location_accuracy,
+              track_link.location_track_id,
+              postgis.st_x(track_link.location) as x,
+              postgis.st_y(track_link.location) as y
+              from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) switch
+                left join layout.switch_version_joint jv
+                left join track_link on track_link.switch_id = jv.switch_id and track_link.switch_joint_number = jv.number
+                     on switch.id = jv.switch_id
+                       and switch.layout_context_id = jv.switch_layout_context_id
+                       and switch.version = jv.switch_version
+              where switch.id = :switch_id
+                and switch.state_category != 'NOT_EXISTING'
         """
                 .trimIndent()
         val params =
@@ -152,8 +169,10 @@ class LayoutSwitchDao(
         }
     }
 
+    @Transactional fun save(item: LayoutSwitch): LayoutRowVersion<LayoutSwitch> = save(item, NoParams.instance)
+
     @Transactional
-    override fun save(item: LayoutSwitch): LayoutRowVersion<LayoutSwitch> {
+    override fun save(item: LayoutSwitch, params: NoParams): LayoutRowVersion<LayoutSwitch> {
         val id = item.id as? IntId ?: createId()
 
         val sql =
@@ -446,34 +465,23 @@ class LayoutSwitchDao(
         switchIds: List<IntId<LayoutSwitch>>,
     ): Map<IntId<LayoutSwitch>, List<LocationTrackIdentifiers>> {
         if (switchIds.isEmpty()) return emptyMap()
-
         val sql =
             """
-                select switch_id,
-                  (location_track).id,
-                  (location_track).design_id,
-                  (location_track).draft,
-                  (location_track).version,
-                  external_id
-                  from (
-                    select topology_start_switch_id as switch_id, location_track
-                      from layout.location_track
-                      where topology_start_switch_id = any (array [:switch_ids])
-                    union
-                    select topology_end_switch_id as switch_id, location_track
-                      from layout.location_track
-                      where topology_end_switch_id = any (array [:switch_ids])
-                    union
-                    select switch_id, location_track
-                      from layout.location_track
-                        join layout.segment_version using (alignment_id, alignment_version)
-                      where switch_id = any (array [:switch_ids])
-                  ) location_track
-                    cross join lateral layout.location_track_is_in_layout_context(:publication_state::layout.publication_state,
-                                                                                  :design_id, location_track)
-                    left join layout.location_track_external_id ext_id
-                      on (location_track).id = ext_id.id
-                        and ext_id.layout_context_id = layout.layout_context_id(:design_id, false);
+            select distinct on (ltv_s.location_track_id, ltv_s.switch_id)
+              lt.id,
+              lt.layout_context_id,
+              lt.version,
+              ltv_s.switch_id,
+              ext_id.external_id
+              from layout.location_track_version_switch_view ltv_s
+                inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+                           on ltv_s.location_track_id = lt.id
+                             and ltv_s.location_track_layout_context_id = lt.layout_context_id
+                             and ltv_s.location_track_version = lt.version
+                left join layout.location_track_external_id ext_id
+                          on ltv_s.location_track_id = ext_id.id
+                            and ext_id.layout_context_id = layout.layout_context_id(:design_id, false)
+              where ltv_s.switch_id in (:switch_ids);
             """
                 .trimIndent()
         val params =
@@ -486,7 +494,7 @@ class LayoutSwitchDao(
             .query(sql, params) { rs, _ ->
                 rs.getIntId<LayoutSwitch>("switch_id") to
                     LocationTrackIdentifiers(
-                        rowVersion = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+                        rowVersion = rs.getLayoutRowVersion("id", "layout_context_id", "version"),
                         externalId = rs.getOidOrNull("external_id"),
                     )
             }
@@ -497,56 +505,62 @@ class LayoutSwitchDao(
     fun findLocationTracksLinkedToSwitchAtMoment(
         layoutBranch: LayoutBranch,
         switchId: IntId<LayoutSwitch>,
-        topologyJointNumber: JointNumber,
         moment: Instant,
     ): List<LocationTrackIdentifiers> {
         val sql =
             """ 
-            select
+            select distinct
               location_track.id,
               location_track.design_id,
               location_track.draft,
               location_track.version,
               location_track_external_id.external_id
-            from (select * from layout.location_track_version lt
+              from (
+                select lt.id, lt.layout_context_id, lt.version, lt.design_id, lt.draft
+                  from layout.location_track_version lt
                   where not lt.draft
                     and not lt.deleted
                     and (lt.design_id is null or lt.design_id = :design_id::int)
                     and change_time <= :moment
-                    and not (:design_id::int is not null
-                             and lt.design_id is null
-                             and exists (select * from layout.location_track_version overrider_lt
-                                         where overrider_lt.id = lt.id
-                                           and not overrider_lt.draft
-                                           and not overrider_lt.deleted
-                                           and overrider_lt.design_id = :design_id
-                                           and overrider_lt.change_time <= :moment
-                                           and not exists (select * from layout.location_track_version overrider_deletion
-                                                           where overrider_deletion.id = lt.id
-                                                             and overrider_deletion.layout_context_id = overrider_lt.layout_context_id
-                                                             and overrider_deletion.version > overrider_lt.version
-                                                             and overrider_deletion.deleted
-                                                             and overrider_deletion.change_time <= :moment))
-                             )
-                    and not exists (select * from layout.location_track_version future_lt
-                                    where future_lt.id = lt.id
-                                      and future_lt.layout_context_id = lt.layout_context_id
-                                      and future_lt.version > lt.version
-                                      and future_lt.change_time <= :moment)) location_track
-              inner join layout.segment_version segment 
-                on segment.alignment_id = location_track.alignment_id 
-                  and segment.alignment_version = location_track.alignment_version
-              left join layout.location_track_external_id
-                on location_track.id = location_track_external_id.id
-                  and location_track.layout_context_id = location_track_external_id.layout_context_id
-            where (segment.switch_id = :switch_id
-                  or (location_track.topology_start_switch_id = :switch_id 
-                    and location_track.topology_start_switch_joint_number = :topology_joint_number
-                  )
-                  or (location_track.topology_end_switch_id = :switch_id
-                    and location_track.topology_end_switch_joint_number = :topology_joint_number
-                  )
-              )
+                    and not
+                    (:design_id::int is not null
+                      and lt.design_id is null
+                      and exists
+                       (select *
+                          from layout.location_track_version overrider_lt
+                          where overrider_lt.id = lt.id
+                            and not overrider_lt.draft
+                            and not overrider_lt.deleted
+                            and overrider_lt.design_id = :design_id
+                            and overrider_lt.change_time <= :moment
+                            and not exists
+                            (select *
+                               from layout.location_track_version overrider_deletion
+                               where overrider_deletion.id = lt.id
+                                 and overrider_deletion.layout_context_id = overrider_lt.layout_context_id
+                                 and overrider_deletion.version > overrider_lt.version
+                                 and overrider_deletion.deleted
+                                 and overrider_deletion.change_time <= :moment
+                            )
+                       )
+                      )
+                    and not exists
+                    (select * from layout.location_track_version future_lt
+                              where future_lt.id = lt.id
+                                and future_lt.layout_context_id = lt.layout_context_id
+                                and future_lt.version > lt.version
+                                and future_lt.change_time <= :moment
+                    )
+              ) location_track
+                left join layout.location_track_external_id
+                          on location_track.id = location_track_external_id.id
+                            and location_track.layout_context_id = location_track_external_id.layout_context_id
+                left join layout.location_track_version_switch_view as lt_s
+                          on location_track.id = lt_s.location_track_id
+                            and location_track.layout_context_id = lt_s.location_track_layout_context_id
+                            and location_track.version = lt_s.location_track_version
+              where lt_s.switch_id = :switch_id
+                and (not lt_s.is_outer_link or lt_s.switch_joint_role = 'MAIN')
         """
                 .trimIndent()
 
@@ -554,7 +568,6 @@ class LayoutSwitchDao(
             mapOf(
                 "design_id" to layoutBranch.designId?.intValue,
                 "switch_id" to switchId.intValue,
-                "topology_joint_number" to topologyJointNumber.intValue,
                 "moment" to Timestamp.from(moment),
             )
 
@@ -602,16 +615,17 @@ class LayoutSwitchDao(
         }
     }
 
-    fun findSwitchesNearAlignment(
+    fun findSwitchesNearTrack(
         branch: LayoutBranch,
-        alignmentVersion: RowVersion<LayoutAlignment>,
+        trackVersion: LayoutRowVersion<LocationTrack>,
         maxDistance: Double = 1.0,
     ): List<IntId<LayoutSwitch>> {
         val sql =
             """
             select distinct switch.id as switch_id
-              from layout.segment_version
-                join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+              from layout.edge_segment segment
+                inner join layout.location_track_version_edge lt_edge on lt_edge.edge_id = segment.edge_id
+                join layout.segment_geometry on segment.geometry_id = segment_geometry.id
                 join layout.switch_version_joint jv on
                   postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), jv.location)
                   and postgis.st_dwithin(segment_geometry.geometry, jv.location, :dist)
@@ -619,23 +633,22 @@ class LayoutSwitchDao(
                   on jv.switch_id = switch.id
                     and jv.switch_layout_context_id = switch.layout_context_id
                     and jv.switch_version = switch.version
-              where segment_version.alignment_id = :alignmentId
-                and segment_version.alignment_version = :alignmentVersion
+              where lt_edge.location_track_id = :location_track_id
+                and lt_edge.location_track_layout_context_id = :location_track_layout_context_id
+                and lt_edge.location_track_version = :location_track_version
                 and switch.state_category != 'NOT_EXISTING';
         """
                 .trimIndent()
+        val params =
+            mapOf(
+                "location_track_id" to trackVersion.id.intValue,
+                "location_track_layout_context_id" to trackVersion.context.toSqlString(),
+                "location_track_version" to trackVersion.version,
+                "dist" to maxDistance,
+                "design_id" to branch.designId?.intValue,
+            )
         return jdbcTemplate
-            .query(
-                sql,
-                mapOf(
-                    "alignmentId" to alignmentVersion.id.intValue,
-                    "alignmentVersion" to alignmentVersion.version,
-                    "dist" to maxDistance,
-                    "design_id" to branch.designId?.intValue,
-                ),
-            ) { rs, _ ->
-                rs.getIntId<LayoutSwitch>("switch_id")
-            }
+            .query(sql, params) { rs, _ -> rs.getIntId<LayoutSwitch>("switch_id") }
             .also { results -> logger.daoAccess(FETCH, "Switches near alignment", results) }
     }
 

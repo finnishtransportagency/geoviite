@@ -69,13 +69,13 @@ class MapAlignmentService(
         resolution: Int,
     ): AlignmentPolyLine<LocationTrack>? {
         return locationTrackService
-            .getWithAlignment(layoutContext, id)
+            .getWithGeometry(layoutContext, id)
             ?.takeIf { (t, _) -> t.state != LocationTrackState.DELETED }
-            ?.let { (track, alignment) ->
+            ?.let { (track, geometry) ->
                 toAlignmentPolyLine(
                     track.id,
                     LOCATION_TRACK,
-                    alignment,
+                    geometry,
                     resolution,
                     bbox,
                     includeSegmentEndPoints = false,
@@ -102,22 +102,10 @@ class MapAlignmentService(
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<LocationTrack>> {
         return alignmentDao
-            .fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(layoutContext, bbox, false)
+            .fetchLocationTrackProfileInfos(layoutContext, bbox, false)
             .groupBy { it.id }
             .map { (id, profileInfos) ->
-                MapAlignmentHighlight(
-                    id = id,
-                    type = LOCATION_TRACK,
-                    ranges =
-                        profileInfos
-                            .fold(mutableMapOf<Int, Range<Double>>()) { acc, info ->
-                                val prev = acc.remove(info.alignmentId.index - 1)
-                                acc[info.alignmentId.index] = Range(prev?.min ?: info.segmentStartM, info.segmentEndM)
-                                acc
-                            }
-                            .values
-                            .toList(),
-                )
+                MapAlignmentHighlight(id = id, type = LOCATION_TRACK, ranges = profileInfos.map { i -> i.mRange })
             }
     }
 
@@ -144,13 +132,13 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         locationTrackIds: List<IntId<LocationTrack>>,
     ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
-        return locationTrackService.getManyWithAlignments(layoutContext, locationTrackIds).map { (track, alignment) ->
-            toAlignmentHeader(track, alignment, { id -> locationTrackService.getNameOrThrow(layoutContext, id).name })
+        return locationTrackService.getManyWithGeometries(layoutContext, locationTrackIds).map { (track, alignment) ->
+            toAlignmentHeader(track, alignment)
         }
     }
 
     fun getLocationTrackSegmentMValues(layoutContext: LayoutContext, id: IntId<LocationTrack>): List<Double> {
-        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, id)
+        val (_, alignment) = locationTrackService.getWithGeometryOrThrow(layoutContext, id)
         return getSegmentBorderMValues(alignment)
     }
 
@@ -160,7 +148,7 @@ class MapAlignmentService(
     }
 
     fun getLocationTrackEnds(layoutContext: LayoutContext, id: IntId<LocationTrack>): MapAlignmentEndPoints {
-        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, id)
+        val (_, alignment) = locationTrackService.getWithGeometryOrThrow(layoutContext, id)
         return getEndPoints(alignment)
     }
 
@@ -178,15 +166,15 @@ class MapAlignmentService(
         locationTrackIds: Set<IntId<LocationTrack>>? = null,
     ): List<AlignmentPolyLine<LocationTrack>> =
         locationTrackService
-            .listWithAlignments(
+            .listWithGeometries(
                 layoutContext,
                 includeDeleted = false,
                 boundingBox = bbox,
                 minLength = minLength,
                 locationTrackIds = locationTrackIds,
             )
-            .map { (track, alignment) ->
-                toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints)
+            .map { (track, geometry) ->
+                toAlignmentPolyLine(track.id, LOCATION_TRACK, geometry, resolution, bbox, includeSegmentEndPoints)
             }
 
     private fun getReferenceLinePolyLines(
@@ -210,7 +198,7 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<LocationTrack>> =
-        locationTrackService.listWithAlignments(layoutContext, boundingBox = bbox, includeDeleted = false).mapNotNull {
+        locationTrackService.listWithGeometries(layoutContext, boundingBox = bbox, includeDeleted = false).mapNotNull {
             (track, alignment) ->
             getMissingLinkings(track.id, LOCATION_TRACK, alignment)
         }
@@ -228,14 +216,14 @@ class MapAlignmentService(
 private fun <T> getMissingLinkings(
     id: DomainId<T>,
     type: MapAlignmentType,
-    alignment: LayoutAlignment,
+    alignment: IAlignment,
 ): MapAlignmentHighlight<T>? =
     getMissingLinkingRanges(alignment)
         .takeIf { list -> list.isNotEmpty() }
         ?.let { ranges -> MapAlignmentHighlight(id as IntId, type, ranges) }
 
-private fun getMissingLinkingRanges(alignment: LayoutAlignment): List<Range<Double>> =
-    combineContinuous(alignment.segments.filter { s -> s.sourceId == null }.map { s -> Range(s.startM, s.endM) })
+private fun getMissingLinkingRanges(alignment: IAlignment): List<Range<Double>> =
+    combineContinuous(alignment.segmentsWithM.mapNotNull { (s, m) -> m.takeIf { s.sourceId == null } })
 
-private fun getEndPoints(alignment: LayoutAlignment): MapAlignmentEndPoints =
+private fun getEndPoints(alignment: IAlignment): MapAlignmentEndPoints =
     MapAlignmentEndPoints(alignment.takeFirst(2), alignment.takeLast(2))

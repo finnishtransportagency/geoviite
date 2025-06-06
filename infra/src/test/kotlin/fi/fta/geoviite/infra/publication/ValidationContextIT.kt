@@ -22,7 +22,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.switch
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -68,7 +68,7 @@ constructor(
         val tn1OfficialVersion = mainOfficialContext.createLayoutTrackNumber()
         val tn1Id = tn1OfficialVersion.id
         val trackNumber1 = trackNumberDao.fetch(tn1OfficialVersion)
-        val tn1DraftVersion = mainDraftContext.insert(asMainDraft(trackNumber1))
+        val tn1DraftVersion = mainDraftContext.save(asMainDraft(trackNumber1))
         val tn2DraftVersion = mainDraftContext.createLayoutTrackNumber()
         val tn2Id = tn2DraftVersion.id
         val trackNumber2 = trackNumberDao.fetch(tn2DraftVersion)
@@ -102,10 +102,14 @@ constructor(
     @Test
     fun `ValidationContext returns correct versions for LocationTrack`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val lt1OfficialVersion = mainOfficialContext.insert(locationTrackAndAlignment(trackNumberId))
+        val lt1OfficialVersion = mainOfficialContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId))
         val lt1Id = lt1OfficialVersion.id
-        val lt1DraftVersion = locationTrackDao.save(asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)))
-        val lt2DraftVersion = mainDraftContext.insert(locationTrackAndAlignment(trackNumberId))
+        val lt1DraftVersion =
+            locationTrackDao.save(
+                asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)),
+                alignmentDao.fetch(lt1OfficialVersion),
+            )
+        val lt2DraftVersion = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId))
         val lt2Id = lt2DraftVersion.id
 
         assertEquals(locationTrackDao.fetch(lt1OfficialVersion), validationContext().getLocationTrack(lt1Id))
@@ -124,11 +128,11 @@ constructor(
     fun `ValidationContext returns correct versions for Switch`() {
         val switchName1 = testDBService.getUnusedSwitchName()
         val s1OfficialVersion =
-            mainOfficialContext.insert(switch(name = switchName1.toString(), stateCategory = EXISTING))
+            mainOfficialContext.save(switch(name = switchName1.toString(), stateCategory = EXISTING))
         val s1Id = s1OfficialVersion.id
         val s1DraftVersion = switchDao.save(asMainDraft(switchDao.fetch(s1OfficialVersion)))
         val switchName2 = testDBService.getUnusedSwitchName()
-        val s2DraftVersion = mainDraftContext.insert(switch(name = switchName2.toString(), stateCategory = EXISTING))
+        val s2DraftVersion = mainDraftContext.save(switch(name = switchName2.toString(), stateCategory = EXISTING))
         val s2Id = s2DraftVersion.id
 
         assertEquals(switchDao.fetch(s1OfficialVersion), validationContext().getSwitch(s1Id))
@@ -151,10 +155,10 @@ constructor(
     @Test
     fun `ValidationContext returns correct versions for KM-Post`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val kmp1OfficialVersion = mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(1)))
+        val kmp1OfficialVersion = mainOfficialContext.save(kmPost(trackNumberId, KmNumber(1)))
         val kmp1Id = kmp1OfficialVersion.id
         val kmp1DraftVersion = kmPostDao.save(asMainDraft(kmPostDao.fetch(kmp1OfficialVersion)))
-        val kmp2DraftVersion = mainDraftContext.insert(kmPost(trackNumberId, KmNumber(2)))
+        val kmp2DraftVersion = mainDraftContext.save(kmPost(trackNumberId, KmNumber(2)))
         val kmp2Id = kmp2DraftVersion.id
         assertEquals(kmPostDao.fetch(kmp1OfficialVersion), validationContext().getKmPost(kmp1Id))
         assertEquals(kmPostDao.fetch(kmp1DraftVersion), validationContext(kmPosts = listOf(kmp1Id)).getKmPost(kmp1Id))

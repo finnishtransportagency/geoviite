@@ -11,6 +11,7 @@ import {
     DataType,
     JointNumber,
     KmNumber,
+    LayoutContext,
     LocationAccuracy,
     LocationTrackOwnerId,
     Oid,
@@ -457,3 +458,36 @@ export type KmPostInfoboxExtras = {
 export function combineAlignmentPoints(points: AlignmentPoint[][]): AlignmentPoint[] {
     return deduplicateById(points.flat(), (p) => p.m).sort((p1, p2) => p1.m - p2.m);
 }
+
+export type SwitchLink = {
+    id: LayoutSwitchId;
+    jointNumber: JointNumber;
+    jointRole: SwitchJointRole;
+};
+
+export type LayoutNodeType = 'SWITCH' | 'TRACK_START' | 'TRACK_END';
+export type LayoutNodeId = Brand<string, 'LayoutNodeId'>;
+export type LayoutNode = {
+    id: LayoutNodeId;
+    type: LayoutNodeType;
+    location: Point;
+    switches: SwitchLink[];
+};
+
+export type LayoutEdgeId = Brand<string, 'LayoutEdgeId'>;
+export type LayoutEdge = {
+    id: LayoutEdgeId;
+    startNode: LayoutNodeId;
+    endNode: LayoutNodeId;
+    length: number;
+    tracks: LocationTrackId[];
+};
+
+export type LayoutGraphLevel = 'NANO' | 'MICRO';
+
+export type LayoutGraph = {
+    nodes: { [key in LayoutNodeId]: LayoutNode };
+    edges: { [key in LayoutEdgeId]: LayoutEdge };
+    context: LayoutContext;
+    detailLevel: LayoutGraphLevel;
+};

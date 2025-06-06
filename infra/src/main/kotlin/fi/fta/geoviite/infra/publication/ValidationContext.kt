@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import java.util.concurrent.ConcurrentHashMap
@@ -138,8 +139,8 @@ class ValidationContext(
     fun getDuplicateTracks(id: IntId<LocationTrack>): List<LocationTrack> =
         (getDuplicateTrackIds(id) ?: emptyList()).mapNotNull(::getLocationTrack)
 
-    fun getLocationTrackWithAlignment(id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? =
-        getLocationTrack(id)?.let { track -> track to track.getAlignmentVersionOrThrow().let(alignmentDao::fetch) }
+    fun getLocationTrackWithGeometry(id: IntId<LocationTrack>): Pair<LocationTrack, LocationTrackGeometry>? =
+        getLocationTrack(id)?.let { track -> track to alignmentDao.fetch(track.versionOrThrow) }
 
     fun getSwitch(id: IntId<LayoutSwitch>): LayoutSwitch? =
         getObject(target.baseContext, id, publicationSet.switches, switchDao, switchVersionCache)
@@ -171,8 +172,8 @@ class ValidationContext(
     fun getSwitchTrackLinks(switchId: IntId<LayoutSwitch>): List<IntId<LocationTrack>>? =
         switchTrackLinks.get(switchId) { id -> fetchSwitchTrackLinks(listOf(id))[id] }
 
-    fun getSwitchTracksWithAlignments(id: IntId<LayoutSwitch>): List<Pair<LocationTrack, LayoutAlignment>> =
-        getSwitchTrackLinks(id)?.mapNotNull(::getLocationTrackWithAlignment) ?: emptyList()
+    fun getSwitchTracksWithGeometries(id: IntId<LayoutSwitch>): List<Pair<LocationTrack, LocationTrackGeometry>> =
+        getSwitchTrackLinks(id)?.mapNotNull(::getLocationTrackWithGeometry) ?: emptyList()
 
     fun getPotentiallyAffectedSwitchIds(trackId: IntId<LocationTrack>): List<IntId<LayoutSwitch>> {
         val track =
@@ -193,24 +194,16 @@ class ValidationContext(
     fun getPotentiallyAffectedSwitches(trackId: IntId<LocationTrack>): List<LayoutSwitch> =
         getPotentiallyAffectedSwitchIds(trackId).mapNotNull(::getSwitch)
 
-    fun getSegmentSwitches(alignment: LayoutAlignment): List<SegmentSwitch> =
-        alignment.segments
-            .mapNotNull { segment -> segment.switchId?.let { id -> id to segment } }
-            .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
-            .map { (switchId, segments) ->
+    fun getSwitchTrackLinks(geometry: LocationTrackGeometry): List<SwitchTrackLinking> =
+        geometry.trackSwitchLinks
+            .mapIndexed { index, link -> index to link }
+            .groupBy({ (_, link) -> link.switchId })
+            .map { (switchId, links) ->
                 val switch = getSwitch(switchId)
                 val name = switch?.name ?: getCandidateSwitch(switchId)?.name
                 val structure = switch?.switchStructureId?.let(switchLibraryService::getSwitchStructure)
-                SegmentSwitch(switchId, name, switch, structure, segments, switchIsCancelled(switchId))
+                SwitchTrackLinking(switchId, name, switch, structure, links, switchIsCancelled(switchId))
             }
-
-    fun getTopologicallyConnectedSwitches(track: LocationTrack): List<TopologySwitch> =
-        listOfNotNull(track.topologyStartSwitch?.switchId, track.topologyEndSwitch?.switchId).map { switchId ->
-            val switch = getSwitch(switchId)
-            // If there's no draft either, we have a referential integrity error
-            val name = switch?.name ?: requireNotNull(getCandidateSwitch(switchId)).name
-            TopologySwitch(switch, name, switchIsCancelled(switchId))
-        }
 
     fun getPublicationSplits(): List<Split> =
         allUnfinishedSplits.filter { split -> publicationSet.containsSplit(split.id) }
@@ -231,7 +224,7 @@ class ValidationContext(
 
     fun getAddressPoints(track: LocationTrack): AlignmentAddresses? =
         getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
-            geocodingService.getAddressPoints(key, track.getAlignmentVersionOrThrow())
+            geocodingService.getAddressPoints(key, track.versionOrThrow)
         }
 
     fun trackNumberIsCancelled(id: IntId<LayoutTrackNumber>) =
@@ -452,14 +445,14 @@ class ValidationContext(
 private fun <T : LayoutAsset<T>> objectIsCancelled(
     itemId: IntId<T>,
     publicationVersions: List<LayoutRowVersion<T>>,
-    dao: ILayoutAssetDao<T>,
+    dao: ILayoutAssetDao<T, *>,
 ): Boolean = publicationVersions.find { v -> v.id == itemId }?.let(dao::fetch)?.isCancelled ?: false
 
 private fun <T : LayoutAsset<T>> getObject(
     baseContext: LayoutContext,
     itemId: IntId<T>,
     publicationVersions: List<LayoutRowVersion<T>>,
-    dao: ILayoutAssetDao<T>,
+    dao: ILayoutAssetDao<T, *>,
     versionCache: RowVersionCache<T>,
 ): T? {
     val publicationVersion = publicationVersions.find { v -> v.id == itemId }
@@ -474,7 +467,7 @@ private fun <T : LayoutAsset<T>> getObject(
 private fun <T : LayoutAsset<T>> preloadBaseVersions(
     baseContext: LayoutContext,
     ids: List<IntId<T>>,
-    dao: ILayoutAssetDao<T>,
+    dao: ILayoutAssetDao<T, *>,
     versionCache: RowVersionCache<T>,
 ) = cacheBaseVersions(dao.fetchVersions(baseContext, ids), versionCache)
 
@@ -486,7 +479,7 @@ private fun <T : LayoutAsset<T>, Field> mapIdsByField(
     getField: (T) -> Field,
     publicationVersions: List<LayoutRowVersion<T>>,
     matchingOfficialVersions: Map<Field, List<LayoutRowVersion<T>>>,
-    dao: ILayoutAssetDao<T>,
+    dao: ILayoutAssetDao<T, *>,
 ): Map<Field, List<IntId<T>>> {
     return fields.associateWith { field ->
         val draftMatches =

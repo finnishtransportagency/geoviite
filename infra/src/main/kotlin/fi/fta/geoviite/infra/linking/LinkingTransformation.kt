@@ -7,95 +7,70 @@ import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleDiffRads
-import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.math.radsToDegrees
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
+import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.PlaceHolderNodeConnection
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.combineEdges
 import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.min
 
 const val ALIGNMENT_LINKING_SNAP = 0.001
 
-fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): LayoutAlignment {
-    val cutSegments = sliceSegments(alignment.segments, mRange, ALIGNMENT_LINKING_SNAP)
-    val newSegments = removeSwitches(cutSegments, getSwitchIdsOutside(alignment.segments, mRange))
-    return tryCreateLinkedAlignment(alignment, newSegments)
+fun cutLocationTrackGeometry(geometry: LocationTrackGeometry, mRange: Range<Double>) =
+    TmpLocationTrackGeometry.of(slice(geometry, mRange, ALIGNMENT_LINKING_SNAP), geometry.trackId)
+
+fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): LayoutAlignment =
+    tryCreateLinkedAlignment(alignment, slice(alignment, mRange, ALIGNMENT_LINKING_SNAP))
+
+fun replaceLocationTrackGeometry(
+    geometryAlignment: PlanLayoutAlignment,
+    geometryMRange: Range<Double>,
+    trackId: IntId<LocationTrack>,
+): LocationTrackGeometry = tryCreateLinkedTrackGeometry {
+    TmpLocationTrackGeometry.ofSegments(createAlignmentGeometry(geometryAlignment, geometryMRange), trackId)
 }
 
 fun replaceLayoutGeometry(
     layoutAlignment: LayoutAlignment,
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<Double>,
-): LayoutAlignment {
-    val geometrySegments = createAlignmentGeometry(geometryAlignment, geometryMRange)
-    return tryCreateLinkedAlignment(layoutAlignment, geometrySegments)
-}
+): LayoutAlignment =
+    tryCreateLinkedAlignment(layoutAlignment, createAlignmentGeometry(geometryAlignment, geometryMRange))
+
+fun linkLocationTrackGeometrySection(
+    layoutGeometry: LocationTrackGeometry,
+    layoutMRange: Range<Double>,
+    geometryAlignment: PlanLayoutAlignment,
+    geometryMRange: Range<Double>,
+): LocationTrackGeometry =
+    splice(layoutGeometry, layoutMRange, createAlignmentGeometry(geometryAlignment, geometryMRange))
 
 fun linkLayoutGeometrySection(
     layoutAlignment: LayoutAlignment,
     layoutMRange: Range<Double>,
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<Double>,
-): LayoutAlignment {
-    val segments =
-        if (layoutMRange.min == layoutMRange.max) {
-            extendSegmentsWithGeometry(layoutAlignment, layoutMRange.min, geometryAlignment, geometryMRange)
-        } else {
-            replaceSegmentsWithGeometry(layoutAlignment, layoutMRange, geometryAlignment, geometryMRange)
-        }
-    return tryCreateLinkedAlignment(layoutAlignment, segments)
-}
+): LayoutAlignment = splice(layoutAlignment, layoutMRange, createAlignmentGeometry(geometryAlignment, geometryMRange))
 
 private fun createAlignmentGeometry(
     geometryAlignment: PlanLayoutAlignment,
     mRange: Range<Double>,
-): List<LayoutSegment> = sliceSegments(geometryAlignment.segments, mRange, ALIGNMENT_LINKING_SNAP)
-
-private fun extendSegmentsWithGeometry(
-    layoutAlignment: LayoutAlignment,
-    layoutM: Double,
-    geometryAlignment: PlanLayoutAlignment,
-    geometryMInterval: Range<Double>,
-): List<LayoutSegment> {
-    val addedSegments = sliceSegments(geometryAlignment.segments, geometryMInterval, ALIGNMENT_LINKING_SNAP)
-    return if (isSame(0.0, layoutM, ALIGNMENT_LINKING_SNAP)) {
-        val gap = createLinkingSegment(lastPoint(addedSegments), firstPoint(layoutAlignment.segments))
-        addedSegments + listOfNotNull(gap) + layoutAlignment.segments
-    } else if (isSame(layoutAlignment.length, layoutM, ALIGNMENT_LINKING_SNAP)) {
-        val gap = createLinkingSegment(lastPoint(layoutAlignment.segments), firstPoint(addedSegments))
-        layoutAlignment.segments + listOfNotNull(gap) + addedSegments
-    } else {
-        throw LinkingFailureException("Alignment cannot be extended with selected m-values")
-    }
-}
-
-private fun replaceSegmentsWithGeometry(
-    layoutAlignment: LayoutAlignment,
-    layoutMInterval: Range<Double>,
-    geometryAlignment: PlanLayoutAlignment,
-    geometryMInterval: Range<Double>,
-): List<LayoutSegment> {
-    val startSegments = sliceSegments(layoutAlignment.segments, Range(0.0, layoutMInterval.min))
-    val geometrySegments = createAlignmentGeometry(geometryAlignment, geometryMInterval)
-    val endSegments = sliceSegments(layoutAlignment.segments, Range(layoutMInterval.max, layoutAlignment.length))
-
-    val startGap = createLinkingSegment(lastPoint(startSegments), firstPoint(geometrySegments))
-    val endGap = createLinkingSegment(lastPoint(geometrySegments), firstPoint(endSegments))
-
-    val combinedSegments =
-        (startSegments + listOfNotNull(startGap) + geometrySegments + listOfNotNull(endGap) + endSegments)
-    val affectedSwitchIds = getSwitchIdsInside(layoutAlignment.segments, layoutMInterval)
-    return removeSwitches(combinedSegments, affectedSwitchIds)
-}
+): List<LayoutSegment> = slice(geometryAlignment, mRange, ALIGNMENT_LINKING_SNAP)
 
 private fun createLinkingSegment(start: IPoint?, end: IPoint?, tolerance: Double = LAYOUT_M_DELTA): LayoutSegment? {
     if (start == null || end == null) return null
@@ -112,12 +87,8 @@ private fun createLinkingSegment(start: IPoint?, end: IPoint?, tolerance: Double
                         ),
                 ),
             sourceId = null,
-            sourceStart = null,
-            switchId = null,
-            startJointNumber = null,
-            endJointNumber = null,
+            sourceStartM = null,
             source = GeometrySource.GENERATED,
-            startM = 0.0,
         )
     else null
 }
@@ -128,17 +99,24 @@ private fun toLayoutSegment(segment: ISegment): LayoutSegment =
         LayoutSegment(
             geometry = segment.geometry,
             sourceId = segment.sourceId as? IndexedId,
-            sourceStart = segment.sourceStart,
-            switchId = null,
-            startJointNumber = null,
-            endJointNumber = null,
+            sourceStartM = segment.sourceStartM,
             source = segment.source,
-            startM = segment.startM,
         )
+
+private fun tryCreateLinkedTrackGeometry(creator: () -> TmpLocationTrackGeometry): LocationTrackGeometry =
+    try {
+        creator()
+    } catch (e: IllegalArgumentException) {
+        throw LinkingFailureException(
+            message = "Linking selection produces invalid location track geometry",
+            cause = e,
+            localizedMessageKey = "alignment-geometry",
+        )
+    }
 
 private fun tryCreateLinkedAlignment(original: LayoutAlignment, newSegments: List<LayoutSegment>): LayoutAlignment =
     try {
-        original.withSegments(fixSegmentStarts(newSegments).also(::validateSegments))
+        original.withSegments(newSegments.also(::validateSegments))
     } catch (e: IllegalArgumentException) {
         throw LinkingFailureException(
             message = "Linking selection produces invalid alignment",
@@ -155,50 +133,104 @@ private fun validateSegments(newSegments: List<LayoutSegment>) =
                 throw LinkingFailureException(
                     message =
                         "Linked geometry has over 90 degree angles between segments: " +
-                            "segment=${segment.id} m=${previous.endM} angle=${radsToDegrees(diff)}",
+                            "segments=${index-1}-$index prevEnd=${previous.endDirection} next=${segment.endDirection} angle=${radsToDegrees(diff)} point=${segment.segmentStart}",
                     localizedMessageKey = "segments-sharp-angle",
                 )
         }
     }
 
-fun fixSegmentStarts(vararg segments: LayoutSegment) = fixSegmentStarts(segments.toList())
-
-fun fixSegmentStarts(segments: List<LayoutSegment>): List<LayoutSegment> {
-    var cumulativeM = 0.0
-    return segments.map { s -> s.withStartM(cumulativeM).also { cumulativeM += s.length } }
+fun splice(
+    alignment: LayoutAlignment,
+    mRange: Range<Double>,
+    added: List<LayoutSegment>,
+    snapDistance: Double = ALIGNMENT_LINKING_SNAP,
+): LayoutAlignment {
+    val start = slice(alignment, Range(0.0, mRange.min), snapDistance)
+    val startGap = listOfNotNull(createGapIfNeeded(start, added))
+    val end = slice(alignment, Range(mRange.max, alignment.length), snapDistance)
+    val endGap = listOfNotNull(createGapIfNeeded(added, end))
+    return tryCreateLinkedAlignment(alignment, start + startGap + added + endGap + end)
 }
 
-fun sliceSegments(
-    segments: List<ISegment>,
+fun splice(
+    geometry: LocationTrackGeometry,
+    mRange: Range<Double>,
+    added: List<LayoutSegment>,
+    snapDistance: Double = ALIGNMENT_LINKING_SNAP,
+): LocationTrackGeometry {
+    val startEdges = slice(geometry, Range(0.0, mRange.min), snapDistance)
+    val startGap = listOfNotNull(createGapIfNeeded(startEdges.lastOrNull()?.segments ?: listOf(), added))
+    val endEdges = slice(geometry, Range(mRange.max, geometry.length), snapDistance)
+    val endGap = listOfNotNull(createGapIfNeeded(added, endEdges.firstOrNull()?.segments ?: listOf()))
+    val midEdge = TmpLayoutEdge.of(startGap + added + endGap, null)
+    return tryCreateLinkedTrackGeometry {
+        TmpLocationTrackGeometry.of(combineEdges(startEdges + midEdge + endEdges), geometry.trackId)
+    }
+}
+
+fun slice(
+    alignment: IAlignment,
+    mRange: Range<Double>,
+    snapDistance: Double = ALIGNMENT_LINKING_SNAP,
+): List<LayoutSegment> = slice(alignment.segmentsWithM, mRange, snapDistance)
+
+fun splitSegments(
+    segments: List<Pair<LayoutSegment, Range<Double>>>,
+    splitPositionM: Double,
+    snapDistance: Double = ALIGNMENT_LINKING_SNAP,
+): Pair<List<LayoutSegment>, List<LayoutSegment>> =
+    if (segments.isEmpty()) emptyList<LayoutSegment>() to emptyList()
+    else {
+        val head = slice(segments, Range(0.0, splitPositionM), snapDistance)
+        val tail = slice(segments, Range(splitPositionM, segments.last().second.max), snapDistance)
+        head to tail
+    }
+
+fun slice(
+    segmentsWithM: List<Pair<ISegment, Range<Double>>>,
     mRange: Range<Double>,
     snapDistance: Double = ALIGNMENT_LINKING_SNAP,
 ): List<LayoutSegment> =
-    segments.mapNotNull { segment ->
-        if (segment.endM <= mRange.min || segment.startM >= mRange.max) {
+    segmentsWithM.mapNotNull { (segment, segmentM) ->
+        if (segmentM.max - snapDistance <= mRange.min || segmentM.min + snapDistance >= mRange.max) {
             null
-        } else if (segment.startM >= mRange.min - snapDistance && segment.endM <= mRange.max + snapDistance) {
+        } else if (segmentM.min >= mRange.min - snapDistance && segmentM.max <= mRange.max + snapDistance) {
             toLayoutSegment(segment)
         } else {
-            toLayoutSegment(segment)
-                .slice(
-                    mRange = Range(max(mRange.min, segment.startM), min(mRange.max, segment.endM)),
-                    snapDistance = snapDistance,
-                )
+            val range = Range(max(mRange.min - segmentM.min, 0.0), min(mRange.max - segmentM.min, segment.length))
+            toLayoutSegment(segment).slice(segmentMRange = range, snapDistance = snapDistance)
         }
     }
+
+fun slice(
+    geometry: LocationTrackGeometry,
+    mRange: Range<Double>,
+    snapDistance: Double = ALIGNMENT_LINKING_SNAP,
+): List<LayoutEdge> {
+    return geometry.edgesWithM.mapNotNull { (e, m) ->
+        if (m.max - snapDistance <= mRange.min || m.min + snapDistance >= mRange.max) {
+            null
+        } else if (m.min >= mRange.min - snapDistance && m.max <= mRange.max + snapDistance) {
+            e
+        } else {
+            slice(e, Range(mRange.min - m.min, mRange.max - m.min), snapDistance)
+        }
+    }
+}
+
+fun slice(edge: LayoutEdge, mRange: Range<Double>, snapDistance: Double = ALIGNMENT_LINKING_SNAP): LayoutEdge =
+    TmpLayoutEdge(
+        startNode = edge.startNode.takeIf { mRange.min - snapDistance <= 0.0 } ?: PlaceHolderNodeConnection,
+        endNode = edge.endNode.takeIf { mRange.max + snapDistance >= edge.length } ?: PlaceHolderNodeConnection,
+        segments = slice(edge.segmentsWithM, mRange, snapDistance),
+    )
+
+fun createGapIfNeeded(preceding: List<LayoutSegment>, following: List<LayoutSegment>): LayoutSegment? {
+    val start = lastPoint(preceding)
+    val end = firstPoint(following)
+    return if (start != null && end != null) createLinkingSegment(start, end) else null
+}
 
 private fun firstPoint(segments: List<LayoutSegment>) = segments.firstOrNull()?.segmentStart
 
 private fun lastPoint(segments: List<LayoutSegment>) = segments.lastOrNull()?.segmentEnd
-
-fun removeSwitches(segments: List<LayoutSegment>, switchIds: Set<IntId<LayoutSwitch>>): List<LayoutSegment> =
-    segments.map { s -> if (switchIds.contains(s.switchId)) s.withoutSwitch() else s }
-
-fun getSwitchIdsInside(segments: List<LayoutSegment>, mRange: Range<Double>) =
-    getSwitchIds(segments) { s -> mRange.min < s.endM && mRange.max > s.startM }
-
-fun getSwitchIdsOutside(segments: List<LayoutSegment>, mRange: Range<Double>) =
-    getSwitchIds(segments) { s -> mRange.min > s.startM || mRange.max < s.endM }
-
-private fun getSwitchIds(segments: List<LayoutSegment>, predicate: (LayoutSegment) -> Boolean) =
-    segments.mapNotNull { s -> if (predicate(s)) s.switchId else null }.toSet()

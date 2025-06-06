@@ -46,6 +46,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -54,11 +55,12 @@ import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchOwnerVayla
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.logger
 import java.math.BigDecimal
@@ -120,19 +122,18 @@ fun locationTrack(
     incrementPoints: List<Point>,
     description: String = "$name location track description",
     draft: Boolean = false,
-): Pair<LocationTrack, LayoutAlignment> {
-    val alignment = alignmentFromPointIncrementList(basePoint, incrementPoints)
+): Pair<LocationTrack, LocationTrackGeometry> {
+    val geometry = trackGeometryFromPointIncrementList(basePoint, incrementPoints)
     val track =
         locationTrack(
             trackNumberId = trackNumber,
-            alignment = alignment,
             name = "lt-$name",
             description = description,
             type = layoutAlignmentType,
             state = LocationTrackState.IN_USE,
             draft = draft,
         )
-    return track to alignment
+    return track to geometry
 }
 
 fun referenceLine(
@@ -146,16 +147,20 @@ fun referenceLine(
     return line to alignment
 }
 
-private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): LayoutAlignment {
-    val points = pointsFromIncrementList(basePoint, incrementPoints)
+private fun trackGeometryFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): LocationTrackGeometry {
+    return trackGeometryOfSegments(segmentsFromPointIncrementList(basePoint, incrementPoints))
+}
 
-    var startM = 0.0
-    val segments =
-        points.dropLast(1).mapIndexed { index, pointA ->
-            val pointB = points[index + 1]
-            segment(points = toSegmentPoints(pointA, pointB), startM = startM).also { s -> startM += s.length }
-        }
-    return alignment(segments)
+private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): LayoutAlignment {
+    return alignment(segmentsFromPointIncrementList(basePoint, incrementPoints))
+}
+
+private fun segmentsFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): List<LayoutSegment> {
+    val points = pointsFromIncrementList(basePoint, incrementPoints)
+    return points.dropLast(1).mapIndexed { index, pointA ->
+        val pointB = points[index + 1]
+        segment(points = toSegmentPoints(pointA, pointB))
+    }
 }
 
 fun layoutSwitch(name: String, jointPoints: List<Point>, switchStructure: SwitchStructure) =
@@ -199,33 +204,27 @@ fun locationTrackAndAlignmentForGeometryAlignment(
     geometryAlignment: GeometryAlignment,
     transformation: Transformation,
     draft: Boolean,
-): Pair<LocationTrack, LayoutAlignment> {
-    var startM = 0.0
+): Pair<LocationTrack, LocationTrackGeometry> {
     val segments =
         geometryAlignment.elements.map { element ->
             val start = transformation.transform(element.start)
             val end = transformation.transform(element.end)
             LayoutSegment(
-                    geometry =
-                        SegmentGeometry(
-                            segmentPoints =
-                                listOf(
-                                    SegmentPoint(start.x, start.y, 0.0, 0.0, 0.0),
-                                    SegmentPoint(end.x, end.y, 0.0, element.calculatedLength, 0.0),
-                                ),
-                            resolution = 100,
-                        ),
-                    startM = startM,
-                    startJointNumber = null,
-                    endJointNumber = null,
-                    source = GeometrySource.PLAN,
-                    sourceId = element.id as IndexedId,
-                    sourceStart = null,
-                    switchId = null,
-                )
-                .also { startM += it.length }
+                geometry =
+                    SegmentGeometry(
+                        segmentPoints =
+                            listOf(
+                                SegmentPoint(start.x, start.y, 0.0, 0.0, 0.0),
+                                SegmentPoint(end.x, end.y, 0.0, element.calculatedLength, 0.0),
+                            ),
+                        resolution = 100,
+                    ),
+                source = GeometrySource.PLAN,
+                sourceId = element.id as IndexedId,
+                sourceStartM = null,
+            )
         }
-    return locationTrackAndAlignment(trackNumberId, segments, draft = draft)
+    return locationTrackAndGeometry(trackNumberId, segments, draft = draft)
 }
 
 fun createSwitchAndAlignments(

@@ -211,36 +211,34 @@ private fun toMapSegments(
                 element to startLength
             }
             .filter { (e, _) -> e.calculatedLength >= 0.001 }
-    val segments =
-        if (!includeGeometryData) listOf()
-        else
-            elements.map { (element, segmentStartLength) ->
-                val segmentPoints =
-                    toPointList(element, pointListStepLength).map { p ->
-                        toSegmentGeometryPoint(
-                            point = planToLayoutTransformation.transform(p),
-                            mValue = p.m,
-                            profile = alignment.profile,
-                            cant = alignment.cant,
-                            alignmentStartStation = alignmentStationStart,
-                            segmentStart = segmentStartLength,
-                            heightTriangles = heightTriangles,
-                            verticalCoordinateSystem = verticalCoordinateSystem,
-                        )
-                    }
+    return if (!includeGeometryData) {
+        listOf()
+    } else {
+        elements.map { (element, segmentStartLength) ->
+            val segmentPoints =
+                toPointList(element, pointListStepLength).map { p ->
+                    toSegmentGeometryPoint(
+                        point = planToLayoutTransformation.transform(p),
+                        mValue = p.m,
+                        profile = alignment.profile,
+                        cant = alignment.cant,
+                        alignmentStartStation = alignmentStationStart,
+                        segmentStart = segmentStartLength,
+                        heightTriangles = heightTriangles,
+                        verticalCoordinateSystem = verticalCoordinateSystem,
+                    )
+                }
 
-                PlanLayoutSegment(
-                    id = deriveFromSourceId("AS", element.id),
-                    geometry = SegmentGeometry(resolution = pointListStepLength, segmentPoints = segmentPoints),
-                    startM = segmentStartLength,
-                    sourceId = element.id,
-                    sourceStart = 0.0,
-                    source = GeometrySource.PLAN,
-                    pointCount = segmentPoints.size,
-                )
-            }
-
-    return segments
+            PlanLayoutSegment(
+                id = deriveFromSourceId("AS", element.id),
+                geometry = SegmentGeometry(resolution = pointListStepLength, segmentPoints = segmentPoints),
+                sourceId = element.id,
+                sourceStartM = LayoutSegment.zeroSourceStartM,
+                source = GeometrySource.PLAN,
+                pointCount = segmentPoints.size,
+            )
+        }
+    }
 }
 
 fun getAlignmentType(typeCode: FeatureTypeCode?): MapAlignmentType =

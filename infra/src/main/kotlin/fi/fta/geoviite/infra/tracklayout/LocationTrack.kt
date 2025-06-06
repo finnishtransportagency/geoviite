@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -249,26 +248,13 @@ interface ILocationTrack : Loggable {
     val segmentCount: Int
     val duplicateOf: IntId<LocationTrack>?
     val topologicalConnectivity: TopologicalConnectivityType
-    val topologyStartSwitch: TopologyLocationTrackSwitch?
-    val topologyEndSwitch: TopologyLocationTrackSwitch?
     val ownerId: IntId<LocationTrackOwner>
     val contextData: LayoutContextData<LocationTrack>
-    val alignmentVersion: RowVersion<LayoutAlignment>?
-    val segmentSwitchIds: List<IntId<LayoutSwitch>>
+    val switchIds: List<IntId<LayoutSwitch>>
 
     @get:JsonIgnore
     val exists
         get() = !state.isRemoved()
-
-    @get:JsonIgnore
-    val switchIds: List<IntId<LayoutSwitch>>
-        get() =
-            (listOfNotNull(topologyStartSwitch?.switchId) +
-                    segmentSwitchIds +
-                    listOfNotNull(topologyEndSwitch?.switchId))
-                .distinct()
-
-    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment>
 }
 
 data class AugLocationTrack(
@@ -287,7 +273,6 @@ data class AugLocationTrack(
             "context" to contextData::class.simpleName,
             "name" to name,
             "trackNumber" to trackNumberId,
-            "alignment" to alignmentVersion,
         )
 }
 
@@ -303,12 +288,9 @@ data class LocationTrack(
     override val segmentCount: Int,
     override val duplicateOf: IntId<LocationTrack>?,
     override val topologicalConnectivity: TopologicalConnectivityType,
-    override val topologyStartSwitch: TopologyLocationTrackSwitch?,
-    override val topologyEndSwitch: TopologyLocationTrackSwitch?,
     override val ownerId: IntId<LocationTrackOwner>,
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
-    @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
-    @JsonIgnore override val segmentSwitchIds: List<IntId<LayoutSwitch>> = listOf(),
+    @JsonIgnore override val switchIds: List<IntId<LayoutSwitch>> = listOf(),
 ) : ILocationTrack, PolyLineLayoutAsset<LocationTrack>(contextData) {
     override fun toLog(): String =
         logFormat(
@@ -317,7 +299,6 @@ data class LocationTrack(
             "context" to contextData::class.simpleName,
             "dbName" to dbName,
             "trackNumber" to trackNumberId,
-            "alignment" to alignmentVersion,
         )
 
     override fun withContext(contextData: LayoutContextData<LocationTrack>): LocationTrack =

@@ -267,23 +267,20 @@ export type TopologicalJointConnection = {
     locationTrackIds: LocationTrackId[];
 };
 
-export type SwitchLinkingJoint = {
-    number: JointNumber;
-    segmentIndex: number;
-    m: number;
-    location: Point;
-};
-
 export type SwitchLinkingTrackLinks = {
-    segmentJoints: SwitchLinkingJoint[];
-    topologyJoint?: SwitchLinkingTopologicalTrackLink;
+    locationTrackVersion: number;
+    suggestedLinks: SuggestedLinks | undefined;
 };
 
-export type TrackEnd = 'START' | 'END';
+export type SuggestedLinks = {
+    edgeIndex: number;
+    joints: SwitchLinkingJoint[];
+};
 
-export type SwitchLinkingTopologicalTrackLink = {
-    number: JointNumber;
-    trackEnd: TrackEnd;
+export type SwitchLinkingJoint = {
+    mvalueOnEdge: number;
+    jointNumber: JointNumber;
+    location: Point;
 };
 
 export type SuggestedSwitch = {

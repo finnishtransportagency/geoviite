@@ -1,6 +1,10 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
 import TestGeoJsonFeatureCollection
+import fi.fta.geoviite.api.ExtApiTestDataServiceV1
+import fi.fta.geoviite.api.assertContainsErrorMessage
+import fi.fta.geoviite.api.assertNullDetailedProperties
+import fi.fta.geoviite.api.assertNullSimpleProperties
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestLayoutContext
@@ -23,10 +27,6 @@ import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,6 +35,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaatit"
 
@@ -57,7 +61,7 @@ class TrackAddressToCoordinateIT
 @Autowired
 constructor(
     mockMvc: MockMvc,
-    val frameConverterTestDataService: FrameConverterTestDataServiceV1,
+    val frameConverterTestDataService: ExtApiTestDataServiceV1,
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val locationTrackDao: LocationTrackDao,
     val locationTrackService: LocationTrackService,
@@ -246,7 +250,9 @@ constructor(
 
         val referenceLineId =
             layoutContext
-                .insert(referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments))
+                .saveReferenceLine(
+                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                )
                 .id
 
         val tracksUnderTest =
@@ -289,7 +295,9 @@ constructor(
 
         val referenceLineId =
             layoutContext
-                .insert(referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments))
+                .saveReferenceLine(
+                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                )
                 .id
 
         val tracksUnderTest =
@@ -342,7 +350,7 @@ constructor(
             .let { trackNumberId -> layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!! }
             .let { trackNumber ->
                 layoutContext
-                    .insert(
+                    .saveReferenceLine(
                         referenceLineAndAlignment(
                             trackNumberId = trackNumber.id as IntId,
                             segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0))),
@@ -384,7 +392,7 @@ constructor(
 
         val referenceLineId =
             layoutContext
-                .insert(
+                .saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = referenceLineSegments)
                 )
                 .id
@@ -417,6 +425,7 @@ constructor(
         }
     }
 
+    // TODO: This appears to fail randomly. Is the result ordering guaranteed?
     @Test
     fun `Request matching the address of some location tracks should succeed and return data only for the matches`() {
         val layoutContext = mainOfficialContext
@@ -429,7 +438,7 @@ constructor(
         val referenceLineSegments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val referenceLineId =
             layoutContext
-                .insert(
+                .saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = referenceLineSegments)
                 )
                 .id
@@ -488,7 +497,9 @@ constructor(
 
         val referenceLineId =
             layoutContext
-                .insert(referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments))
+                .saveReferenceLine(
+                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                )
                 .id
 
         frameConverterTestDataService.insertGeocodableTrack(
@@ -1091,7 +1102,9 @@ constructor(
 
                 val referenceLineId =
                     layoutContext
-                        .insert(referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments))
+                        .saveReferenceLine(
+                            referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                        )
                         .id
                 trackNumber to referenceLineId
 
@@ -1234,7 +1247,7 @@ constructor(
 
         mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).also { trackNumber ->
             val referenceLine =
-                mainOfficialContext.insert(
+                mainOfficialContext.saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
                 )
 
@@ -1272,7 +1285,7 @@ constructor(
         testOids.forEach { oid ->
             val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
             val referenceLine =
-                mainOfficialContext.insert(
+                mainOfficialContext.saveReferenceLine(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
                 )
 
@@ -1411,7 +1424,7 @@ constructor(
             }
 
         val referenceLine =
-            layoutContext.insert(
+            layoutContext.saveReferenceLine(
                 referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
             )
 

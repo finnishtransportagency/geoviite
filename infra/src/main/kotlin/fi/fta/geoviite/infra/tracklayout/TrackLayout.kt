@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_SRID
 import fi.fta.geoviite.infra.logging.Loggable
 import java.time.Instant
@@ -38,14 +37,17 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
     @get:JsonIgnore abstract val contextData: LayoutContextData<T>
 
     abstract fun withContext(contextData: LayoutContextData<T>): T
+
+    @get:JsonIgnore
+    val versionOrThrow
+        get() =
+            requireNotNull(version) {
+                "Expected object to be stored in DB and hence have a version: object=${this.toLog()}"
+            }
 }
 
+// TODO: GVT-2935 This is likely no longer needed as LocationTrack and ReferenceLine are now different
 sealed class PolyLineLayoutAsset<T : PolyLineLayoutAsset<T>>(contextData: LayoutContextData<T>) :
-    LayoutAsset<T>(contextData) {
-    @get:JsonIgnore abstract val alignmentVersion: RowVersion<LayoutAlignment>?
-
-    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
-        requireNotNull(alignmentVersion) { "${this::class.simpleName} has no an alignment: id=$id" }
-}
+    LayoutAsset<T>(contextData) {}
 
 data class LayoutAssetChangeInfo(val created: Instant, val changed: Instant?)

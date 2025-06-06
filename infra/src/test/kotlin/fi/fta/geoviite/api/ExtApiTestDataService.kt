@@ -1,4 +1,4 @@
-package fi.fta.geoviite.api.frameconverter.v1
+package fi.fta.geoviite.api
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestLayoutContext
@@ -10,11 +10,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import java.util.*
@@ -57,7 +58,7 @@ private fun assertNullProperties(properties: Map<String, Any>, vararg propertyNa
 }
 
 @Service
-class FrameConverterTestDataServiceV1
+class ExtApiTestDataServiceV1
 @Autowired
 constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
@@ -73,22 +74,24 @@ constructor(
         locationTrackType: LocationTrackType = LocationTrackType.MAIN,
         segments: List<LayoutSegment> = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
         state: LocationTrackState = LocationTrackState.IN_USE,
+        owner: IntId<LocationTrackOwner> = IntId(1),
     ): GeocodableTrack {
         val usedReferenceLineId =
             referenceLineId
                 ?: layoutContext
-                    .insert(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
+                    .saveReferenceLine(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
                     .id
 
         val locationTrackId =
             layoutContext
-                .insert(
-                    locationTrackAndAlignment(
+                .saveLocationTrack(
+                    locationTrackAndGeometry(
                         trackNumberId = trackNumberId,
                         name = locationTrackName,
                         type = locationTrackType,
                         segments = segments,
                         state = state,
+                        ownerId = owner,
                     )
                 )
                 .id

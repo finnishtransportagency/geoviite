@@ -12,9 +12,8 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
@@ -23,17 +22,21 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
+import fi.fta.geoviite.infra.tracklayout.SwitchLink
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
-import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
+import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
-import fi.fta.geoviite.infra.tracklayout.offsetAlignment
+import fi.fta.geoviite.infra.tracklayout.offsetGeometry
 import fi.fta.geoviite.infra.tracklayout.rawPoints
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
@@ -41,14 +44,17 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someSegment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchAndMatchingAlignments
+import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import org.junit.jupiter.api.Test
 
 class PublicationValidationTest {
 
@@ -128,46 +134,66 @@ class PublicationValidationTest {
             switch(
                 structureId = structure.id,
                 id = IntId(1),
-                draft = true,
-                stateCategory = EXISTING,
                 joints =
                     listOf(
                         LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null),
-                        LayoutSwitchJoint(JointNumber(2), SwitchJointRole.CONNECTION, Point(0.0, 10.0), null),
+                        LayoutSwitchJoint(JointNumber(2), SwitchJointRole.CONNECTION, Point(0.0, 20.0), null),
                     ),
             )
-        val good =
-            locationTrackAndAlignment(
-                trackNumberId = IntId(0),
-                segment(Point(0.0, 0.0), Point(10.0, 10.0))
-                    .copy(switchId = switch.id as IntId, endJointNumber = switch.joints.last().number),
-                segment(Point(10.0, 10.0), Point(20.0, 20.0))
-                    .copy(switchId = switch.id as IntId, startJointNumber = switch.joints.first().number),
-                segment(Point(20.0, 20.0), Point(30.0, 30.0)),
-                draft = true,
+        val switch2 =
+            switch(
+                structureId = structure.id,
+                id = IntId(2),
+                joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 10.0), null)),
             )
-        val broken =
-            locationTrackAndAlignment(
-                trackNumberId = IntId(0),
-                segment(Point(0.0, 0.0), Point(10.0, 10.0))
-                    .copy(switchId = switch.id as IntId, endJointNumber = switch.joints.last().number),
-                segment(Point(10.0, 10.0), Point(20.0, 20.0)),
-                segment(Point(20.0, 20.0), Point(30.0, 30.0))
-                    .copy(switchId = switch.id as IntId, startJointNumber = switch.joints.first().number),
-                state = LocationTrackState.IN_USE,
-                draft = true,
+        val track = locationTrack(trackNumberId = IntId(0))
+        val goodGeom =
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(switch.id as IntId, 1),
+                    endInnerSwitch = switchLinkYV(switch.id as IntId, 2),
+                    segments =
+                        listOf(segment(Point(0.0, 0.0), Point(0.0, 10.0)), segment(Point(0.0, 10.0), Point(0.0, 20.0))),
+                ),
+                edge(
+                    startOuterSwitch = switchLinkYV(switch.id as IntId, 2),
+                    segments = listOf(segment(Point(0.0, 20.0), Point(0.0, 30.0))),
+                ),
+            )
+        val brokenGeom =
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(switch.id as IntId, 1),
+                    endInnerSwitch = switchLinkYV(switch2.id as IntId, 1),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(0.0, 10.0))),
+                ),
+                edge(
+                    startInnerSwitch = switchLinkYV(switch2.id as IntId, 1),
+                    endInnerSwitch = switchLinkYV(switch.id as IntId, 2),
+                    segments = listOf(segment(Point(0.0, 10.0), Point(0.0, 20.0))),
+                ),
             )
 
-        assertSwitchSegmentStructureError(false, switch, good, "$VALIDATION_SWITCH.location-track.not-continuous")
-        assertSwitchSegmentStructureError(true, switch, broken, "$VALIDATION_SWITCH.location-track.not-continuous")
+        assertSwitchSegmentStructureError(
+            false,
+            switch,
+            track to goodGeom,
+            "$VALIDATION_SWITCH.location-track.not-continuous",
+        )
+        assertSwitchSegmentStructureError(
+            true,
+            switch,
+            track to brokenGeom,
+            "$VALIDATION_SWITCH.location-track.not-continuous",
+        )
     }
 
     @Test
     fun switchValidationCatchesLocationMismatch() {
         val (switch, alignments) = switchAndMatchingAlignments(IntId(0), structure, draft = true)
         val broken =
-            alignments.mapIndexed { index, (track, alignment) ->
-                if (index == 0) track to offsetAlignment(alignment, Point(5.0, 0.0)) else track to alignment
+            alignments.mapIndexed { index, (track, geometry) ->
+                if (index == 0) track to offsetGeometry(geometry, Point(5.0, 0.0)) else track to geometry
             }
         assertSwitchSegmentStructureError(
             hasError = false,
@@ -203,27 +229,31 @@ class PublicationValidationTest {
 
     @Test
     fun alignmentFieldValidationCatchesLackingGeometry() {
-        assertLocationTrackFieldError(true, alignment(listOf()), "$VALIDATION_LOCATION_TRACK.empty-segments")
-        assertLocationTrackFieldError(false, alignment(someSegment()), "$VALIDATION_LOCATION_TRACK.empty-segments")
+        assertLocationTrackFieldError(true, TmpLocationTrackGeometry.empty, "$VALIDATION_LOCATION_TRACK.empty-segments")
+        assertLocationTrackFieldError(
+            false,
+            trackGeometryOfSegments(someSegment()),
+            "$VALIDATION_LOCATION_TRACK.empty-segments",
+        )
     }
 
     @Test
     fun validationCatchesUnPublishedSwitch() {
         assertSegmentSwitchError(
             false,
-            segmentSwitchPair(switchDraft = false, switchInPublication = false),
+            switchLinking(switchDraft = false, switchInPublication = false),
             "$VALIDATION_LOCATION_TRACK.switch.not-published",
             locationTrack(IntId(1), draft = false),
         )
         assertSegmentSwitchError(
             false,
-            segmentSwitchPair(EXISTING, switchDraft = true, switchInPublication = true),
+            switchLinking(EXISTING, switchDraft = true, switchInPublication = true),
             "$VALIDATION_LOCATION_TRACK.switch.not-published",
             locationTrack(IntId(1), draft = false),
         )
         assertSegmentSwitchError(
             true,
-            segmentSwitchPair(EXISTING, switchDraft = true, switchInPublication = false),
+            switchLinking(EXISTING, switchDraft = true, switchInPublication = false),
             "$VALIDATION_LOCATION_TRACK.switch.not-published",
             locationTrack(IntId(1), draft = false),
         )
@@ -233,13 +263,13 @@ class PublicationValidationTest {
     fun validationCatchesReferencingDeletedSwitch() {
         assertSegmentSwitchError(
             false,
-            segmentSwitchPair(switchStateCategory = EXISTING),
+            switchLinking(switchStateCategory = EXISTING),
             "$VALIDATION_LOCATION_TRACK.switch.state-category.EXISTING",
             locationTrack(IntId(1), draft = false),
         )
         assertSegmentSwitchError(
             true,
-            segmentSwitchPair(switchStateCategory = NOT_EXISTING),
+            switchLinking(switchStateCategory = NOT_EXISTING),
             "$VALIDATION_LOCATION_TRACK.switch.state-category.NOT_EXISTING",
             locationTrack(IntId(1), draft = false),
         )
@@ -247,38 +277,24 @@ class PublicationValidationTest {
 
     @Test
     fun validationCatchesSegmentSwitchLocationMismatch() {
-        val segmentSwitch = segmentSwitchPair()
-        assertSegmentSwitchError(false, segmentSwitch, "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch")
+        val switchLinking = switchLinking()
+        assertSegmentSwitchError(false, switchLinking, "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch")
+        fun moveLink(link: Pair<Int, TrackSwitchLink>, point: Point) =
+            link.first to link.second.copy(location = toAlignmentPoint(link.second.location + point))
         assertSegmentSwitchError(
             true,
-            editSegment(segmentSwitch) { segment ->
-                segment.copy(
-                    geometry =
-                        segment.geometry.withPoints(
-                            segmentPoints =
-                                toSegmentPoints(
-                                    segment.alignmentPoints.first(),
-                                    segment.alignmentPoints.last() + Point(0.0, 1.0),
-                                )
-                        )
-                )
-            },
+            switchLinking.copy(
+                indexedLinks =
+                    listOf(switchLinking.indexedLinks[0], moveLink(switchLinking.indexedLinks[1], Point(0.0, 1.0)))
+            ),
             "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch",
         )
         assertSegmentSwitchError(
             true,
-            editSegment(segmentSwitch) { segment ->
-                segment.copy(
-                    geometry =
-                        segment.geometry.withPoints(
-                            segmentPoints =
-                                toSegmentPoints(
-                                    segment.alignmentPoints.first() + Point(0.0, 1.0),
-                                    segment.alignmentPoints.last(),
-                                )
-                        )
-                )
-            },
+            switchLinking.copy(
+                indexedLinks =
+                    listOf(moveLink(switchLinking.indexedLinks[0], Point(0.0, 1.0)), switchLinking.indexedLinks[1])
+            ),
             "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch",
         )
     }
@@ -483,18 +499,15 @@ class PublicationValidationTest {
                 id = IntId(2),
                 draft = true,
             )
-        val unlinkedTrack =
-            locationTrackAndAlignment(
-                IntId(0),
-                segment(Point(150.0, 150.0), Point(200.0, 200.0)),
-                draft = true,
-                state = LocationTrackState.IN_USE,
-            )
         val lt =
-            unlinkedTrack.first.copy(
-                topologyStartSwitch = TopologyLocationTrackSwitch(wrongPlaceSwitch.id as IntId, JointNumber(1)),
-                topologyEndSwitch = TopologyLocationTrackSwitch(rightPlaceSwitch.id as IntId, JointNumber(1)),
-            ) to unlinkedTrack.second
+            locationTrack(IntId(0), draft = true, state = LocationTrackState.IN_USE) to
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(wrongPlaceSwitch.id as IntId, 1),
+                        endOuterSwitch = switchLinkYV(rightPlaceSwitch.id as IntId, 1),
+                        segments = listOf(segment(Point(150.0, 150.0), Point(200.0, 200.0))),
+                    )
+                )
 
         assertContainsError(
             true,
@@ -518,9 +531,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.NONE,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -537,9 +553,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.START,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -557,9 +576,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.END,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -575,9 +597,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1)),
+                trackGeometry(
+                    edge(
+                        endInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -594,9 +619,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.NONE,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -613,9 +641,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.START,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -631,9 +662,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.END,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -651,9 +685,12 @@ class PublicationValidationTest {
                     topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
                     draft = true,
                 ),
-                alignment(
-                    segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
-                    segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
             )
 
@@ -668,10 +705,15 @@ class PublicationValidationTest {
                 locationTrack(
                     trackNumberId = IntId(100),
                     topologicalConnectivity = TopologicalConnectivityType.NONE,
-                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
                     draft = true,
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
+                ),
             )
 
         assertEquals(1, connectivityWarnings.size)
@@ -685,10 +727,15 @@ class PublicationValidationTest {
                 locationTrack(
                     trackNumberId = IntId(100),
                     topologicalConnectivity = TopologicalConnectivityType.START,
-                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
                     draft = true,
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
+                ),
             )
 
         assertEquals(2, connectivityWarnings.size)
@@ -700,13 +747,14 @@ class PublicationValidationTest {
     fun `should not return any validation warnings if location track end is topologically connected and connectivity type is set to END`() {
         val connectivityWarnings =
             validateLocationTrackSwitchConnectivity(
-                locationTrack(
-                    IntId(100),
-                    topologicalConnectivity = TopologicalConnectivityType.END,
-                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                    draft = true,
+                locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.END, draft = true),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
             )
 
         assertEquals(0, connectivityWarnings.size)
@@ -719,10 +767,15 @@ class PublicationValidationTest {
                 locationTrack(
                     IntId(100),
                     topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
-                    topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
                     draft = true,
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                trackGeometry(
+                    edge(
+                        endOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
+                ),
             )
 
         assertEquals(1, connectivityWarnings.size)
@@ -733,13 +786,14 @@ class PublicationValidationTest {
     fun `should return validation warning if location track start is topologically connected but connectivity type is set to NONE`() {
         val connectivityWarnings =
             validateLocationTrackSwitchConnectivity(
-                locationTrack(
-                    IntId(100),
-                    topologicalConnectivity = TopologicalConnectivityType.NONE,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                    draft = true,
+                locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.NONE, draft = true),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
             )
 
         assertEquals(1, connectivityWarnings.size)
@@ -750,13 +804,14 @@ class PublicationValidationTest {
     fun `should not return any validation warnings if location track start is topologically connected and connectivity type is set to START`() {
         val connectivityWarnings =
             validateLocationTrackSwitchConnectivity(
-                locationTrack(
-                    IntId(100),
-                    topologicalConnectivity = TopologicalConnectivityType.START,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                    draft = true,
+                locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.START, draft = true),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
             )
 
         assertEquals(0, connectivityWarnings.size)
@@ -766,13 +821,14 @@ class PublicationValidationTest {
     fun `should return validation warnings if location track start is topologically connected but connectivity type is set to END`() {
         val connectivityWarnings =
             validateLocationTrackSwitchConnectivity(
-                locationTrack(
-                    IntId(100),
-                    topologicalConnectivity = TopologicalConnectivityType.END,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
-                    draft = true,
+                locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.END, draft = true),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
             )
 
         assertEquals(2, connectivityWarnings.size)
@@ -787,10 +843,15 @@ class PublicationValidationTest {
                 locationTrack(
                     IntId(100),
                     topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
-                    topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1)),
                     draft = true,
                 ),
-                alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(IntId(100), 1),
+                        segments =
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                    )
+                ),
             )
 
         assertEquals(1, connectivityWarnings.size)
@@ -807,14 +868,11 @@ class PublicationValidationTest {
         )
     }
 
-    private fun editSegment(segmentSwitch: SegmentSwitch, edit: (segment: LayoutSegment) -> LayoutSegment) =
-        segmentSwitch.copy(segments = segmentSwitch.segments.map(edit))
-
-    private fun segmentSwitchPair(
+    private fun switchLinking(
         switchStateCategory: LayoutStateCategory = EXISTING,
         switchDraft: Boolean = false,
         switchInPublication: Boolean = true,
-    ): SegmentSwitch {
+    ): SwitchTrackLinking {
         val switch =
             switch(
                 id = if (switchDraft) IntId(2) else IntId(1),
@@ -828,21 +886,27 @@ class PublicationValidationTest {
             )
         val joint1 = switch.joints.first()
         val joint2 = switch.joints.last()
-        val segment =
-            segment(joint1.location, joint2.location)
-                .copy(switchId = switch.id as IntId, startJointNumber = joint1.number, endJointNumber = joint2.number)
-        return SegmentSwitch(
+        return SwitchTrackLinking(
             switchId = switch.id as IntId,
             switchName = switch.name,
             switch = if (!switchDraft || switchInPublication) switch else null,
             switchStructure = structure,
-            segments = listOf(segment),
+            indexedLinks = listOf(0 to toTrackSwitchLink(switch, joint1), 1 to toTrackSwitchLink(switch, joint2)),
             switchIsCancelled = false,
         )
     }
 
-    private fun assertLocationTrackFieldError(hasError: Boolean, alignment: LayoutAlignment, error: String) =
-        assertContainsError(hasError, validateLocationTrackAlignment(alignment), error)
+    private fun toTrackSwitchLink(switch: LayoutSwitch, joint: LayoutSwitchJoint) =
+        TrackSwitchLink(
+            SwitchLink(switch.id as IntId, joint.number, switchStructureYV60_300_1_9()),
+            toAlignmentPoint(joint.location),
+            TrackSwitchLinkType.INNER,
+        )
+
+    private fun toAlignmentPoint(point: Point, m: Double = 0.0) = AlignmentPoint(point.x, point.y, null, m, null)
+
+    private fun assertLocationTrackFieldError(hasError: Boolean, geometry: LocationTrackGeometry, error: String) =
+        assertContainsError(hasError, validateLocationTrackGeometry(geometry), error)
 
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
@@ -901,28 +965,28 @@ class PublicationValidationTest {
 
     private fun assertSegmentSwitchError(
         hasError: Boolean,
-        segmentAndSwitch: SegmentSwitch,
+        segmentAndSwitch: SwitchTrackLinking,
         error: String,
         locationTrack: LocationTrack = locationTrack(IntId(1), draft = true),
-    ) = assertContainsError(hasError, validateSegmentSwitchReferences(locationTrack, listOf(segmentAndSwitch)), error)
+    ) = assertContainsError(hasError, validateTrackSwitchReferences(locationTrack, listOf(segmentAndSwitch)), error)
 
     private fun assertSwitchSegmentStructureError(
         hasError: Boolean,
         switch: LayoutSwitch,
-        track: Pair<LocationTrack, LayoutAlignment>,
+        track: Pair<LocationTrack, LocationTrackGeometry>,
         error: String,
     ) = assertSwitchSegmentStructureError(hasError, switch, listOf(track), error)
 
     private fun assertSwitchSegmentStructureError(
         hasError: Boolean,
         switch: LayoutSwitch,
-        tracks: List<Pair<LocationTrack, LayoutAlignment>>,
+        tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
         error: String,
     ) = assertContainsError(hasError, getSwitchSegmentStructureErrors(switch, tracks), error)
 
     private fun getSwitchSegmentStructureErrors(
         switch: LayoutSwitch,
-        tracks: List<Pair<LocationTrack, LayoutAlignment>>,
+        tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     ): List<LayoutValidationIssue> = validateSwitchLocationTrackLinkStructure(switch, structure, tracks)
 
     private fun assertAddressPointError(hasError: Boolean, geocode: () -> AlignmentAddresses?, error: String) {

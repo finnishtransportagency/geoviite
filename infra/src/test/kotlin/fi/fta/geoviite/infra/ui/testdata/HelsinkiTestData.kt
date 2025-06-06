@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
@@ -113,7 +114,7 @@ class HelsinkiTestData private constructor() {
         fun westMainLocationTrack(
             trackNumber: IntId<LayoutTrackNumber>,
             draft: Boolean = false,
-        ): Pair<LocationTrack, LayoutAlignment> {
+        ): Pair<LocationTrack, LocationTrackGeometry> {
             return locationTrack(
                 name = "west",
                 trackNumber = trackNumber,
@@ -158,7 +159,7 @@ class HelsinkiTestData private constructor() {
             ) to alignment
         }
 
-        fun eastLocationTrack(trackNumberId: IntId<LayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> {
+        fun eastLocationTrack(trackNumberId: IntId<LayoutTrackNumber>): Pair<LocationTrack, LocationTrackGeometry> {
             return locationTrack(
                 name = "east",
                 trackNumber = trackNumberId,
