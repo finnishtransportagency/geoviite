@@ -127,7 +127,7 @@ sealed class ReifiedTrackNaming {
             endSwitch: LayoutSwitch?,
         ): ReifiedTrackNaming =
             when (locationTrack.dbName.namingScheme) {
-                LocationTrackNamingScheme.UNDEFINED ->
+                LocationTrackNamingScheme.FREE_TEXT ->
                     ReifiedFreeTextTrackNaming(requireNotNull(locationTrack.dbName.nameFreeText))
                 LocationTrackNamingScheme.WITHIN_OPERATING_POINT ->
                     ReifiedWithinOperatingPointTrackNaming(requireNotNull(locationTrack.dbName.nameFreeText))
