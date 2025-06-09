@@ -228,8 +228,9 @@ export async function getSuggestedSwitchForLayoutSwitchPlacing(
 export async function getSuggestedSwitchForGeometrySwitch(
     layoutBranch: LayoutBranch,
     geometrySwitchId: GeometrySwitchId,
+    layoutSwitchId: LayoutSwitchId | undefined,
 ): Promise<GeometrySwitchSuggestionResult | undefined> {
-    return getSuggestedSwitch(layoutBranch, queryParams({ geometrySwitchId }));
+    return getSuggestedSwitch(layoutBranch, queryParams({ geometrySwitchId, layoutSwitchId }));
 }
 
 function getSuggestedSwitch<SuggestedSwitchType>(

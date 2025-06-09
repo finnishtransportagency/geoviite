@@ -80,6 +80,7 @@ constructor(
         // fitting can move switches far enough to change how it e.g. makes topological links, so we
         // need to re-lookup nearby alignments
         val alignmentsNearFits = collectLocationTracksNearFitGrids(fitGrids, locationTrackCache)
+        val switches = switchService.getMany(branch.draft, requests.map { it.layoutSwitchId }).associateBy { it.id }
 
         return fitGrids
             .mapIndexed { i, r -> i to r }
@@ -93,7 +94,12 @@ constructor(
                         clearSwitchFromTracks(switchId, originallyLinked)
                 fitGrid.map(parallel = true) { fit ->
                     SuggestedSwitchWithOriginallyLinkedTracks(
-                        matchFittedSwitchToTracks(fit, relevantTracks, switchId),
+                        matchFittedSwitchToTracks(
+                            fit,
+                            relevantTracks,
+                            layoutSwitchId = switchId,
+                            geometrySwitchId = switches.getValue(switchId).sourceId as? IntId,
+                        ),
                         originallyLinked.keys,
                     )
                 }
@@ -147,25 +153,44 @@ constructor(
     fun getSuggestedSwitch(
         branch: LayoutBranch,
         geometrySwitchId: IntId<GeometrySwitch>,
+        layoutSwitchId: IntId<LayoutSwitch>?,
     ): GeometrySwitchSuggestionResult =
         when (val fit = switchFittingService.fitGeometrySwitch(branch, geometrySwitchId)) {
             is GeometrySwitchFittingFailure -> GeometrySwitchSuggestionFailure(fit.failure)
             is GeometrySwitchFittingSuccess ->
-                GeometrySwitchSuggestionSuccess(findRelevantTracksAndMatchFittedSwitch(branch, fit.switch).first)
+                GeometrySwitchSuggestionSuccess(
+                    findRelevantTracksAndMatchFittedSwitch(
+                            branch,
+                            fit.switch,
+                            layoutSwitchId = layoutSwitchId,
+                            geometrySwitchId = geometrySwitchId,
+                        )
+                        .first
+                )
         }
 
     private fun findRelevantTracksAndMatchFittedSwitch(
         branch: LayoutBranch,
         fit: FittedSwitch,
+        geometrySwitchId: IntId<GeometrySwitch>? = null,
         layoutSwitchId: IntId<LayoutSwitch>? = null,
-        originallyLinkedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>? = null,
     ): Pair<SuggestedSwitch, Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>> {
         val tracksAroundFit = findLocationTracksForMatchingSwitchToTracks(branch, fit)
-        val relevantTracks = tracksAroundFit + (originallyLinkedTracks ?: mapOf())
-        // TODO GVT-3105 redo geometry switch linking so that we get a non-null layoutSwitchId here; this is because
-        // saveSwitchLinking later does get one, and hence cleans said switch from the tracks for the linking, and so
-        // this needs to clean it, too
-        val match = matchFittedSwitchToTracks(fit, relevantTracks, layoutSwitchId)
+        val originallyLinkedTracks =
+            layoutSwitchId?.let { id ->
+                clearSwitchFromTracks(
+                    id,
+                    switchService.getLocationTracksLinkedToSwitch(branch.draft, id).associateBy { it.first.id as IntId },
+                )
+            } ?: mapOf()
+        val relevantTracks = tracksAroundFit + originallyLinkedTracks
+        val match =
+            matchFittedSwitchToTracks(
+                fit,
+                relevantTracks,
+                layoutSwitchId = layoutSwitchId,
+                geometrySwitchId = geometrySwitchId,
+            )
         return match to relevantTracks.filterKeys { track -> match.trackLinks.containsKey(track) }
     }
 
@@ -176,7 +201,8 @@ constructor(
         switchId: IntId<LayoutSwitch>,
     ): LayoutRowVersion<LayoutSwitch> {
         verifySwitchExists(branch, switchId)
-        suggestedSwitch.geometrySwitchId?.let(::verifyPlanNotHidden)
+        (suggestedSwitch.id as? IntId)?.let(::verifyPlanNotHidden)
+
         val originalTracks =
             suggestedSwitch.trackLinks.keys.associateWith { id ->
                 locationTrackService.getWithGeometryOrThrow(branch.draft, id)
@@ -286,7 +312,13 @@ constructor(
                             val original = originallyLinkedLocationTracksBySwitch[switchId] ?: mapOf()
                             nearby + clearSwitchFromTracks(switchId, original + changedLocationTracks)
                         }
-                    val match = matchFittedSwitchToTracks(fittedSwitch, nearbyTracksForMatch, switchId)
+                    val match =
+                        matchFittedSwitchToTracks(
+                            fittedSwitch,
+                            nearbyTracksForMatch,
+                            geometrySwitchId = originalSwitch.sourceId as? IntId,
+                            layoutSwitchId = switchId,
+                        )
                     withChangesFromLinkingSwitch(
                             match,
                             switchLibraryService.getSwitchStructure(match.switchStructureId),
@@ -651,7 +683,7 @@ fun clearSwitchFromTracks(
 ) = tracks.mapValues { (_, track) -> track.first to track.second.withoutSwitch(switchId) }
 
 fun createModifiedLayoutSwitchLinking(suggestedSwitch: SuggestedSwitch, layoutSwitch: LayoutSwitch): LayoutSwitch {
-    val newGeometrySwitchId = suggestedSwitch.geometrySwitchId ?: layoutSwitch.sourceId
+    val newGeometrySwitchId = suggestedSwitch.id as? IntId
 
     return layoutSwitch.copy(
         sourceId = newGeometrySwitchId,

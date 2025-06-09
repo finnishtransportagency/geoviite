@@ -138,7 +138,7 @@ constructor(
     fun linkingExistingGeometrySwitchGetsSwitchAccuracyForJoints() {
         val geometrySwitchId = setupJointLocationAccuracyTest()
         val suggestedSwitch =
-            (switchLinkingService.getSuggestedSwitch(LayoutBranch.main, geometrySwitchId)
+            (switchLinkingService.getSuggestedSwitch(LayoutBranch.main, geometrySwitchId, layoutSwitchId = null)
                     as GeometrySwitchSuggestionSuccess)
                 .switch
         for (joint in suggestedSwitch.joints.map { j -> j.number }) {
