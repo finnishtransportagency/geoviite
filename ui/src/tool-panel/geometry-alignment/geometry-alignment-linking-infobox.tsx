@@ -228,7 +228,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
 
     function linkingTypeBySegmentCount(
         alignment: LayoutLocationTrack | LayoutReferenceLine,
-    ): number {
+    ): LinkingType.LinkingGeometryWithAlignment | LinkingType.LinkingGeometryWithEmptyAlignment {
         return alignment.segmentCount > 0
             ? LinkingType.LinkingGeometryWithAlignment
             : LinkingType.LinkingGeometryWithEmptyAlignment;

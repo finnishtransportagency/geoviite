@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.linking.switches.GeometrySwitchSuggestionResult
 import fi.fta.geoviite.infra.linking.switches.SamplingGridPoints
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchesAtGridPoints
+import fi.fta.geoviite.infra.linking.switches.SwitchLinkingParameters
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.switches.SwitchPlacingRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchRelinkingValidationResult
@@ -182,9 +183,11 @@ constructor(
     fun saveSwitchLinking(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable switchId: IntId<LayoutSwitch>,
-        @RequestBody suggestedSwitch: SuggestedSwitch,
+        @RequestBody params: SwitchLinkingParameters,
     ): IntId<LayoutSwitch> {
-        return switchLinkingService.saveSwitchLinking(branch, suggestedSwitch, switchId).id
+        return switchLinkingService
+            .saveSwitchLinking(branch, params.suggestedSwitch, switchId, params.geometrySwitchId)
+            .id
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

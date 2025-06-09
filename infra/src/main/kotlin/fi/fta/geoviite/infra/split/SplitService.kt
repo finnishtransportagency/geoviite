@@ -39,9 +39,9 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -500,19 +500,15 @@ class SplitService(
         return targets.map { target ->
             val startSwitch =
                 target.startAtSwitchId?.let { switchId ->
-                    val (jointNumber, name) =
-                        suggestions
-                            .find { (id, _) -> id == switchId }
-                            ?.let { (_, suggestion) ->
-                                val joint =
-                                    switchLibraryService.getPresentationJointNumber(suggestion.switchStructureId)
-                                val name = switchService.getOrThrow(branch.draft, switchId).name
-                                joint to name
-                            }
-                            ?: throw SplitFailureException(
-                                message = "No re-linked switch for switch: id=$switchId",
-                                localizedMessageKey = "no-switch-suggestion",
-                            )
+                    if (suggestions.none { (id) -> id == switchId }) {
+                        throw SplitFailureException(
+                            message = "No re-linked switch for switch: id=$switchId",
+                            localizedMessageKey = "no-switch-suggestion",
+                        )
+                    }
+                    val switch = switchService.getOrThrow(branch.draft, switchId)
+                    val jointNumber = switchLibraryService.getPresentationJointNumber(switch.switchStructureId)
+                    val name = switch.name
                     SplitPointSwitch(switchId, jointNumber, name)
                 }
             val duplicate =

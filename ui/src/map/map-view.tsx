@@ -603,7 +603,6 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'switch-linking-layer':
                         return createSwitchLinkingLayer(
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
-                            selection,
                             linkingState as LinkingSwitch | undefined,
                             (loading) => onLayerLoading(layerName, loading),
                         );

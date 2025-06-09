@@ -181,7 +181,7 @@ private fun validateForSplit(
     changedTracksFromSwitchSuggestion: List<Pair<LocationTrack, LocationTrackGeometry>>,
     currentSwitchLocationTrackConnections: List<IntId<LocationTrack>>,
 ): List<LayoutValidationIssue> {
-    val createdSwitch = createModifiedLayoutSwitchLinking(suggestedSwitch, originalSwitch)
+    val createdSwitch = createModifiedLayoutSwitchLinking(suggestedSwitch, originalSwitch, geometrySwitchId = null)
 
     val originTrackLinkErrors =
         validateRelinkingRetainsLocationTrackConnections(

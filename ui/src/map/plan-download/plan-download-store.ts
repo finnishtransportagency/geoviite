@@ -113,7 +113,7 @@ export const planDownloadAssetIdFromToolPanelAsset = (
         case 'GEOMETRY_ALIGNMENT':
         case 'GEOMETRY_KM_POST':
         case 'GEOMETRY_SWITCH':
-        case 'GEOMETRY_SWITCH_SUGGESTION':
+        case 'SUGGESTED_SWITCH':
         case 'KM_POST':
         case 'SWITCH':
             return undefined;

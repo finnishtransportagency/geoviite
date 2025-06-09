@@ -58,6 +58,8 @@ import {
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
 
+export const SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID = 'SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID';
+
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
     switch: SwitchInfoboxVisibilities;
@@ -119,9 +121,9 @@ export type GeometryKmPostInfoboxVisibilities = {
 export type GeometrySwitchInfoboxVisibilities = {
     basic: boolean;
 } & GeometryPlanInfoboxVisibilities &
-    GeometrySwitchLinkingInfoboxVisibilities;
+    SwitchLinkingInfoboxVisibilities;
 
-export type GeometrySwitchLinkingInfoboxVisibilities = {
+export type SwitchLinkingInfoboxVisibilities = {
     linking: boolean;
     suggestedSwitch: boolean;
 };
@@ -268,10 +270,11 @@ export function getSelectableItemTypes(
             return ['geometryLinkPoints', 'clusterPoints'];
         case LinkingType.LinkingAlignment:
             return ['layoutLinkPoints', 'clusterPoints'];
-        case LinkingType.PlacingSwitch:
+        case LinkingType.PlacingLayoutSwitch:
+        case LinkingType.LinkingLayoutSwitch:
             return [];
-        case LinkingType.LinkingSwitch:
-            return ['switches', 'suggestedSwitches'];
+        case LinkingType.LinkingGeometrySwitch:
+            return ['switches'];
         case LinkingType.LinkingKmPost:
             return ['kmPosts'];
         case undefined:
@@ -286,12 +289,6 @@ function filterItemSelectOptions(
     options: OnSelectOptions,
 ): OnSelectOptions {
     const selectableItemTypes = getSelectableItemTypes(state.splittingState, state.linkingState);
-
-    if (state.linkingState?.type === LinkingType.LinkingSwitch) {
-        if (options.suggestedSwitches?.length === 0) {
-            options.suggestedSwitches = undefined;
-        }
-    }
 
     return {
         ...options,
@@ -330,7 +327,7 @@ const trackLayoutSlice = createSlice({
         },
 
         onClickLocation: (state: TrackLayoutState, action: PayloadAction<Point>): void => {
-            if (state.linkingState?.type === LinkingType.PlacingSwitch) {
+            if (state.linkingState?.type === LinkingType.PlacingLayoutSwitch) {
                 state.linkingState.location = action.payload;
             } else {
                 mapReducers.onClickLocation(state.map, action);
@@ -374,6 +371,7 @@ const trackLayoutSlice = createSlice({
             });
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
                 state.selection,
+                state.linkingState,
                 state.selectedToolPanelTab,
             );
 
@@ -410,12 +408,14 @@ const trackLayoutSlice = createSlice({
                         });
                     }
                     break;
-                case LinkingType.LinkingSwitch: {
-                    const selectedSwitch = first(state.selection.selectedItems.switches);
-                    linkingReducers.selectLayoutSwitchForLinking(state, {
-                        type: '',
-                        payload: selectedSwitch,
-                    });
+                case LinkingType.LinkingGeometrySwitch: {
+                    const layoutSwitchId = first(state.selection.selectedItems.switches);
+                    if (layoutSwitchId) {
+                        linkingReducers.selectOnlyLayoutSwitchForGeometrySwitchLinking(state, {
+                            type: '',
+                            payload: { layoutSwitchId },
+                        });
+                    }
                     break;
                 }
             }
@@ -463,6 +463,7 @@ const trackLayoutSlice = createSlice({
                 selectionReducers.togglePlanVisibility(state.selection, action);
                 state.selectedToolPanelTab = updateSelectedToolPanelTab(
                     state.selection,
+                    state.linkingState,
                     state.selectedToolPanelTab,
                 );
             }
@@ -484,6 +485,7 @@ const trackLayoutSlice = createSlice({
             selectionReducers.toggleAlignmentVisibility(state.selection, action);
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
                 state.selection,
+                state.linkingState,
                 state.selectedToolPanelTab,
             );
         },
@@ -500,6 +502,7 @@ const trackLayoutSlice = createSlice({
             selectionReducers.toggleSwitchVisibility(state.selection, action);
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
                 state.selection,
+                state.linkingState,
                 state.selectedToolPanelTab,
             );
         },
@@ -516,6 +519,7 @@ const trackLayoutSlice = createSlice({
             selectionReducers.toggleKmPostsVisibility(state.selection, action);
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
                 state.selection,
+                state.linkingState,
                 state.selectedToolPanelTab,
             );
         },
@@ -534,6 +538,7 @@ const trackLayoutSlice = createSlice({
 
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
                 state.selection,
+                state.linkingState,
                 state.selectedToolPanelTab,
             );
         },
@@ -549,6 +554,7 @@ const trackLayoutSlice = createSlice({
 
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
                 state.selection,
+                state.linkingState,
                 state.selectedToolPanelTab,
             );
         },
@@ -567,6 +573,7 @@ const trackLayoutSlice = createSlice({
 
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
                 state.selection,
+                state.linkingState,
                 state.selectedToolPanelTab,
             );
         },
@@ -654,7 +661,11 @@ function getLayoutContext(
     }
 }
 
-export const toolPanelAssetExists = (selection: Selection, asset: ToolPanelAsset): boolean => {
+export const toolPanelAssetExists = (
+    selection: Selection,
+    linkingState: LinkingState | undefined,
+    asset: ToolPanelAsset,
+): boolean => {
     switch (asset.type) {
         case 'GEOMETRY_PLAN':
             return selection.selectedItems.geometryPlans.includes(asset.id);
@@ -666,8 +677,8 @@ export const toolPanelAssetExists = (selection: Selection, asset: ToolPanelAsset
             return selection.selectedItems.geometryKmPostIds.some((g) => g.geometryId === asset.id);
         case 'SWITCH':
             return selection.selectedItems.switches.includes(brand(asset.id));
-        case 'GEOMETRY_SWITCH_SUGGESTION':
-            return selection.selectedItems.suggestedSwitches.some((s) => s.id === asset.id);
+        case 'SUGGESTED_SWITCH':
+            return linkingState?.type === LinkingType.LinkingGeometrySwitch;
         case 'GEOMETRY_SWITCH':
             return selection.selectedItems.geometrySwitchIds.some(
                 (sw) => sw.geometryId === asset.id,
@@ -686,7 +697,7 @@ export const toolPanelAssetExists = (selection: Selection, asset: ToolPanelAsset
 export const TOOL_PANEL_ASSET_ORDER: ToolPanelAssetType[] = [
     'GEOMETRY_KM_POST',
     'KM_POST',
-    'GEOMETRY_SWITCH_SUGGESTION',
+    'SUGGESTED_SWITCH',
     'GEOMETRY_SWITCH',
     'SWITCH',
     'GEOMETRY_ALIGNMENT',
@@ -706,7 +717,7 @@ export const getFirstOfTypeInSelection = (
         KM_POST: () => first(selectedItems.kmPosts),
         GEOMETRY_KM_POST: () => first(selectedItems.geometryKmPostIds)?.geometryId,
         SWITCH: () => first(selectedItems.switches),
-        GEOMETRY_SWITCH_SUGGESTION: () => first(selectedItems.suggestedSwitches)?.id,
+        SUGGESTED_SWITCH: () => SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID,
         GEOMETRY_SWITCH: () => first(selectedItems.switches),
         LOCATION_TRACK: () => first(selectedItems.locationTracks),
         GEOMETRY_ALIGNMENT: () => first(selectedItems.geometryAlignmentIds)?.geometryId,
@@ -724,9 +735,13 @@ export const getFirstToolPanelAsset = (selection: Selection): ToolPanelAsset | u
 
 const updateSelectedToolPanelTab = (
     selection: Selection,
+    linkingState: LinkingState | undefined,
     currentlySelectedTab: ToolPanelAsset | undefined,
 ): ToolPanelAsset | undefined => {
-    if (!currentlySelectedTab || !toolPanelAssetExists(selection, currentlySelectedTab)) {
+    if (
+        !currentlySelectedTab ||
+        !toolPanelAssetExists(selection, linkingState, currentlySelectedTab)
+    ) {
         return getFirstToolPanelAsset(selection);
     }
 

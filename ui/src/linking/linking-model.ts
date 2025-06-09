@@ -54,8 +54,9 @@ export type LinkingState =
     | LinkingGeometryWithAlignment
     | LinkingGeometryWithEmptyAlignment
     | LinkingAlignment
-    | PlacingSwitch
-    | LinkingSwitch
+    | PlacingLayoutSwitch
+    | LinkingGeometrySwitch
+    | LinkingLayoutSwitch
     | LinkingKmPost;
 
 export type PreliminaryLinkingGeometry = {
@@ -103,7 +104,6 @@ export type MapAlignmentEndPoints = {
 };
 
 export type LinkingPhase = 'preliminary' | 'setup' | 'allSet';
-export type LinkingAssetSource = 'USER_SELECTED' | 'PREDEFINED';
 
 type LinkingBaseType = {
     type: LinkingType;
@@ -152,15 +152,26 @@ export type LinkingGeometryWithEmptyAlignment = LinkingBaseType & {
     geometryAlignmentInterval: LinkInterval;
 };
 
-export type LinkingSwitch = LinkingBaseType & {
-    type: LinkingType.LinkingSwitch;
+export type LinkingGeometrySwitch = LinkingBaseType & {
+    type: LinkingType.LinkingGeometrySwitch;
     suggestedSwitch: SuggestedSwitch;
+    geometrySwitchId: GeometrySwitchId;
+    geometryPlanId: GeometryPlanId;
     layoutSwitchId?: LayoutSwitchId;
-    switchSource: LinkingAssetSource;
+    suggestedSwitchName: string;
 };
 
-export type PlacingSwitch = LinkingBaseType & {
-    type: LinkingType.PlacingSwitch;
+export type LinkingLayoutSwitch = LinkingBaseType & {
+    type: LinkingType.LinkingLayoutSwitch;
+    suggestedSwitch: SuggestedSwitch;
+    layoutSwitchId: LayoutSwitchId;
+    suggestedSwitchName: string;
+};
+
+export type LinkingSwitch = LinkingGeometrySwitch | LinkingLayoutSwitch;
+
+export type PlacingLayoutSwitch = LinkingBaseType & {
+    type: LinkingType.PlacingLayoutSwitch;
     layoutSwitch: LayoutSwitch;
     location?: Point;
 };
@@ -191,13 +202,14 @@ export type KmPostSaveRequest = KmPostSimpleFields & {
 export type KmPostEditFields = KmPostSimpleFields & KmPostGkFields;
 
 export enum LinkingType {
-    LinkingGeometryWithAlignment,
-    LinkingAlignment,
-    LinkingGeometryWithEmptyAlignment,
-    LinkingSwitch,
-    PlacingSwitch,
-    LinkingKmPost,
-    UnknownAlignment,
+    LinkingGeometryWithAlignment = 'LinkingGeometryWithAlignment',
+    LinkingAlignment = 'LinkingAlignment',
+    LinkingGeometryWithEmptyAlignment = 'LinkingGeometryWithEmptyAlignment',
+    LinkingGeometrySwitch = 'LinkingGeometrySwitch',
+    LinkingLayoutSwitch = 'LinkingLayoutSwitch',
+    PlacingLayoutSwitch = 'PlacingLayoutSwitch',
+    LinkingKmPost = 'LinkingKmPost',
+    UnknownAlignment = 'UnknownAlignment',
 }
 
 export type IntervalRequest = {
@@ -263,8 +275,6 @@ export type GeometryKmPostLinkStatus = {
     linkedKmPosts: LayoutKmPostId[];
 };
 
-export type SuggestedSwitchId = string;
-
 export type TopologicalJointConnection = {
     jointNumber: JointNumber;
     locationTrackIds: LocationTrackId[];
@@ -287,16 +297,18 @@ export type SwitchLinkingJoint = {
 };
 
 export type SuggestedSwitch = {
-    id: GeometrySwitchId;
-    switchStructureId: SwitchStructureId;
     joints: LayoutSwitchJoint[];
     trackLinks: Record<LocationTrackId, SwitchLinkingTrackLinks>;
-    name: string;
 };
 
 export type GeometrySwitchSuggestionResult =
-    | { switch: SuggestedSwitch }
+    | { failure: undefined; switch: SuggestedSwitch }
     | { failure: GeometrySwitchSuggestionFailureReason; switch: undefined };
+
+export type SwitchLinkingParameters = {
+    suggestedSwitch: SuggestedSwitch;
+    geometrySwitchId?: GeometrySwitchId;
+};
 
 export type GeometrySwitchSuggestionFailureReason =
     | 'RELATED_TRACKS_NOT_LINKED'

@@ -2,9 +2,6 @@ package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.StringId
-import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -24,8 +21,6 @@ fun matchFittedSwitchToTracks(
     fittedSwitch: FittedSwitch,
     clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
     layoutSwitchId: IntId<LayoutSwitch>?,
-    geometrySwitchId: IntId<GeometrySwitch>? = null,
-    name: SwitchName? = null,
 ): SuggestedSwitch {
     require(layoutSwitchId == null || clearedTracks.values.none { it.second.containsSwitch(layoutSwitchId) }) {
         "Must clear switch from tracks before calling matchFittedSwitchToTracks on it"
@@ -38,8 +33,6 @@ fun matchFittedSwitchToTracks(
     val linkedTracks = suggestDelinking(clearedTracks) + suggestLinking(bestLinks, clearedTracks)
 
     return SuggestedSwitch(
-        id = geometrySwitchId ?: StringId(),
-        fittedSwitch.switchStructure.id,
         fittedSwitch.joints.map {
             LayoutSwitchJoint(
                 it.number,
@@ -49,7 +42,6 @@ fun matchFittedSwitchToTracks(
             )
         },
         linkedTracks,
-        name ?: SwitchName(fittedSwitch.switchStructure.baseType.name),
     )
 }
 
