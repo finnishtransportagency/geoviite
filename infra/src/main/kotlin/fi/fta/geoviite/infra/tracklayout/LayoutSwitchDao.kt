@@ -100,7 +100,7 @@ class LayoutSwitchDao(
                   np.switch_joint_number,
                   case
                     when np.node_id = edge.start_node_id then postgis.st_astext(postgis.st_startpoint(start_g.geometry))
-                    when np.node_id = edge.end_node_id then postgis.st_astext(postgis.st_endpoint(start_g.geometry))
+                    when np.node_id = edge.end_node_id then postgis.st_astext(postgis.st_endpoint(end_g.geometry))
                   end as location
                   from layout.node_port np
                     inner join layout.edge edge on np.node_id = edge.start_node_id or np.node_id = edge.end_node_id
