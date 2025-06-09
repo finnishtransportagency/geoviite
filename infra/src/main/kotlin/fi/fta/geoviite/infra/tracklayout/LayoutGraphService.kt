@@ -14,8 +14,10 @@ class LayoutGraphService(private val locationTrackService: LocationTrackService)
             locationTrackService
                 .listNearWithGeometries(context, bbox)
                 .flatMap { (track, geom) -> geom.edges.map { e -> e to (track.id as IntId) } }
-                .groupBy({ it.first }, { it.second })
-                .map { (e, tracks) -> DbEdgeData(e, tracks.toSet()) }
+                .groupBy { it.first.id }
+                .map { (_, edgesAndTrackIds) ->
+                    DbEdgeData(edgesAndTrackIds[0].first, edgesAndTrackIds.map { it.second }.toSet())
+                }
         return LayoutGraph.of(context, detailLevel, edgeData)
     }
 }
