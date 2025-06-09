@@ -64,10 +64,10 @@ export const PlanLinkingHeaderItem: React.FC<PlanLinkingItemHeaderProps> = ({
                     transform={`translate(0 ${textLineOneYPx}) scale(0.7)`}>
                     <tspan>{filename}</tspan>
                     <tspan x="0" dy={textLineTwoYPx}>
-                        {verticalCoordinateSystem + ', '}
+                        {verticalCoordinateSystem && verticalCoordinateSystem + ', '}
                         <ElevationMeasurementMethod
                             method={elevationMeasurementMethod}
-                            lowerCase={true}
+                            lowerCase={verticalCoordinateSystem !== undefined}
                             includeTermContextForUnknownMethod={true}
                         />
                     </tspan>
