@@ -56,15 +56,15 @@ import fi.fta.geoviite.infra.util.produceIf
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.sql.ResultSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import kotlin.math.abs
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -432,6 +432,7 @@ class LayoutAlignmentDao(
     fun saveLocationTrackGeometry(trackVersion: LayoutRowVersion<LocationTrack>, trackGeometry: LocationTrackGeometry) {
         val geometry = trackGeometry.withLocationTrackId(trackVersion.id)
         val edges = geometry.edges.associate { e -> e.contentHash to getOrCreateEdge(e).id }
+
         val sql =
             """
             insert into layout.location_track_version_edge(

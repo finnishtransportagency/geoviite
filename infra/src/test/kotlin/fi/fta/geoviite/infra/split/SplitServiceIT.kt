@@ -267,9 +267,9 @@ constructor(
         // This assert is for TRANSFER only: use assertTargetTrack for other operations
         assertEquals(SplitTargetOperation.TRANSFER, request.getOperation())
 
-        val (track, alignment) =
+        val (track, geometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
-        val (originalTrack, originalAlignment) =
+        val (originalTrack, originalGeometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.official, response.locationTrackId)
 
         // TRANSFER operation should not change the duplicate track geometry or fields
@@ -279,7 +279,7 @@ constructor(
         assertNull(track.duplicateOf)
         request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
 
-        assertMatches(originalAlignment, alignment)
+        assertMatches(originalGeometry, geometry)
     }
 
     private fun assertTargetTrack(

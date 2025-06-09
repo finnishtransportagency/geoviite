@@ -50,8 +50,8 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import org.springframework.transaction.annotation.Transactional
 
 data class TrackNumberChange(
     val trackNumberId: IntId<LayoutTrackNumber>,
@@ -532,7 +532,7 @@ class CalculatedChangesService(
                 calculateOverlappingLocationTracks(
                     geocodingContext = context,
                     kilometers = addressChanges.changedKmNumbers,
-                    locationTracks =
+                    locationTracksAndGeometries =
                         changeContext
                             .getTrackNumberTracksBefore(trackNumberId)
                             .map(locationTrackService::getWithGeometry),
@@ -826,10 +826,10 @@ private fun geometryContainsKilometer(
 private fun calculateOverlappingLocationTracks(
     geocodingContext: GeocodingContext,
     kilometers: Set<KmNumber>,
-    locationTracks: Collection<Pair<LocationTrack, DbLocationTrackGeometry>>,
+    locationTracksAndGeometries: Collection<Pair<LocationTrack, DbLocationTrackGeometry>>,
 ) =
-    locationTracks
-        .filter { (_, alignment) -> geometryContainsKilometer(geocodingContext, alignment, kilometers) }
+    locationTracksAndGeometries
+        .filter { (_, geometry) -> geometryContainsKilometer(geocodingContext, geometry, kilometers) }
         .map { (locationTrack, _) -> locationTrack.id as IntId }
 
 private data class SwitchJointDataHolder(val joint: LayoutSwitchJoint, val address: TrackMeter, val point: Point)

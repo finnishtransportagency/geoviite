@@ -43,11 +43,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -144,10 +144,10 @@ class LocationTrackService(
         context: LayoutContext,
         ids: List<IntId<LocationTrack>>,
     ): List<AlignmentStartAndEnd<LocationTrack>> {
-        val tracksAndAlignments = getManyWithGeometries(context, ids)
+        val tracksAndGeometries = getManyWithGeometries(context, ids)
         val getGeocodingContext = geocodingService.getLazyGeocodingContexts(context)
-        return tracksAndAlignments.map { (track, alignment) ->
-            AlignmentStartAndEnd.of(track.id as IntId, alignment, getGeocodingContext(track.trackNumberId))
+        return tracksAndGeometries.map { (track, geometry) ->
+            AlignmentStartAndEnd.of(track.id as IntId, geometry, getGeocodingContext(track.trackNumberId))
         }
     }
 
@@ -159,8 +159,8 @@ class LocationTrackService(
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(context, moment)
         val trackData =
             dao.getManyOfficialAtMoment(context.branch, ids, moment).let(::associateWithGeometries).map {
-                (track, alignment) ->
-                Triple(track, alignment, getGeocodingContext(track.trackNumberId))
+                (track, geometry) ->
+                Triple(track, geometry, getGeocodingContext(track.trackNumberId))
             }
 
         return trackData
@@ -292,9 +292,9 @@ class LocationTrackService(
         locationTrackId: IntId<LocationTrack>,
         address: TrackMeter,
     ): AddressPoint? {
-        val locationTrackAndAlignment = getWithGeometry(layoutContext, locationTrackId)
-        return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
-            geocodingService.getTrackLocation(layoutContext, locationTrack, alignment, address)
+        val locationTrackAndGeometry = getWithGeometry(layoutContext, locationTrackId)
+        return locationTrackAndGeometry?.let { (locationTrack, geometry) ->
+            geocodingService.getTrackLocation(layoutContext, locationTrack, geometry, address)
         }
     }
 
@@ -640,7 +640,7 @@ class LocationTrackService(
     fun getLocationTrackDuplicates(
         layoutContext: LayoutContext,
         track: LocationTrack,
-        alignment: LocationTrackGeometry,
+        geometry: LocationTrackGeometry,
     ): List<LocationTrackDuplicate> {
         val markedDuplicateVersions = dao.fetchDuplicateVersions(layoutContext, track.id as IntId)
         val tracksLinkedThroughSwitch =
@@ -649,12 +649,12 @@ class LocationTrackService(
                 .values
                 .flatten()
                 .map(LayoutSwitchDao.LocationTrackIdentifiers::rowVersion)
-        val duplicateTracksAndAlignments =
+        val duplicateTracksAndGeometries =
             (markedDuplicateVersions + tracksLinkedThroughSwitch).distinct().map(::getWithGeometryInternal).filter {
                 (duplicateTrack, _) ->
                 duplicateTrack.id != track.id && duplicateTrack.id != track.duplicateOf
             }
-        return getLocationTrackDuplicatesBySplitPoints(track, alignment, duplicateTracksAndAlignments)
+        return getLocationTrackDuplicatesBySplitPoints(track, geometry, duplicateTracksAndGeometries)
     }
 
     private fun getDuplicateTrackParent(
@@ -662,9 +662,9 @@ class LocationTrackService(
         childTrack: LocationTrack,
     ): LocationTrackDuplicate? =
         childTrack.duplicateOf?.let { parentId ->
-            getWithGeometry(layoutContext, parentId)?.let { (parentTrack, parentTrackAlignment) ->
-                val childAlignment = alignmentDao.fetch(childTrack.getVersionOrThrow())
-                getDuplicateTrackParentStatus(parentTrack, parentTrackAlignment, childTrack, childAlignment)
+            getWithGeometry(layoutContext, parentId)?.let { (parentTrack, parentGeometry) ->
+                val childGeometry = alignmentDao.fetch(childTrack.getVersionOrThrow())
+                getDuplicateTrackParentStatus(parentTrack, parentGeometry, childTrack, childGeometry)
             }
         }
 
@@ -753,7 +753,7 @@ class LocationTrackService(
         trackId: IntId<LocationTrack>,
     ): SplittingInitializationParameters? {
         val getGeocodingContext = geocodingService.getLazyGeocodingContexts(layoutContext)
-        return getWithGeometry(layoutContext, trackId)?.let { (locationTrack, alignment) ->
+        return getWithGeometry(layoutContext, trackId)?.let { (locationTrack, geometry) ->
             val switches =
                 getSwitchesForLocationTrack(layoutContext, trackId)
                     .mapNotNull { id -> switchDao.get(layoutContext, id) }
@@ -769,7 +769,7 @@ class LocationTrackService(
                     }
                     .map { (switch, location) ->
                         val address = getGeocodingContext(locationTrack.trackNumberId)?.getAddressAndM(location)
-                        val mAlongAlignment = alignment.getClosestPointM(location)?.first
+                        val mAlongAlignment = geometry.getClosestPointM(location)?.first
                         SwitchOnLocationTrack(
                             switch.id as IntId,
                             switch.name,
@@ -781,7 +781,7 @@ class LocationTrackService(
                     }
 
             val duplicateTracks =
-                getLocationTrackDuplicates(layoutContext, locationTrack, alignment).map { duplicate ->
+                getLocationTrackDuplicates(layoutContext, locationTrack, geometry).map { duplicate ->
                     SplitDuplicateTrack(duplicate.id, duplicate.name, duplicate.length, duplicate.duplicateStatus)
                 }
 

@@ -42,8 +42,8 @@ constructor(
         branch: LayoutBranch,
         trackId: IntId<LocationTrack>,
     ): List<SwitchRelinkingValidationResult> {
-        val (track, alignment) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
-        val switchIds = switchLinkingService.collectAllSwitchesOnTrackAndNearby(branch, track, alignment)
+        val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
+        val switchIds = switchLinkingService.collectAllSwitchesOnTrackAndNearby(branch, track, geometry)
         val originalSwitches = getOriginalSwitches(branch, switchIds)
         val switchStructures = originalSwitches.map { switchLibraryService.getSwitchStructure(it.switchStructureId) }
         val originalLocations = getOriginalLocations(originalSwitches, switchStructures)

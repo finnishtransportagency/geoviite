@@ -52,14 +52,14 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.processFlattened
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -295,13 +295,13 @@ constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): List<ElementListing> {
-        val (track, alignment) = locationTrackService.getWithGeometryOrThrow(layoutContext, trackId)
+        val (track, geometry) = locationTrackService.getWithGeometryOrThrow(layoutContext, trackId)
         val trackNumber = trackNumberService.get(layoutContext, track.trackNumberId)?.number
         return toElementListing(
             geocodingService.getGeocodingContext(layoutContext, track.trackNumberId),
             coordinateTransformationService::getLayoutTransformation,
             track,
-            alignment,
+            geometry,
             trackNumber,
             elementTypes,
             startAddress,
@@ -340,8 +340,8 @@ constructor(
             val elementListing =
                 locationTrackService
                     .listWithGeometries(MainLayoutContext.official, includeDeleted = false)
-                    .map { (locationTrack, alignment) ->
-                        Triple(locationTrack, alignment, trackNumbers[locationTrack.trackNumberId]?.number)
+                    .map { (locationTrack, geometry) ->
+                        Triple(locationTrack, geometry, trackNumbers[locationTrack.trackNumberId]?.number)
                     }
                     .sortedWith(compareBy({ (_, _, tn) -> tn }, { (track, _, _) -> track.name }))
                     .flatMap { (track, alignment, trackNumber) ->
@@ -399,11 +399,11 @@ constructor(
         startAddress: TrackMeter? = null,
         endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
-        val (track, alignment) = locationTrackService.getWithGeometryOrThrow(layoutContext, locationTrackId)
+        val (track, geometry) = locationTrackService.getWithGeometryOrThrow(layoutContext, locationTrackId)
         val geocodingContext = geocodingService.getGeocodingContext(layoutContext, track.trackNumberId)
         return toVerticalGeometryListing(
             track,
-            alignment,
+            geometry,
             startAddress,
             endAddress,
             geocodingContext,
@@ -556,19 +556,19 @@ constructor(
         locationTrackId: IntId<LocationTrack>,
     ): List<PlanLinkingSummaryItem>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
-        val alignment = layoutAlignmentDao.fetch(locationTrack.getVersionOrThrow())
-        val segmentSources = collectSegmentSources(alignment.segments)
+        val geometry = layoutAlignmentDao.fetch(locationTrack.getVersionOrThrow())
+        val segmentSources = collectSegmentSources(geometry.segments)
         val planLinkEndSegmentIndices =
             segmentSources
                 .zipWithNext { a, b -> a.plan == b.plan }
                 .mapIndexedNotNull { i, equals -> if (equals) null else i }
-        return (listOf(-1) + planLinkEndSegmentIndices + listOf(alignment.segments.lastIndex))
+        return (listOf(-1) + planLinkEndSegmentIndices + listOf(geometry.segments.lastIndex))
             .windowed(2, 1)
             .mapNotNull { (lastPlanEndIndex, thisPlanEndIndex) ->
-                if (alignment.segments.isNotEmpty())
+                if (geometry.segments.isNotEmpty())
                     PlanLinkingSummaryItem(
-                        alignment.segmentMValues[lastPlanEndIndex + 1].min,
-                        alignment.segmentMValues[thisPlanEndIndex].max,
+                        geometry.segmentMValues[lastPlanEndIndex + 1].min,
+                        geometry.segmentMValues[thisPlanEndIndex].max,
                         segmentSources[thisPlanEndIndex].plan?.fileName,
                         segmentSources[thisPlanEndIndex].alignment?.let { toAlignmentHeader(null, it) },
                         segmentSources[thisPlanEndIndex].plan?.id,

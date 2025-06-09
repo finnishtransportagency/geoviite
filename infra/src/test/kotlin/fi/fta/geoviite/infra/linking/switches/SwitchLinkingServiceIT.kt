@@ -280,9 +280,9 @@ constructor(
 
     private data class LocationTracksWithLinkedSwitch(
         val straightTrack: LocationTrack,
-        val straightTrackAlignment: LocationTrackGeometry,
+        val straightTrackGeometry: LocationTrackGeometry,
         val divertingTrack: LocationTrack,
-        val divertingTrackAlignment: LocationTrackGeometry,
+        val divertingTrackGeometry: LocationTrackGeometry,
         val linkedSwitch: LayoutSwitch,
     )
 
@@ -373,9 +373,9 @@ constructor(
 
         return LocationTracksWithLinkedSwitch(
             straightTrack = linkedStraightTrack,
-            straightTrackAlignment = linkedStraightTrackAlignment,
+            straightTrackGeometry = linkedStraightTrackAlignment,
             divertingTrack = linkedDivertingTrack,
-            divertingTrackAlignment = linkedDivertingTrackAlignment,
+            divertingTrackGeometry = linkedDivertingTrackAlignment,
             linkedSwitch = linkedSwitch,
         )
     }
@@ -404,7 +404,7 @@ constructor(
                             suggestedSwitchJointMatch(
                                 locationTrackId = testLocation.straightTrack.id as IntId,
                                 segmentIndex = 2,
-                                m = testLocation.straightTrackAlignment.segmentMValues[2].max - switchOverlapAmount,
+                                m = testLocation.straightTrackGeometry.segmentMValues[2].max - switchOverlapAmount,
                                 jointNumber = 1,
                             ),
                             switchLinkingAtStart(secondDiversionTrack.id, secondDiversionAlignment, 0, 1),
@@ -418,7 +418,7 @@ constructor(
                         listOf(
                             switchLinkingAtStart(
                                 testLocation.straightTrack.id,
-                                testLocation.straightTrackAlignment,
+                                testLocation.straightTrackGeometry,
                                 4,
                                 5,
                             )
@@ -430,7 +430,7 @@ constructor(
                     LocationAccuracy.DESIGNED_GEOLOCATION,
                     matches =
                         listOf(
-                            switchLinkingAtEnd(testLocation.straightTrack.id, testLocation.straightTrackAlignment, 4, 2)
+                            switchLinkingAtEnd(testLocation.straightTrack.id, testLocation.straightTrackGeometry, 4, 2)
                         ),
                 ),
 
@@ -443,7 +443,7 @@ constructor(
                         listOf(
                             switchLinkingAtEnd(
                                 testLocation.divertingTrack.id,
-                                testLocation.divertingTrackAlignment,
+                                testLocation.divertingTrackGeometry,
                                 0,
                                 3,
                             )
@@ -460,9 +460,9 @@ constructor(
             switchLibraryService.getSwitchStructure(testLocation.linkedSwitch.switchStructureId)
         val newSwitchStructure = switchLibraryService.getSwitchStructure(newSwitch.switchStructureId)
 
-        assertEquals(testLocation.straightTrackAlignment.edges.take(2), overlapLinkedStraightAlignment.edges.take(2))
+        assertEquals(testLocation.straightTrackGeometry.edges.take(2), overlapLinkedStraightAlignment.edges.take(2))
         assertEquals(
-            testLocation.straightTrackAlignment.edges[2].startNode,
+            testLocation.straightTrackGeometry.edges[2].startNode,
             overlapLinkedStraightAlignment.edges[2].startNode,
         )
 
@@ -1629,13 +1629,13 @@ constructor(
     private fun createDraftLocationTrackFromLayoutSegments(
         layoutSegments: List<LayoutSegment>
     ): Pair<LocationTrack, LocationTrackGeometry> {
-        val (locationTrack, alignment) =
+        val (locationTrack, geometry) =
             locationTrackAndGeometry(
                 trackNumberId = mainDraftContext.createLayoutTrackNumber().id,
                 segments = layoutSegments,
                 draft = true,
             )
-        val locationTrackId = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).id
+        val locationTrackId = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry).id
         return locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, locationTrackId)
     }
 
@@ -1662,14 +1662,14 @@ constructor(
             makeAndSavePlan(trackNumber.number, measurementMethod = null, alignments = listOf(switchAlignments[1]))
 
         (plan1.alignments + plan2.alignments).forEach { geometryAlignment ->
-            val (locationTrack, alignment) =
+            val (locationTrack, geometry) =
                 locationTrackAndAlignmentForGeometryAlignment(
                     trackNumber.id as IntId,
                     geometryAlignment,
                     transformationService.getTransformation(LAYOUT_SRID, LAYOUT_SRID),
                     draft = true,
                 )
-            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry)
         }
 
         return plan1.switches[0].id as IntId

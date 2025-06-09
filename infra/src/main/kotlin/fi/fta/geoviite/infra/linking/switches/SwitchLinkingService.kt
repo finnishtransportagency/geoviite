@@ -245,8 +245,8 @@ constructor(
             if (switchId == null) emptyMap()
             else {
                 switchDao.findLocationTracksLinkedToSwitch(branch.draft, switchId).associate { ids ->
-                    val trackAndAlignment = locationTrackService.getWithGeometry(ids.rowVersion)
-                    (trackAndAlignment.first.id as IntId) to trackAndAlignment
+                    val trackAndGeometry = locationTrackService.getWithGeometry(ids.rowVersion)
+                    (trackAndGeometry.first.id as IntId) to trackAndGeometry
                 }
             }
         return listOfNotNull(

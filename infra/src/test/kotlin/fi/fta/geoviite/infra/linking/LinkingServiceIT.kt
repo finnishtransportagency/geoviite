@@ -126,7 +126,7 @@ constructor(
         val segment2 = segment(start + 4.0, start + 5.0, start + 6.0, start + 7.0, start + 8.0, start + 9.0)
         val segment3 = segment(start + 9.0, start + 10.0, start + 11.0)
 
-        val (locationTrack, alignment) =
+        val (locationTrack, geometry) =
             locationTrackAndGeometry(
                 mainOfficialContext.createLayoutTrackNumber().id,
                 segment1,
@@ -134,7 +134,7 @@ constructor(
                 segment3,
                 draft = true,
             )
-        val locationTrackVersion = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        val locationTrackVersion = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry)
         locationTrackService.publish(LayoutBranch.main, locationTrackVersion)
         val locationTrackId = locationTrackVersion.id
 
@@ -236,13 +236,13 @@ constructor(
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
-        val (locationTrack, alignment) =
+        val (locationTrack, geometry) =
             locationTrackAndGeometry(
                 trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
                 state = LocationTrackState.DELETED,
                 draft = true,
             )
-        val locationTrackVersion = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        val locationTrackVersion = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry)
         val locationTrackId = locationTrackVersion.id
         locationTrackService.publish(LayoutBranch.main, locationTrackVersion)
 
@@ -267,10 +267,10 @@ constructor(
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
-        val (locationTrack, alignment) =
+        val (locationTrack, geometry) =
             locationTrackAndGeometry(mainOfficialContext.createLayoutTrackNumber().id, draft = true)
         val locationTrackResponse =
-            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { rowVersion ->
+            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry).let { rowVersion ->
                 locationTrackService.publish(LayoutBranch.main, rowVersion).published
             }
 
@@ -320,10 +320,10 @@ constructor(
         val start = geometryStart - Point(1.0, 1.5)
         val segment1 = segment(start, start + 1.0, start + 2.0, start + 3.0, start + 4.0)
 
-        val (locationTrack, alignment) =
+        val (locationTrack, geometry) =
             locationTrackAndGeometry(mainOfficialContext.createLayoutTrackNumber().id, segment1, draft = true)
         val locationTrackResponse =
-            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).let { rowVersion ->
+            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry).let { rowVersion ->
                 locationTrackService.publish(LayoutBranch.main, rowVersion).published
             }
 

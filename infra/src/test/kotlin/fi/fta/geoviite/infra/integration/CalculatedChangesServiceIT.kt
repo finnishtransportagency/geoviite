@@ -1456,7 +1456,7 @@ constructor(
             )
 
         var locationTrackSequence = 0
-        val locationTracksAndAlignments =
+        val locationTracksAndGeometries =
             locationTrackData.map { line ->
                 locationTrackService.getWithGeometry(
                     locationTrackDao.save(
@@ -1474,14 +1474,14 @@ constructor(
             switchData.map { switch ->
                 linkTestSwitch(
                     refPoint + switch.location,
-                    locationTracksAndAlignments[switch.locationTrackIndexA],
-                    locationTracksAndAlignments[switch.locationTrackIndexB],
+                    locationTracksAndGeometries[switch.locationTrackIndexA],
+                    locationTracksAndGeometries[switch.locationTrackIndexB],
                     switch.name,
                 )
             }
 
-        val publishedLocationTracksAndAlignments =
-            locationTracksAndAlignments.map { (locationTrack, _) ->
+        val publishedLocationTracksAndGeometries =
+            locationTracksAndGeometries.map { (locationTrack, _) ->
                 val id = locationTrack.id as IntId
                 val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
                 val (edited, editedGeometry) = locationTrackService.getWithGeometry(rowVersion)
@@ -1507,7 +1507,7 @@ constructor(
 
         return TestData(
             trackNumber = trackNumber,
-            locationTracksAndGeometries = publishedLocationTracksAndAlignments,
+            locationTracksAndGeometries = publishedLocationTracksAndGeometries,
             referenceLineAndAlignment = referenceLine to referenceLineGeometry,
             kmPosts = kmPosts,
             switches = publishedSwitches,
@@ -1585,11 +1585,11 @@ constructor(
         return switch
     }
 
-    private fun firstPoint(alignment: LocationTrackGeometry, segmentIndex: Int): Point =
-        alignment.segments[segmentIndex].segmentStart.toPoint()
+    private fun firstPoint(geometry: LocationTrackGeometry, segmentIndex: Int): Point =
+        geometry.segments[segmentIndex].segmentStart.toPoint()
 
-    private fun lastPoint(alignment: LocationTrackGeometry, segmentIndex: Int): Point =
-        alignment.segments[segmentIndex].segmentEnd.toPoint()
+    private fun lastPoint(geometry: LocationTrackGeometry, segmentIndex: Int): Point =
+        geometry.segments[segmentIndex].segmentEnd.toPoint()
 
     private fun assertContainsSwitchJoint152Change(
         changes: List<SwitchChange>,

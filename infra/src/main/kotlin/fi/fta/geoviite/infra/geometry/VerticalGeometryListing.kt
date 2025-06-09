@@ -224,12 +224,12 @@ fun toVerticalGeometryListing(
 private fun getEntryLayoutStations(
     listing: List<VerticalGeometryListing>,
     geocodingContext: GeocodingContext,
-    layoutAlignment: LocationTrackGeometry,
+    geometry: LocationTrackGeometry,
 ): List<List<Double?>> =
     processFlattened(listing.map { entry -> listOf(entry.start.address, entry.point.address, entry.end.address) }) {
         addresses ->
         processNonNulls(addresses) { nonNullAddresses ->
-                geocodingContext.getTrackLocations(layoutAlignment, nonNullAddresses)
+                geocodingContext.getTrackLocations(geometry, nonNullAddresses)
             }
             .map { addressPoint -> addressPoint?.point?.m }
     }

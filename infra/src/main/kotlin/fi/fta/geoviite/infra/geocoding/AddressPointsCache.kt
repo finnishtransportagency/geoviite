@@ -22,7 +22,7 @@ data class AddressPointCacheKey(
 
 data class AddressPointCalculationData(
     val key: AddressPointCacheKey,
-    val alignment: DbLocationTrackGeometry,
+    val geometry: DbLocationTrackGeometry,
     val geocodingContext: GeocodingContext,
 )
 
@@ -61,7 +61,7 @@ class AddressPointsCache(
             .get(cacheKey) {
                 Optional.ofNullable(
                     getAddressPointCalculationData(cacheKey)?.let { input ->
-                        input.geocodingContext.getAddressPoints(input.alignment, input.key.resolution)
+                        input.geocodingContext.getAddressPoints(input.geometry, input.key.resolution)
                     }
                 )
             }
