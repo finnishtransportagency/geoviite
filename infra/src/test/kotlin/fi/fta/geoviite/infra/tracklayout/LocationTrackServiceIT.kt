@@ -1215,7 +1215,7 @@ constructor(
         val (draft, geometry) = locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, id)
         assertEquals(id, draft.id)
         assertTrue(draft.isDraft)
-        assertEquals(draft.versionOrThrow, geometry.trackRowVersion)
+        assertEquals(draft.getVersionOrThrow(), geometry.trackRowVersion)
         return draft to geometry
     }
 

@@ -73,10 +73,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import java.time.Instant
-import kotlin.reflect.KClass
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
+import kotlin.reflect.KClass
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -287,7 +287,7 @@ class TestDBService(
     final fun fetchWithGeometry(
         rowVersion: LayoutRowVersion<LocationTrack>
     ): Pair<LocationTrack, DbLocationTrackGeometry> =
-        fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.versionOrThrow) }
+        fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.getVersionOrThrow()) }
 
     fun deleteFromTables(schema: String, vararg tables: String) {
         // We don't actually need transactionality, but we do need everything to be run in one
@@ -406,7 +406,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         fetch(id)?.let { a -> a to alignmentDao.fetch(a.getAlignmentVersionOrThrow()) }
 
     fun fetchWithGeometry(id: IntId<LocationTrack>): Pair<LocationTrack, DbLocationTrackGeometry>? =
-        locationTrackDao.get(context, id)?.let { track -> track to alignmentDao.fetch(track.versionOrThrow) }
+        locationTrackDao.get(context, id)?.let { track -> track to alignmentDao.fetch(track.getVersionOrThrow()) }
 
     fun <T : LayoutAsset<T>> save(asset: T): LayoutRowVersion<T> =
         testService.save(testService.updateContext(asset, context), asset.version)

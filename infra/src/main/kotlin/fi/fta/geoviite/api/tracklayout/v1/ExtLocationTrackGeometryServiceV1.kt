@@ -105,7 +105,7 @@ constructor(
             locationTrackOid = oid,
             trackIntervals =
                 getExtLocationTrackGeometry(
-                    locationTrack.versionOrThrow,
+                    locationTrack.getVersionOrThrow(),
                     geocodingContextCacheKey,
                     trackIntervalFilter,
                     resolution,

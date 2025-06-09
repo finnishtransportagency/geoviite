@@ -422,7 +422,7 @@ class CalculatedChangesService(
         fetchSwitchById: (id: IntId<LayoutSwitch>) -> LayoutSwitch?,
         getGeocodingContext: (id: IntId<LayoutTrackNumber>) -> GeocodingContext?,
     ): List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>> {
-        val geometry = alignmentDao.fetch(locationTrack.versionOrThrow)
+        val geometry = alignmentDao.fetch(locationTrack.getVersionOrThrow())
         val trackNumberId = locationTrack.trackNumberId
         val geocodingContext = getGeocodingContext(trackNumberId)
 
@@ -681,7 +681,7 @@ class CalculatedChangesService(
                 val geocodingCacheKey = changeContext.geocodingKeysAfter[locationTrack.trackNumberId]
                 val addresses =
                     geocodingCacheKey?.let { cacheKey ->
-                        geocodingService.getAddressPoints(cacheKey, locationTrack.versionOrThrow)
+                        geocodingService.getAddressPoints(cacheKey, locationTrack.getVersionOrThrow())
                     }
 
                 LocationTrackChange(

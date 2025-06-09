@@ -599,7 +599,7 @@ constructor(
             listOf()
         } else {
             validateAddressPoints(trackNumber, track, validationTargetLocalizationPrefix) {
-                geocodingService.getAddressPoints(contextKey, track.versionOrThrow)
+                geocodingService.getAddressPoints(contextKey, track.getVersionOrThrow())
             }
         }
 }

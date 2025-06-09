@@ -43,11 +43,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -345,7 +345,7 @@ class LocationTrackService(
 
         return geocodingContext?.let { context ->
             alignmentService.getGeometryMetadataSections(
-                locationTrack.versionOrThrow,
+                locationTrack.getVersionOrThrow(),
                 dao.fetchExternalId(layoutContext.branch, locationTrackId)?.oid,
                 boundingBox,
                 context,
@@ -451,7 +451,7 @@ class LocationTrackService(
     ): List<FreeText> {
         val startAndEndSwitchIds =
             locationTracks.map { locationTrack ->
-                alignmentDao.fetch(locationTrack.versionOrThrow).let { geom ->
+                alignmentDao.fetch(locationTrack.getVersionOrThrow()).let { geom ->
                     geom.startSwitchLink?.id to geom.endSwitchLink?.id
                 }
             }
@@ -543,8 +543,8 @@ class LocationTrackService(
     ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
         // This is a little convoluted to avoid extra passes of transaction annotation handling in
         // alignmentDao.fetch
-        val alignments = alignmentDao.getMany(lines.map(LocationTrack::versionOrThrow))
-        return lines.map { line -> line to alignments.getValue(line.versionOrThrow) }
+        val alignments = alignmentDao.getMany(lines.map(LocationTrack::getVersionOrThrow))
+        return lines.map { line -> line to alignments.getValue(line.getVersionOrThrow()) }
     }
 
     fun fillTrackAddress(splitPoint: SplitPoint, geocodingContext: GeocodingContext): SplitPoint {
@@ -632,7 +632,7 @@ class LocationTrackService(
         get(layoutContext, id)?.let { track -> countRelinkableSwitches(layoutContext.branch, track) }
 
     private fun countRelinkableSwitches(branch: LayoutBranch, locationTrack: LocationTrack): Int =
-        (locationTrack.switchIds + switchDao.findSwitchesNearTrack(branch, locationTrack.versionOrThrow))
+        (locationTrack.switchIds + switchDao.findSwitchesNearTrack(branch, locationTrack.getVersionOrThrow()))
             .distinct()
             .size
 
@@ -663,7 +663,7 @@ class LocationTrackService(
     ): LocationTrackDuplicate? =
         childTrack.duplicateOf?.let { parentId ->
             getWithGeometry(layoutContext, parentId)?.let { (parentTrack, parentTrackAlignment) ->
-                val childAlignment = alignmentDao.fetch(childTrack.versionOrThrow)
+                val childAlignment = alignmentDao.fetch(childTrack.getVersionOrThrow())
                 getDuplicateTrackParentStatus(parentTrack, parentTrackAlignment, childTrack, childAlignment)
             }
         }
@@ -805,7 +805,7 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun getAlignmentsForTracks(tracks: List<LocationTrack>): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
-        return tracks.map { track -> track to alignmentDao.fetch(track.versionOrThrow) }
+        return tracks.map { track -> track to alignmentDao.fetch(track.getVersionOrThrow()) }
     }
 
     override fun mergeToMainBranch(

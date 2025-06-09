@@ -41,10 +41,9 @@ import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.replaceEdges
-import java.util.stream.Collectors
-import kotlin.collections.find
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 @GeoviiteService
 class SwitchLinkingService
@@ -329,7 +328,7 @@ constructor(
         geometry: LocationTrackGeometry,
     ): List<IntId<LayoutSwitch>> {
         val trackSwitches = geometry.switchIds
-        val nearbySwitches = switchDao.findSwitchesNearTrack(branch, locationTrack.versionOrThrow)
+        val nearbySwitches = switchDao.findSwitchesNearTrack(branch, locationTrack.getVersionOrThrow())
         return (trackSwitches + nearbySwitches).distinct()
     }
 
@@ -611,9 +610,7 @@ private fun linkJointToEdgeMiddle(
     isFirstJointInSequence: Boolean,
     isLastJointInSequence: Boolean,
 ): List<TmpLayoutEdge> {
-    require(!(isFirstJointInSequence && isLastJointInSequence)) {
-        "can't link joint topologically mid-track"
-    }
+    require(!(isFirstJointInSequence && isLastJointInSequence)) { "can't link joint topologically mid-track" }
     val middleOuterNodeConnection = NodeConnection.switch(inner = null, outer = switchLink)
     val middleInnerNodeConnection = NodeConnection.switch(inner = switchLink, outer = null)
     return listOf(

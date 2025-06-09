@@ -87,12 +87,10 @@ fun mergeNodeCombinations(combinations: List<NodeCombinations>): NodeCombination
 }
 
 private val nodeCombinationPriority =
-    Comparator<LayoutNode> { o1, o2 ->
-        o1.type.ordinal.compareTo(o2.type.ordinal).takeIf { it != 0 }
-            ?: (-(o1.ports.size.compareTo(o2.ports.size))).takeIf { it != 0 }
-            ?: comparePorts(o1.portA, o2.portA).takeIf { it != 0 }
-            ?: comparePorts(o1.portB, o2.portB)
-    }
+    Comparator.comparing { node: LayoutNode -> node.type.ordinal }
+        .thenComparing { node -> -node.ports.size }
+        .thenComparing(LayoutNode::portA, ::comparePorts)
+        .thenComparing(LayoutNode::portB, ::comparePorts)
 
 private fun comparePorts(port1: NodePort?, port2: NodePort?): Int =
     when {

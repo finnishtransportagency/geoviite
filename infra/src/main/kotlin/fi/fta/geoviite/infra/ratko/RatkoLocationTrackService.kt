@@ -32,9 +32,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import java.time.Instant
 
 @GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -212,7 +212,7 @@ constructor(
         val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, locationTrack.trackNumberId, moment)
 
         alignmentDao
-            .fetchMetadata(locationTrack.versionOrThrow)
+            .fetchMetadata(locationTrack.getVersionOrThrow())
             .fold(mutableListOf<LayoutSegmentMetadata>()) { acc, metadata ->
                 val previousMetadata = acc.lastOrNull()
 
@@ -442,7 +442,7 @@ constructor(
             "Missing geocoding context, trackNumberId=${locationTrack.trackNumberId} moment=$moment"
         }
 
-        val geometry = alignmentDao.fetch(locationTrack.versionOrThrow)
+        val geometry = alignmentDao.fetch(locationTrack.getVersionOrThrow())
         val addresses =
             checkNotNull(geocodingContext.getAddressPoints(geometry)) {
                 "Cannot calculate addresses for location track, id=${locationTrack.id}"

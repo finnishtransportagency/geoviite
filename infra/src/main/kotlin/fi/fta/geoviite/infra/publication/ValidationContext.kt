@@ -135,7 +135,7 @@ class ValidationContext(
         (getDuplicateTrackIds(id) ?: emptyList()).mapNotNull(::getLocationTrack)
 
     fun getLocationTrackWithGeometry(id: IntId<LocationTrack>): Pair<LocationTrack, LocationTrackGeometry>? =
-        getLocationTrack(id)?.let { track -> track to alignmentDao.fetch(track.versionOrThrow) }
+        getLocationTrack(id)?.let { track -> track to alignmentDao.fetch(track.getVersionOrThrow()) }
 
     fun getSwitch(id: IntId<LayoutSwitch>): LayoutSwitch? =
         getObject(target.baseContext, id, publicationSet.switches, switchDao, switchVersionCache)
@@ -219,7 +219,7 @@ class ValidationContext(
 
     fun getAddressPoints(track: LocationTrack): AlignmentAddresses? =
         getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
-            geocodingService.getAddressPoints(key, track.versionOrThrow)
+            geocodingService.getAddressPoints(key, track.getVersionOrThrow())
         }
 
     fun trackNumberIsCancelled(id: IntId<LayoutTrackNumber>) =

@@ -16,8 +16,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TOPOLOGY_CALC_DISTANCE
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import kotlin.collections.component1
-import kotlin.collections.component2
 import kotlin.math.absoluteValue
 
 fun matchFittedSwitchToTracks(
@@ -338,7 +336,7 @@ private fun candidateJointLocationIsValid(jointCandidate: JointOnEdge, fittedSwi
 private fun suggestDelinking(
     clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>
 ): Map<IntId<LocationTrack>, SwitchLinkingTrackLinks> =
-    clearedTracks.mapValues { (_, track) -> SwitchLinkingTrackLinks(track.first.versionOrThrow.version, null) }
+    clearedTracks.mapValues { (_, track) -> SwitchLinkingTrackLinks(track.first.getVersionOrThrow().version, null) }
 
 private fun suggestLinking(
     validatedJoints: Map<EdgeId, List<JointOnEdge>>,
@@ -352,7 +350,7 @@ private fun suggestLinking(
 
 private fun suggestTrackLink(locationTrack: LocationTrack, edgeIndex: Int, joints: List<JointOnEdge>) =
     SwitchLinkingTrackLinks(
-        locationTrack.versionOrThrow.version,
+        locationTrack.getVersionOrThrow().version,
         SuggestedLinks(
             edgeIndex,
             joints.map { joint -> SwitchLinkingJoint(joint.mOnEdge, joint.jointNumber, joint.location) },

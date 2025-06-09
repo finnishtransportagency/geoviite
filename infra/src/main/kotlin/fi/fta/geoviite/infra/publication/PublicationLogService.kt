@@ -198,7 +198,7 @@ constructor(
         return publicationDao.getPublication(id).let { publication ->
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
-                val (sourceLocationTrack, sourceAlignment) =
+                val (sourceLocationTrack, sourceGeometry) =
                     locationTrackService.getWithGeometry(split.sourceLocationTrackVersion)
                 val oid =
                     requireNotNull(
@@ -215,7 +215,7 @@ constructor(
                         .distinct()
                         .mapNotNull { v ->
                             createSplitTargetInPublication(
-                                sourceGeometry = sourceAlignment,
+                                sourceGeometry = sourceGeometry,
                                 rowVersion = v,
                                 publicationBranch = publication.layoutBranch.branch,
                                 publicationTime = publication.publicationTime,

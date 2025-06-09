@@ -38,12 +38,11 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
 
     abstract fun withContext(contextData: LayoutContextData<T>): T
 
-    @get:JsonIgnore
-    val versionOrThrow
-        get() =
-            requireNotNull(version) {
-                "Expected object to be stored in DB and hence have a version: object=${this.toLog()}"
-            }
+    @JsonIgnore
+    fun getVersionOrThrow(): LayoutRowVersion<T> =
+        requireNotNull(version) {
+            "Expected object to be stored in DB and hence have a version: object=${this.toLog()}"
+        }
 }
 
 // TODO: GVT-2935 This is likely no longer needed as LocationTrack and ReferenceLine are now different

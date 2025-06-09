@@ -19,9 +19,9 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class LayoutSwitchService
@@ -63,7 +63,7 @@ constructor(
         val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
 
         if (switch.stateCategory == LayoutStateCategory.NOT_EXISTING || switchStructureChanged) {
-            clearSwitchInformationFromSegments(branch, id)
+            clearSwitchInformationFromTracks(branch, id)
         }
 
         val updatedLayoutSwitch =
@@ -83,13 +83,13 @@ constructor(
     override fun deleteDraft(branch: LayoutBranch, id: IntId<LayoutSwitch>): LayoutRowVersion<LayoutSwitch> {
         // If removal also breaks references, clear them out first
         if (dao.fetchVersion(branch.official, id) == null) {
-            clearSwitchInformationFromSegments(branch, id)
+            clearSwitchInformationFromTracks(branch, id)
         }
         return super.deleteDraft(branch, id)
     }
 
     @Transactional
-    fun clearSwitchInformationFromSegments(branch: LayoutBranch, layoutSwitchId: IntId<LayoutSwitch>) {
+    fun clearSwitchInformationFromTracks(branch: LayoutBranch, layoutSwitchId: IntId<LayoutSwitch>) {
         getLocationTracksLinkedToSwitch(branch.draft, layoutSwitchId).forEach { (track, geometry) ->
             locationTrackService.saveDraft(branch, track, geometry.withoutSwitch(layoutSwitchId))
         }

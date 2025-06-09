@@ -330,7 +330,7 @@ class SplitService(
         target: SplitTarget,
         context: ValidationContext,
     ): Pair<List<AddressPoint>?, List<AddressPoint>?> {
-        val sourceGeometry = alignmentDao.fetch(sourceTrack.versionOrThrow)
+        val sourceGeometry = alignmentDao.fetch(sourceTrack.getVersionOrThrow())
         val (sourceStartPoint, sourceEndPoint) = sourceGeometry.getEdgeStartAndEnd(target.edgeIndices)
         val sourceAddressPointRange =
             context.getGeocodingContext(sourceTrack.trackNumberId)?.let { geocodingContext ->

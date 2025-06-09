@@ -91,7 +91,6 @@ fun calculateSegmentMValues(segments: List<ISegment>): List<Range<Double>> {
 interface IAlignment : Loggable {
     @get:JsonIgnore val segments: List<ISegment>
     val segmentMValues: List<Range<Double>>
-    //    val id: DomainId<*>
     val boundingBox: BoundingBox?
 
     @get:JsonIgnore
@@ -110,7 +109,7 @@ interface IAlignment : Loggable {
         get() = segments.lastOrNull()?.segmentEnd
 
     val start: AlignmentPoint?
-        get() = segments.firstOrNull()?.segmentStart?.toAlignmentPoint(0.0) // alignmentStart
+        get() = segments.firstOrNull()?.segmentStart?.toAlignmentPoint(0.0)
 
     val end: AlignmentPoint?
         get() = segments.lastOrNull()?.segmentEnd?.toAlignmentPoint(segmentMValues.last().min)

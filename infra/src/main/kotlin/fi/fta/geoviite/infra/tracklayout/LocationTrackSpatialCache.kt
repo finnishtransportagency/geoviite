@@ -38,7 +38,7 @@ constructor(
         val (staleTracks, currentTracks) =
             cache.items
                 .asSequence()
-                .partition { (id, track) -> newTracks[id]?.versionOrThrow != track.trackVersion }
+                .partition { (id, track) -> newTracks[id]?.getVersionOrThrow() != track.trackVersion }
                 .let { (stale, current) ->
                     stale.associate { it.key to it.value } to current.associate { it.key to it.value }
                 }
@@ -51,7 +51,7 @@ constructor(
 
         // Add all new items (tracks that have been added or updated)
         fun addEntry(track: LocationTrack) =
-            createEntry(track, alignmentDao.fetch(track.versionOrThrow)).also { entry ->
+            createEntry(track, alignmentDao.fetch(track.getVersionOrThrow())).also { entry ->
                 newNet = entry.segmentData.fold(newNet) { net, (segment, rect) -> net.add(segment, rect) }
             }
 
@@ -134,9 +134,9 @@ private fun createEntry(track: LocationTrack, geometry: DbLocationTrackGeometry)
     val segmentData =
         geometry.segments.mapIndexed { segmentIndex, segment ->
             val bbox = segment.boundingBox
-            val entry = SpatialCacheSegment(track.versionOrThrow, segmentIndex)
+            val entry = SpatialCacheSegment(track.getVersionOrThrow(), segmentIndex)
             val rect = Geometries.rectangle(bbox.x.min, bbox.y.min, bbox.x.max, bbox.y.max)
             entry to rect
         }
-    return SpatialCacheEntry(track.versionOrThrow, segmentData)
+    return SpatialCacheEntry(track.getVersionOrThrow(), segmentData)
 }

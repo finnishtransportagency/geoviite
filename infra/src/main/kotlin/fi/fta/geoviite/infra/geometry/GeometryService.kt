@@ -52,14 +52,14 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.processFlattened
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -556,7 +556,7 @@ constructor(
         locationTrackId: IntId<LocationTrack>,
     ): List<PlanLinkingSummaryItem>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
-        val alignment = layoutAlignmentDao.fetch(locationTrack.versionOrThrow)
+        val alignment = layoutAlignmentDao.fetch(locationTrack.getVersionOrThrow())
         val segmentSources = collectSegmentSources(alignment.segments)
         val planLinkEndSegmentIndices =
             segmentSources
@@ -588,7 +588,7 @@ constructor(
         tickLength: Int,
     ): List<KmHeights>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
-        val geometry = layoutAlignmentDao.fetch(locationTrack.versionOrThrow)
+        val geometry = layoutAlignmentDao.fetch(locationTrack.getVersionOrThrow())
         val geocodingContext =
             geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId) ?: return null
 
