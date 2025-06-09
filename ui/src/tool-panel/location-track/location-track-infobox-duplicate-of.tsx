@@ -50,7 +50,13 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
         currentTrackNumberId &&
         currentTrackNumberId !== existingDuplicate?.trackNumberId
             ? t('tool-panel.location-track.duplicate-on-different-track-number', {
-                  trackNumber: getTrackNumberName(trackNumbers, existingDuplicate.trackNumberId),
+                  currentTrack: targetLocationTrack.name,
+                  otherTrack: existingDuplicate.name,
+                  currentTrackNumber: getTrackNumberName(trackNumbers, currentTrackNumberId),
+                  otherTrackNumber: getTrackNumberName(
+                      trackNumbers,
+                      existingDuplicate.trackNumberId,
+                  ),
               })
             : '';
 
