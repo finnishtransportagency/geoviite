@@ -74,3 +74,53 @@ select
     left join layout.edge_segment last_segment
               on last_edge.id = last_segment.edge_id and last_segment.segment_index = last_edge.segment_count - 1
     left join layout.segment_geometry last_geom on last_segment.geometry_id = last_geom.id;
+
+drop view if exists layout.location_track_version_topology_view;
+create view layout.location_track_version_topology_view as
+select
+  lt.id,
+  lt.layout_context_id,
+  lt.version,
+  (
+    select
+      case
+        when coalesce(node_in.node_type, node_out.node_type) <> 'SWITCH' then null
+        when node_in.switch_joint_role = 'MAIN' then node_in.switch_id
+        when node_out.switch_joint_role = 'MAIN' then node_out.switch_id
+        else coalesce(node_in.switch_id, node_out.switch_id)
+      end as start_switch_id
+      from layout.location_track_version_edge first_ltve
+        inner join layout.edge on edge.id = first_ltve.edge_id
+        left join layout.node_port node_in
+                  on edge.start_node_id = node_in.node_id
+                    and edge.start_node_port = node_in.port
+        left join layout.node_port node_out
+                  on edge.start_node_id = node_out.node_id
+                    and edge.start_node_port <> node_out.port
+      where lt.id = first_ltve.location_track_id
+        and lt.layout_context_id = first_ltve.location_track_layout_context_id
+        and lt.version = first_ltve.location_track_version
+        and first_ltve.edge_index = 0
+  ) as start_switch_id,
+  (
+    select
+      case
+        when coalesce(node_in.node_type, node_out.node_type) <> 'SWITCH' then null
+        when node_in.switch_joint_role = 'MAIN' then node_in.switch_id
+        when node_out.switch_joint_role = 'MAIN' then node_out.switch_id
+        else coalesce(node_in.switch_id, node_out.switch_id)
+      end as end_switch_id
+      from layout.location_track_version_edge last_ltve
+        left join layout.edge on edge.id = last_ltve.edge_id
+        left join layout.node_port node_in
+                  on edge.end_node_id = node_in.node_id
+                    and edge.end_node_port = node_in.port
+        left join layout.node_port node_out
+                  on edge.end_node_id = node_out.node_id
+                    and edge.end_node_port <> node_out.port
+      where lt.id = last_ltve.location_track_id
+        and lt.layout_context_id = last_ltve.location_track_layout_context_id
+        and lt.version = last_ltve.location_track_version
+        and last_ltve.edge_index = lt.edge_count - 1
+  ) as end_switch_id
+  from layout.location_track_version lt;
