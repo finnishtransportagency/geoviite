@@ -207,8 +207,6 @@ data class ReifiedTrackNumberTrackNaming(
     override fun getName(): AlignmentName = AlignmentName("$trackNumber $nameSpecifier $nameFreeText")
 }
 
-data class LocationTrackName(val id: IntId<LocationTrack>, val name: AlignmentName)
-
 data class DbLocationTrackDescription(
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,

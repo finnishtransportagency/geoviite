@@ -131,20 +131,12 @@ sealed class LocationTrackGeometry : IAlignment {
     open val endNode: NodeConnection?
         get() = edges.lastOrNull()?.endNode
 
-    /**
-     * The primary switch link at track start
-     * - The inside-switch (whose geometry this track is) primarily
-     * - The outside-switch (that continues after this track) secondarily
-     */
+    /** The primary switch link at track start, noting inner/outer and main-joint preference */
     @get:JsonIgnore
     val startSwitchLink: SwitchLink?
         get() = startNode?.let(::pickPrimaryEndJoint)
 
-    /**
-     * The primary switch link at track end
-     * - The inside-switch (whose geometry this track is) primarily
-     * - The outside-switch (that continues after this track) secondarily
-     */
+    /** The primary switch link at track end, noting inner/outer and main-joint preference */
     @get:JsonIgnore
     val endSwitchLink: SwitchLink?
         get() = endNode?.let(::pickPrimaryEndJoint)
