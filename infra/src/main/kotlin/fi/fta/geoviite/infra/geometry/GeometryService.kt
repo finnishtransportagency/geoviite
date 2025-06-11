@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -34,6 +33,7 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ElementListingFile
 import fi.fta.geoviite.infra.tracklayout.ElementListingFileDao
@@ -236,9 +236,6 @@ constructor(
     private fun getSwitchName(context: LayoutContext, switchId: IntId<LayoutSwitch>): SwitchName =
         switchService.get(context, switchId)?.name ?: unknownSwitchName
 
-    private fun getLocationTrackName(context: LayoutContext, trackId: IntId<LocationTrack>): AlignmentName =
-        locationTrackService.getAugLocationTrack(trackId, context).let(::requireNotNull).name
-
     @Transactional(readOnly = true)
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
         val planVersion = geometryDao.fetchPlanVersion(planId)
@@ -251,8 +248,6 @@ constructor(
             coordinateTransformationService::getLayoutTransformation,
             plan,
             elementTypes,
-            getSwitchName = { id -> getSwitchName(MainLayoutContext.official, id) },
-            getLocationTrackName = { id -> getLocationTrackName(MainLayoutContext.official, id) },
         )
     }
 
@@ -273,7 +268,7 @@ constructor(
 
     @Transactional(readOnly = true)
     fun getElementListing(
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         geometry: DbLocationTrackGeometry,
         trackNumber: TrackNumber?,
         geocodingContext: GeocodingContext?,
@@ -289,7 +284,6 @@ constructor(
             null,
             ::getHeaderAndAlignment,
             getSwitchName = { id -> getSwitchName(MainLayoutContext.official, id) },
-            getLocationTrackName = { id -> getLocationTrackName(MainLayoutContext.official, id) },
         )
     }
 
@@ -301,7 +295,7 @@ constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): List<ElementListing> {
-        val (track, alignment) = locationTrackService.getWithGeometryOrThrow(layoutContext, trackId)
+        val (track, alignment) = locationTrackService.getAugWithGeometryOrThrow(layoutContext, trackId)
         val trackNumber = trackNumberService.get(layoutContext, track.trackNumberId)?.number
         return toElementListing(
             geocodingService.getGeocodingContext(layoutContext, track.trackNumberId),
@@ -314,7 +308,6 @@ constructor(
             endAddress,
             ::getHeaderAndAlignment,
             getSwitchName = { id -> getSwitchName(layoutContext, id) },
-            getLocationTrackName = { id -> getLocationTrackName(layoutContext, id) },
         )
     }
 
@@ -327,15 +320,11 @@ constructor(
         endAddress: TrackMeter?,
         lang: LocalizationLanguage,
     ): ElementListingFile {
-        val track = locationTrackService.getOrThrow(layoutContext, trackId)
+        val track = locationTrackService.getAugLocationTrackOrThrow(trackId, layoutContext)
         val elementListing = getElementListing(layoutContext, trackId, elementTypes, startAddress, endAddress)
         val translation = localizationService.getLocalization(lang)
         val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
-        val filename =
-            translation.filename(
-                "element-list-csv",
-                localizationParams("locationTrackName" to getLocationTrackName(layoutContext, track.id as IntId)),
-            )
+        val filename = translation.filename("element-list-csv", localizationParams("locationTrackName" to track.name))
 
         return ElementListingFile(filename, csvFileContent)
     }
@@ -349,16 +338,11 @@ constructor(
             val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)
             val elementListing =
                 locationTrackService
-                    .listWithGeometries(MainLayoutContext.official, includeDeleted = false)
+                    .listAugsWithGeometries(MainLayoutContext.official, includeDeleted = false)
                     .map { (locationTrack, alignment) ->
                         Triple(locationTrack, alignment, trackNumbers[locationTrack.trackNumberId]?.number)
                     }
-                    .sortedWith(
-                        compareBy(
-                            { (_, _, tn) -> tn },
-                            { (track, _, _) -> getLocationTrackName(MainLayoutContext.official, track.id as IntId) },
-                        )
-                    )
+                    .sortedWith(compareBy({ (_, _, tn) -> tn }, { (track, _, _) -> track.name }))
                     .flatMap { (track, alignment, trackNumber) ->
                         getElementListing(track, alignment, trackNumber, geocodingContexts[track.trackNumberId])
                     }
@@ -414,7 +398,7 @@ constructor(
         startAddress: TrackMeter? = null,
         endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
-        val (track, alignment) = locationTrackService.getWithGeometryOrThrow(layoutContext, locationTrackId)
+        val (track, alignment) = locationTrackService.getAugWithGeometryOrThrow(layoutContext, locationTrackId)
         val geocodingContext = geocodingService.getGeocodingContext(layoutContext, track.trackNumberId)
         return toVerticalGeometryListing(
             track,
@@ -424,7 +408,6 @@ constructor(
             geocodingContext,
             coordinateTransformationService::getLayoutTransformation,
             ::getHeaderAndAlignment,
-            getLocationTrackName = { id -> getLocationTrackName(layoutContext, id) },
         )
     }
 
@@ -434,7 +417,7 @@ constructor(
         endAddress: TrackMeter?,
         lang: LocalizationLanguage,
     ): Pair<FileName, ByteArray> {
-        val locationTrack = locationTrackService.getOrThrow(MainLayoutContext.official, locationTrackId)
+        val locationTrack = locationTrackService.getAugLocationTrackOrThrow(locationTrackId, MainLayoutContext.official)
         val verticalGeometryListing =
             getVerticalGeometryListing(MainLayoutContext.official, locationTrackId, startAddress, endAddress)
         val translation = localizationService.getLocalization(lang)
@@ -442,9 +425,7 @@ constructor(
         val filename =
             translation.filename(
                 "vertical-geometry-list-csv",
-                localizationParams(
-                    "locationTrackName" to getLocationTrackName(MainLayoutContext.official, locationTrack.id as IntId)
-                ),
+                localizationParams("locationTrackName" to locationTrack.name),
             )
 
         return filename to csvFileContent.toByteArray()
@@ -458,7 +439,11 @@ constructor(
                 .sortedWith(
                     compareBy(
                         { locationTrack -> geocodingContexts[locationTrack.trackNumberId]?.trackNumber },
-                        { locationTrack -> getLocationTrackName(MainLayoutContext.official, locationTrack.id as IntId) },
+                        { locationTrack ->
+                            locationTrackService
+                                .getAugLocationTrackOrThrow(locationTrack.id as IntId, MainLayoutContext.official)
+                                .name
+                        },
                     )
                 )
                 .flatMap { locationTrack ->

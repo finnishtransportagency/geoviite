@@ -18,10 +18,12 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -29,7 +31,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -156,7 +157,7 @@ constructor(
                 segment(Point(5.0, 5.0), Point(6.0, 6.0), sourceId = geoAlignmentA.elements[3].id),
             )
         locationTrackDao.save(
-            locationTrack(trackNumberId = trackNumberId, name = "foo test track", draft = false),
+            locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("foo test track"), draft = false),
             locationTrackGeometry,
         )
     }

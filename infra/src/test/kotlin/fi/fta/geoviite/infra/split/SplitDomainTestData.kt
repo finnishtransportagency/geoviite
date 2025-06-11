@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.split
 
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackNaming
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
@@ -15,7 +15,7 @@ fun splitRequest(trackId: IntId<LocationTrack>, vararg targets: SplitRequestTarg
 
 fun targetRequest(
     startAtSwitchId: IntId<LayoutSwitch>?,
-    name: String,
+    name: DbLocationTrackNaming,
     descriptionBase: String = "Split desc $name",
     descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
     duplicateTrackId: IntId<LocationTrack>? = null,
@@ -24,7 +24,9 @@ fun targetRequest(
     SplitRequestTarget(
         duplicateTrack = duplicateTrackId?.let { id -> SplitRequestTargetDuplicate(id, operation) },
         startAtSwitchId = startAtSwitchId,
-        name = AlignmentName(name),
+        namingScheme = name.namingScheme,
+        nameFreeText = name.nameFreeText,
+        nameSpecifier = name.nameSpecifier,
         descriptionBase = LocationTrackDescriptionBase(descriptionBase),
         descriptionSuffix = descriptionSuffix,
     )
@@ -32,7 +34,7 @@ fun targetRequest(
 fun targetParams(
     switchId: IntId<LayoutSwitch>?,
     switchJoint: JointNumber?,
-    name: String,
+    name: DbLocationTrackNaming,
     descriptionBase: String = "split desc $name $switchId $switchJoint",
     descriptionSuffixType: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
     duplicate: Pair<LocationTrack, LocationTrackGeometry>? = null,
@@ -51,7 +53,9 @@ fun targetParams(
                         SplitRequestTargetDuplicate(id, SplitTargetDuplicateOperation.OVERWRITE)
                     },
                 startAtSwitchId = switchId,
-                name = AlignmentName(name),
+                namingScheme = name.namingScheme,
+                nameFreeText = name.nameFreeText,
+                nameSpecifier = name.nameSpecifier,
                 descriptionBase = LocationTrackDescriptionBase(descriptionBase),
                 descriptionSuffix = descriptionSuffixType,
             ),

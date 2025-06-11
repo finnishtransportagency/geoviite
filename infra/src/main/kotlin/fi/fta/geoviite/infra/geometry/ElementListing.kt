@@ -21,11 +21,11 @@ import fi.fta.geoviite.infra.math.RoundedPoint
 import fi.fta.geoviite.infra.math.radsMathToGeo
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.util.CsvEntry
@@ -100,7 +100,7 @@ enum class TrackGeometryElementType {
 fun toElementListing(
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
-    track: LocationTrack,
+    track: AugLocationTrack,
     geometry: LocationTrackGeometry,
     trackNumber: TrackNumber?,
     elementTypes: List<TrackGeometryElementType>,
@@ -108,7 +108,6 @@ fun toElementListing(
     endAddress: TrackMeter?,
     getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
     getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<ElementListing> {
     val linkedElements = collectLinkedElements(geometry, context, startAddress, endAddress)
     val lengthOfSegmentsConnectedToSameElement =
@@ -126,7 +125,7 @@ fun toElementListing(
                         linked.idString,
                         linked.segment,
                         getEdgeSwitchName(linked.edge, getSwitchName),
-                        getLocationTrackName(track.id as IntId<LocationTrack>),
+                        track.name,
                     )
                 else null
             } else {
@@ -148,7 +147,6 @@ fun toElementListing(
                         trackNumber,
                         element,
                         getEdgeSwitchName(linked.edge, getSwitchName),
-                        getLocationTrackName,
                     )
                 } else {
                     null
@@ -177,8 +175,6 @@ fun toElementListing(
     getTransformation: (srid: Srid) -> Transformation,
     plan: GeometryPlan,
     elementTypes: List<GeometryElementType>,
-    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ) =
     plan.alignments.flatMap { alignment ->
         alignment.elements
@@ -218,13 +214,12 @@ private fun toMissingElementListing(
 private fun toElementListing(
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
-    locationTrack: LocationTrack,
+    locationTrack: AugLocationTrack,
     planHeader: GeometryPlanHeader,
     alignment: GeometryAlignment,
     trackNumber: TrackNumber?,
     element: GeometryElement,
     switchName: SwitchName?,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ) =
     elementListing(
         context = context,
@@ -239,7 +234,6 @@ private fun toElementListing(
         element = element,
         locationTrack = locationTrack,
         linkedSwitch = switchName,
-        getLocationTrackName = getLocationTrackName,
         planTime = planHeader.planTime,
     )
 
@@ -339,10 +333,9 @@ private fun elementListing(
     trackNumber: TrackNumber?,
     trackNumberDescription: PlanElementName?,
     alignment: GeometryAlignment,
-    locationTrack: LocationTrack,
+    locationTrack: AugLocationTrack,
     element: GeometryElement,
     linkedSwitch: SwitchName?,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
     planTime: Instant?,
 ) =
     units.coordinateSystemSrid?.let(getTransformation).let { transformation ->
@@ -359,7 +352,7 @@ private fun elementListing(
             trackNumberDescription = trackNumberDescription,
             alignmentId = alignment.id,
             alignmentName = alignment.name,
-            locationTrackName = getLocationTrackName(locationTrack.id as IntId<LocationTrack>),
+            locationTrackName = locationTrack.name,
             elementId = element.id,
             elementType = TrackGeometryElementType.of(element.type),
             lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),

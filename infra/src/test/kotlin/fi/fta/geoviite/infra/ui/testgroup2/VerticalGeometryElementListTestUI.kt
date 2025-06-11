@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
@@ -194,7 +195,7 @@ constructor(
                 segment(Point(500.0, 500.0), Point(600.0, 600.0), sourceId = geoAlignmentA.elements[1].id),
             )
         locationTrackDao.save(
-            locationTrack(trackNumberId = trackNumberId, name = "foo test track", draft = false),
+            locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("foo test track"), draft = false),
             locationTrackGeometry,
         )
     }

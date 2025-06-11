@@ -38,6 +38,7 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.fixMValues
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.splitSegment
@@ -676,7 +677,11 @@ constructor(
 
         val (locationTrack, geometry) =
             mainOfficialContext.saveAndFetch(
-                locationTrack(trackNumberId = trackNumber.id as IntId, name = "TEST LocTr $sequence", draft = false),
+                locationTrack(
+                    trackNumberId = trackNumber.id as IntId,
+                    name = locationTrackDbName("TEST LocTr $sequence"),
+                    draft = false,
+                ),
                 trackGeometryOfSegments(splitSegment(segment(*alignmentPoints.toTypedArray()), 3)),
             )
 

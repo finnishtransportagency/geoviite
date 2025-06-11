@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchLinkKV
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
@@ -41,8 +42,8 @@ class SplitTest {
             )
         val targets =
             listOf(
-                targetParams(null, null, "split1", "split desc 1"),
-                targetParams(IntId(1), JointNumber(1), "split2", "split desc 2"),
+                targetParams(null, null, locationTrackDbName("split1"), "split desc 1"),
+                targetParams(IntId(1), JointNumber(1), locationTrackDbName("split2"), "split desc 2"),
             )
         val resultTracks = splitLocationTrack(track, geometry, targets)
         assertEquals(targets.size, resultTracks.size)
@@ -69,8 +70,8 @@ class SplitTest {
         val dupGeometry = trackGeometryOfSegments(linearSegment(-1..5))
         val targets =
             listOf(
-                targetParams(null, null, name = "split1", duplicate = dupTrack to dupGeometry),
-                targetParams(IntId(1), JointNumber(1), "split2"),
+                targetParams(null, null, name = locationTrackDbName("split1"), duplicate = dupTrack to dupGeometry),
+                targetParams(IntId(1), JointNumber(1), locationTrackDbName("split2")),
             )
         val resultTracks = splitLocationTrack(track, geometry, targets)
         assertEquals(targets.size, resultTracks.size)
@@ -136,10 +137,16 @@ class SplitTest {
             )
         val targets =
             listOf(
-                targetParams(null, null, "split1", "split desc 1", NONE),
-                targetParams(IntId(1), JointNumber(4), "split2", "split desc 2", SWITCH_TO_BUFFER),
-                targetParams(IntId(2), JointNumber(3), "split3", "split desc 3", SWITCH_TO_OWNERSHIP_BOUNDARY),
-                targetParams(IntId(3), JointNumber(2), "split4", "split desc 4", SWITCH_TO_SWITCH),
+                targetParams(null, null, locationTrackDbName("split1"), "split desc 1", NONE),
+                targetParams(IntId(1), JointNumber(4), locationTrackDbName("split2"), "split desc 2", SWITCH_TO_BUFFER),
+                targetParams(
+                    IntId(2),
+                    JointNumber(3),
+                    locationTrackDbName("split3"),
+                    "split desc 3",
+                    SWITCH_TO_OWNERSHIP_BOUNDARY,
+                ),
+                targetParams(IntId(3), JointNumber(2), locationTrackDbName("split4"), "split desc 4", SWITCH_TO_SWITCH),
             )
         val resultTracks = splitLocationTrack(track, geometry, targets)
         assertEquals(targets.size, resultTracks.size)
@@ -167,9 +174,11 @@ private fun assertSplitResultFields(track: LocationTrack, request: SplitRequestT
     assertEquals(track.type, result.locationTrack.type)
     assertEquals(track.state, result.locationTrack.state)
     assertEquals(track.sourceId, result.locationTrack.sourceId)
-    assertEquals(request.name, result.locationTrack.name)
-    assertEquals(request.descriptionBase, result.locationTrack.descriptionBase)
-    assertEquals(request.descriptionSuffix, result.locationTrack.descriptionSuffix)
+    assertEquals(request.namingScheme, result.locationTrack.dbName.namingScheme)
+    assertEquals(request.nameFreeText, result.locationTrack.dbName.nameFreeText)
+    assertEquals(request.nameSpecifier, result.locationTrack.dbName.nameSpecifier)
+    assertEquals(request.descriptionBase, result.locationTrack.dbDescription.descriptionBase)
+    assertEquals(request.descriptionSuffix, result.locationTrack.dbDescription.descriptionSuffix)
     assertEquals(null, result.locationTrack.duplicateOf)
     assertEquals(
         boundingBoxCombining(result.geometry.edges.map { edge -> edge.boundingBox }),

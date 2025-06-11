@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
@@ -50,7 +51,7 @@ constructor(
             referenceLine(trackNumberId, alignmentVersion = alignmentDao.insert(alignment(lineSegments)), draft = false)
         )
         locationTrackDao.save(
-            locationTrack(trackNumberId = trackNumberId, name = "foo bar", draft = false),
+            locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("foo bar"), draft = false),
             trackGeometryOfSegments(lineSegments),
         )
         kmPostDao.save(kmPost(trackNumberId, KmNumber(1), Point(900.0, 1.0), draft = false))

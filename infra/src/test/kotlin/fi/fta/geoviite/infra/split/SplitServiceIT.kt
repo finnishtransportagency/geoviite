@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
@@ -99,9 +100,9 @@ constructor(
         val request =
             splitRequest(
                 track.id,
-                targetRequest(null, "part1"),
-                targetRequest(switch1.id, "part2"),
-                targetRequest(switch2.id, "part3"),
+                targetRequest(null, locationTrackDbName("part1")),
+                targetRequest(switch1.id, locationTrackDbName("part2")),
+                targetRequest(switch2.id, locationTrackDbName("part3")),
             )
         val result = splitDao.getOrThrow(splitService.split(LayoutBranch.main, request))
 
@@ -161,9 +162,19 @@ constructor(
         val request =
             splitRequest(
                 track.id,
-                targetRequest(null, "part1", duplicateTrackId = duplicate1.id, operation = OVERWRITE),
-                targetRequest(switch1.id, "part2", duplicateTrackId = duplicate2.id, operation = OVERWRITE),
-                targetRequest(switch2.id, "part3"),
+                targetRequest(
+                    null,
+                    locationTrackDbName("part1"),
+                    duplicateTrackId = duplicate1.id,
+                    operation = OVERWRITE,
+                ),
+                targetRequest(
+                    switch1.id,
+                    locationTrackDbName("part2"),
+                    duplicateTrackId = duplicate2.id,
+                    operation = OVERWRITE,
+                ),
+                targetRequest(switch2.id, locationTrackDbName("part3")),
             )
         val result = splitDao.getOrThrow(splitService.split(LayoutBranch.main, request))
 
@@ -234,8 +245,18 @@ constructor(
         val request =
             splitRequest(
                 track.id,
-                targetRequest(switch1.id, "part2", duplicateTrackId = duplicate1.id, operation = TRANSFER),
-                targetRequest(switch2.id, "part3", duplicateTrackId = duplicate2.id, operation = TRANSFER),
+                targetRequest(
+                    switch1.id,
+                    locationTrackDbName("part2"),
+                    duplicateTrackId = duplicate1.id,
+                    operation = TRANSFER,
+                ),
+                targetRequest(
+                    switch2.id,
+                    locationTrackDbName("part3"),
+                    duplicateTrackId = duplicate2.id,
+                    operation = TRANSFER,
+                ),
             )
         val result = splitDao.getOrThrow(splitService.split(LayoutBranch.main, request))
 
@@ -273,9 +294,8 @@ constructor(
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.official, response.locationTrackId)
 
         // TRANSFER operation should not change the duplicate track geometry or fields
-        assertEquals(originalTrack.name, track.name)
-        assertEquals(originalTrack.descriptionBase, track.descriptionBase)
-        assertEquals(originalTrack.descriptionSuffix, track.descriptionSuffix)
+        assertEquals(originalTrack.dbName, track.dbName)
+        assertEquals(originalTrack.dbDescription, track.dbDescription)
         assertNull(track.duplicateOf)
         request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
 
@@ -294,9 +314,11 @@ constructor(
         val (track, geometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
 
-        assertEquals(request.name, track.name)
-        assertEquals(request.descriptionBase, track.descriptionBase)
-        assertEquals(request.descriptionSuffix, track.descriptionSuffix)
+        assertEquals(request.namingScheme, track.dbName.namingScheme)
+        assertEquals(request.nameFreeText, track.dbName.nameFreeText)
+        assertEquals(request.nameSpecifier, track.dbName.nameSpecifier)
+        assertEquals(request.descriptionBase, track.dbDescription.descriptionBase)
+        assertEquals(request.descriptionSuffix, track.dbDescription.descriptionSuffix)
         assertNull(track.duplicateOf)
         request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
 
@@ -360,7 +382,7 @@ constructor(
             listOf(
                     mainOfficialContext.save(
                         locationTrack(
-                            name = "Used duplicate between first and second switch",
+                            name = locationTrackDbName("Used duplicate between first and second switch"),
                             trackNumberId = trackNumberId,
                             duplicateOf = sourceTrack.id,
                         ),
@@ -368,7 +390,7 @@ constructor(
                     ),
                     mainOfficialContext.save(
                         locationTrack(
-                            name = "Unused dupe with full overlap",
+                            name = locationTrackDbName("Unused dupe with full overlap"),
                             trackNumberId = trackNumberId,
                             duplicateOf = sourceTrack.id,
                         ),
@@ -376,7 +398,7 @@ constructor(
                     ),
                     mainOfficialContext.save(
                         locationTrack(
-                            name = "Unused dupe with partial overlap of two new tracks",
+                            name = locationTrackDbName("Unused dupe with partial overlap of two new tracks"),
                             trackNumberId = trackNumberId,
                             duplicateOf = sourceTrack.id,
                         ),
@@ -384,7 +406,7 @@ constructor(
                     ),
                     mainOfficialContext.save(
                         locationTrack(
-                            name = "Unused dupe with flipped partial overlap",
+                            name = locationTrackDbName("Unused dupe with flipped partial overlap"),
                             trackNumberId = trackNumberId,
                             duplicateOf = sourceTrack.id,
                         ),
@@ -397,16 +419,25 @@ constructor(
             SplitRequest(
                 sourceTrack.id,
                 listOf(
-                    targetRequest(null, "track start"),
+                    targetRequest(null, locationTrackDbName("track start")),
                     targetRequest(
                         switchesAndSegments.switchIds[0],
-                        "used dupe track between switch 0 and 1",
+                        locationTrackDbName("used dupe track between switch 0 and 1"),
                         duplicateTrackId = duplicateIds[0],
                     ),
-                    targetRequest(switchesAndSegments.switchIds[1], "track with full dupe overlap after split"),
-                    targetRequest(switchesAndSegments.switchIds[2], "track with partial dupe overlap after split"),
-                    targetRequest(switchesAndSegments.switchIds[3], "track with flipped partial overlap"),
-                    targetRequest(switchesAndSegments.switchIds[4], "track end"),
+                    targetRequest(
+                        switchesAndSegments.switchIds[1],
+                        locationTrackDbName("track with full dupe overlap after split"),
+                    ),
+                    targetRequest(
+                        switchesAndSegments.switchIds[2],
+                        locationTrackDbName("track with partial dupe overlap after split"),
+                    ),
+                    targetRequest(
+                        switchesAndSegments.switchIds[3],
+                        locationTrackDbName("track with flipped partial overlap"),
+                    ),
+                    targetRequest(switchesAndSegments.switchIds[4], locationTrackDbName("track end")),
                 ),
             )
         val splitResult = splitDao.getOrThrow(splitService.split(LayoutBranch.main, splitRequest))

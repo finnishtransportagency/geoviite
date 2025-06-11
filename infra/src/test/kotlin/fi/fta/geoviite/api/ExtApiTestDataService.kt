@@ -5,17 +5,18 @@ import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import java.util.*
@@ -27,7 +28,7 @@ data class GeocodableTrack(
     val layoutContext: LayoutContext,
     val trackNumber: LayoutTrackNumber,
     val referenceLine: ReferenceLine,
-    val locationTrack: LocationTrack,
+    val locationTrack: AugLocationTrack,
 )
 
 fun assertContainsErrorMessage(expectedErrorMessage: String, errorMessages: Any?, contextMessage: String = "") {
@@ -63,7 +64,7 @@ class ExtApiTestDataServiceV1
 constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
-    private val locationTrackDao: LocationTrackDao,
+    private val locationTrackService: LocationTrackService,
 ) : DBTestBase() {
 
     fun insertGeocodableTrack(
@@ -87,7 +88,7 @@ constructor(
                 .saveLocationTrack(
                     locationTrackAndGeometry(
                         trackNumberId = trackNumberId,
-                        name = locationTrackName,
+                        name = locationTrackDbName(locationTrackName),
                         type = locationTrackType,
                         segments = segments,
                         state = state,
@@ -100,7 +101,7 @@ constructor(
             layoutContext = layoutContext.context,
             trackNumber = trackNumberDao.get(layoutContext.context, trackNumberId)!!,
             referenceLine = referenceLineDao.get(layoutContext.context, usedReferenceLineId)!!,
-            locationTrack = locationTrackDao.get(layoutContext.context, locationTrackId)!!,
+            locationTrack = locationTrackService.getAugLocationTrack(locationTrackId, layoutContext.context)!!,
         )
     }
 }

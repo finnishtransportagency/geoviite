@@ -153,7 +153,7 @@ constructor(
 
         val lt1 =
             mainDraftContext.save( // Location track search scope origin, should be included
-                locationTrack(trackNumberId = trackNumberId, name = "blaa"),
+                locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("blaa")),
                 trackGeometry(
                     edge(
                         startOuterSwitch = switchLinkYV(topologyStartSwitchId, 3),
@@ -164,14 +164,14 @@ constructor(
             )
         val lt2 =
             mainDraftContext.save( // Duplicate based on duplicateOf, should be included
-                locationTrack(trackNumberId = trackNumberId, name = "blee", duplicateOf = lt1.id),
+                locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("blee"), duplicateOf = lt1.id),
                 trackGeometry(
                     edge(startOuterSwitch = switchLinkYV(duplicateStartSwitchId, 3), segments = listOf(someSegment()))
                 ),
             )
         val lt3 =
             mainDraftContext.save( // Duplicate based on switches, should be included
-                locationTrack(trackNumberId = trackNumberId, name = "bloo"),
+                locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("bloo")),
                 trackGeometry(
                     edge(
                         startOuterSwitch = switchLinkYV(topologyStartSwitchId, 3),
@@ -181,7 +181,7 @@ constructor(
                 ),
             )
         mainDraftContext.save( // Non-duplicate, shouldn't be included in search results
-            locationTrack(trackNumberId = trackNumberId, name = "bluu"),
+            locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("bluu")),
             someTrackGeometry(),
         )
 

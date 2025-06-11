@@ -40,6 +40,17 @@ fun assertMatches(expected: LocationTrack, actual: LocationTrack, contextMatch: 
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
 }
 
+fun assertMatches(expected: DbLocationTrackNaming, actual: DbLocationTrackNaming) {
+    assertEquals(expected.namingScheme, actual.namingScheme)
+    assertEquals(expected.nameFreeText, actual.nameFreeText)
+    assertEquals(expected.nameSpecifier, actual.nameSpecifier)
+}
+
+fun assertMatches(expected: DbLocationTrackDescription, actual: DbLocationTrackDescription) {
+    assertEquals(expected.descriptionBase, actual.descriptionBase)
+    assertEquals(expected.descriptionSuffix, actual.descriptionSuffix)
+}
+
 fun assertMatches(expected: LocationTrackGeometry, actual: LocationTrackGeometry, idMatch: Boolean = false) =
     if (idMatch) {
         assertEquals(expected, actual)

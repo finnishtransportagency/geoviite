@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
@@ -45,6 +46,7 @@ constructor(
     val publicationDao: PublicationDao,
     val geocodingService: GeocodingService,
     val splitService: SplitService,
+    val locationTrackService: LocationTrackService,
 ) : DBTestBase() {
 
     @Test
@@ -187,6 +189,7 @@ constructor(
             publicationDao = publicationDao,
             switchLibraryService = switchLibraryService,
             splitService = splitService,
+            locationTrackService = locationTrackService,
             publicationSet =
                 ValidationVersions(
                     target = target,

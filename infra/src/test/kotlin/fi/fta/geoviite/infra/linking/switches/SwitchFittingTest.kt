@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.asSwitchStructure
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -10,6 +9,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.StoredAssetId
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.combineEdges
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -28,7 +29,6 @@ data class TrackForSwitchFitting(
     val locationTrack: LocationTrack,
     val geometry: LocationTrackGeometry,
 ) {
-    val name = locationTrack.name
     val locationTrackId = locationTrack.id as IntId
     val trackAndGeometry = locationTrack to geometry
     val length = geometry.length
@@ -38,7 +38,7 @@ data class TrackForSwitchFitting(
         // must fake a stored asset ID because the switch linking code implements its own version-based locking
         val contextData =
             MainOfficialContextData(StoredAssetId(LayoutRowVersion(LayoutRowId(newId, LayoutBranch.main.official), 1)))
-        return copy(locationTrack = locationTrack.copy(contextData = contextData, name = AlignmentName(name)))
+        return copy(locationTrack = locationTrack.copy(contextData = contextData, dbName = locationTrackDbName(name)))
     }
 
     fun startPoint(): IPoint {
@@ -395,7 +395,7 @@ fun switchJointDistance(switchStructureData: SwitchStructureData, start: Int, en
 fun assertJoint(
     fitted: FittedSwitch,
     joint: Int,
-    track: LocationTrack,
+    track: AugLocationTrack,
     expectedM: Double,
     direction: RelativeDirection = RelativeDirection.Along,
     absoluteMPrecision: Double = 0.001,

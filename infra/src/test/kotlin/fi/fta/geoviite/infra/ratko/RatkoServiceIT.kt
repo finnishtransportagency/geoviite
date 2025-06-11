@@ -1,13 +1,11 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
-import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.Oid
@@ -85,6 +83,8 @@ import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbDescription
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
@@ -197,7 +197,7 @@ constructor(
         locationTrackDao.insertExternalId(official.id, LayoutBranch.main, oid)
         val draft =
             locationTrackService.getOrThrow(MainLayoutContext.draft, official.id).let { orig ->
-                orig.copy(name = AlignmentName("${orig.name}-draft"))
+                orig.copy(dbName = locationTrackDbName("${orig.dbName.nameFreeText}-draft"))
             }
         locationTrackService.saveDraft(LayoutBranch.main, draft, locationTrackGeometry)
         fakeRatko.hasLocationTrack(ratkoLocationTrack(id = oid.toString()))
@@ -271,7 +271,7 @@ constructor(
                 LayoutBranch.main,
                 locationTrack(
                     trackNumberId,
-                    name = "abcde",
+                    name = locationTrackDbName("abcde"),
                     description = "cdefg",
                     type = LocationTrackType.CHORD,
                     state = LocationTrackState.BUILT,
@@ -313,7 +313,7 @@ constructor(
                 LayoutBranch.main,
                 locationTrack(
                     trackNumberId,
-                    name = "abcde",
+                    name = locationTrackDbName("abcde"),
                     description = "cdefg",
                     type = LocationTrackType.CHORD,
                     draft = true,
@@ -330,8 +330,8 @@ constructor(
                 locationTrackDao
                     .fetch(officialVersion)
                     .copy(
-                        descriptionBase = LocationTrackDescriptionBase("aoeu"),
-                        name = AlignmentName("uuba aaba"),
+                        dbDescription = locationTrackDbDescription("aoeu"),
+                        dbName = locationTrackDbName("uuba aaba"),
                         type = LocationTrackType.MAIN,
                     )
             ),
@@ -363,7 +363,7 @@ constructor(
                 LayoutBranch.main,
                 locationTrack(
                     trackNumberId,
-                    name = "abcde",
+                    name = locationTrackDbName("abcde"),
                     description = "cdefg",
                     type = LocationTrackType.CHORD,
                     draft = true,
@@ -402,7 +402,7 @@ constructor(
                 LayoutBranch.main,
                 locationTrack(
                     trackNumberId,
-                    name = "abcde",
+                    name = locationTrackDbName("abcde"),
                     description = "cdefg",
                     type = LocationTrackType.CHORD,
                     draft = true,
@@ -441,7 +441,7 @@ constructor(
                 LayoutBranch.main,
                 locationTrack(
                     trackNumberId,
-                    name = "abcde",
+                    name = locationTrackDbName("abcde"),
                     description = "cdefg",
                     type = LocationTrackType.CHORD,
                     draft = true,
@@ -490,7 +490,7 @@ constructor(
                 LayoutBranch.main,
                 locationTrack(
                     trackNumberId,
-                    name = "abcde",
+                    name = locationTrackDbName("abcde"),
                     description = "cdefg",
                     type = LocationTrackType.CHORD,
                     draft = true,
@@ -538,7 +538,7 @@ constructor(
                 LayoutBranch.main,
                 locationTrack(
                     trackNumberId,
-                    name = "abcde",
+                    name = locationTrackDbName("abcde"),
                     description = "cdefg",
                     type = LocationTrackType.CHORD,
                     draft = true,

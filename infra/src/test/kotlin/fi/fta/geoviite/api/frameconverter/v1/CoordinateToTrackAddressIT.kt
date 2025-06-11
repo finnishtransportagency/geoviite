@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointDistanceToLine
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -29,9 +28,14 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
+import java.math.BigDecimal
+import java.util.*
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -41,10 +45,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.math.BigDecimal
-import java.util.*
-import kotlin.math.hypot
-import kotlin.test.assertEquals
 
 private const val API_TRACK_ADDRESSES: FrameConverterUrl = "/rata-vkm/v1/rataosoitteet"
 
@@ -243,14 +243,7 @@ constructor(
                 "valimatka" to yDifferenceToTargetLocation,
                 "ratanumero" to geocodableTrack.trackNumber.number.toString(),
                 "sijaintiraide" to geocodableTrack.locationTrack.name.toString(),
-                "sijaintiraide_kuvaus" to
-                    locationTrackService
-                        .getFullDescription(
-                            layoutContext = geocodableTrack.layoutContext,
-                            locationTrack = geocodableTrack.locationTrack,
-                            lang = LocalizationLanguage.FI,
-                        )
-                        .toString(),
+                "sijaintiraide_kuvaus" to geocodableTrack.locationTrack.description.toString(),
                 "sijaintiraide_tyyppi" to "pääraide",
                 "ratakilometri" to 0,
                 "ratametri" to 10,
@@ -447,14 +440,7 @@ constructor(
                 locationTrackType = LocationTrackType.CHORD,
             )
 
-        val trackDescription =
-            locationTrackService
-                .getFullDescription(
-                    layoutContext = geocodableTrack.layoutContext,
-                    locationTrack = geocodableTrack.locationTrack,
-                    lang = LocalizationLanguage.FI,
-                )
-                .toString()
+        val trackDescription = geocodableTrack.locationTrack.description.toString()
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 1.0)
 
@@ -496,14 +482,7 @@ constructor(
                 locationTrackType = LocationTrackType.TRAP,
             )
 
-        val trackDescription =
-            locationTrackService
-                .getFullDescription(
-                    layoutContext = geocodableTrack.layoutContext,
-                    locationTrack = geocodableTrack.locationTrack,
-                    lang = LocalizationLanguage.FI,
-                )
-                .toString()
+        val trackDescription = geocodableTrack.locationTrack.description.toString()
 
         val xPositionOnTrack = 3.0
         val yPositionOnTrack = 0.0
@@ -886,7 +865,7 @@ constructor(
                 .saveLocationTrack(
                     locationTrackAndGeometry(
                         trackNumberId = trackNumberId,
-                        name = locationTrackName,
+                        name = locationTrackDbName(locationTrackName),
                         type = locationTrackType,
                         segments = segments,
                     )
@@ -897,7 +876,7 @@ constructor(
             layoutContext = layoutContext.context,
             trackNumber = trackNumberDao.get(layoutContext.context, trackNumberId)!!,
             referenceLine = referenceLineDao.get(layoutContext.context, referenceLineId)!!,
-            locationTrack = locationTrackDao.get(layoutContext.context, locationTrackId)!!,
+            locationTrack = locationTrackService.getAugLocationTrack(locationTrackId, layoutContext.context)!!,
         )
     }
 }

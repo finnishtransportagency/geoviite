@@ -453,7 +453,7 @@ class SplitService(
         val relinkedSwitches = switchLinkingService.relinkTrack(branch, request.sourceTrackId).map { it.id }
 
         // Fetch post-re-linking track & alignment
-        val (track, geometry) = locationTrackService.getAugWithGeometryOrThrow(branch.draft, request.sourceTrackId)
+        val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, request.sourceTrackId)
         val targetResults =
             splitLocationTrack(
                 track = track,
@@ -544,7 +544,7 @@ class SplitService(
                 }
             val duplicate =
                 target.duplicateTrack?.let { d ->
-                    val (track, alignment) = locationTrackService.getAugWithGeometryOrThrow(branch.draft, d.id)
+                    val (track, alignment) = locationTrackService.getWithGeometryOrThrow(branch.draft, d.id)
                     SplitTargetDuplicate(d.operation, track, alignment)
                 }
             SplitTargetParams(target, startSwitch, duplicate)
@@ -565,7 +565,7 @@ data class SplitTargetParams(
 
 data class SplitTargetDuplicate(
     val operation: SplitTargetDuplicateOperation,
-    val track: AugLocationTrack,
+    val track: LocationTrack,
     val geometry: LocationTrackGeometry,
 )
 
@@ -577,7 +577,7 @@ data class SplitTargetResult(
 )
 
 fun splitLocationTrack(
-    track: AugLocationTrack,
+    track: LocationTrack,
     geometry: LocationTrackGeometry,
     targets: List<SplitTargetParams>,
 ): List<SplitTargetResult> {
@@ -647,10 +647,10 @@ fun validateSplitResult(results: List<SplitTargetResult>, geometry: LocationTrac
 }
 
 private fun updateSplitTargetForTransferAssets(
-    duplicateTrack: AugLocationTrack,
+    duplicateTrack: LocationTrack,
     topologicalConnectivityType: TopologicalConnectivityType,
 ): LocationTrack {
-    return duplicateTrack.dbTrack.copy(
+    return duplicateTrack.copy(
         // After split, the track is no longer duplicate
         duplicateOf = null,
         topologicalConnectivity = topologicalConnectivityType,
@@ -658,15 +658,15 @@ private fun updateSplitTargetForTransferAssets(
 }
 
 private fun updateSplitTargetForOverwriteDuplicate(
-    sourceTrack: AugLocationTrack,
-    duplicateTrack: AugLocationTrack,
+    sourceTrack: LocationTrack,
+    duplicateTrack: LocationTrack,
     request: SplitRequestTarget,
     edges: List<LayoutEdge>,
     topologicalConnectivityType: TopologicalConnectivityType,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val newGeometry = TmpLocationTrackGeometry.of(edges, duplicateTrack.id as? IntId)
     val newTrack =
-        duplicateTrack.dbTrack.copy(
+        duplicateTrack.copy(
             dbName = DbLocationTrackNaming.of(request.namingScheme, request.nameFreeText, request.nameSpecifier),
             dbDescription =
                 DbLocationTrackDescription(

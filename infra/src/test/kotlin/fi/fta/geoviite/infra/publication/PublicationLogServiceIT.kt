@@ -44,6 +44,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -60,6 +61,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -304,7 +306,9 @@ constructor(
                 locationTrackService.insert(
                     LayoutBranch.main,
                     LocationTrackSaveRequest(
+                        LocationTrackNamingScheme.FREE_TEXT,
                         AlignmentName("TEST duplicate"),
+                        null,
                         LocationTrackDescriptionBase("Test"),
                         LocationTrackDescriptionSuffix.NONE,
                         LocationTrackType.MAIN,
@@ -322,7 +326,9 @@ constructor(
                 locationTrackService.insert(
                     LayoutBranch.main,
                     LocationTrackSaveRequest(
+                        LocationTrackNamingScheme.FREE_TEXT,
                         AlignmentName("TEST duplicate 2"),
+                        null,
                         LocationTrackDescriptionBase("Test"),
                         LocationTrackDescriptionSuffix.NONE,
                         LocationTrackType.MAIN,
@@ -340,7 +346,9 @@ constructor(
                 locationTrackService.insert(
                     LayoutBranch.main,
                     LocationTrackSaveRequest(
+                        LocationTrackNamingScheme.FREE_TEXT,
                         AlignmentName("TEST"),
+                        null,
                         LocationTrackDescriptionBase("Test"),
                         LocationTrackDescriptionSuffix.NONE,
                         LocationTrackType.MAIN,
@@ -370,7 +378,9 @@ constructor(
                     LayoutBranch.main,
                     locationTrack.id as IntId,
                     LocationTrackSaveRequest(
-                        name = AlignmentName("TEST2"),
+                        namingScheme = LocationTrackNamingScheme.FREE_TEXT,
+                        nameFreeText = AlignmentName("TEST2"),
+                        nameSpecifier = null,
                         descriptionBase = LocationTrackDescriptionBase("Test2"),
                         descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
                         type = LocationTrackType.SIDE,
@@ -414,7 +424,9 @@ constructor(
     fun `Changing specific Location Track field returns only that field`() {
         val saveReq =
             LocationTrackSaveRequest(
+                LocationTrackNamingScheme.FREE_TEXT,
                 AlignmentName("TEST"),
+                null,
                 LocationTrackDescriptionBase("Test"),
                 LocationTrackDescriptionSuffix.NONE,
                 LocationTrackType.MAIN,
@@ -457,8 +469,8 @@ constructor(
             }
         assertEquals(1, diff.size)
         assertEquals("description-base", diff[0].propKey.key.toString())
-        assertEquals(locationTrack.descriptionBase, diff[0].value.oldValue)
-        assertEquals(updatedLocationTrack.descriptionBase, diff[0].value.newValue)
+        assertEquals(locationTrack.dbDescription.descriptionBase, diff[0].value.oldValue)
+        assertEquals(updatedLocationTrack.dbDescription.descriptionBase, diff[0].value.newValue)
     }
 
     @Test
@@ -668,6 +680,7 @@ constructor(
         val diff =
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
+                LayoutBranch.main,
                 changes.getValue(switch.id as IntId),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
@@ -718,6 +731,7 @@ constructor(
         val diff =
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
+                LayoutBranch.main,
                 changes.getValue(switch.id as IntId),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
@@ -1264,6 +1278,7 @@ constructor(
         val diff =
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
+                LayoutBranch.main,
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
@@ -1351,6 +1366,7 @@ constructor(
         val diff =
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
+                LayoutBranch.main,
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
@@ -1385,7 +1401,7 @@ constructor(
             )
         val locationTrack =
             mainDraftContext.save(
-                locationTrack(trackNumber.id, name = "original"),
+                locationTrack(trackNumber.id, name = locationTrackDbName("original")),
                 trackGeometry(
                     edge(
                         endInnerSwitch = switchLinkYV(switch.id, 1),
@@ -1423,7 +1439,7 @@ constructor(
             alignment(segment(Point(1.0, 0.0), Point(1.0, 10.0))),
         )
         mainOfficialContext.fetchWithGeometry(locationTrack.id)!!.let { (t, g) ->
-            locationTrackService.saveDraft(designBranch, t.copy(name = AlignmentName("edited in design")), g)
+            locationTrackService.saveDraft(designBranch, t.copy(dbName = locationTrackDbName("edited in design")), g)
         }
         switchService.saveDraft(
             designBranch,
@@ -1476,7 +1492,7 @@ constructor(
         publicationDao.fetchPublicationLocationTrackChanges(originalPublication).let { changes ->
             assertEquals(1, changes.size)
             val change = changes[locationTrack.id]!!
-            assertEquals("original", change.name.new.toString())
+            assertEquals("original", change.nameFreeText.new.toString())
         }
         publicationDao.fetchPublishedSwitches(originalPublication).let { (directChanges, indirectChanges) ->
             assertEquals(

@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
@@ -16,10 +15,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -129,7 +124,8 @@ constructor(
             )
         val mainDraftLocationTrack =
             mainDraftContext.save(
-                asMainDraft(mainOfficialContext.fetch(locationTrackId)!!).copy(name = AlignmentName("edited in main"))
+                asMainDraft(mainOfficialContext.fetch(locationTrackId)!!)
+                    .copy(dbName = locationTrackDbName("edited in main"))
             )
         val mainDraftSwitch =
             mainDraftContext.save(
@@ -161,7 +157,7 @@ constructor(
         designOfficialContext.moveFrom(
             designDraftContext.save(
                 asDesignDraft(
-                    mainOfficialContext.fetch(locationTrackId)!!.copy(name = AlignmentName("edited in design")),
+                    mainOfficialContext.fetch(locationTrackId)!!.copy(dbName = locationTrackDbName("edited in design")),
                     someDesignBranch.designId,
                 )
             )
@@ -199,7 +195,7 @@ constructor(
 
         assertEquals("edited in design", mainDraftContext.fetch(trackNumberId)!!.description.toString())
         assertEquals(123, mainDraftContext.fetch(referenceLineId)!!.startAddress.kmNumber.number)
-        assertEquals("edited in design", mainDraftContext.fetch(locationTrackId)!!.name.toString())
+        assertEquals("edited in design", mainDraftContext.fetch(locationTrackId)!!.dbName.nameFreeText.toString())
         assertEquals("edited in design", mainDraftContext.fetch(switchId)!!.name.toString())
         assertEquals(321, mainDraftContext.fetch(kmPostId)!!.kmNumber.number)
     }

@@ -56,6 +56,7 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchOwnerVayla
@@ -127,7 +128,7 @@ fun locationTrack(
     val track =
         locationTrack(
             trackNumberId = trackNumber,
-            name = "lt-$name",
+            name = locationTrackDbName("lt-$name"),
             description = description,
             type = layoutAlignmentType,
             state = LocationTrackState.IN_USE,

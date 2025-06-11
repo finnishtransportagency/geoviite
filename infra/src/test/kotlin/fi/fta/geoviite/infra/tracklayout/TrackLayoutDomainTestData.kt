@@ -347,9 +347,20 @@ fun referenceLine(
 
 private var locationTrackNameCounter = 0
 
+fun locationTrackDbName(
+    freeText: String,
+    namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT,
+    specifier: LocationTrackNameSpecifier? = null,
+): DbLocationTrackNaming = DbLocationTrackNaming.of(namingScheme, AlignmentName(freeText), specifier)
+
+fun locationTrackDbDescription(
+    base: String,
+    suffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
+): DbLocationTrackDescription = DbLocationTrackDescription(LocationTrackDescriptionBase(base), suffix)
+
 fun locationTrackAndGeometry(
     vararg segments: LayoutSegment,
-    name: String = "T001 ${locationTrackNameCounter++}",
+    name: DbLocationTrackNaming? = null,
     description: String = "test-alignment 001",
     id: IntId<LocationTrack>? = null,
     draft: Boolean,
@@ -366,7 +377,7 @@ fun locationTrackAndGeometry(
 fun locationTrackAndGeometry(
     trackNumberId: IntId<LayoutTrackNumber>,
     vararg segments: LayoutSegment,
-    name: String = "T001 ${locationTrackNameCounter++}",
+    name: DbLocationTrackNaming? = null,
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
     state: LocationTrackState = LocationTrackState.IN_USE,
@@ -389,7 +400,7 @@ fun locationTrackAndGeometry(
     segments: List<LayoutSegment>,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
-    name: String = "T001 ${locationTrackNameCounter++}",
+    name: DbLocationTrackNaming? = null,
     type: LocationTrackType = LocationTrackType.SIDE,
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
@@ -418,7 +429,7 @@ fun locationTrack(
     geometry: LocationTrackGeometry = TmpLocationTrackGeometry.empty,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
-    name: String = "T001 ${locationTrackNameCounter++}",
+    name: DbLocationTrackNaming? = null,
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
@@ -446,7 +457,7 @@ fun locationTrack(
     trackNumberId: IntId<LayoutTrackNumber>,
     geometry: LocationTrackGeometry = TmpLocationTrackGeometry.empty,
     contextData: LayoutContextData<LocationTrack>,
-    name: String = "T001 ${locationTrackNameCounter++}",
+    name: DbLocationTrackNaming? = null,
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
@@ -456,9 +467,13 @@ fun locationTrack(
     descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
 ) =
     LocationTrack(
-        name = AlignmentName(name),
-        descriptionBase = LocationTrackDescriptionBase(description),
-        descriptionSuffix = descriptionSuffix,
+        dbName =
+            name
+                ?: DbLocationTrackNaming.of(
+                    LocationTrackNamingScheme.FREE_TEXT,
+                    AlignmentName("T001 ${locationTrackNameCounter++}"),
+                ),
+        dbDescription = DbLocationTrackDescription(LocationTrackDescriptionBase(description), descriptionSuffix),
         type = type,
         state = state,
         trackNumberId = trackNumberId,

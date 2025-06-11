@@ -359,7 +359,7 @@ constructor(
         val locationTrack1Oid = someOid<LocationTrack>()
         val locationTrack1 =
             mainOfficialContext.save(
-                locationTrack(trackNumberId = trackNumberId, name = "LT 1"),
+                locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("LT 1")),
                 trackGeometry(
                     TmpLayoutEdge(
                         startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switchId, 1)),
@@ -372,7 +372,7 @@ constructor(
 
         val locationTrack2 =
             mainOfficialContext.save(
-                locationTrack(trackNumberId = trackNumberId, name = "LT 2"),
+                locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("LT 2")),
                 trackGeometry(
                     TmpLayoutEdge(
                         startNode = PlaceHolderNodeConnection,
@@ -385,7 +385,7 @@ constructor(
         val locationTrack3Oid = someOid<LocationTrack>()
         val locationTrack3 =
             mainOfficialContext.save(
-                locationTrack(trackNumberId = trackNumberId, name = "LT 3"),
+                locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("LT 3")),
                 trackGeometry(
                     TmpLayoutEdge(
                         startNode = NodeConnection.switch(inner = switchLinkYV(switchId, 1), outer = null),

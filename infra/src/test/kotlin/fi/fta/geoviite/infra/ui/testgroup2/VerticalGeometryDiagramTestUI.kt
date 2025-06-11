@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
@@ -114,7 +115,7 @@ constructor(
             )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId = trackNumberId, name = "foo bar", draft = true),
+            locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("foo bar"), draft = true),
             trackGeometryOfSegments(
                 segment(
                     DEFAULT_BASE_POINT + Point(0.0, 0.0),

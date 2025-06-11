@@ -83,7 +83,8 @@ constructor(
         val sourceTrackId = mainOfficialContext.save(locationTrack(trackNumberId), geometry).id
         locationTrackService.insertExternalId(LayoutBranch.main, sourceTrackId, someOid())
 
-        val sourceTrackName = locationTrackService.get(MainLayoutContext.official, sourceTrackId)!!.name.toString()
+        val sourceTrackName =
+            locationTrackService.getAugLocationTrack(sourceTrackId, MainLayoutContext.official)!!.name.toString()
         mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges1))
         mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges2))
 

@@ -51,6 +51,7 @@ import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -61,6 +62,7 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -74,7 +76,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -190,13 +191,18 @@ constructor(
         val referenceLineId =
             referenceLineDao.save(referenceLine(draftTrackNumberId, alignmentVersion = someAlignment, draft = true)).id
         val someGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
-        locationTrackDao.save(locationTrack(draftTrackNumberId, name = "LT", draft = false), someGeometry)
+        locationTrackDao.save(
+            locationTrack(draftTrackNumberId, name = locationTrackDbName("LT"), draft = false),
+            someGeometry,
+        )
         // one new draft location track trying to use an official one's name
         val draftLocationTrackId =
-            locationTrackDao.save(locationTrack(draftTrackNumberId, name = "LT", draft = true), someGeometry).id
+            locationTrackDao
+                .save(locationTrack(draftTrackNumberId, name = locationTrackDbName("LT"), draft = true), someGeometry)
+                .id
 
         // two new location tracks stepping over each other's names
-        val newLt = locationTrack(draftTrackNumberId, name = "NLT", draft = true)
+        val newLt = locationTrack(draftTrackNumberId, name = locationTrackDbName("NLT"), draft = true)
         val newLocationTrack1 = locationTrackDao.save(newLt, someGeometry).id
         val newLocationTrack2 = locationTrackDao.save(newLt, someGeometry).id
 
@@ -293,14 +299,25 @@ constructor(
         // Initial state, all official: Small duplicates middle, middle and big don't duplicate
         // anything
         val middleTrack =
-            locationTrackDao.save(locationTrack(trackNumberId, name = "middle track", draft = false), someGeometry)
+            locationTrackDao.save(
+                locationTrack(trackNumberId, name = locationTrackDbName("middle track"), draft = false),
+                someGeometry,
+            )
         val smallTrack =
             locationTrackDao.save(
-                locationTrack(trackNumberId, name = "small track", duplicateOf = middleTrack.id, draft = false),
+                locationTrack(
+                    trackNumberId,
+                    name = locationTrackDbName("small track"),
+                    duplicateOf = middleTrack.id,
+                    draft = false,
+                ),
                 someGeometry,
             )
         val bigTrack =
-            locationTrackDao.save(locationTrack(trackNumberId, name = "big track", draft = false), someGeometry)
+            locationTrackDao.save(
+                locationTrack(trackNumberId, name = locationTrackDbName("big track"), draft = false),
+                someGeometry,
+            )
 
         // In new draft, middle wants to duplicate big (leading to: small->middle->big)
         locationTrackService.saveDraft(
@@ -363,7 +380,10 @@ constructor(
         // but the draft does,
         // it's only bad if the draft is in the publication unit
         val otherSmallTrack =
-            locationTrackDao.save(locationTrack(trackNumberId, name = "other small track", draft = false), someGeometry)
+            locationTrackDao.save(
+                locationTrack(trackNumberId, name = locationTrackDbName("other small track"), draft = false),
+                someGeometry,
+            )
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackDao.fetch(otherSmallTrack).copy(duplicateOf = middleTrack.id),
@@ -695,7 +715,7 @@ constructor(
         mainDraftContext.saveLocationTrack(
             locationTrackAndGeometry(
                 trackNumber,
-                name = "ABC 123",
+                name = locationTrackDbName("ABC 123"),
                 segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
             )
         )
@@ -706,7 +726,7 @@ constructor(
                 .saveLocationTrack(
                     locationTrackAndGeometry(
                         trackNumber,
-                        name = "ABC 123",
+                        name = locationTrackDbName("ABC 123"),
                         segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
                     )
                 )
@@ -1011,7 +1031,9 @@ constructor(
         val locationTrack2 = locationTrack(trackNumberId, draft = true)
         val locationTrack3 = locationTrack(trackNumberId, draft = true)
         val locationTrack2Id = locationTrackService.saveDraft(LayoutBranch.main, locationTrack2, otherGeometry)
+        val aug2 = locationTrackService.getAugLocationTrackOrThrow(locationTrack2Id.id, LayoutBranch.main.official)
         val locationTrack3Id = locationTrackService.saveDraft(LayoutBranch.main, locationTrack3, otherGeometry)
+        val aug3 = locationTrackService.getAugLocationTrackOrThrow(locationTrack3Id.id, LayoutBranch.main.official)
 
         val validated =
             publicationValidationService.validatePublicationCandidates(
@@ -1027,7 +1049,7 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.WARNING,
                 "validation.layout.switch.track-linkage.switch-alignment-multiply-connected",
-                mapOf("locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})", "switch" to "TV123"),
+                mapOf("locationTracks" to "4-5-3 (${aug2.name}, ${aug3.name})", "switch" to "TV123"),
             ),
         )
     }

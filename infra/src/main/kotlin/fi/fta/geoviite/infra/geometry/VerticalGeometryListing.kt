@@ -24,7 +24,7 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.math.roundTo6Decimals
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
@@ -149,14 +149,13 @@ fun toVerticalGeometryListing(
 }
 
 fun toVerticalGeometryListing(
-    track: LocationTrack,
+    track: AugLocationTrack,
     geometry: LocationTrackGeometry,
     startAddress: TrackMeter?,
     endAddress: TrackMeter?,
     geocodingContext: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<VerticalGeometryListing> {
     val linkedElements = collectLinkedElements(geometry, geocodingContext, startAddress, endAddress)
     val headersAndAlignments =
@@ -191,7 +190,6 @@ fun toVerticalGeometryListing(
                                 track,
                                 curvedProfileSegments,
                                 linearProfileSegments,
-                                getLocationTrackName,
                             )
                             ?.let { segment to it }
                     } else null
@@ -244,10 +242,9 @@ private fun toVerticalGeometry(
     segment: CurvedProfileSegment,
     endAddress: TrackMeter?,
     startAddress: TrackMeter?,
-    track: LocationTrack,
+    track: AugLocationTrack,
     curvedProfileSegments: List<CurvedProfileSegment>,
     linearProfileSegments: List<LinearProfileSegment>,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): VerticalGeometryListing? {
     val coordinateTransform = planHeader.units.coordinateSystemSrid?.let(getTransformation)
     val (segmentStartAddress, segmentEndAddress) =
@@ -264,7 +261,7 @@ private fun toVerticalGeometry(
         toVerticalGeometryListing(
             segment,
             geometryAlignment,
-            getLocationTrackName(track.id as IntId),
+            track.name,
             planHeader.units.coordinateSystemSrid?.let(getTransformation),
             planHeader,
             geocodingContext,

@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackNaming
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -35,6 +36,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -46,6 +48,7 @@ import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.someSegment
@@ -55,13 +58,13 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -109,11 +112,21 @@ constructor(
     @Test
     fun locationTrackPublicationCandidatesAreFound() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
-        val (_, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
+        val (_, draft) =
+            insertAndCheck(
+                asMainDraft(track)
+                    .copy(
+                        dbName =
+                            DbLocationTrackNaming.of(
+                                LocationTrackNamingScheme.FREE_TEXT,
+                                AlignmentName("${track.dbName.nameFreeText} DRAFT"),
+                            )
+                    )
+            )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
-        assertEquals(draft.name, candidates.first().name)
+        assertEquals(draft.dbName, candidates.first().dbName)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
         assertEquals(UserName.of(TEST_USER), candidates.first().userName)
         assertEquals(Operation.MODIFY, candidates.first().operation)
@@ -143,12 +156,13 @@ constructor(
     @Test
     fun modifyOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
-        val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
+        val (version, draft) =
+            insertAndCheck(asMainDraft(track).copy(dbName = locationTrackDbName("${track.dbName.nameFreeText} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId).let { lt ->
-                lt.copy(name = AlignmentName("${lt.name} TEST"))
+                lt.copy(dbName = locationTrackDbName("${lt.dbName.nameFreeText} TEST"))
             },
             TmpLocationTrackGeometry.empty,
         )
@@ -161,7 +175,8 @@ constructor(
     @Test
     fun deleteOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
-        val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
+        val (version, draft) =
+            insertAndCheck(asMainDraft(track).copy(dbName = locationTrackDbName("${track.dbName.nameFreeText} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
             LayoutBranch.main,
@@ -181,7 +196,11 @@ constructor(
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
         val (version, draft) =
             insertAndCheck(
-                asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT"), state = LocationTrackState.DELETED)
+                asMainDraft(track)
+                    .copy(
+                        dbName = locationTrackDbName("${track.dbName.nameFreeText} DRAFT"),
+                        state = LocationTrackState.DELETED,
+                    )
             )
         publishAndCheck(version)
         locationTrackService.saveDraft(

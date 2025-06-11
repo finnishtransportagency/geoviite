@@ -54,6 +54,7 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchAndMatchingAlignments
@@ -787,7 +788,7 @@ constructor(
         val throughTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "through track", draft = true),
+                locationTrack(trackNumberId, name = locationTrackDbName("through track"), draft = true),
                 trackGeometryOfSegments(
                     pasteTrackSegmentsWithSpacers(
                             listOf(listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))), templateThroughTrackSegments),
@@ -800,13 +801,18 @@ constructor(
 
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId, name = "ok branching track", draft = true),
+            locationTrack(trackNumberId, name = locationTrackDbName("ok branching track"), draft = true),
             trackGeometryOfSegments(shiftTrack(templateBranchingTrackSegments, shift0)),
         )
         // linkable, but will cause a validation error due to being wrongly marked as a duplicate
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId, name = "bad branching track", duplicateOf = throughTrack.id, draft = true),
+            locationTrack(
+                trackNumberId,
+                name = locationTrackDbName("bad branching track"),
+                duplicateOf = throughTrack.id,
+                draft = true,
+            ),
             trackGeometryOfSegments(shiftTrack(templateBranchingTrackSegments, shift1)),
         )
         val validationResult =
@@ -870,7 +876,7 @@ constructor(
             locationTrackService
                 .saveDraft(
                     LayoutBranch.main,
-                    locationTrack(trackNumberId, name = "track152", draft = true),
+                    locationTrack(trackNumberId, name = locationTrackDbName("track152"), draft = true),
                     trackGeometryOfSegments(
                         listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))) +
                             shiftTrack(templateThroughTrackSegments, Point(10.0, 0.0))
@@ -879,7 +885,7 @@ constructor(
                 .id
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId, name = "track13", draft = true),
+            locationTrack(trackNumberId, name = locationTrackDbName("track13"), draft = true),
             trackGeometryOfSegments(shiftTrack(templateBranchingTrackSegments, Point(10.0, 0.0))),
         )
         val okSwitch = switchDao.save(shiftSwitch(templateSwitch, "ok", Point(10.0, 0.0)))
@@ -924,7 +930,7 @@ constructor(
         val switchSomewhereElse = switchDao.save(shiftSwitch(templateSwitch, "somewhere else", somewhereElse))
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId, name = "track152", draft = true),
+            locationTrack(trackNumberId, name = locationTrackDbName("track152"), draft = true),
             trackGeometry(
                 edge(
                     segments = shiftTrack(templateThroughTrackSegments, basePoint),
@@ -935,7 +941,7 @@ constructor(
         )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId, name = "track13", draft = true),
+            locationTrack(trackNumberId, name = locationTrackDbName("track13"), draft = true),
             trackGeometry(
                 edge(
                     segments = shiftTrack(templateBranchingTrackSegments, basePoint),
@@ -946,12 +952,12 @@ constructor(
         )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId, name = "some other track152", draft = true),
+            locationTrack(trackNumberId, name = locationTrackDbName("some other track152"), draft = true),
             trackGeometryOfSegments(shiftTrack(templateThroughTrackSegments, somewhereElse)),
         )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId, name = "some other track13", draft = true),
+            locationTrack(trackNumberId, name = locationTrackDbName("some other track13"), draft = true),
             trackGeometry(
                 edge(
                     segments = shiftTrack(templateBranchingTrackSegments, somewhereElse),
@@ -964,7 +970,7 @@ constructor(
         val topoTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "topoTrack", draft = true),
+                locationTrack(trackNumberId, name = locationTrackDbName("topoTrack"), draft = true),
                 trackGeometry(
                     edge(
                         listOf(segment(Point(0.0, 0.0), basePoint)),
@@ -1034,7 +1040,7 @@ constructor(
         val throughTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "through track", draft = true),
+                locationTrack(trackNumberId, name = locationTrackDbName("through track"), draft = true),
                 trackGeometry(
                     edge(
                         segments = templateThroughTrackSegments,
@@ -1050,7 +1056,11 @@ constructor(
         val originallyLinkedBranchingTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "originally linked branching track", draft = true),
+                locationTrack(
+                    trackNumberId,
+                    name = locationTrackDbName("originally linked branching track"),
+                    draft = true,
+                ),
                 trackGeometry(
                     edge(
                         segments = branchingTrackSegments,
@@ -1062,7 +1072,7 @@ constructor(
         val newBranchingTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "new branching track", draft = true),
+                locationTrack(trackNumberId, name = locationTrackDbName("new branching track"), draft = true),
                 trackGeometry(edge(segments = shiftTrack(branchingTrackSegments, Point(134.4, 0.0)))),
             )
         val suggestedSwitch =
@@ -1107,20 +1117,20 @@ constructor(
         val oneFiveTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "one-five with topo link", draft = true),
+                locationTrack(trackNumberId, name = locationTrackDbName("one-five with topo link"), draft = true),
                 trackGeometry(edge(listOf(oneFive), endOuterSwitch = switchLinkYV(switch.id, 5))),
             )
 
         val fiveTwoTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "five-two with topo link", draft = true),
+                locationTrack(trackNumberId, name = locationTrackDbName("five-two with topo link"), draft = true),
                 trackGeometry(edge(listOf(fiveTwo), startOuterSwitch = switchLinkYV(switch.id, 1))),
             )
         val threeFiveFourTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "three-four", draft = true),
+                locationTrack(trackNumberId, name = locationTrackDbName("three-four"), draft = true),
                 trackGeometry(
                     edge(
                         templateFourThreeTrackSegments,
@@ -1165,7 +1175,7 @@ constructor(
         val throughTrackStart =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "through track start", draft = true),
+                locationTrack(trackNumberId, name = locationTrackDbName("through track start"), draft = true),
                 trackGeometry(
                     edge(
                         segments = templateThroughTrackSegments + listOf(segment(shift, fullShift)),
@@ -1175,7 +1185,7 @@ constructor(
             )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId, name = "through track switch and end", draft = true),
+            locationTrack(trackNumberId, name = locationTrackDbName("through track switch and end"), draft = true),
             trackGeometry(
                 edge(
                     segments = shiftTrack(templateThroughTrackSegments, fullShift),
@@ -1188,7 +1198,7 @@ constructor(
         // is at x=134.43
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId, name = "branching track", draft = true),
+            locationTrack(trackNumberId, name = locationTrackDbName("branching track"), draft = true),
             trackGeometry(
                 edge(
                     segments = templateBranchingTrackSegments,
@@ -1200,7 +1210,7 @@ constructor(
         val uninvolvedTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "uninvolved track", draft = true),
+                locationTrack(trackNumberId, name = locationTrackDbName("uninvolved track"), draft = true),
                 trackGeometryOfSegments(shiftTrack(templateThroughTrackSegments, fullShift - Point(1.0, 1.0))),
             )
         val suggestedSwitch = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, fullShift, switch.id)!!
@@ -1236,7 +1246,7 @@ constructor(
         val otherLocationTrackWithTopoSwitchLink =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                locationTrack(trackNumberId, name = "unrelated mislinked track", draft = true),
+                locationTrack(trackNumberId, name = locationTrackDbName("unrelated mislinked track"), draft = true),
                 trackGeometry(
                     edge(
                         listOf(segment(Point(456.7, 345.5), Point(457.8, 346.9))),
@@ -1514,7 +1524,7 @@ constructor(
             locationTrackService
                 .saveDraft(
                     LayoutBranch.main,
-                    locationTrack(trackNumberId, name = "through track", draft = true),
+                    locationTrack(trackNumberId, name = locationTrackDbName("through track"), draft = true),
                     trackGeometry(
                         edge(
                             segments = listOf(segment(Point(0.0, 0.0), Point(34.43, 0.0))),
@@ -1530,14 +1540,18 @@ constructor(
                 .id
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrack(trackNumberId, name = "branching track start", draft = true),
+            locationTrack(trackNumberId, name = locationTrackDbName("branching track start"), draft = true),
             trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(34.9, -2.0))),
         )
         val branchingTrackContinuationId =
             locationTrackService
                 .saveDraft(
                     LayoutBranch.main,
-                    locationTrack(trackNumberId, name = "branching track continuation", draft = true),
+                    locationTrack(
+                        trackNumberId,
+                        name = locationTrackDbName("branching track continuation"),
+                        draft = true,
+                    ),
                     trackGeometryOfSegments(segment(Point(35.0, -2.0), Point(50.0, -3.0))),
                 )
                 .id

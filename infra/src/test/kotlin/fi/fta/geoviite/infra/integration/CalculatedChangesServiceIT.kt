@@ -51,6 +51,7 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
 import fi.fta.geoviite.infra.tracklayout.moveLocationTrackGeometryPointsAndUpdate
 import fi.fta.geoviite.infra.tracklayout.moveReferenceLineGeometryPointsAndUpdate
@@ -1462,7 +1463,7 @@ constructor(
                     locationTrackDao.save(
                         locationTrack(
                             trackNumberId = trackNumber.id as IntId,
-                            name = "TEST LocTr $sequence ${locationTrackSequence++}",
+                            name = locationTrackDbName("TEST LocTr $sequence ${locationTrackSequence++}"),
                             draft = false,
                         ),
                         trackGeometryOfSegments(segments(refPoint + line.start, refPoint + line.end, 10.0)),
@@ -1524,7 +1525,7 @@ constructor(
         val switch =
             switchDao.fetch(
                 switchDao.save(
-                    switch(name = name ?: "${trackA.first.name}-${trackB.first.name}", joints = listOf(), draft = false)
+                    switch(name = name ?: "${trackA.first.id}-${trackB.first.id}", joints = listOf(), draft = false)
                 )
             )
 

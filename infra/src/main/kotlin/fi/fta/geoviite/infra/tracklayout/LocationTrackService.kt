@@ -290,6 +290,16 @@ class LocationTrackService(
             .let(::associateWithGeometries)
     }
 
+    // TODO: GVT-3080
+    fun listAugsWithGeometries(
+        layoutContext: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
+        includeDeleted: Boolean = false,
+        boundingBox: BoundingBox? = null,
+        minLength: Double? = null,
+        locationTrackIds: Set<IntId<LocationTrack>>? = null,
+    ): List<Pair<AugLocationTrack, DbLocationTrackGeometry>> = throw NotImplementedError()
+
     @Transactional(readOnly = true)
     fun getManyWithGeometries(
         layoutContext: LayoutContext,

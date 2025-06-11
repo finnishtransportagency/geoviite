@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -25,7 +26,7 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
             listOf("test-lt A1" to "test-desc-1", "test-lt B2" to "test-desc-2", "test-lt B3" to "test-desc-3")
         ltNames.forEach { (name, desc) ->
             mainOfficialContext.saveLocationTrack(
-                locationTrackAndGeometry(trackNumberId = tnId, name = name, description = desc)
+                locationTrackAndGeometry(trackNumberId = tnId, name = locationTrackDbName(name), description = desc)
             )
         }
 
@@ -49,7 +50,7 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
             mainOfficialContext.saveAndFetchLocationTrack(
                 locationTrackAndGeometry(
                     trackNumberId = trackNumberId,
-                    name = "test-lt specific 001",
+                    name = locationTrackDbName("test-lt specific 001"),
                     description = "specific track selection test track 001",
                 )
             )

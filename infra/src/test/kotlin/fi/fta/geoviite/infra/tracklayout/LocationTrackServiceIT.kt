@@ -22,12 +22,12 @@ import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -40,7 +40,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -147,26 +146,28 @@ constructor(
         val editedVersion =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                published.copy(name = AlignmentName("EDITED1")),
+                published.copy(dbName = locationTrackDbName("EDITED1")),
                 TmpLocationTrackGeometry.empty,
             )
         assertEquals(publicationResponse.id, editedVersion.id)
         assertNotEquals(publicationResponse.rowId, editedVersion.rowId)
 
         val editedDraft = getAndVerifyDraft(publicationResponse.id)
-        assertEquals(AlignmentName("EDITED1"), editedDraft.name)
+        assertEquals(LocationTrackNamingScheme.FREE_TEXT, editedDraft.dbName.namingScheme)
+        assertEquals(AlignmentName("EDITED1"), editedDraft.dbName.nameFreeText)
 
         val editedVersion2 =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                editedDraft.copy(name = AlignmentName("EDITED2")),
+                editedDraft.copy(dbName = locationTrackDbName("EDITED1")),
                 TmpLocationTrackGeometry.empty,
             )
         assertEquals(publicationResponse.id, editedVersion2.id)
         assertNotEquals(publicationResponse.rowId, editedVersion2.rowId)
 
         val editedDraft2 = getAndVerifyDraft(publicationResponse.id)
-        assertEquals(AlignmentName("EDITED2"), editedDraft2.name)
+        assertEquals(LocationTrackNamingScheme.FREE_TEXT, editedDraft.dbName.namingScheme)
+        assertEquals(AlignmentName("EDITED2"), editedDraft2.dbName.nameFreeText)
     }
 
     @Test
@@ -687,9 +688,10 @@ constructor(
             locationTrackService.update(
                 LayoutBranch.main,
                 duplicateInOfficial.id as IntId,
-                saveRequest(trackNumberId, 1).copy(name = newTrackName, duplicateOf = originalLocationTrackId),
+                saveRequest(trackNumberId, 1).copy(nameFreeText = newTrackName, duplicateOf = originalLocationTrackId),
             )
-        val duplicateInDraft = locationTrackService.get(MainLayoutContext.draft, duplicateInDraftVersion.id)!!
+        val duplicateInDraft =
+            locationTrackService.getAugLocationTrack(duplicateInDraftVersion.id, MainLayoutContext.draft)!!
 
         assertEquals(
             duplicateInOfficial.name,
@@ -697,7 +699,7 @@ constructor(
                 .getInfoboxExtras(MainLayoutContext.official, originalLocationTrackId)
                 ?.duplicates
                 ?.firstOrNull()
-                ?.name,
+                ?.let { locationTrackService.getAugLocationTrack(it.id, MainLayoutContext.official)?.name },
         )
         assertEquals(
             duplicateInDraft.name,
@@ -705,7 +707,7 @@ constructor(
                 .getInfoboxExtras(MainLayoutContext.draft, originalLocationTrackId)
                 ?.duplicates
                 ?.firstOrNull()
-                ?.name,
+                ?.let { locationTrackService.getAugLocationTrack(it.id, MainLayoutContext.official)?.name },
         )
     }
 
@@ -770,9 +772,11 @@ constructor(
                 LayoutBranch.main,
                 split.sourceLocationTrackId,
                 LocationTrackSaveRequest(
-                    name = AlignmentName("Some other name"),
-                    descriptionBase = sourceLocationTrack.descriptionBase,
-                    descriptionSuffix = sourceLocationTrack.descriptionSuffix,
+                    namingScheme = sourceLocationTrack.dbName.namingScheme,
+                    nameFreeText = AlignmentName("Some other name"),
+                    nameSpecifier = sourceLocationTrack.dbName.nameSpecifier,
+                    descriptionBase = sourceLocationTrack.dbDescription.descriptionBase,
+                    descriptionSuffix = sourceLocationTrack.dbDescription.descriptionSuffix,
                     type = sourceLocationTrack.type,
                     state = sourceLocationTrack.state,
                     trackNumberId = sourceLocationTrack.trackNumberId,
@@ -782,56 +786,6 @@ constructor(
                 ),
             )
         }
-    }
-
-    @Test
-    fun `getFullDescriptions() works in happy case`() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switch1 = mainDraftContext.save(switch(name = "ABC V123"))
-        val switch2 = mainDraftContext.save(switch(name = "QUX V456"))
-        val track1 =
-            mainDraftContext
-                .save(
-                    locationTrack(
-                        trackNumberId,
-                        description = "track 1",
-                        descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
-                    ),
-                    trackGeometry(
-                        TmpLayoutEdge(
-                            startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switch1.id, 1)),
-                            endNode = NodeConnection.switch(inner = switchLinkYV(switch2.id, 1), outer = null),
-                            segments = listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0))),
-                        )
-                    ),
-                )
-                .id
-        val track2 =
-            mainDraftContext
-                .save(
-                    locationTrack(
-                        trackNumberId,
-                        description = "track 2",
-                        descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
-                    ),
-                    trackGeometry(
-                        TmpLayoutEdge(
-                            startNode = NodeConnection.switch(inner = switchLinkYV(switch2.id, 1), outer = null),
-                            endNode = PlaceHolderNodeConnection,
-                            segments = listOf(segment(Point(2.0, 2.0), Point(3.0, 3.0))),
-                        )
-                    ),
-                )
-                .id
-        val descriptions =
-            locationTrackService
-                .getFullDescriptions(
-                    MainLayoutContext.draft,
-                    listOf(track1, track2).map { mainDraftContext.fetch(it)!! },
-                    LocalizationLanguage.FI,
-                )
-                .map { it.toString() }
-        assertEquals(listOf("track 1 V123 - V456", "track 2 V456 - Puskin"), descriptions)
     }
 
     @Test
@@ -1162,8 +1116,11 @@ constructor(
     private fun insertAndFetchDraft(
         locationTrack: LocationTrack,
         geometry: LocationTrackGeometry,
-    ): Pair<LocationTrack, LocationTrackGeometry> =
-        locationTrackService.getWithGeometry(locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry))
+    ): Pair<AugLocationTrack, LocationTrackGeometry> =
+        locationTrackService.getAugWithGeometryOrThrow(
+            MainLayoutContext.draft,
+            locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry).id,
+        )
 
     private fun createPublishedLocationTrack(seed: Int): VerifiedTrack {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
@@ -1221,8 +1178,11 @@ constructor(
 
     private fun assertMatches(saveRequest: LocationTrackSaveRequest, locationTrack: LocationTrack) {
         assertEquals(saveRequest.trackNumberId, locationTrack.trackNumberId)
-        assertEquals(saveRequest.name, locationTrack.name)
-        assertEquals(saveRequest.descriptionBase, locationTrack.descriptionBase)
+        assertEquals(saveRequest.namingScheme, locationTrack.dbName.namingScheme)
+        assertEquals(saveRequest.nameFreeText, locationTrack.dbName.nameFreeText)
+        assertEquals(saveRequest.nameSpecifier, locationTrack.dbName.nameSpecifier)
+        assertEquals(saveRequest.descriptionBase, locationTrack.dbDescription.descriptionBase)
+        assertEquals(saveRequest.descriptionSuffix, locationTrack.dbDescription.descriptionSuffix)
         assertEquals(saveRequest.state, locationTrack.state)
         assertEquals(saveRequest.type, locationTrack.type)
         assertEquals(saveRequest.topologicalConnectivity, locationTrack.topologicalConnectivity)
@@ -1231,7 +1191,9 @@ constructor(
 
     private fun saveRequest(trackNumberId: IntId<LayoutTrackNumber>, seed: Int) =
         LocationTrackSaveRequest(
-            name = AlignmentName("TST-TRACK$seed"),
+            namingScheme = LocationTrackNamingScheme.FREE_TEXT,
+            nameFreeText = AlignmentName("TST-TRACK$seed"),
+            nameSpecifier = null,
             descriptionBase = LocationTrackDescriptionBase("Description - $seed"),
             descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
             type = getSomeValue(seed),

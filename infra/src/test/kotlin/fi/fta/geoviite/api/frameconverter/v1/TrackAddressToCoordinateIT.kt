@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
@@ -27,6 +26,10 @@ import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,10 +38,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaatit"
 
@@ -651,14 +650,7 @@ constructor(
                 "valimatka" to 0.0,
                 "ratanumero" to geocodableTrack.trackNumber.number.toString(),
                 "sijaintiraide" to geocodableTrack.locationTrack.name.toString(),
-                "sijaintiraide_kuvaus" to
-                    locationTrackService
-                        .getFullDescription(
-                            layoutContext = geocodableTrack.layoutContext,
-                            locationTrack = geocodableTrack.locationTrack,
-                            lang = LocalizationLanguage.FI,
-                        )
-                        .toString(),
+                "sijaintiraide_kuvaus" to geocodableTrack.locationTrack.description.toString(),
                 "sijaintiraide_tyyppi" to "sivuraide",
                 "ratakilometri" to 0,
                 "ratametri" to 400,
@@ -819,14 +811,7 @@ constructor(
                 segments = segments,
             )
 
-        val trackDescription =
-            locationTrackService
-                .getFullDescription(
-                    layoutContext = geocodableTrack.layoutContext,
-                    locationTrack = geocodableTrack.locationTrack,
-                    lang = LocalizationLanguage.FI,
-                )
-                .toString()
+        val trackDescription = geocodableTrack.locationTrack.description.toString()
 
         val request =
             TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 300)
@@ -872,14 +857,7 @@ constructor(
                 segments = segments,
             )
 
-        val trackDescription =
-            locationTrackService
-                .getFullDescription(
-                    layoutContext = geocodableTrack.layoutContext,
-                    locationTrack = geocodableTrack.locationTrack,
-                    lang = LocalizationLanguage.FI,
-                )
-                .toString()
+        val trackDescription = geocodableTrack.locationTrack.description.toString()
 
         val request =
             TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 275)

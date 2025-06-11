@@ -1,14 +1,12 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -60,6 +58,8 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbDescription
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -179,7 +179,10 @@ constructor(
                     )
                 ),
             )
-        val track2 = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumber.id, name = "TEST-1"))
+        val track2 =
+            mainDraftContext.saveLocationTrack(
+                locationTrackAndGeometry(trackNumber.id, name = locationTrackDbName("TEST-1"))
+            )
 
         val referenceLine = mainDraftContext.saveReferenceLine(referenceLineAndAlignment(trackNumber.id))
 
@@ -385,7 +388,7 @@ constructor(
         val officialId =
             mainOfficialContext
                 .save(
-                    locationTrack(trackNumberId = trackNumberId, name = "test 01"),
+                    locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("test 01")),
                     trackGeometryOfSegments(segment(Point(1.0, 1.0), Point(2.0, 2.0))),
                 )
                 .id
@@ -393,7 +396,7 @@ constructor(
         val (tmpTrack, _) = locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, officialId)
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            tmpTrack.copy(name = AlignmentName("DRAFT test 01")),
+            tmpTrack.copy(dbName = locationTrackDbName("DRAFT test 01")),
             trackGeometryOfSegments(
                 segment(Point(1.0, 1.0), Point(2.0, 2.0)),
                 segment(Point(2.0, 2.0), Point(3.0, 3.0)),
@@ -609,7 +612,9 @@ constructor(
             locationTrackService,
             { locationTrack(tnId, draft = true) },
             { orig ->
-                asMainDraft(orig.copy(descriptionBase = LocationTrackDescriptionBase("${orig.descriptionBase}_edit")))
+                asMainDraft(
+                    orig.copy(dbDescription = locationTrackDbDescription("${orig.dbDescription.descriptionBase}_edit"))
+                )
             },
         )
     }
@@ -830,8 +835,11 @@ constructor(
         referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = someAlignment, draft = true)).id
 
         val someGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
-        locationTrackDao.save(locationTrack(trackNumberId, name = "LT", draft = false), someGeometry)
-        val draftLt = locationTrack(trackNumberId, name = "LT", draft = true)
+        locationTrackDao.save(
+            locationTrack(trackNumberId, name = locationTrackDbName("LT"), draft = false),
+            someGeometry,
+        )
+        val draftLt = locationTrack(trackNumberId, name = locationTrackDbName("LT"), draft = true)
         val draftLocationTrackId = locationTrackDao.save(draftLt, someGeometry).id
         val exception =
             assertThrows<DuplicateLocationTrackNameInPublicationException> {
@@ -848,19 +856,19 @@ constructor(
         referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = someAlignment, draft = true)).id
 
         val someGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
-        val lt1 = locationTrack(trackNumberId = trackNumberId, name = "LT1", draft = false)
+        val lt1 = locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("LT1"), draft = false)
         val lt1OriginalVersion = locationTrackDao.save(lt1, someGeometry)
         val lt1RenamedDraft =
             locationTrackDao.save(
-                asMainDraft(locationTrackDao.fetch(lt1OriginalVersion).copy(name = AlignmentName("LT2"))),
+                asMainDraft(locationTrackDao.fetch(lt1OriginalVersion).copy(dbName = locationTrackDbName("LT2"))),
                 someGeometry,
             )
 
-        val lt2 = locationTrack(trackNumberId = trackNumberId, name = "LT2", draft = false)
+        val lt2 = locationTrack(trackNumberId = trackNumberId, name = locationTrackDbName("LT2"), draft = false)
         val lt2OriginalVersion = locationTrackDao.save(lt2, someGeometry)
         val lt2RenamedDraft =
             locationTrackDao.save(
-                asMainDraft(locationTrackDao.fetch(lt2OriginalVersion).copy(name = AlignmentName("LT1"))),
+                asMainDraft(locationTrackDao.fetch(lt2OriginalVersion).copy(dbName = locationTrackDbName("LT1"))),
                 someGeometry,
             )
 
@@ -1005,7 +1013,7 @@ constructor(
         )
         testDraftContext.save(
             asDesignDraft(
-                mainOfficialContext.fetch(locationTrack)!!.copy(name = AlignmentName("edited")),
+                mainOfficialContext.fetch(locationTrack)!!.copy(dbName = locationTrackDbName("edited")),
                 testBranch.designId,
             )
         )
@@ -1351,7 +1359,7 @@ constructor(
             )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            targetTrackToModify.copy(name = AlignmentName("Some other draft name")),
+            targetTrackToModify.copy(dbName = locationTrackDbName("Some other draft name")),
             targetAlignment,
         )
 
